@@ -39,7 +39,7 @@ class IStream(ABC):
 class File(IStream):
     def __init__(self, path: str):
         self._path : str = path
-        self._textStream: TextIOWrapper = None
+        self._textStream: TextIOWrapper|None = None
         
     def GetStrMode(fileMode : FileMode) -> str:
         match fileMode:
@@ -91,7 +91,7 @@ class File(IStream):
     
     @final
     def IsOpen(self) -> bool:
-        return not self._textStream is None
+        return self._textStream is not None
     
     @final
     def Open(self, fileMode: FileMode, fileType: FileType) -> None:
@@ -102,10 +102,13 @@ class File(IStream):
     
     @final
     def Write(self, text: str) -> None:
-        if (self.IsOpen()):
+        if self.IsOpen():
             self._textStream.write(text)
         else:
-            raise IOError()
+            raise IOError
+    @final
+    def WriteLine(self, text: str) -> None:
+        self.Write(text + "\n")
     
     @final
     def Close(self) -> None:
@@ -120,3 +123,37 @@ class File(IStream):
             
         if path.isfile(self._path):            
             remove(self._path)
+    
+    def GetFile(onError: callable, message: str = "Enter a path: "):
+        while True:
+            try:
+                return File(input(message))
+            
+            except IOError as e:
+                if onError(e):
+                    continue
+
+                return None
+    
+    def OpenFile(fileMode: FileMode, fileType: FileType, onError: callable, message: str = "Enter a path: "):
+        file: File|None = File.GetFile(onError, message)
+
+        if file is None:
+            return None
+        
+        file.Open(fileMode, fileType)
+
+        return file
+    
+    def GetFileInitializer(fileMode: FileMode, fileType: FileType, onError: callable, message: str = "Enter a path: ") -> callable:
+        file: File|None = File.GetFile(onError, message)
+        
+        if file is None:
+            return None
+        
+        def open() -> File:
+            file.Open(fileMode, fileType)
+
+            return file
+        
+        return open

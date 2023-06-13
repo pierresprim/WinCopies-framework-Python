@@ -24,7 +24,32 @@ class IEnumerator(ABC):
     
 class Enumerator(IEnumerator):
     def __init__(self):
-        self._enumerationCompleted: bool = False
+        self.__moveNext: callable = self.__GetMoveNext()
+    @final
+    def __GetMoveNext(self) -> callable:
+        def moveNext() -> bool:
+            def setCompletedMoveNext() -> callable:
+                def completedMoveNext() -> bool:
+                    return False
+                
+                self.__moveNext = completedMoveNext
+            
+            def moveNext() -> bool:
+                if self.MoveNextOverride():
+                    return True
+                
+                self.OnCompleted()
+                setCompletedMoveNext()
+                return False
+            
+            if self.OnStarting() and self.MoveNextOverride():
+                self.__moveNext = moveNext
+                return True
+            
+            setCompletedMoveNext()
+            return False
+        
+        return moveNext
     #@protected
     @abstractmethod
     def MoveNextOverride(self) -> bool:
@@ -39,29 +64,28 @@ class Enumerator(IEnumerator):
     @abstractmethod
     def IsResetSupported(self) -> bool:
         pass
+    #@protected
+    def OnStarting(self) -> bool:
+        return True
+    #@protected
+    def OnCompleted(self) -> None:
+        pass
     @final
     def MoveNext(self) -> bool:
-        if self._enumerationCompleted:
-            return False
-        
-        if self.MoveNextOverride():
-            return True
-        
-        self._enumerationCompleted = True
-        return False
+        return self.__moveNext()
     
     @final
     def Reset(self) -> bool:
         if self.IsResetSupported():
             self.ResetOverride()
-            self._enumerationCompleted = False
+            self.__moveNext = self.__GetMoveNext()
             return True
         
         return False
     
     @final
     def __next__(self):
-        if self.MoveNext():
+        if self.__moveNext():
             return self.GetCurrent()
         else:
             raise StopIteration
