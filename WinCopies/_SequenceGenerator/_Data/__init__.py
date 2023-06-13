@@ -1,5 +1,5 @@
 from typing import final #, protected
-from math import pow, factorial
+from math import pow, factorial, log10
 
 from ._Generators import _IGenerator, _TextRenderer, _ICounter, _Counter, _CounterRenderer, _TextSequenceGenerator, _CounterSequenceGenerator, _Operator, _OperatorRenderer, _OperatorParser
 from WinCopies.Collections.Linked.Singly import Queue
@@ -396,6 +396,7 @@ class _Data:
         identical: bool|None = True
         _i: int
         nextLevel: bool
+        step: int|None
         
         def isVariableSpace(generator: _IGenerator) -> bool:
             return isinstance(generator, _ICounter) and generator.IsVariableSpace()
@@ -403,7 +404,7 @@ class _Data:
         def render(generator: _IGenerator, variableSpace: bool|None = None) -> None:
             nonlocal result
             
-            result += generator.RenderSpace(i, count, nextLevel) if (variableSpace if type(variableSpace) is bool else isVariableSpace(generator)) else generator.Render(i)
+            result += generator.RenderSpace(i, count, nextLevel, step) if (variableSpace if type(variableSpace) is bool else isVariableSpace(generator)) else generator.Render(i)
         
         def renderFirst(generator: _IGenerator) -> None:
             nonlocal renderer
@@ -432,20 +433,30 @@ class _Data:
             
             renderer = renderNextItems
         
-        def isNextLevel(i: int) -> bool:
+        def isNextLevel(i: int) -> tuple[bool, int|None]:
             nonlocal count
             nonlocal _i
 
             if i == _i:
-                _i /= 10
+                _i *= 10
                 count -= 1
 
-                return True
+                return (True, None)
             
-            return False
+            return (False, _i - i)
         
-        _i = int(pow(10, count))
-        nextLevel = isNextLevel(i)
+        def setCount() -> None:
+            nonlocal count
+            nonlocal _i
+
+            __i: int = int(log10(i))
+
+            _i = int(pow(10, __i + 1))
+            count = int(log10(count)) - __i
+        
+        setCount()
+        
+        (nextLevel, step) = isNextLevel(i)
         renderer = renderFirst
         
         for generator in self.__data:
@@ -468,24 +479,24 @@ class _Data:
                     nonlocal _i
                     nonlocal count
                     
-                    def render(nextLevel: bool) -> str:
-                        return func(i, count, nextLevel)
+                    def render(tuple: tuple[bool, int|None]) -> str:
+                        return func(i, count, tuple)
                     
                     return render(isNextLevel(i))
                 
                 return _render
             
             def getFunc(func: callable) -> callable:
-                def _func(i: int, count: int, nextLevel: bool) -> str:
+                def _func(i: int, count: int, tuple: tuple[bool, int|None]) -> str:
                     result = ""
                         
                     for generator in self.__data:
-                        result += func(generator, i, count, nextLevel)
+                        result += func(generator, i, count, tuple[0], tuple[1])
                         
                     return result
                 
                 return _func
             
-            return getRenderer(getFunc(lambda generator, i, count, nextLevel: generator.RenderSpace(i, count, nextLevel))) if identical is True else getRenderer(getFunc(lambda generator, i, count, nextLevel: generator.RenderSpace(i, count, nextLevel) if isVariableSpace(generator) else generator.Render(i)))
+            return getRenderer(getFunc(lambda generator, i, count, nextLevel, step: generator.RenderSpace(i, count, nextLevel, step))) if identical is True else getRenderer(getFunc(lambda generator, i, count, nextLevel, step: generator.RenderSpace(i, count, nextLevel, step) if isVariableSpace(generator) else generator.Render(i)))
         
         return (result, getRenderer())

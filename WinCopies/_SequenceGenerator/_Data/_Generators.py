@@ -72,7 +72,7 @@ class _ICounter(ABC):
         
         return space + render() if self.__before else render() + space
     
-    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool) -> str:
+    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool, step: int|None) -> str:
         return self._RenderSpace(i, spaceCount)
     
     @final
@@ -162,8 +162,12 @@ class _Operator(_IGenerator):
         def __eq__(self, other) -> bool:
             return isinstance(other, _Operator) and other.__operatorId == self.__operatorId
         
+        @final
+        def GetOperatorId(self) -> _Operator:
+            return self.__operatorId
+        
     def __init__(self, operator: callable, operatorId: _Operator._Operator):
-        self.__operator: callable = _Operator._Operator(operator, operatorId)
+        self.__operator: _Operator._Operator = _Operator._Operator(operator, operatorId)
     
     def GetInitializer(operator: callable, operatorId: _Operator._Operator) -> callable:
         return lambda: _Operator(operator, operatorId)
@@ -189,6 +193,14 @@ class _Operator(_IGenerator):
             case '^':
                 return getInitializer(lambda value: value ^ 2, _Operator._Operator._Operator.Pow)
     
+    @final
+    def GetOperatorId(self) -> _Operator._Operator:
+        return self.__operator.GetOperatorId()
+    
+    @final
+    def _GetSpaceCountProvider(operatorId: _Operator._Operator) -> callable:
+        return (lambda spaceCount, nextLevel, step: (spaceCount - 1 if step == 1 else spaceCount)) if operatorId == _Operator._Operator._Operator.Add else (lambda spaceCount, nextLevel, step: (spaceCount + 1 if nextLevel else spaceCount))
+    
     def Render(self, i: int) -> str:
         return str(self.__operator(i))
     
@@ -201,7 +213,7 @@ class _OperatorRenderer(_Renderer):
         super().__init__(textProvider)
         self.__operator: callable = operator
     
-    def GetInitializer(operator: callable, operatorId: _Operator._Operator._Operator):
+    def GetInitializer(operator: callable, operatorId: _Operator._Operator._Operator) -> callable:
         return lambda text: _OperatorRenderer(text, _Operator._Operator(operator, operatorId))
     
     def Render(self, i: int) -> str:
@@ -265,12 +277,14 @@ class _VariableSpaceOperator(_Operator, _ICounter):
     def __init__(self, operator: callable, operatorId: _Operator._Operator._Operator, before: bool):
         super().__init__(operator, operatorId)
         _ICounter.__init__(self, before)
+
+        self.__getSpaceCount = _Operator._GetSpaceCountProvider(self.GetOperatorId())
     
     def IsVariableSpace(self) -> bool:
         return True
     
-    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool) -> str:
-        return self._RenderSpace(i, spaceCount + 1 if nextLevel else spaceCount)
+    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool, step: int|None) -> str:
+        return self._RenderSpace(i, self.__getSpaceCount(spaceCount, nextLevel, step))
     
     def __eq__(self, other) -> bool:
         return super().__eq__(other) and _ICounter.__eq__(self, other)
@@ -284,22 +298,36 @@ class _VariableSpaceOperatorParser(_OperatorParser, _ICounter):
         self.__getSpaceCount: callable = None
         
         if operand == 1:
-            self.__getSpaceCount = lambda spaceCount, nextLevel: spaceCount + 1 if nextLevel else spaceCount
+            self.__getSpaceCount = _Operator._GetSpaceCountProvider(operatorId)
+        
         else:
             _spaceCount: int = 0
+
+            if operatorId == _Operator._Operator._Operator.Add:
+                _operator: callable = lambda spaceCount: spaceCount - 1
+                condition: callable = lambda nextLevel, step: step == operand
             
-            def getSpaceCount(spaceCount: int, nextLevel: bool) -> int:
+            else:
+                _operator: callable = lambda spaceCount: spaceCount + 1
+                condition: callable = lambda nextLevel, step: nextLevel
+            
+            def getSpaceCount(spaceCount: int, nextLevel: bool, step: int|None) -> int:
                 nonlocal _spaceCount
 
-                if nextLevel:
+                def getSpaceCount() -> int:
+                    return _operator(spaceCount)
+
+                if condition(nextLevel, spaceCount):
                     _spaceCount = operand
                     
-                    return spaceCount + operand
+                    return getSpaceCount()
                 
                 if _spaceCount > 0:
-                    _spaceCount -= 1
+                    _spaceCount -= 1                
+                    
+                    return getSpaceCount()
                 
-                return spaceCount + _spaceCount
+                return spaceCount
             
             self.__getSpaceCount = getSpaceCount
     
@@ -308,8 +336,8 @@ class _VariableSpaceOperatorParser(_OperatorParser, _ICounter):
         return True
     
     @final
-    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool) -> str:
-        return self.Render(i) + " " * self.__getSpaceCount(spaceCount, nextLevel)
+    def RenderSpace(self, i: int, spaceCount: int, nextLevel: bool, step: int|None) -> str:
+        return self.Render(i) + " " * self.__getSpaceCount(spaceCount, nextLevel, step)
     
     def __eq__(self, other) -> bool:
         return super().__eq__(self, other) and _ICounter.__eq__(self, other)

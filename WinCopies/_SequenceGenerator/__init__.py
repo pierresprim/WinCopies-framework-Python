@@ -1,5 +1,4 @@
 from typing import final #, protected
-from math import log10
 
 from WinCopies.Collections import Enumeration
 
@@ -27,7 +26,7 @@ class _Enumerator(Enumeration.Enumerator):
         def setCurrent() -> None:
             currentProvider: callable
 
-            (self.__current, currentProvider) = self.__sequenceGenerator._GetData().RenderFirst(self.__i, int(log10(self.__count)) - int(log10(self.__i)))
+            (self.__current, currentProvider) = self.__sequenceGenerator._GetData().RenderFirst(self.__i, self.__count)
             
             def setCurrent() -> None:
                 self.__current = currentProvider(self.__i)
