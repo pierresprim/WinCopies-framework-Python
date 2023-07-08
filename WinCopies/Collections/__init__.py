@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final
+from typing import Generic, _T
 
 from WinCopies.Delegates import GetIndexedValueComparison, GetIndexedValueIndexComparison, GetIndexedValueValueComparison
 
@@ -97,7 +97,7 @@ class EmptyException(Exception):
     def __init__(self):
         pass
 
-class Collection(ABC):
+class Collection(ABC, Generic[_T]):
     def __init__(self):
         pass
     
@@ -106,8 +106,8 @@ class Collection(ABC):
         pass
     
     def HasItems(self) -> bool:
-        return not self.Empty()
+        return not self.IsEmpty()
     
     def ThrowIfEmpty(self) -> None:
-        if self.Empty():
+        if self.IsEmpty():
             raise EmptyException()
