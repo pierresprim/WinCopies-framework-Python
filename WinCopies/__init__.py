@@ -108,6 +108,25 @@ def Try(action: callable, onError: callable, func: callable) -> bool|None:
 def TryMessage(action: callable, onError: callable, message: str = "Continue?") -> bool|None:
     return Try(action, onError, lambda: AskConfirmation(message))
 
+class DualResult[TResultValue, TResultInfo]:
+    def __init__(self, resultValue: TResultValue, resultInfo: TResultInfo) -> None:
+        self.__resultValue: TResultValue = resultValue
+        self.__resultInfo: TResultInfo = resultInfo
+    
+    def GetValue(self) -> TResultValue:
+        return self.__resultValue
+    
+    def GetInfo(self) -> TResultInfo:
+        return self.__resultInfo
+
+class DualValueBool[T](DualResult[T, bool]):
+    def __init__(self, resultValue: T, resultInfo: bool):
+        super().__init__(resultValue, resultInfo)
+
+class DualValueNullableBool[T](DualResult[T, bool|None]):
+    def __init__(self, resultValue: T, resultInfo: bool|None):
+        super().__init__(resultValue, resultInfo)
+
 class Singleton(type):
     __instances = {}
     

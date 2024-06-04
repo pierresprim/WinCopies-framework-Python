@@ -7,6 +7,7 @@ Created on Thu May 30 07:37:00 2024
 
 from typing import final
 import os
+
 from WinCopies import Delegates
 
 def ProcessDirEntries(path: str, func: callable) -> bool|None:
