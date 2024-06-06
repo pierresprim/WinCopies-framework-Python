@@ -6,29 +6,10 @@ Created on Tue Jun 04 11:47:00 2024
 """
 
 from typing import final
-from abc import ABC, abstractmethod
 import os
 
 from WinCopies import IO
-
-class IDirEntry(ABC):
-    def __init__(self):
-        pass
-    @abstractmethod
-    def GetPath(self) -> str:
-        pass
-    @abstractmethod
-    def GetDirectory(self) -> str:
-        pass
-    @abstractmethod
-    def GetName(self) -> str:
-        pass
-    @abstractmethod
-    def GetExtension(self) -> str:
-        pass
-    @abstractmethod
-    def GetFullName(self) -> str:
-        pass
+from WinCopies.IO import IDirEntry
 
 class SystemDirEntry(IDirEntry):
     def __init__(self, dirEntry: os.DirEntry):
