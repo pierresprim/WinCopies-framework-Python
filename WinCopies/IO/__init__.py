@@ -64,3 +64,6 @@ def TryCreateSubdirectory(directory: str, subdirectory: str) -> DualValueNullabl
     directory = os.path.join(directory, subdirectory)
 
     return DualValueNullableBool(directory, TryCreateDirectory(directory))
+
+def TryCreateSubdirEntry(dirEntry: IDirEntry, subdirectory: str) -> DualValueNullableBool[str]:
+    return TryCreateSubdirectory(dirEntry.GetDirectory(), subdirectory)
