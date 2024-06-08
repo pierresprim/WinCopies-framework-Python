@@ -46,15 +46,15 @@ def AskInt(message: str, predicate: callable, errorMessage: str = "The value is 
     
     return value
 
-def AskConfirmation(message: str, info: str = " [y]/any other key: ", value: str = "y") -> bool:
+def AskConfirmation(message: str, info: str = " y/[any other key]: ", value: str = "y") -> bool:
     return input(message + info) == value
 
-def DoProcess(action: callable, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def DoProcess(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
     action()
     
     Process(action, message, info, value)
 
-def Process(action: callable, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def Process(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
     while AskConfirmation(message):
         action()
 
