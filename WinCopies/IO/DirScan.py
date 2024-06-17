@@ -9,8 +9,7 @@ from enum import Enum
 from typing import final
 import os
 
-from WinCopies import Delegates
-from WinCopies.Collections.Enumeration import Iterable
+from WinCopies import Delegates, DualResult
 
 class DirScanResult(Enum):
     DoesNotExist = -2
@@ -58,8 +57,43 @@ def ParseEntries(path: str, predicate: callable) -> DirScanResult:
 
     return ProcessDirEntries(path, scanDir)
 
+def FindDirEntry(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+    result: os.DirEntry|None = None
+
+    def _predicate(entry: os.DirEntry) -> bool:
+        nonlocal predicate
+        nonlocal result
+
+        if predicate(entry):
+            result = entry
+            return True
+        
+        return False
+    
+    dirScanResult: DirScanResult = ParseEntries(path, _predicate)
+
+    return DualResult(result, dirScanResult)
+
 def ScanDir(path: str, predicate: callable) -> DirScanResult:
     return ParseEntries(path, lambda entry: not predicate(entry)).Not()
+
+def ValidateDirEntries(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+    result: os.DirEntry|None = None
+
+    def _predicate(entry: os.DirEntry) -> bool:
+        nonlocal predicate
+        nonlocal result
+
+        if predicate(entry):
+            return True
+        
+        result = entry
+        
+        return False
+    
+    dirScanResult: DirScanResult = ScanDir(path, _predicate)
+    
+    return DualResult(result, dirScanResult)
 
 def HasItems(path: str) -> DirScanResult:
     def parse(paths) -> bool|None:
@@ -72,6 +106,9 @@ def HasItems(path: str) -> DirScanResult:
 
 def ParseDir(path: str, predicate: callable, action: callable) -> DirScanResult:
     return ScanDir(path, Delegates.GetPredicateAction(predicate, action))
+
+def ForEachDirEntry(path: str, predicate: callable, action: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+    return ValidateDirEntries(path, Delegates.GetPredicateAction(predicate, action))
 
 def ScanDirEntries(path: str, action: callable) -> DirScanResult:
     def scanDirEntries(paths) -> bool|None:

@@ -6,8 +6,9 @@ Created on Tue Jun 04 11:47:00 2024
 """
 import os
 from abc import ABC, abstractmethod
+import subprocess
 
-from WinCopies import DualValueNullableBool
+from WinCopies import DualResult, DualValueNullableBool
 
 class IDirEntry(ABC):
     def __init__(self):
@@ -79,3 +80,11 @@ def TryRemoveDirectory(directory: str) -> bool|None:
     
     except IOError:
         return None
+
+def RunCommand(command: str, captureOutput = False, throwOnError = True) -> DualResult[object, int]:
+    result: subprocess.CompletedProcess = subprocess.run(command, capture_output=captureOutput, shell=True, text=captureOutput)
+    
+    if throwOnError:
+        result.check_returncode()
+    
+    return DualResult(result.stdout, result.returncode)
