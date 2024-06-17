@@ -67,3 +67,15 @@ def TryCreateSubdirectory(directory: str, subdirectory: str) -> DualValueNullabl
 
 def TryCreateSubdirEntry(dirEntry: IDirEntry, subdirectory: str) -> DualValueNullableBool[str]:
     return TryCreateSubdirectory(dirEntry.GetDirectory(), subdirectory)
+
+def TryRemoveDirectory(directory: str) -> bool|None:
+    try:
+        if os.path.exists(directory):
+            os.rmdir(directory)
+
+            return True
+        
+        return False
+    
+    except IOError:
+        return None

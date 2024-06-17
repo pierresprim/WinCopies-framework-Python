@@ -110,7 +110,7 @@ def TryMessage(action: callable, onError: callable, message: str = "Continue?") 
     return Try(action, onError, lambda: AskConfirmation(message))
 
 class DualResult[TResultValue, TResultInfo]:
-    def __init__(self, resultValue: TResultValue, resultInfo: TResultInfo) -> None:
+    def __init__(self, resultValue: TResultValue, resultInfo: TResultInfo):
         self.__resultValue: TResultValue = resultValue
         self.__resultInfo: TResultInfo = resultInfo
     
