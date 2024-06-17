@@ -21,10 +21,14 @@ class IEnumerator(ABC):
     @abstractmethod
     def IsResetSupported(self) -> bool:
         pass
+    @abstractmethod
+    def HasProcessedItems(self) -> bool:
+        pass
     
-class Enumerator(IEnumerator):
+class EnumeratorBase(IEnumerator):
     def __init__(self):
         self.__moveNext: callable = self.__GetMoveNext()
+        self.__hasProcessedItems: bool = False
     @final
     def __GetMoveNext(self) -> callable:
         def moveNext() -> bool:
@@ -35,15 +39,16 @@ class Enumerator(IEnumerator):
                 self.__moveNext = completedMoveNext
             
             def moveNext() -> bool:
-                if self.MoveNextOverride():
+                if self._MoveNextOverride():
                     return True
                 
-                self.OnCompleted()
+                self._OnCompleted()
                 setCompletedMoveNext()
                 return False
             
-            if self.OnStarting() and self.MoveNextOverride():
+            if self._OnStarting() and self._MoveNextOverride():
                 self.__moveNext = moveNext
+                self.__hasProcessedItems = True
                 return True
             
             setCompletedMoveNext()
@@ -52,11 +57,11 @@ class Enumerator(IEnumerator):
         return moveNext
     #@protected
     @abstractmethod
-    def MoveNextOverride(self) -> bool:
+    def _MoveNextOverride(self) -> bool:
         pass
     #@protected
     @abstractmethod
-    def ResetOverride(self) -> bool:
+    def _ResetOverride(self) -> bool:
         pass
     @abstractmethod
     def GetCurrent(self):
@@ -65,10 +70,10 @@ class Enumerator(IEnumerator):
     def IsResetSupported(self) -> bool:
         pass
     #@protected
-    def OnStarting(self) -> bool:
+    def _OnStarting(self) -> bool:
         return True
     #@protected
-    def OnCompleted(self) -> None:
+    def _OnCompleted(self) -> None:
         pass
     @final
     def MoveNext(self) -> bool:
@@ -77,11 +82,16 @@ class Enumerator(IEnumerator):
     @final
     def Reset(self) -> bool:
         if self.IsResetSupported():
-            self.ResetOverride()
+            self._ResetOverride()
             self.__moveNext = self.__GetMoveNext()
+            self.__hasProcessedItems = False
             return True
         
         return False
+    
+    @final
+    def HasProcessedItems(self) -> bool:
+        return self.__hasProcessedItems
     
     @final
     def __next__(self):
@@ -89,3 +99,50 @@ class Enumerator(IEnumerator):
             return self.GetCurrent()
         else:
             raise StopIteration
+
+class Enumerator(EnumeratorBase):
+    def __init__(self):
+        super().__init__()
+        self.__current: object|None = None
+    
+    def _ResetOverride(self) -> bool:
+        self.__current = None
+    
+    def GetCurrent(self):
+        return self.__current
+    
+    @abstractmethod
+    def _SetCurrent(self, current):
+        self.__current = current
+
+class Iterator(Enumerator):
+    def __init__(self, iterator):
+        super().__init__()
+        self.__iterator = iterator
+    
+    @final
+    def _GetIterator(self):
+        return self.__iterator
+    
+    def IsResetSupported(self) -> bool:
+        return False
+    
+    def _MoveNextOverride(self) -> bool:
+        try:
+            self._SetCurrent(self.__next__())
+            
+            return True
+        except StopIteration:
+            return False
+
+class Iterable:
+    def __init__(self, iterable):
+        self.__iterable = iterable
+    
+    @final
+    def _GetIterable(self):
+        return self.__iterable
+    
+    @final
+    def __iter__(self):
+        return Iterator(self.__iterable.__iter__())
