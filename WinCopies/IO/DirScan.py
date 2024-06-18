@@ -6,10 +6,9 @@ Created on Thu May 30 07:37:00 2024
 """
 
 from enum import Enum
-from typing import final
 import os
 
-from WinCopies import Delegates, DualResult
+from WinCopies import Delegates, DualResult, Collections
 
 class DirScanResult(Enum):
     DoesNotExist = -2
@@ -33,67 +32,23 @@ def ProcessDirEntries(path: str, func: callable) -> DirScanResult:
     return DirScanResult.DoesNotExist
 
 def ParseEntries(path: str, predicate: callable) -> DirScanResult:
-    def scanDir(paths) -> bool|None:
-        nonlocal predicate
+    return ProcessDirEntries(path, lambda paths: Collections.ParseItems(paths, predicate))
 
-        result: bool|None = None
-        _predicate: callable
+def __ParseDir(path: str, func: callable, converter: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+    _predicate = Collections.FinderPredicate[os.DirEntry]()
+    
+    dirScanResult: DirScanResult = func(path, converter(_predicate))
 
-        def init(entry) -> bool:
-            nonlocal result
-            nonlocal predicate
-            nonlocal _predicate
-
-            result = False
-            return (_predicate := predicate)(entry)
-        
-        _predicate = init
-
-        for entry in paths:
-            if _predicate(entry):
-                return True
-        
-        return result
-
-    return ProcessDirEntries(path, scanDir)
+    return DualResult(_predicate.TryGetResult().GetValue(), dirScanResult)
 
 def FindDirEntry(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
-    result: os.DirEntry|None = None
-
-    def _predicate(entry: os.DirEntry) -> bool:
-        nonlocal predicate
-        nonlocal result
-
-        if predicate(entry):
-            result = entry
-            return True
-        
-        return False
-    
-    dirScanResult: DirScanResult = ParseEntries(path, _predicate)
-
-    return DualResult(result, dirScanResult)
+    return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
 
 def ScanDir(path: str, predicate: callable) -> DirScanResult:
     return ParseEntries(path, lambda entry: not predicate(entry)).Not()
 
 def ValidateDirEntries(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
-    result: os.DirEntry|None = None
-
-    def _predicate(entry: os.DirEntry) -> bool:
-        nonlocal predicate
-        nonlocal result
-
-        if predicate(entry):
-            return True
-        
-        result = entry
-        
-        return False
-    
-    dirScanResult: DirScanResult = ScanDir(path, _predicate)
-    
-    return DualResult(result, dirScanResult)
+    return __ParseDir(path, ScanDir, lambda _predicate: _predicate.GetValidationPredicate(predicate))
 
 def HasItems(path: str) -> DirScanResult:
     def parse(paths) -> bool|None:
@@ -111,73 +66,7 @@ def ForEachDirEntry(path: str, predicate: callable, action: callable) -> DualRes
     return ValidateDirEntries(path, Delegates.GetPredicateAction(predicate, action))
 
 def ScanDirEntries(path: str, action: callable) -> DirScanResult:
-    def scanDirEntries(paths) -> bool|None:
-        nonlocal action
-
-        result: bool|None = None
-        _action: callable
-
-        def init(entry):
-            nonlocal result
-            nonlocal action
-            nonlocal _action
-
-            (_action := action)(entry)
-
-            result = True
-        
-        _action = init
-
-        for entry in paths:
-            _action(entry)
-        
-        return result
-    
-    return ProcessDirEntries(path, scanDirEntries)
+    return ProcessDirEntries(path, lambda paths: Collections.ScanItems(paths, action))
 
 def ParseDirEntries(path: str, predicate: callable, action: callable) -> DirScanResult:
-    def parse(paths) -> bool|None:
-        nonlocal predicate
-        nonlocal action
-
-        result: bool|None = None
-        
-        def scanDir(entry: os.DirEntry):
-            nonlocal predicate
-            nonlocal action
-
-            if predicate(entry):
-                action(entry)
-        
-        def tryScanDir(entry: os.DirEntry):
-            nonlocal predicate
-            nonlocal action
-            nonlocal func
-            nonlocal result
-
-            if predicate(entry):
-                action(entry)
-            
-            else:
-                func = scanDir
-
-                result = False
-        
-        func: callable
-
-        def init(entry):
-            nonlocal result
-            nonlocal func
-
-            result = True
-
-            (func := tryScanDir)(entry)
-            
-        func = init
-
-        for entry in paths:
-            func(entry)
-            
-        return result
-    
-    return ProcessDirEntries(path, parse)
+    return ProcessDirEntries(path, lambda paths: Collections.ScanAllItems(paths, predicate, action))
