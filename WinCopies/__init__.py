@@ -6,9 +6,12 @@ Created on Fri May 26 14:21:00 2023
 """
 
 from typing import final
+from abc import ABC, abstractmethod
 
-from WinCopies.Collections import Enumeration
 from WinCopies.Delegates import Self
+
+def Not(value: bool|None) -> bool|None:
+    return None if value is None else not value
 
 def TryConvertToInt(value) -> int|None:
     try:
@@ -49,14 +52,14 @@ def AskInt(message: str, predicate: callable, errorMessage: str = "The value is 
 def AskConfirmation(message: str, info: str = " y/[any other key]: ", value: str = "y") -> bool:
     return input(message + info) == value
 
+def Process(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
+    while AskConfirmation(message):
+        action()
+
 def DoProcess(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
     action()
     
     Process(action, message, info, value)
-
-def Process(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
-    while AskConfirmation(message):
-        action()
 
 def TryPredicate(action: callable, predicate: callable) -> bool|None:
     ok: bool = True
