@@ -61,7 +61,7 @@ def DoProcess(action: callable, message: str = "Continue?", info: str = " y/[any
     
     Process(action, message, info, value)
 
-def TryPredicate(action: callable, predicate: callable) -> bool|None:
+def TryPredicate(predicate: callable, action: callable) -> bool|None:
     ok: bool = True
     _predicate: callable
 
