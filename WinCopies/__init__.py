@@ -98,20 +98,56 @@ def Try(action: callable, onError: callable, func: callable) -> bool|None:
         
         return func()
     
-    return TryPredicate(action, _onError)
+    return TryPredicate(_onError, action)
 def TryMessage(action: callable, onError: callable, message: str = "Continue?") -> bool|None:
     return Try(action, onError, lambda: AskConfirmation(message))
 
-class DualResult[TResultValue, TResultInfo]:
-    def __init__(self, resultValue: TResultValue, resultInfo: TResultInfo):
-        self.__resultValue: TResultValue = resultValue
-        self.__resultInfo: TResultInfo = resultInfo
+class IKeyValuePair[TKey, TValue](ABC):
+    @abstractmethod
+    def IsKeyValuePair(self) -> bool:
+        pass
+
+    @abstractmethod
+    def GetKey(self) -> TKey:
+        pass
+
+    @abstractmethod
+    def GetValue(self) -> TValue:
+        pass
+
+class KeyValuePair[TKey, TValue](IKeyValuePair[TKey, TValue]):
+    def __init__(self, key: TKey, value: TValue):
+        self.__key = key
+        self.__value = value
     
-    def GetValue(self) -> TResultValue:
-        return self.__resultValue
+    @final
+    def IsKeyValuePair(self) -> bool:
+        return True
     
-    def GetInfo(self) -> TResultInfo:
-        return self.__resultInfo
+    @final
+    def GetKey(self) -> TKey:
+        return self.__key
+    
+    @final
+    def GetValue(self) -> TValue:
+        return self.__value
+
+class DualResult[TValue, TInfo](IKeyValuePair[TInfo, TValue]):
+    def __init__(self, value: TValue, info: TInfo):
+        self.__value: TValue = value
+        self.__info: TInfo = info
+    
+    @final
+    def IsKeyValuePair(self) -> bool:
+        return False
+    
+    @final
+    def GetValue(self) -> TValue:
+        return self.__value
+    
+    @final
+    def GetKey(self) -> TInfo:
+        return self.__info
 
 class DualValueBool[T](DualResult[T, bool]):
     def __init__(self, resultValue: T, resultInfo: bool):
