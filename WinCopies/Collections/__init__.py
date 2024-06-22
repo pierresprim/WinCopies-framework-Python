@@ -1,8 +1,8 @@
+from typing import Callable
 from abc import ABC, abstractmethod
-from typing import final
+from collections.abc import Iterable
 
 from WinCopies import DualValueBool
-from WinCopies.Delegates import GetIndexedValueComparison, GetIndexedValueIndexComparison, GetIndexedValueValueComparison
 
 def GetLastIndex(list) -> int:
     return len(list) - 1
@@ -18,6 +18,9 @@ def TryGetAtFunc(list, index: int, ifTrue: callable, ifFalse: callable):
     return TrySetAt(list, index, lambda i: ifTrue(list[i]), ifFalse)
 def TryGetAtStr(list, index: int):
     return TryGetAt(list, index, "")
+
+def MakeIterable[T](*items: T) -> Iterable[T]:
+    return items
 
 class EmptyException(Exception):
     def __init__(self):
