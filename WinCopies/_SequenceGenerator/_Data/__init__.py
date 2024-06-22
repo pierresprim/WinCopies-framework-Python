@@ -2,7 +2,6 @@ from typing import final #, protected
 from math import pow, factorial, log10
 
 from ._Generators import _IGenerator, _TextRenderer, _ICounter, _Counter, _CounterRenderer, _TextSequenceGenerator, _CounterSequenceGenerator, _Operator, _OperatorRenderer, _OperatorParser
-from WinCopies.Collections.Linked.Singly import Queue
 from WinCopies.Collections import Enumeration, ForEachUntilValue, GetLastIndex, TrySetAt, DoWhile
 from WinCopies.String import Replace
 
@@ -327,16 +326,18 @@ class _Data:
                             return True
                         
                         result: bool|None
-                        tuple: tuple[str, bool|None]
+                        _tuple: tuple[str, bool|None]
                         j: int = 0
                         getAction: callable
                         
                         def _action() -> None:
+                            nonlocal _tuple
+                            nonlocal getAction
                             nonlocal result
 
-                            tuple = tuples[j]
+                            _tuple = tuples[j]
 
-                            result = check(tuple[0], getAction(), tuple[1])
+                            result = check(_tuple[0], getAction(), _tuple[1])
 
                         def _getAction() -> callable:
                             nonlocal getAction
@@ -479,19 +480,19 @@ class _Data:
                     nonlocal _i
                     nonlocal count
                     
-                    def render(tuple: tuple[bool, int|None]) -> str:
-                        return func(i, count, tuple)
+                    def render(_tuple: tuple[bool, int|None]) -> str:
+                        return func(i, count, _tuple)
                     
                     return render(isNextLevel(i))
                 
                 return _render
             
             def getFunc(func: callable) -> callable:
-                def _func(i: int, count: int, tuple: tuple[bool, int|None]) -> str:
+                def _func(i: int, count: int, _tuple: tuple[bool, int|None]) -> str:
                     result = ""
                         
                     for generator in self.__data:
-                        result += func(generator, i, count, tuple[0], tuple[1])
+                        result += func(generator, i, count, _tuple[0], _tuple[1])
                         
                     return result
                 

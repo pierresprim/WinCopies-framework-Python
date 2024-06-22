@@ -8,7 +8,7 @@ Created on Thu May 30 07:37:00 2024
 from enum import Enum
 import os
 
-from WinCopies import Delegates, DualResult, IO
+from WinCopies import Delegates, DualResult, Collections, IO
 from WinCopies.Collections import Loop
 
 class DirScanResult(Enum):
