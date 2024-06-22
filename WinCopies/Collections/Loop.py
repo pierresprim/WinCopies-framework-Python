@@ -145,57 +145,17 @@ def ForEachUntilValue[T](items: Iterable[T], action: Callable[[int, T]], value: 
 def ForEachUntilIndexAndValue[T](items: Iterable[T], action: Callable[[int, T]], index: int, value: T) -> DualValueBool[int]|None:
     return ForEachUntil(items, Delegates.GetIndexedValueComparison(index, value), action)
 
-def ParseItems(iterable, predicate: callable) -> bool|None:
-    result: bool|None = None
-    _predicate: callable
-
-    def init(entry) -> bool:
-        nonlocal result
-        nonlocal predicate
-        nonlocal _predicate
-
-        result = False
-        return (_predicate := predicate)(entry)
-    
-    _predicate = init
-
-    for entry in iterable:
-        if _predicate(entry):
-            return True
-    
-    return result
-
-def ScanItems(iterable, action: callable) -> bool:
-    result: bool = False
-    _action: callable
-
-    def init(entry):
-        nonlocal result
-        nonlocal action
-        nonlocal _action
-
-        (_action := action)(entry)
-
-        result = True
-    
-    _action = init
-
-    for entry in iterable:
-        _action(entry)
-    
-    return result
-
-def ScanAllItems(iterable, predicate: callable, action: callable) -> bool|None:
+def ScanItems[T](items: Iterable[T], predicate: Callable[[T], bool], action: Callable[[T]]) -> bool|None:
     result: bool|None = None
     
-    def scanDir(entry):
+    def scan(entry: T):
         nonlocal predicate
         nonlocal action
 
         if predicate(entry):
             action(entry)
     
-    def tryScanDir(entry):
+    def tryScan(entry: T):
         nonlocal predicate
         nonlocal action
         nonlocal func
@@ -205,23 +165,95 @@ def ScanAllItems(iterable, predicate: callable, action: callable) -> bool|None:
             action(entry)
         
         else:
-            func = scanDir
+            func = scan
 
             result = False
 
-    func: callable
+    func: Callable[[T]]
 
-    def init(entry):
+    def init(entry: T):
         nonlocal result
         nonlocal func
 
         result = True
 
-        (func := tryScanDir)(entry)
+        (func := tryScan)(entry)
     
     func = init
 
-    for entry in iterable:
+    for entry in items:
         func(entry)
     
     return result
+
+def __ForEachButFirst[T](items: Iterable[T], action: Callable[[T], bool], func: Callable[[Iterable[T], Callable[[T], bool]], bool|None], returnValue: bool) -> bool|None:
+    _action: Callable[[T], bool]
+    
+    def __action(item: T) -> bool:
+        nonlocal action
+        nonlocal _action
+        nonlocal returnValue
+
+        _action = action
+
+        return returnValue
+    
+    _action = __action
+    
+    return func(items, lambda item: _action(item))
+def ForEachButFirst[T](items: Iterable[T], action: Callable[[T], bool]) -> bool|None:
+    return __ForEachButFirst(items, action, ForEachItem, True)
+def ForEachUntilButFirst[T](items: Iterable[T], action: Callable[[T], bool]) -> bool|None:
+    return __ForEachButFirst(items, action, ForEachItemUntil, False)
+
+def __ForEachAndFirst[T](items: Iterable[T], firstAction: Callable[[T], bool], action: Callable[[T], bool], func: Callable[[Iterable[T], Callable[[T], bool]], bool|None], returnValue: bool) -> bool|None:
+    _action: Callable[[T], bool]
+    
+    def __action(item: T) -> bool:
+        nonlocal firstAction
+        nonlocal action
+        nonlocal _action
+        nonlocal returnValue
+
+        if firstAction(item):
+            _action = action
+
+            return returnValue
+        
+        else:
+            return not returnValue
+    
+    _action = __action
+
+    return func(items, lambda item: _action(item))
+def ForEachAndFirst[T](items: Iterable[T], firstAction: Callable[[T], bool], action: Callable[[T], bool]) -> bool|None:
+    return __ForEachAndFirst(items, firstAction, action, ForEachItem, True)
+def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Callable[[T], bool], action: Callable[[T], bool]) -> bool|None:
+    return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
+
+def DoForEachButFirst[T](items: Iterable[T], action: Callable[[T]]) -> bool:
+    _action: Callable[[T]]
+    
+    def __action(item: T):
+        nonlocal action
+        nonlocal _action
+
+        _action = action
+    
+    _action = __action
+    
+    return DoForEachItem(items, lambda item: _action(item))
+def DoForEachAndFirst[T](items: Iterable[T], firstAction: Callable[[T]], action: Callable[[T]]) -> bool:
+    _action: Callable[[T]]
+    
+    def __action(item: T):
+        nonlocal firstAction
+        nonlocal action
+        nonlocal _action
+
+        firstAction(item)
+        _action = action
+    
+    _action = __action
+
+    return DoForEachItem(items, lambda item: _action(item))
