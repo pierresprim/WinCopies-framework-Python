@@ -32,6 +32,36 @@ def DoWhile(action: Callable[[]], func: Callable[[], bool]) -> bool:
 def DoUntil(action: Callable[[]], func: Callable[[], bool]) -> bool:
     return __Do(action, func, Until)
 
+def ForEachUntilTrue[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
+    i: int = -1
+
+    for item in items:
+        i += 1
+
+        if action(i, item):
+            return DualValueBool(i, False)
+    
+    return None if i == -1 else DualValueBool(i, True)
+def ForEachItemUntil[T](items: Iterable[T], predicate: Callable[[T], bool]) -> bool|None:
+    result: bool|None = None
+    _predicate: Callable[[T], bool]
+
+    def init(entry: T) -> bool:
+        nonlocal result
+        nonlocal predicate
+        nonlocal _predicate
+
+        result = False
+        return (_predicate := predicate)(entry)
+    
+    _predicate = init
+
+    for entry in items:
+        if _predicate(entry):
+            return True
+    
+    return result
+
 def ForEach(list, action: callable) -> bool:
     for i in range(len(list)):
         if action(i, list[i]):
