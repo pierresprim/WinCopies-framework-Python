@@ -4,6 +4,14 @@ from collections.abc import Iterable
 import WinCopies
 from WinCopies import DualValueBool, Delegates
 
+def While(func: Callable[[], bool], action: Callable[[]]) -> bool:
+    if (func := Delegates.GetBoolFuncAction(func, action))():
+        while func():
+            pass
+        
+        return True
+
+    return False
 def Until(action: callable, func: callable) -> bool:
     if func():
         return False
