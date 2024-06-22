@@ -8,7 +8,8 @@ Created on Thu May 30 07:37:00 2024
 from enum import Enum
 import os
 
-from WinCopies import Delegates, DualResult, Collections, IO
+from WinCopies import Delegates, DualResult, IO
+from WinCopies.Collections import Loop
 
 class DirScanResult(Enum):
     DoesNotExist = -2
@@ -32,7 +33,7 @@ def ProcessDirEntries(path: str, func: callable) -> DirScanResult:
     return DirScanResult.DoesNotExist
 
 def ParseEntries(path: str, predicate: callable) -> DirScanResult:
-    return ProcessDirEntries(path, lambda paths: Collections.ParseItems(paths, predicate))
+    return ProcessDirEntries(path, lambda paths: Loop.ForEachItemUntil(paths, predicate))
 
 def __ParseDir(path: str, func: callable[[str, callable[[os.DirEntry], bool]], DirScanResult], converter: callable[[Collections.FinderPredicate[os.DirEntry]], callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, DirScanResult]:
     predicate = Collections.FinderPredicate[os.DirEntry]()
