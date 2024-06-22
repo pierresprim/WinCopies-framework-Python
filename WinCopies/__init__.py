@@ -5,8 +5,7 @@ Created on Fri May 26 14:21:00 2023
 @author: Pierre Sprimont
 """
 
-from typing import Type, final
-from enum import Enum
+from typing import final
 
 from WinCopies.Collections import Enumeration
 from WinCopies.Delegates import Self
