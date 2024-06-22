@@ -12,15 +12,16 @@ def While(func: Callable[[], bool], action: Callable[[]]) -> bool:
         return True
 
     return False
-def Until(action: callable, func: callable) -> bool:
+def Until(func: Callable[[], bool], action: Callable[[]]) -> bool:
     if func():
         return False
     
-    while True:
+    action()
+    
+    while not func():
         action()
 
-        if func():
-            return True
+    return True
 def DoWhile(action: callable, func: callable) -> bool:
     action()
 
