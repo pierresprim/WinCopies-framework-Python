@@ -79,3 +79,8 @@ def TryRemoveDirectory(directory: str) -> bool|None:
     
     except IOError:
         return None
+
+def GetDirectoryPredicate() -> callable:
+    return lambda entry: entry.is_dir()
+def GetFilePredicate() -> callable:
+    return lambda entry: entry.is_file()
