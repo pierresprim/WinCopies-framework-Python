@@ -50,14 +50,12 @@ def ForEachWhile(list, action: callable, predicate: callable) -> bool:
 
     return ForEach(list, _action)
 
-def ForEachWhileIndex(list, action: callable, value) -> bool:
-    return ForEachWhile(list, action, GetIndexedValueIndexComparison(value))
-
-def ForEachWhileValue(list, action: callable, value) -> bool:
-    return ForEachWhile(list, action, GetIndexedValueValueComparison(value))
-
-def ForEachWhileIndexAndValue(list, action: callable, value) -> bool:
-    return ForEachWhile(list, action, GetIndexedValueComparison(value))
+def ForEachWhileIndex[T](items: Iterable[T], action: Callable[[int, T]], index: int) -> DualValueBool[int]|None:
+    return ForEachWhile(items, Delegates.GetIndexedValueIndexComparison(index), action)
+def ForEachWhileValue[T](items: Iterable[T], action: Callable[[int, T]], value: T) -> DualValueBool[int]|None:
+    return ForEachWhile(items, Delegates.GetIndexedValueValueComparison(value), action)
+def ForEachWhileIndexAndValue[T](items: Iterable[T], action: Callable[[int, T]], index: int, value: T) -> DualValueBool[int]|None:
+    return ForEachWhile(items, Delegates.GetIndexedValueComparison(index, value), action)
 
 def ForEachUntil(list, action: callable, predicate: callable) -> bool:
     def _action(i: int, value) -> bool:
@@ -70,14 +68,12 @@ def ForEachUntil(list, action: callable, predicate: callable) -> bool:
 
     return ForEach(list, _action)
 
-def ForEachUntilIndex(list, action: callable, value) -> bool:
-    return ForEachUntil(list, action, GetIndexedValueIndexComparison(value))
-
-def ForEachUntilValue(list, action: callable, value) -> bool:
-    return ForEachUntil(list, action, GetIndexedValueValueComparison(value))
-
-def ForEachUntilIndexAndValue(list, action: callable, value) -> bool:
-    return ForEachUntil(list, action, GetIndexedValueComparison(value))
+def ForEachUntilIndex[T](items: Iterable[T], action: Callable[[int, T]], index: int) -> DualValueBool[int]|None:
+    return ForEachUntil(items, Delegates.GetIndexedValueIndexComparison(index), action)
+def ForEachUntilValue[T](items: Iterable[T], action: Callable[[int, T]], value: T) -> DualValueBool[int]|None:
+    return ForEachUntil(items, Delegates.GetIndexedValueValueComparison(value), action)
+def ForEachUntilIndexAndValue[T](items: Iterable[T], action: Callable[[int, T]], index: int, value: T) -> DualValueBool[int]|None:
+    return ForEachUntil(items, Delegates.GetIndexedValueComparison(index, value), action)
 
 def ParseItems(iterable, predicate: callable) -> bool|None:
     result: bool|None = None
