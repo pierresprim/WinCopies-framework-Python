@@ -58,15 +58,6 @@ def Process(action: callable, message: str = "Continue?", info: str = " y/[any o
     while AskConfirmation(message):
         action()
 
-def Replace(string: str, esc: str, newEsc: str, *args: str) -> str:
-    string = string.replace(esc + esc, esc)
-    
-    for arg in args:
-        
-        string = string.replace(esc + arg, newEsc + arg)
-    
-    return string
-
 def TryPredicate(action: callable, predicate: callable) -> bool|None:
     ok: bool = True
     _predicate: callable
