@@ -8,7 +8,7 @@ Created on Thu May 30 07:37:00 2024
 from enum import Enum
 import os
 
-from WinCopies import Delegates, DualResult, Collections
+from WinCopies import Delegates, DualResult, Collections, IO
 
 class DirScanResult(Enum):
     DoesNotExist = -2
@@ -23,7 +23,7 @@ class DirScanResult(Enum):
         return (DirScanResult.Error if self == DirScanResult.Success else DirScanResult.Success) if self else self
 
 def ProcessDirEntries(path: str, func: callable) -> DirScanResult:
-    if os.path.exists(path):
+    if os.path.isdir(path):
         with os.scandir(path) as paths:
             result: bool|None = func(paths)
 
@@ -34,20 +34,20 @@ def ProcessDirEntries(path: str, func: callable) -> DirScanResult:
 def ParseEntries(path: str, predicate: callable) -> DirScanResult:
     return ProcessDirEntries(path, lambda paths: Collections.ParseItems(paths, predicate))
 
-def __ParseDir(path: str, func: callable, converter: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
-    _predicate = Collections.FinderPredicate[os.DirEntry]()
+def __ParseDir(path: str, func: callable[[str, callable[[os.DirEntry], bool]], DirScanResult], converter: callable[[Collections.FinderPredicate[os.DirEntry]], callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, DirScanResult]:
+    predicate = Collections.FinderPredicate[os.DirEntry]()
     
-    dirScanResult: DirScanResult = func(path, converter(_predicate))
+    dirScanResult: DirScanResult = func(path, converter(predicate))
 
-    return DualResult(_predicate.TryGetResult().GetValue(), dirScanResult)
+    return DualResult(predicate.TryGetResult().GetValue(), dirScanResult)
 
-def FindDirEntry(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+def FindDirEntry(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, DirScanResult]:
     return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
 
-def ScanDir(path: str, predicate: callable) -> DirScanResult:
+def ScanDir(path: str, predicate: callable[[os.DirEntry], bool]) -> DirScanResult:
     return ParseEntries(path, lambda entry: not predicate(entry)).Not()
 
-def ValidateDirEntries(path: str, predicate: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+def ValidateDirEntries(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, DirScanResult]:
     return __ParseDir(path, ScanDir, lambda _predicate: _predicate.GetValidationPredicate(predicate))
 
 def HasItems(path: str) -> DirScanResult:
