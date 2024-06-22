@@ -70,3 +70,16 @@ def ScanDirEntries(path: str, action: callable) -> DirScanResult:
 
 def ParseDirEntries(path: str, predicate: callable, action: callable) -> DirScanResult:
     return ProcessDirEntries(path, lambda paths: Collections.ScanAllItems(paths, predicate, action))
+
+def __ParseDirEntries(path: str, predicate: callable, action: callable, dirEntryPredicate: callable) -> DirScanResult:
+    return ParseDirEntries(path, Delegates.GetPredicateAndAlso(dirEntryPredicate, predicate), action)
+
+def ScanSubdirectories(path: str, action: callable) -> DirScanResult:
+    return ParseDirEntries(path, IO.GetDirectoryPredicate(), action)
+def ParseSubdirectories(path: str, predicate: callable, action: callable) -> DirScanResult:
+    return __ParseDirEntries(path, predicate, action, IO.GetDirectoryPredicate())
+
+def ScanFiles(path: str, action: callable) -> DirScanResult:
+    return ParseDirEntries(path, IO.GetFilePredicate(), action)
+def ParseFiles(path: str, predicate: callable, action: callable) -> DirScanResult:
+    return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
