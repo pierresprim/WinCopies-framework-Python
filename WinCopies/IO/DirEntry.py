@@ -8,7 +8,7 @@ Created on Tue Jun 04 11:47:00 2024
 from typing import final
 import os
 
-from WinCopies import IO
+from WinCopies import IO, String
 from WinCopies.IO import IDirEntry
 
 class SystemDirEntry(IDirEntry):
@@ -78,4 +78,4 @@ class DirEntry(IDirEntry):
     
     @final
     def GetFullName(self) -> str:
-        return f'{self.__name}.{self.__extension}'
+        return String.SurroundWith(self.__name, '.', self.__extension)

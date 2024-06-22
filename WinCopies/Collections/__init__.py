@@ -4,19 +4,17 @@ from collections.abc import Iterable
 
 from WinCopies import DualValueBool
 
-def GetLastIndex(list) -> int:
+def GetLastIndex(list: list) -> int:
     return len(list) - 1
 
-def TrySetAt(list, index: int, ifTrue: callable, ifFalse: callable):
+def TrySetAt[T](list: list, index: int, ifTrue: Callable[[int], T], ifFalse: Callable[[], T]) -> T:
     return ifTrue(index) if len(list) > index else ifFalse()
 
-def TryGetAt(list, index: int, default):
+def TryGetAt[T](list: list[T], index: int, default: T|None = None) -> T|None:
     return list[index] if len(list) > index else default
-def TryGetAtNone(list, index: int):
-    return list[index] if len(list) > index else None
-def TryGetAtFunc(list, index: int, ifTrue: callable, ifFalse: callable):
+def TryGetAtFunc[TIn, TOut](list: list[TIn], index: int, ifTrue: Callable[[TIn], TOut], ifFalse: Callable[[], TOut]) -> TOut:
     return TrySetAt(list, index, lambda i: ifTrue(list[i]), ifFalse)
-def TryGetAtStr(list, index: int):
+def TryGetAtStr(list: list[str], index: int) -> str:
     return TryGetAt(list, index, "")
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
