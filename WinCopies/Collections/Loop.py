@@ -104,7 +104,7 @@ def DoForEachItem[T](items: Iterable[T], action: Callable[[T]]) -> bool:
     
     return result
 def DoForEachArg[T](action: Callable[[T]], *values: T) -> bool|None:
-    return DoForEachItem(values, predicate)
+    return DoForEachItem(values, action)
 
 def ForEachWhile[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T]]) -> DualValueBool[int]|None:
     def _action(i: int, value: T) -> bool:

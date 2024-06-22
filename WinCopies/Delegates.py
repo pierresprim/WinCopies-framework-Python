@@ -20,7 +20,7 @@ def BoolFuncAction(func: Callable[[], bool], action: Callable[[]]) -> bool:
         return True
     
     return False
-def GetBoolFuncAction(func: Callable[bool], action: Callable[[]]) -> Callable[bool]:
+def GetBoolFuncAction(func: Callable[[], bool], action: Callable[[]]) -> Callable[[], bool]:
     return lambda: BoolFuncAction(func, action)
 
 
