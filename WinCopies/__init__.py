@@ -53,7 +53,7 @@ def AskConfirmation(message: str, info: str = " y/[any other key]: ", value: str
     return input(message + info) == value
 
 def Process(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
-    while AskConfirmation(message):
+    while AskConfirmation(message, info, value):
         action()
 
 def DoProcess(action: callable, message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
