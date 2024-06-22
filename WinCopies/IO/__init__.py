@@ -80,11 +80,3 @@ def TryRemoveDirectory(directory: str) -> bool|None:
     
     except IOError:
         return None
-
-def RunCommand(command: str, captureOutput = False, throwOnError = True) -> DualResult[object, int]:
-    result: subprocess.CompletedProcess = subprocess.run(command, capture_output=captureOutput, shell=True, text=captureOutput)
-    
-    if throwOnError:
-        result.check_returncode()
-    
-    return DualResult(result.stdout, result.returncode)

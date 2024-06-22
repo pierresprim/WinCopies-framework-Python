@@ -6,7 +6,7 @@ Created on Sun Feb  6 20:37:51 2022
 """
 
 from abc import ABC, abstractmethod
-from typing import final #, protected
+from typing import final
 
 class IEnumerator(ABC):
     @abstractmethod
