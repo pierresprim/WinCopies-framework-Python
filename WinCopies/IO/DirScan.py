@@ -67,10 +67,10 @@ def ForEachDirEntry(path: str, predicate: callable, action: callable) -> DualRes
     return ValidateDirEntries(path, Delegates.GetPredicateAction(predicate, action))
 
 def ScanDirEntries(path: str, action: callable) -> DirScanResult:
-    return ProcessDirEntries(path, lambda paths: Collections.ScanItems(paths, action))
+    return ProcessDirEntries(path, lambda paths: Loop.DoForEachItem(paths, action))
 
 def ParseDirEntries(path: str, predicate: callable, action: callable) -> DirScanResult:
-    return ProcessDirEntries(path, lambda paths: Collections.ScanAllItems(paths, predicate, action))
+    return ProcessDirEntries(path, lambda paths: Loop.ScanItems(paths, predicate, action))
 
 def __ParseDirEntries(path: str, predicate: callable, action: callable, dirEntryPredicate: callable) -> DirScanResult:
     return ParseDirEntries(path, Delegates.GetPredicateAndAlso(dirEntryPredicate, predicate), action)
