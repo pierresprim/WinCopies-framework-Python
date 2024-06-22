@@ -106,16 +106,19 @@ def DoForEachItem[T](items: Iterable[T], action: Callable[[T]]) -> bool:
 def DoForEachArg[T](action: Callable[[T]], *values: T) -> bool|None:
     return DoForEachItem(values, predicate)
 
-def ForEachWhile(list, action: callable, predicate: callable) -> bool:
-    def _action(i: int, value) -> bool:
+def ForEachWhile[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T]]) -> DualValueBool[int]|None:
+    def _action(i: int, value: T) -> bool:
+        nonlocal predicate
+        nonlocal action
+
         if (predicate(i, value)):
-            return True
+            return False
 
         action(i, value)
         
-        return False
+        return True
 
-    return ForEach(list, _action)
+    return ForEachUntilTrue(items, _action)
 
 def ForEachWhileIndex[T](items: Iterable[T], action: Callable[[int, T]], index: int) -> DualValueBool[int]|None:
     return ForEachWhile(items, Delegates.GetIndexedValueIndexComparison(index), action)
@@ -124,16 +127,16 @@ def ForEachWhileValue[T](items: Iterable[T], action: Callable[[int, T]], value: 
 def ForEachWhileIndexAndValue[T](items: Iterable[T], action: Callable[[int, T]], index: int, value: T) -> DualValueBool[int]|None:
     return ForEachWhile(items, Delegates.GetIndexedValueComparison(index, value), action)
 
-def ForEachUntil(list, action: callable, predicate: callable) -> bool:
+def ForEachUntil[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T]]) -> DualValueBool[int]|None:
     def _action(i: int, value) -> bool:
         if (predicate(i, value)):
             action(i, value)
 
-            return False
+            return True
         
-        return True
+        return False
 
-    return ForEach(list, _action)
+    return ForEachUntilTrue(items, _action)
 
 def ForEachUntilIndex[T](items: Iterable[T], action: Callable[[int, T]], index: int) -> DualValueBool[int]|None:
     return ForEachUntil(items, Delegates.GetIndexedValueIndexComparison(index), action)
