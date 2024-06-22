@@ -1,22 +1,75 @@
+from typing import Callable
+
 def Self(value):
     return value
 
-def PredicateAction(obj: object, predicate: callable, action: callable) -> bool:
+def PredicateAction[T](obj: T, predicate: Callable[[T], bool], action: Callable[[T]]) -> bool:
     if predicate(obj):
         action(obj)
 
         return True
     
     return False
-
-def GetPredicateAction(predicate: callable, action: callable) -> callable:
+def GetPredicateAction[T](predicate: Callable[[T], bool], action: Callable[[T]]) -> Callable[[T], bool]:
     return lambda obj: PredicateAction(obj, predicate, action)
 
-def GetIndexedValueIndexComparison(index: int) -> callable:
-    return lambda i, _value: index == i
+def BoolFuncAction(func: Callable[[], bool], action: Callable[[]]) -> bool:
+    if func():
+        action()
 
-def GetIndexedValueValueComparison(value) -> callable:
+        return True
+    
+    return False
+def GetBoolFuncAction(func: Callable[bool], action: Callable[[]]) -> Callable[bool]:
+    return lambda: BoolFuncAction(func, action)
+
+
+
+def __GetPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool], converter: Callable[[T, Callable[[T], bool], Callable[[T], bool]], bool]) -> Callable[[T], bool]:
+    return lambda obj: converter(obj, p1, p2)
+
+def PredicateAndAlso[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return p1(obj) and p2(obj)
+def GetAndAlsoPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateAndAlso)
+
+def PredicateAnd[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return p1(obj) & p2(obj)
+def GetAndPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateAnd)
+
+def PredicateOrElse[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return p1(obj) or p2(obj)
+def GetOrElsePredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateOrElse)
+
+def PredicateOr[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return p1(obj) | p2(obj)
+def GetOrPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateOr)
+
+def PredicateNotAndAlso[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return (not p1(obj)) and p2(obj)
+def GetNotAndAlsoPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateNotAndAlso)
+
+def PredicateNotAnd[T](obj: T, p1: Callable[[T], bool], p2: Callable[[T], bool]) -> bool:
+    return (not p1(obj)) & p2(obj)
+def GetNotAndPredicate[T](p1: Callable[[T], bool], p2: Callable[[T], bool]) -> Callable[[T], bool]:
+    return __GetPredicate(p1, p2, PredicateNotAnd)
+
+def PredicateNot[T](obj: T, predicate: Callable[[T], bool]) -> bool:
+    return not predicate(obj)
+def GetNotPredicate[T](predicate: Callable[[T], bool]) -> Callable[[T], bool]:
+    return lambda obj: PredicateNot(obj, predicate)
+
+
+
+def GetIndexedValueIndexComparison[T](index: int) -> Callable[[T], bool]:
+    return lambda i, value: i == index
+
+def GetIndexedValueValueComparison[T](value: T) -> Callable[[T], bool]:
     return lambda i, _value: value == _value
 
-def GetIndexedValueComparison(index: int, value) -> callable:
-    return lambda i, _value: index == i and value == _value
+def GetIndexedValueComparison[T](index: int, value: T) -> Callable[[T], bool]:
+    return lambda i, _value: i == index and value == _value
