@@ -22,22 +22,15 @@ def Until(func: Callable[[], bool], action: Callable[[]]) -> bool:
         action()
 
     return True
-def DoWhile(action: callable, func: callable) -> bool:
+
+def __Do(action: Callable[[]], func: Callable[[], bool], loop: Callable[[Callable[[], bool], Callable[[]]]]) -> bool:
     action()
 
-    if func():
-        action()
-
-        while func():
-            action()
-        
-        return True
-    
-    return False
-def DoUntil(action: callable, func: callable) -> bool:
-    action()
-
-    return Until(action, func)
+    return loop(func, action)
+def DoWhile(action: Callable[[]], func: Callable[[], bool]) -> bool:
+    return __Do(action, func, While)
+def DoUntil(action: Callable[[]], func: Callable[[], bool]) -> bool:
+    return __Do(action, func, Until)
 
 def ForEach(list, action: callable) -> bool:
     for i in range(len(list)):
