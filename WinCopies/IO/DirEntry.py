@@ -78,4 +78,4 @@ class DirEntry(IDirEntry):
     
     @final
     def GetFullName(self) -> str:
-        return self.__name + self.__extension
+        return f'{self.__name}.{self.__extension}'

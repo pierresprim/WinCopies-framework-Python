@@ -6,9 +6,8 @@ Created on Tue Jun 04 11:47:00 2024
 """
 import os
 from abc import ABC, abstractmethod
-import subprocess
 
-from WinCopies import DualResult, DualValueNullableBool
+from WinCopies import DualValueNullableBool
 
 class IDirEntry(ABC):
     def __init__(self):
@@ -34,7 +33,7 @@ class IDirEntry(ABC):
         return self.GetPath()
 
 def TryGetExtensionFromArray(entry) -> str|None:
-    return entry[1] if len(entry) > 1 else None
+    return entry[1][1:] if len(entry) > 1 else None
 
 def TryGetExtension(name: str) -> str|None:
     return TryGetExtensionFromArray(os.path.splitext(name))
