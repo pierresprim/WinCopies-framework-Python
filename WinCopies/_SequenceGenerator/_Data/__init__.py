@@ -4,7 +4,7 @@ from math import pow, factorial, log10
 from ._Generators import _IGenerator, _TextRenderer, _ICounter, _Counter, _CounterRenderer, _TextSequenceGenerator, _CounterSequenceGenerator, _Operator, _OperatorRenderer, _OperatorParser
 from WinCopies.Collections.Linked.Singly import Queue
 from WinCopies.Collections import Enumeration, ForEachUntilValue, GetLastIndex, TrySetAt, DoWhile
-from WinCopies import Replace
+from WinCopies.String import Replace
 
 @final
 class _Data:
