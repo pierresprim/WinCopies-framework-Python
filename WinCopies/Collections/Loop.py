@@ -62,14 +62,49 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Callable[[T], bool]) -> b
     
     return result
 
-def ForEach(list, action: callable) -> bool:
-    for i in range(len(list)):
-        if action(i, list[i]):
-            continue
+def ForEach[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
+    return ForEachUntilTrue(items, lambda index, _action: not action(index, action))
+def ForEachValue[T](action: Callable[[int, T], bool], *values: T) -> DualValueBool[int]|None:
+    return ForEach(values, action)
 
-        return False
+def DoForEach[T](items: Iterable[T], action: Callable[[int, T]]) -> int:
+    i: int = -1
+
+    for item in items:
+        i += 1
+
+        action(i, item)
     
-    return True
+    return i
+def DoForEachValue[T](action: Callable[[int, T]], *values: T) -> int:
+    return DoForEach(values, action)
+
+def ForEachItem[T](items: Iterable[T], predicate: Callable[[T], bool]) -> bool|None:
+    return WinCopies.Not(ForEachItemUntil(items, Delegates.GetNotPredicate(predicate)))
+def ForEachArg[T](predicate: Callable[[T], bool], *values: T) -> bool|None:
+    return ForEachItem(values, predicate)
+
+def DoForEachItem[T](items: Iterable[T], action: Callable[[T]]) -> bool:
+    result: bool = False
+    _action: Callable[[T]]
+
+    def init(entry: T):
+        nonlocal result
+        nonlocal action
+        nonlocal _action
+
+        (_action := action)(entry)
+
+        result = True
+    
+    _action = init
+
+    for entry in items:
+        _action(entry)
+    
+    return result
+def DoForEachArg[T](action: Callable[[T]], *values: T) -> bool|None:
+    return DoForEachItem(values, predicate)
 
 def ForEachWhile(list, action: callable, predicate: callable) -> bool:
     def _action(i: int, value) -> bool:
