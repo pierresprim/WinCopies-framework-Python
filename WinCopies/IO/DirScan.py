@@ -5,54 +5,36 @@ Created on Thu May 30 07:37:00 2024
 @author: Pierre Sprimont
 """
 
-from typing import Callable
+from typing import Callable, Iterable
 from enum import Enum
 import os
 
 from WinCopies import Delegates, DualResult, Collections, IO
-from WinCopies.Collections import Loop
+from WinCopies.Collections import Loop, IterableScanResult
 
-class DirScanResult(Enum):
-    DoesNotExist = -2
-    Empty = -1
-    Success = 0
-    Error = 1
+def ProcessDirEntries(path: str, func: Callable[[Iterable[os.DirEntry]], bool|None]) -> IterableScanResult:
+    return Collections.TryIterateFrom(path, os.path.isdir, os.scandir, func)
 
-    def __bool__(self):
-        return self >= 0
-    
-    def Not(self):
-        return (DirScanResult.Error if self == DirScanResult.Success else DirScanResult.Success) if self else self
-
-def ProcessDirEntries(path: str, func: Callable[[Iterable[os.DirEntry]], bool|None]) -> DirScanResult:
-    if os.path.isdir(path):
-        with os.scandir(path) as paths:
-            result: bool|None = func(paths)
-
-        return DirScanResult.Empty if result == None else (DirScanResult.Success if result else DirScanResult.Error)    
-    
-    return DirScanResult.DoesNotExist
-
-def ParseEntries(path: str, predicate: Callable[[os.DirEntry], bool]) -> DirScanResult:
+def ParseEntries(path: str, predicate: Callable[[os.DirEntry], bool]) -> IterableScanResult:
     return ProcessDirEntries(path, lambda paths: Loop.ForEachItemUntil(paths, predicate))
 
-def __ParseDir(path: str, func: Callable[[str, Callable[[os.DirEntry], bool]], DirScanResult], converter: Callable[[Collections.FinderPredicate[os.DirEntry]], Callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, DirScanResult]:
+def __ParseDir(path: str, func: Callable[[str, Callable[[os.DirEntry], bool]], IterableScanResult], converter: Callable[[Collections.FinderPredicate[os.DirEntry]], Callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, IterableScanResult]:
     predicate = Collections.FinderPredicate[os.DirEntry]()
     
-    dirScanResult: DirScanResult = func(path, converter(predicate))
+    dirScanResult: IterableScanResult = func(path, converter(predicate))
 
     return DualResult(predicate.TryGetResult().GetValue(), dirScanResult)
 
-def FindDirEntry(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, DirScanResult]:
+def FindDirEntry(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, IterableScanResult]:
     return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
 
-def ScanDir(path: str, predicate: callable[[os.DirEntry], bool]) -> DirScanResult:
+def ScanDir(path: str, predicate: callable[[os.DirEntry], bool]) -> IterableScanResult:
     return ParseEntries(path, lambda entry: not predicate(entry)).Not()
 
-def ValidateDirEntries(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, DirScanResult]:
+def ValidateDirEntries(path: str, predicate: callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, IterableScanResult]:
     return __ParseDir(path, ScanDir, lambda _predicate: _predicate.GetValidationPredicate(predicate))
 
-def HasItems(path: str) -> DirScanResult:
+def HasItems(path: str) -> IterableScanResult:
     def parse(paths) -> bool|None:
         for entry in paths:
             return True
@@ -61,27 +43,27 @@ def HasItems(path: str) -> DirScanResult:
     
     return ProcessDirEntries(path, parse)
 
-def ParseDir(path: str, predicate: callable, action: callable) -> DirScanResult:
+def ParseDir(path: str, predicate: callable, action: callable) -> IterableScanResult:
     return ScanDir(path, Delegates.GetPredicateAction(predicate, action))
 
-def ForEachDirEntry(path: str, predicate: callable, action: callable) -> DualResult[os.DirEntry|None, DirScanResult]:
+def ForEachDirEntry(path: str, predicate: callable, action: callable) -> DualResult[os.DirEntry|None, IterableScanResult]:
     return ValidateDirEntries(path, Delegates.GetPredicateAction(predicate, action))
 
-def ScanDirEntries(path: str, action: callable) -> DirScanResult:
+def ScanDirEntries(path: str, action: callable) -> IterableScanResult:
     return ProcessDirEntries(path, lambda paths: Loop.DoForEachItem(paths, action))
 
-def ParseDirEntries(path: str, predicate: callable, action: callable) -> DirScanResult:
+def ParseDirEntries(path: str, predicate: callable, action: callable) -> IterableScanResult:
     return ProcessDirEntries(path, lambda paths: Loop.ScanItems(paths, predicate, action))
 
-def __ParseDirEntries(path: str, predicate: callable, action: callable, dirEntryPredicate: callable) -> DirScanResult:
+def __ParseDirEntries(path: str, predicate: callable, action: callable, dirEntryPredicate: callable) -> IterableScanResult:
     return ParseDirEntries(path, Delegates.GetPredicateAndAlso(dirEntryPredicate, predicate), action)
 
-def ScanSubdirectories(path: str, action: callable) -> DirScanResult:
+def ScanSubdirectories(path: str, action: callable) -> IterableScanResult:
     return ParseDirEntries(path, IO.GetDirectoryPredicate(), action)
-def ParseSubdirectories(path: str, predicate: callable, action: callable) -> DirScanResult:
+def ParseSubdirectories(path: str, predicate: callable, action: callable) -> IterableScanResult:
     return __ParseDirEntries(path, predicate, action, IO.GetDirectoryPredicate())
 
-def ScanFiles(path: str, action: callable) -> DirScanResult:
+def ScanFiles(path: str, action: callable) -> IterableScanResult:
     return ParseDirEntries(path, IO.GetFilePredicate(), action)
-def ParseFiles(path: str, predicate: callable, action: callable) -> DirScanResult:
+def ParseFiles(path: str, predicate: callable, action: callable) -> IterableScanResult:
     return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())

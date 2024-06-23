@@ -1,8 +1,21 @@
 from typing import Callable
+from enum import Enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from WinCopies import DualValueBool
+
+class IterableScanResult(Enum):
+    DoesNotExist = -2
+    Empty = -1
+    Success = 0
+    Error = 1
+
+    def __bool__(self):
+        return self >= 0
+    
+    def Not(self):
+        return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
 
 def GetLastIndex(list: list) -> int:
     return len(list) - 1
@@ -19,6 +32,22 @@ def TryGetAtStr(list: list[str], index: int) -> str:
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
+
+def IterateWith[T](itemsProvider: Callable[[], Iterable[T]], func: Callable[[Iterable[T]], bool|None]) -> bool|None:
+    with itemsProvider() as items:
+        return func(items)
+def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Callable[[TIn], Iterable[TOut]], func: Callable[[Iterable[TOut]], bool|None]) -> bool|None:
+    return IterateWith(lambda: itemsProvider(value), func)
+
+def TryIterateWith[T](checker: Callable[[], bool], itemsProvider: Callable[[], Iterable[T]], func: Callable[[Iterable[T]], bool|None]) -> IterableScanResult:
+    if checker():
+        result: bool|None = IterateWith(itemsProvider, func)
+
+        return IterableScanResult.Empty if result == None else (IterableScanResult.Success if result else IterableScanResult.Error)
+    
+    return IterableScanResult.DoesNotExist
+def TryIterateFrom[TIn, TOut](value: TIn, checker: Callable[[TIn], bool], itemsProvider: Callable[[TIn], Iterable[TOut]], func: Callable[[Iterable[TOut]], bool|None]) -> IterableScanResult:
+    return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
 
 class EmptyException(Exception):
     def __init__(self):
