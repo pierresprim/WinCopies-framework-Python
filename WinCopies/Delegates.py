@@ -1,26 +1,26 @@
-from typing import Callable
+from typing import Callable, Any
 
 def Self(value):
     return value
 
-def PredicateAction[T](obj: T, predicate: Callable[[T], bool], action: Callable[[T]]) -> bool:
+def PredicateAction[T](obj: T, predicate: Callable[[T], bool], action: Callable[[T], None]) -> bool:
     if predicate(obj):
         action(obj)
 
         return True
     
     return False
-def GetPredicateAction[T](predicate: Callable[[T], bool], action: Callable[[T]]) -> Callable[[T], bool]:
+def GetPredicateAction[T](predicate: Callable[[T], bool], action: Callable[[T], None]) -> Callable[[T], bool]:
     return lambda obj: PredicateAction(obj, predicate, action)
 
-def BoolFuncAction(func: Callable[[], bool], action: Callable[[]]) -> bool:
+def BoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> bool:
     if func():
         action()
 
         return True
     
     return False
-def GetBoolFuncAction(func: Callable[[], bool], action: Callable[[]]) -> Callable[[], bool]:
+def GetBoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> Callable[[], bool]:
     return lambda: BoolFuncAction(func, action)
 
 

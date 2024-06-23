@@ -5,6 +5,7 @@ Created on Thu May 30 07:37:00 2024
 @author: Pierre Sprimont
 """
 
+from typing import Callable
 from enum import Enum
 import os
 
@@ -23,19 +24,19 @@ class DirScanResult(Enum):
     def Not(self):
         return (DirScanResult.Error if self == DirScanResult.Success else DirScanResult.Success) if self else self
 
-def ProcessDirEntries(path: str, func: callable) -> DirScanResult:
+def ProcessDirEntries(path: str, func: Callable[[Iterable[os.DirEntry]], bool|None]) -> DirScanResult:
     if os.path.isdir(path):
         with os.scandir(path) as paths:
             result: bool|None = func(paths)
 
-            return DirScanResult.Empty if result == None else (DirScanResult.Success if result else DirScanResult.Error)
+        return DirScanResult.Empty if result == None else (DirScanResult.Success if result else DirScanResult.Error)    
     
     return DirScanResult.DoesNotExist
 
-def ParseEntries(path: str, predicate: callable) -> DirScanResult:
+def ParseEntries(path: str, predicate: Callable[[os.DirEntry], bool]) -> DirScanResult:
     return ProcessDirEntries(path, lambda paths: Loop.ForEachItemUntil(paths, predicate))
 
-def __ParseDir(path: str, func: callable[[str, callable[[os.DirEntry], bool]], DirScanResult], converter: callable[[Collections.FinderPredicate[os.DirEntry]], callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, DirScanResult]:
+def __ParseDir(path: str, func: Callable[[str, Callable[[os.DirEntry], bool]], DirScanResult], converter: Callable[[Collections.FinderPredicate[os.DirEntry]], Callable[[os.DirEntry], bool]]) -> DualResult[os.DirEntry|None, DirScanResult]:
     predicate = Collections.FinderPredicate[os.DirEntry]()
     
     dirScanResult: DirScanResult = func(path, converter(predicate))
