@@ -190,15 +190,31 @@ class File(IStream):
 
         return file
     
-    def GetFileInitializer(fileMode: FileMode, fileType: FileType, onError: callable, message: str = "Enter a path: ") -> callable:
-        file: File|None = File.GetFile(onError, message)
+    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
+        file: File|None = File.TryGetFile(fileType, onError, message)
         
         if file is None:
             return None
         
         def open() -> File:
-            file.Open(fileMode, fileType)
+            file.Open(fileMode)
 
             return file
         
         return open
+    
+    def GetFileInitializer(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
+        file: File|None = File.GetFile(fileType, onError, message)
+        
+        def open() -> File:
+            file.Open(fileMode)
+
+            return file
+        
+        return open
+    
+    def TryGetFileCreator(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
+        return lambda: File.TryGetFileInitializer(fileMode, fileType, onError, message)
+    
+    def TryGetFileOpener(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return lambda: File.TryOpenFile(fileMode, fileType, onError, message)
