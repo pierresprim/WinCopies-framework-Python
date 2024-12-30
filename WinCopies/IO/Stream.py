@@ -81,10 +81,6 @@ class File(IStream):
     def __init__(self, path: str):
         self._path : str = path
     
-    @final
-    def GetPath(self) -> str:
-        return self._path
-    
     @abstractmethod
     def Open(self, fileMode: FileMode) -> bool:
         pass
