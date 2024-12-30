@@ -17,7 +17,7 @@ class FileMode(Enum):
     Append = 2
     Write = 3
     Create = 4
-        
+
     def __str__(self) -> str:
         match self:
             case FileMode.Read:
@@ -78,9 +78,26 @@ class IStream(ABC):
         pass
 
 class File(IStream):
+    @singleton
+    @final
+    class __Consts:
+        @constant
+        def ASK_PATH_MESSAGE() -> str:
+            return "Enter a path: "
+    
+    CONSTS = __Consts()
+
     def __init__(self, path: str):
         self._path : str = path
     
+    @abstractmethod
+    def GetOpenType(self) -> FileType:
+        pass
+    
+    @final
+    def _Open(self, fileMode: FileMode) -> IOBase|None:
+        
+        return None if self.IsOpen() else open(self._path, str(fileMode) + str(self.GetOpenType()))
     @abstractmethod
     def Open(self, fileMode: FileMode) -> bool:
         pass
@@ -142,7 +159,7 @@ class File(IStream):
             
             except IOError:
                 return None
-        
+
         "IO error callback provided. Trying until initializer or IO error callback validated."
         while True:
             try:
