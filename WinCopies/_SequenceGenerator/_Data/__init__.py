@@ -227,7 +227,7 @@ class _Data:
                         
                         if pattern[i + 1] == '#':
                             def _appendSequence() -> None:
-                                append(_TextSequenceGenerator(self.__data._GetPattern(getSubstrProvider())) if hasText()  else _CounterSequenceGenerator())
+                                append(_TextSequenceGenerator(self.__data._GetPattern(getSubstrProvider())) if hasText() else _CounterSequenceGenerator())
                             
                             tryAppend()
                             
