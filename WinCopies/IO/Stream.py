@@ -17,11 +17,55 @@ class FileMode(Enum):
     Append = 2
     Write = 3
     Create = 4
+        
+    def __str__(self) -> str:
+        match self:
+            case FileMode.Read:
+                return "r"
+            case FileMode.Append:
+                return "a"
+            case FileMode.Write:
+                return "w"
+            case FileMode.Create:
+                return "x"
+            case _:
+                return None
+                
+    def GetMode(fileMode: str):
+        match fileMode:
+            case "r":
+                return FileMode.Read
+            case "a":
+                return FileMode.Append
+            case "w":
+                return FileMode.Write
+            case "x":
+                return FileMode.Create
+            case _:
+                return FileMode.Null
 
 class FileType(Enum):
     Null = 0
     Text = 1
     Binary = 2
+                
+    def __str__(self) -> str:
+        match self:
+            case FileType.Text:
+                return "t"
+            case FileType.Binary:
+                return "b"
+            case _:
+                return None
+                
+    def GetType(fileType: str):
+        match fileType:
+            case "t":
+                return FileType.Text
+            case "b":
+                return FileType.Binary
+            case _:
+                return FileType.Null
 
 class IStream(ABC):
     def __init__(self):
@@ -40,50 +84,6 @@ class File(IStream):
     def __init__(self, path: str):
         self._path : str = path
         self._textStream: TextIOWrapper|None = None
-        
-    def GetStrMode(fileMode : FileMode) -> str:
-        match fileMode:
-            case FileMode.Read:
-                return "r"
-            case FileMode.Append:
-                return "a"
-            case FileMode.Write:
-                return "w"
-            case FileMode.Create:
-                return "x"
-            case _:
-                return None
-                
-    def GetMode(fileMode : str) -> FileMode:
-        match fileMode:
-            case "r":
-                return FileMode.Read
-            case "a":
-                return FileMode.Append
-            case "w":
-                return FileMode.Write
-            case "x":
-                return FileMode.Create
-            case _:
-                return FileMode.Null
-                
-    def GetStrType(fileType : FileType) -> str:
-        match fileType:
-            case FileType.Text:
-                return "t"
-            case FileType.Binary:
-                return "b"
-            case _:
-                return None
-                
-    def GetType(fileType : str) -> FileType:
-        match fileType:
-            case "t":
-                return FileType.Text
-            case "b":
-                return FileType.Binary
-            case _:
-                return FileType.Null
     
     @final
     def GetPath(self) -> str:
