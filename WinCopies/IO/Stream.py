@@ -10,6 +10,9 @@ from abc import ABC, abstractmethod
 from typing import final
 from os import remove, path
 from io import TextIOWrapper
+from typing import Callable
+
+from WinCopies.Typing import constant, singleton
 
 class FileMode(Enum):
     Null = 0
