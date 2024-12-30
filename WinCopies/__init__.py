@@ -8,8 +8,6 @@ Created on Fri May 26 14:21:00 2023
 from typing import final, Callable
 from abc import ABC, abstractmethod
 
-from WinCopies.Delegates import Self
-
 def Not(value: bool|None) -> bool|None:
     return None if value is None else not value
 
@@ -157,24 +155,3 @@ class DualValueBool[T](DualResult[T, bool]):
 class DualValueNullableBool[T](DualResult[T, bool|None]):
     def __init__(self, resultValue: T, resultInfo: bool|None):
         super().__init__(resultValue, resultInfo)
-
-class Singleton(type):
-    __instances = {}
-    
-    def WhenExisting(cls, *args, **kwargs) -> None:
-        pass
-    def WhenNew(cls, *args, **kwargs) -> None:
-        cls.__instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-    
-    def __call__(cls, *args, **kwargs):
-        (Singleton.WhenExisting if cls in cls.__instances else Singleton.WhenNew)(cls, args, kwargs)
-            
-        return cls.__instances[cls]
-
-class MultiInitializationSingleton(Singleton):
-    def WhenExisting(cls, *args, **kwargs) -> None:
-        cls._instances[cls].__init__(*args, **kwargs)
-
-def singleton(cls):
-    cls.__call__ = Self
-    return cls()
