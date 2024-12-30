@@ -74,9 +74,6 @@ class IStream(ABC):
     def IsOpen(self) -> bool:
         pass
     @abstractmethod
-    def Open(self) -> None:
-        pass
-    @abstractmethod
     def Close(self) -> None:
         pass
 
