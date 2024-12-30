@@ -173,13 +173,20 @@ class File(IStream):
 
                 raise e
     
-    def OpenFile(fileMode: FileMode, fileType: FileType, onError: callable, message: str = "Enter a path: "):
-        file: File|None = File.GetFile(onError, message)
+    def TryOpenFile(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        file: File|None = File.TryGetFile(fileType, onError, message)
 
         if file is None:
             return None
         
-        file.Open(fileMode, fileType)
+        file.Open(fileMode)
+
+        return file
+    
+    def OpenFile(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        file: File|None = File.GetFile(fileType, onError, message)
+        
+        file.Open(fileMode)
 
         return file
     
