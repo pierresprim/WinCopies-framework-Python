@@ -88,6 +88,29 @@ class File(IStream):
     @abstractmethod
     def Open(self, fileMode: FileMode) -> bool:
         pass
+
+    @final
+    def GetPath(self) -> str:
+        return self._path
+    
+    def TryInitializeAs(path: str, fileType: FileType):
+        match fileType:
+            case FileType.Text:
+                return TextFile(path)
+            
+            case FileType.Binary:
+                return BinaryFile(path)
+        
+        return None
+    def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType):
+        stream: File|None = File.TryInitializeAs(path, fileType)
+
+        if stream is None:
+            return None
+        
+        stream.Open(fileMode)
+
+        return stream
     
     @final
     def Delete(self) -> None:
