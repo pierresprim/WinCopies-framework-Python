@@ -20,3 +20,10 @@ class MultiInitializationSingleton(Singleton):
 def singleton(cls):
     cls.__call__ = Self
     return cls()
+
+def constant(f):
+    def fget(self):
+        return f()
+    def fset(self, value):
+        raise TypeError
+    return property(fget, fset)
