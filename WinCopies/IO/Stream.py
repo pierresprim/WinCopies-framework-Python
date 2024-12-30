@@ -115,17 +115,63 @@ class File(IStream):
             
         if path.isfile(self._path):            
             remove(self._path)
+
+    def __GetDelegate(fileType: FileType, message: str):
+        def prompt() -> str:
+            return input(message)
+        
+        match fileType:
+            case FileType.Text:
+                return lambda: TextFile(prompt())
+            case FileType.Binary:
+                return lambda: BinaryFile(prompt())
+        
+        return None
     
-    def GetFile(onError: callable, message: str = "Enter a path: "):
+    def TryGetFile(fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        getFile: Callable[[], File]|None = File.__GetDelegate(fileType, message)
+
+        if getFile is None:
+            "Invalid arguments; no initializer could be created."
+            return None
+        
+        if onError is None:
+            "No IO error callback provided. Trying only one time."
+            try:
+                return getFile()
+            
+            except IOError:
+                return None
+        
+        "IO error callback provided. Trying until initializer or IO error callback validated."
         while True:
             try:
-                return File(input(message))
+                return getFile()
             
             except IOError as e:
                 if onError(e):
                     continue
 
                 return None
+    
+    def GetFile(fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        getFile: Callable[[], File]|None = File.__GetDelegate(fileType, message)
+
+        if getFile is None:
+            return None
+        
+        if onError is None:
+            return getFile()
+
+        while True:
+            try:
+                return getFile()
+            
+            except IOError as e:
+                if onError(e):
+                    continue
+
+                raise e
     
     def OpenFile(fileMode: FileMode, fileType: FileType, onError: callable, message: str = "Enter a path: "):
         file: File|None = File.GetFile(onError, message)
