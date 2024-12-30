@@ -7,7 +7,7 @@ Created on Tue Jun 04 11:47:00 2024
 import os
 from abc import ABC, abstractmethod
 
-from WinCopies import DualValueNullableBool
+from WinCopies.Typing.Pairing import DualValueNullableBool
 
 class IDirEntry(ABC):
     def __init__(self):
