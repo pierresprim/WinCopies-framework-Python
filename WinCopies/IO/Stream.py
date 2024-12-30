@@ -80,38 +80,14 @@ class IStream(ABC):
 class File(IStream):
     def __init__(self, path: str):
         self._path : str = path
-        self._textStream: TextIOWrapper|None = None
     
     @final
     def GetPath(self) -> str:
         return self._path
     
-    @final
-    def IsOpen(self) -> bool:
-        return self._textStream is not None
-    
-    @final
-    def Open(self, fileMode: FileMode, fileType: FileType) -> None:
-        if self.IsOpen():
-            return
-        
-        self._textStream = open(self._path, File.GetStrMode(fileMode) + File.GetStrType(fileType))
-    
-    @final
-    def Write(self, text: str) -> None:
-        if self.IsOpen():
-            self._textStream.write(text)
-        else:
-            raise IOError
-    @final
-    def WriteLine(self, text: str) -> None:
-        self.Write(text + "\n")
-    
-    @final
-    def Close(self) -> None:
-        if self.IsOpen():
-            self._textStream.close()
-            self._textStream = None
+    @abstractmethod
+    def Open(self, fileMode: FileMode) -> bool:
+        pass
     
     @final
     def Delete(self) -> None:
