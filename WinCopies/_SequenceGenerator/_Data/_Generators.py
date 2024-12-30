@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import final #, protected
 from enum import Enum
 
-from WinCopies import singleton
+from WinCopies.Typing import singleton
 
 class _IGenerator(ABC):
     def __init__(self):
