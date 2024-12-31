@@ -141,37 +141,56 @@ class File(IStream):
         if path.isfile(self._path):            
             remove(self._path)
 
-    def __GetDelegate(fileType: FileType, message: str):
-        def prompt() -> str:
-            return input(message)
-        
+    def __GetDelegate(fileType: FileType, path: str):
         match fileType:
             case FileType.Text:
-                return lambda: TextFile(prompt())
+                return lambda: TextFile(path)
             case FileType.Binary:
-                return lambda: BinaryFile(prompt())
+                return lambda: BinaryFile(path)
         
-        return None
+        "Invalid arguments; no initializer could be created."
+        raise ValueError('Wrong FileType.', fileType)
     
-    def TryGetFile(fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
-        getFile: Callable[[], File]|None = File.__GetDelegate(fileType, message)
+    def TryGetFile(fileType: FileType, validator: Callable[[str], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        if validator is None:
+            "No path validator callback provided. Directly create file."
+            return File.GetFile(fileType, message)
 
-        if getFile is None:
-            "Invalid arguments; no initializer could be created."
-            return None
+        def askPath() -> str|None:
+            path: str = input(message)
+
+            return path if validator(path) else None
+        
+        path: str|None = askPath()
+        
+        while path is None:
+            path = askPath()
+        
+        return File.__GetDelegate(fileType, path)()
+    
+    def GetFile(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return File.__GetDelegate(fileType, input(message))()
+    
+    def TryOpenFile(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        def open() -> File:
+            file: File = File.TryGetFile(fileType, validator, message)
+
+            file.Open(fileMode)
+
+            return file
         
         if onError is None:
-            "No IO error callback provided. Trying only one time."
+            "No IO error callback provided. Try only one time."
             try:
-                return getFile()
+                return open()
             
             except IOError:
                 return None
         
-        "IO error callback provided. Trying until initializer or IO error callback validated."
+        "IO error callback provided. Try until initializer validated or IO error callback invalidated."
         while True:
             try:
-                return getFile()
+                return open()
             
             except IOError as e:
                 if onError(e):
@@ -179,18 +198,22 @@ class File(IStream):
 
                 return None
     
-    def GetFile(fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
-        getFile: Callable[[], File]|None = File.__GetDelegate(fileType, message)
+    def OpenFile(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        def open() -> File:
+            file: File = File.TryGetFile(fileType, validator, message)
 
-        if getFile is None:
-            return None
+            file.Open(fileMode)
+
+            return file
         
         if onError is None:
-            return getFile()
+            "No IO error callback provided. Try only one time."
+            return open()
 
+        "IO error callback provided. Try until initializer validated or IO error callback invalidated."
         while True:
             try:
-                return getFile()
+                return open()
             
             except IOError as e:
                 if onError(e):
@@ -198,51 +221,15 @@ class File(IStream):
 
                 raise e
     
-    def TryOpenFile(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
-        file: File|None = File.TryGetFile(fileType, onError, message)
-
-        if file is None:
-            return None
-        
-        file.Open(fileMode)
-
-        return file
+    def TryGetFileCreator(fileType: FileType, validator: Callable[[str], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return lambda: File.TryGetFile(fileType, validator, message)
+    def GetFileCreator(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return lambda: File.GetFile(fileType, message)
     
-    def OpenFile(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
-        file: File|None = File.GetFile(fileType, onError, message)
-        
-        file.Open(fileMode)
-
-        return file
-    
-    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
-        file: File|None = File.TryGetFile(fileType, onError, message)
-        
-        if file is None:
-            return None
-        
-        def open() -> File:
-            file.Open(fileMode)
-
-            return file
-        
-        return open
-    
-    def GetFileInitializer(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
-        file: File|None = File.GetFile(fileType, onError, message)
-        
-        def open() -> File:
-            file.Open(fileMode)
-
-            return file
-        
-        return open
-    
-    def TryGetFileCreator(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> callable:
-        return lambda: File.TryGetFileInitializer(fileMode, fileType, onError, message)
-    
-    def TryGetFileOpener(fileMode: FileMode, fileType: FileType, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
-        return lambda: File.TryOpenFile(fileMode, fileType, onError, message)
+    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return lambda: File.TryOpenFile(fileMode, fileType, validator, onError, message)
+    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+        return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
 class TextFile(File):
     def __init__(self, path: str):
