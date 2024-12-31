@@ -248,6 +248,8 @@ class TextFile(File):
     @final
     def Open(self, fileMode: FileMode) -> bool:
         self.__stream = self._Open(fileMode)
+
+        return self.__stream is not None
     
     @final
     def TryRead(self, size: int = -1) -> str|None:
@@ -310,6 +312,8 @@ class BinaryFile(File):
     @final
     def Open(self, fileMode: FileMode) -> bool:
         self.__stream = self._Open(fileMode)
+
+        return self.__stream is not None
     
     @final
     def TryRead(self, size: int = -1) -> bytes|None:
