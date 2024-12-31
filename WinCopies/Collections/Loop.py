@@ -2,7 +2,8 @@ from typing import Callable
 from collections.abc import Iterable
 
 import WinCopies
-from WinCopies import DualValueBool, Delegates
+from WinCopies import Delegates
+from WinCopies.Typing.Pairing import DualValueBool
 
 def While(func: Callable[[], bool], action: Callable[[], None]) -> bool:
     if (func := Delegates.GetBoolFuncAction(func, action))():
