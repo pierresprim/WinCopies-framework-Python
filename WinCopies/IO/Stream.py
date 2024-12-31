@@ -91,7 +91,7 @@ class File(IStream):
     CONSTS = __Consts()
 
     def __init__(self, path: str):
-        self._path : str = path
+        self._path: str = path
     
     @abstractmethod
     def GetOpenType(self) -> FileType:
@@ -99,11 +99,16 @@ class File(IStream):
     
     @final
     def _Open(self, fileMode: FileMode) -> IOBase|None:
-        
         return None if self.IsOpen() else open(self._path, str(fileMode) + str(self.GetOpenType()))
+    
     @abstractmethod
     def Open(self, fileMode: FileMode) -> bool:
         pass
+    def TryOpen(self, fileMode: FileMode) -> bool|None:
+        try:
+            return self.Open(fileMode)
+        except IOError:
+            return None
 
     @final
     def GetPath(self) -> str:
