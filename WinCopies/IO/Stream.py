@@ -24,25 +24,25 @@ class FileMode(Enum):
     def __str__(self) -> str:
         match self:
             case FileMode.Read:
-                return "r"
+                return 'r'
             case FileMode.Append:
-                return "a"
+                return 'a'
             case FileMode.Write:
-                return "w"
+                return 'w'
             case FileMode.Create:
-                return "x"
+                return 'x'
             case _:
                 return None
                 
     def GetMode(fileMode: str):
         match fileMode:
-            case "r":
+            case 'r':
                 return FileMode.Read
-            case "a":
+            case 'a':
                 return FileMode.Append
-            case "w":
+            case 'w':
                 return FileMode.Write
-            case "x":
+            case 'x':
                 return FileMode.Create
             case _:
                 return FileMode.Null
@@ -55,17 +55,17 @@ class FileType(Enum):
     def __str__(self) -> str:
         match self:
             case FileType.Text:
-                return "t"
+                return 't'
             case FileType.Binary:
-                return "b"
+                return 'b'
             case _:
                 return None
                 
     def GetType(fileType: str):
         match fileType:
-            case "t":
+            case 't':
                 return FileType.Text
-            case "b":
+            case 'b':
                 return FileType.Binary
             case _:
                 return FileType.Null
@@ -148,12 +148,12 @@ class File(IStream):
             case FileType.Binary:
                 return lambda: BinaryFile(path)
         
-        "Invalid arguments; no initializer could be created."
+        # Invalid arguments; no initializer could be created.
         raise ValueError('Wrong FileType.', fileType)
     
     def TryGetFile(fileType: FileType, validator: Callable[[str], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         if validator is None:
-            "No path validator callback provided. Directly create file."
+            # No path validator callback provided. Directly create file.
             return File.GetFile(fileType, message)
 
         def askPath() -> str|None:
@@ -180,14 +180,14 @@ class File(IStream):
             return file
         
         if onError is None:
-            "No IO error callback provided. Try only one time."
+            # No IO error callback provided. Try only one time.
             try:
                 return open()
             
             except IOError:
                 return None
         
-        "IO error callback provided. Try until initializer validated or IO error callback invalidated."
+        # IO error callback provided. Try until initializer validated or IO error callback invalidated.
         while True:
             try:
                 return open()
@@ -207,10 +207,10 @@ class File(IStream):
             return file
         
         if onError is None:
-            "No IO error callback provided. Try only one time."
+            # No IO error callback provided. Try only one time.
             return open()
 
-        "IO error callback provided. Try until initializer validated or IO error callback invalidated."
+        # IO error callback provided. Try until initializer validated or IO error callback invalidated.
         while True:
             try:
                 return open()
@@ -274,7 +274,7 @@ class TextFile(File):
             return False
     @final
     def TryWriteLine(self, text: str) -> bool:
-        return self.Write(text + "\n")
+        return self.Write(text + '\n')
     
     @final
     def Write(self, text: str) -> None:
@@ -339,7 +339,7 @@ class BinaryFile(File):
             return False
     @final
     def TryWriteLine(self, data: bytes) -> bool:
-        return self.Write(data + "\n")
+        return self.Write(data + '\n')
     
     @final
     def Write(self, data: bytes) -> None:
