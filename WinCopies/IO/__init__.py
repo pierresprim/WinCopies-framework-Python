@@ -6,6 +6,7 @@ Created on Tue Jun 04 11:47:00 2024
 """
 import os
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
@@ -80,7 +81,7 @@ def TryRemoveDirectory(directory: str) -> bool|None:
     except IOError:
         return None
 
-def GetDirectoryPredicate() -> callable:
+def GetDirectoryPredicate() -> Callable[[os.DirEntry], bool]:
     return lambda entry: entry.is_dir()
-def GetFilePredicate() -> callable:
+def GetFilePredicate() -> Callable[[os.DirEntry], bool]:
     return lambda entry: entry.is_file()
