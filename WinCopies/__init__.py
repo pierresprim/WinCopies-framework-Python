@@ -6,6 +6,25 @@ Created on Fri May 26 14:21:00 2023
 """
 
 from typing import Callable
+from enum import Enum
+
+class Endianness(Enum):
+    Null = 0
+    Little = 1
+    Big = 2
+
+class Sign(Enum):
+    Signed = 1
+    Unsigned = 2
+    Float = 3
+
+class BitDepthLevel(Enum):
+    One = 8
+    Two = 16
+    Three = 32
+    Four = 64
+
+type Predicate[T] = Callable[[T], bool]
 
 def Not(value: bool|None) -> bool|None:
     return None if value is None else not value
