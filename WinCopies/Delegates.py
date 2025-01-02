@@ -5,6 +5,13 @@ from WinCopies import Predicate
 def Self[T](value: T) -> T:
     return value
 
+def BoolTrue() -> bool:
+    return True
+def BoolFalse() -> bool:
+    return False
+def FuncNone() -> None:
+    return None
+
 def PredicateAction[T](obj: T, predicate: Predicate[T], action: Callable[[T], None]) -> bool:
     if predicate(obj):
         action(obj)
