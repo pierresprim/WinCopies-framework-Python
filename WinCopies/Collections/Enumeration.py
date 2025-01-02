@@ -34,7 +34,7 @@ class EnumeratorBase(IEnumerator):
     @final
     def __GetMoveNext(self) -> Callable[[], bool]:
         def moveNext() -> bool:
-            def setCompletedMoveNext() -> callable:
+            def setCompletedMoveNext() -> None:
                 self.__moveNext = Delegates.BoolFalse
             
             def moveNext() -> bool:
