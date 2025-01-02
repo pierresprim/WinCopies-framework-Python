@@ -67,3 +67,23 @@ def ScanFiles[T](path: str, action: Callable[[T], None]) -> IterableScanResult:
     return ParseDirEntries(path, IO.GetFilePredicate(), action)
 def ParseFiles[T](path: str, predicate: Predicate[T], action: Callable[[T], None]) -> IterableScanResult:
     return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
+
+def __GetFindFromExtensionsPredicate(extensions: Iterable[str]) -> Predicate[str]:
+    return lambda entry: IO.TryCheckExtension(entry.path, extensions)
+def __FindFromExtensions(path: str, predicate: Predicate[os.DirEntry]) -> os.DirEntry|None:
+    result: DualResult[os.DirEntry|None, IterableScanResult] = FindDirEntry(path, predicate)
+    
+    return result.GetValue() if result.GetKey() == IterableScanResult.Success else None
+
+def FindFromExtensions(path: str, *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, __GetFindFromExtensionsPredicate(extensions))
+
+def FindFromExtensionsAndCheck(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(__GetFindFromExtensionsPredicate(extensions), predicate))
+def FindFromExtensionsAndValidate(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndPredicate(__GetFindFromExtensionsPredicate(extensions), predicate))
+
+def CheckAndFindFromExtensions(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(predicate, __GetFindFromExtensionsPredicate(extensions)))
+def ValidateAndFindFromExtensions(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndPredicate(predicate, __GetFindFromExtensionsPredicate(extensions)))
