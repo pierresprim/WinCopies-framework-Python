@@ -90,3 +90,13 @@ def ConcatenateFrom(values: Iterable[str], separator: str, selector: Callable[[s
     return result
 def ConcatenateFromValues(*values: str, separator: str, selector: Callable[[str], str]) -> str:
     return ConcatenateFrom(values, separator, selector)
+
+def Contains(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+    return value.find(subValue, start, end) >= 0
+def ContainsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+    return value.rfind(subValue, start, end) >= 0
+
+def Omit(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+    return value.find(subValue, start, end) < 0
+def OmitR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+    return value.rfind(subValue, start, end) < 0
