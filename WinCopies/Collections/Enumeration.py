@@ -6,7 +6,9 @@ Created on Sun Feb  6 20:37:51 2022
 """
 
 from abc import ABC, abstractmethod
-from typing import final
+from typing import final, Callable
+
+from WinCopies import Delegates
 
 class IEnumerator(ABC):
     @abstractmethod
@@ -30,28 +32,30 @@ class EnumeratorBase(IEnumerator):
         self.__moveNext: callable = self.__GetMoveNext()
         self.__hasProcessedItems: bool = False
     @final
-    def __GetMoveNext(self) -> callable:
+    def __GetMoveNext(self) -> Callable[[], bool]:
         def moveNext() -> bool:
             def setCompletedMoveNext() -> callable:
-                def completedMoveNext() -> bool:
-                    return False
-                
-                self.__moveNext = completedMoveNext
+                self.__moveNext = Delegates.BoolFalse
             
             def moveNext() -> bool:
                 if self._MoveNextOverride():
                     return True
                 
                 self._OnCompleted()
+
                 setCompletedMoveNext()
+
                 return False
             
             if self._OnStarting() and self._MoveNextOverride():
                 self.__moveNext = moveNext
+
                 self.__hasProcessedItems = True
+
                 return True
             
             setCompletedMoveNext()
+
             return False
         
         return moveNext
@@ -85,6 +89,7 @@ class EnumeratorBase(IEnumerator):
             self._ResetOverride()
             self.__moveNext = self.__GetMoveNext()
             self.__hasProcessedItems = False
+
             return True
         
         return False
@@ -97,6 +102,7 @@ class EnumeratorBase(IEnumerator):
     def __next__(self):
         if self.__moveNext():
             return self.GetCurrent()
+        
         else:
             raise StopIteration
 
