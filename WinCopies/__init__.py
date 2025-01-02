@@ -24,8 +24,6 @@ class BitDepthLevel(Enum):
     Three = 32
     Four = 64
 
-type Predicate[T] = Callable[[T], bool]
-
 def Not(value: bool|None) -> bool|None:
     return None if value is None else not value
 

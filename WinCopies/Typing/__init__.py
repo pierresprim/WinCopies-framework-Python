@@ -1,4 +1,8 @@
+from typing import Callable
+
 from WinCopies.Delegates import Self
+
+type Predicate[T] = Callable[[T], bool]
 
 class Singleton(type):
     __instances = {}

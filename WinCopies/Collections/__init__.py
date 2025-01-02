@@ -3,7 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from WinCopies import Predicate
+from WinCopies.Typing import Predicate
 from WinCopies.Typing.Pairing import DualValueBool
 
 class IterableScanResult(Enum):
