@@ -83,7 +83,6 @@ def TryPredicate(predicate: Callable[[Exception], bool], action: Callable[[], No
 
     def __predicate(e: Exception) -> bool:
         nonlocal ok
-        nonlocal predicate
         nonlocal _predicate
 
         if predicate(e):

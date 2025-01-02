@@ -21,9 +21,6 @@ def IsValueOf(e: Type[Enum], v: int) -> bool:
 
 def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
     def assertTypes():
-        nonlocal e
-        nonlocal f
-
         t: Type = type(f)
 
         Assert(t)
