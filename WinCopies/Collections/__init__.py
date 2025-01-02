@@ -3,6 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from WinCopies import Predicate
 from WinCopies.Typing.Pairing import DualValueBool
 
 class IterableScanResult(Enum):
@@ -62,10 +63,10 @@ class Collection(ABC):
         pass
     
     def HasItems(self) -> bool:
-        return not self.Empty()
+        return not self.IsEmpty()
     
     def ThrowIfEmpty(self) -> None:
-        if self.Empty():
+        if self.IsEmpty():
             raise EmptyException()
 
 class FinderPredicate[T]:
@@ -80,7 +81,7 @@ class FinderPredicate[T]:
         self.__result = result
         self.__hasValue = True
 
-    def __Scan(self, entry: T, predicate: callable) -> bool:
+    def __Scan(self, entry: T, predicate: Predicate[T]) -> bool:
         if predicate(entry):
             self.__Set(entry)
 
@@ -88,7 +89,7 @@ class FinderPredicate[T]:
         
         return False
 
-    def __Validate(self, entry: T, predicate: callable) -> bool:
+    def __Validate(self, entry: T, predicate: Predicate[T]) -> bool:
         if predicate(entry):
             return True
         
@@ -96,15 +97,15 @@ class FinderPredicate[T]:
         
         return False
     
-    def __GetPredicate(self, predicate: callable, func: callable) -> callable:
+    def __GetPredicate(self, predicate: Predicate[T], func: callable) -> Predicate[T]:
         self.__Reset()
 
         return lambda entry: func(entry, predicate)
     
-    def GetPredicate(self, predicate: callable) -> callable:
+    def GetPredicate(self, predicate: Predicate[T]) -> Predicate[T]:
         return self.__GetPredicate(predicate, self.__Scan)
     
-    def GetValidationPredicate(self, predicate: callable) -> callable:
+    def GetValidationPredicate(self, predicate: Predicate[T]) -> Predicate[T]:
         return self.__GetPredicate(predicate, self.__Validate)
     
     def TryGetResult(self) -> DualValueBool[T]:
