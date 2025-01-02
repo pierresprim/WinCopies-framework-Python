@@ -8,6 +8,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Callable
 
+from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
 class IDirEntry(ABC):
@@ -48,6 +49,11 @@ def GetExtension(name: str) -> str:
     result: str|None = TryGetExtension(name)
     
     return '' if result is None else result
+
+def TryCheckExtension(path: str, *extensions: str) -> bool|None:
+    extension: str|None = TryGetExtension(path)
+    
+    return extension is not None and ForEachItemUntil(extensions, lambda fileExtension: extension == fileExtension)
 
 def TryCreateDirectory(directory: str) -> bool|None:
     try:
