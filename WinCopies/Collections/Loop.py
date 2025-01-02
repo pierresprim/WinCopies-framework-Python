@@ -63,7 +63,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
     return result
 
 def ForEach[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
-    return ForEachUntilTrue(items, lambda index, _action: not action(index, action))
+    return ForEachUntilTrue(items, lambda index, item: not action(index, item))
 def ForEachValue[T](action: Callable[[int, T], bool], *values: T) -> DualValueBool[int]|None:
     return ForEach(values, action)
 
