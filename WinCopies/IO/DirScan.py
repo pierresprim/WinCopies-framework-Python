@@ -11,6 +11,7 @@ import os
 from WinCopies import Delegates, Collections, IO, Predicate
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Collections import Loop, IterableScanResult
+from WinCopies.IO import FileKind
 
 def ProcessDirEntries(path: str, func: Callable[[Iterable[os.DirEntry]], bool|None]) -> IterableScanResult:
     return Collections.TryIterateFrom(path, os.path.isdir, os.scandir, func)
@@ -68,22 +69,40 @@ def ScanFiles[T](path: str, action: Callable[[T], None]) -> IterableScanResult:
 def ParseFiles[T](path: str, predicate: Predicate[T], action: Callable[[T], None]) -> IterableScanResult:
     return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
 
-def __GetFindFromExtensionsPredicate(extensions: Iterable[str]) -> Predicate[str]:
-    return lambda entry: IO.TryCheckExtension(entry.path, extensions)
+def __GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]) -> Predicate[os.DirEntry]:
+    predicate: Predicate[os.DirEntry] = lambda entry: IO.TryCheckExtension(entry.path, extensions)
+
+    match fileKind:
+        case FileKind.Null:
+            return predicate
+        
+        case FileKind.Folder:
+            return Delegates.GetAndAlsoPredicate(os.DirEntry.is_dir, predicate)
+        
+        case FileKind.File:
+            return Delegates.GetAndAlsoPredicate(os.DirEntry.is_file, predicate)
+        
+        case FileKind.Link:
+            return Delegates.GetAndAlsoPredicate(os.DirEntry.is_symlink, predicate)
+        
+        case FileKind.Junction:
+            return Delegates.GetAndAlsoPredicate(os.DirEntry.is_junction, predicate)
+    
+    raise ValueError("FileKind not supported.", fileKind)
 def __FindFromExtensions(path: str, predicate: Predicate[os.DirEntry]) -> os.DirEntry|None:
     result: DualResult[os.DirEntry|None, IterableScanResult] = FindDirEntry(path, predicate)
     
     return result.GetValue() if result.GetKey() == IterableScanResult.Success else None
 
-def FindFromExtensions(path: str, *extensions: str) -> os.DirEntry|None:
-    return __FindFromExtensions(path, __GetFindFromExtensionsPredicate(extensions))
+def FindFromExtensions(path: str, fileKind: FileKind, *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, __GetFindFromExtensionsPredicate(fileKind, extensions))
 
-def FindFromExtensionsAndCheck(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
-    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(__GetFindFromExtensionsPredicate(extensions), predicate))
-def FindFromExtensionsAndValidate(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
-    return __FindFromExtensions(path, Delegates.GetAndPredicate(__GetFindFromExtensionsPredicate(extensions), predicate))
+def FindFromExtensionsAndCheck(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(__GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
+def FindFromExtensionsAndValidate(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndPredicate(__GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
 
-def CheckAndFindFromExtensions(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
-    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(predicate, __GetFindFromExtensionsPredicate(extensions)))
-def ValidateAndFindFromExtensions(path: str, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
-    return __FindFromExtensions(path, Delegates.GetAndPredicate(predicate, __GetFindFromExtensionsPredicate(extensions)))
+def CheckAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(predicate, __GetFindFromExtensionsPredicate(fileKind, extensions)))
+def ValidateAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
+    return __FindFromExtensions(path, Delegates.GetAndPredicate(predicate, __GetFindFromExtensionsPredicate(fileKind, extensions)))
