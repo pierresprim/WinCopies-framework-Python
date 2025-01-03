@@ -6,7 +6,7 @@ Created on Tue Jun 04 11:47:00 2024
 """
 import os
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Sequence
 
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Pairing import DualValueNullableBool
@@ -34,21 +34,31 @@ class IDirEntry(ABC):
     def __str__(self) -> str:
         return self.GetPath()
 
-def TryGetExtensionFromArray(entry) -> str|None:
-    return entry[1][1:] if len(entry) > 1 else None
+def TryGetFullExtensionFromArray(entry: Sequence[str]|None) -> str|None:
+    return None if entry is None or len(entry) < 2 else entry[1]
+def TryGetFullExtension(name: str) -> str|None:
+    return TryGetFullExtensionFromArray(os.path.splitext(name))
 
+def GetFullExtensionFromArray(entry: Sequence[str]|None) -> str:
+    result: str|None = TryGetFullExtensionFromArray(entry)
+
+    return '' if result is None else result
+def GetFullExtension(name: str) -> str:
+    return GetFullExtensionFromArray(os.path.splitext(name))
+
+def TryGetExtensionFromArray(entry: Sequence[str]|None) -> str|None:
+    result: str|None = TryGetFullExtensionFromArray(entry)
+
+    return None if result is None or len(result) < 2 else result[1:]
 def TryGetExtension(name: str) -> str|None:
     return TryGetExtensionFromArray(os.path.splitext(name))
 
-def GetExtensionFromArray(entry) -> str:
+def GetExtensionFromArray(entry: Sequence[str]) -> str:
     result: str|None = TryGetExtensionFromArray(entry)
     
     return '' if result is None else result
-
 def GetExtension(name: str) -> str:
-    result: str|None = TryGetExtension(name)
-    
-    return '' if result is None else result
+    return GetExtensionFromArray(os.path.splitext(name))
 
 def TryCheckExtension(path: str, *extensions: str) -> bool|None:
     extension: str|None = TryGetExtension(path)
