@@ -2,15 +2,17 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies.Collections import Collection
+from WinCopies.Typing.Pairing import DualNullableValueBool
 
-class Base(Collection):
-    class _Node:
-        def __init__(self, value, next):
-            self.__value = value
-            self.__next = next
+class Base[T](Collection):
+    @final
+    class _Node[T]:
+        def __init__(self, value: T, next):
+            self.__value: T = value
+            self.__next: Base._Node[T] = next
         
         @final
-        def GetValue(self):
+        def GetValue(self) -> T:
             return self.__value
         
         @final
@@ -21,7 +23,8 @@ class Base(Collection):
             self.__next = next
     
     def __init__(self):
-        self.__first: Base._Node|None = None
+        super().__init__()
+        self.__first: Base._Node[T]|None = None
 
     @final
     def IsEmpty(self) -> bool:
@@ -31,7 +34,7 @@ class Base(Collection):
         return super().HasItems(self)
     
     @abstractmethod
-    def _InitFirstNode(self, value) -> None:
+    def _InitFirstNode(self, value: T) -> None:
         pass
     @final
     def _GetFirst(self):
@@ -44,24 +47,23 @@ class Base(Collection):
         pass
     
     @final
-    def Push(self, value) -> None:
+    def Push(self, value: T) -> None:
         if self.IsEmpty():
-            self.__first = Base._Node(value, None, None)
+            self.__first = Base._Node(value, None)
         
         else:
             self._InitFirstNode(value)
     
     @final
-    def Pop(self):
-        self.ThrowIfEmpty()
-        
-        return self.__first.GetValue()
+    def TryPop(self) -> DualNullableValueBool[T]:
+        return DualNullableValueBool[T](None, False) if self.IsEmpty() else DualNullableValueBool[T](self.__first.GetValue(), True)
     
     @final
-    def Pull(self):
-        self.ThrowIfEmpty()
-
-        value = self.__first.GetValue()
+    def Pull(self) -> DualNullableValueBool[T]:
+        if self.IsEmpty():
+            return DualNullableValueBool[T](None, False)
+        
+        value: T = self.__first.GetValue()
 
         node: Base._Node = self.__first
         self.__first = node._GetNext()
@@ -75,15 +77,15 @@ class Base(Collection):
 
         self.__first = None
 
-class Queue(Base):
+class Queue[T](Base):
     def __init__(self):
         super().__init__()
         
-        self.__last: Base._Node|None = None
+        self.__last: Base._Node[T]|None = None
     
     @final
-    def _InitFirstNode(self, value):
-        node: Base._Node = Base._Node(value, None)
+    def _InitFirstNode(self, value: T):
+        node = Base._Node[T](value, None)
 
         if self.HasItems():
             self.__last._SetNext(node)
