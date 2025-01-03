@@ -6,10 +6,20 @@ Created on Tue Jun 04 11:47:00 2024
 """
 import os
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Callable, Sequence
 
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Pairing import DualValueNullableBool
+
+class FileKind(Enum):
+    Null = 0
+    Drive = 1
+    Folder = 2
+    File = 3
+    Link = 4
+    Junction = 5
+    Archive = 6
 
 class IDirEntry(ABC):
     def __init__(self):
