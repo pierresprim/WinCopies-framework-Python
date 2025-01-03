@@ -50,3 +50,6 @@ class DualResult[TValue, TInfo](IKeyValuePair[TInfo, TValue]):
 
 type DualValueBool[T] = DualResult[T, bool]
 type DualValueNullableBool[T] = DualResult[T, bool|None]
+
+type DualNullableValueBool[T] = DualResult[T|None, bool]
+type DualNullableValueNullableBool[T] = DualResult[T|None, bool|None]
