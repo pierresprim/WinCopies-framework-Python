@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing import Predicate
+from WinCopies.Typing.Delegate import Predicate
 
 def Self[T](value: T) -> T:
     return value
