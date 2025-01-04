@@ -1,30 +1,14 @@
 from abc import abstractmethod
-from typing import final
+from typing import final, Callable
 
 from WinCopies.Collections import Collection
-from WinCopies.Typing.Pairing import DualNullableValueBool
+from WinCopies.Collections.Linked import SinglyLinkedNode
+from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
-class Base[T](Collection):
-    @final
-    class _Node[T]:
-        def __init__(self, value: T, next):
-            self.__value: T = value
-            self.__next: Base._Node[T] = next
-        
-        @final
-        def GetValue(self) -> T:
-            return self.__value
-        
-        @final
-        def _GetNext(self):
-            return self.__next
-        @final
-        def _SetNext(self, next):
-            self.__next = next
-    
+class List[T](Collection):
     def __init__(self):
         super().__init__()
-        self.__first: Base._Node[T]|None = None
+        self.__first: SinglyLinkedNode[T]|None = None
 
     @final
     def IsEmpty(self) -> bool:
@@ -33,43 +17,38 @@ class Base[T](Collection):
     def HasItems(self) -> bool:
         return super().HasItems(self)
     
-    @abstractmethod
-    def _InitFirstNode(self, value: T) -> None:
-        pass
     @final
-    def _GetFirst(self):
-        return self.__first
-    @final
-    def _SetFirstNode(self, node) -> None:
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
         self.__first = node
-
+    
+    @abstractmethod
     def _OnRemoved(self) -> None:
         pass
     
+    @abstractmethod
+    def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
+        pass
     @final
     def Push(self, value: T) -> None:
         if self.IsEmpty():
-            self.__first = Base._Node(value, None)
+            self.__first = SinglyLinkedNode[T](value, None)
         
         else:
-            self._InitFirstNode(value)
+            self._Push(value, self.__first)
+    
+    @final
+    def TryPeek(self) -> DualNullableValueBool[T]:
+        return DualResult[T|None, bool](None, False) if self.IsEmpty() else DualResult[T|None, bool](self.__first.GetValue(), True)
     
     @final
     def TryPop(self) -> DualNullableValueBool[T]:
-        return DualNullableValueBool[T](None, False) if self.IsEmpty() else DualNullableValueBool[T](self.__first.GetValue(), True)
-    
-    @final
-    def Pull(self) -> DualNullableValueBool[T]:
-        if self.IsEmpty():
-            return DualNullableValueBool[T](None, False)
-        
-        value: T = self.__first.GetValue()
+        result: DualNullableValueBool[T] = self.TryPeek()
 
-        node: Base._Node = self.__first
-        self.__first = node._GetNext()
-        self._OnRemoved()
+        if result.GetKey():
+            self.__first = self.__first.GetNext()
+            self._OnRemoved()
 
-        return value
+        return result
     
     @final
     def Clear(self) -> None:
@@ -77,30 +56,46 @@ class Base[T](Collection):
 
         self.__first = None
 
-class Queue[T](Base):
+class Queue[T](List):
     def __init__(self):
         super().__init__()
         
-        self.__last: Base._Node[T]|None = None
+        self.__last: SinglyLinkedNode[T]|None = None
+        self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
     
     @final
-    def _InitFirstNode(self, value: T):
-        node = Base._Node[T](value, None)
+    def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
+        def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
+            previousNode.SetNext(newNode)
 
-        if self.HasItems():
-            self.__last._SetNext(node)
+            self.__last = newNode
         
-        self.__last = node
+        push(first, newNode)
+
+        self.__updater = lambda first, newNode: push(self.__last, newNode)
+    
+    @final
+    def __GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+        return lambda first, newNode: self.__Push(first, newNode)
+    
+    @final
+    def _Push(self, value: T, first: SinglyLinkedNode[T]):
+        self.__updater(first, SinglyLinkedNode[T](value, None))
     
     @final
     def _OnRemoved(self) -> None:
         if self.IsEmpty():
             self.__last = None
+            self.__updater = self.__GetUpdater()
 
-class Stack(Base):
+class Stack[T](List):
     def __init__(self):
         super().__init__()
     
     @final
-    def _InitFirstNode(self, value) -> None:
-        self._SetFirstNode(Base._Node(value, self._GetFirst()))
+    def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
+        self._SetFirst(SinglyLinkedNode[T](value, first))
+    
+    @final
+    def _OnRemoved(self) -> None:
+        pass

@@ -1,0 +1,34 @@
+from typing import final
+
+class SinglyLinkedNode[T]:
+    def __init__(self, value: T, next):
+        self.__value: T = value
+        self.__next: SinglyLinkedNode[T] = next
+    
+    @final
+    def GetValue(self) -> T:
+        return self.__value
+    
+    @final
+    def SetValue(self, value: T) -> None:
+        self.__value = value
+    
+    @final
+    def GetNext(self):
+        return self.__next
+    @final
+    def SetNext(self, next) -> None:
+        self.__next = next
+
+class Node[T](SinglyLinkedNode[T]):
+    def __init__(self, value: T, previous, next):
+        super().__init__(value, next)
+
+        self.__previous: Node[T] = previous
+    
+    @final
+    def GetPrevious(self):
+        return self.__previous
+    @final
+    def SetPrevious(self, previous) -> None:
+        self.__previous = previous
