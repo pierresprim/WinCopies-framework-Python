@@ -3,14 +3,15 @@ from collections.abc import Iterable
 
 from WinCopies.Collections import Loop
 
-def Replace(string: str, esc: str, newEsc: str, *args: str) -> str:
+def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     string = string.replace(esc + esc, esc)
     
     for arg in args:
-        
         string = string.replace(esc + arg, newEsc + arg)
     
     return string
+def ReplaceValues(string: str, esc: str, newEsc: str, *args: str) -> str:
+    return Replace(string, esc, newEsc, args)
 
 def SurroundWith(prefix: str, string: str, suffix: str) -> str:
     return f"{prefix}{string}{suffix}"
