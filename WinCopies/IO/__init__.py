@@ -7,7 +7,7 @@ Created on Tue Jun 04 11:47:00 2024
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Iterable
 
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Pairing import DualValueNullableBool
@@ -70,10 +70,12 @@ def GetExtensionFromArray(entry: Sequence[str]) -> str:
 def GetExtension(name: str) -> str:
     return GetExtensionFromArray(os.path.splitext(name))
 
-def TryCheckExtension(path: str, *extensions: str) -> bool|None:
+def TryCheckExtension(path: str, extensions: Iterable[str]) -> bool|None:
     extension: str|None = TryGetExtension(path)
     
     return extension is not None and ForEachItemUntil(extensions, lambda fileExtension: extension == fileExtension)
+def TryCheckExtensionOf(path: str, *extensions: str) -> bool|None:
+    return TryCheckExtension(path, extensions)
 
 def TryCreateDirectory(directory: str) -> bool|None:
     try:
