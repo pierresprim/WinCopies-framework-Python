@@ -44,6 +44,16 @@ class IDirEntry(ABC):
     def __str__(self) -> str:
         return self.GetPath()
 
+def TryGetFileNameFromArray(entry: Sequence[str]|None) -> str|None:
+    return None if entry is None or len(entry) < 2 else entry[0]
+def TryGetFileName(name: str) -> str|None:
+    return TryGetFileNameFromArray(os.path.splitext(name))
+
+def GetFileNameFromArray(entry: Sequence[str]|None) -> str:
+    return '' if entry is None or len(entry) < 1 else entry[0]
+def GetFileName(name: str) -> str:
+    return GetFileNameFromArray(os.path.splitext(name))
+
 def TryGetFullExtensionFromArray(entry: Sequence[str]|None) -> str|None:
     return None if entry is None or len(entry) < 2 else entry[1]
 def TryGetFullExtension(name: str) -> str|None:
