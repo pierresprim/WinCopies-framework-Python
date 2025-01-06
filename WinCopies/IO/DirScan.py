@@ -70,9 +70,9 @@ def ScanFiles[T](path: str, action: Callable[[T], None]) -> IterableScanResult:
 def ParseFiles[T](path: str, predicate: Predicate[T], action: Callable[[T], None]) -> IterableScanResult:
     return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
 
-def GetFindFromExtensionsPredicate(fileKind: FileKind, *extensions: str) -> Predicate[os.DirEntry]:
+def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]) -> Predicate[os.DirEntry]:
     predicate: Predicate[os.DirEntry] = lambda entry: IO.TryCheckExtension(entry.path, extensions)
-
+    
     match fileKind:
         case FileKind.Null:
             return predicate
@@ -90,13 +90,18 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, *extensions: str) -> Pred
             return Delegates.GetAndAlsoPredicate(os.DirEntry.is_junction, predicate)
     
     raise ValueError("FileKind not supported.", fileKind)
+def GetFindFromExtensionValuesPredicate(fileKind: FileKind, *extensions: str) -> Predicate[os.DirEntry]:
+    return GetFindFromExtensionsPredicate(fileKind, extensions)
+
 def __FindFromExtensions(path: str, predicate: Predicate[os.DirEntry]) -> os.DirEntry|None:
     result: DualResult[os.DirEntry|None, IterableScanResult] = FindDirEntry(path, predicate)
     
     return result.GetValue() if result.GetKey() == IterableScanResult.Success else None
 
-def FindFromExtensions(path: str, fileKind: FileKind, *extensions: str) -> os.DirEntry|None:
+def FindFromExtensions(path: str, fileKind: FileKind, extensions: Iterable[str]) -> os.DirEntry|None:
     return __FindFromExtensions(path, GetFindFromExtensionsPredicate(fileKind, extensions))
+def FindFromExtensionValues(path: str, fileKind: FileKind, *extensions: str) -> os.DirEntry|None:
+    return FindFromExtensions(path, fileKind, extensions)
 
 def FindFromExtensionsAndCheck(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry], *extensions: str) -> os.DirEntry|None:
     return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
