@@ -41,12 +41,12 @@ class DualResult[TValue, TInfo](IKeyValuePair[TInfo, TValue]):
         return False
     
     @final
-    def GetValue(self) -> TValue:
-        return self.__value
-    
-    @final
     def GetKey(self) -> TInfo:
         return self.__info
+    
+    @final
+    def GetValue(self) -> TValue:
+        return self.__value
 
 type DualValueBool[T] = DualResult[T, bool]
 type DualValueNullableBool[T] = DualResult[T, bool|None]
