@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from WinCopies.Typing.Delegate import Predicate
-from WinCopies.Typing.Pairing import DualValueBool
+from WinCopies.Typing.Pairing import DualResult, DualValueBool
 
 class IterableScanResult(Enum):
     DoesNotExist = -2
@@ -84,7 +84,7 @@ class FinderPredicate[T]:
     def __Scan(self, entry: T, predicate: Predicate[T]) -> bool:
         if predicate(entry):
             self.__Set(entry)
-
+            
             return True
         
         return False
@@ -109,7 +109,7 @@ class FinderPredicate[T]:
         return self.__GetPredicate(predicate, self.__Validate)
     
     def TryGetResult(self) -> DualValueBool[T]:
-        return DualValueBool(self.__result, self.__hasValue)
+        return DualResult[T, bool](self.__result, self.__hasValue)
     
     def GetResult(self) -> T:
         if self.__hasValue:
