@@ -8,7 +8,8 @@ Created on Thu May 30 07:37:00 2024
 from typing import Callable, Iterable
 import os
 
-from WinCopies import Delegates, Collections, IO, Predicate
+from WinCopies import Delegates, Collections, IO
+from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Collections import Loop, IterableScanResult
 from WinCopies.IO import FileKind
