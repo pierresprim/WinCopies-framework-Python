@@ -2,7 +2,8 @@ from typing import Callable
 from collections.abc import Iterable
 
 import WinCopies
-from WinCopies import Delegates, Predicate
+from WinCopies import Delegates
+from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualValueBool
 
 def While(func: Callable[[], bool], action: Callable[[], None]) -> bool:
@@ -55,7 +56,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
         return (_predicate := predicate)(entry)
     
     _predicate = init
-
+    
     for entry in items:
         if _predicate(entry):
             return True
