@@ -97,7 +97,7 @@ def Contains(value: str, subValue: str, start: int|None = None, end: int|None = 
 def ContainsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
     return value.rfind(subValue, start, end) >= 0
 
-def Omit(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+def Omits(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
     return value.find(subValue, start, end) < 0
-def OmitR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
+def OmitsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
     return value.rfind(subValue, start, end) < 0
