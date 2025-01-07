@@ -101,3 +101,88 @@ def Omits(value: str, subValue: str, start: int|None = None, end: int|None = Non
     return value.find(subValue, start, end) < 0
 def OmitsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
     return value.rfind(subValue, start, end) < 0
+
+def TrySplitAt(value: str, i: int) -> list[str]|None:
+    return None if i < 0 or len(value) <= i else ([value] if i == 0 else [value[0:i - 1], value[i:]])
+def SplitAt(value: str, i: int) -> list[str]:
+    result: list[str]|None = TrySplitAt(value, i)
+
+    if result is None:
+        raise ValueError(f"Value out of range. Value length: {len(value)}; index: {i}.")
+    
+    return result
+
+def __Split(value: str, find: str, func: Callable[[str, str], list[str]|None]) -> list[str]:
+    result: list[str]|None = func(value, find)
+
+    return [value if result is None else result]
+
+def TrySplit(value: str, find: str) -> list[str]|None:
+    return TrySplitAt(value, value.find(find))
+def TrySplitFromLast(value: str, find: str) -> list[str]|None:
+    return TrySplitAt(value, value.rfind(find))
+
+def Split(value: str, find: str) -> list[str]:
+    return __Split(value, find, TrySplit)
+def SplitFromLast(value: str, find: str) -> list[str]:
+    return __Split(value, find, TrySplitFromLast)
+
+def __TryGet(value: str, find: str, i: int, func: Callable[[str, str], list[str]|None]) -> str|None:
+    result: list[str]|None = func(value, find)
+    
+    return None if result is None else result[i]
+def __TryGetKey(value: str, find: str, func: Callable[[str, str], list[str]|None]) -> str|None:
+    return __TryGet(value, find, 0, func)
+def __TryGetValue(value: str, find: str, func: Callable[[str, str], list[str]|None]) -> str|None:
+    return __TryGet(value, find, 1, func)
+
+def TryGetKey(value: str, find: str) -> str|None:
+    return __TryGetKey(value, find, TrySplit)
+def TryGetKeyFromLast(value: str, find: str) -> str|None:
+    return __TryGetKey(value, find, TrySplitFromLast)
+
+def TryGetValue(value: str, find: str) -> str|None:
+    return __TryGetValue(value, find, TrySplit)
+def TryGetValueFromLast(value: str, find: str) -> str|None:
+    return __TryGetValue(value, find, TrySplitFromLast)
+
+def __Get(value: str, find: str, func: Callable[[str, str], str|None]) -> str:
+    result: str = func(value, find)
+
+    return value if result is None else result
+
+def GetKey(value: str, find: str) -> str:
+    return __Get(value, find, TryGetKey)
+def GetKeyFromLast(value: str, find: str) -> str:
+    return __Get(value, find, TryGetKeyFromLast)
+
+def GetValue(value: str, find: str) -> str:
+    return __Get(value, find, TryGetValue)
+def GetValueFromLast(value: str, find: str) -> str:
+    return __Get(value, find, TryGetValueFromLast)
+
+def TryRemoveFromStart(value: str, find: str) -> str|None:
+    if value.startswith(find):
+        length: int = len(find)
+
+        return value[length + 1:] if len(value) > length else ''
+    
+    return None
+def TryRemoveFromEnd(value: str, find: str) -> str|None:
+    if value.endswith(find):
+        length: int = len(find)
+
+        return value[:-length] if len(value) > length else ''
+    
+    return None
+
+def __RemoveFrom(value: str, find: str, func: Callable[[str, str], str|None]) -> str:
+    result: str|None = func(value, find)
+
+    return value if result is None else result
+
+def RemoveFromStart(value: str, find: str) -> str:
+    return __RemoveFrom(value, find, TryRemoveFromStart)
+    
+def RemoveFromEnd(value: str, find: str) -> str:
+    return __RemoveFrom(value, find, TryRemoveFromEnd)
