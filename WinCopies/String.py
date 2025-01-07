@@ -3,6 +3,11 @@ from collections.abc import Iterable
 
 from WinCopies.Collections import Loop
 
+def NullifyIfEmpty(value: str) -> str|None:
+    return None if value == '' else value
+def StringifyIfNone(value: str|None) -> str:
+    return '' if value == None else value
+
 def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     string = string.replace(esc + esc, esc)
     
