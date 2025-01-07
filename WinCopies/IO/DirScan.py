@@ -25,7 +25,7 @@ def __ParseDir(path: str, func: Callable[[str, Callable[[os.DirEntry], bool]], I
     
     dirScanResult: IterableScanResult = func(path, converter(predicate))
 
-    return DualResult(predicate.TryGetResult().GetKey(), dirScanResult)
+    return DualResult[os.DirEntry, IterableScanResult](predicate.TryGetResult().GetKey(), dirScanResult)
 
 def FindDirEntry(path: str, predicate: Callable[[os.DirEntry], bool]) -> DualResult[os.DirEntry|None, IterableScanResult]:
     return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
@@ -71,7 +71,7 @@ def ParseFiles[T](path: str, predicate: Predicate[T], action: Callable[[T], None
     return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
 
 def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]) -> Predicate[os.DirEntry]:
-    predicate: Predicate[os.DirEntry] = lambda entry: IO.TryCheckExtension(entry.path, extensions)
+    predicate: Predicate[os.DirEntry] = lambda entry: IO.TryCheckExtension(entry.path, extensions) == True
     
     match fileKind:
         case FileKind.Null:

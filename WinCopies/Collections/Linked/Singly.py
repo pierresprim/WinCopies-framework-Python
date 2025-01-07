@@ -15,7 +15,7 @@ class List[T](Collection):
         return self.__first is None
     @final
     def HasItems(self) -> bool:
-        return super().HasItems(self)
+        return super().HasItems()
     
     @final
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:

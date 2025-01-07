@@ -28,5 +28,5 @@ def GetArgumentTuple(name: str, argument: str) -> tuple:
 
 def GetArgumentPair(name: str, key: str, value: str) -> str:
     return GetArgument(name, f"{key}:{value}")
-def GetArgumentKeyValuePair(name: str, pair: KeyValuePair) -> str:
+def GetArgumentKeyValuePair[TKey, TValue](name: str, pair: KeyValuePair[TKey, TValue]) -> str:
     return GetArgumentPair(name, pair.GetKey(), pair.GetValue())
