@@ -84,12 +84,12 @@ def ConcatenateFrom(values: Iterable[str], separator: str, selector: Callable[[s
         nonlocal result
         nonlocal separator
 
-        result += separator + value
+        result += separator + selector(value)
 
     Loop.DoForEachAndFirst(values, firstAction, action)
     
     return result
-def ConcatenateFromValues(*values: str, separator: str, selector: Callable[[str], str]) -> str:
+def ConcatenateFromValues(separator: str, selector: Callable[[str], str], *values: str) -> str:
     return ConcatenateFrom(values, separator, selector)
 
 def Contains(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
