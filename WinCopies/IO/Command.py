@@ -3,7 +3,8 @@ import subprocess
 
 from collections.abc import Iterable
 
-from WinCopies import DualResult, KeyValuePair, String
+from WinCopies import String
+from WinCopies.Typing.Pairing import DualResult, KeyValuePair
 
 def Run(command: str|Iterable[str], captureOutput = False, shell = False, throwOnError = True) -> DualResult[object, int]:
     result: subprocess.CompletedProcess = subprocess.run(command, capture_output = captureOutput, shell = shell, text = captureOutput, stdout = None if captureOutput else sys.__stdout__)
