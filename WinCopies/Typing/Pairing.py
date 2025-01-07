@@ -31,7 +31,7 @@ class KeyValuePair[TKey, TValue](IKeyValuePair[TKey, TValue]):
     def GetValue(self) -> TValue:
         return self.__value
 
-class DualResult[TValue, TInfo](IKeyValuePair[TInfo, TValue]):
+class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     def __init__(self, value: TValue, info: TInfo):
         self.__value: TValue = value
         self.__info: TInfo = info
@@ -41,12 +41,12 @@ class DualResult[TValue, TInfo](IKeyValuePair[TInfo, TValue]):
         return False
     
     @final
-    def GetKey(self) -> TInfo:
-        return self.__info
+    def GetKey(self) -> TValue:
+        return self.__value
     
     @final
-    def GetValue(self) -> TValue:
-        return self.__value
+    def GetValue(self) -> TInfo:
+        return self.__info
 
 type DualValueBool[T] = DualResult[T, bool]
 type DualValueNullableBool[T] = DualResult[T, bool|None]

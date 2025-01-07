@@ -44,7 +44,7 @@ class List[T](Collection):
     def TryPop(self) -> DualNullableValueBool[T]:
         result: DualNullableValueBool[T] = self.TryPeek()
 
-        if result.GetKey():
+        if result.GetValue():
             self.__first = self.__first.GetNext()
             self._OnRemoved()
 
