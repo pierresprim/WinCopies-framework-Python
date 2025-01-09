@@ -1,7 +1,7 @@
-from typing import Callable
-from enum import Enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from enum import Enum
+from typing import Callable
 
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualResult, DualValueBool
