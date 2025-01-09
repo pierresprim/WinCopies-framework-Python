@@ -81,7 +81,7 @@ class List[T](Collection):
 
         self.__first = None
 
-class Queue[T](List):
+class Queue[T](List[T]):
     def __init__(self, values: Iterable[T]|None = None):
         super().__init__()
         
@@ -115,7 +115,7 @@ class Queue[T](List):
             self.__last = None
             self.__updater = self.__GetUpdater()
 
-class Stack[T](List):
+class Stack[T](List[T]):
     def __init__(self, values: Iterable[T]|None = None):
         super().__init__()
 
