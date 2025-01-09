@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from collections.abc import Iterable
 from typing import final, Callable
 
 from WinCopies.Collections import Collection
@@ -37,6 +38,30 @@ class List[T](Collection):
             self._Push(value, self.__first)
     
     @final
+    def __PushItems(self, items: Iterable[T]|None) -> None:
+        for value in items:
+            self.Push(value)
+    
+    @final
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
+        
+        self.__PushItems(items)
+
+        return True
+    @final
+    def PushItems(self, items: Iterable[T]|None) -> None:
+        if items is None:
+            raise ValueError("items can not be None.")
+        
+        self.__PushItems(items)
+    
+    @final
+    def PushValues(self, *values: T) -> None:
+        self.__PushItems(values)
+    
+    @final
     def TryPeek(self) -> DualNullableValueBool[T]:
         return DualResult[T|None, bool](None, False) if self.IsEmpty() else DualResult[T|None, bool](self.__first.GetValue(), True)
     
@@ -57,11 +82,13 @@ class List[T](Collection):
         self.__first = None
 
 class Queue[T](List):
-    def __init__(self):
+    def __init__(self, values: Iterable[T]|None = None):
         super().__init__()
         
         self.__last: SinglyLinkedNode[T]|None = None
         self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
+
+        self.TryPushItems(values)
     
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
@@ -89,8 +116,10 @@ class Queue[T](List):
             self.__updater = self.__GetUpdater()
 
 class Stack[T](List):
-    def __init__(self):
+    def __init__(self, values: Iterable[T]|None = None):
         super().__init__()
+
+        self.TryPushItems(values)
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
