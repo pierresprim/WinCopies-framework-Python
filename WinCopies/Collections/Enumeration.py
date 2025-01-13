@@ -186,7 +186,7 @@ class Iterator[T](Enumerator[T]):
 def FromIterator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
     return None if iterator is None else Iterator[T](iterator)
 
-class Iterable[T](SystemIterable[T]):
+class Iterable[T](IIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
         self.__iterable: SystemIterable[T] = iterable
     
@@ -195,5 +195,5 @@ class Iterable[T](SystemIterable[T]):
         return self.__iterable
     
     @final
-    def __iter__(self) -> Iterator[T]:
-        return Iterator[T](self.__iterable.__iter__())
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return FromIterator(self.__iterable.__iter__())
