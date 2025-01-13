@@ -37,7 +37,7 @@ class SystemDirEntry(IterableDirEntry):
     
     @final
     def GetName(self) -> str:
-        return os.path.splitext(self.__dirEntry.name)[0]
+        return IO.GetFileName(self.__dirEntry.name)
     
     @final
     def GetExtension(self) -> str:
