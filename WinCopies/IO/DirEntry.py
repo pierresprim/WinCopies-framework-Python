@@ -5,12 +5,23 @@ Created on Tue Jun 04 11:47:00 2024
 @author: Pierre Sprimont
 """
 
-from typing import final
 import os
 
+from collections.abc import Iterator
+from typing import final, Self
+
 from WinCopies import IO, String
+from WinCopies.Collections import Iteration
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
+
+class IterableDirEntry(IDirEntry):
+    @final
+    def IsDirectory(self):
+        return os.path.isdir(self.GetPath())
+    @final
+    def TryGetIterator(self) -> Iterator[Self]|None:
+        return Iteration.Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry)) if self.IsDirectory() else None
 
 class SystemDirEntry(IDirEntry):
     def __init__(self, dirEntry: os.DirEntry):
