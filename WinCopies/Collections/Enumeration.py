@@ -116,12 +116,6 @@ class EnumeratorBase[T](IEnumerator[T]):
     @abstractmethod
     def _ResetOverride(self) -> bool:
         pass
-    @abstractmethod
-    def GetCurrent(self):
-        pass
-    @abstractmethod
-    def IsResetSupported(self) -> bool:
-        pass
     #@protected
     def _OnStarting(self) -> bool:
         return True
