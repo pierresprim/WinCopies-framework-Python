@@ -10,6 +10,8 @@ import collections.abc
 from typing import final, Callable
 
 from WinCopies import Delegates
+from WinCopies.Collections.Linked.Singly import Stack
+from WinCopies.Typing.Pairing import DualNullableValueBool
 
 type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
@@ -201,3 +203,110 @@ class Iterable[T](IIterable[T]):
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
         return FromIterator(self.__iterable.__iter__())
+
+class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](EnumeratorBase[TItems]):
+    def __init__(self, enumerator: TEnumerator):
+        super().__init__()
+        self.__enumerator: TEnumerator = enumerator
+    
+    @final
+    def _GetEnumerator(self) -> TEnumerator:
+        return self.__enumerator
+    
+    @final
+    def IsResetSupported(self) -> bool:
+        return self.__enumerator.IsResetSupported()
+    
+    def GetCurrent(self) -> TItems|None:
+        return self.__enumerator.GetCurrent()
+    
+    def _MoveNextOverride(self) -> bool:
+        return self.__enumerator.MoveNext()
+    
+    def _ResetOverride(self) -> bool:
+        return True
+class AbstractEnumerator[T](AbstractEnumeratorBase[T, IEnumerator[T]]):
+    def __init__(self, enumerator: IEnumerator[T]):
+        super().__init__(enumerator)
+
+class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
+    def __init__(self, enumerator: IEnumerator[T]):
+        super().__init__(enumerator)
+        
+        self.__currentEnumerator: IEnumerator[T]|None = None
+        self.__enumerators: Stack[IEnumerator[T]]|None = None
+        self.__moveNext: Callable[[], bool]|None = None
+    
+    @final
+    def __MoveNext(self) -> bool:
+        if super()._MoveNextOverride():
+            def setCurrentEnumerator(value: IEnumerator[T]) -> None:
+                self.__currentEnumerator = value
+            
+            def moveNext() -> bool:                
+                def getEnumerator() -> IEnumerator[T]:
+                    iterator: SystemIterator[T] = self.GetCurrent().__iter__()
+
+                    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
+                
+                enumerator: IEnumerator[T] = getEnumerator()
+
+                if enumerator.MoveNext():
+                    self.__enumerators.Push(enumerator)
+
+                    setCurrentEnumerator(enumerator)
+
+                    return True
+                
+                def moveNext(enumerator: DualNullableValueBool[IEnumerator[T]]) -> bool:
+                    return enumerator.GetKey().MoveNext()
+                        
+                result: DualNullableValueBool[IEnumerator[T]] = self.__enumerators.TryPeek()
+
+                if result.GetValue():
+                    if moveNext(result):
+                        return True
+                    
+                    def tryPop() -> DualNullableValueBool[IEnumerator[T]]:
+                        self.__enumerators.TryPop()
+
+                        return self.__enumerators.TryPeek()
+                    
+                    result = tryPop()
+
+                    while result.GetValue():
+                        if moveNext(result):
+                            setCurrentEnumerator(enumerator)
+
+                            return True
+                        
+                        result = tryPop()
+
+                self.__moveNext = self.__MoveNext
+
+                return self.__moveNext()
+
+            setCurrentEnumerator(self._GetEnumerator())
+
+            self.__moveNext = moveNext
+
+            return True
+        
+        return False
+    
+    @final
+    def GetCurrent(self) -> T|None:
+        return self.__currentEnumerator.GetCurrent()
+    
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNext()
+    
+    def _OnStarting(self) -> bool:
+        self.__enumerators = Stack[IEnumerator[T]]()
+        self.__moveNext = self.__MoveNext
+
+        return super()._OnStarting()
+    def _OnCompleted(self) -> None:
+        self.__currentEnumerator = None
+        self.__enumerators = None
+        self.__moveNext = None
