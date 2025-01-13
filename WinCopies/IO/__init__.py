@@ -7,8 +7,9 @@ Created on Tue Jun 04 11:47:00 2024
 import os
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from enum import Enum
-from typing import Callable, Sequence, Iterable
+from typing import Callable, Sequence
 
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Pairing import DualValueNullableBool
