@@ -90,8 +90,7 @@ class EnumeratorBase[T](SystemIterator[T], IEnumerator[T]):
     
     @final
     def Reset(self) -> bool:
-        if self.IsResetSupported():
-            self._ResetOverride()
+        if self.IsResetSupported() and self._ResetOverride():
             self.__moveNext = self.__GetMoveNext()
             self.__hasProcessedItems = False
 
@@ -116,13 +115,16 @@ class Enumerator[T](EnumeratorBase[T]):
         super().__init__()
         self.__current: T|None = None
     
-    def _ResetOverride(self) -> bool:
+    def _OnCompleted(self) -> None:
         self.__current = None
+    
+    def _ResetOverride(self) -> bool:
+        return True
     
     def GetCurrent(self) -> T|None:
         return self.__current
     
-    @abstractmethod
+    @final
     def _SetCurrent(self, current: T) -> None:
         self.__current = current
 
@@ -140,7 +142,7 @@ class Iterator[T](Enumerator[T]):
     
     def _MoveNextOverride(self) -> bool:
         try:
-            self._SetCurrent(self.__next__())
+            self._SetCurrent(self.__iterator.__next__())
             
             return True
         except StopIteration:
