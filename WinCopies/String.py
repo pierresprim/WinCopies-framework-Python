@@ -18,24 +18,24 @@ def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
 def ReplaceValues(string: str, esc: str, newEsc: str, *args: str) -> str:
     return Replace(string, esc, newEsc, args)
 
-def SurroundWith(prefix: str, string: str, suffix: str) -> str:
-    return f"{prefix}{string}{suffix}"
-def TrySurroundWith(prefix: str, string: str|None, suffix: str) -> str|None:
+def SurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str:
+    return f"{StringifyIfNone(prefix)}{StringifyIfNone(string)}{StringifyIfNone(suffix)}"
+def TrySurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str|None:
     return None if string is None else SurroundWith(prefix, string, suffix)
 
-def Surround(string: str, value: str) -> str:
+def Surround(string: str|None, value: str|None) -> str:
     return SurroundWith(value, string, value)
-def TrySurround(string: str|None, value: str) -> str|None:
+def TrySurround(string: str|None, value: str|None) -> str|None:
     return TrySurroundWith(value, string, value)
 
-def QuoteSurround(string: str) -> str:
+def QuoteSurround(string: str|None) -> str:
     return Surround(string, "'")
-def TryQuoteSurround(string: str) -> str:
+def TryQuoteSurround(string: str|None) -> str|None:
     return TrySurround(string, "'")
 
-def DoubleQuoteSurround(string: str) -> str:
+def DoubleQuoteSurround(string: str|None) -> str:
     return Surround(string, '"')
-def TryDoubleQuoteSurround(string: str) -> str:
+def TryDoubleQuoteSurround(string: str|None) -> str|None:
     return TrySurround(string, '"')
 
 def SpaceJoin(values: Iterable[str]) -> str:
