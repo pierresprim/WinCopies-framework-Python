@@ -46,6 +46,33 @@ class IEnumerator[T](ABC, collections.abc.Iterator[T]):
     def __iter__(self) -> SystemIterator[T]:
         return self
 
+@final
+class EmptyEnumerator[T](IEnumerator[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def GetCurrent(self) -> T|None:
+        return None
+    def MoveNext(self) -> bool:
+        return False
+    def Reset(self) -> bool:
+        return False
+    def IsResetSupported(self) -> bool:
+        return False
+    def HasProcessedItems(self) -> bool:
+        return False
+
+class IIterable[T](collections.abc.Iterable[T]):
+    @abstractmethod
+    def TryGetIterator(self) -> SystemIterator[T]|None:
+        pass
+    
+    @final
+    def __iter__(self) -> SystemIterator[T]:
+        enumerator: SystemIterator[T]|None = self.TryGetIterator()
+
+        return EmptyEnumerator[T]() if enumerator is None else enumerator
+
 class EnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
         self.__moveNext: Callable[[], bool] = self.__GetMoveNext()
