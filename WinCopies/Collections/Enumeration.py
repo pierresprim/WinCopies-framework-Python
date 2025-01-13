@@ -183,6 +183,9 @@ class Iterator[T](Enumerator[T]):
         except StopIteration:
             return False
 
+def FromIterator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
+    return None if iterator is None else Iterator[T](iterator)
+
 class Iterable[T](SystemIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
         self.__iterable: SystemIterable[T] = iterable
