@@ -10,6 +10,7 @@ import os
 
 from WinCopies import IO, String
 from WinCopies.IO import IDirEntry
+from WinCopies.String import StringifyIfNone
 
 class SystemDirEntry(IDirEntry):
     def __init__(self, dirEntry: os.DirEntry):
@@ -36,10 +37,10 @@ class SystemDirEntry(IDirEntry):
         return self.__dirEntry.name
 
 class DirEntry(IDirEntry):
-    def __init__(self, directory: str, name: str, extension: str):
-        self.__directory = directory
-        self.__name = name
-        self.__extension = extension
+    def __init__(self, directory: str|None, name: str|None, extension: str|None):
+        self.__directory: str = StringifyIfNone(directory)
+        self.__name: str = StringifyIfNone(name)
+        self.__extension: str = StringifyIfNone(extension)
     
     @classmethod
     def FromFileName(cls, directory: str, fileName: str):
@@ -78,4 +79,4 @@ class DirEntry(IDirEntry):
     
     @final
     def GetFullName(self) -> str:
-        return String.SurroundWith(self.__name, '.', self.__extension)
+        return String.SurroundWith(self.__name, None if self.__extension == '' else '.', self.__extension)
