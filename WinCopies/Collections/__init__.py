@@ -1,3 +1,5 @@
+import collections.abc
+
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
@@ -5,6 +7,8 @@ from typing import Callable
 
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualResult, DualValueBool
+
+type Generator[T] = collections.abc.Generator[T, None, None]
 
 class IterableScanResult(Enum):
     DoesNotExist = -2
