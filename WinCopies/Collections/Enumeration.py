@@ -14,7 +14,10 @@ from WinCopies import Delegates
 type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
 
-class IEnumerator[T](ABC):
+class IEnumerator[T](ABC, collections.abc.Iterator[T]):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetCurrent(self) -> T|None:
         pass
@@ -31,7 +34,19 @@ class IEnumerator[T](ABC):
     def HasProcessedItems(self) -> bool:
         pass
     
-class EnumeratorBase[T](SystemIterator[T], IEnumerator[T]):
+    @final
+    def __next__(self) -> T|None:
+        if self.MoveNext():
+            return self.GetCurrent()
+        
+        else:
+            raise StopIteration
+    
+    @final
+    def __iter__(self) -> SystemIterator[T]:
+        return self
+
+class EnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
         self.__moveNext: Callable[[], bool] = self.__GetMoveNext()
         self.__hasProcessedItems: bool = False
@@ -101,14 +116,6 @@ class EnumeratorBase[T](SystemIterator[T], IEnumerator[T]):
     @final
     def HasProcessedItems(self) -> bool:
         return self.__hasProcessedItems
-    
-    @final
-    def __next__(self) -> T|None:
-        if self.__moveNext():
-            return self.GetCurrent()
-        
-        else:
-            raise StopIteration
 
 class Enumerator[T](EnumeratorBase[T]):
     def __init__(self):
@@ -131,6 +138,7 @@ class Enumerator[T](EnumeratorBase[T]):
 class Iterator[T](Enumerator[T]):
     def __init__(self, iterator: SystemIterator[T]):
         super().__init__()
+
         self.__iterator: SystemIterator[T] = iterator
     
     @final
