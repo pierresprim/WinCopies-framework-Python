@@ -155,11 +155,12 @@ class Enumerator[T](EnumeratorBase[T]):
     def _ResetOverride(self) -> bool:
         return True
     
+    @final
     def GetCurrent(self) -> T|None:
         return self.__current
     
     @final
-    def _SetCurrent(self, current: T) -> None:
+    def _SetCurrent(self, current: T|None) -> None:
         self.__current = current
 
 class Iterator[T](Enumerator[T]):
@@ -172,6 +173,7 @@ class Iterator[T](Enumerator[T]):
     def _GetIterator(self) -> SystemIterator[T]:
         return self.__iterator
     
+    @final
     def IsResetSupported(self) -> bool:
         return False
     
@@ -181,6 +183,8 @@ class Iterator[T](Enumerator[T]):
             
             return True
         except StopIteration:
+            self._SetCurrent(None)
+
             return False
 
 def FromIterator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
