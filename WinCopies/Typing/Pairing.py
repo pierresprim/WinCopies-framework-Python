@@ -48,8 +48,16 @@ class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     def GetValue(self) -> TInfo:
         return self.__info
 
-type DualValueBool[T] = DualResult[T, bool]
-type DualValueNullableBool[T] = DualResult[T, bool|None]
+class DualValueBool[T](DualResult[T, bool]):
+    def __init__(self, value: T, info: bool):
+        super().__init__(value, info)
+class DualValueNullableBool[T](DualResult[T, bool|None]):
+    def __init__(self, value: T, info: bool|None):
+        super().__init__(value, info)
 
-type DualNullableValueBool[T] = DualResult[T|None, bool]
-type DualNullableValueNullableBool[T] = DualResult[T|None, bool|None]
+class DualNullableValueBool[T](DualResult[T|None, bool]):
+    def __init__(self, value: T|None, info: bool):
+        super().__init__(value, info)
+class DualNullableValueNullableBool[T](DualResult[T|None, bool|None]):
+    def __init__(self, value: T|None, info: bool|None):
+        super().__init__(value, info)
