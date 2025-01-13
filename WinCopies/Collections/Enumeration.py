@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Feb  6 20:37:51 2022
+Created on Sun Feb 6 20:37:51 2022
 
 @author: Pierre Sprimont
 """
 
 from abc import ABC, abstractmethod
+import collections.abc
 from typing import final, Callable
 
 from WinCopies import Delegates
 
-class IEnumerator(ABC):
+type SystemIterable[T] = collections.abc.Iterable[T]
+type SystemIterator[T] = collections.abc.Iterator[T]
+
+class IEnumerator[T](ABC):
     @abstractmethod
-    def GetCurrent(self):
+    def GetCurrent(self) -> T|None:
         pass
     @abstractmethod
     def MoveNext(self) -> bool:
@@ -27,10 +31,11 @@ class IEnumerator(ABC):
     def HasProcessedItems(self) -> bool:
         pass
     
-class EnumeratorBase(IEnumerator):
+class EnumeratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self):
-        self.__moveNext: callable = self.__GetMoveNext()
+        self.__moveNext: Callable[[], bool] = self.__GetMoveNext()
         self.__hasProcessedItems: bool = False
+    
     @final
     def __GetMoveNext(self) -> Callable[[], bool]:
         def moveNext() -> bool:
@@ -99,35 +104,35 @@ class EnumeratorBase(IEnumerator):
         return self.__hasProcessedItems
     
     @final
-    def __next__(self):
+    def __next__(self) -> T|None:
         if self.__moveNext():
             return self.GetCurrent()
         
         else:
             raise StopIteration
 
-class Enumerator(EnumeratorBase):
+class Enumerator[T](EnumeratorBase[T]):
     def __init__(self):
         super().__init__()
-        self.__current: object|None = None
+        self.__current: T|None = None
     
     def _ResetOverride(self) -> bool:
         self.__current = None
     
-    def GetCurrent(self):
+    def GetCurrent(self) -> T|None:
         return self.__current
     
     @abstractmethod
-    def _SetCurrent(self, current):
+    def _SetCurrent(self, current: T) -> None:
         self.__current = current
 
-class Iterator(Enumerator):
-    def __init__(self, iterator):
+class Iterator[T](Enumerator[T]):
+    def __init__(self, iterator: SystemIterator[T]):
         super().__init__()
-        self.__iterator = iterator
+        self.__iterator: SystemIterator[T] = iterator
     
     @final
-    def _GetIterator(self):
+    def _GetIterator(self) -> SystemIterator[T]:
         return self.__iterator
     
     def IsResetSupported(self) -> bool:
@@ -141,14 +146,14 @@ class Iterator(Enumerator):
         except StopIteration:
             return False
 
-class Iterable:
-    def __init__(self, iterable):
-        self.__iterable = iterable
+class Iterable[T](SystemIterable[T]):
+    def __init__(self, iterable: SystemIterable[T]):
+        self.__iterable: SystemIterable[T] = iterable
     
     @final
-    def _GetIterable(self):
+    def _GetIterable(self) -> SystemIterable[T]:
         return self.__iterable
     
     @final
-    def __iter__(self):
-        return Iterator(self.__iterable.__iter__())
+    def __iter__(self) -> Iterator[T]:
+        return Iterator[T](self.__iterable.__iter__())
