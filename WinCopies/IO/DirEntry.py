@@ -23,7 +23,7 @@ class IterableDirEntry(IDirEntry):
     def TryGetIterator(self) -> Iterator[Self]|None:
         return Iteration.Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry)) if self.IsDirectory() else None
 
-class SystemDirEntry(IDirEntry):
+class SystemDirEntry(IterableDirEntry):
     def __init__(self, dirEntry: os.DirEntry):
         self.__dirEntry: os.DirEntry = dirEntry
     
@@ -47,7 +47,7 @@ class SystemDirEntry(IDirEntry):
     def GetFullName(self) -> str:
         return self.__dirEntry.name
 
-class DirEntry(IDirEntry):
+class DirEntry(IterableDirEntry):
     def __init__(self, directory: str|None, name: str|None, extension: str|None):
         self.__directory: str = StringifyIfNone(directory)
         self.__name: str = StringifyIfNone(name)
