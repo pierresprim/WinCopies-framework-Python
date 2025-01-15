@@ -11,6 +11,7 @@ from typing import final, Callable
 
 from WinCopies import Delegates
 from WinCopies.Collections.Linked.Singly import Stack
+from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualNullableValueBool
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -197,6 +198,14 @@ class Iterable[T](IIterable[T]):
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
         return FromIterator(self.__iterable.__iter__())
+
+class IteratorProvider[T](IIterable[T]):
+    def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):
+        self.__iteratorProvider: Function[SystemIterator[T]]|None = iteratorProvider
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return None if self.__iteratorProvider is None else self.__iteratorProvider()
 
 class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](EnumeratorBase[TItems]):
     def __init__(self, enumerator: TEnumerator):
