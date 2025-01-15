@@ -299,7 +299,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
     
     @final
     def GetCurrent(self) -> T|None:
-        return self.__currentEnumerator.GetCurrent()
+        return None if self.__currentEnumerator is None else self.__currentEnumerator.GetCurrent()
     
     def _MoveNextOverride(self) -> bool:
         return self.__moveNext()
