@@ -28,3 +28,8 @@ def Include[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
             yield item
 def Exclude[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
     return Include(items, Delegates.GetNotPredicate(predicate))
+
+def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
+    for iterable in collection:
+        for item in iterable:
+            yield item
