@@ -258,7 +258,7 @@ class IteratorProvider[T](IIterable[T]):
     def TryGetIterator(self) -> Iterator[T]|None:
         return None if self.__iteratorProvider is None else self.__iteratorProvider()
 
-class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](EnumeratorBase[TItems]):
+class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](EnumeratorBase[TOut]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
         
@@ -272,17 +272,17 @@ class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](Enumerato
     def IsResetSupported(self) -> bool:
         return self.__enumerator.IsResetSupported()
     
-    def GetCurrent(self) -> TItems|None:
-        return self.__enumerator.GetCurrent()
-    
     def _MoveNextOverride(self) -> bool:
         return self.__enumerator.MoveNext()
     
     def _ResetOverride(self) -> bool:
         return self.__enumerator.Reset()
-class AbstractEnumerator[T](AbstractEnumeratorBase[T, IEnumerator[T]]):
+class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
+    
+    def GetCurrent(self) -> T|None:
+        return self.__enumerator.GetCurrent()
 
 class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]):
