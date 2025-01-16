@@ -91,7 +91,7 @@ class EnumeratorBase[T](IEnumerator[T]):
         def moveNext() -> bool:
             if self._MoveNextOverride():
                 return True
-                
+            
             self._OnCompleted()
 
             setCompletedMoveNext()
@@ -99,11 +99,11 @@ class EnumeratorBase[T](IEnumerator[T]):
             return False
         
         if self._OnStarting() and self._MoveNextOverride():
-                self.__moveNextFunc = moveNext
-
-                self.__hasProcessedItems = True
-
-                return True
+            self.__moveNextFunc = moveNext
+            
+            self.__hasProcessedItems = True
+            
+            return True
         
         setCompletedMoveNext()
 
