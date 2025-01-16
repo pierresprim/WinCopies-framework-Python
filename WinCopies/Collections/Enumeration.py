@@ -88,11 +88,11 @@ class EnumeratorBase[T](IEnumerator[T]):
         def setCompletedMoveNext() -> None:
             self.__moveNextFunc = Delegates.BoolFalse
             
+            self._OnCompleted()
+        
         def moveNext() -> bool:
             if self._MoveNextOverride():
                 return True
-            
-            self._OnCompleted()
 
             setCompletedMoveNext()
 
