@@ -22,10 +22,16 @@ class IEnumerator[T](ABC, collections.abc.Iterator[T]):
         super().__init__()
     
     @abstractmethod
+    def IsStarted(self) -> bool:
+        pass
+    @abstractmethod
     def GetCurrent(self) -> T|None:
         pass
     @abstractmethod
     def MoveNext(self) -> bool:
+        pass
+    @abstractmethod
+    def Stop(self) -> None:
         pass
     @abstractmethod
     def Reset(self) -> bool:
@@ -54,10 +60,14 @@ class EmptyEnumerator[T](IEnumerator[T]):
     def __init__(self):
         super().__init__()
     
+    def IsStarted(self) -> bool:
+        return False
     def GetCurrent(self) -> T|None:
         return None
     def MoveNext(self) -> bool:
         return False
+    def Stop(self) -> None:
+        pass
     def Reset(self) -> bool:
         return False
     def IsResetSupported(self) -> bool:
@@ -81,6 +91,7 @@ class EnumeratorBase[T](IEnumerator[T]):
         super().__init__()
 
         self.__moveNextFunc: Function[bool] = self.__MoveNext
+        self.__isStarted: bool = False
         self.__hasProcessedItems: bool = False
     
     @final
@@ -88,7 +99,7 @@ class EnumeratorBase[T](IEnumerator[T]):
         def setCompletedMoveNext() -> None:
             self.__moveNextFunc = Delegates.BoolFalse
             
-            self._OnCompleted()
+            self.__OnCompleted()
         
         def moveNext() -> bool:
             if self._MoveNextOverride():
@@ -98,16 +109,35 @@ class EnumeratorBase[T](IEnumerator[T]):
 
             return False
         
-        if self._OnStarting() and self._MoveNextOverride():
-            self.__moveNextFunc = moveNext
+        if self._OnStarting():
+            self.__isStarted = True
             
-            self.__hasProcessedItems = True
-            
-            return True
+            if self._MoveNextOverride():
+                self.__moveNextFunc = moveNext
+                
+                self.__hasProcessedItems = True
+                
+                return True
         
         setCompletedMoveNext()
 
         return False
+    
+    @final
+    def __OnTerminated(self, completed: bool) -> None:
+        self.__isStarted = False
+
+        self._OnTerminated(completed)
+        self._OnEnded()
+    
+    @final
+    def __OnCompleted(self) -> None:
+        self.__OnTerminated(True)
+        self._OnCompleted()
+    
+    @final
+    def IsStarted(self):
+        return self.__isStarted
     
     #@protected
     @abstractmethod
@@ -123,14 +153,28 @@ class EnumeratorBase[T](IEnumerator[T]):
     #@protected
     def _OnCompleted(self) -> None:
         pass
-    
+    @abstractmethod
+    def _OnStopped(self) -> None:
+        pass
+    def _OnTerminated(self, completed: bool) -> None:
+        pass
+    def _OnEnded(self) -> None:
+        pass
     @final
     def MoveNext(self) -> bool:
         return self.__moveNextFunc()
     
     @final
+    def Stop(self) -> None:
+        self.__OnTerminated(False)
+        self._OnStopped()
+    
+    @final
     def Reset(self) -> bool:
         if self.IsResetSupported():
+            if self.IsStarted():
+                self.Stop()
+            
             if self._ResetOverride():
                 self.__moveNextFunc = self.__MoveNext
                 self.__hasProcessedItems = False
@@ -151,7 +195,7 @@ class Enumerator[T](EnumeratorBase[T]):
 
         self.__current: T|None = None
     
-    def _OnCompleted(self) -> None:
+    def _OnEnded(self) -> None:
         self.__current = None
     
     def _ResetOverride(self) -> bool:
@@ -316,7 +360,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
 
         return super()._OnStarting()
     
-    def _OnCompleted(self) -> None:
+    def _OnEnded(self) -> None:
         self.__currentEnumerator = None
         self.__enumerators = None
         self.__moveNext = None
