@@ -11,7 +11,7 @@ from typing import final, Callable
 
 from WinCopies import Delegates
 from WinCopies.Collections.Linked.Singly import Stack
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import Converter, Function
 from WinCopies.Typing.Pairing import DualNullableValueBool
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -368,3 +368,113 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
         self.__moveNext = None
 
         super()._OnEnded()
+
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnumerator[TOut]):
+    def __init__(self, enumerator: TEnumerator):
+        super().__init__()
+
+        self.__enumerator: TEnumerator = enumerator
+        self.__moveNextFunc: Function[bool] = self.__MoveNext
+    
+    @final
+    def _GetEnumerator(self) -> TEnumerator:
+        return self.__enumerator
+    
+    @final
+    def __MoveNext(self) -> bool:
+        if self._OnStarting():
+            def moveNext() -> bool:
+                if self.__enumerator.MoveNext():
+                    return True
+                
+                self.__moveNextFunc = Delegates.BoolFalse
+
+                return False
+            
+            if moveNext():
+                self.__moveNextFunc = moveNext
+
+                return True
+        
+        self.__OnCompleted()
+        
+        return False
+    
+    @final
+    def __OnTerminated(self, completed: bool) -> None:
+        self._OnTerminated(completed)
+        self._OnEnded()
+    
+    @final
+    def __OnCompleted(self) -> None:
+        self.__OnTerminated(True)
+        self._OnCompleted()
+    
+    def _OnStarting(self) -> bool:
+        return True
+    def _OnCompleted(self) -> None:
+        pass
+    def _OnTerminated(self, completed: bool) -> None:
+        pass
+    def _OnEnded(self) -> None:
+        pass
+    
+    @final
+    def IsStarted(self) -> bool:
+        return self.__enumerator.IsStarted()
+    @final
+    def MoveNext(self) -> bool:
+        return self.__moveNextFunc()
+    @final
+    def Stop(self) -> None:
+        self.__enumerator.Stop()
+
+        self.__OnTerminated(False)
+    
+    @final
+    def Reset(self) -> bool:
+        if self.IsStarted():
+            self.Stop()
+        
+        if self.__enumerator.Reset():
+            self.__moveNextFunc = self.__MoveNext
+
+            return True
+        
+        self.__moveNextFunc = Delegates.BoolFalse
+        
+        return False
+    @final
+    def IsResetSupported(self) -> bool:
+        return self.__enumerator.IsResetSupported()
+    @final
+    def HasProcessedItems(self) -> bool:
+        return self.__enumerator.HasProcessedItems()
+
+class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]]):
+    def __init__(self, enumerator: IEnumerator[TIn]):
+        super().__init__(enumerator)
+
+class Selector[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
+    def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]):
+        super().__init__(enumerator)
+
+        self.__selector: Converter[TIn, TOut] = selector
+        self.__getCurrent: Function[TOut|None] = Delegates.FuncNone
+    
+    def _OnStarting(self):
+        if super()._OnStarting():
+            self.__getCurrent = lambda: self.__selector(self._GetEnumerator().GetCurrent())
+
+            return True
+        
+        return False
+    
+    def _OnEnded(self) -> None:
+        self.__getCurrent = Delegates.FuncNone
+        
+        super()._OnEnded()
+    
+    @final
+    def GetCurrent(self) -> TOut|None:
+        return self.__getCurrent()
