@@ -80,37 +80,34 @@ class EnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
         super().__init__()
 
-        self.__moveNext: Callable[[], bool] = self.__GetMoveNext()
+        self.__moveNextFunc: Function[bool] = self.__MoveNext
         self.__hasProcessedItems: bool = False
     
     @final
-    def __GetMoveNext(self) -> Callable[[], bool]:
+    def __MoveNext(self) -> bool:
+        def setCompletedMoveNext() -> None:
+            self.__moveNextFunc = Delegates.BoolFalse
+            
         def moveNext() -> bool:
-            def setCompletedMoveNext() -> None:
-                self.__moveNext = Delegates.BoolFalse
-            
-            def moveNext() -> bool:
-                if self._MoveNextOverride():
-                    return True
-                
-                self._OnCompleted()
-
-                setCompletedMoveNext()
-
-                return False
-            
-            if self._OnStarting() and self._MoveNextOverride():
-                self.__moveNext = moveNext
-
-                self.__hasProcessedItems = True
-
+            if self._MoveNextOverride():
                 return True
-            
+                
+            self._OnCompleted()
+
             setCompletedMoveNext()
 
             return False
         
-        return moveNext
+        if self._OnStarting() and self._MoveNextOverride():
+                self.__moveNextFunc = moveNext
+
+                self.__hasProcessedItems = True
+
+                return True
+        
+        setCompletedMoveNext()
+
+        return False
     
     #@protected
     @abstractmethod
@@ -126,21 +123,21 @@ class EnumeratorBase[T](IEnumerator[T]):
     #@protected
     def _OnCompleted(self) -> None:
         pass
-
+    
     @final
     def MoveNext(self) -> bool:
-        return self.__moveNext()
+        return self.__moveNextFunc()
     
     @final
     def Reset(self) -> bool:
         if self.IsResetSupported():
             if self._ResetOverride():
-                self.__moveNext = self.__GetMoveNext()
+                self.__moveNextFunc = self.__MoveNext
                 self.__hasProcessedItems = False
                 
                 return True
             
-        self.__moveNext = Delegates.BoolFalse
+            self.__moveNextFunc = Delegates.BoolFalse
         
         return False
     
