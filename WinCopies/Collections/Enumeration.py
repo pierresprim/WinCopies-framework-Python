@@ -197,6 +197,8 @@ class Enumerator[T](EnumeratorBase[T]):
     
     def _OnEnded(self) -> None:
         self.__current = None
+
+        super()._OnEnded()
     
     def _ResetOverride(self) -> bool:
         return True
@@ -364,3 +366,5 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
         self.__currentEnumerator = None
         self.__enumerators = None
         self.__moveNext = None
+
+        super()._OnEnded()
