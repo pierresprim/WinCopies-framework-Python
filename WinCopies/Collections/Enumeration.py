@@ -180,8 +180,8 @@ class EnumeratorBase[T](IEnumerator[T]):
                 self.__hasProcessedItems = False
                 
                 return True
-            
-            self.__moveNextFunc = Delegates.BoolFalse
+        
+        self.__moveNextFunc = Delegates.BoolFalse
         
         return False
     
