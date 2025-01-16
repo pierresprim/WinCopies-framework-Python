@@ -126,17 +126,21 @@ class EnumeratorBase[T](IEnumerator[T]):
     #@protected
     def _OnCompleted(self) -> None:
         pass
+
     @final
     def MoveNext(self) -> bool:
         return self.__moveNext()
     
     @final
     def Reset(self) -> bool:
-        if self.IsResetSupported() and self._ResetOverride():
-            self.__moveNext = self.__GetMoveNext()
-            self.__hasProcessedItems = False
-
-            return True
+        if self.IsResetSupported():
+            if self._ResetOverride():
+                self.__moveNext = self.__GetMoveNext()
+                self.__hasProcessedItems = False
+                
+                return True
+            
+        self.__moveNext = Delegates.BoolFalse
         
         return False
     
