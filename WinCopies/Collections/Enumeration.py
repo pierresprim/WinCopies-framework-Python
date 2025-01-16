@@ -5,7 +5,7 @@ Created on Sun Feb 6 20:37:51 2022
 @author: Pierre Sprimont
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod, ABC
 import collections.abc
 from typing import final, Callable
 
@@ -78,6 +78,8 @@ class IIterable[T](collections.abc.Iterable[T]):
 
 class EnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
+        super().__init__()
+
         self.__moveNext: Callable[[], bool] = self.__GetMoveNext()
         self.__hasProcessedItems: bool = False
     
@@ -109,6 +111,7 @@ class EnumeratorBase[T](IEnumerator[T]):
             return False
         
         return moveNext
+    
     #@protected
     @abstractmethod
     def _MoveNextOverride(self) -> bool:
@@ -144,6 +147,7 @@ class EnumeratorBase[T](IEnumerator[T]):
 class Enumerator[T](EnumeratorBase[T]):
     def __init__(self):
         super().__init__()
+
         self.__current: T|None = None
     
     def _OnCompleted(self) -> None:
@@ -210,6 +214,7 @@ class IteratorProvider[T](IIterable[T]):
 class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](EnumeratorBase[TItems]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
+        
         self.__enumerator: TEnumerator = enumerator
     
     @final
@@ -227,7 +232,7 @@ class AbstractEnumeratorBase[TItems, TEnumerator: IEnumerator[TItems]](Enumerato
         return self.__enumerator.MoveNext()
     
     def _ResetOverride(self) -> bool:
-        return True
+        return self.__enumerator.Reset()
 class AbstractEnumerator[T](AbstractEnumeratorBase[T, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
@@ -309,6 +314,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
         self.__moveNext = self.__MoveNext
 
         return super()._OnStarting()
+    
     def _OnCompleted(self) -> None:
         self.__currentEnumerator = None
         self.__enumerators = None
