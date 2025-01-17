@@ -34,7 +34,7 @@ class IEnumerator[T](ABC, collections.abc.Iterator[T]):
     def Stop(self) -> None:
         pass
     @abstractmethod
-    def Reset(self) -> bool:
+    def TryReset(self) -> bool|None:
         pass
     @abstractmethod
     def IsResetSupported(self) -> bool:
@@ -68,8 +68,8 @@ class EmptyEnumerator[T](IEnumerator[T]):
         return False
     def Stop(self) -> None:
         pass
-    def Reset(self) -> bool:
-        return False
+    def TryReset(self) -> bool|None:
+        return None
     def IsResetSupported(self) -> bool:
         return False
     def HasProcessedItems(self) -> bool:
@@ -170,7 +170,10 @@ class EnumeratorBase[T](IEnumerator[T]):
         self._OnStopped()
     
     @final
-    def Reset(self) -> bool:
+    def TryReset(self) -> bool|None:
+        def onReset() -> None:
+            self.__moveNextFunc = Delegates.BoolFalse
+        
         if self.IsResetSupported():
             if self.IsStarted():
                 self.Stop()
@@ -180,10 +183,14 @@ class EnumeratorBase[T](IEnumerator[T]):
                 self.__hasProcessedItems = False
                 
                 return True
+            
+            onReset()
+            
+            return False
         
-        self.__moveNextFunc = Delegates.BoolFalse
+        onReset()
         
-        return False
+        return None
     
     @final
     def HasProcessedItems(self) -> bool:
@@ -432,18 +439,20 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnume
         self.__OnTerminated(False)
     
     @final
-    def Reset(self) -> bool:
+    def TryReset(self) -> bool|None:
         if self.IsStarted():
             self.Stop()
         
-        if self.__enumerator.Reset():
+        result: bool|None = self.__enumerator.Reset()
+
+        if result is True:
             self.__moveNextFunc = self.__MoveNext
 
             return True
         
         self.__moveNextFunc = Delegates.BoolFalse
         
-        return False
+        return result
     @final
     def IsResetSupported(self) -> bool:
         return self.__enumerator.IsResetSupported()
