@@ -6,7 +6,38 @@ from WinCopies.Collections import Collection
 from WinCopies.Collections.Linked import SinglyLinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
-class List[T](Collection):
+class IList[T](Collection):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Push(self, value: T) -> None:
+        pass
+    
+    @abstractmethod
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+        pass
+    @abstractmethod
+    def PushItems(self, items: Iterable[T]) -> None:
+        pass
+    
+    @abstractmethod
+    def PushValues(self, *values: T) -> None:
+        pass
+    
+    @abstractmethod
+    def TryPeek(self) -> DualNullableValueBool[T]:
+        pass
+    
+    @abstractmethod
+    def TryPop(self) -> DualNullableValueBool[T]:
+        pass
+    
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+
+class List[T](IList[T]):
     def __init__(self):
         super().__init__()
         
