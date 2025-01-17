@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import final, Callable
 
 from WinCopies.Collections import Collection, Enumeration
-from WinCopies.Collections.Linked import SinglyLinkedNode
+from WinCopies.Collections.Iteration import Select
+from WinCopies.Collections.Linked import SinglyLinkedNode, NodeEnumerator
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
 class IList[T](Collection):
@@ -167,3 +168,19 @@ class Stack[T](List[T]):
     @final
     def _OnRemoved(self) -> None:
         pass
+
+class IterableQueue[T](Queue[T], IIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return Select(NodeEnumerator[T](self._GetFirst()), lambda node: node.GetValue())
+
+class IterableStack[T](Stack[T], IIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return Select(NodeEnumerator[T](self._GetFirst()), lambda node: node.GetValue())
