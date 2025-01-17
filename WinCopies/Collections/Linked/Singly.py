@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final, Callable
 
-from WinCopies.Collections import Collection
+from WinCopies.Collections import Collection, Enumeration
 from WinCopies.Collections.Linked import SinglyLinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
@@ -36,6 +36,10 @@ class IList[T](Collection):
     @abstractmethod
     def Clear(self) -> None:
         pass
+
+class IIterable[T](IList[T], Enumeration.IIterable[T]):
+    def __init__(self):
+        super().__init__()
 
 class List[T](IList[T]):
     def __init__(self):
