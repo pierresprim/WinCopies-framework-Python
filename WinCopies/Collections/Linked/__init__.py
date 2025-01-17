@@ -1,7 +1,8 @@
 from typing import final, Self
 
 from WinCopies.Collections.Enumeration import Enumerator
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Collections.Iteration import Select
+from WinCopies.Typing.Delegate import Function, Generator
 
 class SinglyLinkedNode[T]:
     def __init__(self, value: T, next: Self|None):
@@ -75,3 +76,6 @@ class NodeEnumerator[T](Enumerator[SinglyLinkedNode[T]]):
         self.__moveNextFunc = None
 
         super()._OnEnded()
+
+def GetValueIterator[T](node: SinglyLinkedNode[T]) -> Generator[T]:
+    return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
