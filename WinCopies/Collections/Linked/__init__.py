@@ -1,8 +1,9 @@
 from typing import final, Self
 
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import Enumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing.Delegate import Function, Generator
+from WinCopies.Typing.Delegate import Function
 
 class SinglyLinkedNode[T]:
     def __init__(self, value: T, next: Self|None):
