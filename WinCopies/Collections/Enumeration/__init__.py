@@ -205,9 +205,6 @@ class Enumerator[T](EnumeratorBase[T]):
 
         super()._OnEnded()
     
-    def _ResetOverride(self) -> bool:
-        return True
-    
     @final
     def GetCurrent(self) -> T|None:
         return self.__current
