@@ -73,7 +73,7 @@ class NodeEnumerator[T](Enumerator[SinglyLinkedNode[T]]):
     def _MoveNextOverride(self) -> bool:
         return self.__moveNextFunc()
     
-    def _OnEnded(self):
+    def _OnEnded(self) -> None:
         self.__moveNextFunc = None
 
         super()._OnEnded()
