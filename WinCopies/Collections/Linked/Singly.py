@@ -9,6 +9,7 @@ from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 class List[T](Collection):
     def __init__(self):
         super().__init__()
+        
         self.__first: SinglyLinkedNode[T]|None = None
 
     @final
@@ -51,7 +52,7 @@ class List[T](Collection):
 
         return True
     @final
-    def PushItems(self, items: Iterable[T]|None) -> None:
+    def PushItems(self, items: Iterable[T]) -> None:
         if items is None:
             raise ValueError("items can not be None.")
         
