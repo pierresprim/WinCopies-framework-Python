@@ -114,13 +114,13 @@ class List[T](IList[T]):
         self.__first = None
 
 class Queue[T](List[T]):
-    def __init__(self, values: Iterable[T]|None = None):
+    def __init__(self, *values: T):
         super().__init__()
         
         self.__last: SinglyLinkedNode[T]|None = None
         self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
 
-        self.TryPushItems(values)
+        self.PushItems(values)
     
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
@@ -148,10 +148,10 @@ class Queue[T](List[T]):
             self.__updater = self.__GetUpdater()
 
 class Stack[T](List[T]):
-    def __init__(self, values: Iterable[T]|None = None):
+    def __init__(self, *values: T):
         super().__init__()
 
-        self.TryPushItems(values)
+        self.PushItems(values)
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
