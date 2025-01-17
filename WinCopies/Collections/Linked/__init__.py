@@ -1,7 +1,7 @@
-from typing import final
+from typing import final, Self
 
 class SinglyLinkedNode[T]:
-    def __init__(self, value: T, next):
+    def __init__(self, value: T, next: Self|None):
         self.__value: T = value
         self.__next: SinglyLinkedNode[T] = next
     
@@ -14,10 +14,10 @@ class SinglyLinkedNode[T]:
         self.__value = value
     
     @final
-    def GetNext(self):
+    def GetNext(self) -> Self|None:
         return self.__next
     @final
-    def SetNext(self, next) -> None:
+    def SetNext(self, next: Self|None) -> None:
         self.__next = next
 
 class Node[T](SinglyLinkedNode[T]):
