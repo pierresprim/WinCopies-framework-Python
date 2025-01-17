@@ -45,6 +45,10 @@ class NodeEnumerator[T](Enumerator[SinglyLinkedNode[T]]):
         self.__first: SinglyLinkedNode[T] = node
         self.__moveNextFunc: Function[bool]|None = None
     
+    @final
+    def IsResetSupported(self) -> bool:
+        return True
+    
     def __MoveNext(self) -> bool:
         self._SetCurrent(self.__first)
 
@@ -73,10 +77,22 @@ class NodeEnumerator[T](Enumerator[SinglyLinkedNode[T]]):
     def _MoveNextOverride(self) -> bool:
         return self.__moveNextFunc()
     
-    def _OnEnded(self) -> None:
+    @final
+    def __OnEnded(self) -> None:
         self.__moveNextFunc = None
+    
+    def _OnEnded(self) -> None:
+        self.__OnEnded()
 
         super()._OnEnded()
+    
+    def _OnStopped(self) -> None:
+        pass
+    
+    def _ResetOverride(self) -> bool:
+        self.__OnEnded()
+
+        return True
 
 def GetValueIterator[T](node: SinglyLinkedNode[T]) -> Generator[T]:
     return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
