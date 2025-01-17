@@ -1,5 +1,8 @@
 from typing import final, Self
 
+from WinCopies.Collections.Enumeration import Enumerator
+from WinCopies.Typing.Delegate import Function
+
 class SinglyLinkedNode[T]:
     def __init__(self, value: T, next: Self|None):
         self.__value: T = value
@@ -32,3 +35,43 @@ class Node[T](SinglyLinkedNode[T]):
     @final
     def SetPrevious(self, previous) -> None:
         self.__previous = previous
+
+class NodeEnumerator[T](Enumerator[SinglyLinkedNode[T]]):
+    def __init__(self, node: SinglyLinkedNode[T]):
+        super().__init__()
+
+        self.__first: SinglyLinkedNode[T] = node
+        self.__moveNextFunc: Function[bool]|None = None
+    
+    def __MoveNext(self) -> bool:
+        self._SetCurrent(self.__first)
+
+        def moveNext() -> bool:
+            node: SinglyLinkedNode[T] = self.GetCurrent().GetNext()
+
+            if node is None:
+                return False
+            
+            self._SetCurrent(node)
+
+            return True
+
+        self.__moveNextFunc = moveNext
+
+        return True
+    
+    def _OnStarting(self):
+        if super()._OnStarting():
+            self.__moveNextFunc = self.__MoveNext
+
+            return True
+        
+        return False
+    
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNextFunc()
+    
+    def _OnEnded(self):
+        self.__moveNextFunc = None
+
+        super()._OnEnded()
