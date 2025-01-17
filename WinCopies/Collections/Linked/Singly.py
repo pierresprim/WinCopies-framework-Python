@@ -51,6 +51,9 @@ class List[T](IList[T]):
         return super().HasItems()
     
     @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]:
+        return self.__first
+    @final
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
         self.__first = node
     
