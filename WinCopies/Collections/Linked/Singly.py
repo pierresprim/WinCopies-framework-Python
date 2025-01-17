@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Callable
 
-from WinCopies.Collections import Collection, Enumeration, Linked
+from WinCopies.Collections import Generator, Collection, Enumeration, Linked
 from WinCopies.Collections.Linked import SinglyLinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
@@ -36,6 +36,15 @@ class IList[T](Collection):
     @abstractmethod
     def Clear(self) -> None:
         pass
+    
+    @final
+    def AsIterator(self) -> Generator[T]:
+        result: DualNullableValueBool[T] = self.TryPop()
+
+        while result.GetValue():
+            yield result.GetKey()
+            
+            result = self.TryPop()
 
 class IIterable[T](IList[T], Enumeration.IIterable[T]):
     def __init__(self):
