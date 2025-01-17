@@ -3,7 +3,7 @@ from typing import final, Self
 class SinglyLinkedNode[T]:
     def __init__(self, value: T, next: Self|None):
         self.__value: T = value
-        self.__next: SinglyLinkedNode[T] = next
+        self.__next: SinglyLinkedNode[T]|None = next
     
     @final
     def GetValue(self) -> T:
