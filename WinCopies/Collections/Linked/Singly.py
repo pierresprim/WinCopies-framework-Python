@@ -70,7 +70,7 @@ class List[T](IList[T]):
             self._Push(value, self.__first)
     
     @final
-    def __PushItems(self, items: Iterable[T]|None) -> None:
+    def __PushItems(self, items: Iterable[T]) -> None:
         for value in items:
             self.Push(value)
     
