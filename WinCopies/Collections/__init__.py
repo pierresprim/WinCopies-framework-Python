@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Callable
 
 from WinCopies.Typing.Delegate import Predicate
-from WinCopies.Typing.Pairing import DualResult, DualValueBool
+from WinCopies.Typing.Pairing import DualNullableValueBool
 
 type Generator[T] = collections.abc.Generator[T, None, None]
 
@@ -112,8 +112,8 @@ class FinderPredicate[T]:
     def GetValidationPredicate(self, predicate: Predicate[T]) -> Predicate[T]:
         return self.__GetPredicate(predicate, self.__Validate)
     
-    def TryGetResult(self) -> DualValueBool[T]:
-        return DualResult[T, bool](self.__result, self.__hasValue)
+    def TryGetResult(self) -> DualNullableValueBool[T]:
+        return DualNullableValueBool[T](self.__result, self.__hasValue)
     
     def GetResult(self) -> T:
         if self.__hasValue:
