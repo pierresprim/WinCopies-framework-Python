@@ -47,17 +47,26 @@ class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     @final
     def GetValue(self) -> TInfo:
         return self.__info
+class DualNullableValueInfo[TValue, TInfo](DualResult[TValue|None, TInfo]):
+    def __init__(self, value: TValue|None, info: TInfo):
+        super().__init__(value, info)
+class DualValueNullableInfo[TValue, TInfo](DualResult[TValue, TInfo|None]):
+    def __init__(self, value: TValue, info: TInfo|None):
+        super().__init__(value, info)
+class DualNullableValueNullableInfo[TValue, TInfo](DualResult[TValue|None, TInfo|None]):
+    def __init__(self, value: TValue|None, info: TInfo|None):
+        super().__init__(value, info)
 
 class DualValueBool[T](DualResult[T, bool]):
     def __init__(self, value: T, info: bool):
         super().__init__(value, info)
-class DualValueNullableBool[T](DualResult[T, bool|None]):
+class DualValueNullableBool[T](DualValueNullableInfo[T, bool]):
     def __init__(self, value: T, info: bool|None):
         super().__init__(value, info)
 
-class DualNullableValueBool[T](DualResult[T|None, bool]):
+class DualNullableValueBool[T](DualNullableValueInfo[T, bool]):
     def __init__(self, value: T|None, info: bool):
         super().__init__(value, info)
-class DualNullableValueNullableBool[T](DualResult[T|None, bool|None]):
+class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool]):
     def __init__(self, value: T|None, info: bool|None):
         super().__init__(value, info)
