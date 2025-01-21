@@ -27,7 +27,7 @@ class BitDepthLevel(Enum):
 def Not(value: bool|None) -> bool|None:
     return None if value is None else not value
 
-def TryConvertToInt(value) -> int|None:
+def TryConvertToInt(value: object) -> int|None:
     try:
         return int(value)
     except ValueError:
@@ -63,14 +63,14 @@ def AskInt(message: str, predicate: Callable[[int], bool], errorMessage: str = "
     
     return value
 
-def AskConfirmation(message: str, info: str = " y/[any other key]: ", value: str = "y") -> bool:
+def AskConfirmation(message: str, info: str = " [y]/any other key: ", value: str = "y") -> bool:
     return input(message + info) == value
 
-def Process(action: Callable[[], None], message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
+def Process(action: Callable[[], None], message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
     while AskConfirmation(message, info, value):
         action()
 
-def DoProcess(action: Callable[[], None], message: str = "Continue?", info: str = " y/[any other key]: ", value: str = "y"):
+def DoProcess(action: Callable[[], None], message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
     action()
     
     Process(action, message, info, value)
