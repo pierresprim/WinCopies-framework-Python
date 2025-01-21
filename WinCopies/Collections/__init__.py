@@ -107,7 +107,7 @@ def GetIndexOf[T](l: list[T], value: T, i: int, length: int|None = None) -> Dual
     
     return getNullValue()
 
-def IndexOf[T](l: Iterable[T], value: T) -> int|None:
+def IndexOf[T](l: list[T], value: T) -> int|None:
     return GetIndexOf(l, value).GetValue()
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
