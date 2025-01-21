@@ -79,7 +79,7 @@ def TryGetAtFunc[TIn, TOut](list: list[TIn], index: int, ifTrue: Callable[[TIn],
 def TryGetAtStr(list: list[str], index: int) -> str:
     return TryGetAt(list, index, "")
 
-def GetIndexOf[T](l: list[T], value: T, i: int, length: int|None = None) -> DualNullableValueInfo[int, int]:
+def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
         return DualNullableValueInfo[int, int](value, info)
     def getNullValue() -> DualNullableValueInfo[int, int]:
@@ -109,6 +109,37 @@ def GetIndexOf[T](l: list[T], value: T, i: int, length: int|None = None) -> Dual
 
 def IndexOf[T](l: list[T], value: T) -> int|None:
     return GetIndexOf(l, value).GetValue()
+
+def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
+    length: int = len(list)
+    valuesLength: int = len(values)
+
+    if length == 0 or valuesLength == 0 or valuesLength > length:
+        return (None, length, valuesLength)
+    
+    elif valuesLength == 1:
+        result: DualNullableValueInfo[int, int] = GetIndexOf(list, values[0])
+        
+        return (result.GetValue(), result.GetInfo(), valuesLength)
+    
+    j: int = 0
+
+    while i < length:
+        if list[i] == values[j]:
+            j += 1
+
+            if j == valuesLength:
+                return i
+        
+        else:
+            j = 0
+
+        i += 1
+    
+    return (None, length, valuesLength)
+
+def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
+    return GetIndexOfSequence(l, values)[0]
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
