@@ -118,26 +118,29 @@ def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|
     if length == 0 or valuesLength == 0 or valuesLength > length:
         return (None, length, valuesLength)
     
-    elif valuesLength == 1:
-        result: DualNullableValueInfo[int, int] = GetIndexOf(list, values[0])
+    if valuesLength == 1:
+        result: DualNullableValueInfo[int, int] = GetIndexOf(l, values[0])
         
         return (result.GetValue(), result.GetInfo(), valuesLength)
+    
+    def getResult(result: int|None) -> tuple[int|None, int, int]:
+        return (result, length, valuesLength)
     
     j: int = 0
 
     while i < length:
-        if list[i] == values[j]:
+        if l[i] == values[j]:
             j += 1
 
             if j == valuesLength:
-                return i
+                return getResult(i)
         
         else:
             j = 0
 
         i += 1
     
-    return (None, length, valuesLength)
+    return getResult(None)
 
 def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
     return GetIndexOfSequence(l, values)[0]
