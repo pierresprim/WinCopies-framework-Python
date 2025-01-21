@@ -5,9 +5,9 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Callable
 
-from WinCopies.Math import Between
+from WinCopies.Math import Between, Outside
 from WinCopies.Typing.Delegate import Predicate
-from WinCopies.Typing.Pairing import DualNullableValueBool
+from WinCopies.Typing.Pairing import DualNullableValueInfo, DualNullableValueBool
 
 type Generator[T] = collections.abc.Generator[T, None, None]
 
@@ -78,6 +78,37 @@ def TryGetAtFunc[TIn, TOut](list: list[TIn], index: int, ifTrue: Callable[[TIn],
     return TrySetAt(list, index, lambda i: ifTrue(list[i]), ifFalse)
 def TryGetAtStr(list: list[str], index: int) -> str:
     return TryGetAt(list, index, "")
+
+def GetIndexOf[T](l: list[T], value: T, i: int, length: int|None = None) -> DualNullableValueInfo[int, int]:
+    def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
+        return DualNullableValueInfo[int, int](value, info)
+    def getNullValue() -> DualNullableValueInfo[int, int]:
+        return getReturnValue(None, length)
+    
+    def validate(listLength: int) -> None:
+        nonlocal length
+        
+        if length is None:
+            length = listLength
+        
+        elif Outside(0, length, listLength):
+            raise ValueError("The given length can not be less than zero or greater than the length of the given list.", listLength, length)
+    
+    validate(len(l))
+
+    if length == 0 or i < 0:
+        return getNullValue()
+    
+    while i < length:
+        if l[i] == value:
+            return getReturnValue(i, length)
+
+        i += 1
+    
+    return getNullValue()
+
+def IndexOf[T](l: Iterable[T], value: T) -> int|None:
+    return GetIndexOf(l, value).GetValue()
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
