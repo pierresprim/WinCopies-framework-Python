@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Callable
 
+from WinCopies import Not
 from WinCopies.Math import Between, Outside
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualNullableValueInfo, DualNullableValueBool
@@ -140,6 +141,27 @@ def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|
 
 def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
     return GetIndexOfSequence(l, values)[0]
+
+def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
+    result: DualNullableValueInfo[int, int] = GetIndexOf(l, value, i, length)
+
+    if result.GetValue() is None:
+        return (None, None, result.GetInfo())
+    
+    result = GetIndexOf(l, value, i + 1)
+    
+    return (result.GetValue() is int, result.GetValue(), result.GetInfo())
+
+def ContainsMultiple[T](l: list[T], value: T) -> bool|None:
+    return ContainsMultipleTimes(l, value)[0]
+
+def ContainsOnlyOne[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
+    result: tuple[bool|None, int|None, int] = ContainsMultipleTimes(l, value, i, length)
+
+    return (Not(result[0]), result[1], result[2])
+    
+def ContainsOne[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> bool|None:
+    return Not(ContainsMultiple(l, value, i, length))
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
