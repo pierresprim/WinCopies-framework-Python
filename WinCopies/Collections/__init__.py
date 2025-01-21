@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Callable
 
+from WinCopies.Math import Between
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualNullableValueBool
 
@@ -21,6 +22,49 @@ class IterableScanResult(Enum):
     
     def Not(self):
         return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
+
+def GetOffset(inStart: int, outStart: int, length: int) -> int:
+    paramName: str
+
+    def check(value: int, _paramName: str) -> bool:
+        nonlocal paramName
+
+        paramName = _paramName
+
+        return Between(0, value, length, True, False)
+    
+    if check(inStart, "inStart") and check(outStart, "outStart"):
+        inStart = outStart - inStart
+
+        if inStart < 0:
+            inStart += length
+
+        return -inStart if outStart < 0 else inStart
+    
+    raise IndexError(paramName)
+
+def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
+    offset %= totalLength
+
+    match offset:
+        case 0:
+            return (start, offset)
+
+        case 1:
+            return ((start + 1) % totalLength, offset)
+
+        case -1:
+            return (totalLength - 1 if start == 0 else start - 1, offset)
+
+    if offset > 0:
+        if start == 0:
+            return (offset, offset)
+
+        tmp: int = totalLength - start
+
+        return (0 if offset == tmp else ((start - (totalLength - offset)) if offset > tmp else start + offset), offset)
+
+    return (totalLength + offset + start if abs(offset) > start else start + offset, offset)
 
 def GetLastIndex(list: list) -> int:
     return len(list) - 1
