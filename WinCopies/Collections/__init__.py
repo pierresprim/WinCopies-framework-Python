@@ -114,17 +114,17 @@ def IndexOf[T](l: list[T], value: T) -> int|None:
 def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
     length: int = len(list)
     valuesLength: int = len(values)
+    
+    def getResult(result: int|None) -> tuple[int|None, int, int]:
+        return (result, length, valuesLength)
 
     if length == 0 or valuesLength == 0 or valuesLength > length:
-        return (None, length, valuesLength)
+        return getResult(None)
     
     if valuesLength == 1:
         result: DualNullableValueInfo[int, int] = GetIndexOf(l, values[0])
         
         return (result.GetValue(), result.GetInfo(), valuesLength)
-    
-    def getResult(result: int|None) -> tuple[int|None, int, int]:
-        return (result, length, valuesLength)
     
     j: int = 0
 
@@ -163,8 +163,8 @@ def ContainsOnlyOne[T](l: list[T], value: T, i: int = 0, length: int|None = None
 
     return (Not(result[0]), result[1], result[2])
     
-def ContainsOne[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> bool|None:
-    return Not(ContainsMultiple(l, value, i, length))
+def ContainsOne[T](l: list[T], value: T) -> bool|None:
+    return Not(ContainsMultiple(l, value))
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
