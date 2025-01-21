@@ -145,7 +145,7 @@ def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
 def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
     result: DualNullableValueInfo[int, int] = GetIndexOf(l, value, i, length)
 
-    if result.GetValue() is None:
+    if (i := result.GetValue()) is None:
         return (None, None, result.GetInfo())
     
     result = GetIndexOf(l, value, i + 1)
