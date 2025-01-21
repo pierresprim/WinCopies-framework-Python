@@ -166,6 +166,28 @@ def ContainsOnlyOne[T](l: list[T], value: T, i: int = 0, length: int|None = None
 def ContainsOne[T](l: list[T], value: T) -> bool|None:
     return Not(ContainsMultiple(l, value))
 
+def ContainsSequenceMultipleTimes[T](l: list[T], values: list[T], i: int = 0) -> tuple[bool|None, int|None, int, int]:
+    result: tuple[int|None, int, int] = GetIndexOfSequence(l, values, i)
+    
+    initialResult: int = result[0]
+
+    if initialResult is None:
+        return (None, None, result[1], result[2])
+    
+    result = GetIndexOfSequence(l, values, result[0] + 1)
+    
+    return (result[0] is int, initialResult, result[1], result[2])
+def ContainsMultipleSequences[T](l: list[T], values: list[T]) -> bool|None:
+    return ContainsSequenceMultipleTimes(l, values)[0]
+
+def ContainsOnlyOneSequence[T](l: list[T], value: T, i: int = 0) -> tuple[bool|None, int|None, int]:
+    result: tuple[bool|None, int|None, int, int] = ContainsSequenceMultipleTimes(l, value, i)
+
+    return (Not(result[0]), result[1], result[2], result[3])
+    
+def ContainsOneSequence[T](l: list[T], value: T) -> bool|None:
+    return Not(ContainsMultipleSequence(l, value))
+
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
 
