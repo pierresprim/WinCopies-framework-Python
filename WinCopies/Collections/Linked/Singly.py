@@ -1,14 +1,59 @@
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import final, Callable
 
-from WinCopies.Collections import Collection
+from WinCopies.Collections import Generator, Collection, Enumeration, Linked
 from WinCopies.Collections.Linked import SinglyLinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
-class List[T](Collection):
+class IList[T](Collection):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def Push(self, value: T) -> None:
+        pass
+    
+    @abstractmethod
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+        pass
+    @abstractmethod
+    def PushItems(self, items: Iterable[T]) -> None:
+        pass
+    
+    @abstractmethod
+    def PushValues(self, *values: T) -> None:
+        pass
+    
+    @abstractmethod
+    def TryPeek(self) -> DualNullableValueBool[T]:
+        pass
+    
+    @abstractmethod
+    def TryPop(self) -> DualNullableValueBool[T]:
+        pass
+    
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+    
+    @final
+    def AsIterator(self) -> Generator[T]:
+        result: DualNullableValueBool[T] = self.TryPop()
+
+        while result.GetValue():
+            yield result.GetKey()
+            
+            result = self.TryPop()
+
+class IIterable[T](IList[T], Enumeration.IIterable[T]):
+    def __init__(self):
+        super().__init__()
+
+class List[T](IList[T]):
+    def __init__(self):
+        super().__init__()
+        
         self.__first: SinglyLinkedNode[T]|None = None
 
     @final
@@ -18,6 +63,9 @@ class List[T](Collection):
     def HasItems(self) -> bool:
         return super().HasItems()
     
+    @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]:
+        return self.__first
     @final
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
         self.__first = node
@@ -128,3 +176,19 @@ class Stack[T](List[T]):
     @final
     def _OnRemoved(self) -> None:
         pass
+
+class IterableQueue[T](Queue[T], IIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return Linked.GetValueIterator(self._GetFirst())
+
+class IterableStack[T](Stack[T], IIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return Linked.GetValueIterator(self._GetFirst())
