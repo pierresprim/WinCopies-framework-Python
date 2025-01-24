@@ -2,9 +2,14 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Callable
 
-from WinCopies.Collections import Generator, Collection, Enumeration, Linked
-from WinCopies.Collections.Linked import SinglyLinkedNode
+from WinCopies.Collections import Generator, Collection, Enumeration
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
+from WinCopies.Collections.Linked.Node import LinkedListNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
+    
+class SinglyLinkedNode[T](LinkedListNode[Self, T]):
+    def __init__(self, value: T, nextNode: Self|None):
+        super().__init(value, nextNode)
 
 class IList[T](Collection):
     def __init__(self):
@@ -119,6 +124,7 @@ class List[T](IList[T]):
 
         if result.GetValue():
             self.__first = self.__first.GetNext()
+
             self._OnRemoved()
 
         return result
@@ -177,13 +183,20 @@ class Stack[T](List[T]):
     def _OnRemoved(self) -> None:
         pass
 
+class SinglyLinkedNodeEnumeratorBase[TNode: SinglyLinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
+    def __init__(self, node: TNode):
+        super().__init__(node)
+class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[SinglyLinkedNode[T], T]):
+    def __init__(self, node: SinglyLinkedNode[T]):
+        super().__init__(node)
+
 class IterableQueue[T](Queue[T], IIterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return Linked.GetValueIterator(self._GetFirst())
+        return GetValueIterator(self._GetFirst())
 
 class IterableStack[T](Stack[T], IIterable[T]):
     def __init__(self, *values: T):
@@ -191,4 +204,4 @@ class IterableStack[T](Stack[T], IIterable[T]):
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return Linked.GetValueIterator(self._GetFirst())
+        return GetValueIterator(self._GetFirst())
