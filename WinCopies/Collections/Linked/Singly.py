@@ -123,7 +123,11 @@ class List[T](IList[T]):
         result: DualNullableValueBool[T] = self.TryPeek()
 
         if result.GetValue():
-            self.__first = self.__first.GetNext()
+            first: SinglyLinkedNode[T] = self.__first
+
+            self.__first = first.GetNext()
+
+            first._SetNext(None) # Needed in case of a running enumeration.
 
             self._OnRemoved()
 
@@ -131,6 +135,11 @@ class List[T](IList[T]):
     
     @final
     def Clear(self) -> None:
+        result: DualNullableValueBool[T] = self.TryPop()
+
+        while result.GetValue(): # Needed in case of a running enumeration.
+            result = self.TryPop()
+
         self._OnRemoved()
 
         self.__first = None
