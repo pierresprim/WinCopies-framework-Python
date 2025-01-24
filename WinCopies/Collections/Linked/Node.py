@@ -37,7 +37,9 @@ class LinkedListNode[TNode: Self, TItems](LinkedListNodeBase[TItems], ILinkedLis
     def GetNext(self) -> TNode|None:
         return self.__next
     @final
-    def SetNext(self, nextNode: TNode|None) -> None:
+    def _SetNext(self, nextNode: TNode|None) -> None:
+        AssertIsDirectPackageCall()
+
         self.__next = nextNode
     
     @final
@@ -54,5 +56,7 @@ class NodeBase[TNode: Self, TItems](LinkedListNode[TNode, TItems]):
     def GetPrevious(self) -> TNode|None:
         return self.__previous
     @final
-    def SetPrevious(self, previous: TNode|None) -> None:
+    def _SetPrevious(self, previous: TNode|None) -> None:
+        AssertIsDirectPackageCall()
+        
         self.__previous = previous

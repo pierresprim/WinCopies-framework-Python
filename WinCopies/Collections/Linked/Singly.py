@@ -147,7 +147,7 @@ class Queue[T](List[T]):
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
         def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
-            previousNode.SetNext(newNode)
+            previousNode._SetNext(newNode)
 
             self.__last = newNode
         
