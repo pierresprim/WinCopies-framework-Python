@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from inspect import stack, FrameInfo
 from os import path
-from typing import Iterable, Type, List
+from typing import Type, List
 
 from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Converter, Selector
