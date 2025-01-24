@@ -1,13 +1,13 @@
 import collections.abc
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from enum import Enum
-from typing import Callable
+from typing import Callable, List
 
 from WinCopies import Not
 from WinCopies.Math import Between, Outside
-from WinCopies.Typing.Delegate import Predicate
+from WinCopies.Typing.Delegate import Converter, Function, Predicate
 from WinCopies.Typing.Pairing import DualNullableValueInfo, DualNullableValueBool
 
 type Generator[T] = collections.abc.Generator[T, None, None]
@@ -67,18 +67,18 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 
     return (totalLength + offset + start if abs(offset) > start else start + offset, offset)
 
-def GetLastIndex(list: list) -> int:
-    return len(list) - 1
+def GetLastIndex(l: Sequence) -> int:
+    return len(l) - 1
 
-def TrySetAt[T](list: list, index: int, ifTrue: Callable[[int], T], ifFalse: Callable[[], T]) -> T:
-    return ifTrue(index) if len(list) > index else ifFalse()
+def TrySetAt[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
+    return ifTrue(index) if Between(0, index, len(l)) else ifFalse()
 
-def TryGetAt[T](list: list[T], index: int, default: T|None = None) -> T|None:
-    return list[index] if len(list) > index else default
-def TryGetAtFunc[TIn, TOut](list: list[TIn], index: int, ifTrue: Callable[[TIn], TOut], ifFalse: Callable[[], TOut]) -> TOut:
-    return TrySetAt(list, index, lambda i: ifTrue(list[i]), ifFalse)
-def TryGetAtStr(list: list[str], index: int) -> str:
-    return TryGetAt(list, index, "")
+def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
+    return l[index] if Between(0, index, len(l)) else default
+def TryGetAtFunc[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
+    return TrySetAt(l, index, lambda i: ifTrue(l[i]), ifFalse)
+def TryGetAtStr(l: List[str], index: int) -> str:
+    return TryGetAt(l, index, '')
 
 def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
@@ -191,20 +191,20 @@ def ContainsOneSequence[T](l: list[T], value: T) -> bool|None:
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
 
-def IterateWith[T](itemsProvider: Callable[[], Iterable[T]], func: Callable[[Iterable[T]], bool|None]) -> bool|None:
+def IterateWith[T](itemsProvider: Function[Iterable[T]], func: Converter[Iterable[T], bool|None]) -> bool|None:
     with itemsProvider() as items:
         return func(items)
-def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Callable[[TIn], Iterable[TOut]], func: Callable[[Iterable[TOut]], bool|None]) -> bool|None:
+def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, Iterable[TOut]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
     return IterateWith(lambda: itemsProvider(value), func)
 
-def TryIterateWith[T](checker: Callable[[], bool], itemsProvider: Callable[[], Iterable[T]], func: Callable[[Iterable[T]], bool|None]) -> IterableScanResult:
+def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[Iterable[T]], func: Converter[Iterable[T], bool|None]) -> IterableScanResult:
     if checker():
         result: bool|None = IterateWith(itemsProvider, func)
 
         return IterableScanResult.Empty if result == None else (IterableScanResult.Success if result else IterableScanResult.Error)
     
     return IterableScanResult.DoesNotExist
-def TryIterateFrom[TIn, TOut](value: TIn, checker: Callable[[TIn], bool], itemsProvider: Callable[[TIn], Iterable[TOut]], func: Callable[[Iterable[TOut]], bool|None]) -> IterableScanResult:
+def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, Iterable[TOut]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
     return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
 
 class EmptyException(Exception):
@@ -254,7 +254,7 @@ class FinderPredicate[T]:
         
         return False
     
-    def __GetPredicate(self, predicate: Predicate[T], func: callable) -> Predicate[T]:
+    def __GetPredicate(self, predicate: Predicate[T], func: Callable[[T, Predicate[T]], bool]) -> Predicate[T]:
         self.__Reset()
 
         return lambda entry: func(entry, predicate)
