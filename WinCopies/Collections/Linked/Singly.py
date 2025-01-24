@@ -140,9 +140,9 @@ class List[T](IList[T]):
         while result.GetValue(): # Needed in case of a running enumeration.
             result = self.TryPop()
 
-        self._OnRemoved()
-
         self.__first = None
+
+        self._OnRemoved()
 
 class Queue[T](List[T]):
     def __init__(self, *values: T):
