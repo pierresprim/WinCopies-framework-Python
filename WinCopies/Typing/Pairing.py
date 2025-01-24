@@ -47,6 +47,7 @@ class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     @final
     def GetValue(self) -> TInfo:
         return self.__info
+
 class DualNullableValueInfo[TValue, TInfo](DualResult[TValue|None, TInfo]):
     def __init__(self, value: TValue|None, info: TInfo):
         super().__init__(value, info)
