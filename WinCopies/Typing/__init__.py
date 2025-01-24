@@ -1,6 +1,43 @@
-from typing import Iterable, Type
+from inspect import stack, FrameInfo
+from os import path
+from typing import Iterable, Type, List
 
 from WinCopies.Delegates import Self
+from WinCopies.Typing.Delegate import Converter, Selector
+
+def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
+    frames: List[FrameInfo] = stack()
+
+    nextIndex: int = index + 1
+
+    if len(frames) > nextIndex:
+        def getName(index: int) -> str:
+            selector(frames[index][1])
+        
+        return getName(index) == getName(nextIndex)
+    
+    else:
+        return None
+def __AssertDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
+    result: bool|None = selector(index)
+
+    if result is bool:
+        assert(result, "Invalid operation.")
+
+def __IsDirectModuleCall(index: int) -> bool|None:
+    return __IsDirectCall(index, path.basename)
+def __IsDirectPackageCall(index: int) -> bool|None:
+    return __IsDirectCall(index, path.dirname)
+
+def IsDirectModuleCall() -> bool|None:
+    return __IsDirectModuleCall(3)
+def AssertIsDirectModuleCall() -> None:
+    __AssertDirectCall(4, __IsDirectModuleCall)
+
+def IsDirectPackageCall() -> bool|None:
+    return __IsDirectPackageCall(3)
+def AssertIsDirectPackageCall() -> None:
+    __AssertDirectCall(4, __IsDirectPackageCall)
 
 class Singleton(type):
     __instances = {}
