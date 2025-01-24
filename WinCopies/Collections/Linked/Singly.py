@@ -196,7 +196,7 @@ class IterableQueue[T](Queue[T], IIterable[T]):
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return GetValueIterator(self._GetFirst())
+        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
 
 class IterableStack[T](Stack[T], IIterable[T]):
     def __init__(self, *values: T):
@@ -204,4 +204,4 @@ class IterableStack[T](Stack[T], IIterable[T]):
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return GetValueIterator(self._GetFirst())
+        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
