@@ -2,6 +2,7 @@ from typing import Type, Callable
 from enum import Enum
 
 from WinCopies.Delegates import Self
+from WinCopies.Typing.Delegate import Predicate, Converter
 
 def Assert(e: Type[Enum]):
     assert(issubclass(e, Enum))
@@ -35,19 +36,19 @@ def IsIn(e: Type[Enum], t: tuple[str, int]) -> bool:
 
     return t in [(o.name, o.value) for o in e]
 
-def __TryGetMember(e: Type[Enum], predicate: callable, selector: callable) -> object|None:
+def __TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> T|None:
     for o in e:
         if predicate(o):
             return selector(o)
     
     return None
 
-def TryGetMember(e: Type[Enum], predicate: callable, selector: callable) -> object|None:
+def TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> T|None:
     Assert(e)
     
     return __TryGetMember(e, predicate, selector)
 
-def __TryGetFieldValue(e: Type[Enum], obj: object, predicateSelector: callable, conversionSelector: callable) -> object|None:
+def __TryGetFieldValue[T](e: Type[Enum], obj: T, predicateSelector: Predicate[Enum], conversionSelector: Converter[Enum, T]) -> T|None:
     return __TryGetMember(e, lambda o: predicateSelector(o) == obj, conversionSelector)
 
 def TryGetName(e: Type[Enum], v: int) -> str|None:
@@ -60,10 +61,10 @@ def TryGetValue(e: Type[Enum], n: str) -> int|None:
     
     return __TryGetFieldValue(e, n, lambda o: o.name, lambda o: o.value)
 
-def __TryGetField[T: Enum](e: Type[T], predicate: callable) -> T|None:
+def __TryGetField[T: Enum](e: Type[T], predicate: Predicate[Enum]) -> T|None:
     return __TryGetMember(e, predicate, Self)
 
-def TryGetField[T: Enum](e: Type[T], predicate: callable) -> T|None:
+def TryGetField[T: Enum](e: Type[T], predicate: Predicate[Enum]) -> T|None:
     Assert(e)
 
     return __TryGetField(e, predicate)
