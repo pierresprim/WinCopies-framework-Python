@@ -12,7 +12,7 @@ from os import remove, path
 from io import IOBase, TextIOWrapper, BufferedIOBase
 from typing import Callable
 
-from WinCopies.Typing import constant, singleton
+from WinCopies.Typing.Decorators import constant, singleton
 
 class FileMode(Enum):
     Null = 0
