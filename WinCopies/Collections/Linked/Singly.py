@@ -54,6 +54,14 @@ class IList[T](Collection):
 class IIterable[T](IList[T], Enumeration.IIterable[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def _GetFirst(self) -> SinglyLinkedNode[T]:
+        pass
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
 
 class List[T](IList[T]):
     def __init__(self):
@@ -202,15 +210,6 @@ class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[SinglyLinkedN
 class IterableQueue[T](Queue[T], IIterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
-    
-    @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
-
 class IterableStack[T](Stack[T], IIterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
-    
-    @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
