@@ -1,10 +1,30 @@
+from abc import abstractmethod, ABC
 from collections.abc import Iterable
 from inspect import stack, FrameInfo
 from os import path
-from typing import List, Type
+from typing import final, List, Type
 
-from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Converter, Selector
+
+class IStruct[T](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetValue() -> T:
+        pass
+    @abstractmethod
+    def SetValue() -> None:
+        pass
+class Struct[T](IStruct[T]):
+    def __init__(self, value: T):
+        self.__value: T = value
+    
+    @final
+    def GetValue(self) -> T:
+        return self.__value
+    def SetValue(self, value: T) -> None:
+        self.__value = value
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
