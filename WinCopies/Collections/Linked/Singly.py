@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import final, Callable
+from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
