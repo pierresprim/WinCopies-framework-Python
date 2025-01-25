@@ -23,10 +23,14 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
     
     def GetList(self) -> IList[T]:
         return self.__list
+    
     def _OnRemoved(self) -> None:
         AssertIsDirectModuleCall()
 
         self.__list = None
+    
+    def Remove(self) -> None:
+        self.GetList().Remove(self)
 
 class IListBase[T](Collection):
     def __init__(self):
@@ -45,6 +49,67 @@ class IListBase[T](Collection):
     @abstractmethod
     def AddAfter(self, node: Node[T], value: T) -> DoublyLinkedNode[T]:
         pass
+
+    @final
+    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, Node[T]], other: Callable[[Node[T], T], None]) -> bool:
+        if items is None:
+            return False
+        
+        node: Node[T]|None = None
+        adder: Method[T]|None = None
+
+        def add(item: T) -> None:
+            nonlocal node
+            nonlocal adder
+
+            node = first(item)
+            
+            adder = lambda item: other(node, item)
+        
+        adder = add
+
+        for item in items:
+            adder(item)
+        
+        return True
+
+    @final
+    def AddFirstItems(self, items: Iterable[T]|None) -> bool:
+        return self.__AddItems(items, self.AddFirst, self.AddAfter)
+    @final
+    def AddFirstValues(self, *values: T) -> bool:
+        return self.AddFirstItems(values)
+    @final
+    def AddLastItems(self, items: Iterable[T]|None) -> bool:
+        return self.__AddItems(items, self.AddLast, self.AddBefore)
+    @final
+    def AddLastValues(self, *values: T) -> bool:
+        return self.AddLastItems(values)
+    
+    @final
+    def AddItemsBefore(self, node: Node[T], items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
+        
+        for item in items:
+            self.AddBefore(node, item)
+
+        return True
+    @final
+    def AddValuesBefore(self, node: Node[T], *values: T) -> bool:
+        return self.AddItemsBefore(node, values)
+    @final
+    def AddItemsAfter(self, node: Node[T], items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
+        
+        for item in items:
+            node = self.AddAfter(node, item)
+
+        return True
+    @final
+    def AddValuesAfter(self, node: Node[T], *values: T) -> bool:
+        return self.AddItemsAfter(node, values)
     
     @abstractmethod
     def GetFirst(self) -> DoublyLinkedNode[T]|None:
