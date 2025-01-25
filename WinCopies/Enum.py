@@ -1,4 +1,4 @@
-from typing import Type, Callable
+from typing import Type
 from enum import Enum
 
 from WinCopies.Delegates import Self
@@ -7,7 +7,7 @@ from WinCopies.Typing.Delegate import Predicate, Converter
 def Assert(e: Type[Enum]):
     assert(issubclass(e, Enum))
 
-def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Callable[[Enum], T]) -> bool:
+def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
     return obj in [selector(o) for o in e]
 
 def IsMemberOf(e: Type[Enum], n: str) -> bool:
