@@ -12,7 +12,7 @@ class ILinkedNode[T](ABC):
         pass
 
     @abstractmethod
-    def GetNextNode(self) -> Self|None:
+    def GetNext(self) -> Self|None:
         pass
 
 class LinkedNodeBase[T]:

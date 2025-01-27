@@ -23,7 +23,7 @@ class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
-            node: ILinkedNode[TItems] = self.GetCurrent().GetNextNode()
+            node: ILinkedNode[TItems] = self.GetCurrent().GetNext()
 
             if node is None:
                 return False
