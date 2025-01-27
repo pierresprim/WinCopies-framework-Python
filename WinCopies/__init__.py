@@ -8,6 +8,8 @@ Created on Fri May 26 14:21:00 2023
 from typing import Callable
 from enum import Enum
 
+from WinCopies.Typing.Delegate import Action, Predicate
+
 class Endianness(Enum):
     Null = 0
     Little = 1
@@ -46,7 +48,7 @@ def ReadInt(message: str, errorMessage: str = "Invalid value; an integer is expe
     
     return value
 
-def AskInt(message: str, predicate: Callable[[int], bool], errorMessage: str = "The value is out of range."):
+def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range."):
     value: int = 0
     
     def loop() -> int:
@@ -66,18 +68,18 @@ def AskInt(message: str, predicate: Callable[[int], bool], errorMessage: str = "
 def AskConfirmation(message: str, info: str = " [y]/any other key: ", value: str = "y") -> bool:
     return input(message + info) == value
 
-def Process(action: Callable[[], None], message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def Process(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
     while AskConfirmation(message, info, value):
         action()
 
-def DoProcess(action: Callable[[], None], message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def DoProcess(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
     action()
     
     Process(action, message, info, value)
 
-def TryPredicate(predicate: Callable[[Exception], bool], action: Callable[[], None]) -> bool|None:
+def TryPredicate(predicate: Predicate[Exception], action: Action) -> bool|None:
     ok: bool = True
-    _predicate: Callable[[Exception], bool]
+    _predicate: Predicate[Exception]
 
     def __predicate(e: Exception) -> bool:
         nonlocal ok
@@ -106,12 +108,12 @@ def TryPredicate(predicate: Callable[[Exception], bool], action: Callable[[], No
         break
 
     return ok
-def Try(action: Callable[[], None], onError: Callable[[Exception], None], func: Callable[[], bool]) -> bool|None:
+def Try(action: Action, onError: Callable[[Exception], None], func: Callable[[], bool]) -> bool|None:
     def _onError(e: Exception) -> bool:
         onError(e)
         
         return func()
     
     return TryPredicate(_onError, action)
-def TryMessage(action: Callable[[], None], onError: Callable[[Exception], None], message: str = "Continue?") -> bool|None:
+def TryMessage(action: Action, onError: Callable[[Exception], None], message: str = "Continue?") -> bool|None:
     return Try(action, onError, lambda: AskConfirmation(message))
