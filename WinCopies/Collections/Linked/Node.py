@@ -14,6 +14,10 @@ class ILinkedNode[T](ABC):
     @abstractmethod
     def GetNext(self) -> Self|None:
         pass
+class IDoublyLinkedNode[T](ILinkedNode[T]):
+    @abstractmethod
+    def GetPrevious(self) -> Self|None:
+        pass
 
 class LinkedNodeBase[T]:
     def __init__(self, value: T):
@@ -41,7 +45,7 @@ class LinkedNode[TNode: Self, TItems](LinkedNodeBase[TItems], ILinkedNode[TItems
 
         self.__next = nextNode
 
-class NodeBase[TNode: Self, TItems](LinkedNode[TNode, TItems]):
+class NodeBase[TNode: Self, TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
     def __init__(self, value: TItems, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, nextNode)
 
