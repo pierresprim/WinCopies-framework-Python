@@ -14,7 +14,7 @@ from WinCopies.Typing.Delegate import Method, Function, Converter
 
 @final
 class DoublyLinkedNode[T](NodeBase[Self, T]):
-    def __init__(self, value: T, l: IList[T], previousNode: Self|None, nextNode: Self|None):
+    def __init__(self, value: T, l: IList[T], previousNode: DoublyLinkedNode[T]|None, nextNode: DoublyLinkedNode[T]|None):
         AssertIsDirectModuleCall()
 
         super().__init__(value, previousNode, nextNode)
