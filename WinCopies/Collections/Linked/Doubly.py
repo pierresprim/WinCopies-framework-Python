@@ -42,25 +42,25 @@ class IListBase[T](Collection):
         super().__init__()
     
     @abstractmethod
-    def AddFirst(self, value: T) -> DoublyLinkedNode[T]:
+    def AddFirst(self, value: T) -> IDoublyLinkedNode[T]:
         pass
     @abstractmethod
-    def AddLast(self, value: T) -> DoublyLinkedNode[T]:
+    def AddLast(self, value: T) -> IDoublyLinkedNode[T]:
         pass
 
     @abstractmethod
-    def AddBefore(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+    def AddBefore(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
         pass
     @abstractmethod
-    def AddAfter(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+    def AddAfter(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
         pass
 
     @final
-    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, DoublyLinkedNode[T]], other: Callable[[DoublyLinkedNode[T], T], None]) -> bool:
+    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, IDoublyLinkedNode[T]], other: Callable[[IDoublyLinkedNode[T], T], None]) -> bool:
         if items is None:
             return False
         
-        node: DoublyLinkedNode[T]|None = None
+        node: IDoublyLinkedNode[T]|None = None
         adder: Method[T]|None = None
 
         def add(item: T) -> None:
@@ -92,7 +92,7 @@ class IListBase[T](Collection):
         return self.AddLastItems(values)
     
     @final
-    def AddItemsBefore(self, node: DoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
+    def AddItemsBefore(self, node: IDoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -101,10 +101,10 @@ class IListBase[T](Collection):
 
         return True
     @final
-    def AddValuesBefore(self, node: DoublyLinkedNode[T], *values: T) -> bool:
+    def AddValuesBefore(self, node: IDoublyLinkedNode[T], *values: T) -> bool:
         return self.AddItemsBefore(node, values)
     @final
-    def AddItemsAfter(self, node: DoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
+    def AddItemsAfter(self, node: IDoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -113,18 +113,18 @@ class IListBase[T](Collection):
 
         return True
     @final
-    def AddValuesAfter(self, node: DoublyLinkedNode[T], *values: T) -> bool:
+    def AddValuesAfter(self, node: IDoublyLinkedNode[T], *values: T) -> bool:
         return self.AddItemsAfter(node, values)
     
     @abstractmethod
-    def GetFirst(self) -> DoublyLinkedNode[T]|None:
+    def GetFirst(self) -> IDoublyLinkedNode[T]|None:
         pass
     @abstractmethod
-    def GetLast(self) -> DoublyLinkedNode[T]|None:
+    def GetLast(self) -> IDoublyLinkedNode[T]|None:
         pass
     
     @abstractmethod
-    def Remove(self, node: DoublyLinkedNode[T]) -> None:
+    def Remove(self, node: IDoublyLinkedNode[T]) -> None:
         pass
     
     @abstractmethod
@@ -154,7 +154,7 @@ class IListBase[T](Collection):
     def AsStackedIterator(self) -> Generator[IDoublyLinkedNode[T]]:
         return self.__AsIterator(self.RemoveLast)
 
-class IIterable[T](IListBase[T], Enumeration.IIterable[DoublyLinkedNode[T]]):
+class IIterable[T](IListBase[T], Enumeration.IIterable[IDoublyLinkedNode[T]]):
     def __init__(self):
         super().__init__()
     
