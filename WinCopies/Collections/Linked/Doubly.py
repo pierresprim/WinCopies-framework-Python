@@ -209,6 +209,8 @@ class List[T](IList[T]):
     
     @final
     def AddBefore(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+        node.Assert(self)
+        
         previousNode: DoublyLinkedNode[T] = node.GetPrevious()
         
         newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, previousNode, node)
@@ -220,6 +222,8 @@ class List[T](IList[T]):
         return newNode
     @final
     def AddAfter(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+        node.Assert(self)
+
         nextNode: DoublyLinkedNode[T] = node.GetNext()
         
         newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, node, nextNode)
