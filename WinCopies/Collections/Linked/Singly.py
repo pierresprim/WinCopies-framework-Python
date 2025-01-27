@@ -4,7 +4,7 @@ from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
-from WinCopies.Collections.Linked.Node import LinkedNode
+from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
     
 class SinglyLinkedNode[T](LinkedNode[Self, T]):
@@ -200,7 +200,7 @@ class Stack[T](List[T]):
     def _OnRemoved(self) -> None:
         pass
 
-class SinglyLinkedNodeEnumeratorBase[TNode: SinglyLinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
+class SinglyLinkedNodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
     def __init__(self, node: TNode):
         super().__init__(node)
 class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[SinglyLinkedNode[T], T]):

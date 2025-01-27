@@ -7,7 +7,7 @@ from typing import final, Self
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
-from WinCopies.Collections.Linked.Node import NodeBase
+from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
 from WinCopies.Typing import AssertIsDirectModuleCall
 from WinCopies.Typing.Delegate import Function
@@ -305,7 +305,7 @@ class List[T](IList[T]):
 
         return EmptyEnumerator[T]() if iterator is None else iterator
 
-class DoublyLinkedNodeEnumeratorBase[TNode: DoublyLinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
+class DoublyLinkedNodeEnumeratorBase[TNode: IDoublyLinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
     def __init__(self, node: TNode):
         super().__init__(node)
 class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[DoublyLinkedNode[T], T]):
