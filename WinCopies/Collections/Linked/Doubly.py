@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import final, Self
+from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
@@ -10,7 +10,7 @@ from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValu
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
 from WinCopies.Typing import AssertIsDirectModuleCall
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import Method, Function, Converter
 
 @final
 class DoublyLinkedNode[T](NodeBase[Self, T]):
@@ -123,10 +123,10 @@ class IListBase[T](Collection):
         pass
     
     @abstractmethod
-    def RemoveFirst(self) -> DoublyLinkedNode[T]|None:
+    def RemoveFirst(self) -> T|None:
         pass
     @abstractmethod
-    def RemoveLast(self) -> DoublyLinkedNode[T]|None:
+    def RemoveLast(self) -> T|None:
         pass
     
     @abstractmethod
@@ -257,7 +257,7 @@ class List[T](IList[T]):
         self.__Remove(node)
     
     @final
-    def RemoveFirst(self) -> DoublyLinkedNode[T]|None:
+    def RemoveFirst(self) -> T|None:
         node: DoublyLinkedNode[T]|None = self.__first
 
         if node is None:
@@ -269,9 +269,9 @@ class List[T](IList[T]):
 
         self.__first = nextNode
 
-        return node
+        return node.GetValue()
     @final
-    def RemoveLast(self) -> DoublyLinkedNode[T]|None:
+    def RemoveLast(self) -> T|None:
         node: DoublyLinkedNode[T]|None = self.__last
 
         if node is None:
@@ -283,7 +283,7 @@ class List[T](IList[T]):
 
         self.__last = previousNode
 
-        return node
+        return node.GetValue()
     
     @final
     def Clear(self) -> None:
