@@ -9,7 +9,7 @@ from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
     
 class SinglyLinkedNode[T](LinkedNode[Self, T]):
     def __init__(self, value: T, nextNode: Self|None):
-        super().__init(value, nextNode)
+        super().__init__(value, nextNode)
 
 class IList[T](Collection):
     def __init__(self):
