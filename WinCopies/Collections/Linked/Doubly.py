@@ -209,6 +209,11 @@ class List[T](IList[T]):
     
     @final
     def AddBefore(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+        if node is self.GetFirst():
+            self.AddFirst()
+
+            return
+        
         node.Assert(self)
         
         previousNode: DoublyLinkedNode[T] = node.GetPrevious()
@@ -222,6 +227,11 @@ class List[T](IList[T]):
         return newNode
     @final
     def AddAfter(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+        if node is self.GetLast():
+            self.AddLast()
+
+            return
+        
         node.Assert(self)
 
         nextNode: DoublyLinkedNode[T] = node.GetNext()
