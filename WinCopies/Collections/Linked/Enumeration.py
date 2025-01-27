@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import final, Self
+from typing import final
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import Enumerator
