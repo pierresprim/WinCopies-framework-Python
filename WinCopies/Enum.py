@@ -5,7 +5,7 @@ from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Predicate, Converter
 
 def Assert(e: Type[Enum]):
-    assert(issubclass(e, Enum))
+    assert issubclass(e, Enum)
 
 def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
     return obj in [selector(o) for o in e]
@@ -25,7 +25,7 @@ def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
         t: Type = type(f)
 
         Assert(t)
-        assert(issubclass(e, t))
+        assert issubclass(e, t)
     
     assertTypes()
 
