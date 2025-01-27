@@ -186,7 +186,7 @@ def ContainsOnlyOneSequence[T](l: list[T], value: T, i: int = 0) -> tuple[bool|N
     return (Not(result[0]), result[1], result[2], result[3])
     
 def ContainsOneSequence[T](l: list[T], value: T) -> bool|None:
-    return Not(ContainsMultipleSequence(l, value))
+    return Not(ContainsMultipleSequences(l, value))
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
