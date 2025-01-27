@@ -31,6 +31,11 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
     
     def Remove(self) -> None:
         self.GetList().Remove(self)
+    
+    def Check(self, l: IList[T]) -> bool:
+        self.GetList() is l
+    def Assert(self, l: IList[T]) -> bool:
+        assert self.Check(l), "Invalid operation."
 
 class IListBase[T](Collection):
     def __init__(self):
