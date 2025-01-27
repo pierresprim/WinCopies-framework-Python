@@ -43,7 +43,7 @@ def __AssertDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
     result: bool|None = selector(index)
 
     if result is bool:
-        assert(result, "Invalid operation.")
+        assert result, "Invalid operation."
 
 def __IsDirectModuleCall(index: int) -> bool|None:
     return __IsDirectCall(index, path.basename)
