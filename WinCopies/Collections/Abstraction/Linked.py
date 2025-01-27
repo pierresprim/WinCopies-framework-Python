@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
-from WinCopies.Collections.Linked.Node import ILinkedListNode
+from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Singly import Queue
 from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode, List
@@ -47,7 +47,7 @@ class LinkedList[T](Singly.IList[T]):
         self.TryPushItems(values)
     
     @final
-    def __GetResult(result: ILinkedListNode[T]|None):
+    def __GetResult(result: ILinkedNode[T]|None):
         def getResult(result: T, info: bool) -> DualNullableValueBool[T]:
             return DualNullableValueBool[T](result, info)
         

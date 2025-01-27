@@ -4,15 +4,15 @@ from typing import final, Self
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import Enumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Node import ILinkedListNode
+from WinCopies.Collections.Linked.Node import ILinkedNode
 
 from WinCopies.Typing.Delegate import Function
 
-class NodeEnumeratorBase[TNode: ILinkedListNode[TItems], TItems](Enumerator[TNode]):
-    def __init__(self, node: ILinkedListNode[TItems]):
+class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
+    def __init__(self, node: ILinkedNode[TItems]):
         super().__init__()
 
-        self.__first: ILinkedListNode[TItems] = node
+        self.__first: ILinkedNode[TItems] = node
         self.__moveNextFunc: Function[bool]|None = None
     
     @final
@@ -23,7 +23,7 @@ class NodeEnumeratorBase[TNode: ILinkedListNode[TItems], TItems](Enumerator[TNod
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
-            node: ILinkedListNode[TItems] = self.GetCurrent().GetNextNode()
+            node: ILinkedNode[TItems] = self.GetCurrent().GetNextNode()
 
             if node is None:
                 return False
@@ -64,9 +64,9 @@ class NodeEnumeratorBase[TNode: ILinkedListNode[TItems], TItems](Enumerator[TNod
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[ILinkedListNode[T], T]):
-    def __init__(self, node: ILinkedListNode[T]):
+class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T], T]):
+    def __init__(self, node: ILinkedNode[T]):
         super().__init__(node)
 
-def GetValueIterator[T](node: ILinkedListNode[T]) -> Generator[T]:
+def GetValueIterator[T](node: ILinkedNode[T]) -> Generator[T]:
     return Select(NodeEnumerator[T](node), lambda node: node.GetValue())

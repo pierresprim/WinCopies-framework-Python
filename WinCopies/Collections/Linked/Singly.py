@@ -4,10 +4,10 @@ from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
-from WinCopies.Collections.Linked.Node import LinkedListNode
+from WinCopies.Collections.Linked.Node import LinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
     
-class SinglyLinkedNode[T](LinkedListNode[Self, T]):
+class SinglyLinkedNode[T](LinkedNode[Self, T]):
     def __init__(self, value: T, nextNode: Self|None):
         super().__init(value, nextNode)
 

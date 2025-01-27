@@ -3,7 +3,7 @@ from typing import final, Self
 
 from WinCopies.Typing import AssertIsDirectPackageCall
 
-class ILinkedListNode[T](ABC):
+class ILinkedNode[T](ABC):
     @abstractmethod
     def GetValue(self) -> T:
         pass
@@ -15,19 +15,18 @@ class ILinkedListNode[T](ABC):
     def GetNextNode(self) -> Self|None:
         pass
 
-class LinkedListNodeBase[T]:
+class LinkedNodeBase[T]:
     def __init__(self, value: T):
         self.__value: T = value
     
     @final
     def GetValue(self) -> T:
         return self.__value
-    
     @final
     def SetValue(self, value: T) -> None:
         self.__value = value
 
-class LinkedListNode[TNode: Self, TItems](LinkedListNodeBase[TItems], ILinkedListNode[TItems]):
+class LinkedNode[TNode: Self, TItems](LinkedNodeBase[TItems], ILinkedNode[TItems]):
     def __init__(self, value: TItems, nextNode: TNode|None):
         super().__init__(value)
 
@@ -41,12 +40,8 @@ class LinkedListNode[TNode: Self, TItems](LinkedListNodeBase[TItems], ILinkedLis
         AssertIsDirectPackageCall()
 
         self.__next = nextNode
-    
-    @final
-    def GetNextNode(self) -> ILinkedListNode[TItems]:
-        return self.GetNext()
 
-class NodeBase[TNode: Self, TItems](LinkedListNode[TNode, TItems]):
+class NodeBase[TNode: Self, TItems](LinkedNode[TNode, TItems]):
     def __init__(self, value: TItems, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, nextNode)
 
