@@ -257,7 +257,7 @@ class List[T](IList[T]):
         node._SetNext(None)
     @final
     def Remove(self, node: DoublyLinkedNode[T]) -> None:
-        assert(node.GetList() is not self, "Invalid operation.")
+        node.Assert(self)
 
         self.__Remove(node)
     
