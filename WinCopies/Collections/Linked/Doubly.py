@@ -139,8 +139,8 @@ class IListBase[T](Collection):
         pass
     
     @final
-    def __AsIterator(self, func: Function[DoublyLinkedNode[T]|None]) -> Generator[DoublyLinkedNode[T]]:
-        result: DoublyLinkedNode[T] = func()
+    def __AsIterator(self, func: Function[IDoublyLinkedNode[T]|None]) -> Generator[IDoublyLinkedNode[T]]:
+        result: IDoublyLinkedNode[T] = func()
 
         while result is not None:
             yield result
@@ -148,10 +148,10 @@ class IListBase[T](Collection):
             result = func()
     
     @final
-    def AsQueuedIterator(self) -> Generator[DoublyLinkedNode[T]]:
+    def AsQueuedIterator(self) -> Generator[IDoublyLinkedNode[T]]:
         return self.__AsIterator(self.RemoveFirst)
     @final
-    def AsStackedIterator(self) -> Generator[DoublyLinkedNode[T]]:
+    def AsStackedIterator(self) -> Generator[IDoublyLinkedNode[T]]:
         return self.__AsIterator(self.RemoveLast)
 
 class IIterable[T](IListBase[T], Enumeration.IIterable[DoublyLinkedNode[T]]):
