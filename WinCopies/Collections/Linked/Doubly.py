@@ -44,18 +44,18 @@ class IListBase[T](Collection):
         pass
 
     @abstractmethod
-    def AddBefore(self, node: Node[T], value: T) -> DoublyLinkedNode[T]:
+    def AddBefore(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
         pass
     @abstractmethod
-    def AddAfter(self, node: Node[T], value: T) -> DoublyLinkedNode[T]:
+    def AddAfter(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
         pass
 
     @final
-    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, Node[T]], other: Callable[[Node[T], T], None]) -> bool:
+    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, DoublyLinkedNode[T]], other: Callable[[DoublyLinkedNode[T], T], None]) -> bool:
         if items is None:
             return False
         
-        node: Node[T]|None = None
+        node: DoublyLinkedNode[T]|None = None
         adder: Method[T]|None = None
 
         def add(item: T) -> None:
@@ -87,7 +87,7 @@ class IListBase[T](Collection):
         return self.AddLastItems(values)
     
     @final
-    def AddItemsBefore(self, node: Node[T], items: Iterable[T]|None) -> bool:
+    def AddItemsBefore(self, node: DoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -96,10 +96,10 @@ class IListBase[T](Collection):
 
         return True
     @final
-    def AddValuesBefore(self, node: Node[T], *values: T) -> bool:
+    def AddValuesBefore(self, node: DoublyLinkedNode[T], *values: T) -> bool:
         return self.AddItemsBefore(node, values)
     @final
-    def AddItemsAfter(self, node: Node[T], items: Iterable[T]|None) -> bool:
+    def AddItemsAfter(self, node: DoublyLinkedNode[T], items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -108,7 +108,7 @@ class IListBase[T](Collection):
 
         return True
     @final
-    def AddValuesAfter(self, node: Node[T], *values: T) -> bool:
+    def AddValuesAfter(self, node: DoublyLinkedNode[T], *values: T) -> bool:
         return self.AddItemsAfter(node, values)
     
     @abstractmethod
@@ -309,5 +309,5 @@ class DoublyLinkedNodeEnumeratorBase[TNode: IDoublyLinkedNode[TItems], TItems](N
     def __init__(self, node: TNode):
         super().__init__(node)
 class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[DoublyLinkedNode[T], T]):
-    def __init__(self, node: Node[T]):
+    def __init__(self, node: DoublyLinkedNode[T]):
         super().__init__(node)
