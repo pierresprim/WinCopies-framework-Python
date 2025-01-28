@@ -4,6 +4,7 @@ from inspect import stack, FrameInfo
 from os import path
 from typing import final, List, Type
 
+from WinCopies.Assertion import TryEnsureTrue
 from WinCopies.Typing.Delegate import Converter, Selector
 
 class IStruct[T](ABC):
@@ -40,10 +41,8 @@ def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     else:
         return None
 def __AssertDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
-    result: bool|None = selector(index)
-
-    if result is bool:
-        assert result, "Invalid operation."
+    if not TryEnsureTrue(selector(index)):
+        raise ValueError(index)
 
 def __IsDirectModuleCall(index: int) -> bool|None:
     return __IsDirectCall(index, path.basename)
