@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import final #, protected
 from enum import Enum
+from typing import final, Self
 
-from WinCopies.Typing.Decorators import singleton
+from WinCopies.Typing.Decorators import MetaSingleton
 
 class _IGenerator(ABC):
     def __init__(self):
@@ -370,9 +370,8 @@ class _SequenceGenerator(_IGenerator):
         
         return result
 
-@singleton
 @final
-class _CounterSequenceGenerator(_SequenceGenerator):
+class _CounterSequenceGenerator(_SequenceGenerator, metaclass=MetaSingleton[Self]):
     def __init__(self):
         pass
     

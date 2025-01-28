@@ -10,9 +10,9 @@ from abc import ABC, abstractmethod
 from typing import final
 from os import remove, path
 from io import IOBase, TextIOWrapper, BufferedIOBase
-from typing import Callable
+from typing import Callable, Self
 
-from WinCopies.Typing.Decorators import constant, singleton
+from WinCopies.Typing.Decorators import constant, MetaSingleton
 
 class FileMode(Enum):
     Null = 0
@@ -81,9 +81,8 @@ class IStream(ABC):
         pass
 
 class File(IStream):
-    @singleton
     @final
-    class __Consts:
+    class __Consts(metaclass=MetaSingleton[Self]):
         @constant
         def ASK_PATH_MESSAGE() -> str:
             return "Enter a path: "
