@@ -4,6 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Callable, Self
 
+from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator, Collection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
@@ -34,8 +35,8 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
     
     def Check(self, l: IList[T]) -> bool:
         self.GetList() is l
-    def Assert(self, l: IList[T]) -> bool:
-        assert self.Check(l), "Invalid operation."
+    def Ensure(self, l: IList[T]) -> bool:
+        EnsureTrue(self.Check(l), "Invalid operation.")
 
 class IListBase[T](Collection):
     def __init__(self):
@@ -214,7 +215,7 @@ class List[T](IList[T]):
 
             return
         
-        node.Assert(self)
+        node.Ensure(self)
         
         previousNode: DoublyLinkedNode[T] = node.GetPrevious()
         
@@ -232,7 +233,7 @@ class List[T](IList[T]):
 
             return
         
-        node.Assert(self)
+        node.Ensure(self)
 
         nextNode: DoublyLinkedNode[T] = node.GetNext()
         
@@ -271,7 +272,7 @@ class List[T](IList[T]):
         node._SetNext(None)
     @final
     def Remove(self, node: DoublyLinkedNode[T]) -> None:
-        node.Assert(self)
+        node.Ensure(self)
 
         self.__Remove(node)
     
