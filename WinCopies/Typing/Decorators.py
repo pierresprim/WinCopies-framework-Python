@@ -1,35 +1,50 @@
-from WinCopies.Delegates import Self
+from typing import final
 
-class Singleton(type):
-    __instances = {}
+from WinCopies.Assertion import Throw
+
+class Singleton:
+    @staticmethod
+    def Throw() -> None:
+        Throw("Singleton class has already been instantiated.")
+
+class MetaSingleton[T](type):
+    def __init__(cls, *args, **kwargs):
+        cls.__instance: T = None
+
+        super().__init__(*args, **kwargs)
     
-    def WhenExisting(cls, *args, **kwargs) -> None:
-        pass
-    def WhenNew(cls, *args, **kwargs) -> None:
-        cls.__instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+    def _GetInstance(cls) -> T:
+        return cls.__instance
+    
+    def _WhenExisting(cls, *_, **__) -> None:
+        Singleton.Throw()
+    def _WhenNew(cls, *args, **kwargs) -> None:
+        cls.__instance = super().__call__(*args, **kwargs)
     
     def __call__(cls, *args, **kwargs):
-        (Singleton.WhenExisting if cls in cls.__instances else Singleton.WhenNew)(cls, args, kwargs)
-            
-        return cls.__instances[cls]
+        cls._WhenNew(*args, **kwargs) if cls.__instance is None else cls._WhenExisting(*args, **kwargs)
+        
+        return cls.__instance
 
-class MultiInitializationSingleton(Singleton):
-    def WhenExisting(cls, *args, **kwargs) -> None:
-        cls._instances[cls].__init__(*args, **kwargs)
+class MultiInitializationSingleton[T](MetaSingleton[T]):
+    def _WhenExisting(cls, *args, **kwargs) -> None:
+        cls._GetInstance().__init__(*args, **kwargs)
 
-def singleton(cls):
-    cls.__call__ = Self
-    return cls()
-
-class Static(type):
-  def _Throw():
-      raise TypeError('Static classes cannot be instantiated.')
-  
-  def __new__(cls):
-      Static._Throw()
+class Static:
+    def _Throw():
+        raise TypeError('Static class cannot be instantiated.')
+    
+    @final
+    def __new__(cls):
+        Static._Throw()
+class MetaStatic(type):
+    def __call__(cls):
+        cls.__new__ = Static._Throw()
 
 def static(cls):
-    cls.__new__ = Static._Throw
+    cls.__new__ = lambda _: Static._Throw()
+    
+    return cls
 
 def constant(f):
     def fget(self):
