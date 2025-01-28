@@ -2,11 +2,6 @@ from typing import final
 
 from WinCopies.Assertion import Throw
 
-class Singleton:
-    @staticmethod
-    def Throw() -> None:
-        Throw("Singleton class has already been instantiated.")
-
 class MetaSingleton[T](type):
     def __init__(cls, *args, **kwargs):
         cls.__instance: T = None
@@ -17,7 +12,7 @@ class MetaSingleton[T](type):
         return cls.__instance
     
     def _WhenExisting(cls, *_, **__) -> None:
-        Singleton.Throw()
+        Throw("Singleton class has already been instantiated.")
     def _WhenNew(cls, *args, **kwargs) -> None:
         cls.__instance = super().__call__(*args, **kwargs)
     
