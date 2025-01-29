@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Predicate
+from WinCopies.Typing.Delegate import Function, Predicate
 
 def Self[T](value: T) -> T:
     return value
@@ -31,6 +31,164 @@ def BoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> bool
     return False
 def GetBoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> Callable[[], bool]:
     return lambda: BoolFuncAction(func, action)
+
+
+
+def __CheckRepeat(n: int) -> None:
+    if n < 1:
+        raise ValueError()
+
+def __RepeatAndAlso(n: int, func: Function[bool]) -> bool:
+    i: int = 1
+
+    while i < n:
+        if func():
+            i += 1
+
+        return False
+
+    return func()
+def RepeatAndAlso(n: int, func: Function[bool]) -> bool:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func()
+        case 2:
+            return func() and func()
+    
+    return __RepeatAndAlso(n, func)
+def GetRepeatAndAlso(n: int, func: Function[bool]) -> Function[bool]:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func
+        case 2:
+            return lambda: func() and func()
+    
+    return lambda: __RepeatAndAlso(n, func)
+
+def __RepeatAnd(n: int, func: Function[bool]) -> bool:
+    i: int = 1
+    result: bool = True
+
+    action: Callable[[], None]|None = None
+
+    def loop() -> None:
+        nonlocal action
+        nonlocal result
+
+        if not func():
+            result = False
+            action = lambda: func()
+    
+    action = loop
+
+    while i < n:
+        i += 1
+
+        action()
+    
+    action()
+
+    return result
+def RepeatAnd(n: int, func: Function[bool]) -> bool:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func()
+        case 2:
+            return func() & func()
+    
+    return __RepeatAnd(n, func)
+def GetRepeatAnd(n: int, func: Function[bool]) -> Function[bool]:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func
+        case 2:
+            return lambda: func() & func()
+    
+    return lambda: __RepeatAnd(n, func)
+
+def __RepeatOrElse(n: int, func: Function[bool]) -> bool:
+    i: int = 1
+
+    while i < n:
+        if func():
+            return True
+
+        i += 1
+
+    return func()
+def RepeatOrElse(n: int, func: Function[bool]) -> bool:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func()
+        case 2:
+            return func() or func()
+    
+    return __RepeatOrElse(n, func)
+def GetRepeatOrElse(n: int, func: Function[bool]) -> Function[bool]:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func
+        case 2:
+            return lambda: func() or func()
+    
+    return lambda: __RepeatOrElse(n, func)
+
+def __RepeatOr(n: int, func: Function[bool]) -> bool:
+    i: int = 1
+    result: bool = False
+
+    action: Callable[[], None]|None = None
+
+    def loop() -> None:
+        nonlocal action
+        nonlocal result
+
+        if func():
+            result = True
+            action = lambda: func()
+    
+    action = loop
+
+    while i < n:
+        i += 1
+
+        action()
+    
+    action()
+
+    return result
+def RepeatOr(n: int, func: Function[bool]) -> bool:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func()
+        case 2:
+            return func() | func()
+    
+    return __RepeatOr(n, func)
+def GetRepeatOr(n: int, func: Function[bool]) -> Function[bool]:
+    __CheckRepeat(n)
+
+    match n:
+        case 1:
+            return func
+        case 2:
+            return lambda: func() | func()
+    
+    return lambda: __RepeatOr(n, func)
 
 
 
