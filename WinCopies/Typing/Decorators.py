@@ -21,7 +21,7 @@ class MetaSingleton[T](type):
         
         return cls.__instance
 
-class MultiInitializationSingleton[T](MetaSingleton[T]):
+class MetaMultiInitializationSingleton[T](MetaSingleton[T]):
     def _WhenExisting(cls, *args, **kwargs) -> None:
         cls._GetInstance().__init__(*args, **kwargs)
 
