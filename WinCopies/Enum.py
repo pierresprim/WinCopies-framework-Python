@@ -57,10 +57,10 @@ def AsTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
     for value in e:
         yield AsTuple(value)
 
-def IsIn(e: Type[Enum], t: tuple[str, int]) -> bool:
+def IsIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> bool:
     EnsureEnum(e)
 
-    return t in [(o.name, o.value) for o in e]
+    return t in (AsTuples(e) if isinstance(t, tuple) else AsKeyValuePairs(e))
 def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
     if not IsIn(e, t):
         raise ValueError()
