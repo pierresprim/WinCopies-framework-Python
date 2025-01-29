@@ -27,13 +27,16 @@ def EnsureValueOf(e: Type[Enum], v: int) -> None:
         raise ValueError()
 
 def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
-    def assertTypes():
+    def ensureTypes() -> None:
+        nonlocal e
+        nonlocal f
+
         t: Type = type(f)
 
         EnsureEnum(t)
         EnsureSubclass(e, t)
     
-    assertTypes()
+    ensureTypes()
 
     return f in e
 def EnsureFieldOf(e: Type[Enum], f: Enum) -> None:
