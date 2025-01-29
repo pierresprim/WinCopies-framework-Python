@@ -1,4 +1,6 @@
-from typing import final
+from __future__ import annotations
+
+from typing import final, Self
 
 from WinCopies.Assertion import Throw
 
@@ -20,10 +22,18 @@ class MetaSingleton[T](type):
         cls._WhenNew(*args, **kwargs) if cls.__instance is None else cls._WhenExisting(*args, **kwargs)
         
         return cls.__instance
-
 class MetaMultiInitializationSingleton[T](MetaSingleton[T]):
     def _WhenExisting(cls, *args, **kwargs) -> None:
         cls._GetInstance().__init__(*args, **kwargs)
+
+class Singleton[T: Self](metaclass=MetaSingleton[T]):
+    @classmethod
+    def _GetInstance(cls) -> T|None:
+        return cls.__class__._GetInstance(cls)
+class MultiInitializationSingleton[T: Self](metaclass=MetaMultiInitializationSingleton[T]):
+    @classmethod
+    def _GetInstance(cls) -> T|None:
+        return cls.__class__._GetInstance()
 
 class Static:
     def _Throw():
