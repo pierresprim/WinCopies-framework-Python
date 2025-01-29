@@ -1,9 +1,11 @@
+from collections.abc import Iterable
 from typing import Type
 from enum import Enum
 
 from WinCopies.Assertion import EnsureSubclass, EnsureEnum
 from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Predicate, Converter
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
 def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
     return obj in [selector(o) for o in e]
@@ -12,11 +14,17 @@ def IsMemberOf(e: Type[Enum], n: str) -> bool:
     EnsureEnum(e)
 
     return __IsMemberOf(e, n, lambda o: o.name)
+def EnsureMemberOf(e: Type[Enum], n: str) -> None:
+    if not IsMemberOf(e, n):
+        raise ValueError()
 
 def IsValueOf(e: Type[Enum], v: int) -> bool:
     EnsureEnum(e)
 
     return __IsMemberOf(e, v, lambda o: o.value)
+def EnsureValueOf(e: Type[Enum], v: int) -> None:
+    if not IsValueOf(e, v):
+        raise ValueError()
 
 def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
     def assertTypes():
@@ -28,11 +36,31 @@ def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
     assertTypes()
 
     return f in e
+def EnsureFieldOf(e: Type[Enum], f: Enum) -> None:
+    if not IsFieldOf(e, f):
+        raise ValueError
+
+def AsKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
+    return KeyValuePair(e.name, e.value)
+
+def AsKeyValuePairs(e: Type[Enum]) -> Iterable[KeyValuePair[str, int]]:
+    for value in e:
+        yield AsKeyValuePair(value)
+
+def AsTuple(e: Enum) -> tuple[str, int]:
+    return (e.name, e.value)
+
+def AsTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
+    for value in e:
+        yield AsTuple(value)
 
 def IsIn(e: Type[Enum], t: tuple[str, int]) -> bool:
     EnsureEnum(e)
 
     return t in [(o.name, o.value) for o in e]
+def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
+    if not IsIn(e, t):
+        raise ValueError()
 
 def __TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> T|None:
     for o in e:
