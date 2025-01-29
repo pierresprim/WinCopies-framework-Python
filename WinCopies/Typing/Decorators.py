@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import final, Self
 
 from WinCopies.Assertion import Throw
+from WinCopies.Typing.Delegate import Function
 
 class MetaSingleton[T](type):
     def __init__(cls, *args, **kwargs):
@@ -34,6 +35,11 @@ class MultiInitializationSingleton[T: Self](metaclass=MetaMultiInitializationSin
     @classmethod
     def _GetInstance(cls) -> T|None:
         return cls.__class__._GetInstance()
+
+def GetSingletonInstanceProvider[T: Singleton](t: type[T], *args, **kwargs) -> Function[T]:
+    t(*args, **kwargs)
+
+    return lambda: t._GetInstance()
 
 class Static:
     def _Throw():
