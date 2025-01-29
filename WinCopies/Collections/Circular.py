@@ -1,15 +1,20 @@
 from typing import final
 
 from WinCopies import Collections
+from WinCopies.Collections import Collection
 
-class CircularList[T]:
-    def __init__(self, items: list[T], start: int = 0):
+class CircularList[T](Collection):
+    def __init__(self, items: list[T], start: int):
         self.__list: list[T] = items
         self.__start: int = start % len(items)
     
     @final
     def _GetList(self) -> list[T]:
         return self.__list
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return len(self._GetList()) == 0
     
     @final
     def GetIndex(self, index: int) -> int:
@@ -48,3 +53,6 @@ class CircularList[T]:
     @final
     def __getitem__(self, index: int) -> T:
         return self._GetList()[self.GetIndex(index)]
+    
+    def __str__(self) -> str:
+        return str(self._GetList())
