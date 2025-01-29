@@ -4,11 +4,11 @@ from WinCopies.Assertion import Throw
 
 class MetaSingleton[T](type):
     def __init__(cls, *args, **kwargs):
-        cls.__instance: T = None
+        cls.__instance: T|None = None
 
         super().__init__(*args, **kwargs)
     
-    def _GetInstance(cls) -> T:
+    def _GetInstance(cls) -> T|None:
         return cls.__instance
     
     def _WhenExisting(cls, *_, **__) -> None:
