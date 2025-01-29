@@ -8,7 +8,7 @@ class CircularList[T]:
         self.__start: int = start % len(items)
     
     @final
-    def _GetList() -> list[T]:
+    def _GetList(self) -> list[T]:
         return self.__list
     
     @final
