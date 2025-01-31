@@ -44,7 +44,7 @@ class Point(IPoint):
             return self.__value
         def GetY(self) -> int:
             return self.__value
-
+    
     def __init__(self, x: int, y: int):
         self.__x: int = x
         self.__y: int = y

@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Delegate import Action, Function, Predicate
 
 def Self[T](value: T) -> T:
     return value
@@ -73,7 +73,7 @@ def __RepeatAnd(n: int, func: Function[bool]) -> bool:
     i: int = 1
     result: bool = True
 
-    action: Callable[[], None]|None = None
+    action: Action|None = None
 
     def loop() -> None:
         nonlocal action
