@@ -10,7 +10,7 @@ def __EnsureTrue(condition: bool, errorMessage) -> None:
     __EnsureFalse(not condition, errorMessage)
 
 def __TryEnsure(condition: bool, errorMessage: str, action: Callable[[bool, str], None]) -> bool:
-    if condition is bool:
+    if isinstance(condition, bool):
         action(condition, errorMessage)
 
         return True
