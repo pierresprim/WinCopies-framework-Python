@@ -33,11 +33,6 @@ def EnsureNone(value: object|None, errorMessage: str|None = "value must be None.
 def EnsureValue(value: object|None, errorMessage: str|None = "value must not be None.") -> None:
     __EnsureValue(value, errorMessage, EnsureFalse)
 
-def EnsureNone(value: object|None, errorMessage: str|None = "value must be None.") -> bool:
-    __EnsureValue(value, errorMessage, EnsureTrue)
-def EnsureValue(value: object|None, errorMessage: str|None = "value must not be None.") -> bool:
-    __EnsureValue(value, errorMessage, EnsureFalse)
-
 def TryEnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") -> bool:
     return __TryEnsure(condition, errorMessage, __EnsureFalse)
 def TryEnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation.") -> bool:
