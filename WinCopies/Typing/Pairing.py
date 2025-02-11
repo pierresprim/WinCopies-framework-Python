@@ -1,6 +1,8 @@
 from typing import final
 from abc import ABC, abstractmethod
 
+from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
+
 class IKeyValuePair[TKey, TValue](ABC):
     @abstractmethod
     def IsKeyValuePair(self) -> bool:
@@ -58,16 +60,32 @@ class DualNullableValueNullableInfo[TValue, TInfo](DualResult[TValue|None, TInfo
     def __init__(self, value: TValue|None, info: TInfo|None):
         super().__init__(value, info)
 
-class DualValueBool[T](DualResult[T, bool]):
+class DualValueBool[T](DualResult[T, bool], IBoolProvider):
     def __init__(self, value: T, info: bool):
         super().__init__(value, info)
-class DualValueNullableBool[T](DualValueNullableInfo[T, bool]):
+    
+    @final
+    def AsBool(self) -> bool:
+        return self.GetValue()
+class DualValueNullableBool[T](DualValueNullableInfo[T, bool], INullableBoolProvider):
     def __init__(self, value: T, info: bool|None):
         super().__init__(value, info)
+    
+    @abstractmethod
+    def AsNullableBool(self) -> bool|None:
+        return self.GetValue()
 
-class DualNullableValueBool[T](DualNullableValueInfo[T, bool]):
+class DualNullableValueBool[T](DualNullableValueInfo[T, bool], IBoolProvider):
     def __init__(self, value: T|None, info: bool):
         super().__init__(value, info)
-class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool]):
+    
+    @final
+    def AsBool(self) -> bool:
+        return self.GetValue()
+class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], INullableBoolProvider):
     def __init__(self, value: T|None, info: bool|None):
         super().__init__(value, info)
+    
+    @abstractmethod
+    def AsNullableBool(self) -> bool|None:
+        return self.GetValue()
