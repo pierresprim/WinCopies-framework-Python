@@ -3,7 +3,7 @@ import collections.abc
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from typing import Callable, List
+from typing import Callable, List, Self
 
 from WinCopies import Not
 from WinCopies.Math import Between, Outside
@@ -18,10 +18,10 @@ class IterableScanResult(Enum):
     Success = 0
     Error = 1
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self >= 0
     
-    def Not(self):
+    def Not(self) -> Self:
         return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
