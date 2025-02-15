@@ -12,6 +12,9 @@ def BoolFalse() -> bool:
 def FuncNone() -> None:
     return None
 
+def CompareEquality[T](x: T, y: T) -> bool:
+    return x == y
+
 def PredicateAction[T](obj: T, predicate: Predicate[T], action: Callable[[T], None]) -> bool:
     if predicate(obj):
         action(obj)
