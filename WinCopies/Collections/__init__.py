@@ -6,8 +6,9 @@ from enum import Enum
 from typing import Callable, List, Self
 
 from WinCopies import Not
+from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
-from WinCopies.Typing.Delegate import Converter, Function, Predicate
+from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import DualNullableValueInfo, DualNullableValueBool
 
 type Generator[T] = collections.abc.Generator[T, None, None]
