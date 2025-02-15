@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
+from typing import final
 
-class IBoolProvider(object, ABC):
+class IBoolProvider(ABC):
     def __init__(self):
         super().__init__()
     
@@ -8,8 +9,13 @@ class IBoolProvider(object, ABC):
     def AsBool(self) -> bool:
         pass
 
-    __bool__ = AsBool
-    __nonzero__ = AsBool
+    @final
+    def __bool__(self) -> bool:
+        return self.AsBool()
+    
+    @final
+    def __nonzero__(self) -> bool:
+        return self.AsBool()
 class IAsBool[T](IBoolProvider):
     def __init__(self):
         super().__init__()
