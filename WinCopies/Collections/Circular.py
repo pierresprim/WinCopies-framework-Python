@@ -1,15 +1,20 @@
+import typing
 from typing import final
 
 from WinCopies import Collections
-from WinCopies.Collections import Collection
+from WinCopies.Collections import IndexOf
+from WinCopies.Collections.Extensions import List
+from WinCopies.Typing.Delegate import Predicate
 
-class CircularList[T](Collection):
-    def __init__(self, items: list[T], start: int):
-        self.__list: list[T] = items
+class CircularList[T](List[T]):
+    def __init__(self, items: typing.List[T], start: int):
+        super().__init__()
+        
+        self.__list: typing.List[T] = items
         self.__start: int = start % len(items)
     
     @final
-    def _GetList(self) -> list[T]:
+    def _GetList(self) -> typing.List[T]:
         return self.__list
     
     @final
@@ -18,10 +23,10 @@ class CircularList[T](Collection):
     
     @final
     def GetIndex(self, index: int) -> int:
-        return Collections.GetIndex(index, self.GetLength(), self.GetStart())[0]
+        return Collections.GetIndex(index, self.GetCount(), self.GetStart())[0]
     
     @final
-    def GetLength(self) -> int:
+    def GetCount(self) -> int:
         return len(self._GetList())
     
     @final
@@ -32,6 +37,13 @@ class CircularList[T](Collection):
         self.__start = start
     
     @final
+    def GetAt(self, index: int) -> T:
+        return self._GetList()[self.GetIndex(index)]
+    @final
+    def SetAt(self, index: int, value: T) -> None:
+        self._GetList()[self.GetIndex(index)] = value
+    
+    @final
     def Add(self, value: T) -> None:
         self._GetList().append(value)
     
@@ -40,19 +52,40 @@ class CircularList[T](Collection):
         self._GetList().insert(self.GetIndex(index), value)
     
     @final
-    def Remove(self, value: T) -> None:
-        self._GetList().remove(value)
-    @final
     def RemoveAt(self, index: int) -> None:
         self._GetList().pop(self.GetIndex(index))
+    @final
+    def TryRemoveAt(self, index: int) -> bool|None:
+        if index < 0:
+            return None
+        
+        if index >= self.GetCount():
+            return False
+        
+        self.RemoveAt(index)
+        
+        return True
+    
+    @final
+    def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
+        items: typing.List[T] = self._GetList()
+
+        index: int|None = IndexOf(items, item, predicate)
+
+        if index is None:
+            return False
+        
+        items.pop(index)
+
+        return True
+    @final
+    def Remove(self, item: T, predicate: Predicate[T]|None = None) -> None:
+        if not self.TryRemove(item, predicate):
+            raise ValueError(item)
     
     @final
     def Clear(self) -> None:
         self._GetList().clear()
-    
-    @final
-    def __getitem__(self, index: int) -> T:
-        return self._GetList()[self.GetIndex(index)]
     
     def __str__(self) -> str:
         return str(self._GetList())
