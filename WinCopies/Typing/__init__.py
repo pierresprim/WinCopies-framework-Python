@@ -86,3 +86,7 @@ def IsFrom[T](obj: T, types: Iterable[Type[T]]) -> bool:
     return Implements(type(obj), types)
 def IsFromAll[T](obj: T, *types: Type[T]) -> bool:
     return IsFrom(obj, types)
+
+class InvalidOperationError(Exception):
+    def __init__(self, *args):
+        super().__init__(*args)
