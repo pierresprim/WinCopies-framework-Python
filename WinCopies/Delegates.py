@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Action, Function, Predicate
+from WinCopies.Typing.Delegate import Action, Function, Predicate, EqualityComparison, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -232,11 +232,11 @@ def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
 
 
 
-def GetIndexedValueIndexComparison[T](index: int) -> Predicate[T]:
-    return lambda i, value: i == index
+def GetIndexedValueIndexComparison[T](index: int) -> IndexedValueComparison[T]:
+    return lambda i, _: i == index
 
-def GetIndexedValueValueComparison[T](value: T) -> Predicate[T]:
-    return lambda i, _value: value == _value
+def GetIndexedValueValueComparison[T](value: T) -> IndexedValueComparison[T]:
+    return lambda _, _value: value == _value
 
-def GetIndexedValueComparison[T](index: int, value: T) -> Predicate[T]:
+def GetIndexedValueComparison[T](index: int, value: T) -> IndexedValueComparison[T]:
     return lambda i, _value: i == index and value == _value
