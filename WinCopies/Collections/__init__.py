@@ -80,7 +80,7 @@ def TryGetAtFunc[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOu
 def TryGetAtStr(l: List[str], index: int) -> str:
     return TryGetAt(l, index, '')
 
-def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> DualNullableValueInfo[int, int]:
+def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
         return DualNullableValueInfo[int, int](value, info)
     def getNullValue() -> DualNullableValueInfo[int, int]:
@@ -100,16 +100,19 @@ def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> 
     if length == 0 or i < 0:
         return getNullValue()
     
+    if predicate is None:
+        predicate = CompareEquality
+    
     while i < length:
-        if l[i] == value:
+        if predicate(l[i], value):
             return getReturnValue(i, length)
 
         i += 1
     
     return getNullValue()
 
-def IndexOf[T](l: list[T], value: T) -> int|None:
-    return GetIndexOf(l, value).GetKey()
+def IndexOf[T](l: list[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
+    return GetIndexOf(l, value, predicate).GetKey()
 
 def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
     length: int = len(list)
