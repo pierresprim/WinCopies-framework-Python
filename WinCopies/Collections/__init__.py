@@ -225,7 +225,7 @@ class IReadOnlyCollection(ABC):
 
 class Collection(IReadOnlyCollection):
     def __init__(self):
-        pass
+        super().__init__()
     
     def HasItems(self) -> bool:
         return not self.IsEmpty()
