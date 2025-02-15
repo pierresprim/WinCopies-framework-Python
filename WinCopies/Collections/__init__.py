@@ -215,12 +215,16 @@ class EmptyException(Exception):
     def __init__(self):
         pass
 
-class Collection(ABC):
+class IReadOnlyCollection(ABC):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def IsEmpty(self) -> bool:
+        pass
+
+class Collection(IReadOnlyCollection):
+    def __init__(self):
         pass
     
     def HasItems(self) -> bool:
@@ -229,6 +233,82 @@ class Collection(ABC):
     def ThrowIfEmpty(self) -> None:
         if self.IsEmpty():
             raise EmptyException()
+
+class ICollection[T](IReadOnlyCollection):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetCount(self) -> int:
+        pass
+    
+    @abstractmethod
+    def Add(self, item: T) -> None:
+        pass
+
+    @abstractmethod
+    def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
+        pass
+    @abstractmethod
+    def Remove(self, item: T, predicate: Predicate[T]|None = None) -> None:
+        pass
+
+    @abstractmethod
+    def TryRemoveAt(self, index: int) -> bool|None:
+        pass
+    @abstractmethod
+    def RemoveAt(self, index: int) -> None:
+        pass
+
+class IClearable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+
+class IReadOnlyIndexable[T](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetAt(self, index: int) -> T:
+        pass
+
+class IWriteOnlyIndexable[T](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def SetAt(self, index: int, value: T) -> None:
+        pass
+
+class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T]):
+    def __init__(self):
+        super().__init__()
+
+class ICountable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetCount(self) -> int:
+        pass
+
+class IList[T](ICollection[T], IIndexable[T], IClearable):
+    def __init__(self):
+        super().__init__()
+
+class List[T](IList[T]):
+    def IsEmpty(self) -> bool:
+        return self.GetCount() == 0
+    
+    def __getitem__(self, index: int) -> T:
+        return self.GetAt(index)
+    
+    def __setitem__(self, index: int, value: T) -> None:
+        self.SetAt(index, value)
 
 class FinderPredicate[T]:
     def __init__(self):
