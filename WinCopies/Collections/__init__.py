@@ -276,3 +276,11 @@ class FinderPredicate[T]:
             return self.__result
         
         raise ValueError('This object contains no value.')
+
+class IEqualityComparer[T](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Equals(self, item: T) -> bool:
+        pass
