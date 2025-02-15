@@ -51,12 +51,12 @@ def __IsDirectPackageCall(index: int) -> bool|None:
 
 def IsDirectModuleCall() -> bool|None:
     return __IsDirectModuleCall(3)
-def AssertIsDirectModuleCall() -> None:
+def AssertDirectModuleCall() -> None:
     __AssertDirectCall(4, __IsDirectModuleCall)
 
 def IsDirectPackageCall() -> bool|None:
     return __IsDirectPackageCall(3)
-def AssertIsDirectPackageCall() -> None:
+def AssertDirectPackageCall() -> None:
     __AssertDirectCall(4, __IsDirectPackageCall)
 
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
