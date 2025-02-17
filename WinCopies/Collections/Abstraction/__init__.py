@@ -34,15 +34,15 @@ class List[T](Extensions.List[T]):
         return self.__list
     
     @final
+    def GetCount(self) -> int:
+        return len(self._GetList())
+    
+    @final
     def GetAt(self, index: int) -> T:
         return self._GetList()[index]
     @final
     def SetAt(self, index: int, value: T) -> None:
         self._GetList()[index] = value
-    
-    @final
-    def GetCount(self) -> int:
-        return len(self._GetList())
     
     @final
     def Add(self, item: T) -> None:
