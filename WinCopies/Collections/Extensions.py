@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 import typing
-from typing import final
+from typing import final, Self
 
 from WinCopies import Collections
-from WinCopies.Collections.Enumeration import IIterable, IEnumerator, EnumeratorBase
+from WinCopies.Collections import IArray
+from WinCopies.Collections.Enumeration import IIterable, EnumeratorBase
 
-class List[T](Collections.List[T], IIterable[T]):
+class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IIterable[TItems]):
     @final
-    class Enumerator(EnumeratorBase[T]):
-        def __init__(self, items: List[T]):
+    class Enumerator(EnumeratorBase[TItems]):
+        def __init__(self, items: TList):
             super().__init__()
 
-            self.__list: List[T] = items
+            self.__list: TList = items
             self.__i: int = -1
         
-        def _GetList(self) -> List[T]:
+        def _GetList(self) -> TList:
             return self.__list
         
         def IsResetSupported(self) -> bool:
@@ -29,7 +30,7 @@ class List[T](Collections.List[T], IIterable[T]):
             
             return False
         
-        def GetCurrent(self) -> T:
+        def GetCurrent(self) -> TItems:
             return self._GetList().GetAt(self.__i)
         
         def _ResetOverride(self) -> bool:
@@ -41,5 +42,13 @@ class List[T](Collections.List[T], IIterable[T]):
         super().__init__()
     
     @final
-    def TryGetIterator(self) -> IEnumerator[T]:
-        return List.Enumerator(self)
+    def TryGetIterator(self) -> Enumerator[TItems]:
+        return ArrayBase.Enumerator(self)
+
+class Array[T](ArrayBase[T, Self]):
+    def __init__(self):
+        super().__init__()
+
+class List[T](Collections.List[T], ArrayBase[T, Self]):
+    def __init__(self):
+        super().__init__()
