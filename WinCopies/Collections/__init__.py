@@ -239,10 +239,6 @@ class ICollection[T](IReadOnlyCollection):
         super().__init__()
     
     @abstractmethod
-    def GetCount(self) -> int:
-        pass
-    
-    @abstractmethod
     def Add(self, item: T) -> None:
         pass
 
@@ -296,14 +292,14 @@ class ICountable(ABC):
     def GetCount(self) -> int:
         pass
 
-class IList[T](ICollection[T], IIndexable[T], IClearable):
+class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
     def __init__(self):
         super().__init__()
 
 class List[T](IList[T]):
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
-    
+        
     def __getitem__(self, index: int) -> T:
         return self.GetAt(index)
     
