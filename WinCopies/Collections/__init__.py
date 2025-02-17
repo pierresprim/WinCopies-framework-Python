@@ -297,6 +297,9 @@ class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
         super().__init__()
 
 class List[T](IList[T]):
+    def __init__(self):
+        super().__init__()
+    
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
         
