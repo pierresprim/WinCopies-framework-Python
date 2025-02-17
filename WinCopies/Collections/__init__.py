@@ -296,7 +296,11 @@ class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
     def __init__(self):
         super().__init__()
 
-class List[T](IList[T]):
+class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
+    def __init__(self):
+        super().__init__()
+
+class Array[T](Collection, IArray[T]):
     def __init__(self):
         super().__init__()
     
@@ -305,6 +309,10 @@ class List[T](IList[T]):
         
     def __getitem__(self, index: int) -> T:
         return self.GetAt(index)
+
+class List[T](Array[T], IList[T]):
+    def __init__(self):
+        super().__init__()
     
     def __setitem__(self, index: int, value: T) -> None:
         self.SetAt(index, value)
