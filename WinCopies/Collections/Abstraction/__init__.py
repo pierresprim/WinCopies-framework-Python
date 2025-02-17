@@ -1,8 +1,27 @@
 import typing
+
+from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections import Extensions, IndexOf
 from WinCopies.Typing.Delegate import Predicate
+
+class Array[T](Extensions.Array[T]):
+    def __init__(self, items: tuple[T, ...]|Iterable[T]):
+        super().__init__()
+
+        self.__tuple: tuple[T] = items if isinstance(items, tuple) else tuple(items)
+    
+    def _GetTuple(self) -> tuple[T]:
+        return self.__tuple
+    
+    @final
+    def GetCount(self) -> int:
+        return len(self._GetTuple())
+    
+    @final
+    def GetAt(self, index: int) -> T:
+        return self._GetTuple()[index]
 
 class List[T](Extensions.List[T]):
     def __init__(self, items: typing.List[T]|None = None):
