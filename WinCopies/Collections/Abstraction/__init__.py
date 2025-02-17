@@ -4,7 +4,7 @@ from typing import final
 from WinCopies.Collections import Extensions, IndexOf
 from WinCopies.Typing.Delegate import Predicate
 
-class List[T](Extensions.List):
+class List[T](Extensions.List[T]):
     def __init__(self, items: typing.List[T]|None = None):
         super().__init__()
 
