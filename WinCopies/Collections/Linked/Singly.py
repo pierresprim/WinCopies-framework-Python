@@ -44,7 +44,7 @@ class IList[T](Collection):
         pass
     
     @final
-    def AsIterator(self) -> Generator[T]:
+    def AsGenerator(self) -> Generator[T]:
         result: DualNullableValueBool[T] = self.TryPop()
 
         while result.GetValue():
