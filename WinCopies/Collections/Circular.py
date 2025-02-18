@@ -1,4 +1,3 @@
-import typing
 from typing import final
 
 from WinCopies import Collections
@@ -7,14 +6,14 @@ from WinCopies.Collections.Extensions import List
 from WinCopies.Typing.Delegate import Predicate
 
 class CircularList[T](List[T]):
-    def __init__(self, items: typing.List[T], start: int):
+    def __init__(self, items: list[T], start: int):
         super().__init__()
         
-        self.__list: typing.List[T] = items
+        self.__list: list[T] = items
         self.__start: int = start % len(items)
     
     @final
-    def _GetList(self) -> typing.List[T]:
+    def _GetList(self) -> list[T]:
         return self.__list
     
     @final
@@ -68,7 +67,7 @@ class CircularList[T](List[T]):
     
     @final
     def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
-        items: typing.List[T] = self._GetList()
+        items: list[T] = self._GetList()
 
         index: int|None = IndexOf(items, item, predicate)
 
