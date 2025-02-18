@@ -1,5 +1,7 @@
+import collections.abc
+
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, ICountable, Collection
@@ -22,10 +24,10 @@ class IList[T](Collection):
         pass
     
     @abstractmethod
-    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+    def TryPushItems(self, items: collections.abc.Iterable[T]|None) -> bool:
         pass
     @abstractmethod
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
         pass
     
     @abstractmethod
@@ -101,12 +103,12 @@ class List[T](IList[T]):
             self._Push(value, self.__first)
     
     @final
-    def __PushItems(self, items: Iterable[T]) -> None:
+    def __PushItems(self, items: collections.abc.Iterable[T]) -> None:
         for value in items:
             self.Push(value)
     
     @final
-    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+    def TryPushItems(self, items: collections.abc.Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -114,7 +116,7 @@ class List[T](IList[T]):
 
         return True
     @final
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
         if items is None:
             raise ValueError("items can not be None.")
         
@@ -250,7 +252,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
         self.__Increment()
     
     @final
-    def __PushItems(self, items: Iterable[TItems]) -> None:
+    def __PushItems(self, items: collections.abc.Iterable[TItems]) -> None:
         def loop() -> Generator[TItems]:
             for item in items:
                 yield item
@@ -260,7 +262,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
         self._GetCollection().PushItems(loop())
     
     @final
-    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+    def TryPushItems(self, items: collections.abc.Iterable[TItems]|None) -> bool:
         if items is None:
             return False
         
@@ -268,7 +270,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
 
         return True
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None:
+    def PushItems(self, items: collections.abc.Iterable[TItems]) -> None:
         if items is None:
             raise ValueError("No value provided.")
         
