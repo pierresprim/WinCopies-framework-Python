@@ -5,11 +5,13 @@ Created on Sun Feb 6 20:37:51 2022
 @author: Pierre Sprimont
 """
 
-from abc import abstractmethod, ABC
 import collections.abc
+
+from abc import abstractmethod, ABC
 from typing import final
 
 from WinCopies import Delegates
+from WinCopies.Collections import ICountable
 from WinCopies.Typing.Delegate import Converter, Function
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -83,6 +85,10 @@ class IIterable[T](collections.abc.Iterable[T]):
         enumerator: SystemIterator[T]|None = self.TryGetIterator()
 
         return EmptyEnumerator[T]() if enumerator is None else enumerator
+
+class ICountableIterable[T](ICountable, IIterable[T]):
+    def __init__(self):
+        super().__init__()
 
 class EnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
