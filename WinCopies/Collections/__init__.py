@@ -376,3 +376,6 @@ class IEqualityComparer[T](ABC):
     @abstractmethod
     def Equals(self, item: T) -> bool:
         pass
+
+def CreateList[T](count: int, value: T|None = None) -> list[T]:
+    return [value] * count
