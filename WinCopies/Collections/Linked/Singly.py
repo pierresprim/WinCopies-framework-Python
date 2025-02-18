@@ -2,10 +2,11 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Callable, Self
 
-from WinCopies.Collections import Generator, Collection
-from WinCopies.Collections.Enumeration import IIterable
+from WinCopies.Collections import Generator, ICountable, Collection
+from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
+from WinCopies.Typing import EnsureDirectModuleCall
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
 class SinglyLinkedNode[T](LinkedNode[Self, T]):
@@ -214,3 +215,115 @@ class IterableQueue[T](Queue[T], Iterable[T]):
 class IterableStack[T](Stack[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
+
+class CollectionBase[TList: IList[TItems], TItems](IList[TItems]):
+    def __init__(self, l: TList):
+        self.__list: TList = l
+    
+    def _GetCollection(self) -> TList:
+        return self.__list
+
+class Collection[T](CollectionBase[IList[T], T]):
+    def __init__(self, l: IList[T]):
+        super().__init__(l)
+
+class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems], ICountable):
+    def __init__(self, l: TList):
+        EnsureDirectModuleCall()
+
+        super().__init__(l)
+
+        self.__count: int = 0
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__count
+    
+    @final
+    def __Increment(self) -> None:
+        self.__count += 1
+    
+    @final
+    def Push(self, value: TItems) -> None:
+        self._GetCollection().Push(value)
+
+        self.__Increment()
+    
+    @final
+    def __PushItems(self, items: Iterable[TItems]) -> None:
+        def loop() -> Generator[TItems]:
+            for item in items:
+                yield item
+                
+                self.__Increment()
+        
+        self._GetCollection().PushItems(loop())
+    
+    @final
+    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+        if items is None:
+            return False
+        
+        self.__PushItems(items)
+
+        return True
+    @final
+    def PushItems(self, items: Iterable[TItems]) -> None:
+        if items is None:
+            raise ValueError("No value provided.")
+        
+        self.__PushItems(items)
+    
+    @final
+    def PushValues(self, *values: TItems) -> None:
+        self.PushItems(values)
+    
+    @final
+    def TryPeek(self) -> DualNullableValueBool[TItems]:
+        self._GetCollection().TryPeek()
+    
+    @final
+    def TryPop(self) -> DualNullableValueBool[TItems]:
+        self._GetCollection().TryPop()
+
+        self.__count -= 1
+    
+    @final
+    def Clear(self) -> None:
+        self._GetCollection().Clear()
+
+        self.__count = 0
+
+class Countable[T](CountableBase[IList[T], T]):
+    def __init__(self, l: IList[T]):
+        super().__init__(l)
+
+class CountableQueue[T](Countable[T]):
+    def __init__(self, *values: T):
+        super().__init__(Queue[T]())
+
+        self.PushItems(values)
+class CountableStack[T](Countable[T]):
+    def __init__(self, *values: T):
+        super().__init__(Stack[T]())
+
+        self.PushItems(values)
+
+class CountableIterableQueue[T](CountableBase[Iterable[T], T], ICountableIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(IterableQueue[T]())
+
+        self.PushItems(values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]:
+        return self._GetCollection().TryGetIterator()
+class CountableIterableStack[T](CountableBase[Iterable[T], T], ICountableIterable[T]):
+    def __init__(self, *values: T):
+        super().__init__(IterableStack[T]())
+
+        self.PushItems(values)
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]:
+        return self._GetCollection().TryGetIterator()
