@@ -1,13 +1,13 @@
+import collections.abc
 import typing
 
-from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections import Extensions, IndexOf
 from WinCopies.Typing.Delegate import Predicate
 
 class Array[T](Extensions.Array[T]):
-    def __init__(self, items: tuple[T, ...]|Iterable[T]):
+    def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
         super().__init__()
 
         self.__tuple: tuple[T] = items if isinstance(items, tuple) else tuple(items)
@@ -24,13 +24,13 @@ class Array[T](Extensions.Array[T]):
         return self._GetTuple()[index]
 
 class List[T](Extensions.List[T]):
-    def __init__(self, items: typing.List[T]|None = None):
+    def __init__(self, items: list[T]|None = None):
         super().__init__()
 
-        self.__list: typing.List[T] = list[T]() if items is None else items
+        self.__list: list[T] = list[T]() if items is None else items
     
     @final
-    def _GetList(self) -> typing.List[T]:
+    def _GetList(self) -> list[T]:
         return self.__list
     
     @final
@@ -65,7 +65,7 @@ class List[T](Extensions.List[T]):
     
     @final
     def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
-        items: typing.List[T] = self._GetList()
+        items: list[T] = self._GetList()
 
         index: int|None = IndexOf(items, item, predicate)
 
