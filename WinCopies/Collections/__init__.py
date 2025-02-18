@@ -3,7 +3,7 @@ import collections.abc
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from enum import Enum
-from typing import Callable, List, Self
+from typing import final, Callable, List, Self
 
 from WinCopies import Not
 from WinCopies.Delegates import CompareEquality
@@ -291,6 +291,10 @@ class ICountable(ABC):
     @abstractmethod
     def GetCount(self) -> int:
         pass
+    
+    @final
+    def __len__(self) -> int:
+        return self.GetCount()
 
 class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
     def __init__(self):
