@@ -1,9 +1,12 @@
 import collections.abc
 import typing
 
+from collections.abc import Iterator
 from typing import final
 
-from WinCopies.Collections import Extensions, IndexOf
+from WinCopies.Collections import Extensions, ICountable, IndexOf
+from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
+from WinCopies.Typing import EnsureDirectModuleCall
 from WinCopies.Typing.Delegate import Predicate
 
 class Array[T](Extensions.Array[T]):
@@ -83,3 +86,54 @@ class List[T](Extensions.List[T]):
     @final
     def Clear(self) -> None:
         self._GetList().clear()
+
+class Countable(ICountable):
+    def __init__(self, collection: ICountable):
+        EnsureDirectModuleCall()
+
+        super().__init__()
+
+        self.__collection: ICountable = collection
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__collection.GetCount()
+    
+    @staticmethod
+    def Create(collection: ICountable) -> ICountable:
+        return collection if type(collection) == Countable else Countable(collection)
+
+class IterableBase[TIterable: IIterable[TItems], TItems](IIterable[TItems]):
+    def __init__(self, iterable: TIterable):
+        EnsureDirectModuleCall()
+
+        super().__init__()
+
+        self.__iterable: IIterable[TItems] = iterable
+    
+    @final
+    def _GetIterable(self) -> TIterable:
+        return self.__iterable
+    
+    @final
+    def TryGetIterator(self) -> Iterator[TItems]|None:
+        return self._GetIterable().TryGetIterator()
+class Iterable[T](IterableBase[IIterable[T], T]):
+    def __init__(self, iterable: IIterable[T]):
+        super().__init__(iterable)
+    
+    @staticmethod
+    def Create(iterable: collections.abc.Iterable[T]) -> collections.abc.Iterable[T]:
+        return iterable if type(iterable) == Iterable else Iterable(iterable)
+
+class CountableIterable[T](IterableBase[ICountableIterable[T], T], ICountable):
+    def __init__(self, collection: ICountableIterable[T]):
+        super().__init__(collection)
+    
+    @final
+    def GetCount(self) -> int:
+        return self._GetIterable().GetCount()
+
+    @staticmethod
+    def Create(collection: ICountableIterable[T]) -> ICountableIterable[T]:
+        return collection if type(collection) == CountableIterable else CountableIterable(collection)
