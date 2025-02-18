@@ -225,6 +225,13 @@ class CollectionBase[TList: IList[TItems], TItems](IList[TItems]):
     def _GetCollection(self) -> TList:
         return self.__list
 
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetCollection().IsEmpty()
+    @final
+    def HasItems(self) -> bool:
+        return self._GetCollection().HasItems()
+
 class Collection[T](CollectionBase[IList[T], T]):
     def __init__(self, l: IList[T]):
         super().__init__(l)
