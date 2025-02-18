@@ -10,13 +10,13 @@ from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
-from WinCopies.Typing import AssertDirectModuleCall
+from WinCopies.Typing import EnsureDirectModuleCall
 from WinCopies.Typing.Delegate import Method, Function, Converter
 
 @final
 class DoublyLinkedNode[T](NodeBase[Self, T]):
     def __init__(self, value: T, l: IList[T], previousNode: DoublyLinkedNode[T]|None, nextNode: DoublyLinkedNode[T]|None):
-        AssertDirectModuleCall()
+        EnsureDirectModuleCall()
 
         super().__init__(value, previousNode, nextNode)
 
@@ -26,7 +26,7 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
         return self.__list
     
     def _OnRemoved(self) -> None:
-        AssertDirectModuleCall()
+        EnsureDirectModuleCall()
 
         self.__list = None
     

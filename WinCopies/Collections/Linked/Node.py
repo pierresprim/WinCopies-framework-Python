@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import final, Self
 
-from WinCopies.Typing import AssertDirectPackageCall
+from WinCopies.Typing import EnsureDirectPackageCall
 
 class ILinkedNode[T](ABC):
     @abstractmethod
@@ -41,7 +41,7 @@ class LinkedNode[TNode: Self, TItems](LinkedNodeBase[TItems], ILinkedNode[TItems
         return self.__next
     @final
     def _SetNext(self, nextNode: TNode|None) -> None:
-        AssertDirectPackageCall()
+        EnsureDirectPackageCall()
 
         self.__next = nextNode
 
@@ -56,6 +56,6 @@ class NodeBase[TNode: Self, TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode
         return self.__previous
     @final
     def _SetPrevious(self, previous: TNode|None) -> None:
-        AssertDirectPackageCall()
+        EnsureDirectPackageCall()
         
         self.__previous = previous

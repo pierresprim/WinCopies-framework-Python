@@ -40,7 +40,7 @@ def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     
     else:
         return None
-def __AssertDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
+def __EnsureDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
     if not TryEnsureTrue(selector(index)):
         raise ValueError(index)
 
@@ -51,13 +51,13 @@ def __IsDirectPackageCall(index: int) -> bool|None:
 
 def IsDirectModuleCall() -> bool|None:
     return __IsDirectModuleCall(3)
-def AssertDirectModuleCall() -> None:
-    __AssertDirectCall(4, __IsDirectModuleCall)
+def EnsureDirectModuleCall() -> None:
+    __EnsureDirectCall(4, __IsDirectModuleCall)
 
 def IsDirectPackageCall() -> bool|None:
     return __IsDirectPackageCall(3)
-def AssertDirectPackageCall() -> None:
-    __AssertDirectCall(4, __IsDirectPackageCall)
+def EnsureDirectPackageCall() -> None:
+    __EnsureDirectCall(4, __IsDirectPackageCall)
 
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     for type in types:
