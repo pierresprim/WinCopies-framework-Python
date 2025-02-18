@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterator
 from typing import final, Callable, Self
 
-from WinCopies.Collections import Generator, ICountable, Collection
+from WinCopies.Collections import Abstraction, Generator, ICountable, Collection
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
@@ -318,7 +318,14 @@ class CountableStack[T](Countable[T]):
 
         self.PushItems(values)
 
-class CountableIterableQueue[T](CountableBase[Iterable[T], T], ICountableIterable[T]):
+class CountableIterableBase[TList: Iterable[TItems], TItems](CountableBase[TList, TItems], ICountableIterable[TItems]):
+    def __init__(self, l: TList):
+        super().__init__(l)
+class CountableIterable[T](CountableIterableBase[Iterable[T], T]):
+    def __init__(self, l: Iterable[T]):
+        super().__init__(l)
+
+class CountableIterableQueue[T](CountableIterable[T]):
     def __init__(self, *values: T):
         super().__init__(IterableQueue[T]())
 
@@ -327,7 +334,7 @@ class CountableIterableQueue[T](CountableBase[Iterable[T], T], ICountableIterabl
     @final
     def TryGetIterator(self) -> Iterator[T]:
         return self._GetCollection().TryGetIterator()
-class CountableIterableStack[T](CountableBase[Iterable[T], T], ICountableIterable[T]):
+class CountableIterableStack[T](CountableIterable[T]):
     def __init__(self, *values: T):
         super().__init__(IterableStack[T]())
 
