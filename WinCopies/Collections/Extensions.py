@@ -23,15 +23,15 @@ class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IItera
             return True
         
         def _MoveNextOverride(self) -> bool:
-            if self.__i < self._GetList().GetCount():
-                self.__i += 1
-
-                return True
+            self.__i += 1
             
-            return False
+            return self.__i < self._GetList().GetCount()
         
         def GetCurrent(self) -> TItems:
             return self._GetList().GetAt(self.__i)
+        
+        def _OnStopped(self) -> None:
+            pass
         
         def _ResetOverride(self) -> bool:
             self.__i = -1
