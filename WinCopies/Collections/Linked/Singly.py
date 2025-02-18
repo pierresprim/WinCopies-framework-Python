@@ -2,11 +2,12 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Callable, Self
 
-from WinCopies.Collections import Generator, Collection, Enumeration
+from WinCopies.Collections import Generator, Collection
+from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
-    
+
 class SinglyLinkedNode[T](LinkedNode[Self, T]):
     def __init__(self, value: T, nextNode: Self|None):
         super().__init__(value, nextNode)
@@ -51,7 +52,7 @@ class IList[T](Collection):
             
             result = self.TryPop()
 
-class IIterable[T](IList[T], Enumeration.IIterable[T]):
+class Iterable[T](IList[T], IIterable[T]):
     def __init__(self):
         super().__init__()
     
@@ -207,9 +208,9 @@ class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[SinglyLinkedN
     def __init__(self, node: SinglyLinkedNode[T]):
         super().__init__(node)
 
-class IterableQueue[T](Queue[T], IIterable[T]):
+class IterableQueue[T](Queue[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
-class IterableStack[T](Stack[T], IIterable[T]):
+class IterableStack[T](Stack[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
