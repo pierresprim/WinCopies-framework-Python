@@ -1,9 +1,12 @@
-from typing import final
-from abc import ABC, abstractmethod
+from __future__ import annotations
 
+from abc import abstractmethod
+from typing import final, Self
+
+from WinCopies.Typing import IEqualityComparer
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
-class IKeyValuePair[TKey, TValue](ABC):
+class IKeyValuePair[TKey, TValue](IEqualityComparer[Self]):
     @abstractmethod
     def IsKeyValuePair(self) -> bool:
         pass
@@ -16,14 +19,33 @@ class IKeyValuePair[TKey, TValue](ABC):
     def GetValue(self) -> TValue:
         pass
 
-class KeyValuePair[TKey, TValue](IKeyValuePair[TKey, TValue]):
-    def __init__(self, key: TKey, value: TValue):
-        self.__key = key
-        self.__value = value
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+        return isinstance(item, IKeyValuePair)
+    
+    @final
+    def Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+        return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue()
+    
+    @final
+    def __eq__(self, value) -> bool:
+        return self.Equals(value)
+
+class KeyValuePairBase[TKey, TValue](IKeyValuePair[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
     
     @final
     def IsKeyValuePair(self) -> bool:
         return True
+    
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+        return isinstance(item, KeyValuePairBase)
+class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
+    def __init__(self, key: TKey, value: TValue):
+        super().__init__()
+
+        self.__key = key
+        self.__value = value
     
     @final
     def GetKey(self) -> TKey:
@@ -32,6 +54,10 @@ class KeyValuePair[TKey, TValue](IKeyValuePair[TKey, TValue]):
     @final
     def GetValue(self) -> TValue:
         return self.__value
+    
+    @final
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+        return isinstance(item, KeyValuePair)
 
 class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     def __init__(self, value: TValue, info: TInfo):
@@ -49,6 +75,10 @@ class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     @final
     def GetValue(self) -> TInfo:
         return self.__info
+    
+    @final
+    def _Equals(self, item: DualResult[TValue, TInfo]) -> bool:
+        return isinstance(item, KeyValuePair)
 
 class DualNullableValueInfo[TValue, TInfo](DualResult[TValue|None, TInfo]):
     def __init__(self, value: TValue|None, info: TInfo):
