@@ -390,21 +390,21 @@ class EnumerationSelector[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         super().__init__(enumerator)
 
         self.__selector: Converter[TIn, TOut] = selector
-        self.__getCurrent: Function[TOut|None] = Delegates.FuncNone
+        self.__current: TOut|None = None
     
-    def _OnStarting(self):
-        if super()._OnStarting():
-            self.__getCurrent = lambda: self.__selector(self._GetEnumerator().GetCurrent())
+    def _MoveNext(self) -> bool:
+        if super()._MoveNext():
+            self.__current = self.__selector(self._GetEnumerator().GetCurrent())
 
             return True
         
         return False
     
     def _OnEnded(self) -> None:
-        self.__getCurrent = Delegates.FuncNone
+        self.__current = None
         
         super()._OnEnded()
     
     @final
     def GetCurrent(self) -> TOut|None:
-        return self.__getCurrent()
+        return self.__current
