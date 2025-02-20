@@ -246,7 +246,7 @@ class Iterator[T](Enumerator[T]):
         return False
 
 def AsEnumerator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
-    return None if iterator is None else Iterator[T](iterator)
+    return None if iterator is None else (iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator))
 
 class Iterable[T](IIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
