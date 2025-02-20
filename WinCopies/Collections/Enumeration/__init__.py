@@ -245,7 +245,7 @@ class Iterator[T](Enumerator[T]):
     def _ResetOverride(self) -> bool:
         return False
 
-def FromIterator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
+def AsEnumerator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
     return None if iterator is None else Iterator[T](iterator)
 
 class Iterable[T](IIterable[T]):
@@ -258,7 +258,7 @@ class Iterable[T](IIterable[T]):
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return FromIterator(self.__iterable.__iter__())
+        return AsEnumerator(self.__iterable.__iter__())
 
 class IteratorProvider[T](IIterable[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):

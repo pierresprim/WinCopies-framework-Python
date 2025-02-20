@@ -8,7 +8,7 @@ from WinCopies.IO.DirEntry import DirEntry
 def TryGetEnumerator(dirEntry: IDirEntry) -> IEnumerator[IDirEntry]|None:
     iterator: Iterator[IDirEntry]|None = dirEntry.TryGetIterator()
 
-    return None if iterator is None else RecursiveEnumerator[IDirEntry](Enumeration.FromIterator(iterator))
+    return None if iterator is None else RecursiveEnumerator[IDirEntry](Enumeration.AsEnumerator(iterator))
 def GetEnumerator(dirEntry: IDirEntry) -> IEnumerator[IDirEntry]:
     enumerator: IEnumerator[IDirEntry]|None = TryGetEnumerator(dirEntry)
     
