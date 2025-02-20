@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import typing
 from typing import final, Self
 
 from WinCopies import Collections
 from WinCopies.Collections import IArray
-from WinCopies.Collections.Enumeration import IIterable, EnumeratorBase
+from WinCopies.Collections.Enumeration import IIterable, IEnumerator, EnumeratorBase
 
 class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IIterable[TItems]):
     @final
@@ -42,7 +41,7 @@ class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IItera
         super().__init__()
     
     @final
-    def TryGetIterator(self) -> Enumerator[TItems]:
+    def TryGetIterator(self) -> IEnumerator[TItems]:
         return ArrayBase.Enumerator(self)
 
 class Array[T](ArrayBase[T, Self]):
