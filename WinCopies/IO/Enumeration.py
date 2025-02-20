@@ -1,7 +1,8 @@
 from collections.abc import Iterator
 
 from WinCopies.Collections import Generator, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator, RecursiveEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator
+from WinCopies.Collections.Enumeration.Extensions import RecursiveEnumerator
 from WinCopies.IO import IDirEntry
 from WinCopies.IO.DirEntry import DirEntry
 
