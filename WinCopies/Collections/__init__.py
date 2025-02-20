@@ -271,6 +271,9 @@ class IReadOnlyKeyable[TKey, TValue](ABC):
     @abstractmethod
     def GetAt(self, key: TKey) -> TValue:
         pass
+        
+    def __getitem__(self, key: TKey) -> TValue:
+        return self.GetAt(key)
 class IWriteOnlyKeyable[TKey, TValue](ABC):
     def __init__(self):
         super().__init__()
@@ -278,6 +281,9 @@ class IWriteOnlyKeyable[TKey, TValue](ABC):
     @abstractmethod
     def SetAt(self, key: TKey, value: TValue) -> None:
         pass
+    
+    def __setitem__(self, key: TKey, value: TValue) -> None:
+        self.SetAt(key, value)
 
 class IReadOnlyIndexable[T](IReadOnlyKeyable[int, T]):
     def __init__(self):
@@ -334,16 +340,10 @@ class Array[T](Collection, IArray[T]):
     
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
-        
-    def __getitem__(self, index: int) -> T:
-        return self.GetAt(index)
 
 class List[T](Array[T], IList[T]):
     def __init__(self):
         super().__init__()
-    
-    def __setitem__(self, index: int, value: T) -> None:
-        self.SetAt(index, value)
 
 class FinderPredicate[T]:
     def __init__(self):
