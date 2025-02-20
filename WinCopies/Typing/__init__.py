@@ -27,6 +27,14 @@ class Struct[T](IStruct[T]):
     def SetValue(self, value: T) -> None:
         self.__value = value
 
+class IEqualityComparer[T](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Equals(self, item: T) -> bool:
+        pass
+
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
 
