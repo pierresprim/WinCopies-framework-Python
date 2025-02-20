@@ -305,11 +305,11 @@ class ICountable(ABC):
     def __len__(self) -> int:
         return self.GetCount()
 
-class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
+class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
     def __init__(self):
         super().__init__()
 
-class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
+class IList[T](IArray[T], ICollection[T], IIndexable[T], IClearable):
     def __init__(self):
         super().__init__()
 
