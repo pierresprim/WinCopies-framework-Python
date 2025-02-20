@@ -7,7 +7,7 @@ Created on Sun Feb 6 20:37:51 2022
 
 import collections.abc
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import final
 
 from WinCopies import Delegates
@@ -17,7 +17,7 @@ from WinCopies.Typing.Delegate import Converter, Function
 type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
 
-class IEnumerator[T](ABC, collections.abc.Iterator[T]):
+class IEnumerator[T](collections.abc.Iterator[T]):
     def __init__(self):
         super().__init__()
     
@@ -143,18 +143,14 @@ class EnumeratorBase[T](IEnumerator[T]):
     def IsStarted(self):
         return self.__isStarted
     
-    #@protected
     @abstractmethod
     def _MoveNextOverride(self) -> bool:
         pass
-    #@protected
     @abstractmethod
     def _ResetOverride(self) -> bool:
         pass
-    #@protected
     def _OnStarting(self) -> bool:
         return True
-    #@protected
     def _OnCompleted(self) -> None:
         pass
     @abstractmethod
@@ -242,6 +238,12 @@ class Iterator[T](Enumerator[T]):
             self._SetCurrent(None)
 
             return False
+    
+    def _OnStopped(self) -> None:
+        pass
+
+    def _ResetOverride(self) -> bool:
+        return False
 
 def FromIterator[T](iterator: SystemIterator[T]|None) -> Iterator[T]|None:
     return None if iterator is None else Iterator[T](iterator)
@@ -303,11 +305,14 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnume
     def _GetEnumerator(self) -> TEnumerator:
         return self.__enumerator
     
+    def _MoveNext(self) -> bool:
+        return self.__enumerator.MoveNext()
+    
     @final
     def __MoveNext(self) -> bool:
         if self._OnStarting():
             def moveNext() -> bool:
-                if self.__enumerator.MoveNext():
+                if self._MoveNext():
                     return True
                 
                 self.__moveNextFunc = Delegates.BoolFalse
