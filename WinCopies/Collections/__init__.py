@@ -9,7 +9,7 @@ from WinCopies import Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
-from WinCopies.Typing.Pairing import DualNullableValueInfo, DualNullableValueBool
+from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualNullableValueBool
 
 type Generator[T] = collections.abc.Generator[T, None, None]
 
@@ -264,23 +264,32 @@ class IClearable(ABC):
     def Clear(self) -> None:
         pass
 
-class IReadOnlyIndexable[T](ABC):
+class IReadOnlyKeyable[TKey, TValue](ABC):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def GetAt(self, index: int) -> T:
+    def GetAt(self, key: TKey) -> TValue:
         pass
-
-class IWriteOnlyIndexable[T](ABC):
+class IWriteOnlyKeyable[TKey, TValue](ABC):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def SetAt(self, index: int, value: T) -> None:
+    def SetAt(self, key: TKey, value: TValue) -> None:
         pass
 
-class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T]):
+class IReadOnlyIndexable[T](IReadOnlyKeyable[int, T]):
+    def __init__(self):
+        super().__init__()
+class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
+    def __init__(self):
+        super().__init__()
+
+class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IKeyable[int, T]):
     def __init__(self):
         super().__init__()
 
@@ -303,6 +312,21 @@ class IList[T](ICollection[T], IIndexable[T], ICountable, IClearable):
 class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
     def __init__(self):
         super().__init__()
+
+class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Add(self, key: TKey, value: TValue) -> None:
+        pass
+    @abstractmethod
+    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
+        pass
+
+    @abstractmethod
+    def Remove(self, key: TKey) -> None:
+        pass
 
 class Array[T](Collection, IArray[T]):
     def __init__(self):
