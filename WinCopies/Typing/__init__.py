@@ -27,7 +27,7 @@ class Struct[T](IStruct[T]):
     def SetValue(self, value: T) -> None:
         self.__value = value
 
-class IEqualityComparer[T](ABC):
+class IEquatable[T](ABC):
     def __init__(self):
         super().__init__()
     

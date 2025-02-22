@@ -3,10 +3,10 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
-from WinCopies.Typing import IEqualityComparer
+from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
-class IKeyValuePair[TKey, TValue](IEqualityComparer[Self]):
+class IKeyValuePair[TKey, TValue](IEquatable[Self]):
     @abstractmethod
     def IsKeyValuePair(self) -> bool:
         pass
