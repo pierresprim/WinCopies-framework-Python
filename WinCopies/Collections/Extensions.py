@@ -5,6 +5,7 @@ from typing import final, Self
 from WinCopies import Collections
 from WinCopies.Collections import IArray
 from WinCopies.Collections.Enumeration import IIterable, IEnumerator, EnumeratorBase
+from WinCopies.Typing.Pairing import IKeyValuePair
 
 class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IIterable[TItems]):
     @final
@@ -49,5 +50,9 @@ class Array[T](ArrayBase[T, Self]):
         super().__init__()
 
 class List[T](Collections.List[T], ArrayBase[T, Self]):
+    def __init__(self):
+        super().__init__()
+
+class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]]):
     def __init__(self):
         super().__init__()
