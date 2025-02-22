@@ -271,7 +271,8 @@ class IReadOnlyKeyable[TKey, TValue](ABC):
     @abstractmethod
     def GetAt(self, key: TKey) -> TValue:
         pass
-        
+
+    @final
     def __getitem__(self, key: TKey) -> TValue:
         return self.GetAt(key)
 class IWriteOnlyKeyable[TKey, TValue](ABC):
@@ -281,7 +282,8 @@ class IWriteOnlyKeyable[TKey, TValue](ABC):
     @abstractmethod
     def SetAt(self, key: TKey, value: TValue) -> None:
         pass
-    
+
+    @final
     def __setitem__(self, key: TKey, value: TValue) -> None:
         self.SetAt(key, value)
 
