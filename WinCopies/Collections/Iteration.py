@@ -21,6 +21,16 @@ def PrependValues[T](items: Iterable[T], *values: T) -> Generator[T]:
 def Select[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
         yield converter(item)
+def WhereSelect[TIn, TOut](items: Iterable[TIn], predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TIn]:
+    for item in items:
+        if predicate(item):
+            yield converter(item)
+def SelectWhere[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut], predicate: Predicate[TOut]) -> Generator[TOut]:
+    result: TOut|None = None
+
+    for item in items:
+        if predicate(result := converter(item)):
+            yield result
 
 def Include[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
     for item in items:
