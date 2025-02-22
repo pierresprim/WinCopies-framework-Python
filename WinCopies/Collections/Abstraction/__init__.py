@@ -87,7 +87,7 @@ class List[T](Extensions.List[T]):
     def Clear(self) -> None:
         self._GetList().clear()
 
-class Dictionary[TKey, TValue](IDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]]):
+class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
