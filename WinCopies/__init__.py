@@ -5,8 +5,9 @@ Created on Fri May 26 14:21:00 2023
 @author: Pierre Sprimont
 """
 
-from typing import Callable
+from abc import abstractmethod, ABC
 from enum import Enum
+from typing import final, Callable
 
 from WinCopies.Typing.Delegate import Action, Predicate
 
@@ -25,6 +26,18 @@ class BitDepthLevel(Enum):
     Two = 16
     Three = 32
     Four = 64
+
+class IStringable(ABC):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def ToString(self) -> str:
+        pass
+
+    @final
+    def __str__(self) -> str:
+        return self.ToString()
 
 def Not(value: bool|None) -> bool|None:
     return None if value is None else not value
