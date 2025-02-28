@@ -6,7 +6,7 @@ from WinCopies.Collections.Abstraction.Linked import IterableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEventCookie[TSender, TArgs](ABC):
+class IEventCookie(ABC):
     def __init__(self):
         super().__init__()
     
