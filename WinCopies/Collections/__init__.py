@@ -113,7 +113,7 @@ def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, pre
     return getNullValue()
 
 def IndexOf[T](l: list[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
-    return GetIndexOf(l, value, predicate).GetKey()
+    return GetIndexOf(l, value, predicate = predicate).GetKey()
 
 def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
     length: int = len(list)
@@ -128,7 +128,7 @@ def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|
     if valuesLength == 1:
         result: DualNullableValueInfo[int, int] = GetIndexOf(l, values[0])
         
-        return (result.GetValue(), result.GetInfo(), valuesLength)
+        return (result.GetKey(), result.GetValue(), valuesLength)
     
     j: int = 0
 
@@ -152,12 +152,12 @@ def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
 def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
     result: DualNullableValueInfo[int, int] = GetIndexOf(l, value, i, length)
 
-    if (i := result.GetKey()) is None:
+    if (result.GetKey()) is None:
         return (None, None, result.GetValue())
     
-    result = GetIndexOf(l, value, i + 1)
+    result = GetIndexOf(l, value, result.GetKey() + 1, length - 1 - (result.GetKey() - i))
     
-    return (result.GetValue() is int, result.GetKey(), result.GetValue())
+    return (result.GetKey() is int, result.GetKey(), result.GetValue())
 
 def ContainsMultiple[T](l: list[T], value: T) -> bool|None:
     return ContainsMultipleTimes(l, value)[0]
