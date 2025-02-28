@@ -28,6 +28,11 @@ def Surround(string: str|None, value: str|None) -> str:
 def TrySurround(string: str|None, value: str|None) -> str|None:
     return TrySurroundWith(value, string, value)
 
+def SurroundWithSpace(prefix: str|None, suffix: str|None) -> str:
+    return Surround(prefix, ' ', suffix)
+def TrySurroundWithSpace(prefix: str|None, suffix: str|None) -> str|None:
+    return TrySurround(prefix, ' ', suffix)
+
 def QuoteSurround(string: str|None) -> str:
     return Surround(string, "'")
 def TryQuoteSurround(string: str|None) -> str|None:
