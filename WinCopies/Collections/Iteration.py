@@ -43,3 +43,26 @@ def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
     for iterable in collection:
         for item in iterable:
             yield item
+
+def ValidateOnlyOne[T](items: Iterable[T], predicate: Predicate[T]) -> bool:
+    validator: Predicate[T]|None = None
+
+    def validate(value: T) -> bool:
+        nonlocal validator
+
+        if predicate(value):
+            validator = predicate # Stop iteration if a second item validated the given predicate.
+        
+        return False # Do not stop iteration.
+
+    validator = validate
+
+    for item in items:
+        if validator(item):
+            # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
+            return False
+    
+    return True # Validation succeeded.
+def EnsureOnlyOne[T](items: Iterable[T], predicate: Predicate[T], errorMessage: str|None = None) -> bool:
+    if not ValidateOnlyOne(items, predicate):
+        raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
