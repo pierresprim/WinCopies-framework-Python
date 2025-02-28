@@ -289,13 +289,16 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
     
     @final
     def TryPeek(self) -> DualNullableValueBool[TItems]:
-        self._GetCollection().TryPeek()
+        return self._GetCollection().TryPeek()
     
     @final
     def TryPop(self) -> DualNullableValueBool[TItems]:
-        self._GetCollection().TryPop()
+        result: DualNullableValueBool[TItems] = self._GetCollection().TryPop()
 
-        self.__count -= 1
+        if result.GetValue():
+            self.__count -= 1
+        
+        return result
     
     @final
     def Clear(self) -> None:
