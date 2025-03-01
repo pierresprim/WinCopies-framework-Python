@@ -267,6 +267,18 @@ class ICollection[T](IReadOnlyCollection):
     def RemoveAt(self, index: int) -> None:
         pass
 
+class ICountable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetCount(self) -> int:
+        pass
+    
+    @final
+    def __len__(self) -> int:
+        return self.GetCount()
+
 class IClearable(ABC):
     def __init__(self):
         super().__init__()
@@ -311,18 +323,6 @@ class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[T
 class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IKeyable[int, T]):
     def __init__(self):
         super().__init__()
-
-class ICountable(ABC):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def GetCount(self) -> int:
-        pass
-    
-    @final
-    def __len__(self) -> int:
-        return self.GetCount()
 
 class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
     def __init__(self):
