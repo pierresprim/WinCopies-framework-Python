@@ -1,7 +1,8 @@
 from typing import Callable
 from collections.abc import Iterable
 
-from WinCopies.Collections import Loop
+from WinCopies.Collections import Iteration, Loop
+from WinCopies.Typing.Delegate import Selector
 
 def NullifyIfEmpty(value: str) -> str|None:
     return None if value == '' else value
@@ -62,43 +63,19 @@ def ColonJoin(values: Iterable[str]) -> str:
     return ':'.join(values)
 def ColonJoinValues(*values: str) -> str:
     return ColonJoin(values)
-def Join(values: Iterable[str]) -> str:
-    result: str = ''
 
-    for value in values:
-        result += value
-    
-    return result
+def Join(values: Iterable[str]) -> str:
+    return ''.join(values)
 def JoinValues(*values: str) -> str:
     return Join(values)
 
-def BuildFrom(values: Iterable[str], selector: Callable[[str], str]) -> str:
-    result: str = ''
-
-    for value in values:
-        result += selector(value)
-    
-    return result
-def BuildFromValues(*values: str, selector: Callable[[str], str]) -> str:
+def BuildFrom(values: Iterable[str], selector: Selector[str]) -> str:
+    return Join(Iteration.Select(values, selector))
+def BuildFromValues(*values: str, selector: Selector[str]) -> str:
     return BuildFrom(values, selector)
 
-def ConcatenateFrom(values: Iterable[str], separator: str, selector: Callable[[str], str]) -> str:
-    result: str = ''
-    
-    def firstAction(value: str):
-        nonlocal result
-
-        result += value
-
-    def action(value: str):
-        nonlocal result
-        nonlocal separator
-
-        result += separator + selector(value)
-
-    Loop.DoForEachAndFirst(values, firstAction, action)
-    
-    return result
+def ConcatenateFrom(values: Iterable[str], separator: str, selector: Selector[str]) -> str:
+    return separator.join(Iteration.Select(values, selector))
 def ConcatenateFromValues(separator: str, selector: Callable[[str], str], *values: str) -> str:
     return ConcatenateFrom(values, separator, selector)
 
