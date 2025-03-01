@@ -27,6 +27,14 @@ class BitDepthLevel(Enum):
     Three = 32
     Four = 64
 
+class IDisposable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Dispose(self) -> None:
+        pass
+
 class IStringable(ABC):
     def __init__(self):
         super().__init__()
