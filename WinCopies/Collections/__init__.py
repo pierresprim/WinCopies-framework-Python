@@ -80,7 +80,7 @@ def TryGetAtStr(l: List[str], index: int) -> str:
     return TryGetAt(l, index, '')
 
 def TryGetIndex[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
-    return ifTrue(index) if Between(0, index, len(l)) else ifFalse()
+    return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
 def TryGetItem[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
     return TryGetIndex(l, index, lambda i: ifTrue(l[i]), ifFalse)
 
