@@ -295,7 +295,15 @@ class IClearable(ABC):
     def Clear(self) -> None:
         pass
 
-class IReadOnlyKeyable[TKey, TValue](ABC):
+class IKeyableBase[TKey](ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def ContainsKey(self, key: TKey) -> bool:
+        pass
+
+class IReadOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
@@ -306,7 +314,7 @@ class IReadOnlyKeyable[TKey, TValue](ABC):
     @final
     def __getitem__(self, key: TKey) -> TValue:
         return self.GetAt(key)
-class IWriteOnlyKeyable[TKey, TValue](ABC):
+class IWriteOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
@@ -328,15 +336,44 @@ class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
 class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
     def __init__(self):
         super().__init__()
+
+class ICountableIndexableBase(ICountable, IKeyableBase[int]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def ContainsKey(self, index: int) -> bool:
+        return self.ValidateIndex(index)
+
+class IReadOnlyCountableIndexable[T](ICountableIndexableBase, IReadOnlyIndexable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def TryGetAt[TDefault](self, index: int, defaultValue: TDefault) -> T|TDefault:
+        return self.GetAt(index) if self.ValidateIndex(index) else defaultValue
+class IWriteOnlyCountableIndexable[T](ICountableIndexableBase, IWriteOnlyIndexable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def TrySetAt(self, index: int, value: T) -> bool:
+        if Collections.ValidateIndex(index, self.GetCount()):
+            self.SetAt(index, value)
+
+            return True
+        
+        return False
+
 class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IKeyable[int, T]):
     def __init__(self):
         super().__init__()
 
-class IArray[T](IReadOnlyCollection, IReadOnlyIndexable[T], ICountable):
+class IArray[T](IReadOnlyCollection, IReadOnlyCountableIndexable[T]):
     def __init__(self):
         super().__init__()
 
-class IList[T](IArray[T], ICollection[T], IIndexable[T], IClearable):
+class IList[T](IArray[T], ICollection[T], IIndexable[T], IWriteOnlyCountableIndexable[T], IClearable):
     def __init__(self):
         super().__init__()
 
