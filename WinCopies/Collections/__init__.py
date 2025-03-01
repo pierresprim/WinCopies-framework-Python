@@ -78,7 +78,7 @@ def TrySetAt[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Func
     return ifTrue(index) if Between(0, index, len(l)) else ifFalse()
 
 def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
-    return l[index] if Between(0, index, len(l)) else default
+    return l[index] if ValidateIndex(index, len(l)) else default
 def TryGetAtFunc[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
     return TrySetAt(l, index, lambda i: ifTrue(l[i]), ifFalse)
 def TryGetAtStr(l: List[str], index: int) -> str:
