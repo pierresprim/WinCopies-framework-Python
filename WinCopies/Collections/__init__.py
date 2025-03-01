@@ -79,6 +79,14 @@ def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
 def TryGetAtStr(l: List[str], index: int) -> str:
     return TryGetAt(l, index, '')
 
+def TrySetAt[T](l: list[T], index: int, value: T) -> bool:
+    if ValidateIndex(index, len(l)):
+        l[index] = value
+
+        return True
+    
+    return False
+
 def TryGetIndex[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
 def TryGetItem[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
