@@ -388,10 +388,28 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
         super().__init__()
     
     @abstractmethod
+    def GetKeys(self) -> collections.abc.Iterator[TKey]:
+        pass
+    @abstractmethod
+    def GetValues(self) -> collections.abc.Iterator[TValue]:
+        pass
+
+    @abstractmethod
+    def TryGetValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+        pass
+    
+    @abstractmethod
     def Add(self, key: TKey, value: TValue) -> None:
         pass
     @abstractmethod
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
+        pass
+    
+    @abstractmethod
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
+        pass
+    @abstractmethod
+    def TryRemoveValue(self, key: TKey) -> DualNullableValueBool[TValue]:
         pass
 
     @abstractmethod
