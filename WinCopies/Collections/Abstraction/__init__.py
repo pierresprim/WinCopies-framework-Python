@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import collections.abc
 
 from collections.abc import Iterator
-from typing import final
+from typing import final, Callable, Self
 
-from WinCopies.Collections import Enumeration, Extensions, ICountable, IDictionary, IndexOf
+from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IDictionary, IndexOf
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable, IEnumerator, EnumeratorBase
 from WinCopies.Typing import EnsureDirectModuleCall
-from WinCopies.Typing.Delegate import Predicate
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
+from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
+from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualNullableValueBool
 
 class Array[T](Extensions.Array[T]):
     def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
@@ -87,7 +90,7 @@ class List[T](Extensions.List[T]):
     def Clear(self) -> None:
         self._GetList().clear()
 
-class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
+class Dictionary[TKey, TValue](IDictionary[TKey, TValue]):
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
@@ -153,6 +156,13 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         def _ResetOverride(self) -> bool:
             return True
     
+    @final
+    class __None(Singleton[Self]):
+        def __init__(self):
+            super().__init__()
+
+    __getInstance: Function[Dictionary.__None] = GetSingletonInstanceProvider(__None)
+    
     def __init__(self, dictionary: dict[TKey, TValue]|None = None):
         super().__init__()
 
@@ -167,11 +177,46 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         return len(self._GetDictionary())
     
     @final
+    def ContainsKey(self, key: TKey) -> bool:
+        return key in self._GetDictionary()
+    
+    @final
+    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> DualNullableValueBool[TValue]:
+        def getResult(value: TValue|None, info: bool) -> DualNullableValueBool[TValue]:
+            return DualNullableValueBool[TValue](value, info)
+        
+        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance())
+
+        return getResult(None, False) if isinstance(result, Dictionary.__None) else getResult(result, True)
+    
+    @final
+    def TryGetValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+        return self.__TryGetValue(lambda dic, default: dic.get(key, default))
+    
+    @final
     def GetAt(self, key: TKey) -> TValue:
         return self._GetDictionary()[key]
     @final
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
+        return self._GetDictionary().get[TDefault](key, defaultValue)
+    
+    @final
     def SetAt(self, key: TKey, value: TValue) -> None:
         self._GetDictionary()[key] = value
+    @final
+    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+        self.SetAt(key, value)
+
+        return True
+    
+    @final
+    def GetKeys(self) -> Generator[TKey]:
+        for key in self._GetDictionary().keys():
+            yield key
+    @final
+    def GetValues(self) -> Generator[TValue]:
+        for value in self._GetDictionary().values():
+            yield value
     
     @final
     def Add(self, key: TKey, value: TValue) -> None:
@@ -185,12 +230,22 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         self._GetDictionary().pop(key)
     
     @final
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
+        return self._GetDictionary().pop(key, defaultValue)
+    @final
+    def TryRemoveValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+        return self.__TryGetValue(lambda dic, default: dic.pop(key, default))
+    
+    @final
     def Clear(self) -> None:
         return self._GetDictionary().clear()
     
     @final
     def TryGetIterator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
         return Dictionary.Enumerator(self._GetDictionary())
+    
+    def __str__(self) -> str:
+        return str(self._GetDictionary())
 
 class Countable(ICountable):
     def __init__(self, collection: ICountable):
