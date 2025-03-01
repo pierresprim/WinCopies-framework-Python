@@ -5,7 +5,7 @@ from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import final, Callable, List, Self
 
-from WinCopies import Not
+from WinCopies import Collections, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
@@ -274,6 +274,14 @@ class ICountable(ABC):
     @abstractmethod
     def GetCount(self) -> int:
         pass
+
+    @final
+    def GetLastIndex(self) -> int:
+        return self.GetCount() - 1
+    
+    @final
+    def ValidateIndex(self, index: int) -> bool:
+        return Collections.ValidateIndex(index, self.GetCount())
     
     @final
     def __len__(self) -> int:
