@@ -74,15 +74,15 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 def GetLastIndex(l: Sequence) -> int:
     return len(l) - 1
 
-def TrySetAt[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
-    return ifTrue(index) if Between(0, index, len(l)) else ifFalse()
-
 def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
     return l[index] if ValidateIndex(index, len(l)) else default
-def TryGetAtFunc[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
-    return TrySetAt(l, index, lambda i: ifTrue(l[i]), ifFalse)
 def TryGetAtStr(l: List[str], index: int) -> str:
     return TryGetAt(l, index, '')
+
+def TryGetIndex[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
+    return ifTrue(index) if Between(0, index, len(l)) else ifFalse()
+def TryGetItem[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
+    return TryGetIndex(l, index, lambda i: ifTrue(l[i]), ifFalse)
 
 def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
