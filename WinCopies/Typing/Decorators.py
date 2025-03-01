@@ -28,6 +28,9 @@ class MetaMultiInitializationSingleton[T](MetaSingleton[T]):
         cls._GetInstance().__init__(*args, **kwargs)
 
 class Singleton[T: Self](metaclass=MetaSingleton[T]):
+    def __init__(self):
+        pass
+    
     @classmethod
     def _GetInstance(cls) -> T|None:
         return cls.__class__._GetInstance(cls)
