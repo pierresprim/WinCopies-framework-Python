@@ -25,6 +25,9 @@ class IterableScanResult(Enum):
     def Not(self) -> Self:
         return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
 
+def ValidateIndex(index: int, length: int) -> bool:
+    return Between(0, index, length, True, False)
+
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
     paramName: str
 
@@ -33,7 +36,7 @@ def GetOffset(inStart: int, outStart: int, length: int) -> int:
 
         paramName = _paramName
 
-        return Between(0, value, length, True, False)
+        return ValidateIndex(value, length)
     
     if check(inStart, "inStart") and check(outStart, "outStart"):
         inStart = outStart - inStart
