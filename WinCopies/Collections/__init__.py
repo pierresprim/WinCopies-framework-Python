@@ -310,6 +310,9 @@ class IReadOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
     @abstractmethod
     def GetAt(self, key: TKey) -> TValue:
         pass
+    @abstractmethod
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
+        pass
 
     @final
     def __getitem__(self, key: TKey) -> TValue:
@@ -320,6 +323,9 @@ class IWriteOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
     
     @abstractmethod
     def SetAt(self, key: TKey, value: TValue) -> None:
+        pass
+    @abstractmethod
+    def TrySetAt(self, key: TKey, value: TValue) -> bool:
         pass
 
     @final
