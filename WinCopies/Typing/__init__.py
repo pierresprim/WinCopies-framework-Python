@@ -38,6 +38,17 @@ class IEquatable[T](ABC):
     @final
     def __eq__(self, value) -> bool:
         return self.Equals(value)
+class IEquatableObject[T](IEquatable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Hash(self) -> int:
+        pass
+
+    @final
+    def __hash__(self) -> int:
+        return self.Hash()
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
