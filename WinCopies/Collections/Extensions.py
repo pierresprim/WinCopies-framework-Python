@@ -3,11 +3,17 @@ from __future__ import annotations
 from typing import final, Self
 
 from WinCopies import Collections
-from WinCopies.Collections import IArray
 from WinCopies.Collections.Enumeration import IIterable, IEnumerator, EnumeratorBase
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IIterable[TItems]):
+class IArray[T](Collections.IArray[T], IIterable[T]):
+    def __init__(self):
+        super().__init__()
+class IList[T](Collections.IList[T], IArray[T]):
+    def __init__(self):
+        super().__init__()
+
+class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IArray[TItems]):
     @final
     class Enumerator(EnumeratorBase[TItems]):
         def __init__(self, items: TList):
@@ -49,7 +55,7 @@ class Array[T](ArrayBase[T, Self]):
     def __init__(self):
         super().__init__()
 
-class List[T](Collections.List[T], ArrayBase[T, Self]):
+class List[T](Collections.List[T], ArrayBase[T, Self], IList[T]):
     def __init__(self):
         super().__init__()
 
