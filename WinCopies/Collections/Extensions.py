@@ -12,6 +12,9 @@ class IArray[T](Collections.IArray[T], IIterable[T]):
 class IList[T](Collections.IList[T], IArray[T]):
     def __init__(self):
         super().__init__()
+class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]]):
+    def __init__(self):
+        super().__init__()
 
 class ArrayBase[TItems, TList: IArray[TItems]](Collections.Array[TItems], IArray[TItems]):
     @final
@@ -56,9 +59,5 @@ class Array[T](ArrayBase[T, Self]):
         super().__init__()
 
 class List[T](Collections.List[T], ArrayBase[T, Self], IList[T]):
-    def __init__(self):
-        super().__init__()
-
-class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]]):
     def __init__(self):
         super().__init__()
