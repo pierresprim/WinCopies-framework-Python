@@ -19,16 +19,12 @@ class IKeyValuePair[TKey, TValue](IEquatable[Self]):
     def GetValue(self) -> TValue:
         pass
 
-    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return isinstance(item, IKeyValuePair)
     
     @final
-    def Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+    def Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue()
-    
-    @final
-    def __eq__(self, value) -> bool:
-        return self.Equals(value)
 
 class KeyValuePairBase[TKey, TValue](IKeyValuePair[TKey, TValue]):
     def __init__(self):

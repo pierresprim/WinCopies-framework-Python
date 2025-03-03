@@ -32,8 +32,12 @@ class IEquatable[T](ABC):
         super().__init__()
     
     @abstractmethod
-    def Equals(self, item: T) -> bool:
+    def Equals(self, item: T|object) -> bool:
         pass
+    
+    @final
+    def __eq__(self, value) -> bool:
+        return self.Equals(value)
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
