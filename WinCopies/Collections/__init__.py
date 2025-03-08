@@ -205,6 +205,9 @@ def ContainsOneSequence[T](l: list[T], value: T) -> bool|None:
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
+def MakeGenerator[T](*items: T) -> Generator[T]:
+    for item in items:
+        yield item
 
 def IterateWith[T](itemsProvider: Function[Iterable[T]], func: Converter[Iterable[T], bool|None]) -> bool|None:
     with itemsProvider() as items:
