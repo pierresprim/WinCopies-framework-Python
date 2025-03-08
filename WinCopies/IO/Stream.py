@@ -9,10 +9,10 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from typing import final
 from os import remove, path
-from io import IOBase, TextIOWrapper, BufferedIOBase
+from io import IOBase, TextIOWrapper, BufferedIOBase, StringIO
 from typing import Self
 
-from WinCopies import IDisposable
+from WinCopies import IDisposable, IStringable
 from WinCopies.Typing.Decorators import constant, MetaSingleton
 from WinCopies.Typing.Delegate import Predicate
 
@@ -375,3 +375,67 @@ class BinaryFile(FileStream[BufferedIOBase, bytes]):
     @final
     def _Write(self, value: bytes) -> None:
         self.__stream.write(value)
+
+class MemoryTextStream(IStream, IStringable):
+    def __init__(self):
+        super().__init__()
+
+        self.__stream: StringIO|None = None
+    
+    @final
+    def _GetStream(self) -> StringIO:
+        return self.__stream
+    
+    @abstractmethod
+    def IsOpen(self) -> bool:
+        self.__stream is not None
+    
+    @final
+    def Open(self) -> None:
+        self.__stream = StringIO()
+    
+    @final
+    def TryRead(self, size: int) -> str:
+        return self.__stream.read(size) if self.IsOpen() else None
+    def Read(self, size: int) -> str:
+        result: str|None = self.TryRead(size)
+
+        if result is None:
+            raise IOError()
+        
+        return result
+    
+    @final
+    def TryWrite(self, text: str) -> None:
+        if self.IsOpen():
+            self.__stream.write(text)
+
+            return True
+        
+        return False
+    @final
+    def Write(self, text: str) -> None:
+        if not self.TryWrite(text):
+            raise IOError()
+
+    @final
+    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
+        return self.Write(text + eol)
+    @final
+    def WriteLine(self, text: str) -> None:
+        if not self.TryWriteLine(text):
+            raise IOError()
+    
+    @final
+    def ToString(self) -> str:
+        return self.__stream.getvalue()
+    
+    @final
+    def Close(self) -> bool:
+        if self.IsOpen():
+            self.__stream.close()
+            self.__stream = None
+
+            return True
+        
+        return False
