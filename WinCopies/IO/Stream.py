@@ -87,7 +87,7 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         return self.Close()
 
-class File(IStream):
+class File[T](IStream):
     @final
     class __Consts(metaclass=MetaSingleton[Self]):
         @constant
@@ -99,17 +99,6 @@ class File(IStream):
     def __init__(self, path: str):
         self.__path: str = path
     
-    @abstractmethod
-    def GetOpenType(self) -> FileType:
-        pass
-    
-    @final
-    def _Open(self, fileMode: FileMode) -> IOBase|None:
-        return None if self.IsOpen() else open(self.__path, str(fileMode) + str(self.GetOpenType()))
-    
-    @abstractmethod
-    def Open(self, fileMode: FileMode) -> bool:
-        pass
     def TryOpen(self, fileMode: FileMode) -> bool|None:
         try:
             return self.Open(fileMode)
@@ -119,6 +108,37 @@ class File(IStream):
     @final
     def GetPath(self) -> str:
         return self.__path
+    
+    @abstractmethod
+    def _Read(self, size: int) -> T:
+        pass
+
+    @final
+    def TryRead(self, size: int) -> T|None:
+        return self._Read(size) if self.IsOpen() else None
+    def Read(self, size: int) -> T:
+        result: T|None = self.TryRead(size)
+
+        if result is None:
+            raise IOError()
+        
+        return result
+    
+    @abstractmethod
+    def _Write(self, value: T) -> None:
+        pass
+    
+    def TryWrite(self, value: T) -> bool:
+        if self.IsOpen():
+            self._Write(value)
+
+            return True
+        
+        else:
+            return False
+    def Write(self, value: T) -> None:
+        if not self.TryWrite(value):
+            raise IOError()
     
     @staticmethod
     def TryInitializeAs(path: str, fileType: FileType):
@@ -248,131 +268,73 @@ class File(IStream):
     def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
-class TextFile(File):
+class FileStream[TStream: IOBase, TData](File[TData]):
     def __init__(self, path: str):
         super().__init__(path)
+
+        self.__stream: TStream|None = None
+    
+    @final
+    def _GetStream(self) -> TStream:
+        return self.__stream
+    
+    @final
+    def IsOpen(self) -> bool:
+        return self._GetStream() is not None
+    
+    @final
+    def Open(self, fileMode: FileMode) -> bool:
+        if self.IsOpen():
+            return True
         
-        self.__stream: TextIOWrapper|None = None
+        self.__stream = open(self.GetPath(), str(fileMode) + str(self.GetOpenType()))
+
+        return self.__stream is not None
+    
+    @final
+    def Close(self) -> bool:
+        if self.IsOpen():
+            self.__stream.close()
+            self.__stream = None
+
+            return True
+        
+        return False
+
+class TextFile(FileStream[TextIOWrapper, str]):
+    def __init__(self, path: str):
+        super().__init__(path)
     
     @final
     def GetOpenType(self) -> FileType:
         return FileType.Text
     
     @final
-    def IsOpen(self) -> bool:
-        return self.__stream is not None
+    def _Read(self, size: int) -> str:
+        return self.__stream.read(size)
+    @final
+    def _Write(self, value: str) -> None:
+        self.__stream.write(value)
     
     @final
-    def Open(self, fileMode: FileMode) -> bool:
-        self.__stream = self._Open(fileMode)
-
-        return self.__stream is not None
-    
-    @final
-    def TryRead(self, size: int = -1) -> str|None:
-        return self.__stream.read(size) if self.IsOpen() else None
-    
-    @final
-    def Read(self, size: int = -1) -> str:
-        result: str|None = self.TryRead(size)
-
-        if result is None:
-            raise IOError
-        
-        return result
-    
-    @final
-    def TryWrite(self, text: str) -> bool:
-        if self.IsOpen():
-            self.__stream.write(text)
-
-            return True
-        else:
-            return False
-    @final
-    def TryWriteLine(self, text: str) -> bool:
-        return self.Write(text + '\n')
-    
-    @final
-    def Write(self, text: str) -> None:
-        if not self.TryWrite(text):
-            raise IOError
+    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
+        return self.TryWrite(text + eol)
     @final
     def WriteLine(self, text: str) -> None:
         if not self.TryWriteLine(text):
-            raise IOError
-    
-    @final
-    def Close(self) -> bool:
-        if self.IsOpen():
-            self.__stream.close()
-            self.__stream = None
+            raise IOError()
 
-            return True
-        
-        return False
-
-class BinaryFile(File):
+class BinaryFile(FileStream[BufferedIOBase, bytes]):
     def __init__(self, path: str):
         super().__init__(path)
-        
-        self.__stream: BufferedIOBase|None = None
     
     @final
     def GetOpenType(self) -> FileType:
         return FileType.Binary
     
     @final
-    def IsOpen(self) -> bool:
-        return self.__stream is not None
-    
+    def _Read(self, size: int) -> bytes:
+        return self.__stream.read(size)
     @final
-    def Open(self, fileMode: FileMode) -> bool:
-        self.__stream = self._Open(fileMode)
-
-        return self.__stream is not None
-    
-    @final
-    def TryRead(self, size: int = -1) -> bytes|None:
-        return self.__stream.read(size) if self.IsOpen() else None
-    
-    @final
-    def Read(self, size: int = -1) -> bytes:
-        result: bytes|None = self.TryRead(size)
-
-        if result is None:
-            raise IOError
-        
-        return result
-    
-    @final
-    def TryWrite(self, data: bytes) -> bool:
-        if self.IsOpen():
-            self.__stream.write(data)
-
-            return True
-        
-        else:
-            return False
-    @final
-    def TryWriteLine(self, data: bytes) -> bool:
-        return self.Write(data + '\n')
-    
-    @final
-    def Write(self, data: bytes) -> None:
-        if not self.TryWrite(data):
-            raise IOError
-    @final
-    def WriteLine(self, data: bytes) -> None:
-        if not self.TryWriteLine(data):
-            raise IOError
-    
-    @final
-    def Close(self) -> bool:
-        if self.IsOpen():
-            self.__stream.close()
-            self.__stream = None
-
-            return True
-        
-        return False
+    def _Write(self, value: bytes) -> None:
+        self.__stream.write(value)
