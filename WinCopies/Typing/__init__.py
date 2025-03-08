@@ -4,6 +4,7 @@ from inspect import stack, FrameInfo
 from os import path
 from typing import final, List, Type
 
+from WinCopies import IDisposable, IStringable
 from WinCopies.Assertion import TryEnsureTrue
 from WinCopies.Typing.Delegate import Converter, Selector
 
@@ -49,6 +50,14 @@ class IEquatableObject[T](IEquatable[T]):
     @final
     def __hash__(self) -> int:
         return self.Hash()
+
+class IObject[T](IEquatableObject[T], IStringable):
+    def __init__(self):
+        super().__init__()
+
+class IDisposableObject[T](IDisposable, IObject[T]):
+    def __init__(self):
+        super().__init__()
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
