@@ -1,7 +1,9 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 
-from WinCopies import Delegates
-from WinCopies.Collections import Generator
+from WinCopies.Collections import Generator, Enumeration
+from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator
+from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
+from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing.Delegate import Converter, Predicate
 
 def Append[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
@@ -37,7 +39,41 @@ def Include[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
         if predicate(item):
             yield item
 def Exclude[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
-    return Include(items, Delegates.GetNotPredicate(predicate))
+    return Include(items, GetNotPredicate(predicate))
+
+def IncludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    for item in items:
+        if predicate(item):
+            yield item
+        
+        else:
+            break
+def IncludeUntil[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    for item in items:
+        if predicate(item):
+            break
+        
+        yield item
+
+def DoIncludeUntil[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    for item in items:
+        yield item
+
+        if predicate(item):
+            break
+def DoIncludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    return DoIncludeUntil(items, GetNotPredicate(predicate))
+
+def __Exclude[T](items: Iterable[T], converter: Converter[Iterator[T], IEnumerator[T]]) -> Generator[T]:
+    iterator: Iterator[T]|None = Enumeration.Iterable.Create(items).TryGetIterator()
+    
+    for item in EmptyEnumerator() if iterator is None else converter(iterator):
+        yield item
+
+def ExcludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    return __Exclude(items, lambda iterator: ExcluerEnumerator(iterator, predicate))
+def ExcludeUntil[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
+    return __Exclude(items, lambda iterator: ExcluerUntilEnumerator(iterator, predicate))
 
 def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
     for iterable in collection:
