@@ -259,6 +259,10 @@ class Iterable[T](IIterable[T]):
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
         return AsEnumerator(self.__iterable.__iter__())
+    
+    @staticmethod
+    def Create(iterable: SystemIterable[T]) -> IIterable[T]:
+        return iterable if isinstance(iterable, IIterable) else Iterable(iterable)
 
 class IteratorProvider[T](IIterable[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):
