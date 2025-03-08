@@ -97,7 +97,7 @@ class File(IStream):
     CONSTS = __Consts()
 
     def __init__(self, path: str):
-        self._path: str = path
+        self.__path: str = path
     
     @abstractmethod
     def GetOpenType(self) -> FileType:
@@ -105,7 +105,7 @@ class File(IStream):
     
     @final
     def _Open(self, fileMode: FileMode) -> IOBase|None:
-        return None if self.IsOpen() else open(self._path, str(fileMode) + str(self.GetOpenType()))
+        return None if self.IsOpen() else open(self.__path, str(fileMode) + str(self.GetOpenType()))
     
     @abstractmethod
     def Open(self, fileMode: FileMode) -> bool:
@@ -118,7 +118,7 @@ class File(IStream):
 
     @final
     def GetPath(self) -> str:
-        return self._path
+        return self.__path
     
     @staticmethod
     def TryInitializeAs(path: str, fileType: FileType):
@@ -146,8 +146,8 @@ class File(IStream):
         if self.IsOpen():
             self.Close()
             
-        if path.isfile(self._path):            
-            remove(self._path)
+        if path.isfile(self.__path):            
+            remove(self.__path)
 
     @staticmethod
     def __GetDelegate(fileType: FileType, path: str):
