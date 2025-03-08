@@ -173,3 +173,8 @@ def RemoveFromStart(value: str, find: str) -> str:
     
 def RemoveFromEnd(value: str, find: str) -> str:
     return __RemoveFrom(value, find, TryRemoveFromEnd)
+
+def Append(value: str, what: str) -> str:
+    return value + what
+def Prepend(value: str, what: str) -> str:
+    return Append(what, value)
