@@ -21,7 +21,7 @@ class IterableDirEntry(IDirEntry):
         return os.path.isdir(self.GetPath())
     @final
     def TryGetIterator(self) -> Iterator[Self]|None:
-        return Iteration.Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry)) if self.IsDirectory() else None
+        return (SystemDirEntry(dirEntry) for dirEntry in os.scandir(self.GetPath())) if self.IsDirectory() else None
 
 class SystemDirEntry(IterableDirEntry):
     def __init__(self, dirEntry: os.DirEntry):
