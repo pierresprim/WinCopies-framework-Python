@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, EqualityComparison, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -232,6 +232,49 @@ def PredicateNot[T](obj: T, predicate: Predicate[T]) -> bool:
     return not predicate(obj)
 def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
     return lambda obj: not predicate(obj)
+
+def __GetFunction(f1: Function[bool], f2: Function[bool], converter: Callable[[Function[bool], Function[bool]], bool]) -> Function[bool]:
+    return lambda: converter(f1, f2)
+
+def FuncAndAlso(f1: Function[bool], f2: Function[bool]) -> bool:
+    return f1() and f2()
+def GetAndAlsoFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncAndAlso)
+
+def FuncAnd(f1: Function[bool], f2: Function[bool]) -> bool:
+    return f1() & f2()
+def GetAndFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncAnd)
+
+def FuncOrElse(f1: Function[bool], f2: Function[bool]) -> bool:
+    return f1() or f2()
+def GetOrElseFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncOrElse)
+
+def FuncOr(f1: Function[bool], f2: Function[bool]) -> bool:
+    return f1() | f2()
+def GetOrFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncOr)
+
+def FuncNotAndAlso(f1: Function[bool], f2: Function[bool]) -> bool:
+    return (not f1()) and f2()
+def GetNotAndAlsoFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncNotAndAlso)
+
+def FuncNotAnd(f1: Function[bool], f2: Function[bool]) -> bool:
+    return (not f1()) & f2()
+def GetNotAndFunc(f1: Function[bool], f2: Function[bool]) -> Function[bool]:
+    return __GetFunction(f1, f2, FuncNotAnd)
+
+def FuncNot(func: Function[bool]) -> bool:
+    return not func()
+def GetNotFunc(func: Function[bool]) -> Function[bool]:
+    return lambda: not func()
+
+
+
+def GetEqualityComparison[T](value: T) -> EqualityComparison:
+    return lambda _value: value == _value
 
 def GetIndexedValueIndexComparison[T](index: int) -> IndexedValueComparison[T]:
     return lambda i, _: i == index
