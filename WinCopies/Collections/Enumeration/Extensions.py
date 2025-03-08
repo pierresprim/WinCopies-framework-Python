@@ -5,10 +5,11 @@ Created on Fri Jan 17 02:12:00 2025
 @author: Pierre Sprimont
 """
 
-from typing import final, Callable
+from typing import final
 
 from WinCopies.Collections.Enumeration import SystemIterable, SystemIterator, IEnumerator, AbstractEnumerator, Iterator
 from WinCopies.Collections.Linked.Singly import Stack
+from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualNullableValueBool
 
 class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
@@ -17,7 +18,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
         
         self.__currentEnumerator: IEnumerator[T]|None = None
         self.__enumerators: Stack[IEnumerator[T]]|None = None
-        self.__moveNext: Callable[[], bool]|None = None
+        self.__moveNext: Function[bool]|None = None
     
     @final
     def __MoveNext(self) -> bool:
@@ -25,7 +26,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
             def setCurrentEnumerator(value: IEnumerator[T]) -> None:
                 self.__currentEnumerator = value
             
-            def moveNext() -> bool:                
+            def moveNext() -> bool:
                 def getEnumerator() -> IEnumerator[T]:
                     iterator: SystemIterator[T] = self.GetCurrent().__iter__()
 
@@ -42,7 +43,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
                 
                 def moveNext(enumerator: DualNullableValueBool[IEnumerator[T]]) -> bool:
                     return enumerator.GetKey().MoveNext()
-                        
+                
                 result: DualNullableValueBool[IEnumerator[T]] = self.__enumerators.TryPeek()
 
                 if result.GetValue():
@@ -95,3 +96,6 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
         self.__moveNext = None
 
         super()._OnEnded()
+    
+    def _OnStopped(self) -> None:
+        pass
