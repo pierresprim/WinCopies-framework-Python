@@ -2,11 +2,12 @@ from typing import Callable
 from collections.abc import Iterable
 
 import WinCopies
+
 from WinCopies import Delegates
-from WinCopies.Typing.Delegate import Predicate
+from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
 from WinCopies.Typing.Pairing import DualValueBool
 
-def While(func: Callable[[], bool], action: Callable[[], None]) -> bool:
+def While(func: Function[bool], action: Action) -> bool:
     if (func := Delegates.GetBoolFuncAction(func, action))():
         while func():
             pass
@@ -14,7 +15,7 @@ def While(func: Callable[[], bool], action: Callable[[], None]) -> bool:
         return True
 
     return False
-def Until(func: Callable[[], bool], action: Callable[[], None]) -> bool:
+def Until(func: Function[bool], action: Action) -> bool:
     if func():
         return False
     
@@ -25,13 +26,13 @@ def Until(func: Callable[[], bool], action: Callable[[], None]) -> bool:
 
     return True
 
-def __Do(action: Callable[[], None], func: Callable[[], bool], loop: Callable[[Callable[[], bool], Callable[[], None]], bool]) -> bool:
+def __Do(action: Action, func: Function[bool], loop: Callable[[Function[bool], Action], bool]) -> bool:
     action()
 
     return loop(func, action)
-def DoWhile(action: Callable[[], None], func: Callable[[], bool]) -> bool:
+def DoWhile(action: Action, func: Function[bool]) -> bool:
     return __Do(action, func, While)
-def DoUntil(action: Callable[[], None], func: Callable[[], bool]) -> bool:
+def DoUntil(action: Action, func: Function[bool]) -> bool:
     return __Do(action, func, Until)
 
 def ForEachUntilTrue[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
@@ -142,7 +143,7 @@ def ForEachUntilValue[T](items: Iterable[T], action: Callable[[int, T], None], v
 def ForEachUntilIndexAndValue[T](items: Iterable[T], action: Callable[[int, T], None], index: int, value: T) -> DualValueBool[int]|None:
     return ForEachUntil(items, Delegates.GetIndexedValueComparison(index, value), action)
 
-def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Callable[[T], None]) -> bool|None:
+def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool|None:
     result: bool|None = None
     
     def scan(entry: T):
@@ -181,7 +182,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Callable[[
 def __ForEachButFirst[T](items: Iterable[T], action: Predicate[T], func: Callable[[Iterable[T], Predicate[T]], bool|None], returnValue: bool) -> bool|None:
     _action: Predicate[T]
     
-    def __action(item: T) -> bool:
+    def __action(_: T) -> bool:
         nonlocal _action
 
         _action = action
@@ -218,10 +219,10 @@ def ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Pr
 def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
     return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
 
-def DoForEachButFirst[T](items: Iterable[T], action: Callable[[T], None]) -> bool:
-    _action: Callable[[T]]
+def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
+    _action: Method[T]
     
-    def __action(item: T):
+    def __action(_: T):
         nonlocal _action
 
         _action = action
@@ -229,13 +230,14 @@ def DoForEachButFirst[T](items: Iterable[T], action: Callable[[T], None]) -> boo
     _action = __action
     
     return DoForEachItem(items, lambda item: _action(item))
-def DoForEachAndFirst[T](items: Iterable[T], firstAction: Callable[[T], None], action: Callable[[T], None]) -> bool:
-    _action: Callable[[T]]
+def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
+    _action: Method[T]
     
     def __action(item: T):
         nonlocal _action
 
         firstAction(item)
+
         _action = action
     
     _action = __action
