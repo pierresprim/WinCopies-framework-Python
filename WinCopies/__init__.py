@@ -5,11 +5,62 @@ Created on Fri May 26 14:21:00 2023
 @author: Pierre Sprimont
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import final, Callable
+from typing import final, Callable, Self
 
 from WinCopies.Typing.Delegate import Action, Predicate
+
+class IBooleanable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def ToBool(self) -> bool:
+        pass
+class INullableBooleanable(ABC):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def ToNullableBoolean(self) -> NullableBoolean:
+        pass
+    
+    @abstractmethod
+    def ToNullableBool(self) -> bool|None:
+        return ToNullableBool(self.ToNullableBoolean())
+
+class NullableBoolean(Enum):
+    BoolFalse = -1
+    Null = 0
+    BoolTrue = 1
+
+    def __bool__(self) -> bool:
+        return self > 0
+    
+    def Not(self) -> Self:
+        return not self
+
+def ToNullableBool(value: NullableBoolean) -> bool|None:
+    match value:
+        case NullableBoolean.Null:
+            return None
+        case NullableBoolean.BoolFalse:
+            return False
+        case NullableBoolean.BoolTrue:
+            return True
+    
+    return ValueError(value)
+def ToNullableBoolean(value: bool|None) -> NullableBoolean:
+    if value is None:
+        return NullableBoolean.Null
+    
+    if isinstance(value, bool):
+        return NullableBoolean.BoolTrue if value else NullableBoolean.BoolFalse
+    
+    raise ValueError(f"value must be True, False or None. value is: {type(value)}", value)
 
 class Endianness(Enum):
     Null = 0
