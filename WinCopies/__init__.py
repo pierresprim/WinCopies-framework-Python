@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from enum import Enum
+from types import TracebackType
 from typing import final, Callable, Self
 
 from WinCopies.Typing.Delegate import Action, Predicate
@@ -82,9 +83,19 @@ class IDisposable(ABC):
     def __init__(self):
         super().__init__()
     
+    @final
+    def __enter__(self) -> Self:
+        return self
+    
     @abstractmethod
     def Dispose(self) -> None:
         pass
+    
+    @final
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: TracebackType) -> bool:
+        self.Dispose()
+        
+        return False
 
 class IStringable(ABC):
     def __init__(self):
