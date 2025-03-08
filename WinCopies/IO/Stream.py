@@ -73,11 +73,13 @@ class FileType(Enum):
 class IStream(ABC):
     def __init__(self):
         pass
+
     @abstractmethod
     def IsOpen(self) -> bool:
         pass
+
     @abstractmethod
-    def Close(self) -> None:
+    def Close(self) -> bool:
         pass
 
 class File(IStream):
@@ -113,6 +115,7 @@ class File(IStream):
     def GetPath(self) -> str:
         return self._path
     
+    @staticmethod
     def TryInitializeAs(path: str, fileType: FileType):
         match fileType:
             case FileType.Text:
@@ -122,6 +125,7 @@ class File(IStream):
                 return BinaryFile(path)
         
         return None
+    @staticmethod
     def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType):
         stream: File|None = File.TryInitializeAs(path, fileType)
 
@@ -140,6 +144,7 @@ class File(IStream):
         if path.isfile(self._path):            
             remove(self._path)
 
+    @staticmethod
     def __GetDelegate(fileType: FileType, path: str):
         match fileType:
             case FileType.Text:
@@ -148,8 +153,9 @@ class File(IStream):
                 return lambda: BinaryFile(path)
         
         # Invalid arguments; no initializer could be created.
-        raise ValueError('Wrong FileType.', fileType)
+        raise ValueError(f"Wrong {type(FileType).name}.", fileType)
     
+    @staticmethod
     def TryGetFile(fileType: FileType, validator: Callable[[str], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         if validator is None:
             # No path validator callback provided. Directly create file.
@@ -167,9 +173,11 @@ class File(IStream):
         
         return File.__GetDelegate(fileType, path)()
     
+    @staticmethod
     def GetFile(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE):
         return File.__GetDelegate(fileType, input(message))()
     
+    @staticmethod
     def TryOpenFile(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         def open() -> File:
             file: File = File.TryGetFile(fileType, validator, message)
@@ -197,6 +205,7 @@ class File(IStream):
 
                 return None
     
+    @staticmethod
     def OpenFile(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         def open() -> File:
             file: File = File.TryGetFile(fileType, validator, message)
@@ -220,20 +229,24 @@ class File(IStream):
 
                 raise e
     
+    @staticmethod
     def TryGetFileCreator(fileType: FileType, validator: Callable[[str], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         return lambda: File.TryGetFile(fileType, validator, message)
+    @staticmethod
     def GetFileCreator(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE):
         return lambda: File.GetFile(fileType, message)
     
+    @staticmethod
     def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         return lambda: File.TryOpenFile(fileMode, fileType, validator, onError, message)
+    @staticmethod
     def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Callable[[str], bool]|None = None, onError: Callable[[IOError], bool]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
         return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
 class TextFile(File):
     def __init__(self, path: str):
         super().__init__(path)
-
+        
         self.__stream: TextIOWrapper|None = None
     
     @final
@@ -297,7 +310,7 @@ class TextFile(File):
 class BinaryFile(File):
     def __init__(self, path: str):
         super().__init__(path)
-
+        
         self.__stream: BufferedIOBase|None = None
     
     @final
