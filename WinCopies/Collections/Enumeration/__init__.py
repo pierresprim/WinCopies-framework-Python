@@ -389,6 +389,40 @@ class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnu
     def __init__(self, enumerator: IEnumerator[TIn]):
         super().__init__(enumerator)
 
+class DelegateEnumerator[T](EnumeratorBase[T]):
+    def __init__(self):
+        super().__init__()
+
+        self.__moveNext: Function[bool]|None
+    
+    @abstractmethod
+    def _OnMoveNext(self) -> Function[bool]|None:
+        pass
+    
+    def _OnStarting(self) -> bool:
+        def moveNext() -> bool:
+            func: Function[bool]|None = self._OnMoveNext()
+
+            if func is None:
+                return False
+            
+            self.__moveNext = func
+
+        if super()._OnStarting():
+            self.__moveNext = moveNext
+
+            return True
+        
+        return False
+    
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNext()
+    
+    def _OnEnded(self) -> None:
+        super()._OnEnded()
+
+        self.__moveNext = None
+
 class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]):
         super().__init__(enumerator)
