@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Action, Function, Predicate, EqualityComparison, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -15,24 +15,24 @@ def FuncNone() -> None:
 def CompareEquality[T](x: T, y: T) -> bool:
     return x == y
 
-def PredicateAction[T](obj: T, predicate: Predicate[T], action: Callable[[T], None]) -> bool:
+def PredicateAction[T](obj: T, predicate: Predicate[T], action: Method[T]) -> bool:
     if predicate(obj):
         action(obj)
 
         return True
     
     return False
-def GetPredicateAction[T](predicate: Predicate[T], action: Callable[[T], None]) -> Predicate[T]:
+def GetPredicateAction[T](predicate: Predicate[T], action: Method[T]) -> Predicate[T]:
     return lambda obj: PredicateAction(obj, predicate, action)
 
-def BoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> bool:
+def BoolFuncAction(func: Function[bool], action: Action) -> bool:
     if func():
         action()
 
         return True
     
     return False
-def GetBoolFuncAction(func: Callable[[], bool], action: Callable[[], None]) -> Callable[[], bool]:
+def GetBoolFuncAction(func: Function[bool], action: Action) -> Function[bool]:
     return lambda: BoolFuncAction(func, action)
 
 
@@ -152,7 +152,7 @@ def __RepeatOr(n: int, func: Function[bool]) -> bool:
     i: int = 1
     result: bool = False
 
-    action: Callable[[], None]|None = None
+    action: Action|None = None
 
     def loop() -> None:
         nonlocal action
