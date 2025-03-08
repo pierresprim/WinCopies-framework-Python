@@ -385,7 +385,7 @@ class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnu
     def __init__(self, enumerator: IEnumerator[TIn]):
         super().__init__(enumerator)
 
-class EnumerationSelector[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
+class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]):
         super().__init__(enumerator)
 
