@@ -41,13 +41,13 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
 
                     return True
                 
-                def moveNext(enumerator: DualNullableValueBool[IEnumerator[T]]) -> bool:
-                    return enumerator.GetKey().MoveNext()
+                def moveNext(enumerator: IEnumerator[T]) -> bool:
+                    return enumerator.MoveNext()
                 
                 result: DualNullableValueBool[IEnumerator[T]] = self.__enumerators.TryPeek()
 
                 if result.GetValue():
-                    if moveNext(result):
+                    if moveNext(result.GetKey()):
                         return True
                     
                     def tryPop() -> DualNullableValueBool[IEnumerator[T]]:
@@ -58,7 +58,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](AbstractEnumerator[T]):
                     result = tryPop()
 
                     while result.GetValue():
-                        if moveNext(result):
+                        if moveNext(enumerator := result.GetKey()):
                             setCurrentEnumerator(enumerator)
 
                             return True
