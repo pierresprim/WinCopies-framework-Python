@@ -286,7 +286,7 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](Enumerato
         return self.__enumerator.MoveNext()
     
     def _ResetOverride(self) -> bool:
-        return self.__enumerator.Reset()
+        return self.__enumerator.TryReset()
 class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
@@ -364,7 +364,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnume
         if self.IsStarted():
             self.Stop()
         
-        result: bool|None = self.__enumerator.Reset()
+        result: bool|None = self.__enumerator.TryReset()
 
         if result is True:
             self.__moveNextFunc = self.__MoveNext
