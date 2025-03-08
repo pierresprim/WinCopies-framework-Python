@@ -252,3 +252,35 @@ class RecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T, None,
     @final
     def _SetFirst(self, item: T) -> None:
         pass
+
+class StackedRecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T, T, DualResult[T, IEnumerator[T]]]):
+    def __init__(self, enumerator: IEnumerator[T]):
+        super().__init__(enumerator)
+
+        self.__first: T|None = None
+    
+    @final
+    def _CreateStack(self) -> Stack[DualResult[T, IEnumerator[T]]]:
+        return Stack[DualResult[T, IEnumerator[T]]]()
+    
+    @final
+    def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> DualResult[T, IEnumerator[T]]:
+        return DualResult[T, IEnumerator[T]](item, enumerator)
+    @final
+    def _GetStackItemAsEnumerator(self, item: DualResult[T, IEnumerator[T]]) -> IEnumerator[T]:
+        return item.GetValue()
+    @final
+    def _GetStackItemAsCookie(self, item: DualResult[T, IEnumerator[T]]) -> T:
+        return item.GetKey()
+    
+    @final
+    def _GetFirst(self) -> T:
+        return self.__first
+    @final
+    def _SetFirst(self, item: T) -> None:
+        self.__first = item
+    
+    def _OnEnded(self) -> None:
+        self.__first = None
+
+        super()._OnEnded()
