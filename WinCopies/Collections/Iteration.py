@@ -5,6 +5,7 @@ from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing.Delegate import Converter, Predicate
+from WinCopies.Typing.Pairing import DualNullableValueBool
 
 def Append[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
     for item in items:
@@ -19,6 +20,35 @@ def Prepend[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
     return Append(values, items)
 def PrependValues[T](items: Iterable[T], *values: T) -> Generator[T]:
     return Prepend(items, values)
+
+def AppendTo[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
+    for item in items:
+        yield item
+
+        for value in values:
+            yield value
+def AppendValuesTo[T](items: Iterable[T], *values: T) -> Generator[T]:
+    return AppendTo(items, values)
+
+def PrependTo[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
+    for item in items:
+        for value in values:
+            yield value
+        
+        yield item
+def PrependValuesTo[T](items: Iterable[T], *values: T) -> Generator[T]:
+    return PrependTo(items, values)
+
+def AppendItemTo[T](items: Iterable[T], value: T) -> Generator[T]:
+    for item in items:
+        yield item
+
+        yield value
+def PrependItemTo[T](items: Iterable[T], value: T) -> Generator[T]:
+    for item in items:
+        yield value
+
+        yield item
 
 def Select[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
@@ -79,6 +109,12 @@ def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
     for iterable in collection:
         for item in iterable:
             yield item
+
+def TryGetFirst[T](items: Iterable[T]) -> DualNullableValueBool[T]:
+    for item in items:
+        return DualNullableValueBool[T](item, True)
+    
+    return DualNullableValueBool[T](None, False)
 
 def ValidateOnlyOne[T](items: Iterable[T], predicate: Predicate[T]) -> bool:
     validator: Predicate[T]|None = None
