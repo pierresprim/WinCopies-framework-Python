@@ -231,9 +231,7 @@ def GetNotAndPredicate[T](p1: Predicate[T], p2: Predicate[T]) -> Predicate[T]:
 def PredicateNot[T](obj: T, predicate: Predicate[T]) -> bool:
     return not predicate(obj)
 def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
-    return lambda obj: PredicateNot(obj, predicate)
-
-
+    return lambda obj: not predicate(obj)
 
 def GetIndexedValueIndexComparison[T](index: int) -> IndexedValueComparison[T]:
     return lambda i, _: i == index
