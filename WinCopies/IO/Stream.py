@@ -12,6 +12,7 @@ from os import remove, path
 from io import IOBase, TextIOWrapper, BufferedIOBase
 from typing import Self
 
+from WinCopies import IDisposable
 from WinCopies.Typing.Decorators import constant, MetaSingleton
 from WinCopies.Typing.Delegate import Predicate
 
@@ -71,7 +72,7 @@ class FileType(Enum):
             case _:
                 return FileType.Null
 
-class IStream(ABC):
+class IStream(IDisposable):
     def __init__(self):
         pass
 
@@ -82,6 +83,9 @@ class IStream(ABC):
     @abstractmethod
     def Close(self) -> bool:
         pass
+
+    def Dispose(self) -> None:
+        return self.Close()
 
 class File(IStream):
     @final
