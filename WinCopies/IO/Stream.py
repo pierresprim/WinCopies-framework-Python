@@ -87,7 +87,44 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         return self.Close()
 
-class File[T](IStream):
+class IFileStream[T](IStream):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetOpenType(self) -> FileType:
+        pass
+    
+    @abstractmethod
+    def Open(self, fileMode: FileMode) -> bool:
+        pass
+    @abstractmethod
+    def TryOpen(self, fileMode: FileMode) -> bool|None:
+        pass
+
+    @abstractmethod
+    def GetPath(self) -> str:
+        pass
+
+    @abstractmethod
+    def TryRead(self, size: int) -> T|None:
+        pass
+    @abstractmethod
+    def Read(self, size: int) -> T:
+        pass
+    
+    @abstractmethod
+    def TryWrite(self, value: T) -> bool:
+        pass
+    @abstractmethod
+    def Write(self, value: T) -> None:
+        pass
+    
+    @abstractmethod
+    def Delete(self) -> None:
+        pass
+
+class File[T](IFileStream[T]):
     @final
     class __Consts(metaclass=MetaSingleton[Self]):
         @constant
