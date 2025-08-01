@@ -44,7 +44,7 @@ class FunctionUpdater[T](IFunction[T]):
 
         self.__updater(function)
         
-        return function()
+        return function.GetValue()
 class ValueFunctionUpdater[T](FunctionUpdater[T]):
     def __init__(self, updater: Method[IFunction[T]]):
         super().__init__(updater)
