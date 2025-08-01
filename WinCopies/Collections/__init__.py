@@ -8,6 +8,7 @@ from typing import final, Callable, List, Self
 from WinCopies import Collections, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
+from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualNullableValueBool
 
@@ -80,7 +81,7 @@ def GetLastIndex[T](l: Sequence[T]) -> int:
 def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
     return l[index] if ValidateIndex(index, len(l)) else default
 def TryGetAtStr(l: List[str], index: int) -> str:
-    return TryGetAt(l, index, '')
+    return StringifyIfNone(TryGetAt(l, index, ''))
 
 def TrySetAt[T](l: list[T], index: int, value: T) -> bool:
     if ValidateIndex(index, len(l)):
@@ -93,27 +94,25 @@ def TrySetAt[T](l: list[T], index: int, value: T) -> bool:
 def TryGetIndex[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
 def TryGetItem[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
-    return TryGetIndex(l, index, lambda i: ifTrue(l[i]), ifFalse)
+    return ifTrue(l[index]) if ValidateIndex(index, len(l)) else ifFalse()
 
 def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
         return DualNullableValueInfo[int, int](value, info)
-    def getNullValue() -> DualNullableValueInfo[int, int]:
+    def getNullValue(length: int) -> DualNullableValueInfo[int, int]:
         return getReturnValue(None, length)
     
-    def validate(listLength: int) -> None:
-        nonlocal length
-        
+    def validate(length: int|None, listLength: int) -> int:
         if length is None:
             length = listLength
         
         elif Outside(0, length, listLength):
             raise ValueError("The given length can not be less than zero or greater than the length of the given list.", listLength, length)
+        
+        return length
     
-    validate(len(l))
-
-    if length == 0 or i < 0:
-        return getNullValue()
+    if (length := validate(length, len(l))) == 0 or i < 0:
+        return getNullValue(length)
     
     if predicate is None:
         predicate = CompareEquality
@@ -124,13 +123,13 @@ def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, pre
 
         i += 1
     
-    return getNullValue()
+    return getNullValue(length)
 
 def IndexOf[T](l: list[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
     return GetIndexOf(l, value, predicate = predicate).GetKey()
 
 def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
-    length: int = len(list)
+    length: int = len(l)
     valuesLength: int = len(values)
     
     def getResult(result: int|None) -> tuple[int|None, int, int]:
@@ -166,10 +165,13 @@ def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
 def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
     result: DualNullableValueInfo[int, int] = GetIndexOf(l, value, i, length)
 
-    if (result.GetKey()) is None:
-        return (None, None, result.GetValue())
+    index: int|None = result.GetKey()
+    length = result.GetValue()
     
-    result = GetIndexOf(l, value, result.GetKey() + 1, length - 1 - (result.GetKey() - i))
+    if index is None:
+        return (None, None, length)
+    
+    result = GetIndexOf(l, value, index + 1, length - 1 - (index - i))
     
     return (result.GetKey() is int, result.GetKey(), result.GetValue())
 
@@ -192,7 +194,7 @@ def ContainsSequenceMultipleTimes[T](l: list[T], values: list[T], i: int = 0) ->
     if initialResult is None:
         return (None, None, result[1], result[2])
     
-    result = GetIndexOfSequence(l, values, result[0] + 1)
+    result = GetIndexOfSequence(l, values, initialResult + 1)
     
     return (result[0] is int, initialResult, result[1], result[2])
 def ContainsMultipleSequences[T](l: list[T], values: list[T]) -> bool|None:
@@ -476,7 +478,7 @@ class FinderPredicate[T]:
         return DualNullableValueBool[T](self.__result, self.__hasValue)
     
     def GetResult(self) -> T:
-        if self.__hasValue:
+        if self.__hasValue and self.__result is not None:
             return self.__result
         
         raise ValueError('This object contains no value.')
