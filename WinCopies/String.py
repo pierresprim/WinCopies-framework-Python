@@ -30,9 +30,9 @@ def TrySurround(string: str|None, value: str|None) -> str|None:
     return TrySurroundWith(value, string, value)
 
 def SurroundWithSpace(prefix: str|None, suffix: str|None) -> str:
-    return Surround(prefix, ' ', suffix)
+    return SurroundWith(prefix, ' ', suffix)
 def TrySurroundWithSpace(prefix: str|None, suffix: str|None) -> str|None:
-    return TrySurround(prefix, ' ', suffix)
+    return TrySurroundWith(prefix, ' ', suffix)
 
 def QuoteSurround(string: str|None) -> str:
     return Surround(string, "'")
@@ -102,7 +102,7 @@ def SplitAt(value: str, i: int) -> list[str]:
 def __Split(value: str, find: str, func: Callable[[str, str], list[str]|None]) -> list[str]:
     result: list[str]|None = func(value, find)
 
-    return [value if result is None else result]
+    return [value] if result is None else result
 
 def TrySplit(value: str, find: str) -> list[str]|None:
     return TrySplitAt(value, value.find(find))
