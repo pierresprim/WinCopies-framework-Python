@@ -135,16 +135,14 @@ def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The val
     value: int = 0
     
     def loop() -> int:
-        nonlocal value
-        
-        value = ReadInt(message)
+        return ReadInt(message)
     
-    loop()
+    value = loop()
     
     while predicate(value):
         print(errorMessage)
         
-        loop()
+        value = loop()
     
     return value
 
