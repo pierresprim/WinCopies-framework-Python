@@ -287,8 +287,8 @@ class IteratorProvider[T](IIterable[T]):
         self.__iteratorProvider: Function[SystemIterator[T]]|None = iteratorProvider
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return None if self.__iteratorProvider is None else self.__iteratorProvider()
+    def TryGetIterator(self) -> IEnumerator[T]|None:
+        return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](EnumeratorBase[TOut]):
     def __init__(self, enumerator: TEnumerator):
@@ -308,13 +308,13 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](Enumerato
         return self.__enumerator.MoveNext()
     
     def _ResetOverride(self) -> bool:
-        return self.__enumerator.TryReset()
+        return self.__enumerator.TryReset() is True
 class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
     
     def GetCurrent(self) -> T|None:
-        return self.__enumerator.GetCurrent()
+        return self._GetEnumerator().GetCurrent()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnumerator[TOut]):
     def __init__(self, enumerator: TEnumerator):
@@ -426,6 +426,8 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
             
             self.__moveNext = func
 
+            return func()
+
         if super()._OnStarting():
             self.__moveNext = moveNext
 
@@ -434,7 +436,7 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
         return False
     
     def _MoveNextOverride(self) -> bool:
-        return self.__moveNext()
+        return False if self.__moveNext is None else self.__moveNext()
     
     def _OnEnded(self) -> None:
         super()._OnEnded()
@@ -450,7 +452,12 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     
     def _MoveNext(self) -> bool:
         if super()._MoveNext():
-            self.__current = self.__selector(self._GetEnumerator().GetCurrent())
+            current: TIn|None = self._GetEnumerator().GetCurrent()
+
+            if current is None:
+                return False
+
+            self.__current = self.__selector(current)
 
             return True
         
