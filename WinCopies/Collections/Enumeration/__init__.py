@@ -44,9 +44,14 @@ class IEnumerator[T](collections.abc.Iterator[T]):
         pass
     
     @final
-    def __next__(self) -> T|None:
+    def __next__(self) -> T:
         if self.MoveNext():
-            return self.GetCurrent()
+            current: T|None = self.GetCurrent()
+
+            if current is None:
+                raise StopIteration
+            
+            return current
         
         else:
             raise StopIteration
