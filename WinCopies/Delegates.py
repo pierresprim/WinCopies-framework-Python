@@ -59,8 +59,9 @@ def RepeatAndAlso(n: int, func: Function[bool]) -> bool:
             return func()
         case 2:
             return func() and func()
-    
-    return __RepeatAndAlso(n, func)
+
+        case _:
+            return __RepeatAndAlso(n, func)
 def GetRepeatAndAlso(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
@@ -69,8 +70,9 @@ def GetRepeatAndAlso(n: int, func: Function[bool]) -> Function[bool]:
             return func
         case 2:
             return lambda: func() and func()
-    
-    return lambda: __RepeatAndAlso(n, func)
+
+        case _:
+            return lambda: __RepeatAndAlso(n, func)
 
 def __RepeatAnd(n: int, func: Function[bool]) -> bool:
     i: int = 1
@@ -104,8 +106,9 @@ def RepeatAnd(n: int, func: Function[bool]) -> bool:
             return func()
         case 2:
             return func() & func()
-    
-    return __RepeatAnd(n, func)
+
+        case _:
+            return __RepeatAnd(n, func)
 def GetRepeatAnd(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
@@ -114,8 +117,9 @@ def GetRepeatAnd(n: int, func: Function[bool]) -> Function[bool]:
             return func
         case 2:
             return lambda: func() & func()
-    
-    return lambda: __RepeatAnd(n, func)
+
+        case _:
+            return lambda: __RepeatAnd(n, func)
 
 def __RepeatOrElse(n: int, func: Function[bool]) -> bool:
     i: int = 1
@@ -135,8 +139,9 @@ def RepeatOrElse(n: int, func: Function[bool]) -> bool:
             return func()
         case 2:
             return func() or func()
-    
-    return __RepeatOrElse(n, func)
+
+        case _:
+            return __RepeatOrElse(n, func)
 def GetRepeatOrElse(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
@@ -145,8 +150,9 @@ def GetRepeatOrElse(n: int, func: Function[bool]) -> Function[bool]:
             return func
         case 2:
             return lambda: func() or func()
-    
-    return lambda: __RepeatOrElse(n, func)
+
+        case _:
+            return lambda: __RepeatOrElse(n, func)
 
 def __RepeatOr(n: int, func: Function[bool]) -> bool:
     i: int = 1
@@ -180,8 +186,9 @@ def RepeatOr(n: int, func: Function[bool]) -> bool:
             return func()
         case 2:
             return func() | func()
-    
-    return __RepeatOr(n, func)
+
+        case _:
+            return __RepeatOr(n, func)
 def GetRepeatOr(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
@@ -190,8 +197,9 @@ def GetRepeatOr(n: int, func: Function[bool]) -> Function[bool]:
             return func
         case 2:
             return lambda: func() | func()
-    
-    return lambda: __RepeatOr(n, func)
+
+        case _:
+            return lambda: __RepeatOr(n, func)
 
 
 
