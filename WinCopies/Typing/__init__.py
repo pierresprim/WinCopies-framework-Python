@@ -13,10 +13,10 @@ class IStruct[T](ABC):
         super().__init__()
     
     @abstractmethod
-    def GetValue() -> T:
+    def GetValue(self) -> T:
         pass
     @abstractmethod
-    def SetValue() -> None:
+    def SetValue(self, value: T) -> None:
         pass
 class Struct[T](IStruct[T]):
     def __init__(self, value: T):
@@ -66,14 +66,14 @@ def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
 
     if len(frames) > nextIndex:
         def getName(index: int) -> str:
-            selector(frames[index][1])
+            return selector(frames[index][1])
         
         return getName(index) == getName(nextIndex)
     
     else:
         return None
 def __EnsureDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
-    if not TryEnsureTrue(selector(index)):
+    if not TryEnsureTrue(selector(index) == True):
         raise ValueError(index)
 
 def __IsDirectModuleCall(index: int) -> bool|None:
