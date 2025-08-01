@@ -31,7 +31,7 @@ def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
         nonlocal e
         nonlocal f
 
-        t: Type = type(f)
+        t: type = type(f)
 
         EnsureEnum(t)
         EnsureSubclass(e, t)
