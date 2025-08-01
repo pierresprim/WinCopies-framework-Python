@@ -29,7 +29,7 @@ def ValidateIndex(index: int, length: int) -> bool:
     return Between(0, index, length, True, False)
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
-    paramName: str
+    paramName: str|None = None
 
     def check(value: int, _paramName: str) -> bool:
         nonlocal paramName
@@ -60,6 +60,9 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 
         case -1:
             return (totalLength - 1 if start == 0 else start - 1, offset)
+        
+        case _:
+            pass
 
     if offset > 0:
         if start == 0:
@@ -184,7 +187,7 @@ def ContainsOne[T](l: list[T], value: T) -> bool|None:
 def ContainsSequenceMultipleTimes[T](l: list[T], values: list[T], i: int = 0) -> tuple[bool|None, int|None, int, int]:
     result: tuple[int|None, int, int] = GetIndexOfSequence(l, values, i)
     
-    initialResult: int = result[0]
+    initialResult: int|None = result[0]
 
     if initialResult is None:
         return (None, None, result[1], result[2])
@@ -351,24 +354,24 @@ class ICountableIndexableBase(ICountable, IKeyableBase[int]):
         super().__init__()
     
     @final
-    def ContainsKey(self, index: int) -> bool:
-        return self.ValidateIndex(index)
+    def ContainsKey(self, key: int) -> bool:
+        return self.ValidateIndex(key)
 
 class IReadOnlyCountableIndexable[T](ICountableIndexableBase, IReadOnlyIndexable[T]):
     def __init__(self):
         super().__init__()
     
     @final
-    def TryGetAt[TDefault](self, index: int, defaultValue: TDefault) -> T|TDefault:
-        return self.GetAt(index) if self.ValidateIndex(index) else defaultValue
+    def TryGetAt[TDefault](self, key: int, defaultValue: TDefault) -> T|TDefault:
+        return self.GetAt(key) if self.ValidateIndex(key) else defaultValue
 class IWriteOnlyCountableIndexable[T](ICountableIndexableBase, IWriteOnlyIndexable[T]):
     def __init__(self):
         super().__init__()
     
     @final
-    def TrySetAt(self, index: int, value: T) -> bool:
-        if Collections.ValidateIndex(index, self.GetCount()):
-            self.SetAt(index, value)
+    def TrySetAt(self, key: int, value: T) -> bool:
+        if Collections.ValidateIndex(key, self.GetCount()):
+            self.SetAt(key, value)
 
             return True
         
