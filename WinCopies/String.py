@@ -134,7 +134,7 @@ def TryGetValueFromLast(value: str, find: str) -> str|None:
     return __TryGetValue(value, find, TrySplitFromLast)
 
 def __Get(value: str, find: str, func: Callable[[str, str], str|None]) -> str:
-    result: str = func(value, find)
+    result: str|None = func(value, find)
 
     return value if result is None else result
 
