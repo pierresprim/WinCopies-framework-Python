@@ -3,7 +3,7 @@ from typing import final
 from WinCopies import Collections
 from WinCopies.Collections import IndexOf
 from WinCopies.Collections.Extensions import List
-from WinCopies.Typing.Delegate import Predicate
+from WinCopies.Typing.Delegate import EqualityComparison
 
 class CircularList[T](List[T]):
     def __init__(self, items: list[T], start: int):
@@ -66,7 +66,7 @@ class CircularList[T](List[T]):
         return True
     
     @final
-    def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         items: list[T] = self._GetList()
 
         index: int|None = IndexOf(items, item, predicate)
@@ -78,7 +78,7 @@ class CircularList[T](List[T]):
 
         return True
     @final
-    def Remove(self, item: T, predicate: Predicate[T]|None = None) -> None:
+    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
         if not self.TryRemove(item, predicate):
             raise ValueError(item)
     
