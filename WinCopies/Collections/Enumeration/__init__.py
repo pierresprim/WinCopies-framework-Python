@@ -266,13 +266,13 @@ class Iterable[T](IIterable[T]):
         return AsEnumerator(self.__iterable.__iter__())
     
     @staticmethod
-    def Create(iterable: SystemIterable[T]) -> IIterable[T]:
+    def Create(iterable: SystemIterable[T]|None) -> IIterable[T]:
         if iterable is None:
             raise ValueError("The iterable can not be None.")
         
         return iterable if isinstance(iterable, IIterable) else Iterable(iterable)
     @staticmethod
-    def TryCreate(iterable: SystemIterable[T]) -> IIterable[T]|None:
+    def TryCreate(iterable: SystemIterable[T]|None) -> IIterable[T]|None:
         return None if iterable is None else (iterable if isinstance(iterable, IIterable) else Iterable(iterable))
 
 class IteratorProvider[T](IIterable[T]):
