@@ -97,7 +97,7 @@ class DualValueNullableBool[T](DualValueNullableInfo[T, bool], INullableBoolProv
     def __init__(self, value: T, info: bool|None):
         super().__init__(value, info)
     
-    @abstractmethod
+    @final
     def AsNullableBool(self) -> bool|None:
         return self.GetValue()
 
@@ -112,6 +112,6 @@ class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], I
     def __init__(self, value: T|None, info: bool|None):
         super().__init__(value, info)
     
-    @abstractmethod
+    @final
     def AsNullableBool(self) -> bool|None:
         return self.GetValue()
