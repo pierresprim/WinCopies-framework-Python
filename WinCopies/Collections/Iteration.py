@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Iterator
 
 from WinCopies.Collections import Generator, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator
+from WinCopies.Collections.Enumeration import AsEnumerator, IEnumerator, EmptyEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing.Delegate import Converter, Predicate
@@ -101,9 +101,9 @@ def __Exclude[T](items: Iterable[T], converter: Converter[Iterator[T], IEnumerat
         yield item
 
 def ExcludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
-    return __Exclude(items, lambda iterator: ExcluerEnumerator(iterator, predicate))
+    return __Exclude(items, lambda iterator: ExcluerEnumerator(AsEnumerator(iterator), predicate))
 def ExcludeUntil[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
-    return __Exclude(items, lambda iterator: ExcluerUntilEnumerator(iterator, predicate))
+    return __Exclude(items, lambda iterator: ExcluerUntilEnumerator(AsEnumerator(iterator), predicate))
 
 def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
     for iterable in collection:
