@@ -34,7 +34,7 @@ class KeyValuePairBase[TKey, TValue](IKeyValuePair[TKey, TValue]):
     def IsKeyValuePair(self) -> bool:
         return True
     
-    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return isinstance(item, KeyValuePairBase)
 class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
     def __init__(self, key: TKey, value: TValue):
@@ -52,7 +52,7 @@ class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
         return self.__value
     
     @final
-    def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return isinstance(item, KeyValuePair)
 
 class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
