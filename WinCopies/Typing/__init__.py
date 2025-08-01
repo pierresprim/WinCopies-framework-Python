@@ -37,7 +37,7 @@ class IEquatable[T](ABC):
         pass
     
     @final
-    def __eq__(self, value) -> bool:
+    def __eq__(self, value: object) -> bool:
         return self.Equals(value)
 class IEquatableObject[T](IEquatable[T]):
     def __init__(self):
@@ -120,5 +120,5 @@ def IsFromAll[T](obj: T, *types: Type[T]) -> bool:
     return IsFrom(obj, types)
 
 class InvalidOperationError(Exception):
-    def __init__(self, *args):
+    def __init__(self, *args: object):
         super().__init__(*args)
