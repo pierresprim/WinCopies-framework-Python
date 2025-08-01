@@ -37,7 +37,7 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
         pass
 
     @abstractmethod
-    def _GetFirst(self) -> TCookie:
+    def _GetFirst(self) -> TCookie|None:
         pass
     @abstractmethod
     def _SetFirst(self, item: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> None:
@@ -154,6 +154,8 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
                     return True
                 case NullableBoolean.Null:
                     return False
+                case _:
+                    pass
             
             result: DualNullableValueBool[TStackItems] = self._TryPeek()
 
@@ -250,7 +252,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T, None,
     def _GetFirst(self) -> None:
         return None
     @final
-    def _SetFirst(self, item: T) -> None:
+    def _SetFirst(self, item: T, enumerator: IEnumerator[T]) -> None:
         pass
 
 class StackedRecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T, T, DualResult[T, IEnumerator[T]]]):
@@ -274,10 +276,10 @@ class StackedRecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T
         return item.GetKey()
     
     @final
-    def _GetFirst(self) -> T:
+    def _GetFirst(self) -> T|None:
         return self.__first
     @final
-    def _SetFirst(self, item: T) -> None:
+    def _SetFirst(self, item: T, enumerator: IEnumerator[T]) -> None:
         self.__first = item
     
     def _OnEnded(self) -> None:
