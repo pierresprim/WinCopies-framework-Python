@@ -4,19 +4,19 @@ from enum import Enum
 def Throw(errorMessage: str|None = "Invalid operation.") -> None:
     raise AssertionError(errorMessage)
 
-def __EnsureFalse(condition: bool, errorMessage) -> None:
+def __EnsureFalse(condition: bool, errorMessage: str|None) -> None:
     if condition: Throw(errorMessage)
-def __EnsureTrue(condition: bool, errorMessage) -> None:
+def __EnsureTrue(condition: bool, errorMessage: str|None) -> None:
     __EnsureFalse(not condition, errorMessage)
 
-def __TryEnsure(condition: bool, errorMessage: str, action: Callable[[bool, str], None]) -> bool:
+def __TryEnsure(condition: bool|object, errorMessage: str|None, action: Callable[[bool, str|None], None]) -> bool:
     if isinstance(condition, bool):
         action(condition, errorMessage)
 
         return True
     
     return False
-def __Ensure(condition: bool, errorMessage: str, action: Callable[[bool, str], None]) -> None:
+def __Ensure(condition: bool, errorMessage: str|None, action: Callable[[bool, str|None], None]) -> None:
     if not __TryEnsure(condition, errorMessage, action):
         raise ValueError(condition)
 
@@ -25,7 +25,7 @@ def EnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") 
 def EnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation.") -> None:
     __Ensure(condition, errorMessage, __EnsureTrue)
 
-def __EnsureValue(value: object|None, errorMessage, action: Callable[[bool, str], None]) -> None:
+def __EnsureValue(value: object|None, errorMessage: str|None, action: Callable[[bool, str|None], None]) -> None:
     action(value is None, errorMessage)
 
 def EnsureNone(value: object|None, errorMessage: str|None = "value must be None.") -> None:
@@ -38,7 +38,7 @@ def TryEnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.
 def TryEnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation.") -> bool:
     return __TryEnsure(condition, errorMessage, __EnsureTrue)
 
-def EnsureSubclass[T](c: Type, t: Type[T], errorMessage: str|None = "c must be a subclass of t.") -> None:
+def EnsureSubclass[T](c: type, t: Type[T], errorMessage: str|None = "c must be a subclass of t.") -> None:
     EnsureTrue(issubclass(c, t), errorMessage)
-def EnsureEnum(e: Type) -> None:
+def EnsureEnum(e: type) -> None:
     EnsureSubclass(e, Enum, "e must be an enum.")
