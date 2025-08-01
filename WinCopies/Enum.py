@@ -72,7 +72,7 @@ def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
     if not IsIn(e, t):
         raise ValueError()
 
-def __TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> T|None:
+def __TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None:
     for o in e:
         if predicate(o):
             return selector(o)
@@ -84,7 +84,7 @@ def TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Convert
     
     return __TryGetMember(e, predicate, selector)
 
-def __TryGetFieldValue[T](e: Type[Enum], obj: T, predicateSelector: Predicate[Enum], conversionSelector: Converter[Enum, T]) -> T|None:
+def __TryGetFieldValue[TIn, TOut](e: Type[Enum], obj: TIn, predicateSelector: Converter[Enum, TIn], conversionSelector: Converter[Enum, TOut]) -> TOut|None:
     return __TryGetMember(e, lambda o: predicateSelector(o) == obj, conversionSelector)
 
 def TryGetName(e: Type[Enum], v: int) -> str|None:
