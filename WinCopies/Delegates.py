@@ -85,8 +85,11 @@ def __RepeatAnd(n: int, func: Function[bool]) -> bool:
         nonlocal result
 
         if not func():
+            def doAction() -> None:
+                func()
+            
             result = False
-            action = lambda: func()
+            action = doAction
     
     action = loop
 
@@ -165,8 +168,11 @@ def __RepeatOr(n: int, func: Function[bool]) -> bool:
         nonlocal result
 
         if func():
+            def doAction() -> None:
+                func()
+            
             result = True
-            action = lambda: func()
+            action = doAction
     
     action = loop
 
