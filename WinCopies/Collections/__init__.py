@@ -260,10 +260,10 @@ class ICollection[T](IReadOnlyCollection):
         pass
 
     @abstractmethod
-    def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         pass
     @abstractmethod
-    def Remove(self, item: T, predicate: Predicate[T]|None = None) -> None:
+    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
         pass
 
     @abstractmethod
@@ -481,5 +481,5 @@ class FinderPredicate[T]:
         
         raise ValueError('This object contains no value.')
 
-def CreateList[T](count: int, value: T|None = None) -> list[T]:
+def CreateList[T](count: int, value: T|None = None) -> list[T|None]:
     return [value] * count
