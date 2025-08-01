@@ -4,15 +4,17 @@ Created on Tue Jun 04 11:47:00 2024
 
 @author: Pierre Sprimont
 """
+
 import os
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
-from typing import Callable, Sequence, Self
+from typing import Sequence, Self, AnyStr
 
 from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Loop import ForEachItemUntil
+from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
 class FileKind(Enum):
@@ -126,7 +128,7 @@ def TryRemoveDirectory(directory: str) -> bool|None:
     except IOError:
         return None
 
-def GetDirectoryPredicate() -> Callable[[os.DirEntry], bool]:
+def GetDirectoryPredicate() -> Predicate[os.DirEntry[AnyStr]]:
     return lambda entry: entry.is_dir()
-def GetFilePredicate() -> Callable[[os.DirEntry], bool]:
+def GetFilePredicate() -> Predicate[os.DirEntry[AnyStr]]:
     return lambda entry: entry.is_file()
