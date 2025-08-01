@@ -74,7 +74,7 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 
     return (totalLength + offset + start if abs(offset) > start else start + offset, offset)
 
-def GetLastIndex(l: Sequence) -> int:
+def GetLastIndex[T](l: Sequence[T]) -> int:
     return len(l) - 1
 
 def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
