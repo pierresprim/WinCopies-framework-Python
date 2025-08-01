@@ -36,15 +36,15 @@ class CircularList[T](List[T]):
         self.__start = start
     
     @final
-    def GetAt(self, index: int) -> T:
-        return self._GetList()[self.GetIndex(index)]
+    def GetAt(self, key: int) -> T:
+        return self._GetList()[self.GetIndex(key)]
     @final
-    def SetAt(self, index: int, value: T) -> None:
-        self._GetList()[self.GetIndex(index)] = value
+    def SetAt(self, key: int, value: T) -> None:
+        self._GetList()[self.GetIndex(key)] = value
     
     @final
-    def Add(self, value: T) -> None:
-        self._GetList().append(value)
+    def Add(self, item: T) -> None:
+        self._GetList().append(item)
     
     @final
     def Insert(self, index: int, value: T) -> None:
