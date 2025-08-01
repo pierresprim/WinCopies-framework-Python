@@ -54,7 +54,7 @@ def ToNullableBool(value: NullableBoolean) -> bool|None:
             return True
     
     return ValueError(value)
-def ToNullableBoolean(value: bool|None) -> NullableBoolean:
+def ToNullableBoolean(value: bool|None|object) -> NullableBoolean:
     if value is None:
         return NullableBoolean.Null
     
