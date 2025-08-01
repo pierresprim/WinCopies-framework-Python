@@ -60,7 +60,14 @@ def AsTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
 def IsIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> bool:
     EnsureEnum(e)
 
-    return t in (AsTuples(e) if isinstance(t, tuple) else AsKeyValuePairs(e))
+    if isinstance(t, tuple):
+        return t in AsTuples(e)
+    
+    for item in AsKeyValuePairs(e):
+        if t.GetKey() == item.GetKey() and t.GetValue() == item.GetValue():
+            return True
+    
+    return False
 def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
     if not IsIn(e, t):
         raise ValueError()
