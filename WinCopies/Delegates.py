@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, EqualityComparison, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -287,7 +287,7 @@ def GetNotFunc(func: Function[bool]) -> Function[bool]:
 
 
 
-def GetEqualityComparison[T](value: T) -> EqualityComparison:
+def GetEqualityComparison[T](value: T) -> Predicate[T]:
     return lambda _value: value == _value
 
 def GetIndexedValueIndexComparison[T](index: int) -> IndexedValueComparison[T]:
