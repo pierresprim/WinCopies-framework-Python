@@ -1,7 +1,7 @@
 from typing import Callable
 from collections.abc import Iterable
 
-from WinCopies.Collections import Iteration, Loop
+from WinCopies.Collections import Iteration
 from WinCopies.Typing.Delegate import Selector
 
 def NullifyIfEmpty(value: str) -> str|None:
