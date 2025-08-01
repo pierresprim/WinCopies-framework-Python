@@ -53,7 +53,7 @@ def PrependItemTo[T](items: Iterable[T], value: T) -> Generator[T]:
 def Select[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
         yield converter(item)
-def WhereSelect[TIn, TOut](items: Iterable[TIn], predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TIn]:
+def WhereSelect[TIn, TOut](items: Iterable[TIn], predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
         if predicate(item):
             yield converter(item)
@@ -95,9 +95,9 @@ def DoIncludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[
     return DoIncludeUntil(items, GetNotPredicate(predicate))
 
 def __Exclude[T](items: Iterable[T], converter: Converter[Iterator[T], IEnumerator[T]]) -> Generator[T]:
-    iterator: Iterator[T]|None = Enumeration.Iterable.Create(items).TryGetIterator()
+    iterator: Iterator[T]|None = Enumeration.Iterable[T].Create(items).TryGetIterator()
     
-    for item in EmptyEnumerator() if iterator is None else converter(iterator):
+    for item in EmptyEnumerator[T]() if iterator is None else converter(iterator):
         yield item
 
 def ExcludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
@@ -135,6 +135,6 @@ def ValidateOnlyOne[T](items: Iterable[T], predicate: Predicate[T]) -> bool:
             return False
     
     return True # Validation succeeded.
-def EnsureOnlyOne[T](items: Iterable[T], predicate: Predicate[T], errorMessage: str|None = None) -> bool:
+def EnsureOnlyOne[T](items: Iterable[T], predicate: Predicate[T], errorMessage: str|None = None) -> None:
     if not ValidateOnlyOne(items, predicate):
         raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
