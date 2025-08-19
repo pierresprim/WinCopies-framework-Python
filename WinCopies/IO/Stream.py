@@ -34,8 +34,9 @@ class FileMode(Enum):
             case FileMode.Create:
                 return 'x'
             case _:
-                return None
-                
+                return ''
+    
+    @staticmethod
     def GetMode(fileMode: str):
         match fileMode:
             case 'r':
@@ -61,8 +62,9 @@ class FileType(Enum):
             case FileType.Binary:
                 return 'b'
             case _:
-                return None
-                
+                return ''
+    
+    @staticmethod
     def GetType(fileType: str):
         match fileType:
             case 't':
@@ -85,7 +87,7 @@ class IStream(IDisposable):
         pass
 
     def Dispose(self) -> None:
-        return self.Close()
+        self.Close()
 
 class IFileStream[T](IStream):
     def __init__(self):
