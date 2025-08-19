@@ -88,8 +88,9 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]
         
         case FileKind.Junction:
             return Delegates.GetAndAlsoPredicate(os.DirEntry[str].is_junction, predicate)
-    
-    raise ValueError("FileKind not supported.", fileKind)
+
+        case _:
+            raise ValueError("FileKind not supported.", fileKind)
 def GetFindFromExtensionValuesPredicate(fileKind: FileKind, *extensions: str) -> Predicate[os.DirEntry[str]]:
     return GetFindFromExtensionsPredicate(fileKind, extensions)
 
