@@ -5,13 +5,14 @@ Created on Tue Jun 04 11:47:00 2024
 @author: Pierre Sprimont
 """
 
+from __future__ import annotations
+
 import os
 
-from collections.abc import Iterator
-from typing import final, Self
+from typing import final
 
 from WinCopies import IO, String
-from WinCopies.Collections import Iteration
+from WinCopies.Collections import Generator
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
@@ -20,12 +21,12 @@ class IterableDirEntry(IDirEntry):
     def IsDirectory(self):
         return os.path.isdir(self.GetPath())
     @final
-    def TryGetIterator(self) -> Iterator[Self]|None:
+    def TryGetIterator(self) -> Generator[IterableDirEntry]|None:
         return (SystemDirEntry(dirEntry) for dirEntry in os.scandir(self.GetPath())) if self.IsDirectory() else None
 
 class SystemDirEntry(IterableDirEntry):
-    def __init__(self, dirEntry: os.DirEntry):
-        self.__dirEntry: os.DirEntry = dirEntry
+    def __init__(self, dirEntry: os.DirEntry[str]):
+        self.__dirEntry: os.DirEntry[str] = dirEntry
     
     @final
     def GetPath(self) -> str:
@@ -66,7 +67,7 @@ class DirEntry(IterableDirEntry):
         return cls.FromFileName(entry[0], entry[1])
     
     @classmethod
-    def FromSystemDirEntry(cls, dirEntry: os.DirEntry):
+    def FromSystemDirEntry(cls, dirEntry: os.DirEntry[str]):
         entry: SystemDirEntry = SystemDirEntry(dirEntry)
         array = os.path.splitext(entry.GetFullName())
         
