@@ -39,10 +39,12 @@ class NullableBoolean(Enum):
     BoolTrue = 1
 
     def __bool__(self) -> bool:
-        return self > 0
+        return self.value > 0
     
-    def Not(self) -> Self:
-        return not self
+    def Not(self) -> NullableBoolean:
+        return NullableBoolean.BoolFalse if self else NullableBoolean.BoolTrue
+    def NullableNot(self) -> NullableBoolean:
+        return NullableBoolean.Null if self == NullableBoolean.Null else self.Not()
 
 def ToNullableBool(value: NullableBoolean) -> bool|None:
     match value:
@@ -114,7 +116,7 @@ def Not(value: bool|None) -> bool|None:
 
 def TryConvertToInt(value: object) -> int|None:
     try:
-        return int(value)
+        return int(value) # type: ignore
     except ValueError:
         return None
 
