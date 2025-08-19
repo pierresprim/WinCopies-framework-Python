@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from typing import final, Callable, Self
 
 from WinCopies.Assertion import EnsureTrue
-from WinCopies.Collections import Generator, Collection, Enumeration
+from WinCopies.Collections import Generator, Enumeration, IReadOnlyCollection
 from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
@@ -38,7 +38,7 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
     def Ensure(self, l: IList[T]) -> None:
         EnsureTrue(self.Check(l), "Invalid operation.")
 
-class IListBase[T](Collection):
+class IListBase[T](IReadOnlyCollection):
     def __init__(self):
         super().__init__()
     

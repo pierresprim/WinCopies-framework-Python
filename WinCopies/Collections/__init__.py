@@ -244,10 +244,6 @@ class IReadOnlyCollection(ABC):
     @abstractmethod
     def IsEmpty(self) -> bool:
         pass
-
-class Collection(IReadOnlyCollection):
-    def __init__(self):
-        super().__init__()
     
     def HasItems(self) -> bool:
         return not self.IsEmpty()
@@ -427,7 +423,7 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
     def Remove(self, key: TKey) -> None:
         pass
 
-class Array[T](Collection, IArray[T]):
+class Array[T](IArray[T]):
     def __init__(self):
         super().__init__()
     

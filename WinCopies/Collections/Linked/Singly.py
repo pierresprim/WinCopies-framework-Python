@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterator
 from typing import final, Callable, Self
 
-from WinCopies.Collections import Abstraction, Generator, ICountable, Collection
+from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
@@ -15,7 +15,7 @@ class SinglyLinkedNode[T](LinkedNode[Self, T]):
     def __init__(self, value: T, nextNode: Self|None):
         super().__init__(value, nextNode)
 
-class IList[T](Collection):
+class IList[T](IReadOnlyCollection):
     def __init__(self):
         super().__init__()
     
