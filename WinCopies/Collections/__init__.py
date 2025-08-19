@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import collections.abc
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Sequence, MutableSequence
+from contextlib import AbstractContextManager
 from enum import Enum
-from typing import final, Callable, List, Self
+from typing import final, Callable
 
 from WinCopies import Collections, Not
 from WinCopies.Delegates import CompareEquality
@@ -21,9 +24,9 @@ class IterableScanResult(Enum):
     Error = 1
 
     def __bool__(self) -> bool:
-        return self >= 0
+        return self.value >= 0
     
-    def Not(self) -> Self:
+    def Not(self) -> IterableScanResult:
         return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
 
 def ValidateIndex(index: int, length: int) -> bool:
@@ -78,12 +81,12 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 def GetLastIndex[T](l: Sequence[T]) -> int:
     return len(l) - 1
 
-def TryGetAt[T](l: List[T], index: int, default: T|None = None) -> T|None:
+def TryGetAt[T](l: Sequence[T], index: int, default: T|None = None) -> T|None:
     return l[index] if ValidateIndex(index, len(l)) else default
-def TryGetAtStr(l: List[str], index: int) -> str:
+def TryGetAtStr(l: Sequence[str], index: int) -> str:
     return StringifyIfNone(TryGetAt(l, index, ''))
 
-def TrySetAt[T](l: list[T], index: int, value: T) -> bool:
+def TrySetAt[T](l: MutableSequence[T], index: int, value: T) -> bool:
     if ValidateIndex(index, len(l)):
         l[index] = value
 
@@ -91,12 +94,12 @@ def TrySetAt[T](l: list[T], index: int, value: T) -> bool:
     
     return False
 
-def TryGetIndex[T](l: List[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
+def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
-def TryGetItem[TIn, TOut](l: List[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
+def TryGetItem[TIn, TOut](l: Sequence[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
     return ifTrue(l[index]) if ValidateIndex(index, len(l)) else ifFalse()
 
-def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]:
+def GetIndexOf[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
         return DualNullableValueInfo[int, int](value, info)
     def getNullValue(length: int) -> DualNullableValueInfo[int, int]:
@@ -125,10 +128,10 @@ def GetIndexOf[T](l: list[T], value: T, i: int = 0, length: int|None = None, pre
     
     return getNullValue(length)
 
-def IndexOf[T](l: list[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
+def IndexOf[T](l: Sequence[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
     return GetIndexOf(l, value, predicate = predicate).GetKey()
 
-def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|None, int, int]:
+def GetIndexOfSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tuple[int|None, int, int]:
     length: int = len(l)
     valuesLength: int = len(values)
     
@@ -159,10 +162,10 @@ def GetIndexOfSequence[T](l: list[T], values: list[T], i: int = 0) -> tuple[int|
     
     return getResult(None)
 
-def IndexOfSequence[T](l: list[T], values: list[T]) -> int|None:
+def IndexOfSequence[T](l: Sequence[T], values: Sequence[T]) -> int|None:
     return GetIndexOfSequence(l, values)[0]
 
-def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
+def ContainsMultipleTimes[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
     result: DualNullableValueInfo[int, int] = GetIndexOf(l, value, i, length)
 
     index: int|None = result.GetKey()
@@ -175,18 +178,18 @@ def ContainsMultipleTimes[T](l: list[T], value: T, i: int = 0, length: int|None 
     
     return (result.GetKey() is int, result.GetKey(), result.GetValue())
 
-def ContainsMultiple[T](l: list[T], value: T) -> bool|None:
+def ContainsMultiple[T](l: Sequence[T], value: T) -> bool|None:
     return ContainsMultipleTimes(l, value)[0]
 
-def ContainsOnlyOne[T](l: list[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
+def ContainsOnlyOne[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]:
     result: tuple[bool|None, int|None, int] = ContainsMultipleTimes(l, value, i, length)
 
     return (Not(result[0]), result[1], result[2])
     
-def ContainsOne[T](l: list[T], value: T) -> bool|None:
+def ContainsOne[T](l: Sequence[T], value: T) -> bool|None:
     return Not(ContainsMultiple(l, value))
 
-def ContainsSequenceMultipleTimes[T](l: list[T], values: list[T], i: int = 0) -> tuple[bool|None, int|None, int, int]:
+def ContainsSequenceMultipleTimes[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tuple[bool|None, int|None, int, int]:
     result: tuple[int|None, int, int] = GetIndexOfSequence(l, values, i)
     
     initialResult: int|None = result[0]
@@ -197,16 +200,16 @@ def ContainsSequenceMultipleTimes[T](l: list[T], values: list[T], i: int = 0) ->
     result = GetIndexOfSequence(l, values, initialResult + 1)
     
     return (result[0] is int, initialResult, result[1], result[2])
-def ContainsMultipleSequences[T](l: list[T], values: list[T]) -> bool|None:
+def ContainsMultipleSequences[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
     return ContainsSequenceMultipleTimes(l, values)[0]
 
-def ContainsOnlyOneSequence[T](l: list[T], value: T, i: int = 0) -> tuple[bool|None, int|None, int]:
-    result: tuple[bool|None, int|None, int, int] = ContainsSequenceMultipleTimes(l, value, i)
+def ContainsOnlyOneSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tuple[bool|None, int|None, int, int]:
+    result: tuple[bool|None, int|None, int, int] = ContainsSequenceMultipleTimes(l, values, i)
 
     return (Not(result[0]), result[1], result[2], result[3])
     
-def ContainsOneSequence[T](l: list[T], value: T) -> bool|None:
-    return Not(ContainsMultipleSequences(l, value))
+def ContainsOneSequence[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
+    return Not(ContainsMultipleSequences(l, values))
 
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
@@ -214,20 +217,20 @@ def MakeGenerator[T](*items: T) -> Generator[T]:
     for item in items:
         yield item
 
-def IterateWith[T](itemsProvider: Function[Iterable[T]], func: Converter[Iterable[T], bool|None]) -> bool|None:
+def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> bool|None:
     with itemsProvider() as items:
         return func(items)
-def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, Iterable[TOut]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
+def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
     return IterateWith(lambda: itemsProvider(value), func)
 
-def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[Iterable[T]], func: Converter[Iterable[T], bool|None]) -> IterableScanResult:
+def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> IterableScanResult:
     if checker():
         result: bool|None = IterateWith(itemsProvider, func)
 
         return IterableScanResult.Empty if result == None else (IterableScanResult.Success if result else IterableScanResult.Error)
     
     return IterableScanResult.DoesNotExist
-def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, Iterable[TOut]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
+def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
     return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
 
 class EmptyException(Exception):
