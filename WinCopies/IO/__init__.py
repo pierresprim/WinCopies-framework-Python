@@ -26,7 +26,7 @@ class FileKind(Enum):
     Junction = 5
     Archive = 6
 
-class IDirEntry(ABC, IIterable[Self]):
+class IDirEntry(ABC, IIterable[Self]): # type: ignore
     def __init__(self):
         pass
     
