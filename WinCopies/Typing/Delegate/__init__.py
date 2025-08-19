@@ -18,6 +18,10 @@ class IFunction[T](ABC):
     def GetValue(self) -> T:
         pass
 
+    @final
+    def __call__(self) -> T:
+        return self.GetValue()
+
 @final
 class ValueFunction[T](IFunction[T]):
     def __init__(self, value: T):
