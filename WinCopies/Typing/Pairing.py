@@ -6,7 +6,7 @@ from typing import final, Self
 from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
-class IKeyValuePair[TKey, TValue](IEquatable[Self]):
+class IKeyValuePair[TKey, TValue](IEquatable[Self]): # type: ignore
     @abstractmethod
     def IsKeyValuePair(self) -> bool:
         pass
@@ -24,7 +24,7 @@ class IKeyValuePair[TKey, TValue](IEquatable[Self]):
     
     @final
     def Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
-        return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue()
+        return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue() # type: ignore
 
 class KeyValuePairBase[TKey, TValue](IKeyValuePair[TKey, TValue]):
     def __init__(self):
@@ -73,8 +73,8 @@ class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
         return self.__info
     
     @final
-    def _Equals(self, item: DualResult[TValue, TInfo]) -> bool:
-        return isinstance(item, KeyValuePair)
+    def _Equals(self, item: DualResult[TValue, TInfo]|object) -> bool:
+        return isinstance(item, DualResult)
 
 class DualNullableValueInfo[TValue, TInfo](DualResult[TValue|None, TInfo]):
     def __init__(self, value: TValue|None, info: TInfo):
