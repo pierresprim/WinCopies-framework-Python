@@ -5,13 +5,14 @@ from WinCopies.Collections.Enumeration import Enumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import ILinkedNode
 
+from WinCopies.Typing import IInvariantGenericConstraint
 from WinCopies.Typing.Delegate import Function
 
-class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
-    def __init__(self, node: ILinkedNode[TItems]):
+class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericConstraint[TNode, ILinkedNode[TItems]]):
+    def __init__(self, node: TNode):
         super().__init__()
 
-        self.__first: ILinkedNode[TItems] = node
+        self.__first: TNode = node
         self.__moveNextFunc: Function[bool]|None = None
     
     @final
@@ -22,9 +23,9 @@ class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
-            node: ILinkedNode[TItems] = self.GetCurrent().GetNext()
+            node: TNode|None = self.GetCurrent()
 
-            if node is None:
+            if node is None or (node := self._TryAsInterface(self._AsContainer(node).GetNext())) is None:
                 return False
             
             self._SetCurrent(node)
@@ -44,7 +45,7 @@ class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
         return False
     
     def _MoveNextOverride(self) -> bool:
-        return self.__moveNextFunc()
+        return self.__moveNextFunc() # type: ignore
     
     @final
     def __OnEnded(self) -> None:
@@ -63,9 +64,16 @@ class NodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](Enumerator[TNode]):
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T], T]):
+class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]):
         super().__init__(node)
+    
+    @final
+    def _AsContainer(self, container: ILinkedNode[T]) -> ILinkedNode[T]:
+        return container
+    @final
+    def _AsInterface(self, interface: ILinkedNode[T]) -> ILinkedNode[T]:
+        return interface
 
 def GetValueIterator[T](node: ILinkedNode[T]) -> Generator[T]:
     return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
