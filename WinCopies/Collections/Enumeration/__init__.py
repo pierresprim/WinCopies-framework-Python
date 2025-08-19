@@ -12,6 +12,7 @@ from typing import final
 
 from WinCopies import Delegates
 from WinCopies.Collections import ICountable
+from WinCopies.Typing import GenericConstraint
 from WinCopies.Typing.Delegate import Converter, Function
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -294,22 +295,8 @@ class IteratorProvider[T](IIterable[T]):
     def TryGetIterator(self) -> IEnumerator[T]|None:
         return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
 
-class IEnumeratorAbstraction[TItem, TEnumerator]:
-    def __init__(self) -> None:
-        pass
-    
-    @abstractmethod
-    def _GetEnumerator(self) -> TEnumerator:
-        pass
-    
-    @abstractmethod
-    def _AsEnumerator(self, enumerator: TEnumerator) -> IEnumerator[TItem]:
-        pass
-    @final
-    def _GetInnerEnumerator(self) -> IEnumerator[TItem]:
-        return self._AsEnumerator(self._GetEnumerator())
 
-class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], IEnumeratorAbstraction[TIn, TEnumerator]):
+class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TIn, TEnumerator]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
         
@@ -335,7 +322,7 @@ class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], IEnumeratorAbstraction[TIn, TEnumerator]):
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TIn, TEnumerator]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
 
