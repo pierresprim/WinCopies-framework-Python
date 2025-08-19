@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
-from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Collections.Linked.Node import ILinkedNode, IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Singly import Queue
 from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode, List
@@ -19,7 +19,7 @@ class LinkedList[T](Singly.IList[T]):
     def _GetList(self) -> Doubly.IListBase[T]:
         return self.__list
     @final
-    def _GetFirst(self) -> Doubly.IListBase[T]: # Needed for iteration.
+    def _GetFirst(self) -> IDoublyLinkedNode[T]|None: # Needed for iteration.
         return self._GetList().GetFirst()
     
     @final
@@ -47,11 +47,11 @@ class LinkedList[T](Singly.IList[T]):
         self.TryPushItems(values)
     
     @final
-    def __GetResult(result: ILinkedNode[T]|None):
-        def getResult(result: T, info: bool) -> DualNullableValueBool[T]:
+    def __GetResult(result: ILinkedNode[T]|None) -> DualNullableValueBool[T]:
+        def getResult(result: T|None, info: bool) -> DualNullableValueBool[T]:
             return DualNullableValueBool[T](result, info)
         
-        return getResult(None, False) if result is None else result.GetValue()
+        return getResult(None, False) if result is None else getResult(result.GetValue(), True)
     
     @final
     def TryPeek(self) -> DualNullableValueBool[T]:
