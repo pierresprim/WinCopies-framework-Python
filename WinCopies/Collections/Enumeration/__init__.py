@@ -17,15 +17,12 @@ from WinCopies.Typing.Delegate import Converter, Function
 type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
 
-class IEnumerator[T](collections.abc.Iterator[T]):
-    def __init__(self):
+class IEnumeratorBase:
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def IsStarted(self) -> bool:
-        pass
-    @abstractmethod
-    def GetCurrent(self) -> T|None:
         pass
     @abstractmethod
     def MoveNext(self) -> bool:
@@ -41,6 +38,13 @@ class IEnumerator[T](collections.abc.Iterator[T]):
         pass
     @abstractmethod
     def HasProcessedItems(self) -> bool:
+        pass
+class IEnumerator[T](collections.abc.Iterator[T], IEnumeratorBase):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetCurrent(self) -> T|None:
         pass
     
     @final
@@ -290,7 +294,22 @@ class IteratorProvider[T](IIterable[T]):
     def TryGetIterator(self) -> IEnumerator[T]|None:
         return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
 
-class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](EnumeratorBase[TOut]):
+class IEnumeratorAbstraction[TItem, TEnumerator]:
+    def __init__(self) -> None:
+        pass
+    
+    @abstractmethod
+    def _GetEnumerator(self) -> TEnumerator:
+        pass
+    
+    @abstractmethod
+    def _AsEnumerator(self, enumerator: TEnumerator) -> IEnumerator[TItem]:
+        pass
+    @final
+    def _GetInnerEnumerator(self) -> IEnumerator[TItem]:
+        return self._AsEnumerator(self._GetEnumerator())
+
+class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], IEnumeratorAbstraction[TIn, TEnumerator]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
         
@@ -316,7 +335,7 @@ class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumerator[TIn]](IEnumerator[TOut]):
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], IEnumeratorAbstraction[TIn, TEnumerator]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
 
