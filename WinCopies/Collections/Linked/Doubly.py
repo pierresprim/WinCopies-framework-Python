@@ -34,8 +34,8 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
         self.GetList().Remove(self)
     
     def Check(self, l: IList[T]) -> bool:
-        self.GetList() is l
-    def Ensure(self, l: IList[T]) -> bool:
+        return self.GetList() is l
+    def Ensure(self, l: IList[T]) -> None:
         EnsureTrue(self.Check(l), "Invalid operation.")
 
 class IListBase[T](Collection):
