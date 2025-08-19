@@ -1,4 +1,4 @@
-from typing import final
+from typing import MutableSequence, final
 
 from WinCopies import Collections
 from WinCopies.Collections import IndexOf
@@ -6,14 +6,14 @@ from WinCopies.Collections.Extensions import List
 from WinCopies.Typing.Delegate import EqualityComparison
 
 class CircularList[T](List[T]):
-    def __init__(self, items: list[T], start: int):
+    def __init__(self, items: MutableSequence[T], start: int):
         super().__init__()
         
-        self.__list: list[T] = items
+        self.__list: MutableSequence[T] = items
         self.__start: int = start % len(items)
     
     @final
-    def _GetList(self) -> list[T]:
+    def _GetList(self) -> MutableSequence[T]:
         return self.__list
     
     @final
@@ -67,7 +67,7 @@ class CircularList[T](List[T]):
     
     @final
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        items: list[T] = self._GetList()
+        items: MutableSequence[T] = self._GetList()
 
         index: int|None = IndexOf(items, item, predicate)
 
