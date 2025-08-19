@@ -14,7 +14,7 @@ from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Collections import Loop, IterableScanResult
 from WinCopies.IO import FileKind
 
-def ProcessDirEntries(path: str, func: Callable[[Iterable[os.DirEntry[str]]], bool|None]) -> IterableScanResult:
+def ProcessDirEntries(path: str, func: Converter[Iterable[os.DirEntry[str]], bool|None]) -> IterableScanResult:
     return Collections.TryIterateFrom(path, os.path.isdir, os.scandir, func)
 
 def ParseEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableScanResult:
