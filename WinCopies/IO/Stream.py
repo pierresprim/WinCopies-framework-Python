@@ -89,7 +89,7 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         self.Close()
 
-class IFileStream[T](IStream):
+class IFile(IStream):
     def __init__(self):
         super().__init__()
     
@@ -107,6 +107,14 @@ class IFileStream[T](IStream):
     @abstractmethod
     def GetPath(self) -> str:
         pass
+    
+    @abstractmethod
+    def Delete(self) -> None:
+        pass
+
+class IFileStream[T](IFile):
+    def __init__(self):
+        super().__init__()
 
     @abstractmethod
     def TryRead(self, size: int) -> T|None:
@@ -120,10 +128,6 @@ class IFileStream[T](IStream):
         pass
     @abstractmethod
     def Write(self, value: T) -> None:
-        pass
-    
-    @abstractmethod
-    def Delete(self) -> None:
         pass
 
 class File[T](IFileStream[T]):
