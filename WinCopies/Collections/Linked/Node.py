@@ -30,7 +30,7 @@ class LinkedNodeBase[T]:
     def SetValue(self, value: T) -> None:
         self.__value = value
 
-class LinkedNode[TNode: Self, TItems](LinkedNodeBase[TItems], ILinkedNode[TItems]):
+class LinkedNode[TNode: 'LinkedNode', TItems](LinkedNodeBase[TItems], ILinkedNode[TItems]):
     def __init__(self, value: TItems, nextNode: TNode|None):
         super().__init__(value)
 
@@ -45,11 +45,11 @@ class LinkedNode[TNode: Self, TItems](LinkedNodeBase[TItems], ILinkedNode[TItems
 
         self.__next = nextNode
 
-class NodeBase[TNode: Self, TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
+class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
     def __init__(self, value: TItems, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, nextNode)
 
-        self.__previous: TNode = previousNode
+        self.__previous: TNode|None = previousNode
     
     @final
     def GetPrevious(self) -> TNode|None:
