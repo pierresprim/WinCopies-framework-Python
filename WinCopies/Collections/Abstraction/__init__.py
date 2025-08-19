@@ -5,20 +5,20 @@ import collections.abc
 from collections.abc import Iterator
 from typing import final, Callable, Self
 
-from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IDictionary, IndexOf
+from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IndexOf
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable, IEnumerator, EnumeratorBase
 from WinCopies.Typing import EnsureDirectModuleCall
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualNullableValueBool
 
 class Array[T](Extensions.Array[T]):
     def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
         super().__init__()
 
-        self.__tuple: tuple[T] = items if isinstance(items, tuple) else tuple(items)
+        self.__tuple: tuple[T, ...] = items if isinstance(items, tuple) else tuple(items)
     
-    def _GetTuple(self) -> tuple[T]:
+    def _GetTuple(self) -> tuple[T, ...]:
         return self.__tuple
     
     @final
@@ -26,8 +26,8 @@ class Array[T](Extensions.Array[T]):
         return len(self._GetTuple())
     
     @final
-    def GetAt(self, index: int) -> T:
-        return self._GetTuple()[index]
+    def GetAt(self, key: int) -> T:
+        return self._GetTuple()[key]
 
 class List[T](Extensions.List[T]):
     def __init__(self, items: list[T]|None = None):
@@ -44,11 +44,11 @@ class List[T](Extensions.List[T]):
         return len(self._GetList())
     
     @final
-    def GetAt(self, index: int) -> T:
-        return self._GetList()[index]
+    def GetAt(self, key: int) -> T:
+        return self._GetList()[key]
     @final
-    def SetAt(self, index: int, value: T) -> None:
-        self._GetList()[index] = value
+    def SetAt(self, key: int, value: T) -> None:
+        self._GetList()[key] = value
     
     @final
     def Add(self, item: T) -> None:
@@ -70,7 +70,7 @@ class List[T](Extensions.List[T]):
         return True
     
     @final
-    def TryRemove(self, item: T, predicate: Predicate[T]|None = None) -> bool:
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         items: list[T] = self._GetList()
 
         index: int|None = IndexOf(items, item, predicate)
@@ -82,7 +82,7 @@ class List[T](Extensions.List[T]):
 
         return True
     @final
-    def Remove(self, item: T, predicate: Predicate[T]|None = None) -> None:
+    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
         if not self.TryRemove(item, predicate):
             raise ValueError(item)
     
@@ -110,7 +110,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
                 return self.__item[1]
     
             @final
-            def _Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool:
+            def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
                 return isinstance(item, Dictionary.Enumerator.KeyValuePair)
         
         def __init__(self, dictionary: dict[TKey, TValue]):
@@ -132,8 +132,14 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
             return False
         
         def _MoveNextOverride(self) -> bool:
+            if self.__iterator is None:
+                return False
+            
             if self.__iterator.MoveNext():
-                item: tuple[TKey, TValue] = self.__iterator.GetCurrent()
+                item: tuple[TKey, TValue]|None = self.__iterator.GetCurrent()
+
+                if item is None:
+                    return False
 
                 self.__current = Dictionary.Enumerator.KeyValuePair(item)
 
@@ -141,7 +147,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
             
             return False
         
-        def GetCurrent(self) -> IKeyValuePair[TKey, TValue]:
+        def GetCurrent(self) -> IKeyValuePair[TKey, TValue]|None:
             return self.__current
         
         def _OnEnded(self) -> None:
