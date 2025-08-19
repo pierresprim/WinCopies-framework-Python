@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Assertion import Throw
 from WinCopies.Typing.Delegate import Function
 
-class MetaSingleton(type):
+class SingletonMeta(type):
     def __init__(cls, *args: object, **kwargs: object):
         cls.__instance: object|None = None
 
@@ -23,18 +23,18 @@ class MetaSingleton(type):
         cls._WhenNew(*args, **kwargs) if cls.__instance is None else cls._WhenExisting(*args, **kwargs)
         
         return cls.__instance
-class MetaMultiInitializationSingleton(MetaSingleton):
+class MultiInitializationSingletonMeta(SingletonMeta):
     def _WhenExisting(cls, *args: object, **kwargs: object) -> None:
         cls._GetInstance().__init__(*args, **kwargs)
 
-class Singleton(metaclass=MetaSingleton):
+class Singleton(metaclass=SingletonMeta):
     def __init__(self):
         pass
     
     @classmethod
     def _GetInstance(cls) -> object|None:
         return cls.__class__._GetInstance(cls) # type: ignore
-class MultiInitializationSingleton(metaclass=MetaMultiInitializationSingleton):
+class MultiInitializationSingleton(metaclass=MultiInitializationSingletonMeta):
     @classmethod
     def _GetInstance(cls) -> object|None:
         return cls.__class__._GetInstance()
