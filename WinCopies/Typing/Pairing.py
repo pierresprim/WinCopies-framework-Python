@@ -101,13 +101,29 @@ class DualValueNullableBool[T](DualValueNullableInfo[T, bool], INullableBoolProv
     def AsNullableBool(self) -> bool|None:
         return self.GetValue()
 
-class DualNullableValueBool[T](DualNullableValueInfo[T, bool], IBoolProvider):
+class __DualNullableValueBool:
+    def __init_subclass__(cls) -> None:
+        cls.__null: DualNullableValueBool[None] = DualNullableValueBool[None](None, False)
+
+        super().__init_subclass__()
+    
+    @classmethod
+    def _GetNull(cls) -> DualNullableValueBool[None]:
+        return cls.__null
+class DualNullableValueBool[T](__DualNullableValueBool, DualNullableValueInfo[T, bool], IBoolProvider):
     def __init__(self, value: T|None, info: bool):
         super().__init__(value, info)
+    
+    def __new__(cls, value: T|None, info: bool) -> Self:
+        return super().__new__(cls) if info and value is not None else DualNullableValueBool.GetNull()  # type: ignore
     
     @final
     def AsBool(self) -> bool:
         return self.GetValue()
+    
+    @staticmethod
+    def GetNull() -> DualNullableValueBool[T]:
+        return DualNullableValueBool._GetNull() # type: ignore
 class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], INullableBoolProvider):
     def __init__(self, value: T|None, info: bool|None):
         super().__init__(value, info)
