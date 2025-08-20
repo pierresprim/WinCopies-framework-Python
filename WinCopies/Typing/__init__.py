@@ -59,13 +59,18 @@ class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self):
         super().__init__()
 
-class IGenericConstraint[TContainer, TInterface](ABC):
+class __IGenericConstraint[TContainer, TInterface](ABC):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
         pass
+
+class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
+    def __init__(self) -> None:
+        super().__init__()
+    
     @final
     def _TryAsContainer(self, container: TContainer|None) -> TInterface|None:
         return None if container is None else self._AsContainer(container)
@@ -93,6 +98,13 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
 class InvariantGenericConstraint[TContainer, TInterface](GenericConstraint[TContainer, TInterface], IInvariantGenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None:
         super().__init__()
+
+class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def _AsContainer(self, container: T) -> T:
+        return container
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
