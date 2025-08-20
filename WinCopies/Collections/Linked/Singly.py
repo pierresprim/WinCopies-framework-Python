@@ -7,11 +7,12 @@ from typing import final, Callable, Self
 from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
-from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
-from WinCopies.Typing import EnsureDirectModuleCall
-from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
+from WinCopies.Collections.Linked.Node import LinkedNode
 
-class SinglyLinkedNode[T](LinkedNode[Self, T]):
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, EnsureDirectModuleCall
+from WinCopies.Typing.Pairing import DualNullableValueBool
+
+class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
     def __init__(self, value: T, nextNode: Self|None):
         super().__init__(value, nextNode)
 
@@ -49,9 +50,11 @@ class IList[T](IReadOnlyCollection):
     @final
     def AsGenerator(self) -> Generator[T]:
         result: DualNullableValueBool[T] = self.TryPop()
+        key: T|None = None
 
         while result.GetValue():
-            yield result.GetKey()
+            if (key := result.GetKey()) is not None: # Should never be None here.
+                yield key
             
             result = self.TryPop()
 
@@ -60,12 +63,17 @@ class Iterable[T](IList[T], IIterable[T]):
         super().__init__()
     
     @abstractmethod
-    def _GetFirst(self) -> SinglyLinkedNode[T]:
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
         pass
     
     @final
     def TryGetIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() else GetValueIterator(self._GetFirst())
+        if self.IsEmpty():
+            return None
+        
+        first: SinglyLinkedNode[T]|None = self._GetFirst() # Should never be None here.
+        
+        return None if first is None else GetValueIterator(first)
 
 class List[T](IList[T]):
     def __init__(self):
@@ -81,7 +89,7 @@ class List[T](IList[T]):
         return super().HasItems()
     
     @final
-    def _GetFirst(self) -> SinglyLinkedNode[T]:
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
         return self.__first
     @final
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
@@ -100,7 +108,7 @@ class List[T](IList[T]):
             self.__first = SinglyLinkedNode[T](value, None)
         
         else:
-            self._Push(value, self.__first)
+            self._Push(value, self.__first) # type: ignore
     
     @final
     def __PushItems(self, items: collections.abc.Iterable[T]) -> None:
@@ -117,7 +125,7 @@ class List[T](IList[T]):
         return True
     @final
     def PushItems(self, items: collections.abc.Iterable[T]) -> None:
-        if items is None:
+        if items is None: # type: ignore
             raise ValueError("items can not be None.")
         
         self.__PushItems(items)
@@ -128,18 +136,21 @@ class List[T](IList[T]):
     
     @final
     def TryPeek(self) -> DualNullableValueBool[T]:
-        return DualResult[T|None, bool](None, False) if self.IsEmpty() else DualResult[T|None, bool](self.__first.GetValue(), True)
+        return DualNullableValueBool[T].GetNull() if self.IsEmpty() else (DualNullableValueBool[T].GetNull() if self.__first is None else DualNullableValueBool[T](self.__first.GetValue(), True)) # self.__first should never be None if self.IsEmpty().
     
     @final
     def TryPop(self) -> DualNullableValueBool[T]:
         result: DualNullableValueBool[T] = self.TryPeek()
 
         if result.GetValue():
-            first: SinglyLinkedNode[T] = self.__first
+            first: SinglyLinkedNode[T]|None = self.__first
+
+            if first is None: # Should never be None here.
+                return result
 
             self.__first = first.GetNext()
 
-            first._SetNext(None) # Needed in case of a running enumeration.
+            first._SetNext(None) # type: ignore # Needed in case of a running enumeration.
 
             self._OnRemoved()
 
@@ -168,13 +179,13 @@ class Queue[T](List[T]):
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
         def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
-            previousNode._SetNext(newNode)
+            previousNode._SetNext(newNode) # type: ignore
 
             self.__last = newNode
         
         push(first, newNode)
 
-        self.__updater = lambda first, newNode: push(self.__last, newNode)
+        self.__updater = lambda first, newNode: push(self.__last, newNode) # type: ignore
     
     @final
     def __GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
@@ -204,10 +215,10 @@ class Stack[T](List[T]):
     def _OnRemoved(self) -> None:
         pass
 
-class SinglyLinkedNodeEnumeratorBase[TNode: ILinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
+class SinglyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
     def __init__(self, node: TNode):
         super().__init__(node)
-class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[SinglyLinkedNode[T], T]):
+class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLinkedNode[T]]):
     def __init__(self, node: SinglyLinkedNode[T]):
         super().__init__(node)
 
@@ -218,25 +229,27 @@ class IterableStack[T](Stack[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
 
-class CollectionBase[TList: IList[TItems], TItems](IList[TItems]):
+class CollectionBase[TItems, TList](IList[TItems], GenericConstraint[TList, IList[TItems]]):
     def __init__(self, l: TList):
         self.__list: TList = l
     
-    def _GetCollection(self) -> TList:
+    def _GetContainer(self) -> TList:
         return self.__list
+    def _GetCollection(self) -> TList:
+        return self._GetContainer()
 
     @final
     def IsEmpty(self) -> bool:
-        return self._GetCollection().IsEmpty()
+        return self._GetInnerContainer().IsEmpty()
     @final
     def HasItems(self) -> bool:
-        return self._GetCollection().HasItems()
+        return self._GetInnerContainer().HasItems()
 
-class Collection[T](CollectionBase[IList[T], T]):
+class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, l: IList[T]):
         super().__init__(l)
 
-class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems], ICountable):
+class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountable):
     def __init__(self, l: TList):
         EnsureDirectModuleCall()
 
@@ -254,7 +267,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
     
     @final
     def Push(self, value: TItems) -> None:
-        self._GetCollection().Push(value)
+        self._GetInnerContainer().Push(value)
 
         self.__Increment()
     
@@ -266,7 +279,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
                 
                 self.__Increment()
         
-        self._GetCollection().PushItems(loop())
+        self._GetInnerContainer().PushItems(loop())
     
     @final
     def TryPushItems(self, items: collections.abc.Iterable[TItems]|None) -> bool:
@@ -278,7 +291,7 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
         return True
     @final
     def PushItems(self, items: collections.abc.Iterable[TItems]) -> None:
-        if items is None:
+        if items is None: # type: ignore
             raise ValueError("No value provided.")
         
         self.__PushItems(items)
@@ -289,11 +302,11 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
     
     @final
     def TryPeek(self) -> DualNullableValueBool[TItems]:
-        return self._GetCollection().TryPeek()
+        return self._GetInnerContainer().TryPeek()
     
     @final
     def TryPop(self) -> DualNullableValueBool[TItems]:
-        result: DualNullableValueBool[TItems] = self._GetCollection().TryPop()
+        result: DualNullableValueBool[TItems] = self._GetInnerContainer().TryPop()
 
         if result.GetValue():
             self.__count -= 1
@@ -302,11 +315,11 @@ class CountableBase[TList: IList[TItems], TItems](CollectionBase[TList, TItems],
     
     @final
     def Clear(self) -> None:
-        self._GetCollection().Clear()
+        self._GetInnerContainer().Clear()
 
         self.__count = 0
 
-class Countable[T](CountableBase[IList[T], T]):
+class Countable[T](CountableBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, l: IList[T]):
         super().__init__(l)
 
@@ -321,10 +334,10 @@ class CountableStack[T](Countable[T]):
 
         self.PushItems(values)
 
-class CountableIterableBase[TList: Iterable[TItems], TItems](CountableBase[TList, TItems], ICountableIterable[TItems]):
+class CountableIterableBase[TItems, TList](CountableBase[TItems, TList], ICountableIterable[TItems], GenericConstraint[TList, Iterable[TItems]]):
     def __init__(self, l: TList):
         super().__init__(l)
-class CountableIterable[T](CountableIterableBase[Iterable[T], T]):
+class CountableIterable[T](CountableIterableBase[T, Iterable[T]], IGenericConstraintImplementation[Iterable[T]]):
     def __init__(self, l: Iterable[T]):
         super().__init__(l)
 
@@ -335,7 +348,7 @@ class CountableIterableQueue[T](CountableIterable[T]):
         self.PushItems(values)
     
     @final
-    def TryGetIterator(self) -> Iterator[T]:
+    def TryGetIterator(self) -> Iterator[T]|None:
         return self._GetCollection().TryGetIterator()
 class CountableIterableStack[T](CountableIterable[T]):
     def __init__(self, *values: T):
@@ -344,5 +357,5 @@ class CountableIterableStack[T](CountableIterable[T]):
         self.PushItems(values)
     
     @final
-    def TryGetIterator(self) -> Iterator[T]:
+    def TryGetIterator(self) -> Iterator[T]|None:
         return self._GetCollection().TryGetIterator()
