@@ -106,6 +106,16 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def _AsContainer(self, container: T) -> T:
         return container
 
+@final
+class NullableValue[T]:
+    def __init__(self, value: T) -> None:
+        self.__value: T = value
+    
+    def GetValue(self) -> T:
+        return self.__value
+
+type Nullable[T] = NullableValue[T]|None
+
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
 
