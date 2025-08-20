@@ -10,7 +10,7 @@ import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from enum import Enum
-from typing import Sequence, Self, AnyStr
+from typing import Sequence, AnyStr
 
 from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Loop import ForEachItemUntil
@@ -26,7 +26,7 @@ class FileKind(Enum):
     Junction = 5
     Archive = 6
 
-class IDirEntry(ABC, IIterable[Self]): # type: ignore
+class IDirEntry(ABC, IIterable['IDirEntry']):
     def __init__(self):
         pass
     
