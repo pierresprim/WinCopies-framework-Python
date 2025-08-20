@@ -2,19 +2,19 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import final, Callable, Self
+from typing import final, Callable
 
-from WinCopies.Assertion import EnsureTrue
-from WinCopies.Collections import Generator, Enumeration, IReadOnlyCollection
+from WinCopies.Assertion import EnsureTrue, GetAssertionError
+from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
-from WinCopies.Typing import EnsureDirectModuleCall
-from WinCopies.Typing.Delegate import Method, Function, Converter
+from WinCopies.Typing import EnsureDirectModuleCall, InvalidOperationError, Nullable, NullableValue
+from WinCopies.Typing.Delegate import Function, Converter
 
 @final
-class DoublyLinkedNode[T](NodeBase[Self, T]):
+class DoublyLinkedNode[T](NodeBase['DoublyLinkedNode', T]):
     def __init__(self, value: T, l: IList[T], previousNode: DoublyLinkedNode[T]|None, nextNode: DoublyLinkedNode[T]|None):
         EnsureDirectModuleCall()
 
@@ -22,7 +22,7 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
 
         self.__list: IList[T]|None = l
     
-    def GetList(self) -> IList[T]:
+    def GetList(self) -> IList[T]|None:
         return self.__list
     
     def _OnRemoved(self) -> None:
@@ -31,12 +31,17 @@ class DoublyLinkedNode[T](NodeBase[Self, T]):
         self.__list = None
     
     def Remove(self) -> None:
-        self.GetList().Remove(self)
+        l: IList[T]|None = self.GetList()
+
+        if l is None:
+            raise InvalidOperationError()
+        
+        l.Remove(self)
     
     def Check(self, l: IList[T]) -> bool:
         return self.GetList() is l
     def Ensure(self, l: IList[T]) -> None:
-        EnsureTrue(self.Check(l), "Invalid operation.")
+        EnsureTrue(self.Check(l))
 
 class IListBase[T](IReadOnlyCollection):
     def __init__(self):
@@ -57,25 +62,24 @@ class IListBase[T](IReadOnlyCollection):
         pass
 
     @final
-    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, IDoublyLinkedNode[T]], other: Callable[[IDoublyLinkedNode[T], T], None]) -> bool:
+    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, IDoublyLinkedNode[T]], other: Callable[[IDoublyLinkedNode[T], T], IDoublyLinkedNode[T]]) -> bool:
         if items is None:
             return False
         
-        node: IDoublyLinkedNode[T]|None = None
-        adder: Method[T]|None = None
+        node: IDoublyLinkedNode[T]
+        adder: Converter[T, IDoublyLinkedNode[T]]|None = None
 
-        def add(item: T) -> None:
-            nonlocal node
+        def add(item: T) -> IDoublyLinkedNode[T]:
             nonlocal adder
 
-            node = first(item)
-            
             adder = lambda item: other(node, item)
+
+            return first(item)
         
         adder = add
 
         for item in items:
-            adder(item)
+            node = adder(item)
         
         return True
 
@@ -129,10 +133,10 @@ class IListBase[T](IReadOnlyCollection):
         pass
     
     @abstractmethod
-    def RemoveFirst(self) -> T|None:
+    def RemoveFirst(self) -> Nullable[T]:
         pass
     @abstractmethod
-    def RemoveLast(self) -> T|None:
+    def RemoveLast(self) -> Nullable[T]:
         pass
     
     @abstractmethod
@@ -140,8 +144,8 @@ class IListBase[T](IReadOnlyCollection):
         pass
     
     @final
-    def __AsGenerator(self, func: Function[IDoublyLinkedNode[T]|None]) -> Generator[IDoublyLinkedNode[T]]:
-        result: IDoublyLinkedNode[T] = func()
+    def __AsGenerator(self, func: Function[Nullable[T]]) -> Generator[Nullable[T]]:
+        result: Nullable[T] = func()
 
         while result is not None:
             yield result
@@ -149,10 +153,10 @@ class IListBase[T](IReadOnlyCollection):
             result = func()
     
     @final
-    def AsQueuedGenerator(self) -> Generator[IDoublyLinkedNode[T]]:
+    def AsQueuedGenerator(self) -> Generator[Nullable[T]]:
         return self.__AsGenerator(self.RemoveFirst)
     @final
-    def AsStackedGenerator(self) -> Generator[IDoublyLinkedNode[T]]:
+    def AsStackedGenerator(self) -> Generator[Nullable[T]]:
         return self.__AsGenerator(self.RemoveLast)
 
 class IIterable[T](IListBase[T], Enumeration.IIterable[IDoublyLinkedNode[T]]):
@@ -188,7 +192,7 @@ class List[T](IList[T]):
         self.__first = DoublyLinkedNode[T](value, self, None, first)
 
         if first is not None:
-            first._SetPrevious(self.__first)
+            first._SetPrevious(self.__first) # type: ignore
         
         if self.__last is None:
             self.__last = self.__first
@@ -201,7 +205,7 @@ class List[T](IList[T]):
         self.__last = DoublyLinkedNode[T](value, self, last, None)
         
         if last is not None:
-            last._SetNext(self.__last)
+            last._SetNext(self.__last) # type: ignore
         
         if self.__first is None:
             self.__first = self.__last
@@ -209,39 +213,37 @@ class List[T](IList[T]):
         return self.__last
     
     @final
-    def AddBefore(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+    def AddBefore(self, node: IDoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
         if node is self.GetFirst():
-            self.AddFirst()
-
-            return
+            return self.AddFirst(value)
+        
+        if not isinstance(node, DoublyLinkedNode):
+            raise GetAssertionError()
         
         node.Ensure(self)
         
-        previousNode: DoublyLinkedNode[T] = node.GetPrevious()
-        
+        previousNode: DoublyLinkedNode[T]|None = node.GetPrevious()
         newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, previousNode, node)
 
-        previousNode._SetNext(newNode)
-
-        node._SetPrevious(newNode)
+        previousNode._SetNext(newNode) # type: ignore
+        node._SetPrevious(newNode) # type: ignore
 
         return newNode
     @final
-    def AddAfter(self, node: DoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
+    def AddAfter(self, node: IDoublyLinkedNode[T], value: T) -> DoublyLinkedNode[T]:
         if node is self.GetLast():
-            self.AddLast()
-
-            return
+            return self.AddLast(value)
+        
+        if not isinstance(node, DoublyLinkedNode):
+            raise GetAssertionError()
         
         node.Ensure(self)
 
-        nextNode: DoublyLinkedNode[T] = node.GetNext()
-        
+        nextNode: DoublyLinkedNode[T]|None = node.GetNext()
         newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, node, nextNode)
 
-        nextNode._SetPrevious(newNode)
-
-        node._SetNext(newNode)
+        nextNode._SetPrevious(newNode) # type: ignore
+        node._SetNext(newNode) # type: ignore
 
         return newNode
     
@@ -261,53 +263,56 @@ class List[T](IList[T]):
             self.__first = nextNode
         
         else:
-            previousNode._SetNext(nextNode)
+            previousNode._SetNext(nextNode) # type: ignore
         
         if nextNode is None:
             self.__last = previousNode
         else:
-            nextNode._SetPrevious(previousNode)
+            nextNode._SetPrevious(previousNode) # type: ignore
 
-        node._SetPrevious(None)
-        node._SetNext(None)
+        node._SetPrevious(None) # type: ignore
+        node._SetNext(None) # type: ignore
     @final
-    def Remove(self, node: DoublyLinkedNode[T]) -> None:
+    def Remove(self, node: IDoublyLinkedNode[T]) -> None:
+        if not isinstance(node, DoublyLinkedNode):
+            raise GetAssertionError()
+        
         node.Ensure(self)
 
         self.__Remove(node)
     
     @final
-    def RemoveFirst(self) -> T|None:
+    def RemoveFirst(self) -> Nullable[T]:
         node: DoublyLinkedNode[T]|None = self.__first
 
         if node is None:
             return
         
-        nextNode: DoublyLinkedNode[T] = node.GetNext()
+        nextNode: DoublyLinkedNode[T]|None = node.GetNext()
         
         self.__Remove(node)
 
         self.__first = nextNode
 
-        return node.GetValue()
+        return NullableValue[T](node.GetValue())
     @final
-    def RemoveLast(self) -> T|None:
+    def RemoveLast(self) -> Nullable[T]:
         node: DoublyLinkedNode[T]|None = self.__last
 
         if node is None:
             return
         
-        previousNode: DoublyLinkedNode[T] = node.GetPrevious()
+        previousNode: DoublyLinkedNode[T]|None = node.GetPrevious()
         
         self.__Remove(node)
 
         self.__last = previousNode
 
-        return node.GetValue()
+        return NullableValue[T](node.GetValue())
     
     @final
     def Clear(self) -> None:
-        node: DoublyLinkedNode[T]|None = self.RemoveFirst()
+        node: Nullable[T] = self.RemoveFirst()
 
         while node is not None:
             node = self.RemoveFirst()
@@ -318,16 +323,16 @@ class List[T](IList[T]):
     
     @final
     def TryGetValueIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() else GetValueIterator(self.__first)
+        return None if self.IsEmpty() or self.__first is None else GetValueIterator(self.__first) # self.__first should not be None if self.IsEmpty().
     @final
     def AsValueIterator(self) -> Iterator[T]:
         iterator: Iterator[T]|None = self.TryGetValueIterator()
 
         return EmptyEnumerator[T]() if iterator is None else iterator
 
-class DoublyLinkedNodeEnumeratorBase[TNode: IDoublyLinkedNode[TItems], TItems](NodeEnumeratorBase[TNode, TItems]):
+class DoublyLinkedNodeEnumeratorBase[TItems, TNode: IDoublyLinkedNode[TItems]](NodeEnumeratorBase[TItems, TNode]):
     def __init__(self, node: TNode):
         super().__init__(node)
-class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[DoublyLinkedNode[T], T]):
+class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, DoublyLinkedNode[T]]):
     def __init__(self, node: DoublyLinkedNode[T]):
         super().__init__(node)
