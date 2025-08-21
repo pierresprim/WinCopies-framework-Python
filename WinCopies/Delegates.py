@@ -15,6 +15,8 @@ def FuncNone() -> None:
 def CompareEquality[T](x: T, y: T) -> bool:
     return x == y
 
+
+
 def PredicateAction[T](obj: T, predicate: Predicate[T], action: Method[T]) -> bool:
     if predicate(obj):
         action(obj)
@@ -34,6 +36,22 @@ def BoolFuncAction(func: Function[bool], action: Action) -> bool:
     return False
 def GetBoolFuncAction(func: Function[bool], action: Action) -> Function[bool]:
     return lambda: BoolFuncAction(func, action)
+
+
+
+def ExecuteActions(*actions: Action) -> None:
+    for action in actions:
+        action()
+def ConcatenateActions(*actions: Action) -> Action:
+    return lambda: ExecuteActions(*actions)
+
+def ExecuteMethods[T](arg: T, *actions: Method[T]) -> None:
+    for action in actions:
+        action(arg)
+def ConcatenateMethods[T](*actions: Method[T]) -> Method[T]:
+    return lambda arg: ExecuteMethods(arg, *actions)
+def JoinMethods[T](arg: T, *actions: Method[T]) -> Action:
+    return lambda: ExecuteMethods(arg, *actions)
 
 
 
