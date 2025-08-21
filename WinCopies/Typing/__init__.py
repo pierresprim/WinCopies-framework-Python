@@ -176,6 +176,18 @@ def IsFrom[T](obj: T, types: Iterable[Type[T]]) -> bool:
 def IsFromAll[T](obj: T, *types: Type[T]) -> bool:
     return IsFrom(obj, types)
 
+def AreInstances(type: type, *values: object) -> bool:
+    for value in values:
+        if not isinstance(value, type):
+            return False
+    
+    return True
+
+def TryGetValueAs[TValue, TDefault](type: Type[TValue], value: object, default: TDefault) -> TValue|TDefault:
+    return value if isinstance(value, type) else default
+def TryGetAs[T](type: Type[T], value: object) -> T|None:
+    return TryGetValueAs(type, value, None)
+
 class InvalidOperationError(Exception):
     def __init__(self, *args: object):
         super().__init__(*args)
