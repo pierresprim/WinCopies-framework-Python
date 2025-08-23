@@ -107,6 +107,7 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def __init__(self) -> None:
         super().__init__()
     
+    @final
     def _AsContainer(self, container: T) -> T:
         return container
 class IInvariantGenericConstraintImplementation[T](IGenericConstraintImplementation[T], __IInvariantGenericConstraint[T, T]):
