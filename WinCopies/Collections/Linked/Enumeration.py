@@ -5,7 +5,7 @@ from WinCopies.Collections.Enumeration import Enumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import ILinkedNode
 
-from WinCopies.Typing import IInvariantGenericConstraint
+from WinCopies.Typing import IInvariantGenericConstraint, IInvariantGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Function
 
 class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericConstraint[TNode, ILinkedNode[TItems]]):
@@ -64,16 +64,9 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericCons
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]]):
+class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IInvariantGenericConstraintImplementation[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]):
         super().__init__(node)
-    
-    @final
-    def _AsContainer(self, container: ILinkedNode[T]) -> ILinkedNode[T]:
-        return container
-    @final
-    def _AsInterface(self, interface: ILinkedNode[T]) -> ILinkedNode[T]:
-        return interface
 
 def GetValueIterator[T](node: ILinkedNode[T]) -> Generator[T]:
     return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
