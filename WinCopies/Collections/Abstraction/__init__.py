@@ -3,11 +3,11 @@ from __future__ import annotations
 import collections.abc
 
 from collections.abc import Iterator
-from typing import final, Callable, Self
+from typing import final, Callable
 
 from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IndexOf
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable, IEnumerator, EnumeratorBase
-from WinCopies.Typing import EnsureDirectModuleCall
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, EnsureDirectModuleCall
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualNullableValueBool
@@ -163,7 +163,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
             return True
     
     @final
-    class __None(Singleton[Self]):
+    class __None(Singleton):
         def __init__(self):
             super().__init__()
 
@@ -204,7 +204,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         return self._GetDictionary()[key]
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
-        return self._GetDictionary().get[TDefault](key, defaultValue)
+        return self._GetDictionary().get(key, defaultValue)
     
     @final
     def SetAt(self, key: TKey, value: TValue) -> None:
@@ -248,7 +248,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     
     @final
     def TryGetIterator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
-        return Dictionary.Enumerator(self._GetDictionary())
+        return Dictionary[TKey, TValue].Enumerator(self._GetDictionary())
     
     def __str__(self) -> str:
         return str(self._GetDictionary())
@@ -269,37 +269,46 @@ class Countable(ICountable):
     def Create(collection: ICountable) -> ICountable:
         return collection if type(collection) == Countable else Countable(collection)
 
-class IterableBase[TIterable: IIterable[TItems], TItems](IIterable[TItems]):
+class IterableBase[TItems, TIterable](IIterable[TItems], GenericConstraint[TIterable, IIterable[TItems]]):
     def __init__(self, iterable: TIterable):
         EnsureDirectModuleCall()
 
         super().__init__()
 
-        self.__iterable: IIterable[TItems] = iterable
+        self.__iterable: TIterable = iterable
     
     @final
-    def _GetIterable(self) -> TIterable:
+    def _GetContainer(self) -> TIterable:
         return self.__iterable
+    @final
+    def _GetIterable(self) -> IIterable[TItems]:
+        return self._GetInnerContainer()
     
     @final
     def TryGetIterator(self) -> Iterator[TItems]|None:
         return self._GetIterable().TryGetIterator()
-class Iterable[T](IterableBase[IIterable[T], T]):
+class Iterable[T](IterableBase[T, IIterable[T]], IGenericConstraintImplementation[IIterable[T]]):
     def __init__(self, iterable: IIterable[T]):
         super().__init__(iterable)
     
     @staticmethod
     def Create(iterable: collections.abc.Iterable[T]) -> collections.abc.Iterable[T]:
-        return iterable if type(iterable) == Iterable else Iterable(iterable)
+        return iterable if type(iterable) == Iterable[T] else Iterable[T](Enumeration.Iterable[T].Create(iterable))
+    @staticmethod
+    def TryCreate(iterable: collections.abc.Iterable[T]|None) -> collections.abc.Iterable[T]|None:
+        return None if iterable is None else Iterable[T].Create(iterable)
 
-class CountableIterable[T](IterableBase[ICountableIterable[T], T], ICountable):
+class CountableIterable[T](IterableBase[T, ICountableIterable[T]], ICountableIterable[T], IGenericConstraintImplementation[ICountableIterable[T]]):
     def __init__(self, collection: ICountableIterable[T]):
         super().__init__(collection)
     
     @final
     def GetCount(self) -> int:
-        return self._GetIterable().GetCount()
+        return self._GetContainer().GetCount()
 
     @staticmethod
     def Create(collection: ICountableIterable[T]) -> ICountableIterable[T]:
-        return collection if type(collection) == CountableIterable else CountableIterable(collection)
+        return collection if type(collection) == CountableIterable[T] else CountableIterable[T](collection)
+    @staticmethod
+    def TryCreate(collection: ICountableIterable[T]|None) -> ICountableIterable[T]|None:
+        return None if collection is None else CountableIterable[T].Create(collection)
