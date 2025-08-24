@@ -1,8 +1,11 @@
 from typing import Callable, Type
 from enum import Enum
 
+def GetAssertionError(errorMessage: str|None = "Invalid operation."):
+    return AssertionError(errorMessage)
+
 def Throw(errorMessage: str|None = "Invalid operation.") -> None:
-    raise AssertionError(errorMessage)
+    raise GetAssertionError(errorMessage)
 
 def __EnsureFalse(condition: bool, errorMessage: str|None) -> None:
     if condition: Throw(errorMessage)
