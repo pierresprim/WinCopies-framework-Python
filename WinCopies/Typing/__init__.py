@@ -66,13 +66,6 @@ class __IGenericConstraint[TContainer, TInterface](ABC):
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
         pass
-class __IInvariantGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def _AsInterface(self, interface: TInterface) -> TContainer:
-        pass
 
 class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None:
@@ -81,13 +74,6 @@ class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer
     @final
     def _TryAsContainer(self, container: TContainer|None) -> TInterface|None:
         return None if container is None else self._AsContainer(container)
-class IInvariantGenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface], __IInvariantGenericConstraint[TContainer, TInterface]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @final
-    def _TryAsInterface(self, interface: TInterface|None) -> TContainer|None:
-        return None if interface is None else self._AsInterface(interface)
 
 class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None:
@@ -99,9 +85,6 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
     @final
     def _GetInnerContainer(self) -> TInterface:
         return self._AsContainer(self._GetContainer())
-class InvariantGenericConstraint[TContainer, TInterface](GenericConstraint[TContainer, TInterface], IInvariantGenericConstraint[TContainer, TInterface]):
-    def __init__(self) -> None:
-        super().__init__()
 
 class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def __init__(self) -> None:
@@ -110,13 +93,6 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     @final
     def _AsContainer(self, container: T) -> T:
         return container
-class IInvariantGenericConstraintImplementation[T](IGenericConstraintImplementation[T], __IInvariantGenericConstraint[T, T]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @final
-    def _AsInterface(self, interface: T) -> T:
-        return interface
 
 @final
 class NullableValue[T]:
