@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import final
 
 from WinCopies.Collections import Generator
@@ -5,10 +6,10 @@ from WinCopies.Collections.Enumeration import Enumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import ILinkedNode
 
-from WinCopies.Typing import IInvariantGenericConstraint, IInvariantGenericConstraintImplementation
+from WinCopies.Typing import IGenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Function
 
-class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericConstraint[TNode, ILinkedNode[TItems]]):
+class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TNode, ILinkedNode[TItems]]):
     def __init__(self, node: TNode):
         super().__init__()
 
@@ -19,13 +20,17 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericCons
     def IsResetSupported(self) -> bool:
         return True
     
+    @abstractmethod
+    def _GetNextNode(self, node: TNode) -> TNode|None:
+        pass
+    
     def __MoveNext(self) -> bool:
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
             node: TNode|None = self.GetCurrent()
 
-            if node is None or (node := self._TryAsInterface(self._AsContainer(node).GetNext())) is None:
+            if node is None or (node := self._GetNextNode(node)) is None:
                 return False
             
             self._SetCurrent(node)
@@ -64,9 +69,13 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IInvariantGenericCons
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IInvariantGenericConstraintImplementation[ILinkedNode[T]]):
+class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IGenericConstraintImplementation[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]):
         super().__init__(node)
+    
+    @final
+    def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None:
+        return node.GetNext()
 
 def GetValueIterator[T](node: ILinkedNode[T]) -> Generator[T]:
     return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
