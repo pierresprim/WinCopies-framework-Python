@@ -94,15 +94,41 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def _AsContainer(self, container: T) -> T:
         return container
 
+class INullable[T](ABC):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def HasValue(self) -> bool:
+        pass
+    @abstractmethod
+    def GetValue(self) -> T:
+        pass
+
 @final
-class NullableValue[T]:
+class __Nullable[T](INullable[T]):
     def __init__(self, value: T) -> None:
         self.__value: T = value
     
+    def HasValue(self) -> bool:
+        return True
     def GetValue(self) -> T:
         return self.__value
+class __NullValue[T](INullable[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def HasValue(self) -> bool:
+        return False
+    def GetValue(self) -> T:
+        raise InvalidOperationError()
 
-type Nullable[T] = NullableValue[T]|None
+__nullValue: __NullValue = __NullValue() # type: ignore
+
+def GetNullable[T](value: T) -> INullable[T]:
+    return __Nullable[T](value)
+def GetNullValue[T]() -> INullable[T]: # type: ignore
+    return __nullValue # type: ignore
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()

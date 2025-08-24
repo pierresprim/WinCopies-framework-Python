@@ -12,6 +12,7 @@ from WinCopies import Collections, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualNullableValueBool
 
@@ -402,7 +403,7 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
         pass
 
     @abstractmethod
-    def TryGetValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
         pass
     
     @abstractmethod
@@ -416,7 +417,7 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
         pass
     @abstractmethod
-    def TryRemoveValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+    def TryRemoveValue(self, key: TKey) -> INullable[TValue]:
         pass
 
     @abstractmethod

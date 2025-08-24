@@ -10,7 +10,7 @@ from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
-from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, Nullable, NullableValue, EnsureDirectModuleCall
+from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
 from WinCopies.Typing.Delegate import Function, Converter
 
 @final
@@ -133,10 +133,10 @@ class IListBase[T](IReadOnlyCollection):
         pass
     
     @abstractmethod
-    def RemoveFirst(self) -> Nullable[T]:
+    def RemoveFirst(self) -> INullable[T]:
         pass
     @abstractmethod
-    def RemoveLast(self) -> Nullable[T]:
+    def RemoveLast(self) -> INullable[T]:
         pass
     
     @abstractmethod
@@ -144,19 +144,19 @@ class IListBase[T](IReadOnlyCollection):
         pass
     
     @final
-    def __AsGenerator(self, func: Function[Nullable[T]]) -> Generator[Nullable[T]]:
-        result: Nullable[T] = func()
+    def __AsGenerator(self, func: Function[INullable[T]]) -> Generator[INullable[T]]:
+        result: INullable[T] = func()
 
-        while result is not None:
+        while result.HasValue():
             yield result
             
             result = func()
     
     @final
-    def AsQueuedGenerator(self) -> Generator[Nullable[T]]:
+    def AsQueuedGenerator(self) -> Generator[INullable[T]]:
         return self.__AsGenerator(self.RemoveFirst)
     @final
-    def AsStackedGenerator(self) -> Generator[Nullable[T]]:
+    def AsStackedGenerator(self) -> Generator[INullable[T]]:
         return self.__AsGenerator(self.RemoveLast)
 
 class IIterable[T](IListBase[T], Enumeration.IIterable[IDoublyLinkedNode[T]]):
@@ -282,11 +282,11 @@ class List[T](IList[T]):
         self.__Remove(node)
     
     @final
-    def RemoveFirst(self) -> Nullable[T]:
+    def RemoveFirst(self) -> INullable[T]:
         node: DoublyLinkedNode[T]|None = self.__first
 
         if node is None:
-            return
+            return GetNullValue()
         
         nextNode: DoublyLinkedNode[T]|None = node.GetNext()
         
@@ -294,13 +294,13 @@ class List[T](IList[T]):
 
         self.__first = nextNode
 
-        return NullableValue[T](node.GetValue())
+        return GetNullable(node.GetValue())
     @final
-    def RemoveLast(self) -> Nullable[T]:
+    def RemoveLast(self) -> INullable[T]:
         node: DoublyLinkedNode[T]|None = self.__last
 
         if node is None:
-            return
+            return GetNullValue()
         
         previousNode: DoublyLinkedNode[T]|None = node.GetPrevious()
         
@@ -308,13 +308,13 @@ class List[T](IList[T]):
 
         self.__last = previousNode
 
-        return NullableValue[T](node.GetValue())
+        return GetNullable(node.GetValue())
     
     @final
     def Clear(self) -> None:
-        node: Nullable[T] = self.RemoveFirst()
+        node: INullable[T] = self.RemoveFirst()
 
-        while node is not None:
+        while node.HasValue():
             node = self.RemoveFirst()
     
     @final

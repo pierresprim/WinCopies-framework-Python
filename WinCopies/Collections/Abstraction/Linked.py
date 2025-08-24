@@ -2,12 +2,11 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
-from WinCopies.Collections.Linked.Node import ILinkedNode, IDoublyLinkedNode
+from WinCopies.Collections.Linked.Node import IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
-from WinCopies.Collections.Linked.Singly import Queue
-from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode, List
+from WinCopies.Collections.Linked.Doubly import List
 
-from WinCopies.Typing.Pairing import DualNullableValueBool
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 
 class LinkedList[T](Singly.IList[T]):
     def __init__(self, l: Doubly.IListBase[T]|None = None):
@@ -27,7 +26,7 @@ class LinkedList[T](Singly.IList[T]):
         return self._GetList().IsEmpty()
     
     @abstractmethod
-    def _Push(self, value: T) -> DoublyLinkedNode[T]:
+    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
         pass
     
     @final
@@ -47,19 +46,14 @@ class LinkedList[T](Singly.IList[T]):
         self.TryPushItems(values)
     
     @final
-    def __GetResult(result: ILinkedNode[T]|None) -> DualNullableValueBool[T]:
-        def getResult(result: T|None, info: bool) -> DualNullableValueBool[T]:
-            return DualNullableValueBool[T](result, info)
-        
-        return getResult(None, False) if result is None else getResult(result.GetValue(), True)
+    def TryPeek(self) -> INullable[T]:
+        first: IDoublyLinkedNode[T]|None = self._GetFirst()
+
+        return GetNullValue() if first is None else GetNullable(first.GetValue())
     
     @final
-    def TryPeek(self) -> DualNullableValueBool[T]:
-        return self.__GetResult(self._GetFirst())
-    
-    @final
-    def TryPop(self) -> DualNullableValueBool[T]:
-        return self.__GetResult(self._GetList().RemoveFirst())
+    def TryPop(self) -> INullable[T]:
+        return self._GetList().RemoveFirst()
     
     @final
     def Clear(self) -> None:
@@ -70,14 +64,14 @@ class Queue[T](LinkedList[T]):
         super().__init__(l)
     
     @final
-    def _Push(self, value: T) -> DoublyLinkedNode[T]:
+    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
         return self._GetList().AddLast(value)
 class Stack[T](LinkedList[T]):
     def __init__(self, l: Doubly.IListBase[T]|None = None):
         super().__init__(l)
     
     @final
-    def _Push(self, value: T) -> DoublyLinkedNode[T]:
+    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
         return self._GetList().AddFirst(value)
 
 class IterableQueue[T](Queue[T], Singly.IIterable[T]):

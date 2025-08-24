@@ -11,9 +11,9 @@ from typing import final
 from WinCopies import NullableBoolean, ToNullableBoolean
 from WinCopies.Collections.Enumeration import SystemIterable, SystemIterator, IEnumerator, AbstractEnumerator, Iterator
 from WinCopies.Collections.Linked.Singly import Stack
-from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing import InvalidOperationError, INullable
 from WinCopies.Typing.Delegate import Function
-from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
+from WinCopies.Typing.Pairing import DualResult
 
 class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItems], TCookie, TStackItems: IEnumerator[TEnumerationItems]](AbstractEnumerator[TEnumerationItems]):
     def __init__(self, enumerator: IEnumerator[TEnumerationItems]):
@@ -52,13 +52,13 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
         self.__enumerators.Push(item)
 
     @final
-    def _TryPeek(self) -> DualNullableValueBool[TStackItems]:
+    def _TryPeek(self) -> INullable[TStackItems]:
         if self.__enumerators is None:
             raise InvalidOperationError()
         
         return self.__enumerators.TryPeek()
     @final
-    def _TryPop(self) -> DualNullableValueBool[TStackItems]:
+    def _TryPop(self) -> INullable[TStackItems]:
         if self.__enumerators is None:
             raise InvalidOperationError()
         
@@ -168,16 +168,16 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
                 case _:
                     pass
             
-            result: DualNullableValueBool[TStackItems] = self._TryPeek()
+            result: INullable[TStackItems] = self._TryPeek()
 
-            if result.GetValue():
-                if moveNext(result.GetKey()):
+            if result.HasValue():
+                if moveNext(result.GetValue()):
                     return True
                 
                 enumerator: IEnumerator[TEnumerationItems]|None = None
                 result = self._TryPop()
 
-                while result.GetValue():
+                while result.HasValue():
                     match ToNullableBoolean(self.__OnExitingSublevel(self._GetStackItemAsCookie(result))):
                         case NullableBoolean.BoolTrue:
                             if moveNext(enumerator := self._GetStackItemTryAsEnumerator(result)):

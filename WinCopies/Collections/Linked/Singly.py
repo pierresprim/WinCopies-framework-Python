@@ -9,8 +9,7 @@ from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import LinkedNode
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, EnsureDirectModuleCall
-from WinCopies.Typing.Pairing import DualNullableValueBool
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
 
 class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
     def __init__(self, value: T, nextNode: Self|None):
@@ -36,11 +35,11 @@ class IList[T](IReadOnlyCollection):
         pass
     
     @abstractmethod
-    def TryPeek(self) -> DualNullableValueBool[T]:
+    def TryPeek(self) -> INullable[T]:
         pass
     
     @abstractmethod
-    def TryPop(self) -> DualNullableValueBool[T]:
+    def TryPop(self) -> INullable[T]:
         pass
     
     @abstractmethod
@@ -49,12 +48,10 @@ class IList[T](IReadOnlyCollection):
     
     @final
     def AsGenerator(self) -> Generator[T]:
-        result: DualNullableValueBool[T] = self.TryPop()
-        key: T|None = None
+        result: INullable[T] = self.TryPop()
 
-        while result.GetValue():
-            if (key := result.GetKey()) is not None: # Should never be None here.
-                yield key
+        while result.HasValue():
+            yield result.GetValue()
             
             result = self.TryPop()
 
@@ -135,14 +132,14 @@ class List[T](IList[T]):
         self.__PushItems(values)
     
     @final
-    def TryPeek(self) -> DualNullableValueBool[T]:
-        return DualNullableValueBool[T].GetNull() if self.IsEmpty() else (DualNullableValueBool[T].GetNull() if self.__first is None else DualNullableValueBool[T](self.__first.GetValue(), True)) # self.__first should never be None if self.IsEmpty().
+    def TryPeek(self) -> INullable[T]:
+        return GetNullValue() if self.IsEmpty() else (GetNullValue() if self.__first is None else GetNullable(self.__first.GetValue())) # self.__first should never be None if self.IsEmpty().
     
     @final
-    def TryPop(self) -> DualNullableValueBool[T]:
-        result: DualNullableValueBool[T] = self.TryPeek()
+    def TryPop(self) -> INullable[T]:
+        result: INullable[T] = self.TryPeek()
 
-        if result.GetValue():
+        if result.HasValue():
             first: SinglyLinkedNode[T]|None = self.__first
 
             if first is None: # Should never be None here.
@@ -158,9 +155,9 @@ class List[T](IList[T]):
     
     @final
     def Clear(self) -> None:
-        result: DualNullableValueBool[T] = self.TryPop()
+        result: INullable[T] = self.TryPop()
 
-        while result.GetValue(): # Needed in case of a running enumeration.
+        while result.HasValue(): # Needed in case of a running enumeration.
             result = self.TryPop()
 
         self.__first = None
@@ -301,14 +298,14 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountable):
         self.PushItems(values)
     
     @final
-    def TryPeek(self) -> DualNullableValueBool[TItems]:
+    def TryPeek(self) -> INullable[TItems]:
         return self._GetInnerContainer().TryPeek()
     
     @final
-    def TryPop(self) -> DualNullableValueBool[TItems]:
-        result: DualNullableValueBool[TItems] = self._GetInnerContainer().TryPop()
+    def TryPop(self) ->  INullable[TItems]:
+        result: INullable[TItems] = self._GetInnerContainer().TryPop()
 
-        if result.GetValue():
+        if result.HasValue():
             self.__count -= 1
         
         return result

@@ -7,10 +7,10 @@ from typing import final, Callable
 
 from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IndexOf
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable, IEnumerator, EnumeratorBase
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, EnsureDirectModuleCall
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualNullableValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
 class Array[T](Extensions.Array[T]):
     def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
@@ -187,16 +187,13 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         return key in self._GetDictionary()
     
     @final
-    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> DualNullableValueBool[TValue]:
-        def getResult(value: TValue|None, info: bool) -> DualNullableValueBool[TValue]:
-            return DualNullableValueBool[TValue](value, info)
-        
+    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> INullable[TValue]:
         result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance()) # type: ignore
 
-        return getResult(None, False) if isinstance(result, Dictionary.__None) else getResult(result, True)
+        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
     
     @final
-    def TryGetValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
         return self.__TryGetValue(lambda dic, default: dic.get(key, default))
     
     @final
@@ -239,7 +236,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
         return self._GetDictionary().pop(key, defaultValue)
     @final
-    def TryRemoveValue(self, key: TKey) -> DualNullableValueBool[TValue]:
+    def TryRemoveValue(self, key: TKey) -> INullable[TValue]:
         return self.__TryGetValue(lambda dic, default: dic.pop(key, default))
     
     @final

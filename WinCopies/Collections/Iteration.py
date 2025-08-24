@@ -4,8 +4,8 @@ from WinCopies.Collections import Generator, Enumeration
 from WinCopies.Collections.Enumeration import AsEnumerator, IEnumerator, EmptyEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Predicate
-from WinCopies.Typing.Pairing import DualNullableValueBool
 
 def Append[T](items: Iterable[T], values: Iterable[T]) -> Generator[T]:
     for item in items:
@@ -110,11 +110,11 @@ def Concatenate[T](collection: Iterable[Iterable[T]]) -> Generator[T]:
         for item in iterable:
             yield item
 
-def TryGetFirst[T](items: Iterable[T]) -> DualNullableValueBool[T]:
+def TryGetFirst[T](items: Iterable[T]) -> INullable[T]:
     for item in items:
-        return DualNullableValueBool[T](item, True)
+        return GetNullable(item)
     
-    return DualNullableValueBool[T](None, False)
+    return GetNullValue()
 
 def ValidateOnlyOne[T](items: Iterable[T], predicate: Predicate[T]) -> bool:
     validator: Predicate[T]|None = None
