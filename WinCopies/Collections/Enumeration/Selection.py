@@ -33,6 +33,9 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
                 return True
         
         return False
+    
+    def _OnStopped(self) -> None:
+        pass
 
 class __PredicateEnumerator[T]:
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
