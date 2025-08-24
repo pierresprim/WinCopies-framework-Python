@@ -86,9 +86,9 @@ def ForEachItem[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
 def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     return ForEachItem(values, predicate)
 
-def DoForEachItem[T](items: Iterable[T], action: Callable[[T], None]) -> bool:
+def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     result: bool = False
-    _action: Callable[[T]]
+    _action: Method[T]
 
     def init(entry: T):
         nonlocal result
@@ -126,7 +126,7 @@ def ForEachWhileIndexAndValue[T](items: Iterable[T], action: Callable[[int, T], 
     return ForEachWhile(items, Delegates.GetIndexedValueComparison(index, value), action)
 
 def ForEachUntil[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T], None]) -> DualValueBool[int]|None:
-    def _action(i: int, value) -> bool:
+    def _action(i: int, value: T) -> bool:
         if (predicate(i, value)):
             action(i, value)
 
@@ -162,7 +162,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
 
             result = False
 
-    func: Callable[[T]]
+    func: Method[T]
 
     def init(entry: T):
         nonlocal result
