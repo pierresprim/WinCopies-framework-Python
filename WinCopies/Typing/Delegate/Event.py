@@ -21,15 +21,15 @@ class IReadOnlyEventManager[TSender, TArgs](ABC):
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         pass
-class IWriteOnlyEventManager[TSender, TArgs](ABC):
+class IWriteOnlyEventManager[TSender, TArgs, TCookie](ABC):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> None:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> TCookie:
         pass
 
-class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs]):
+class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, IEventCookie]):
     def __init__(self):
         super().__init__()
     
