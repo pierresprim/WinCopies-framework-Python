@@ -7,10 +7,10 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
-from WinCopies.Collections.Linked.Enumeration import GetValueIterator, NodeEnumeratorBase
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
-from WinCopies.Typing import EnsureDirectModuleCall, InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, Nullable, NullableValue
+from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, Nullable, NullableValue, EnsureDirectModuleCall
 from WinCopies.Typing.Delegate import Function, Converter
 
 @final
