@@ -12,7 +12,7 @@ from typing import final
 
 from WinCopies import Delegates
 from WinCopies.Collections import ICountable
-from WinCopies.Typing import GenericConstraint
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Converter, Function
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -302,6 +302,9 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     @final
     def _GetEnumerator(self) -> TEnumerator:
         return self.__enumerator
+    @final
+    def _GetContainer(self) -> TEnumerator:
+        return self._GetEnumerator()
     
     @final
     def IsResetSupported(self) -> bool:
@@ -312,7 +315,7 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     
     def _ResetOverride(self) -> bool:
         return self.__enumerator.TryReset() is True
-class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]]):
+class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
     
