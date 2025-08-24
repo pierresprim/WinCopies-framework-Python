@@ -11,6 +11,7 @@ from typing import final
 from WinCopies import NullableBoolean, ToNullableBoolean
 from WinCopies.Collections.Enumeration import SystemIterable, SystemIterator, IEnumerator, AbstractEnumerator, Iterator
 from WinCopies.Collections.Linked.Singly import Stack
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualResult, DualNullableValueBool
 
@@ -23,21 +24,21 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
         self.__enumerators: Stack[TStackItems]|None = None
     
     @abstractmethod
-    def _CreateStack(self) -> TStackItems:
+    def _CreateStack(self) -> Stack[TStackItems]:
         pass
 
     @abstractmethod
     def _GetStackItem(self, item: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> TStackItems:
         pass
     @abstractmethod
-    def _GetStackItemAsEnumerator(self, item: TStackItems) -> IEnumerator[TEnumerationItems]:
+    def _GetStackItemTryAsEnumerator(self, item: TStackItems) -> IEnumerator[TEnumerationItems]:
         pass
     @abstractmethod
     def _GetStackItemAsCookie(self, item: TStackItems) -> TCookie:
         pass
 
     @abstractmethod
-    def _GetFirst(self) -> TCookie|None:
+    def _GetFirst(self) -> TCookie:
         pass
     @abstractmethod
     def _SetFirst(self, item: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> None:
@@ -45,13 +46,22 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
     
     @final
     def _Push(self, item: TStackItems) -> None:
+        if self.__enumerators is None:
+            raise InvalidOperationError()
+        
         self.__enumerators.Push(item)
 
     @final
     def _TryPeek(self) -> DualNullableValueBool[TStackItems]:
+        if self.__enumerators is None:
+            raise InvalidOperationError()
+        
         return self.__enumerators.TryPeek()
     @final
     def _TryPop(self) -> DualNullableValueBool[TStackItems]:
+        if self.__enumerators is None:
+            raise InvalidOperationError()
+        
         self.__enumerators.TryPop()
 
         return self._TryPeek()
@@ -59,6 +69,7 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
     def _OnStarting(self) -> bool:
         if super()._OnStarting():
             self.__enumerators = self._CreateStack()
+            self.__moveNext = self.__MoveNext
 
             return True
         
@@ -160,7 +171,7 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
             result: DualNullableValueBool[TStackItems] = self._TryPeek()
 
             if result.GetValue():
-                if moveNext(result):
+                if moveNext(result.GetKey()):
                     return True
                 
                 enumerator: IEnumerator[TEnumerationItems]|None = None
@@ -169,7 +180,7 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
                 while result.GetValue():
                     match ToNullableBoolean(self.__OnExitingSublevel(self._GetStackItemAsCookie(result))):
                         case NullableBoolean.BoolTrue:
-                            if moveNext(enumerator := self._GetStackItemAsEnumerator(result)):
+                            if moveNext(enumerator := self._GetStackItemTryAsEnumerator(result)):
                                 setCurrentEnumerator(enumerator)
 
                                 return True
@@ -210,14 +221,6 @@ class RecursiveEnumeratorBase[TEnumerationItems: SystemIterable[TEnumerationItem
     def _MoveNextOverride(self) -> bool:
         return self.__moveNext()
     
-    def _OnStarting(self) -> bool:
-        if super()._OnStarting():
-            self.__moveNext = self.__MoveNext
-
-            return True
-        
-        return False
-    
     def _OnEnded(self) -> None:
         self.__currentEnumerator = None
 
@@ -242,7 +245,7 @@ class RecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T, None,
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> IEnumerator[T]:
         return enumerator
     @final
-    def _GetStackItemAsEnumerator(self, item: IEnumerator[T]) -> IEnumerator[T]:
+    def _GetStackItemTryAsEnumerator(self, item: IEnumerator[T]) -> IEnumerator[T]:
         return item
     @final
     def _GetStackItemAsCookie(self, item: IEnumerator[T]) -> None:
@@ -269,14 +272,14 @@ class StackedRecursiveEnumerator[T: SystemIterable[T]](RecursiveEnumeratorBase[T
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> DualResult[T, IEnumerator[T]]:
         return DualResult[T, IEnumerator[T]](item, enumerator)
     @final
-    def _GetStackItemAsEnumerator(self, item: DualResult[T, IEnumerator[T]]) -> IEnumerator[T]:
+    def _GetStackItemTryAsEnumerator(self, item: DualResult[T, IEnumerator[T]]) -> IEnumerator[T]:
         return item.GetValue()
     @final
     def _GetStackItemAsCookie(self, item: DualResult[T, IEnumerator[T]]) -> T:
         return item.GetKey()
     
     @final
-    def _GetFirst(self) -> T|None:
+    def _GetFirst(self) -> T:
         return self.__first
     @final
     def _SetFirst(self, item: T, enumerator: IEnumerator[T]) -> None:
