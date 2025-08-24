@@ -191,7 +191,7 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         def getResult(value: TValue|None, info: bool) -> DualNullableValueBool[TValue]:
             return DualNullableValueBool[TValue](value, info)
         
-        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance())
+        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance()) # type: ignore
 
         return getResult(None, False) if isinstance(result, Dictionary.__None) else getResult(result, True)
     
