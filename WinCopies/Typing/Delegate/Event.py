@@ -11,7 +11,7 @@ class IEventCookie(ABC):
         super().__init__()
     
     @abstractmethod
-    def Remove() -> None:
+    def Remove(self) -> None:
         pass
 
 class IReadOnlyEventManager[TSender, TArgs](ABC):
@@ -34,11 +34,11 @@ class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWrit
         super().__init__()
     
     @abstractmethod
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie[TSender, TArgs]:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie:
         pass
 
 class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
-    class __EventCookie(IEventCookie[TSender, TArgs]):
+    class __EventCookie(IEventCookie):
         def __init__(self, node: DoublyLinkedNode[EventHandler[TSender, TArgs]]):
             super().__init__()
 
@@ -52,7 +52,7 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
         self.__events = IterableStack[EventHandler[TSender, TArgs]]()
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie[TSender, TArgs]:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie:
         return EventManager.__EventCookie(self.__events._Push(handler))
     
     @final
