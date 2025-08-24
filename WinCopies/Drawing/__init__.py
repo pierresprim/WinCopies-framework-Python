@@ -51,7 +51,7 @@ class Point(IPoint):
     
     @staticmethod
     def FromCoordinates(x: int, y: int) -> IPoint:
-        return Point.__Point(x) if x == y else Point.__Point(x, y)
+        return Point.__Point(x) if x == y else Point(x, y)
     
     def GetX(self) -> int:
         return self.__x
@@ -59,7 +59,7 @@ class Point(IPoint):
         return self.__y
 
 @final
-class Point3D(IPoint):
+class Point3D(IPoint3D):
     def __init__(self, point: Point, z: int):
         self.__point: Point = point
         self.__z: int = z
@@ -103,7 +103,7 @@ class IRectangle(ABC):
         return self.GetBottomRight().GetX()
 
 @final
-class Rectangle:
+class Rectangle(IRectangle):
     def __init__(self, topLeft: Point, bottomRight: Point):
         self.__topLeft: Point = topLeft
         self.__bottomRight: Point = bottomRight
