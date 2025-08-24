@@ -159,7 +159,7 @@ class IListBase[T](IReadOnlyCollection):
     def AsStackedGenerator(self) -> Generator[INullable[T]]:
         return self.__AsGenerator(self.RemoveLast)
 
-class IIterable[T](IListBase[T], Enumeration.IIterable[IDoublyLinkedNode[T]]):
+class IIterable[T](Enumeration.IIterable[IDoublyLinkedNode[T]]):
     def __init__(self):
         super().__init__()
     
@@ -167,7 +167,7 @@ class IIterable[T](IListBase[T], Enumeration.IIterable[IDoublyLinkedNode[T]]):
     def TryGetValueIterator(self) -> Iterator[T]|None:
         pass
 
-class IList[T](IIterable[T]):
+class IList[T](IListBase[T], IIterable[T]):
     def __init__(self):
         super().__init__()
 
