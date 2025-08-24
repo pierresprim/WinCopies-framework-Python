@@ -77,5 +77,7 @@ class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IGenericConstrain
     def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None:
         return node.GetNext()
 
-def GetValueIterator[T](node: ILinkedNode[T]) -> Generator[T]:
-    return Select(NodeEnumerator[T](node), lambda node: node.GetValue())
+def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]) -> Generator[T]:
+    return Select(nodeEnumerator, lambda node: node.GetValue())
+def GetValueIteratorFromNode[T](node: ILinkedNode[T]) -> Generator[T]:
+    return GetValueIterator(NodeEnumerator[T](node))

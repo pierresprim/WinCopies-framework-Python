@@ -6,7 +6,7 @@ from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
@@ -70,7 +70,7 @@ class Iterable[T](IList[T], IIterable[T]):
         
         first: SinglyLinkedNode[T]|None = self._GetFirst() # Should never be None here.
         
-        return None if first is None else GetValueIterator(first)
+        return None if first is None else GetValueIteratorFromNode(first)
 
 class List[T](IList[T]):
     def __init__(self):

@@ -7,7 +7,7 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
 from WinCopies.Collections.Enumeration import EmptyEnumerator
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIterator
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
@@ -323,7 +323,7 @@ class List[T](IList[T]):
     
     @final
     def TryGetValueIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() or self.__first is None else GetValueIterator(self.__first) # self.__first should not be None if self.IsEmpty().
+        return None if self.IsEmpty() or self.__first is None else GetValueIteratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
     @final
     def AsValueIterator(self) -> Iterator[T]:
         iterator: Iterator[T]|None = self.TryGetValueIterator()
