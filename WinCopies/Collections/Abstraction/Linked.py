@@ -1,82 +1,117 @@
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import final
 
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Doubly import List
 
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 
-class LinkedList[T](Singly.IList[T]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TList, Doubly.IListBase[TItems]]):
+    def __init__(self, l: TList):
         super().__init__()
 
-        self.__list: Doubly.IListBase[T] = List[T]() if l is None else l
+        self.__list: TList = l
     
     @final
-    def _GetList(self) -> Doubly.IListBase[T]:
+    def _GetContainer(self) -> TList:
         return self.__list
     @final
-    def _GetFirst(self) -> IDoublyLinkedNode[T]|None: # Needed for iteration.
-        return self._GetList().GetFirst()
+    def _GetFirst(self) -> IDoublyLinkedNode[TItems]|None: # Needed for iteration.
+        return self._GetInnerContainer().GetFirst()
     
     @final
     def IsEmpty(self) -> bool:
-        return self._GetList().IsEmpty()
+        return self._GetInnerContainer().IsEmpty()
     
     @abstractmethod
-    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
+    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
         pass
     
     @final
-    def Push(self, value: T) -> None:
+    def Push(self, value: TItems) -> None:
         self._Push(value)
     
     @final
-    def TryPushItems(self, items: Iterable[T]|None) -> bool:
-        return self._GetList().AddLastItems(items)
+    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+        return self._GetInnerContainer().AddLastItems(items)
     @final
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushItems(self, items: Iterable[TItems]) -> None:
         if not self.TryPushItems(items):
             raise ValueError("items can not be None.")
     
     @final
-    def PushValues(self, *values: T) -> None:
+    def PushValues(self, *values: TItems) -> None:
         self.TryPushItems(values)
     
     @final
-    def TryPeek(self) -> INullable[T]:
-        first: IDoublyLinkedNode[T]|None = self._GetFirst()
+    def TryPeek(self) -> INullable[TItems]:
+        first: IDoublyLinkedNode[TItems]|None = self._GetFirst()
 
         return GetNullValue() if first is None else GetNullable(first.GetValue())
     
     @final
-    def TryPop(self) -> INullable[T]:
-        return self._GetList().RemoveFirst()
+    def TryPop(self) -> INullable[TItems]:
+        return self._GetInnerContainer().RemoveFirst()
     
     @final
     def Clear(self) -> None:
-        self._GetList().Clear()
+        self._GetInnerContainer().Clear()
 
-class Queue[T](LinkedList[T]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+class QueueBase[TItems, TList](LinkedListBase[TItems, TList]):
+    def __init__(self, l: TList):
         super().__init__(l)
     
     @final
-    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
-        return self._GetList().AddLast(value)
-class Stack[T](LinkedList[T]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
+        return self._GetInnerContainer().AddLast(value)
+class StackBase[TItems, TList](LinkedListBase[TItems, TList]):
+    def __init__(self, l: TList):
         super().__init__(l)
     
     @final
-    def _Push(self, value: T) -> IDoublyLinkedNode[T]:
-        return self._GetList().AddFirst(value)
+    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
+        return self._GetInnerContainer().AddFirst(value)
 
-class IterableQueue[T](Queue[T], Singly.IIterable[T]):
+class LinkedList[T](LinkedListBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
     def __init__(self, l: Doubly.IListBase[T]|None = None):
-        super().__init__(l)
-class IterableStack[T](Stack[T], Singly.IIterable[T]):
+        super().__init__(LinkedList[T].GetList(l))
+    
+    @staticmethod
+    def GetList(l: Doubly.IListBase[T]|None) -> Doubly.IListBase[T]:
+        return List[T]() if l is None else l
+class IterableLinkedList[T](LinkedListBase[T, Doubly.IList[T]], IGenericConstraintImplementation[Doubly.IList[T]]):
+    def __init__(self, l: Doubly.IList[T]|None = None):
+        super().__init__(IterableLinkedList[T].GetList(l))
+    
+    @staticmethod
+    def GetList(l: Doubly.IList[T]|None) -> Doubly.IList[T]:
+        return List[T]() if l is None else l
+
+class Queue[T](QueueBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
     def __init__(self, l: Doubly.IListBase[T]|None = None):
-        super().__init__(l)
+        super().__init__(LinkedList[T].GetList(l))
+class Stack[T](StackBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
+    def __init__(self, l: Doubly.IListBase[T]|None = None):
+        super().__init__(LinkedList[T].GetList(l))
+
+class IIterableLinkedListBase[TItems, TList](Singly.IIterable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def TryGetIterator(self) -> Iterator[TItems]|None:
+        iterable: Iterable[IDoublyLinkedNode[TItems]]|None = self._GetInnerContainer()
+        
+        return Select(iterable, lambda node: node.GetValue())
+class IIterableLinkedList[T](IIterableLinkedListBase[T, Doubly.IList[T]]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IterableQueue[T](QueueBase[T, Doubly.IList[T]], IIterableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+    def __init__(self, l: Doubly.IList[T]|None = None):
+        super().__init__(IterableLinkedList[T].GetList(l))
+class IterableStack[T](StackBase[T, Doubly.IList[T]], IIterableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+    def __init__(self, l: Doubly.IList[T]|None = None):
+        super().__init__(IterableLinkedList[T].GetList(l))
