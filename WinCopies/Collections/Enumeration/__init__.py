@@ -96,7 +96,7 @@ class IIterable[T](collections.abc.Iterable[T]):
 
         return EmptyEnumerator[T]() if enumerator is None else enumerator
 
-class ICountableIterable[T](ICountable, IIterable[T]):
+class ICountableIterable[T](IIterable[T], ICountable):
     def __init__(self):
         super().__init__()
 
@@ -278,10 +278,7 @@ class Iterable[T](IIterable[T]):
         return TryAsEnumerator(self.__iterable.__iter__())
     
     @staticmethod
-    def Create(iterable: SystemIterable[T]|None) -> IIterable[T]:
-        if iterable is None:
-            raise ValueError("The iterable can not be None.")
-        
+    def Create(iterable: SystemIterable[T]) -> IIterable[T]:
         return iterable if isinstance(iterable, IIterable) else Iterable(iterable)
     @staticmethod
     def TryCreate(iterable: SystemIterable[T]|None) -> IIterable[T]|None:
