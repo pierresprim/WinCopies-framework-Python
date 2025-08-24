@@ -293,7 +293,7 @@ class IteratorProvider[T](IIterable[T]):
         return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
 
 
-class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TIn, TEnumerator]):
+class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
         
