@@ -407,7 +407,7 @@ class MemoryTextStream(IStream, IStringable):
     def _GetStream(self) -> StringIO|None:
         return self.__stream
     
-    @abstractmethod
+    @final
     def IsOpen(self) -> bool:
         return self._GetStream() is not None
     
