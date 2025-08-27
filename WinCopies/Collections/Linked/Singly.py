@@ -226,7 +226,7 @@ class IterableStack[T](Stack[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
 
-class CollectionBase[TItems, TList](IList[TItems], GenericConstraint[TList, IList[TItems]]):
+class CollectionBase[TItems, TList](GenericConstraint[TList, IList[TItems]], IList[TItems]):
     def __init__(self, l: TList):
         self.__list: TList = l
     

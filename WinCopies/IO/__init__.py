@@ -7,7 +7,7 @@ Created on Tue Jun 04 11:47:00 2024
 
 import os
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterable
 from enum import Enum
 from typing import Sequence, AnyStr
@@ -26,9 +26,9 @@ class FileKind(Enum):
     Junction = 5
     Archive = 6
 
-class IDirEntry(ABC, IIterable['IDirEntry']):
-    def __init__(self):
-        pass
+class IDirEntry(IIterable['IDirEntry']):
+    def __init__(self) -> None:
+        super().__init__()
     
     @abstractmethod
     def GetPath(self) -> str:

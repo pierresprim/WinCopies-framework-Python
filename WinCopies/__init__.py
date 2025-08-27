@@ -7,22 +7,16 @@ Created on Fri May 26 14:21:00 2023
 
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from enum import Enum
 from types import TracebackType
 from typing import final, Self
 
-class IBooleanable(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class IBooleanable:
     @abstractmethod
     def ToBool(self) -> bool:
         pass
-class INullableBooleanable(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class INullableBooleanable:
     @abstractmethod
     def ToNullableBoolean(self) -> NullableBoolean:
         pass
@@ -79,10 +73,7 @@ class BitDepthLevel(Enum):
     Three = 32
     Four = 64
 
-class IDisposable(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class IDisposable:
     @final
     def __enter__(self) -> Self:
         return self
@@ -97,10 +88,7 @@ class IDisposable(ABC):
         
         return False
 
-class IStringable(ABC):
-    def __init__(self):
-        super().__init__()
-
+class IStringable:
     @abstractmethod
     def ToString(self) -> str:
         pass

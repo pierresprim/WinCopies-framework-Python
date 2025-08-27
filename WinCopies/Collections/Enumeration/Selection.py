@@ -39,8 +39,6 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
 
 class __PredicateEnumerator[T]:
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
-        super().__init__()
-
         self.__enumerator: IEnumerator[T] = enumerator
         self.__predicate: Predicate[T] = predicate
     

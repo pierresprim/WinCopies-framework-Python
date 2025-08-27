@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode
@@ -6,24 +6,21 @@ from WinCopies.Collections.Abstraction.Linked import IterableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEventCookie(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class IEventCookie:
     @abstractmethod
     def Remove(self) -> None:
         pass
 
 class IReadOnlyEventManager[TSender, TArgs]:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         pass
 class IWriteOnlyEventManager[TSender, TArgs, TCookie]:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TCookie:

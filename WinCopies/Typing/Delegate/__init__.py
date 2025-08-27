@@ -12,7 +12,7 @@ type Selector[T] = Converter[T, T]
 
 class IFunction[T]:
     def __init__(self):
-        super().__init__()
+        pass
 
     @abstractmethod
     def GetValue(self) -> T:

@@ -1,13 +1,10 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from enum import Enum
 from typing import final, Self
 
 from WinCopies.Typing.Decorators import MetaSingleton
 
-class _IGenerator(ABC):
-    def __init__(self):
-        pass
-    
+class _IGenerator:
     @abstractmethod
     def Render(self, i: int) -> str:
         pass
@@ -32,7 +29,7 @@ class _TextRenderer(_Renderer):
     def Render(self, i: int) -> str:
         return self.GetText()
 
-class _ICounter(ABC):
+class _ICounter:
     def __init__(self, before: bool):
         self.__before: bool = before
     

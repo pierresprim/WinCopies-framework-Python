@@ -6,12 +6,9 @@ Created on Mon Jul 01 14:21:00 2024
 """
 
 from typing import final
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-class IPoint(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class IPoint:
     @abstractmethod
     def GetX(self) -> int:
         pass
@@ -78,10 +75,7 @@ class Point3D(IPoint3D):
     def GetZ(self) -> int:
         return self.__z
 
-class IRectangle(ABC):
-    def __init__(self):
-        super().__init__()
-
+class IRectangle:
     @abstractmethod
     def GetTopLeft(self) -> IPoint:
         pass

@@ -20,7 +20,7 @@ type SystemIterator[T] = collections.abc.Iterator[T]
 
 class IEnumeratorBase:
     def __init__(self) -> None:
-        super().__init__()
+        pass
     
     @abstractmethod
     def IsStarted(self) -> bool:

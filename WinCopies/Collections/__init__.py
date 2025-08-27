@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections.abc
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence, MutableSequence
 from contextlib import AbstractContextManager
 from enum import Enum
@@ -238,9 +238,9 @@ class EmptyException(Exception):
     def __init__(self):
         pass
 
-class IReadOnlyCollection(ABC):
+class IReadOnlyCollection:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def IsEmpty(self) -> bool:
@@ -275,10 +275,7 @@ class ICollection[T](IReadOnlyCollection):
     def RemoveAt(self, index: int) -> None:
         pass
 
-class ICountable(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class ICountable:
     @abstractmethod
     def GetCount(self) -> int:
         pass
@@ -295,17 +292,14 @@ class ICountable(ABC):
     def __len__(self) -> int:
         return self.GetCount()
 
-class IClearable(ABC):
-    def __init__(self):
-        super().__init__()
-    
+class IClearable:
     @abstractmethod
     def Clear(self) -> None:
         pass
 
 class IKeyableBase[TKey]:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def ContainsKey(self, key: TKey) -> bool:

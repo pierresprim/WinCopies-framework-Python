@@ -1,9 +1,9 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import final
 
-class IBoolProvider(ABC):
+class IBoolProvider:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def AsBool(self) -> bool:
@@ -24,9 +24,9 @@ class IAsBool[T](IBoolProvider):
     def Not(self) -> T:
         pass
 
-class INullableBoolProvider(ABC):
+class INullableBoolProvider:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def AsNullableBool(self) -> bool|None:

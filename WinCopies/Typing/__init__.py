@@ -12,7 +12,7 @@ from WinCopies.Typing.Delegate import Converter, Selector
 
 class IStruct[T]:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def GetValue(self) -> T:
@@ -36,7 +36,7 @@ class InvalidOperationError(Exception):
 
 class IEquatable[T]:
     def __init__(self):
-        super().__init__()
+        pass
     
     @abstractmethod
     def Equals(self, item: T|object) -> bool:
@@ -78,7 +78,7 @@ class IDisposableObject[T](IDisposable, IObject[T]):
 
 class __IGenericConstraint[TContainer, TInterface]:
     def __init__(self) -> None:
-        super().__init__()
+        pass
     
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
@@ -113,7 +113,7 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
 
 class INullable[T]:
     def __init__(self) -> None:
-        super().__init__()
+        pass
     
     @abstractmethod
     def HasValue(self) -> bool:
