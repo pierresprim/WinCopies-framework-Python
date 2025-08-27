@@ -1,9 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies.Typing import EnsureDirectPackageCall
 
-class ILinkedNode[T](ABC):
+class ILinkedNode[T]:
     @abstractmethod
     def GetValue(self) -> T:
         pass

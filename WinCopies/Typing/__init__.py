@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from collections.abc import Iterable
 from inspect import stack, FrameInfo
 from os import path
@@ -10,7 +10,7 @@ from WinCopies import IStringable
 from WinCopies.Assertion import TryEnsureTrue
 from WinCopies.Typing.Delegate import Converter, Selector
 
-class IStruct[T](ABC):
+class IStruct[T]:
     def __init__(self):
         super().__init__()
     
@@ -34,7 +34,7 @@ class InvalidOperationError(Exception):
     def __init__(self, *args: object):
         super().__init__(*args)
 
-class IEquatable[T](ABC):
+class IEquatable[T]:
     def __init__(self):
         super().__init__()
     
@@ -76,7 +76,7 @@ class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self):
         super().__init__()
 
-class __IGenericConstraint[TContainer, TInterface](ABC):
+class __IGenericConstraint[TContainer, TInterface]:
     def __init__(self) -> None:
         super().__init__()
     
@@ -111,7 +111,7 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def _AsContainer(self, container: T) -> T:
         return container
 
-class INullable[T](ABC):
+class INullable[T]:
     def __init__(self) -> None:
         super().__init__()
     

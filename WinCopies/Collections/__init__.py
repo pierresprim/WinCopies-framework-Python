@@ -303,7 +303,7 @@ class IClearable(ABC):
     def Clear(self) -> None:
         pass
 
-class IKeyableBase[TKey](ABC):
+class IKeyableBase[TKey]:
     def __init__(self):
         super().__init__()
     

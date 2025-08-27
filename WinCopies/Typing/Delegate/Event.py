@@ -14,14 +14,14 @@ class IEventCookie(ABC):
     def Remove(self) -> None:
         pass
 
-class IReadOnlyEventManager[TSender, TArgs](ABC):
+class IReadOnlyEventManager[TSender, TArgs]:
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         pass
-class IWriteOnlyEventManager[TSender, TArgs, TCookie](ABC):
+class IWriteOnlyEventManager[TSender, TArgs, TCookie]:
     def __init__(self):
         super().__init__()
     

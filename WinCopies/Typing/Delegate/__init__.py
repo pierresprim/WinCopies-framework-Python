@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from typing import final, Callable
 
 type Action = Callable[[], None]
@@ -10,7 +10,7 @@ type EqualityComparison[T] = Callable[[T, T], bool]
 type IndexedValueComparison[T] = Callable[[int, T], bool]
 type Selector[T] = Converter[T, T]
 
-class IFunction[T](ABC):
+class IFunction[T]:
     def __init__(self):
         super().__init__()
 
