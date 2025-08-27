@@ -4,7 +4,9 @@ from inspect import stack, FrameInfo
 from os import path
 from typing import final, List, Type
 
-from WinCopies import IDisposable, IStringable
+import WinCopies
+
+from WinCopies import IStringable
 from WinCopies.Assertion import TryEnsureTrue
 from WinCopies.Typing.Delegate import Converter, Selector
 
@@ -27,6 +29,10 @@ class Struct[T](IStruct[T]):
         return self.__value
     def SetValue(self, value: T) -> None:
         self.__value = value
+
+class InvalidOperationError(Exception):
+    def __init__(self, *args: object):
+        super().__init__(*args)
 
 class IEquatable[T](ABC):
     def __init__(self):
@@ -54,6 +60,17 @@ class IEquatableObject[T](IEquatable[T]):
 class IObject[T](IEquatableObject[T], IStringable):
     def __init__(self):
         super().__init__()
+
+def GetDisposedError() -> InvalidOperationError:
+    raise InvalidOperationError("The current table has been disposed.")
+
+class IDisposable(WinCopies.IDisposable):
+    def __init__(self):
+        super().__init__()
+
+    @final
+    def _Throw(self) -> None:
+        raise GetDisposedError()
 
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self):
@@ -201,7 +218,3 @@ def TryGetValueAs[TValue, TDefault](type: Type[TValue], value: object, default: 
     return value if isinstance(value, type) else default
 def TryGetAs[T](type: Type[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
-
-class InvalidOperationError(Exception):
-    def __init__(self, *args: object):
-        super().__init__(*args)
