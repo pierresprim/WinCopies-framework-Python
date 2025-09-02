@@ -13,13 +13,22 @@ from typing import final
 
 from WinCopies import IO, String
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration.Extensions import IRecursivelyIterable, RecursivelyIterable
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
-class IterableDirEntry(IDirEntry):
+class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _AsRecursivelyIterable(self, container: IDirEntry) -> IRecursivelyIterable[IDirEntry]:
+        return container
+    
     @final
     def IsDirectory(self):
         return os.path.isdir(self.GetPath())
+    
     @final
     def TryGetIterator(self) -> Generator[IterableDirEntry]|None:
         return (SystemDirEntry(dirEntry) for dirEntry in os.scandir(self.GetPath())) if self.IsDirectory() else None
