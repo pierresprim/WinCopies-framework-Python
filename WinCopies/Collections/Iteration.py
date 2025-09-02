@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Iterator
 
 from WinCopies.Collections import Generator, Enumeration
-from WinCopies.Collections.Enumeration import AsEnumerator, IEnumerator, EmptyEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
