@@ -12,6 +12,10 @@ from enum import Enum
 from types import TracebackType
 from typing import final, Self
 
+class IInterface:
+    def __init__(self) -> None:
+        pass
+
 class IBooleanable:
     @abstractmethod
     def ToBool(self) -> bool:
