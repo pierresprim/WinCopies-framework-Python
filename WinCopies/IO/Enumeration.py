@@ -1,28 +1,17 @@
 from collections.abc import Iterator
 
-from WinCopies.Collections import Generator, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator
-from WinCopies.Collections.Enumeration.Extensions import RecursiveEnumerator
+from WinCopies.Collections import Generator
 from WinCopies.IO import IDirEntry
 from WinCopies.IO.DirEntry import DirEntry
 
-def TryGetEnumerator(dirEntry: IDirEntry) -> IEnumerator[IDirEntry]|None:
-    iterator: Iterator[IDirEntry]|None = dirEntry.TryGetIterator()
-
-    return None if iterator is None else RecursiveEnumerator[IDirEntry](Enumeration.AsEnumerator(iterator))
-def GetEnumerator(dirEntry: IDirEntry) -> IEnumerator[IDirEntry]:
-    enumerator: IEnumerator[IDirEntry]|None = TryGetEnumerator(dirEntry)
-    
-    return EmptyEnumerator[IDirEntry]() if enumerator is None else enumerator
-
 def Enumerate(dirEntry: IDirEntry) -> Generator[IDirEntry]:
-    for dirEntry in GetEnumerator(dirEntry):
+    for dirEntry in dirEntry.GetRecursiveIterator():
         yield dirEntry
 
-def TryGetEnumeratorFromPath(path: str) -> IEnumerator[IDirEntry]|None:
-    return TryGetEnumerator(DirEntry.FromPath(path))
-def GetEnumeratorFromPath(path: str) -> IEnumerator[IDirEntry]:
-    return GetEnumerator(DirEntry.FromPath(path))
+def TryGetIteratorFromPath(path: str) -> Iterator[IDirEntry]|None:
+    return DirEntry.FromPath(path).TryGetRecursiveIterator()
+def GetIteratorFromPath(path: str) -> Iterator[IDirEntry]:
+    return DirEntry.FromPath(path).GetRecursiveIterator()
 
 def EnumerateFromPath(path: str) -> Generator[IDirEntry]:
     return Enumerate(DirEntry.FromPath(path))
