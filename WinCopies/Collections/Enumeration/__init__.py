@@ -85,16 +85,20 @@ class EmptyEnumerator[T](IEnumerator[T]):
     def HasProcessedItems(self) -> bool:
         return False
 
+def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
+    return EmptyEnumerator[T]() if iterator is None else iterator
+
 class IIterable[T](collections.abc.Iterable[T]):
     @abstractmethod
     def TryGetIterator(self) -> SystemIterator[T]|None:
         pass
+    @final
+    def GetIterator(self) -> SystemIterator[T]:
+        return AsIterator(self.TryGetIterator())
     
     @final
     def __iter__(self) -> SystemIterator[T]:
-        enumerator: SystemIterator[T]|None = self.TryGetIterator()
-
-        return EmptyEnumerator[T]() if enumerator is None else enumerator
+        return self.GetIterator()
 
 class ICountableIterable[T](IIterable[T], ICountable):
     def __init__(self):
@@ -255,15 +259,10 @@ class Iterator[T](Enumerator[T]):
     def _ResetOverride(self) -> bool:
         return False
 
+def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
+    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
 def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
-    return None if iterator is None else (iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator))
-def AsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]:
-    result: IEnumerator[T]|None = TryAsEnumerator(iterator)
-
-    if result is None:
-        raise ValueError
-    
-    return result
+    return None if iterator is None else AsEnumerator(iterator)
 
 class Iterable[T](IIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
