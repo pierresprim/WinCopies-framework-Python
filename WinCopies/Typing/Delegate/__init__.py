@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import final, Callable
 
+from WinCopies import IInterface
+
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]
 type Function[T] = Callable[[], T]
@@ -10,9 +12,9 @@ type EqualityComparison[T] = Callable[[T, T], bool]
 type IndexedValueComparison[T] = Callable[[int, T], bool]
 type Selector[T] = Converter[T, T]
 
-class IFunction[T]:
+class IFunction[T](IInterface):
     def __init__(self):
-        pass
+        super().__init__()
 
     @abstractmethod
     def GetValue(self) -> T:

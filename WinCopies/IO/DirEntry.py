@@ -35,6 +35,8 @@ class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
 
 class SystemDirEntry(IterableDirEntry):
     def __init__(self, dirEntry: os.DirEntry[str]):
+        super().__init__()
+
         self.__dirEntry: os.DirEntry[str] = dirEntry
     
     @final
@@ -59,6 +61,8 @@ class SystemDirEntry(IterableDirEntry):
 
 class DirEntry(IterableDirEntry):
     def __init__(self, directory: str|None, name: str|None, extension: str|None):
+        super().__init__()
+        
         self.__directory: str = StringifyIfNone(directory)
         self.__name: str = StringifyIfNone(name)
         self.__extension: str = StringifyIfNone(extension)

@@ -6,11 +6,11 @@ from typing import final, List, Type
 
 import WinCopies
 
-from WinCopies import IStringable
+from WinCopies import IInterface, IStringable
 from WinCopies.Assertion import TryEnsureTrue
 from WinCopies.Typing.Delegate import Converter, Selector
 
-class IStruct[T]:
+class IStruct[T](IInterface):
     def __init__(self):
         pass
     
@@ -22,6 +22,8 @@ class IStruct[T]:
         pass
 class Struct[T](IStruct[T]):
     def __init__(self, value: T):
+        super().__init__()
+
         self.__value: T = value
     
     @final
@@ -34,9 +36,9 @@ class InvalidOperationError(Exception):
     def __init__(self, *args: object):
         super().__init__(*args)
 
-class IEquatable[T]:
+class IEquatable[T](IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def Equals(self, item: T|object) -> bool:
@@ -76,9 +78,9 @@ class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self):
         super().__init__()
 
-class __IGenericConstraint[TContainer, TInterface]:
+class __IGenericConstraint[TContainer, TInterface](IInterface):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
@@ -111,9 +113,9 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def _AsContainer(self, container: T) -> T:
         return container
 
-class INullable[T]:
+class INullable[T](IInterface):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
     @abstractmethod
     def HasValue(self) -> bool:
@@ -125,6 +127,8 @@ class INullable[T]:
 @final
 class __Nullable[T](INullable[T]):
     def __init__(self, value: T) -> None:
+        super().__init__()
+        
         self.__value: T = value
     
     def HasValue(self) -> bool:

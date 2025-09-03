@@ -1,9 +1,11 @@
 from abc import abstractmethod
 from typing import final
 
-class IBoolProvider:
+from WinCopies import IInterface
+
+class IBoolProvider(IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def AsBool(self) -> bool:
@@ -24,9 +26,9 @@ class IAsBool[T](IBoolProvider):
     def Not(self) -> T:
         pass
 
-class INullableBoolProvider:
+class INullableBoolProvider(IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def AsNullableBool(self) -> bool|None:

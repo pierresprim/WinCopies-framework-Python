@@ -1,9 +1,13 @@
 from abc import abstractmethod
 from typing import final, Self
 
+from WinCopies import IInterface
 from WinCopies.Typing import EnsureDirectPackageCall
 
-class ILinkedNode[T]:
+class ILinkedNode[T](IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetValue(self) -> T:
         pass
@@ -15,12 +19,17 @@ class ILinkedNode[T]:
     def GetNext(self) -> Self|None:
         pass
 class IDoublyLinkedNode[T](ILinkedNode[T]):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetPrevious(self) -> Self|None:
         pass
 
 class LinkedNodeBase[T]:
     def __init__(self, value: T):
+        super().__init__()
+        
         self.__value: T = value
     
     @final

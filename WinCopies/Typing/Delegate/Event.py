@@ -1,26 +1,30 @@
 from abc import abstractmethod
 from typing import final, Callable
 
+from WinCopies import IInterface
 from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode
 from WinCopies.Collections.Abstraction.Linked import IterableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEventCookie:
+class IEventCookie(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def Remove(self) -> None:
         pass
 
-class IReadOnlyEventManager[TSender, TArgs]:
+class IReadOnlyEventManager[TSender, TArgs](IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         pass
-class IWriteOnlyEventManager[TSender, TArgs, TCookie]:
+class IWriteOnlyEventManager[TSender, TArgs, TCookie](IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TCookie:
@@ -46,6 +50,8 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
             self.__node.Remove()
     
     def __init__(self):
+        super().__init__()
+
         self.__events = IterableStack[EventHandler[TSender, TArgs]]()
     
     @final
@@ -64,6 +70,8 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
 
 class ReadOnlyEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs]):
     def __init__(self, manager: IReadOnlyEventManager[TSender, TArgs]):
+        super().__init__()
+
         self.__manager = manager
     
     @final
@@ -71,6 +79,8 @@ class ReadOnlyEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs]
         return self.__manager.Invoke(sender, args)
 class WriteOnlyEventManager[TSender, TArgs](IWriteOnlyEventManager[TSender, TArgs]):
     def __init__(self, manager: IReadOnlyEventManager[TSender, TArgs]):
+        super().__init__()
+        
         self.__manager = manager
     
     @final

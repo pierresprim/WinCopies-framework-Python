@@ -5,10 +5,15 @@ Created on Mon Jul 01 14:21:00 2024
 @author: Pierre Sprimont
 """
 
-from typing import final
 from abc import abstractmethod
+from typing import final
 
-class IPoint:
+from WinCopies import IInterface
+
+class IPoint(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetX(self) -> int:
         pass
@@ -19,6 +24,9 @@ class IPoint:
     def __str__(self):
         return f"{self.GetX()};{self.GetY()}"
 class IPoint3D(IPoint):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def Get2D(self) -> IPoint:
         pass
@@ -35,6 +43,8 @@ class Point(IPoint):
     @final
     class __Point(IPoint):
         def __init__(self, value: int):
+            super().__init__()
+
             self.__value: int = value
         
         def GetX(self) -> int:
@@ -43,6 +53,8 @@ class Point(IPoint):
             return self.__value
     
     def __init__(self, x: int, y: int):
+        super().__init__()
+
         self.__x: int = x
         self.__y: int = y
     
@@ -58,6 +70,8 @@ class Point(IPoint):
 @final
 class Point3D(IPoint3D):
     def __init__(self, point: Point, z: int):
+        super().__init__()
+
         self.__point: Point = point
         self.__z: int = z
     
@@ -75,7 +89,10 @@ class Point3D(IPoint3D):
     def GetZ(self) -> int:
         return self.__z
 
-class IRectangle:
+class IRectangle(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetTopLeft(self) -> IPoint:
         pass
@@ -99,6 +116,8 @@ class IRectangle:
 @final
 class Rectangle(IRectangle):
     def __init__(self, topLeft: Point, bottomRight: Point):
+        super().__init__()
+        
         self.__topLeft: Point = topLeft
         self.__bottomRight: Point = bottomRight
     

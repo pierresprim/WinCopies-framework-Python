@@ -10,7 +10,7 @@ import collections.abc
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import Delegates
+from WinCopies import Delegates, IInterface
 from WinCopies.Collections import ICountable
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Converter, Function
@@ -18,9 +18,9 @@ from WinCopies.Typing.Delegate import Converter, Function
 type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
 
-class IEnumeratorBase:
+class IEnumeratorBase(IInterface):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
     @abstractmethod
     def IsStarted(self) -> bool:
@@ -89,6 +89,9 @@ def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
     return EmptyEnumerator[T]() if iterator is None else iterator
 
 class IIterable[T](collections.abc.Iterable[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
     @abstractmethod
     def TryGetIterator(self) -> SystemIterator[T]|None:
         pass
@@ -266,6 +269,8 @@ def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
 
 class Iterable[T](IIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
+        super().__init__()
+
         self.__iterable: SystemIterable[T] = iterable
     
     @final
@@ -285,6 +290,8 @@ class Iterable[T](IIterable[T]):
 
 class IteratorProvider[T](IIterable[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):
+        super().__init__()
+        
         self.__iteratorProvider: Function[SystemIterator[T]]|None = iteratorProvider
     
     @final

@@ -7,6 +7,9 @@ from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
 class IKeyValuePair[TKey, TValue](IEquatable[Self]): # type: ignore
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def IsKeyValuePair(self) -> bool:
         pass
@@ -57,6 +60,8 @@ class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
 
 class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
     def __init__(self, value: TValue, info: TInfo):
+        super().__init__()
+        
         self.__value: TValue = value
         self.__info: TInfo = info
     

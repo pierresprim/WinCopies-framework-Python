@@ -16,11 +16,17 @@ class IInterface:
     def __init__(self) -> None:
         pass
 
-class IBooleanable:
+class IBooleanable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
     @abstractmethod
     def ToBool(self) -> bool:
         pass
-class INullableBooleanable:
+class INullableBooleanable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
     @abstractmethod
     def ToNullableBoolean(self) -> NullableBoolean:
         pass
@@ -77,7 +83,10 @@ class BitDepthLevel(Enum):
     Three = 32
     Four = 64
 
-class IDisposable:
+class IDisposable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
     @final
     def __enter__(self) -> Self:
         return self
@@ -92,7 +101,10 @@ class IDisposable:
         
         return False
 
-class IStringable:
+class IStringable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
     @abstractmethod
     def ToString(self) -> str:
         pass

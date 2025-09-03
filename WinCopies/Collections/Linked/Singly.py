@@ -228,6 +228,8 @@ class IterableStack[T](Stack[T], Iterable[T]):
 
 class CollectionBase[TItems, TList](GenericConstraint[TList, IList[TItems]], IList[TItems]):
     def __init__(self, l: TList):
+        super().__init__()
+        
         self.__list: TList = l
     
     def _GetContainer(self) -> TList:

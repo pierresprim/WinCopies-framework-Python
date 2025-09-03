@@ -5,8 +5,8 @@ Created on Thu May 30 07:37:00 2024
 @author: Pierre Sprimont
 """
 
-from typing import Callable, Iterable, AnyStr
 import os
+from typing import Callable, Iterable, AnyStr
 
 from WinCopies import Delegates, Collections, IO
 from WinCopies.Typing.Delegate import Converter, Method, Predicate

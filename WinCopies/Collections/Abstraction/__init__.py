@@ -96,6 +96,8 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         @final
         class KeyValuePair(IKeyValuePair[TKey, TValue]):
             def __init__(self, item: tuple[TKey, TValue]):
+                super().__init__()
+                
                 self.__item: tuple[TKey, TValue] = item
             
             @final

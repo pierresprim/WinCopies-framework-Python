@@ -8,7 +8,7 @@ from contextlib import AbstractContextManager
 from enum import Enum
 from typing import final, Callable
 
-from WinCopies import Collections, Not
+from WinCopies import Collections, IInterface, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
@@ -235,12 +235,12 @@ def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider
     return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
 
 class EmptyException(Exception):
-    def __init__(self):
-        pass
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
-class IReadOnlyCollection:
+class IReadOnlyCollection(IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def IsEmpty(self) -> bool:
@@ -275,7 +275,10 @@ class ICollection[T](IReadOnlyCollection):
     def RemoveAt(self, index: int) -> None:
         pass
 
-class ICountable:
+class ICountable(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetCount(self) -> int:
         pass
@@ -292,14 +295,17 @@ class ICountable:
     def __len__(self) -> int:
         return self.GetCount()
 
-class IClearable:
+class IClearable(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def Clear(self) -> None:
         pass
 
-class IKeyableBase[TKey]:
+class IKeyableBase[TKey](IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def ContainsKey(self, key: TKey) -> bool:
@@ -429,8 +435,10 @@ class List[T](Array[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class FinderPredicate[T]:
+class FinderPredicate[T](IInterface):
     def __init__(self):
+        super().__init__()
+        
         self.__Reset()
     
     def __Reset(self):

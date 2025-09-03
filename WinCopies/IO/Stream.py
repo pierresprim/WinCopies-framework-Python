@@ -78,7 +78,7 @@ class FileType(Enum):
 
 class IStream(IDisposable):
     def __init__(self):
-        pass
+        super().__init__()
 
     @abstractmethod
     def IsOpen(self) -> bool:
@@ -142,6 +142,8 @@ class File[T](IFileStream[T]):
     CONSTS = __Consts()
 
     def __init__(self, path: str):
+        super().__init__()
+        
         self.__path: str = path
     
     def TryOpen(self, fileMode: FileMode) -> bool|None:
