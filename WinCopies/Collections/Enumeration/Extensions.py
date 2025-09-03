@@ -17,14 +17,14 @@ from WinCopies.Typing import InvalidOperationError, INullable
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualResult
 
-class __RecursiveEnumeratorBase[T](IInterface):
+class _RecursiveEnumeratorBase[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _GetEnumerationItems(self, enumerationItems: T) -> SystemIterable[T]:
         pass
-class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], __RecursiveEnumeratorBase[TEnumerationItems]):
+class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], _RecursiveEnumeratorBase[TEnumerationItems]):
     def __init__(self, enumerator: IEnumerator[TEnumerationItems]):
         super().__init__(enumerator)
         
@@ -323,7 +323,7 @@ class IRecursivelyIterable[T](IIterable[T]):
         return AsIterator(self.TryGetRecursiveIterator())
 
 class RecursivelyIterable[T](IRecursivelyIterable[T]):
-    class __IEnumerator(__RecursiveEnumeratorBase[T]):
+    class __IEnumerator(_RecursiveEnumeratorBase[T]):
         def __init__(self) -> None:
             super().__init__()
         

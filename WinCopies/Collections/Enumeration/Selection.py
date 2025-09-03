@@ -38,7 +38,7 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
     def _OnStopped(self) -> None:
         pass
 
-class __PredicateEnumerator[T](IInterface):
+class _PredicateEnumerator[T](IInterface):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__()
         
@@ -54,7 +54,7 @@ class SelectorEnumerator[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
@@ -69,7 +69,7 @@ class IncluerUntilEnumerator[T](InclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
@@ -84,7 +84,7 @@ class IncluerEnumerator[T](InclusionUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
@@ -122,7 +122,7 @@ class PredicateDoWhileEnumerator[T](DoWhileEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
@@ -131,7 +131,7 @@ class DoUntilEnumerator[T](DoWhileEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return not self.__predicate.Validate()
@@ -189,7 +189,7 @@ class ExcluerUntilEnumerator[T](ExclusionUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
@@ -204,7 +204,7 @@ class ExcluerEnumerator[T](ExclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__(enumerator)
 
-        self.__predicate: __PredicateEnumerator[T] = __PredicateEnumerator[T](enumerator, predicate)
+        self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
     def _Validate(self) -> bool:
         return self.__predicate.Validate()
