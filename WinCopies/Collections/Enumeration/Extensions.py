@@ -360,8 +360,11 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
     @abstractmethod
     def _AsRecursivelyIterable(self, container: T) -> IRecursivelyIterable[T]:
         pass
+    
+    def _TryGetRecursiveIterator(self, iterator: IEnumerator[T]) -> SystemIterator[T]|None:
+        return RecursivelyIterable[T]._Enumerator(self, iterator)
 
     def TryGetRecursiveIterator(self) -> SystemIterator[T]|None:
         iterator: SystemIterator[T]|None = self.TryGetIterator()
 
-        return None if iterator is None else RecursivelyIterable[T]._Enumerator(self, AsEnumerator(iterator))
+        return None if iterator is None else self._TryGetRecursiveIterator(AsEnumerator(iterator))
