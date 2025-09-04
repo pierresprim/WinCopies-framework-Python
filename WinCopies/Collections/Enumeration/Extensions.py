@@ -358,7 +358,7 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
         super().__init__()
     
     @abstractmethod
-    def _AsRecursivelyIterable(self, container: T) -> IRecursivelyIterable[T]:
+    def _AsRecursivelyIterable(self, container: T) -> IIterable[T]:
         pass
     
     def _TryGetRecursiveIterator(self, iterator: IEnumerator[T]) -> SystemIterator[T]|None:

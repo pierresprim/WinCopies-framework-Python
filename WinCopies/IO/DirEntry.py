@@ -13,7 +13,8 @@ from typing import final
 
 from WinCopies import IO, String
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Extensions import IRecursivelyIterable, RecursivelyIterable
+from WinCopies.Collections.Enumeration import IIterable
+from WinCopies.Collections.Enumeration.Extensions import RecursivelyIterable
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
@@ -22,7 +23,7 @@ class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
         super().__init__()
     
     @final
-    def _AsRecursivelyIterable(self, container: IDirEntry) -> IRecursivelyIterable[IDirEntry]:
+    def _AsRecursivelyIterable(self, container: IDirEntry) -> IIterable[IDirEntry]:
         return container
     
     @final
