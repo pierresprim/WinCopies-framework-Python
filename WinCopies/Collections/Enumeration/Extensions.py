@@ -18,7 +18,7 @@ from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualResult
 
 class _RecursiveEnumeratorBase[T](IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod
@@ -312,7 +312,7 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
         return item.GetKey()
 
 class IRecursivelyIterable[T](IIterable[T]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
@@ -324,7 +324,7 @@ class IRecursivelyIterable[T](IIterable[T]):
 
 class RecursivelyIterable[T](IRecursivelyIterable[T]):
     class __IEnumerator(_RecursiveEnumeratorBase[T]):
-        def __init__(self) -> None:
+        def __init__(self):
             super().__init__()
         
         @abstractmethod
@@ -354,7 +354,7 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
         def _GetIterable(self) -> RecursivelyIterable[T]:
             return self.__iterable
     
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod

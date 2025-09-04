@@ -18,7 +18,7 @@ from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
 class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @final

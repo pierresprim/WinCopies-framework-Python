@@ -19,7 +19,7 @@ type SystemIterable[T] = collections.abc.Iterable[T]
 type SystemIterator[T] = collections.abc.Iterator[T]
 
 class IEnumeratorBase(IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod
@@ -89,7 +89,7 @@ def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
     return EmptyEnumerator[T]() if iterator is None else iterator
 
 class IIterable[T](collections.abc.Iterable[T]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod

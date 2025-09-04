@@ -27,7 +27,7 @@ class FileKind(Enum):
     Archive = 6
 
 class IDirEntry(IRecursivelyIterable['IDirEntry']):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod

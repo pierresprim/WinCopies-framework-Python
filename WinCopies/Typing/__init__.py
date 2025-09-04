@@ -79,7 +79,7 @@ class IDisposableObject[T](IDisposable, IObject[T]):
         super().__init__()
 
 class __IGenericConstraint[TContainer, TInterface](IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod
@@ -87,7 +87,7 @@ class __IGenericConstraint[TContainer, TInterface](IInterface):
         pass
 
 class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @final
@@ -95,7 +95,7 @@ class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer
         return None if container is None else self._AsContainer(container)
 
 class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod
@@ -106,7 +106,7 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
         return self._AsContainer(self._GetContainer())
 
 class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @final
@@ -114,7 +114,7 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
         return container
 
 class INullable[T](IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     @abstractmethod
@@ -136,7 +136,7 @@ class __Nullable[T](INullable[T]):
     def GetValue(self) -> T:
         return self.__value
 class __NullValue[T](INullable[T]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
     
     def HasValue(self) -> bool:

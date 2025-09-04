@@ -98,7 +98,7 @@ class Stack[T](StackBase[T, Doubly.IListBase[T]], IGenericConstraintImplementati
         super().__init__(LinkedList[T].GetList(l))
 
 class IIterableLinkedListBase[TItems, TList](Singly.IIterable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     def TryGetIterator(self) -> Iterator[TItems]|None:
@@ -106,7 +106,7 @@ class IIterableLinkedListBase[TItems, TList](Singly.IIterable[TItems], GenericCo
         
         return Select(iterable, lambda node: node.GetValue())
 class IIterableLinkedList[T](IIterableLinkedListBase[T, Doubly.IList[T]]):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
 class IterableQueue[T](QueueBase[T, Doubly.IList[T]], IIterableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):

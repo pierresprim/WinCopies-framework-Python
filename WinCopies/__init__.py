@@ -13,18 +13,18 @@ from types import TracebackType
 from typing import final, Self
 
 class IInterface:
-    def __init__(self) -> None:
+    def __init__(self):
         pass
 
 class IBooleanable(IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
     def ToBool(self) -> bool:
         pass
 class INullableBooleanable(IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
@@ -84,7 +84,7 @@ class BitDepthLevel(Enum):
     Four = 64
 
 class IDisposable(IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     @final
@@ -102,7 +102,7 @@ class IDisposable(IInterface):
         return False
 
 class IStringable(IInterface):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
 
     @abstractmethod
