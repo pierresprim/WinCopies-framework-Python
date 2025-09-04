@@ -335,7 +335,7 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
         def _GetEnumerationItems(self, enumerationItems: T) -> SystemIterable[T]:
             return self._GetIterable()._AsRecursivelyIterable(enumerationItems)
 
-    class _Enumerator(RecursiveEnumerator[T], __IEnumerator[T]):
+    class Enumerator(RecursiveEnumerator[T], __IEnumerator[T]):
         def __init__(self, iterable: RecursivelyIterable[T], enumerator: IEnumerator[T]):
             super().__init__(enumerator)
 
@@ -344,7 +344,7 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
         @final
         def _GetIterable(self) -> RecursivelyIterable[T]:
             return self.__iterable
-    class _StackedEnumerator(StackedRecursiveEnumerator[T], __IEnumerator[T]):
+    class StackedEnumerator(StackedRecursiveEnumerator[T], __IEnumerator[T]):
         def __init__(self, iterable: RecursivelyIterable[T], enumerator: IEnumerator[T]):
             super().__init__(enumerator)
 
@@ -362,7 +362,7 @@ class RecursivelyIterable[T](IRecursivelyIterable[T]):
         pass
     
     def _TryGetRecursiveIterator(self, iterator: IEnumerator[T]) -> SystemIterator[T]|None:
-        return RecursivelyIterable[T]._Enumerator(self, iterator)
+        return RecursivelyIterable[T].Enumerator(self, iterator)
 
     def TryGetRecursiveIterator(self) -> SystemIterator[T]|None:
         iterator: SystemIterator[T]|None = self.TryGetIterator()
