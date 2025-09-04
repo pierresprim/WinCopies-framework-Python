@@ -262,10 +262,16 @@ class Iterator[T](Enumerator[T]):
     def _ResetOverride(self) -> bool:
         return False
 
-def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
+def __AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
     return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
+
+def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
+    if iterator is None: # type: ignore
+        raise ValueError()
+    
+    return __AsEnumerator(iterator)
 def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
-    return None if iterator is None else AsEnumerator(iterator)
+    return None if iterator is None else __AsEnumerator(iterator)
 
 class Iterable[T](IIterable[T]):
     def __init__(self, iterable: SystemIterable[T]):
