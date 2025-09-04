@@ -88,7 +88,7 @@ class EmptyEnumerator[T](IEnumerator[T]):
 def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
     return EmptyEnumerator[T]() if iterator is None else iterator
 
-class IIterable[T](collections.abc.Iterable[T]):
+class IIterable[T](collections.abc.Iterable[T], IInterface):
     def __init__(self):
         super().__init__()
     
