@@ -13,7 +13,7 @@ def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
 
     if len(frames) > nextIndex:
         def getName(index: int) -> str:
-            return selector(frames[index][1])
+            return selector(path.abspath(frames[index][1]))
         
         return getName(index) == getName(nextIndex)
     
