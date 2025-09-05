@@ -86,9 +86,14 @@ class BitDepthLevel(Enum):
 class IDisposable(IInterface):
     def __init__(self):
         super().__init__()
+    
+    def Initialize(self) -> None:
+        pass
 
     @final
     def __enter__(self) -> Self:
+        self.Initialize()
+        
         return self
     
     @abstractmethod
