@@ -120,9 +120,13 @@ class INullable[T](IInterface):
     @abstractmethod
     def HasValue(self) -> bool:
         pass
+
     @abstractmethod
     def GetValue(self) -> T:
         pass
+    @final
+    def TryGetValue[U](self, default: U|None = None) -> T|U|None:
+        return self.GetValue() if self.HasValue() else default
 
 @final
 class __Nullable[T](INullable[T]):
