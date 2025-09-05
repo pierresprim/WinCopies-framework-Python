@@ -9,7 +9,8 @@ from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
     def __init__(self, value: T, nextNode: Self|None):

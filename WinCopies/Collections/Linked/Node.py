@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import IInterface
-from WinCopies.Typing import EnsureDirectPackageCall
+from WinCopies.Typing.Reflection import EnsureDirectPackageCall
 
 class ILinkedNode[T](IInterface):
     def __init__(self):

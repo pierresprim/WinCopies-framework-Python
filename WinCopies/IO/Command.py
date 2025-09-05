@@ -3,17 +3,17 @@ import subprocess
 
 from collections.abc import Iterable
 
-from WinCopies import Typing
 from WinCopies.Collections import Iteration
+from WinCopies.Typing import Reflection
 from WinCopies.Typing.Pairing import DualResult, KeyValuePair
 
 def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
     args: str|list[str]|None = None
     
-    if Typing.IsOf(command, str, list):
+    if Reflection.IsOf(command, str, list):
         args = command # type: ignore
     
-    elif Typing.IsOf(command, Iterable):
+    elif Reflection.IsOf(command, Iterable):
         args = list(command)
 
     else:

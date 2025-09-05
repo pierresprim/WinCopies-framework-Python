@@ -10,8 +10,9 @@ from WinCopies.Collections.Enumeration import EmptyEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
-from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
+from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Converter
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 @final
 class DoublyLinkedNode[T](NodeBase['DoublyLinkedNode', T]):

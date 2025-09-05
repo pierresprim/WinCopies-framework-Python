@@ -7,10 +7,11 @@ from typing import final, Callable
 
 from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IndexOf
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable, IEnumerator, EnumeratorBase
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue, EnsureDirectModuleCall
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class Array[T](Extensions.Array[T]):
     def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
