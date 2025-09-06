@@ -3,7 +3,7 @@ from importlib import import_module
 from inspect import getfile
 from inspect import FrameInfo, stack, getfile
 from os import path, sep
-from sys import modules
+from sys import modules, builtin_module_names
 from types import ModuleType, FrameType
 from typing import List, Type
 
@@ -138,6 +138,25 @@ def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> 
             return getattr(module, "__name__", '')
         
         return IsSubmoduleFromNames(getName(module), getName(package))
+
+def __TryOnModuleNameFromFrame[T](frame: FrameType, func: Converter[str, T]) -> INullable[T|None]:
+    result: INullable[str|None] = TryGetModuleNameFromFrame(frame)
+
+    if result.HasValue():
+        value: str|None = result.GetValue()
+
+        return GetNullable(None if value is None else func(value))
+    
+    return GetNullValue()
+def IsMain(moduleName: str) -> bool:
+    return moduleName == '__main__'
+def TryIsMain(frame: FrameType) -> INullable[bool|None]:
+    return __TryOnModuleNameFromFrame(frame, IsMain)
+
+def IsBuiltin(moduleName: str) -> bool:
+    return moduleName in builtin_module_names
+def TryIsBuiltin(frame: FrameType) -> INullable[bool|None]:
+    return __TryOnModuleNameFromFrame(frame, IsBuiltin)
 
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     for type in types:
