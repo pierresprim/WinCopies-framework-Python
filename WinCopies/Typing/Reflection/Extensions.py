@@ -5,11 +5,14 @@ from ast import Import, ImportFrom, Module, parse, walk
 from importlib import import_module
 from inspect import FrameInfo, Traceback, getframeinfo, getsource, stack
 from pkgutil import ModuleInfo, walk_packages
+from sys import modules
 from types import ModuleType, FrameType
-from typing import final
+from typing import Sequence, final
 
 from WinCopies.Collections import Generator
-from WinCopies.Typing import Reflection, InvalidOperationError, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetDisposedError
+from WinCopies.Collections.Extensions import IArray
+from WinCopies.Collections.Abstraction import Array
+from WinCopies.Typing import Reflection, InvalidOperationError, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -335,3 +338,50 @@ def CheckCallerPackage(targetPackage: ModuleType|str) -> bool:
 def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
     if not __CheckCallerPackage(targetPackage, 2):
         raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
+
+class FrameHierarchy:
+    def __init__(self, inspector: IFrameInspector) -> None:
+        self.__inspector: IFrameInspector = inspector
+        self.__hierarchy: INullable[IArray[str]]|None = None
+    
+    def TryGetModuleName(self) -> str|None:
+        return self.__inspector.TryGetModuleName().TryGetValue()
+    def TryGetPackageName(self) -> str|None:
+        return self.__inspector.TryGetPackageName()
+    
+    def TryIsMain(self) -> bool|None:
+        return self.__inspector.TryIsMain().TryGetValue()
+    def TryIsBuiltin(self) -> bool|None:
+        return self.__inspector.TryIsBuiltin().TryGetValue()
+    
+    def GetFileName(self) -> str:
+        return self.__inspector.GetFileName()
+    
+    def TryGetHierarchy(self) -> INullable[IArray[str]]:
+        def tryGetModuleName(inspector: IFrameInspector) -> str|None:
+            moduleName: INullable[str|None] = inspector.TryGetModuleName()
+
+            return moduleName.TryGetValue()
+        
+        if self.__hierarchy is None:
+            def tryGetHierarchy() -> INullable[IArray[str]]:
+                moduleName: str|None = tryGetModuleName(self.__inspector)
+
+                if moduleName is None:
+                    return GetNullValue()
+                
+                hierarchy: Sequence[str] = moduleName.split('.')
+                parent: str|None = None
+
+                return GetNullable(Array[str]([parent for i in range(1, len(hierarchy)) if (parent := hierarchy[i]) in modules]))
+            
+            self.__hierarchy = tryGetHierarchy()
+        
+        return self.__hierarchy
+    
+    @staticmethod
+    def CreateFromFrameInfo(frameInfo: FrameInfo) -> FrameHierarchy:
+        return FrameHierarchy(CreateFrameInspector(frameInfo))
+
+def GetFrameHierarchy(frameInfo: FrameInfo) -> FrameHierarchy:
+    return FrameHierarchy.CreateFromFrameInfo(frameInfo)
