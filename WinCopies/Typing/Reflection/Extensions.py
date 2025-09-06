@@ -87,7 +87,7 @@ class FrameInspector:
     def TryGetModule(self) -> INullable[ModuleType|None]:
         module: INullable[ModuleType|None] = Reflection.TryGetModuleFromFrame(self.GetFrame())
 
-        return GetNullable(Reflection.TryFindModuleFromFrameInfo(self.__frameInfo)) if module.TryGetValue() is None else module
+        return GetNullable(Reflection.TryFindModuleFromFileName(self.__frameInfo.filename)) if module.TryGetValue() is None else module
     
     def TryGetPackage(self) -> ModuleType|None:
         packageName: str|None = self.TryGetPackageName()

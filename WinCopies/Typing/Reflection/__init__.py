@@ -90,9 +90,8 @@ def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType|None]:
         return GetNullable(module)
     
     return GetNullValue()
-def TryFindModuleFromFrameInfo(frameInfo: FrameInfo) -> ModuleType|None:
-    fileName: str = frameInfo.filename
 
+def TryFindModuleFromFileName(fileName: str) -> ModuleType|None:
     for _, module in modules.items():
         if hasattr(module, '__file__') and module.__file__ == fileName:
             return module
