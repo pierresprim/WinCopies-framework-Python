@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final, Type
 
@@ -68,6 +70,14 @@ class IDisposable(WinCopies.IDisposable):
     @final
     def _Throw(self) -> None:
         raise GetDisposedError()
+
+class IDisposableInfo(IDisposable):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def IsDisposed(self) -> bool:
+        pass
 
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self):
@@ -149,6 +159,90 @@ def GetNullable[T](value: T) -> INullable[T]:
     return __Nullable[T](value)
 def GetNullValue[T]() -> INullable[T]: # type: ignore
     return __nullValue # type: ignore
+
+class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetItem(self) -> T:
+        pass
+
+    @abstractmethod
+    def IsDisposed(self) -> bool:
+        pass
+
+    @abstractmethod
+    def Dispose(self) -> __IDisposableProviderItem[T]:
+        pass
+@final
+class __DisposedItem[T: IDisposableInfo](__IDisposableProviderItem[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def GetItem(self) -> T:
+        raise GetDisposedError()
+
+    def IsDisposed(self) -> bool:
+        return True
+
+    def Dispose(self) -> __IDisposableProviderItem[T]:
+        return self
+
+__disposedItem = __DisposedItem() # type: ignore
+
+@final
+class __DisposableProviderItem[T: IDisposableInfo](__IDisposableProviderItem[T]):
+    def __init__(self, item: T):
+        super().__init__()
+
+        self.__item: T = item
+    
+    def GetItem(self) -> T:
+        return self.__item
+
+    def IsDisposed(self) -> bool:
+        return self.__item.IsDisposed()
+    
+    def Dispose(self) -> __IDisposableProviderItem[T]:
+        self.__item.Dispose()
+        
+        return __disposedItem # type: ignore
+
+class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def _GetItem(self) -> T:
+        pass
+    
+    @final
+    def GetItem(self) -> T:
+        if self.IsDisposed():
+            raise GetDisposedError()
+        
+        return self._GetItem()
+    @final
+    def TryGetItem(self) -> INullable[T]:
+        return GetNullValue() if self.IsDisposed() else GetNullable(self._GetItem())
+class DisposableProvider[T: IDisposableInfo](IDisposableProvider[T]):
+    def __init__(self, item: T):
+        super().__init__()
+
+        self.__item: __IDisposableProviderItem[T] = __DisposableProviderItem[T](item)
+    
+    @final
+    def _GetItem(self) -> T:
+        return self.__item.GetItem()
+    
+    @final
+    def IsDisposed(self) -> bool:
+        return self.__item.IsDisposed()
+    
+    @final
+    def Dispose(self) -> None:
+        self.__item = self.__item.Dispose()
 
 def TryGetValueAs[TValue, TDefault](type: Type[TValue], value: object, default: TDefault) -> TValue|TDefault:
     return value if isinstance(value, type) else default

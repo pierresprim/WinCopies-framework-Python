@@ -57,7 +57,7 @@ class ArrayBase[TItems, TList](Collections.Array[TItems], IArray[TItems]):
     def _AsList(self) -> TList:
         pass
     
-    # Not final to allow customization of the enumerator.
+    # Not final to allow customization for the enumerator.
     def TryGetIterator(self) -> IEnumerator[TItems]:
         return ArrayBase[TItems, TList].Enumerator(self)
 
