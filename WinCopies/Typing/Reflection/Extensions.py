@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
 from importlib import import_module
-from inspect import FrameInfo, getsource, stack
+from inspect import FrameInfo, Traceback, getframeinfo, getsource, stack
 from pkgutil import ModuleInfo, walk_packages
 from types import ModuleType, FrameType
+from typing import final
 
 from WinCopies.Collections import Generator
-from WinCopies.Typing import InvalidOperationError, INullable, Reflection, GetNullable
+from WinCopies.Typing import Reflection, InvalidOperationError, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -68,26 +70,138 @@ class PackageInspector:
         except ImportError:
             return None
 
-class FrameInspector:
+class IFrameInspector(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetFrame(self) -> FrameType:
+        pass
+    
+    @abstractmethod
+    def GetFileName(self) -> str:
+        pass
+    
+    @abstractmethod
+    def TryGetModuleName(self) -> INullable[str|None]:
+        pass
+    
+    @abstractmethod
+    def TryGetPackageName(self) -> str|None:
+        pass
+    
+    @abstractmethod
+    def TryGetModule(self) -> INullable[ModuleType|None]:
+        pass
+    
+    @abstractmethod
+    def TryGetPackage(self) -> ModuleType|None:
+        pass
+    
+    @abstractmethod
+    def IsInPackage(self, package: ModuleType|str) -> bool:
+        pass
+    
+    @abstractmethod
+    def GetFunctionName(self) -> str:
+        pass
+    @abstractmethod
+    def GetLineNumber(self) -> int:
+        pass
+    
+    @abstractmethod
+    def HasModule(self) -> bool:
+        pass
+    @abstractmethod
+    def HasPackage(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def TryGetFunctionFullName(self) -> INullable[str|None]:
+        pass
+    
+    @abstractmethod
+    def TryIsMain(self) -> INullable[bool|None]:
+        pass
+    @abstractmethod
+    def TryIsBuiltin(self) -> INullable[bool|None]:
+        pass
+class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
+    def __init__(self):
+        super().__init__()
+
+class __IFrameInfo(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetFrame(self) -> FrameType:
+        pass
+    @abstractmethod
+    def GetFileName(self) -> str:
+        pass
+    @abstractmethod
+    def GetFunction(self) -> str:
+        pass
+    @abstractmethod
+    def GetLineNumber(self) -> int:
+        pass
+
+@final
+class __FrameInfo(__IFrameInfo):
     def __init__(self, frameInfo: FrameInfo):
+        super().__init__()
+
         self.__frameInfo: FrameInfo = frameInfo
     
     def GetFrame(self) -> FrameType:
         return self.__frameInfo.frame
-    
     def GetFileName(self) -> str:
         return self.__frameInfo.filename
+    def GetFunction(self) -> str:
+        return self.__frameInfo.function
+    def GetLineNumber(self) -> int:
+        return self.__frameInfo.lineno
+@final
+class __Traceback(__IFrameInfo, IDisposableInfo):
+    def __init__(self, frame: FrameType, traceback: Traceback):
+        super().__init__()
+
+        self.__frame: FrameType = frame
+        self.__traceback: Traceback = traceback
+    
+    def GetFrame(self) -> FrameType:
+        return self.__frame
+    def GetFileName(self) -> str:
+        return self.__traceback.filename
+    def GetFunction(self) -> str:
+        return self.__traceback.function
+    def GetLineNumber(self) -> int:
+        return self.__traceback.lineno
+
+@final
+class __FrameInspector(IFrameInspector):
+    def __init__(self, frameInfo: __IFrameInfo):
+        super().__init__()
+
+        self.__frameInfo: __IFrameInfo = frameInfo
+    
+    def GetFrame(self) -> FrameType:
+        return self.__frameInfo.GetFrame()
+    
+    def GetFileName(self) -> str:
+        return self.__frameInfo.GetFileName()
     
     def TryGetModuleName(self) -> INullable[str|None]:
         return Reflection.TryGetModuleNameFromFrame(self.GetFrame())
     
     def TryGetPackageName(self) -> str|None:
-        Reflection.TryGetPackageNameFromFrame(self.GetFrame())
+        return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
     
     def TryGetModule(self) -> INullable[ModuleType|None]:
         module: INullable[ModuleType|None] = Reflection.TryGetModuleFromFrame(self.GetFrame())
 
-        return GetNullable(Reflection.TryFindModuleFromFileName(self.__frameInfo.filename)) if module.TryGetValue() is None else module
+        return GetNullable(Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())) if module.TryGetValue() is None else module
     
     def TryGetPackage(self) -> ModuleType|None:
         packageName: str|None = self.TryGetPackageName()
@@ -104,9 +218,9 @@ class FrameInspector:
         return Reflection.TryIsModuleInPackageFromFrame(self.GetFrame(), package)
     
     def GetFunctionName(self) -> str:
-        return self.__frameInfo.function
+        return self.__frameInfo.GetFunction()
     def GetLineNumber(self) -> int:
-        return self.__frameInfo.lineno
+        return self.__frameInfo.GetLineNumber()
     
     def HasModule(self) -> bool:
         return self.TryGetModule().TryGetValue() is not None
@@ -122,6 +236,89 @@ class FrameInspector:
             return GetNullable(None if value is None else f"{value}.{self.GetFunctionName()}")
         
         return moduleName
+    
+    def TryIsMain(self) -> INullable[bool|None]:
+        return Reflection.TryIsMain(self.GetFrame())
+    def TryIsBuiltin(self) -> INullable[bool|None]:
+        return Reflection.TryIsBuiltin(self.GetFrame())
+
+def CreateFrameInspector(frameInfo: FrameInfo) -> IFrameInspector:
+    return __FrameInspector(__FrameInfo(frameInfo))
+def CreateFrameInspectorFromFrame(frame: FrameType) -> IFrameInspector:
+    return __FrameInspector(__Traceback(frame, getframeinfo(frame)))
+
+@final
+class __DisposableFrameInspector(IDisposableInfo):
+    def __init__(self, frame: FrameType):
+        super().__init__()
+
+        self.__frame: FrameType = frame
+        self.__frameInspector: IFrameInspector|None = CreateFrameInspectorFromFrame(self.__frame)
+    
+    def IsDisposed(self) -> bool:
+        return self.__frameInspector is None
+    
+    def GetFrameInspector(self) -> IFrameInspector:
+        if self.__frameInspector is None or self.IsDisposed():
+            raise GetDisposedError()
+        
+        return self.__frameInspector
+    
+    def Dispose(self) -> None:
+        self.__frameInspector = None
+
+        del self.__frame
+
+class DisposableFrameInspector(IDisposableFrameInspector):
+    def __init__(self, frame: FrameType):
+        super().__init__()
+
+        self.__frameInspector: IDisposableProvider[__DisposableFrameInspector] = DisposableProvider(__DisposableFrameInspector(frame))
+    
+    def __GetFrameInspector(self) -> IFrameInspector:
+        return self.__frameInspector.GetItem().GetFrameInspector()
+    
+    def GetFrame(self) -> FrameType:
+        return self.__GetFrameInspector().GetFrame()
+    
+    def GetFileName(self) -> str:
+        return self.__GetFrameInspector().GetFileName()
+    
+    def TryGetModuleName(self) -> INullable[str|None]:
+        return self.__GetFrameInspector().TryGetModuleName()
+    
+    def TryGetPackageName(self) -> str|None:
+        return self.__GetFrameInspector().TryGetPackageName()
+    
+    def TryGetModule(self) -> INullable[ModuleType|None]:
+        return self.__GetFrameInspector().TryGetModule()
+    
+    def TryGetPackage(self) -> ModuleType|None:
+        return self.__GetFrameInspector().TryGetPackage()
+    
+    def IsInPackage(self, package: ModuleType|str) -> bool:
+        return self.__GetFrameInspector().IsInPackage(package)
+    
+    def GetFunctionName(self) -> str:
+        return self.__GetFrameInspector().GetFunctionName()
+    def GetLineNumber(self) -> int:
+        return self.__GetFrameInspector().GetLineNumber()
+    
+    def HasModule(self) -> bool:
+        return self.__GetFrameInspector().HasModule()
+    def HasPackage(self) -> bool:
+        return self.__GetFrameInspector().HasPackage()
+    
+    def TryGetFunctionFullName(self) -> INullable[str|None]:
+        return self.__GetFrameInspector().TryGetFunctionFullName()
+    
+    def TryIsMain(self) -> INullable[bool|None]:
+        return self.__GetFrameInspector().TryIsMain()
+    def TryIsBuiltin(self) -> INullable[bool|None]:
+        return self.__GetFrameInspector().TryIsBuiltin()
+    
+    def Dispose(self) -> None:
+        self.__frameInspector.Dispose()
 
 def EnumerateFromCallStack() -> Generator[FrameInfo]:
     for frame in stack():
@@ -129,7 +326,7 @@ def EnumerateFromCallStack() -> Generator[FrameInfo]:
 
 def __CheckCallerPackage(targetPackage: ModuleType|str, index: int) -> bool:
     # Get caller's frame (index 1 in stack)
-    inspector: FrameInspector = FrameInspector(stack()[index])
+    inspector: IFrameInspector = CreateFrameInspector(stack()[index])
     
     return inspector.IsInPackage(targetPackage)
 
