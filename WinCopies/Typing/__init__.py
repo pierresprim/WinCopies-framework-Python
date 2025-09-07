@@ -61,7 +61,7 @@ class IObject[T](IEquatableObject[T], IStringable):
         super().__init__()
 
 def GetDisposedError() -> InvalidOperationError:
-    raise InvalidOperationError("The current table has been disposed.")
+    return InvalidOperationError("The current object has been disposed.")
 
 class IDisposable(WinCopies.IDisposable):
     def __init__(self):
