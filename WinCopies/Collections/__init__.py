@@ -177,7 +177,7 @@ def ContainsMultipleTimes[T](l: Sequence[T], value: T, i: int = 0, length: int|N
     
     result = GetIndexOf(l, value, index + 1, length - 1 - (index - i))
     
-    return (result.GetKey() is int, result.GetKey(), result.GetValue())
+    return (result.GetKey() is not None, result.GetKey(), result.GetValue())
 
 def ContainsMultiple[T](l: Sequence[T], value: T) -> bool|None:
     return ContainsMultipleTimes(l, value)[0]
