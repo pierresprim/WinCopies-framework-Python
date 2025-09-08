@@ -490,6 +490,8 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
             current: TIn|None = self._GetEnumerator().GetCurrent()
 
             if current is None:
+                self.__current = None
+
                 return False
 
             self.__current = self.__selector(current)
