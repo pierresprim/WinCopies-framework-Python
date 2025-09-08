@@ -350,14 +350,14 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnum
     def _GetContainer(self) -> TEnumerator:
         return self._GetEnumerator()
     
-    def _MoveNext(self) -> bool:
+    def _MoveNextOverride(self) -> bool:
         return self._GetEnumerator().MoveNext()
     
     @final
     def __MoveNext(self) -> bool:
         if self._OnStarting():
             def moveNext() -> bool:
-                if self._MoveNext():
+                if self._MoveNextOverride():
                     return True
                 
                 self.__moveNextFunc = Delegates.BoolFalse
@@ -485,8 +485,8 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         self.__selector: Converter[TIn, TOut] = selector
         self.__current: TOut|None = None
     
-    def _MoveNext(self) -> bool:
-        if super()._MoveNext():
+    def _MoveNextOverride(self) -> bool:
+        if super()._MoveNextOverride():
             current: TIn|None = self._GetEnumerator().GetCurrent()
 
             if current is None:
@@ -530,7 +530,7 @@ class AccessorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumera
         return self.__func()
     
     @final
-    def _MoveNext(self) -> bool:
+    def _MoveNextOverride(self) -> bool:
         return self._GetEnumerator().MoveNext()
     
     def _OnStopped(self) -> None:
