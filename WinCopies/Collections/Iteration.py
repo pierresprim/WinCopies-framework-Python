@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Iterator
 
 from WinCopies.Collections import Generator, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator, AsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, GetEmptyEnumerator, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -95,9 +95,10 @@ def DoIncludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[
     return DoIncludeUntil(items, GetNotPredicate(predicate))
 
 def __Exclude[T](items: Iterable[T], converter: Converter[Iterator[T], IEnumerator[T]]) -> Generator[T]:
-    iterator: Iterator[T]|None = Enumeration.Iterable[T].Create(items).TryGetIterator()
+    def getEnumerator(iterator: Iterator[T]|None) -> IEnumerator[T]:
+        return GetEmptyEnumerator() if iterator is None else converter(iterator)
     
-    for item in EmptyEnumerator[T]() if iterator is None else converter(iterator):
+    for item in getEnumerator(Enumeration.Iterable[T].Create(items).TryGetIterator()):
         yield item
 
 def ExcludeWhile[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
