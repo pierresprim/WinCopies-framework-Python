@@ -108,6 +108,19 @@ class IIterable[T](collections.abc.Iterable[T], IInterface):
     def __iter__(self) -> SystemIterator[T]:
         return self.GetIterator()
 
+@final
+class __NullEnumerable[T](IIterable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def TryGetIterator(self) -> collections.abc.Iterator[T]|None:
+        return None
+
+__nullEnumerable = __NullEnumerable[None]()
+
+def GetNullEnumerable[T]() -> IIterable[T]: # type: ignore
+    return __nullEnumerable # type: ignore
+
 class ICountableIterable[T](IIterable[T], ICountable):
     def __init__(self):
         super().__init__()
