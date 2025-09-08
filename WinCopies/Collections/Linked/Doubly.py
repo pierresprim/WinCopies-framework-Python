@@ -328,7 +328,7 @@ class List[T](IList[T]):
     def TryGetValueIterator(self) -> Iterator[T]|None:
         return None if self.IsEmpty() or self.__first is None else GetValueIteratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
     @final
-    def AsValueIterator(self) -> Iterator[T]:
+    def GetValueIterator(self) -> Iterator[T]:
         iterator: Iterator[T]|None = self.TryGetValueIterator()
 
         return AsIterator(iterator)
