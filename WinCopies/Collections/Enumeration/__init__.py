@@ -304,7 +304,6 @@ class IteratorProvider[T](IIterable[T]):
     def TryGetIterator(self) -> IEnumerator[T]|None:
         return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
 
-
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
@@ -334,7 +333,7 @@ class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]], IGener
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TIn, TEnumerator]):
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator):
         super().__init__()
 
