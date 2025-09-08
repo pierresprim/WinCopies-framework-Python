@@ -198,12 +198,26 @@ class IListBase[T](IReadOnlyCollection):
         return self.__AsValueEnumerator(self.RemoveLast)
 
 class IIterable[T](Enumeration.IIterable[IDoublyLinkedNode[T]]):
+    @final
+    class __Iterable(Enumeration.IIterable[T]):
+        def __init__(self, l: IIterable[T]):
+            super().__init__()
+
+            self.__list: IIterable[T] = l
+        
+        def TryGetIterator(self) -> Iterator[T]|None:
+            return self.__list.TryGetValueIterator()
+
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def TryGetValueIterator(self) -> Iterator[T]|None:
         pass
+    
+    @final
+    def AsValueIterable(self) -> Enumeration.IIterable[T]:
+        return IIterable[T].__Iterable(self)
 
 class IList[T](IListBase[T], IIterable[T]):
     def __init__(self):
