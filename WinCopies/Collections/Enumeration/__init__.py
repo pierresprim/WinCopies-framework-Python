@@ -353,6 +353,10 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnum
     def _MoveNextOverride(self) -> bool:
         return self._GetEnumerator().MoveNext()
     
+    @abstractmethod
+    def _ResetOverride(self) -> bool:
+        pass
+    
     @final
     def __MoveNext(self) -> bool:
         if self._OnStarting():
@@ -414,7 +418,7 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnum
         
         result: bool|None = self._GetEnumerator().TryReset()
 
-        if result is True:
+        if result is True and self._ResetOverride():
             self.__moveNextFunc = self.__MoveNext
 
             return True
@@ -506,7 +510,10 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         super()._OnEnded()
     
     def _OnStopped(self) -> None:
-        super()._OnStopped()
+        pass
+
+    def _ResetOverride(self) -> bool:
+        return True
     
     @final
     def GetCurrent(self) -> TOut|None:
@@ -542,3 +549,6 @@ class Accessor[T](AccessorBase[T, T, IEnumerator[T]], IGenericConstraintImplemen
     @final
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
+    
+    def _ResetOverride(self) -> bool:
+        return True
