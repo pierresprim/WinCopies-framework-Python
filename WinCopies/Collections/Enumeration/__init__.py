@@ -66,7 +66,7 @@ class IEnumerator[T](collections.abc.Iterator[T], IEnumeratorBase):
         return self
 
 @final
-class EmptyEnumerator[T](IEnumerator[T]):
+class __EmptyEnumerator[T](IEnumerator[T]):
     def __init__(self):
         super().__init__()
     
@@ -85,8 +85,13 @@ class EmptyEnumerator[T](IEnumerator[T]):
     def HasProcessedItems(self) -> bool:
         return False
 
+__emptyEnumerator = __EmptyEnumerator[None]()
+
+def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
+    return __emptyEnumerator # type: ignore
+
 def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return EmptyEnumerator[T]() if iterator is None else iterator
+    return GetEmptyEnumerator() if iterator is None else iterator
 
 class IIterable[T](collections.abc.Iterable[T], IInterface):
     def __init__(self):
