@@ -217,12 +217,10 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     
     @final
     def GetKeys(self) -> Generator[TKey]:
-        for key in self._GetDictionary().keys():
-            yield key
+        yield from self._GetDictionary().keys()
     @final
     def GetValues(self) -> Generator[TValue]:
-        for value in self._GetDictionary().values():
-            yield value
+        yield from self._GetDictionary().values()
     
     @final
     def Add(self, key: TKey, value: TValue) -> None:
