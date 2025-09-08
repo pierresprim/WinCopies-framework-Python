@@ -127,6 +127,26 @@ class IListBase[T](IReadOnlyCollection):
     @abstractmethod
     def GetLast(self) -> IDoublyLinkedNode[T]|None:
         pass
+
+    @final
+    def __TryGetValue[TDefault](self, default: TDefault, func: Function[IDoublyLinkedNode[T]|None]) -> T|TDefault:
+        result: IDoublyLinkedNode[T]|None = func()
+
+        return default if result is None else result.GetValue()
+    
+    @final
+    def TryGetFirstValue[TDefault](self, default: TDefault) -> T|TDefault:
+        return self.__TryGetValue(default, self.GetFirst)
+    @final
+    def TryGetLastValue[TDefault](self, default: TDefault) -> T|TDefault:
+        return self.__TryGetValue(default, self.GetLast)
+    
+    @final
+    def TryGetFirstValueOrNone(self) -> T|None:
+        return self.TryGetFirstValue(None)
+    @final
+    def TryGetLastValueOrNone(self) -> T|None:
+        return self.TryGetLastValue(None)
     
     @abstractmethod
     def Remove(self, node: IDoublyLinkedNode[T]) -> None:
