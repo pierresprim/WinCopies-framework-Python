@@ -333,19 +333,21 @@ class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]], IGener
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    def __init__(self, enumerator: TEnumerator):
+class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+    def __init__(self):
         super().__init__()
 
-        self.__enumerator: TEnumerator = enumerator
         self.__moveNextFunc: Function[bool] = self.__MoveNext
     
-    @final
+    @abstractmethod
     def _GetEnumerator(self) -> TEnumerator:
-        return self.__enumerator
+        pass
+    @final
+    def _GetContainer(self) -> TEnumerator:
+        return self._GetEnumerator()
     
     def _MoveNext(self) -> bool:
-        return self.__enumerator.MoveNext()
+        return self._GetEnumerator().MoveNext()
     
     @final
     def __MoveNext(self) -> bool:
@@ -388,13 +390,13 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumer
     
     @final
     def IsStarted(self) -> bool:
-        return self.__enumerator.IsStarted()
+        return self._GetEnumerator().IsStarted()
     @final
     def MoveNext(self) -> bool:
         return self.__moveNextFunc()
     @final
     def Stop(self) -> None:
-        self.__enumerator.Stop()
+        self._GetEnumerator().Stop()
 
         self.__OnTerminated(False)
     
@@ -403,7 +405,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumer
         if self.IsStarted():
             self.Stop()
         
-        result: bool|None = self.__enumerator.TryReset()
+        result: bool|None = self._GetEnumerator().TryReset()
 
         if result is True:
             self.__moveNextFunc = self.__MoveNext
@@ -415,11 +417,20 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumer
         return result
     @final
     def IsResetSupported(self) -> bool:
-        return self.__enumerator.IsResetSupported()
+        return self._GetEnumerator().IsResetSupported()
     @final
     def HasProcessedItems(self) -> bool:
-        return self.__enumerator.HasProcessedItems()
+        return self._GetEnumerator().HasProcessedItems()
 
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
+    def __init__(self, enumerator: TEnumerator):
+        super().__init__()
+
+        self.__enumerator: TEnumerator = enumerator
+    
+    @final
+    def _GetEnumerator(self) -> TEnumerator:
+        return self.__enumerator
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]):
         super().__init__(enumerator)
@@ -488,3 +499,31 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     @final
     def GetCurrent(self) -> TOut|None:
         return self.__current
+
+class AccessorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
+    def __init__(self, func: Function[TEnumerator]):
+        def getEnumerator() -> TEnumerator:
+            self.__enumerator = func()
+            self.__func = lambda: self.__enumerator
+
+            return self.__enumerator
+
+        super().__init__()
+
+        self.__func: Function[TEnumerator] = getEnumerator
+        self.__enumerator: TEnumerator = None # type: ignore
+    
+    @final
+    def _GetEnumerator(self) -> TEnumerator:
+        return self.__func()
+    
+    @final
+    def _MoveNext(self) -> bool:
+        return self._GetEnumerator().MoveNext()
+class Accessor[T](AccessorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
+    def __init__(self, func: Function[IEnumerator[T]]):
+        super().__init__(func)
+    
+    @final
+    def GetCurrent(self) -> T|None:
+        return self._GetEnumerator().GetCurrent()
