@@ -6,7 +6,7 @@ from typing import final, Callable
 
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
-from WinCopies.Collections.Enumeration import EmptyEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator, Iterator, Accessor
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 
@@ -145,20 +145,23 @@ class IListBase[T](IReadOnlyCollection):
         pass
     
     @final
-    def __AsGenerator(self, func: Function[INullable[T]]) -> Generator[INullable[T]]:
-        result: INullable[T] = func()
+    def __AsEnumerator(self, func: Function[INullable[T]]) -> IEnumerator[INullable[T]]:
+        def enumerate() -> Generator[INullable[T]]:
+            result: INullable[T] = func()
 
-        while result.HasValue():
-            yield result
-            
-            result = func()
+            while result.HasValue():
+                yield result
+                
+                result = func()
+        
+        return Accessor(lambda: Iterator(enumerate()))
     
     @final
-    def AsQueuedGenerator(self) -> Generator[INullable[T]]:
-        return self.__AsGenerator(self.RemoveFirst)
+    def AsQueuedGenerator(self) -> IEnumerator[INullable[T]]:
+        return self.__AsEnumerator(self.RemoveFirst)
     @final
-    def AsStackedGenerator(self) -> Generator[INullable[T]]:
-        return self.__AsGenerator(self.RemoveLast)
+    def AsStackedGenerator(self) -> IEnumerator[INullable[T]]:
+        return self.__AsEnumerator(self.RemoveLast)
 
 class IIterable[T](Enumeration.IIterable[IDoublyLinkedNode[T]]):
     def __init__(self):
