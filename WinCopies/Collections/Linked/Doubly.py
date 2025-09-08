@@ -6,10 +6,9 @@ from typing import final, Callable
 
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, EmptyEnumerator, Iterator, Accessor
+from WinCopies.Collections.Enumeration import IEnumerator, Iterator, Accessor, AsIterator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
-
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Converter
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
@@ -332,7 +331,7 @@ class List[T](IList[T]):
     def AsValueIterator(self) -> Iterator[T]:
         iterator: Iterator[T]|None = self.TryGetValueIterator()
 
-        return EmptyEnumerator[T]() if iterator is None else iterator
+        return AsIterator(iterator)
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode], IGenericConstraint[TNode, IDoublyLinkedNode[TItems]]):
     def __init__(self, node: TNode):
