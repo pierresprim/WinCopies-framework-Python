@@ -177,6 +177,7 @@ class EnumeratorBase[T](IEnumerator[T]):
         pass
     def _OnEnded(self) -> None:
         pass
+
     @final
     def MoveNext(self) -> bool:
         return self.__moveNextFunc()
@@ -324,6 +325,9 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     def _MoveNextOverride(self) -> bool:
         return self.__enumerator.MoveNext()
     
+    def _OnStopped(self) -> None:
+        self.__enumerator.Stop()
+    
     def _ResetOverride(self) -> bool:
         return self.__enumerator.TryReset() is True
 class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
@@ -386,6 +390,9 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnum
     def _OnTerminated(self, completed: bool) -> None:
         pass
     def _OnEnded(self) -> None:
+        pass
+    @abstractmethod
+    def _OnStopped(self) -> None:
         pass
     
     @final
@@ -496,6 +503,9 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         
         super()._OnEnded()
     
+    def _OnStopped(self) -> None:
+        super()._OnStopped()
+    
     @final
     def GetCurrent(self) -> TOut|None:
         return self.__current
@@ -520,6 +530,9 @@ class AccessorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumera
     @final
     def _MoveNext(self) -> bool:
         return self._GetEnumerator().MoveNext()
+    
+    def _OnStopped(self) -> None:
+        super()._OnStopped()
 class Accessor[T](AccessorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, func: Function[IEnumerator[T]]):
         super().__init__(func)
