@@ -438,7 +438,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__Abstr
     @final
     def _GetEnumerator(self) -> TEnumerator:
         return self.__enumerator
-class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]]):
+class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]):
         super().__init__(enumerator)
 
