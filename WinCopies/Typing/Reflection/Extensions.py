@@ -52,8 +52,10 @@ def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
 
     return any(imp.startswith(packageName) for imp in imports)
 
-class PackageInspector:
+class PackageInspector(IInterface):
     def __init__(self, package: ModuleType|str):
+        super().__init__()
+
         self.__package: ModuleType = ImportModule(package)
     
     def GetName(self) -> str:
@@ -323,8 +325,10 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     def Dispose(self) -> None:
         self.__frameInspector.Dispose()
 
-class FrameHierarchy:
-    def __init__(self, inspector: IFrameInspector) -> None:
+class FrameHierarchy(IInterface):
+    def __init__(self, inspector: IFrameInspector):
+        super().__init__()
+
         self.__inspector: IFrameInspector = inspector
         self.__hierarchy: INullable[IArray[str]]|None = None
     
