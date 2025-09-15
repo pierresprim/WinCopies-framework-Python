@@ -112,6 +112,12 @@ def TryGetFirst[T](items: Iterable[T]) -> INullable[T]:
     
     return GetNullValue()
 
+def Any[T](items: Iterable[T]) -> bool:
+    for _ in items:
+        return True
+    
+    return False
+
 def ValidateOnlyOne[T](items: Iterable[T], predicate: Predicate[T]) -> bool:
     validator: Predicate[T]|None = None
 
