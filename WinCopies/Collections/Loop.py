@@ -4,6 +4,7 @@ from collections.abc import Iterable
 import WinCopies
 
 from WinCopies import Delegates
+from WinCopies.Collections import Enumeration
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
 from WinCopies.Typing.Pairing import DualValueBool
 
@@ -46,23 +47,13 @@ def ForEachUntilTrue[T](items: Iterable[T], action: Callable[[int, T], bool]) ->
     
     return None if i == -1 else DualValueBool(i, True)
 def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
-    result: bool|None = None
-    _predicate: Predicate[T]
+    enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
 
-    def init(entry: T) -> bool:
-        nonlocal result
-        nonlocal _predicate
-
-        result = False
-        return (_predicate := predicate)(entry)
-    
-    _predicate = init
-    
-    for entry in items:
-        if _predicate(entry):
+    for entry in Enumeration.Iterable[T](enumerator):
+        if predicate(entry):
             return True
     
-    return result
+    return False if enumerator.HasProcessedItems() else None
 
 def ForEach[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
     return ForEachUntilTrue(items, lambda index, item: not action(index, item))
@@ -87,23 +78,12 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     return ForEachItem(values, predicate)
 
 def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
-    result: bool = False
-    _action: Method[T]
+    enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
 
-    def init(entry: T):
-        nonlocal result
-        nonlocal _action
-
-        (_action := action)(entry)
-
-        result = True
+    for entry in Enumeration.Iterable[T](enumerator):
+        action(entry)
     
-    _action = init
-
-    for entry in items:
-        _action(entry)
-    
-    return result
+    return enumerator.HasProcessedItems()
 def DoForEachArg[T](action: Callable[[T], None], *values: T) -> bool|None:
     return DoForEachItem(values, action)
 
