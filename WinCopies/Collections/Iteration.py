@@ -51,12 +51,9 @@ def PrependItemTo[T](items: Iterable[T], value: T) -> Generator[T]:
         yield item
 
 def Select[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
-    for item in items:
-        yield converter(item)
+    return (converter(item) for item in items)
 def WhereSelect[TIn, TOut](items: Iterable[TIn], predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
-    for item in items:
-        if predicate(item):
-            yield converter(item)
+    return (converter(item) for item in items if predicate(item))
 def SelectWhere[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut], predicate: Predicate[TOut]) -> Generator[TOut]:
     result: TOut|None = None
 
@@ -65,9 +62,7 @@ def SelectWhere[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, TOut]
             yield result
 
 def Include[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
-    for item in items:
-        if predicate(item):
-            yield item
+    return (item for item in items if predicate(item))
 def Exclude[T](items: Iterable[T], predicate: Predicate[T]) -> Generator[T]:
     return Include(items, GetNotPredicate(predicate))
 
