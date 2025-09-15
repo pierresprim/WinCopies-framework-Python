@@ -25,7 +25,7 @@ def __ParseDir(path: str, func: Callable[[str, Predicate[os.DirEntry[AnyStr]]], 
     
     dirScanResult: IterableScanResult = func(path, converter(predicate))
 
-    return DualResult[os.DirEntry[AnyStr]|None, IterableScanResult](predicate.TryGetResult().GetKey(), dirScanResult)
+    return DualResult[os.DirEntry[AnyStr]|None, IterableScanResult](predicate.GetResult().TryGetValue(), dirScanResult)
 
 def FindDirEntry(path: str, predicate: Predicate[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
     return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
