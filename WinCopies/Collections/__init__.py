@@ -12,9 +12,9 @@ from WinCopies import Collections, IInterface, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import INullable
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
-from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualNullableValueBool
+from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo
 
 type Generator[T] = collections.abc.Generator[T, None, None]
 
@@ -441,13 +441,11 @@ class FinderPredicate[T](IInterface):
         
         self.__Reset()
     
-    def __Reset(self):
-        self.__result: T|None = None
-        self.__hasValue: bool = False
+    def __Reset(self) -> None:
+        self.__result: INullable[T] = GetNullValue()
     
-    def __Set(self, result: T):
-        self.__result = result
-        self.__hasValue = True
+    def __Set(self, result: T) -> None:
+        self.__result = GetNullable(result)
 
     def __Scan(self, entry: T, predicate: Predicate[T]) -> bool:
         if predicate(entry):
@@ -476,14 +474,8 @@ class FinderPredicate[T](IInterface):
     def GetValidationPredicate(self, predicate: Predicate[T]) -> Predicate[T]:
         return self.__GetPredicate(predicate, self.__Validate)
     
-    def TryGetResult(self) -> DualNullableValueBool[T]:
-        return DualNullableValueBool[T](self.__result, self.__hasValue)
-    
-    def GetResult(self) -> T:
-        if self.__hasValue and self.__result is not None:
-            return self.__result
-        
-        raise ValueError('This object contains no value.')
+    def GetResult(self) -> INullable[T]:
+        return self.__result
 
 def CreateList[T](count: int, value: T|None = None) -> list[T|None]:
     return [value] * count
