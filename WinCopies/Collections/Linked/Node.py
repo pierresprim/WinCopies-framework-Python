@@ -26,7 +26,7 @@ class IDoublyLinkedNode[T](ILinkedNode[T]):
     def GetPrevious(self) -> Self|None:
         pass
 
-class LinkedNodeBase[T]:
+class LinkedNodeBase[T](IInterface):
     def __init__(self, value: T):
         super().__init__()
         
