@@ -6,6 +6,9 @@ def NullifyIfEmpty(value: str) -> str|None:
 def StringifyIfNone(value: str|None) -> str:
     return '' if value == None else value
 
+def IsNoneOrEmpty(value: str|None) -> bool:
+    return value is None or value == ''
+
 def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     string = string.replace(esc + esc, esc)
     
