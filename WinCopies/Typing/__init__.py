@@ -135,7 +135,7 @@ class INullable[T](IInterface):
 
 @final
 class __Nullable[T](INullable[T]):
-    def __init__(self, value: T) -> None:
+    def __init__(self, value: T):
         super().__init__()
         
         self.__value: T = value

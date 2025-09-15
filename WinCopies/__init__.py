@@ -19,14 +19,14 @@ class IInterface:
 class IBooleanable(IInterface):
     def __init__(self):
         super().__init__()
-
+    
     @abstractmethod
     def ToBool(self) -> bool:
         pass
 class INullableBooleanable(IInterface):
     def __init__(self):
         super().__init__()
-
+    
     @abstractmethod
     def ToNullableBoolean(self) -> NullableBoolean:
         pass
@@ -109,7 +109,7 @@ class IDisposable(IInterface):
 class IStringable(IInterface):
     def __init__(self):
         super().__init__()
-
+    
     @abstractmethod
     def ToString(self) -> str:
         pass

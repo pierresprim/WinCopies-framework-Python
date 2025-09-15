@@ -207,7 +207,7 @@ class IIterable[T](Enumeration.IIterable[IDoublyLinkedNode[T]]):
         
         def TryGetIterator(self) -> Iterator[T]|None:
             return self.__list.TryGetValueIterator()
-
+    
     def __init__(self):
         super().__init__()
     
