@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
 from importlib import import_module
-from inspect import FrameInfo, Traceback, getframeinfo, getsource, stack
+from inspect import FrameInfo, Traceback, getframeinfo, getsource
 from pkgutil import ModuleInfo, walk_packages
 from sys import modules
 from types import ModuleType, FrameType
@@ -12,7 +12,7 @@ from typing import Sequence, final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction import Array
-from WinCopies.Typing import Reflection, InvalidOperationError, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import Reflection, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -322,22 +322,6 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     
     def Dispose(self) -> None:
         self.__frameInspector.Dispose()
-
-def EnumerateFromCallStack() -> Generator[FrameInfo]:
-    for frame in stack():
-        yield frame
-
-def __CheckCallerPackage(targetPackage: ModuleType|str, index: int) -> bool:
-    # Get caller's frame (index 1 in stack)
-    inspector: IFrameInspector = CreateFrameInspector(stack()[index])
-    
-    return inspector.IsInPackage(targetPackage)
-
-def CheckCallerPackage(targetPackage: ModuleType|str) -> bool:
-    return __CheckCallerPackage(targetPackage, 1)
-def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
-    if not __CheckCallerPackage(targetPackage, 2):
-        raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
 
 class FrameHierarchy:
     def __init__(self, inspector: IFrameInspector) -> None:
