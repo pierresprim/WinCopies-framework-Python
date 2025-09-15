@@ -20,7 +20,7 @@ def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
 
     if len(frames) > nextIndex:
         def getName(index: int) -> str:
-            return selector(path.abspath(frames[index][1]))
+            return selector(path.abspath(frames[index].filename))
         
         return getName(index) == getName(nextIndex)
     
@@ -46,7 +46,7 @@ def EnsureDirectPackageCall() -> None:
     __EnsureDirectCall(4, __IsDirectPackageCall)
 
 def GetModuleName(module: ModuleType) -> str:
-    return module.__name__ if hasattr(module, '__name__') else str(module)
+    return module.__name__ if hasattr(module, "__name__") else str(module)
 
 def IsSubmoduleFromNames(moduleName: str, packageName: str) -> bool:
     return moduleName.startswith(packageName + '.')
