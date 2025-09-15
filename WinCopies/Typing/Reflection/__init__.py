@@ -8,13 +8,14 @@ from types import ModuleType, FrameType
 from typing import List, Type
 
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
+from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Selector
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
-
+    
     nextIndex: int = index + 1
 
     if len(frames) > nextIndex:
@@ -115,7 +116,6 @@ def TryGetPackageNameFromFrame(frame: FrameType) -> str|None:
 
 def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> bool:
     def tryGetModule() -> ModuleType|None:
-        # Get module from frame
         module: INullable[ModuleType|None] = TryGetModuleFromFrame(frame)
 
         return module.GetValue() if module.HasValue() else None
@@ -156,6 +156,19 @@ def IsBuiltin(moduleName: str) -> bool:
     return moduleName in builtin_module_names
 def TryIsBuiltin(frame: FrameType) -> INullable[bool|None]:
     return __TryOnModuleNameFromFrame(frame, IsBuiltin)
+
+def EnumerateFromCallStack() -> Generator[FrameInfo]:
+    for frame in stack():
+        yield frame
+
+def __CheckCallerPackage(targetPackage: ModuleType|str, index: int) -> bool:
+    return TryIsModuleInPackageFromFrame(stack()[index].frame, targetPackage)
+
+def CheckCallerPackage(targetPackage: ModuleType|str) -> bool:
+    return __CheckCallerPackage(targetPackage, 1)
+def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
+    if not __CheckCallerPackage(targetPackage, 2):
+        raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
 
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     for type in types:
