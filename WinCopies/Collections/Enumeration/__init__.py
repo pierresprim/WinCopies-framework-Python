@@ -310,8 +310,8 @@ class Iterable[T](IIterable[T]):
         return self.__iterable
     
     @final
-    def TryGetIterator(self) -> IEnumerator[T]|None:
-        return TryAsEnumerator(self.__iterable.__iter__())
+    def TryGetIterator(self) -> SystemIterator[T]|None:
+        return self.__iterable.__iter__()
     
     @staticmethod
     def Create(iterable: SystemIterable[T]) -> IIterable[T]:
