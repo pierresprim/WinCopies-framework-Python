@@ -215,8 +215,7 @@ def ContainsOneSequence[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
 def MakeIterable[T](*items: T) -> Iterable[T]:
     return items
 def MakeGenerator[T](*items: T) -> Generator[T]:
-    for item in items:
-        yield item
+    return (item for item in items)
 
 def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> bool|None:
     with itemsProvider() as items:
