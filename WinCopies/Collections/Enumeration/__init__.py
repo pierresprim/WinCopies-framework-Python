@@ -105,6 +105,13 @@ class IIterable[T](collections.abc.Iterable[T], IInterface):
         return AsIterator(self.TryGetIterator())
     
     @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TryAsEnumerator(self.TryGetIterator())
+    @final
+    def GetEnumerator(self) -> IEnumerator[T]:
+        return AsEnumerator(self.GetIterator())
+    
+    @final
     def __iter__(self) -> SystemIterator[T]:
         return self.GetIterator()
 
