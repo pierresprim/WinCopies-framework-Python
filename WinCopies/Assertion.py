@@ -1,5 +1,5 @@
 from typing import Callable, Type
-from enum import Enum
+from enum import Enum, Flag
 
 def GetAssertionError(errorMessage: str|None = "Invalid operation."):
     return AssertionError(errorMessage)
@@ -45,3 +45,5 @@ def EnsureSubclass[T](c: type, t: Type[T], errorMessage: str|None = "c must be a
     EnsureTrue(issubclass(c, t), errorMessage)
 def EnsureEnum(e: type) -> None:
     EnsureSubclass(e, Enum, "e must be an enum.")
+def EnsureFlagEnum(e: type) -> None:
+    EnsureSubclass(e, Flag, "e must be Flag enum.")

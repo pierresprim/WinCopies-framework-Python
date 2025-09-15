@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from typing import Type
-from enum import Enum
+from enum import Enum, Flag
 
 from WinCopies.Assertion import EnsureSubclass, EnsureEnum
 from WinCopies.Delegates import Self
@@ -114,3 +114,9 @@ def TryGetFieldFromValue[T: Enum](e: Type[T], v: int) -> T|None:
     EnsureEnum(e)
     
     return __TryGetField(e, lambda o: o.value == v)
+
+def HasFlag[T: Flag](e: T, v: T) -> bool:
+    return v in e
+def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
+    if not HasFlag(e, v):
+        raise ValueError(f"{v} is not in {e}.")
