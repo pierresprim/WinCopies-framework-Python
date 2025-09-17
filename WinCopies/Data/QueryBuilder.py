@@ -269,9 +269,7 @@ class SelectionQueryBuilder(SelectionQueryBuilderBase[IQueryBase[object]]):
     
     @final
     def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
-        r=self.__stream.ToString()
-        print(r)
-        return DualResult[str, ICountableIterable[object]|None](r, CountableIterable[object].Create(self.__args))
+        return DualResult[str, ICountableIterable[object]|None](self.__stream.ToString(), CountableIterable[object].Create(self.__args))
     
     def Dispose(self):
         self.__stream.Dispose()
