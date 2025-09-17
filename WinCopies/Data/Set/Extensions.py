@@ -10,6 +10,7 @@ from WinCopies.Collections import Enumeration, Generator, MakeIterable
 from WinCopies.Collections.Abstraction import Dictionary
 from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
 
 from WinCopies.String import StringifyIfNone
@@ -20,7 +21,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair
 
 
 
-from WinCopies.Data import IColumn, IOperandValue
+from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, ISelectionQueryWriter, IParameterSetBase
@@ -132,6 +133,14 @@ class ParameterSet[T](Dictionary[IColumn, T], IParameterSet[T]):
 class ColumnParameterSet[T: IParameter[object]](ParameterSet[T|None], IColumnParameterSet[T]):
     def __init__(self, dictionary: dict[IColumn, T|None]|None = None):
         super().__init__(dictionary)
+    
+    @staticmethod
+    def Create(columns: Iterable[IColumn]) -> IColumnParameterSet[T]:
+        return ColumnParameterSet(dict.fromkeys(columns))
+    
+    @staticmethod
+    def CreateFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[T]:
+        return ColumnParameterSet[T].Create(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
 class FieldParameterSet[T: IParameter[IOperandValue]](ParameterSet[T], IFieldParameterSet[T]):
     def __init__(self, dictionary: dict[IColumn, T]|None = None):
         super().__init__(dictionary)
