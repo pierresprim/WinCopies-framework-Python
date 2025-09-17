@@ -146,7 +146,7 @@ class TableParameterSet(Dictionary[str, ITableParameter[object]|None], ITablePar
         super().__init__(dictionary)
     
     @staticmethod
-    def Create(*tableNames: str) -> ITableParameterSet:
+    def Create(tableNames: Iterable[str]) -> ITableParameterSet:
         return TableParameterSet(dict.fromkeys(tableNames))
 
 class ConditionParameterSetBase(IConditionParameterSet):
