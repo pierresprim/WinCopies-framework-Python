@@ -98,7 +98,7 @@ class Table(Abstract.Table):
                         case _:
                             raise NotImplementedError(f"The '{fieldType}' field type is not supported.")
                 
-                def getAttribute(attributes: Table.FieldAttributes) -> FieldAttributes:
+                def getAttributes(attributes: Table.FieldAttributes) -> FieldAttributes:
                     if attributes == Table.FieldAttributes.Null:
                         return FieldAttributes.Null
                     
@@ -183,7 +183,7 @@ class Table(Abstract.Table):
                     if checkAttributeValue(row, 5):
                         attributes |= Table.FieldAttributes.Unique
 
-                    yield GetField(fieldFactory, str(row[0]), getAttribute(attributes), result.GetKey(), result.GetValue())
+                    yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
             
             self.__fields = Array[IField](getFields(self.__GetConnection()))
         
@@ -245,7 +245,7 @@ class Connection(Abstract.Connection):
     
     @staticmethod
     def __EnsureFields(fields: Iterable[IField]) -> None:
-        EnsureOnlyOne(fields, lambda field: field.GetAttribute() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
+        EnsureOnlyOne(fields, lambda field: field.GetAttributes() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
     
     def _TryCreateTableOverride(self, name: str, fields: Iterable[IField]) -> ITable|None:
         Connection.__EnsureFields(fields)

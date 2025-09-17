@@ -47,7 +47,7 @@ class IField(IStringable):
         pass
 
     @abstractmethod
-    def GetAttribute(self) -> FieldAttributes:
+    def GetAttributes(self) -> FieldAttributes:
         pass
 
 class IModularField[T: Enum](IField):
@@ -72,7 +72,7 @@ class Field(IField):
         return self.__name
     
     @final
-    def GetAttribute(self) -> FieldAttributes:
+    def GetAttributes(self) -> FieldAttributes:
         return self.__attribute
 
 class ModularField[T: Enum](Field):

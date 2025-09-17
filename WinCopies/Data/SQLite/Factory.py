@@ -63,7 +63,7 @@ class FieldFactory(IFieldFactory):
             def getField() -> str:
                 return f"{self.GetName()} {getEnumName(self.GetType())}"
                 
-            result: str|None = getAttributes(self.GetAttribute())
+            result: str|None = getAttributes(self.GetAttributes())
             
             return getField() if result is None else f"{getField()} {result}"
     
