@@ -17,6 +17,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data import Query
 from WinCopies.Data.Query import QueryResult, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Misc import ITableNameFormater
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
@@ -54,8 +55,16 @@ class QueryResultBase(IInterface):
     def Dispose(self) -> None:
         self._GetCursor().close()
 
+class __IQuery(ITableNameFormater):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def FormatTableName(self, tableName: str) -> str:
+        return String.DoubleQuoteSurround(tableName)
+
 @final
-class SelectionQuery(Query.SelectionQuery):
+class SelectionQuery(Query.SelectionQuery, __IQuery):
     @final
     class ExecutionResult(QueryResultBase, ISelectionQueryExecutionResult, IIterable[Sequence[object]]):
         @final
@@ -106,9 +115,6 @@ class SelectionQuery(Query.SelectionQuery):
     def _Validate(self) -> str|None:
         return "There must be at most one table." if self.GetTables().GetCount() > 1 else None
     
-    def FormatTableName(self, tableName: str) -> str:
-        return String.DoubleQuoteSurround(tableName)
-    
     def Execute(self) -> ISelectionQueryExecutionResult|None:
         query: QueryResult|None = self.GetQuery()
 
@@ -125,7 +131,7 @@ class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionRe
         return self._GetCursor().lastrowid # type: ignore
 
 @final
-class InsertionQuery(Query.InsertionQuery):
+class InsertionQuery(Query.InsertionQuery, __IQuery):
     def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[str, object]):
         super().__init__(tableName, items)
 
@@ -134,7 +140,7 @@ class InsertionQuery(Query.InsertionQuery):
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
-class MultiInsertionQuery(Query.MultiInsertionQuery):
+class MultiInsertionQuery(Query.MultiInsertionQuery, __IQuery):
     def __init__(self, connection: sqlite3.Connection, tableName: str, items: Iterable[Iterable], *columns: str):
         super().__init__(tableName, items, *columns)
 
