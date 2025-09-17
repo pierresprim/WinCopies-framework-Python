@@ -6,7 +6,7 @@ from typing import final
 
 
 
-from WinCopies.Collections import Enumeration, Generator, MakeIterable
+from WinCopies.Collections import Enumeration, Generator, MakeSequence
 from WinCopies.Collections.Abstraction import Dictionary
 from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Extensions import IDictionary
@@ -207,7 +207,7 @@ class BranchSetBase[T](IBranchSet[T]):
         
         self._WriteConditions(writer)
         
-        writer.Write(f" ELSE {writer.JoinParameters(MakeIterable(self.GetDefault()))} END AS {writer.FormatTableName(self.GetAlias())}")
+        writer.Write(f" ELSE {writer.JoinParameters(MakeSequence(self.GetDefault()))} END AS {writer.FormatTableName(self.GetAlias())}")
 class BranchSet[T](BranchSetBase[T]):
     def __init__(self, alias: str, defaultValue: T):
         super().__init__(alias)
@@ -263,7 +263,7 @@ class CaseSet[TKey, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
         def render(item: IKeyValuePair[TKey, TValue]) -> None:
             self._RenderValue(item.GetValue(), writer)
 
-            writer.Write(f" THEN {writer.JoinParameters(MakeIterable(item.GetKey()))}")
+            writer.Write(f" THEN {writer.JoinParameters(MakeSequence(item.GetKey()))}")
 
         if not DoForEachItem(self.GetConditions(), render):
             raise ValueError("No condition given.")
@@ -286,7 +286,7 @@ class MatchSet[T](CaseSet[T, T], IMatchSet[T]):
     
     @final
     def _RenderValue(self, value: T, writer: ISelectionQueryWriter) -> None:
-        writer.Write(writer.JoinParameters(MakeIterable(value)))
+        writer.Write(writer.JoinParameters(MakeSequence(value)))
 
 class ConditionalSet[TKey, TValue](CaseSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, dictionary: IDictionary[TKey, TValue]|None = None):

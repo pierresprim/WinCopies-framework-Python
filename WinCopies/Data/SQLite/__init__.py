@@ -10,7 +10,7 @@ import sqlite3
 
 from WinCopies import IDisposable, String
 
-from WinCopies.Collections import Generator, MakeIterable
+from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction import Array
 from WinCopies.Collections.Extensions import IArray, IDictionary
 from WinCopies.Collections.Iteration import EnsureOnlyOne
@@ -145,7 +145,7 @@ class Table(Abstract.Table):
                         MakeFieldParameterSetIterable(
                             {TableColumn('i', "unique"): FieldParameter[int].Create(Operator.Equals, 1)})))
                 uniqueFlagQuery.SetJoins(
-                    MakeIterable(
+                    MakeSequence(
                         Join(
                             JoinType.Inner,
                             "PRAGMA_INDEX_INFO",
@@ -235,7 +235,7 @@ class Connection(Abstract.Connection):
         return String.DoubleQuoteSurround(name)
     
     def GetTableNames(self) -> Generator[str]:
-        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(TableParameterSet.Create("sqlite_master"), ColumnParameterSet({Column("name"): None}), ConditionParameterSet(MakeIterable(FieldParameterSet({Column("type"): FieldParameter[str].Create(Operator.Equals, "table")})))).Execute()
+        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(TableParameterSet.Create("sqlite_master"), ColumnParameterSet({Column("name"): None}), ConditionParameterSet(MakeSequence(FieldParameterSet({Column("type"): FieldParameter[str].Create(Operator.Equals, "table")})))).Execute()
 
         if queryExecutionResult is None:
             return
