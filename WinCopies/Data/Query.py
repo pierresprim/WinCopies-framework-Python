@@ -6,7 +6,7 @@ from typing import final
 
 
 
-from WinCopies import IDisposable
+from WinCopies import IDisposable, IInterface
 
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstraction import CountableIterable
@@ -109,7 +109,10 @@ class NullableQuery[T: IQueryExecutionResult](NullableQueryProvider, QueryBase[Q
     def GetQuery(self) -> QueryResult|None:
         return super().GetQuery() if self._Prevalidate() else None
 
-class ISelectionQueryBase:
+class ISelectionQueryBase(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetTables(self) -> ITableParameterSet:
         pass
@@ -418,7 +421,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
         
         result: DualResult[str, str] = getValues()
         
-        return DualResult[str, ICountableIterable[object]](f"INSERT INTO {self.GetFormattedTableName()} ({result.GetKey()}) VALUES {result.GetValue()}", CountableIterable[object].Create(args))
+        return DualResult[str, ICountableIterable[object]](f"INSERT INTO {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableIterable[object].Create(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
     def __init__(self, tableName: str, items: Iterable[Iterable[object]], *columns: str):
         super().__init__(tableName, items)
