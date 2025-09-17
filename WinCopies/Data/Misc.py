@@ -2,9 +2,11 @@ from abc import abstractmethod
 from enum import Enum
 from typing import final
 
-class ITableNameFormater:
+from WinCopies import IInterface
+
+class ITableNameFormater(IInterface):
     def __init__(self):
-        pass
+        super().__init__()
     
     @abstractmethod
     def FormatTableName(self, tableName: str) -> str:
