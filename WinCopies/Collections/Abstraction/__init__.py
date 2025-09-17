@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections.abc
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import final, Callable
 
 from WinCopies.Collections import Enumeration, Extensions, Generator, ICountable, IndexOf
@@ -14,21 +14,21 @@ from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class Array[T](Extensions.Array[T]):
-    def __init__(self, items: tuple[T, ...]|collections.abc.Iterable[T]):
+    def __init__(self, items: Sequence[T]|collections.abc.Iterable[T]):
         super().__init__()
 
-        self.__tuple: tuple[T, ...] = items if isinstance(items, tuple) else tuple(items)
+        self.__sequence: Sequence[T] = items if isinstance(items, Sequence) else tuple(items)
     
-    def _GetTuple(self) -> tuple[T, ...]:
-        return self.__tuple
+    def _GetSequence(self) -> Sequence[T]:
+        return self.__sequence
     
     @final
     def GetCount(self) -> int:
-        return len(self._GetTuple())
+        return len(self._GetSequence())
     
     @final
     def GetAt(self, key: int) -> T:
-        return self._GetTuple()[key]
+        return self._GetSequence()[key]
 
 class List[T](Extensions.List[T]):
     def __init__(self, items: list[T]|None = None):
