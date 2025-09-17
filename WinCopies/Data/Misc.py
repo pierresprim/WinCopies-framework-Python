@@ -2,16 +2,20 @@ from abc import abstractmethod
 from enum import Enum
 from typing import final
 
-class IQueryBase[T]:
+class ITableNameFormater:
     def __init__(self):
-        pass
-
-    @abstractmethod
-    def GetQuery(self) -> T|None:
         pass
     
     @abstractmethod
     def FormatTableName(self, tableName: str) -> str:
+        pass
+
+class IQueryBase[T](ITableNameFormater):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def GetQuery(self) -> T|None:
         pass
 
 class JoinType(Enum):
