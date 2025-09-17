@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from enum import Enum
-from typing import final
+from typing import final, Sequence
 
 import sqlite3
 
@@ -125,6 +125,5 @@ class QueryFactory(IQueryFactory):
     
     def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object]) -> IInsertionQuery:
         return InsertionQuery(self._GetConnection(), tableName, items)
-    
-    def GetMultiInsertionQuery(self, tableName: str, items: Iterable[Iterable[object]], *columns: str) -> IMultiInsertionQuery:
-        return MultiInsertionQuery(self._GetConnection(), tableName, items, *columns)
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IMultiInsertionQuery:
+        return MultiInsertionQuery(self._GetConnection(), tableName, columns, items)

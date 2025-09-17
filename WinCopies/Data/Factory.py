@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable
+from typing import Sequence
 
 from WinCopies.Collections.Extensions import IDictionary
 
@@ -36,7 +37,6 @@ class IQueryFactory:
     @abstractmethod
     def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object]) -> IInsertionQuery:
         pass
-
     @abstractmethod
-    def GetMultiInsertionQuery(self, tableName: str, items: Iterable[Iterable[object]], *columns: str) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IMultiInsertionQuery:
         pass

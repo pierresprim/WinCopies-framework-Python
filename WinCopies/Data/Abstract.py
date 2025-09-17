@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import final, Self
+from typing import final, Self, Sequence
 
 from WinCopies import IDisposable
 
@@ -40,7 +40,7 @@ class ITable(IDisposable, IEquatable['ITable']):
     def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
         pass
     @abstractmethod
-    def InsertMultiple(self, items: Iterable[Iterable[object]], *columns: str) -> IInsertionQueryExecutionResult:
+    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
         pass
 
 class Table(ITable):
@@ -118,7 +118,7 @@ class Connection(IConnection):
         
         def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
             raise GetDisposedError()
-        def InsertMultiple(self, items: Iterable[Iterable[object]], *columns: str) -> IInsertionQueryExecutionResult:
+        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
             raise GetDisposedError()
         
         def Dispose(self) -> None:
@@ -147,8 +147,8 @@ class Connection(IConnection):
         
         def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
             return self.__table.Insert(items)
-        def InsertMultiple(self, items: Iterable[Iterable[object]], *columns: str) -> IInsertionQueryExecutionResult:
-            return self.__table.InsertMultiple(items, *columns)
+        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
+            return self.__table.InsertMultiple(columns, items)
         
         def Dispose(self) -> None:
             if self.__tableList is None:

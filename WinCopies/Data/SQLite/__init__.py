@@ -194,8 +194,8 @@ class Table(Abstract.Table):
     
     def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
         return self.__GetConnection().GetQueryFactory().GetInsertionQuery(self.GetName(), items).Execute()
-    def InsertMultiple(self, items: Iterable[Iterable[object]], *columns: str) -> IInsertionQueryExecutionResult:
-        return self.__GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), items, *columns).Execute()
+    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
+        return self.__GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items).Execute()
     
     def Dispose(self) -> None:
         self.__fields = None

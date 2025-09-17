@@ -141,8 +141,8 @@ class InsertionQuery(Query.InsertionQuery, __IQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class MultiInsertionQuery(Query.MultiInsertionQuery, __IQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, items: Iterable[Iterable], *columns: str):
-        super().__init__(tableName, items, *columns)
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: Sequence[str], items: Iterable[Iterable]):
+        super().__init__(tableName, columns, items)
 
         self.__connection = connection
     

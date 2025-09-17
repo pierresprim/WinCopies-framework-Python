@@ -415,7 +415,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
 
                 return str('?')
             
-            result: str = join(addValue(item) for item in self.GetItems())
+            result: str = join(addValue(item) for item in self.GetItems()) # Needs to be executed before values.AsGenerator().
 
             return DualResult[str, str](join(values.AsGenerator()), result)
         
@@ -423,7 +423,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
         
         return DualResult[str, ICountableIterable[object]](f"INSERT INTO {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableIterable[object].Create(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
-    def __init__(self, tableName: str, items: Iterable[Iterable[object]], *columns: str):
+    def __init__(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]):
         super().__init__(tableName, items)
 
         self.__columns: Sequence[str] = columns
@@ -444,27 +444,22 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
 
         def getArguments(values: Iterable[object]) -> str:
             def getResult() -> str|None:
-                def getResult(args: CountableQueue[object]) -> str|None:
-                    def getArguments(value: object) -> str:
-                        args.Push(value)
+                args: CountableQueue[object]
 
-                        return '?'
+                def getArgument(value: object) -> str:
+                    args.Push(value)
 
-                    result: str|None = join(getArguments(value) for value in values)
+                    return '?'
 
-                    if args.GetCount() == length:
-                        globalArgs.PushItems(args.AsGenerator())
+                args = CountableQueue[object]()
+                result: str = join(getArgument(value) for value in values)
 
-                        result = f"({result})"
-                    
-                    else:
-                        result = None
+                if args.GetCount() == length:
+                    globalArgs.PushItems(args.AsGenerator())
 
-                    return result
-
-                args: CountableQueue[object]|None = CountableQueue[object]()
+                    return f"({result})"
                 
-                return getResult(args)
+                return None
             
             result: str|None = getResult()
 
