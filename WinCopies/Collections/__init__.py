@@ -212,7 +212,7 @@ def ContainsOnlyOneSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) 
 def ContainsOneSequence[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
     return Not(ContainsMultipleSequences(l, values))
 
-def MakeIterable[T](*items: T) -> Iterable[T]:
+def MakeSequence[T](*items: T) -> Sequence[T]:
     return items
 def MakeGenerator[T](*items: T) -> Generator[T]:
     return (item for item in items)
