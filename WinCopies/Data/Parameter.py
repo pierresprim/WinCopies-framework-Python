@@ -8,6 +8,7 @@ from WinCopies import IInterface
 
 from WinCopies.Collections import Enumeration, Generator
 from WinCopies.Collections.Enumeration import IIterable
+from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
 
@@ -181,9 +182,9 @@ class TableColumnArgument(TableArgument[IColumn]):
         return self.GetValue().ToString(builder.FormatTableName)
 
 def MakeTableValueIterable[T](*values: T) -> Iterable[ITableArgument[T]]:
-    return (TableValueArgument[T](value) for value in values)
+    return Select(values, lambda value: TableValueArgument[T](value))
 def MakeTableColumnIterable(*columns: IColumn) -> Iterable[ITableArgument[IColumn]]:
-    return (TableColumnArgument(column) for column in columns)
+    return Select(columns, lambda column: TableColumnArgument(column))
 
 class ITableParameter[T](IIterable[ITableArgument[T]]):
     def __init__(self):
