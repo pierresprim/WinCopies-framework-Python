@@ -1,9 +1,9 @@
 import sys
 import subprocess
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
-from WinCopies.Collections import Iteration
+from WinCopies.Collections import Iteration, MakeSequence
 from WinCopies.Typing import Reflection
 from WinCopies.Typing.Pairing import DualResult, KeyValuePair
 
@@ -33,8 +33,8 @@ def GetArgument(name: str, argument: str|None) -> str:
 def TryGetArgument(name: str, argument: str|None) -> str|None:
     return None if argument is None else f"--{name} {argument}"
 
-def GetArgumentTuple(name: str, argument: str) -> tuple[str]:
-    return (GetArgument(name, argument),)
+def GetArgumentSequence(name: str, argument: str) -> Sequence[str]:
+    return MakeSequence(GetArgument(name, argument))
 
 def GetArgumentPair(name: str, key: object, value: object) -> str:
     return GetArgument(name, f"{key}:{value}")
