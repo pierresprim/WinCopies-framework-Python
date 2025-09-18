@@ -377,12 +377,20 @@ class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def GetColumn(self) -> IKeyValuePair[IColumn, IParameter[object]]:
         return self.__column
 
-class InsertionQueryBase[T](Query[IInsertionQueryExecutionResult], IInsertionQueryBase[T]):
-    def __init__(self, tableName: str, items: T):
+class InsertionQueryStatementProvider(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _GetStatement(self, ignoreExisting: bool = False) -> str:
+        pass
+class InsertionQueryBase[T](Query[IInsertionQueryExecutionResult], IInsertionQueryBase[T], InsertionQueryStatementProvider):
+    def __init__(self, tableName: str, items: T, ignoreExisting: bool = False):
         super().__init__()
 
         self.__tableName: str = tableName
         self.__items: T = items
+        self.__ignoreExisting: bool = ignoreExisting
     
     @final
     def GetTableName(self) -> str:
@@ -394,10 +402,25 @@ class InsertionQueryBase[T](Query[IInsertionQueryExecutionResult], IInsertionQue
     @final
     def GetItems(self) -> T:
         return self.__items
+    
+    @final
+    def GetIgnoreExisting(self) -> bool:
+        return self.__ignoreExisting
 
 class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQuery):
-    def __init__(self, tableName: str, items: IDictionary[str, object]):
-        super().__init__(tableName, items)
+    def __init__(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False):
+        super().__init__(tableName, items, ignoreExisting)
+    
+    @staticmethod
+    def __GetStatement(onExisting: str) -> str:
+        return f"INSERT{onExisting} INTO"
+    
+    @staticmethod
+    def GetStandardStatement(ignoreExisting: bool = False) -> str:
+        return InsertionQuery.__GetStatement(" OR IGNORE" if ignoreExisting else '')
+    @staticmethod
+    def GetConciseStatement(ignoreExisting: bool = False) -> str:
+        return InsertionQuery.__GetStatement(" IGNORE" if ignoreExisting else '')
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
@@ -421,10 +444,10 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
         
         result: DualResult[str, str] = getValues()
         
-        return DualResult[str, ICountableIterable[object]](f"INSERT INTO {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableIterable[object].Create(args))
+        return DualResult[str, ICountableIterable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableIterable[object].Create(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
-    def __init__(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]):
-        super().__init__(tableName, items)
+    def __init__(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
+        super().__init__(tableName, items, ignoreExisting)
 
         self.__columns: Sequence[str] = columns
     
@@ -468,4 +491,4 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             return result
         
-        return DualResult[str, ICountableIterable[object]](f"INSERT INTO {self.GetFormattedTableName()} ({join(columns)}) VALUES {join(getArguments(item) for item in self.GetItems())}", CountableIterable[object].Create(globalArgs))
+        return DualResult[str, ICountableIterable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(columns)}) VALUES {join(getArguments(item) for item in self.GetItems())}", CountableIterable[object].Create(globalArgs))

@@ -123,7 +123,7 @@ class QueryFactory(IQueryFactory):
     def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         return SelectionQuery(self._GetConnection(), tables, columns, conditions)
     
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object]) -> IInsertionQuery:
-        return InsertionQuery(self._GetConnection(), tableName, items)
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IMultiInsertionQuery:
-        return MultiInsertionQuery(self._GetConnection(), tableName, columns, items)
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+        return InsertionQuery(self._GetConnection(), tableName, items, ignoreExisting)
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)

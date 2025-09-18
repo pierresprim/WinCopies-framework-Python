@@ -16,7 +16,7 @@ from WinCopies.Typing.Delegate.Extensions import GetDefaultFunction
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data import Query
-from WinCopies.Data.Query import QueryResult, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import QueryResult, InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Misc import ITableNameFormater
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
@@ -130,19 +130,27 @@ class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionRe
     def GetLastRowId(self) -> int:
         return self._GetCursor().lastrowid # type: ignore
 
+class __InsertionQuery(__IQuery, InsertionQueryStatementProvider):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def _GetStatement(self, ignoreExisting: bool = False) -> str:
+        return Query.InsertionQuery.GetStandardStatement(ignoreExisting)
+
 @final
-class InsertionQuery(Query.InsertionQuery, __IQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[str, object]):
-        super().__init__(tableName, items)
+class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False):
+        super().__init__(tableName, items, ignoreExisting)
 
         self.__connection = connection
     
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
-class MultiInsertionQuery(Query.MultiInsertionQuery, __IQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: Sequence[str], items: Iterable[Iterable]):
-        super().__init__(tableName, columns, items)
+class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: Sequence[str], items: Iterable[Iterable], ignoreExisting: bool = False):
+        super().__init__(tableName, columns, items, ignoreExisting)
 
         self.__connection = connection
     

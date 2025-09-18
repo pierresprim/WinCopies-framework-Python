@@ -37,10 +37,10 @@ class ITable(IDisposable, IEquatable['ITable']):
         pass
     
     @abstractmethod
-    def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
+    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         pass
     @abstractmethod
-    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
+    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         pass
 
 class Table(ITable):
@@ -116,9 +116,9 @@ class Connection(IConnection):
         def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult:
             raise GetDisposedError()
         
-        def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
+        def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
             raise GetDisposedError()
-        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
+        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
             raise GetDisposedError()
         
         def Dispose(self) -> None:
@@ -145,10 +145,10 @@ class Connection(IConnection):
         def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
             return self.__table.Select(columns)
         
-        def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
-            return self.__table.Insert(items)
-        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
-            return self.__table.InsertMultiple(columns, items)
+        def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+            return self.__table.Insert(items, ignoreExisting)
+        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+            return self.__table.InsertMultiple(columns, items, ignoreExisting)
         
         def Dispose(self) -> None:
             if self.__tableList is None:

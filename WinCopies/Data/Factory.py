@@ -35,8 +35,8 @@ class IQueryFactory:
         pass
 
     @abstractmethod
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object]) -> IInsertionQuery:
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
