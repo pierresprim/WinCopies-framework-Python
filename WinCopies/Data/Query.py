@@ -13,6 +13,7 @@ from WinCopies.Collections.Abstraction import CountableIterable
 from WinCopies.Collections.Enumeration import IEnumerator, IIterable, ICountableIterable
 from WinCopies.Collections.Enumeration.Extensions import RecursivelyIterable
 from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableIterableQueue
 
@@ -430,17 +431,17 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
             def join(values: Iterable[str]) -> str:
                 return ", ".join(values)
 
-            values: Singly.IList[str] = Queue[str]()
+            columns: Singly.IList[str] = Queue[str]()
 
             def addValue(item: IKeyValuePair[str, object]) -> str:
-                values.Push(item.GetKey())
+                columns.Push(self.FormatTableName(item.GetKey()))
                 args.Push(item.GetValue())
 
                 return str('?')
             
             result: str = join(addValue(item) for item in self.GetItems()) # Needs to be executed before values.AsGenerator().
 
-            return DualResult[str, str](join(values.AsGenerator()), result)
+            return DualResult[str, str](join(columns.AsGenerator()), result)
         
         result: DualResult[str, str] = getValues()
         
@@ -491,4 +492,4 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             return result
         
-        return DualResult[str, ICountableIterable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(columns)}) VALUES {join(getArguments(item) for item in self.GetItems())}", CountableIterable[object].Create(globalArgs))
+        return DualResult[str, ICountableIterable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns, lambda column: self.FormatTableName(column)))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableIterable[object].Create(globalArgs))
