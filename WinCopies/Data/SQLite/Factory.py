@@ -38,8 +38,11 @@ class FieldFactory(IFieldFactory):
                 return enum.name.upper()
             
             def getAttributes(attributes: FieldAttributes) -> str|None:
+                def notNullJoin(*values: str) -> str:
+                    return String.SpaceJoinValues(*values, "NOT NULL")
                 def getAutoIncrement() -> str:
-                    return String.SpaceJoinValues(getEnumName(FieldAttributes.AutoIncrement), getEnumName(FieldAttributes.Unique), "NOT NULL")
+                    return notNullJoin(getEnumName(FieldAttributes.AutoIncrement), getEnumName(FieldAttributes.Unique))
+                
                 def check(value: FieldAttributes) -> bool:
                     return HasFlag(attributes, value)
                 
@@ -53,7 +56,7 @@ class FieldFactory(IFieldFactory):
                     return getAutoIncrement()
                 
                 if check(FieldAttributes.Unique):
-                    return getEnumName(FieldAttributes.Unique)
+                    return notNullJoin(getEnumName(FieldAttributes.Unique))
                 
                 if check(FieldAttributes.Nullable):
                     return None
