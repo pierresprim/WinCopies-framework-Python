@@ -12,7 +12,7 @@ from WinCopies import IDisposable, String
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction import Array
-from WinCopies.Collections.Extensions import IArray, IDictionary
+from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import EnsureOnlyOne
 
 from WinCopies.Enum import HasFlag
@@ -30,8 +30,7 @@ from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter
-from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
-from WinCopies.Data.Set import IColumnParameterSet
+from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, FieldParameterSet, ConditionParameterSet, TableParameterSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeFieldParameterSetIterable
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory
@@ -69,7 +68,7 @@ class Table(Abstract.Table):
         self.__name: str = name
         self.__fields: IArray[IField]|None = None
     
-    def __GetConnection(self) -> Connection:
+    def _GetConnection(self) -> Connection:
         return self.__connection.GetConnection()
     
     def GetName(self) -> str:
@@ -185,17 +184,9 @@ class Table(Abstract.Table):
 
                     yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
             
-            self.__fields = Array[IField](getFields(self.__GetConnection()))
+            self.__fields = Array[IField](getFields(self._GetConnection()))
         
         return self.__fields
-    
-    def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
-        return self.__GetConnection().GetQueryFactory().GetSelectionQuery(TableParameterSet.Create(self.GetName()), columns).Execute()
-    
-    def Insert(self, items: IDictionary[str, object]) -> IInsertionQueryExecutionResult:
-        return self.__GetConnection().GetQueryFactory().GetInsertionQuery(self.GetName(), items).Execute()
-    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]]) -> IInsertionQueryExecutionResult:
-        return self.__GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items).Execute()
     
     def Dispose(self) -> None:
         self.__fields = None

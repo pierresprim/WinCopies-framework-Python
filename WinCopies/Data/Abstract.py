@@ -6,15 +6,16 @@ from typing import final, Self, Sequence
 
 from WinCopies import IDisposable
 
-from WinCopies.Collections import Generator
+from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction import List, Dictionary
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.Query import ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
+from WinCopies.Data.Set.Extensions import TableParameterSet
 
 from WinCopies.Typing import IEquatable, GetDisposedError
 from WinCopies.Typing.Pairing import DualValueNullableInfo
@@ -33,22 +34,48 @@ class ITable(IDisposable, IEquatable['ITable']):
         pass
 
     @abstractmethod
-    def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
+    def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
         pass
     
     @abstractmethod
-    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+    def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+    def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
+
+    @final
+    def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
+        return self.GetSelectionQuery(columns).Execute()
+    
+    @final
+    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        return self.GetInsertionQuery(items, ignoreExisting).Execute()
+    @final
+    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        return self.GetMultipleInsertionQuery(columns, items, ignoreExisting).Execute()
 
 class Table(ITable):
     def __init__(self):
         super().__init__()
     
+    @abstractmethod
+    def _GetConnection(self) -> IConnection:
+        pass
+    
     def Equals(self, item: ITable|object) -> bool:
         return item is self
+    
+    @final
+    def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
+        return self._GetConnection().GetQueryFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(self.GetName())), columns)
+    
+    @final
+    def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+        return self._GetConnection().GetQueryFactory().GetInsertionQuery(self.GetName(), items, ignoreExisting)
+    @final
+    def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        return self._GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting)
 
 class IConnection(IDisposable):
     def __init__(self):
@@ -113,12 +140,12 @@ class Connection(IConnection):
         def GetFields(self) -> IArray[IField]:
             raise GetDisposedError()
         
-        def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult:
+        def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
             raise GetDisposedError()
         
-        def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
             raise GetDisposedError()
-        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             raise GetDisposedError()
         
         def Dispose(self) -> None:
@@ -142,13 +169,13 @@ class Connection(IConnection):
         def GetFields(self) -> IArray[IField]:
             return self.__table.GetFields()
         
-        def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
-            return self.__table.Select(columns)
+        def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
+            return self.__table.GetSelectionQuery(columns)
         
-        def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-            return self.__table.Insert(items, ignoreExisting)
-        def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-            return self.__table.InsertMultiple(columns, items, ignoreExisting)
+        def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+            return self.__table.GetInsertionQuery(items, ignoreExisting)
+        def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+            return self.__table.GetMultipleInsertionQuery(columns, items, ignoreExisting)
         
         def Dispose(self) -> None:
             if self.__tableList is None:
