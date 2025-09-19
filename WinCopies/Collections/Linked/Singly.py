@@ -56,7 +56,18 @@ class IList[T](IReadOnlyCollection):
             
             result = self.TryPop()
 
-class Iterable[T](IList[T], IIterable[T]):
+class IIterableList[T](IList[T], IIterable[T]):
+    def __init__(self):
+        super().__init__()
+class ICountableList[T](IList[T], ICountable):
+    def __init__(self):
+        super().__init__()
+
+class ICountableIterableList[T](ICountableIterable[T], IIterableList[T], ICountableList[T]):
+    def __init__(self):
+        super().__init__()
+
+class Iterable[T](IIterableList[T]):
     def __init__(self):
         super().__init__()
     
@@ -249,7 +260,7 @@ class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementatio
     def __init__(self, l: IList[T]):
         super().__init__(l)
 
-class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountable):
+class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList[TItems]):
     def __init__(self, l: TList):
         EnsureDirectModuleCall()
 
@@ -334,7 +345,7 @@ class CountableStack[T](Countable[T]):
 
         self.PushItems(values)
 
-class CountableIterableBase[TItems, TList](CountableBase[TItems, TList], ICountableIterable[TItems], GenericConstraint[TList, Iterable[TItems]]):
+class CountableIterableBase[TItems, TList](CountableBase[TItems, TList], ICountableIterableList[TItems], GenericConstraint[TList, Iterable[TItems]]):
     def __init__(self, l: TList):
         super().__init__(l)
 class CountableIterable[T](CountableIterableBase[T, Iterable[T]], IGenericConstraintImplementation[Iterable[T]]):
