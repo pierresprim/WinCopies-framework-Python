@@ -10,6 +10,8 @@ from WinCopies.Typing import IEquatableObject
 from WinCopies.Typing.Delegate import Selector
 from WinCopies.Typing.Pairing import IKeyValuePair
 
+from WinCopies.Data.Misc import ITableNameFormater
+
 class IColumn(IEquatableObject['IColumn']):
     def __init__(self):
         super().__init__()
@@ -107,7 +109,7 @@ class Operator(Enum):
             case _:
                 return ''
 
-class IQueryBuilder(IDisposable):
+class IParameterProvider(IInterface):
     def __init__(self):
         super().__init__()
     
@@ -123,10 +125,10 @@ class IQueryBuilder(IDisposable):
         A parameter placeholder.
         """
         pass
-    
-    @abstractmethod
-    def FormatTableName(self, name: str) -> str:
-        pass
+
+class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
+    def __init__(self):
+        super().__init__()
 
     @abstractmethod
     def JoinParameters[T](self, items: Iterable[T]) -> str:

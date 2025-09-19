@@ -9,7 +9,7 @@ class ITableNameFormater(IInterface):
         super().__init__()
     
     @abstractmethod
-    def FormatTableName(self, tableName: str) -> str:
+    def FormatTableName(self, name: str) -> str:
         pass
 
 class IQueryBase[T](ITableNameFormater):
