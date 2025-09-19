@@ -8,7 +8,7 @@ import sqlite3
 
 
 
-from WinCopies import IDisposable, String
+from WinCopies import IInterface, IDisposable, String
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction import Array
@@ -24,7 +24,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 from WinCopies.Data import Abstract, Column, TableColumn, Operator
-from WinCopies.Data.Abstract import ITable
+from WinCopies.Data.Abstract import IConnection, ITable
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
@@ -36,17 +36,43 @@ from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, FieldParamet
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory
 
 @final
+class __Connection(IInterface):
+    def __init__(self, connection: Connection, innerCollection: sqlite3.Connection):
+        super().__init__()
+
+        self.__connection: IConnection = connection
+        self.__innerCollection: sqlite3.Connection = innerCollection
+    
+    def GetConnection(self) -> IConnection:
+        return self.__connection
+    
+    def GetInnerConnection(self) -> sqlite3.Connection:
+        return self.__innerCollection
+
+@final
 class Table(Abstract.Table):
     @final
     class __Connection(IDisposable):
-        def __init__(self, connection: Connection) -> None:
-            self.__connection: Connection|None = connection
+        def __init__(self, connection: __Connection) -> None:
+            self.__connection: __Connection|None = connection
         
-        def GetConnection(self) -> Connection:
+        def GetConnection(self) -> IConnection:
             if self.__connection is None:
                 raise InvalidOperationError()
             
-            return self.__connection
+            return self.__connection.GetConnection()
+        
+        def Execute(self, sql: str, values: Sequence[object]|None = None) -> None:
+            if self.__connection is None:
+                raise InvalidOperationError()
+            
+            connection: sqlite3.Connection = self.__connection.GetInnerConnection()
+
+            if values is None:
+                connection.execute(sql)
+            
+            else:
+                connection.execute(sql, values)
         
         def Dispose(self) -> None:
             self.__connection = None
@@ -59,7 +85,7 @@ class Table(Abstract.Table):
         Unique = auto()
         Nullable = auto()
     
-    def __init__(self, connection: Connection, name: str):
+    def __init__(self, connection: __Connection, name: str):
         EnsureDirectModuleCall()
         
         super().__init__()
@@ -68,15 +94,19 @@ class Table(Abstract.Table):
         self.__name: str = name
         self.__fields: IArray[IField]|None = None
     
-    def _GetConnection(self) -> Connection:
+    def _GetConnection(self) -> IConnection:
         return self.__connection.GetConnection()
     
     def GetName(self) -> str:
         return self.__name
+    def SetName(self, name: str) -> None:
+        connection: IConnection = self._GetConnection()
+
+        self.__connection.Execute(f"ALTER TABLE {connection.FormatTableName(self.GetName())} RENAME TO {connection.FormatTableName(name)}")
     
     def GetFields(self) -> IArray[IField]:
         if self.__fields is None:
-            def getFields(connection: Connection) -> Generator[IField]:
+            def getFields(connection: IConnection) -> Generator[IField]:
                 def getFieldType(fieldType: str) -> DualResult[FieldType, Enum|None]:
                     def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualResult[FieldType, Enum|None]:
                         return DualResult[FieldType, Enum|None](fieldType, fieldMode)
@@ -188,12 +218,18 @@ class Table(Abstract.Table):
         
         return self.__fields
     
+    def Remove(self) -> None:
+        self.__connection.Execute(f"DROP TABLE {self.GetName()}")
+    
     def Dispose(self) -> None:
         self.__fields = None
         self.__connection.Dispose()
 
 @final
 class Connection(Abstract.Connection):
+    def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
+        return Table(__Connection(self, connection), name)
+    
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField]) -> None:
         connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(field.ToString() for field in fields)}) STRICT")
     def __TryCreateTable(self, name: str, fields: Iterable[IField]) -> None:
@@ -209,7 +245,7 @@ class Connection(Abstract.Connection):
         
         self.__DoCreateTable(self.__connection, '', name, fields)
 
-        return Table(self, name)
+        return self.__GetTable(self.__connection, name)
     
     def __init__(self, path: str):
         super().__init__()
@@ -248,7 +284,10 @@ class Connection(Abstract.Connection):
         return self.__CreateTable(name, fields)
 
     def _GetTable(self, name: str) -> ITable:
-        return Table(self, name)
+        if self.__connection is None:
+            raise GetDisposedError()
+        
+        return self.__GetTable(self.__connection, name)
     
     def _GetFieldFactory(self) -> IFieldFactory:
         return FieldFactory()

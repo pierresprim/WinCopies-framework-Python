@@ -28,6 +28,9 @@ class ITable(IDisposable, IEquatable['ITable']):
     @abstractmethod
     def GetName(self) -> str:
         pass
+    @abstractmethod
+    def SetName(self, name: str) -> None:
+        pass
 
     @abstractmethod
     def GetFields(self) -> IArray[IField]:
@@ -62,6 +65,10 @@ class ITable(IDisposable, IEquatable['ITable']):
     @final
     def Update(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
         return self.GetUpdateQuery(values, conditions).Execute()
+    
+    @abstractmethod
+    def Remove(self) -> None:
+        pass
 
 class Table(ITable):
     def __init__(self):
@@ -148,6 +155,8 @@ class Connection(IConnection):
         
         def GetName(self) -> str:
             raise GetDisposedError()
+        def SetName(self, name: str) -> None:
+            raise GetDisposedError()
         
         def GetFields(self) -> IArray[IField]:
             raise GetDisposedError()
@@ -161,6 +170,9 @@ class Connection(IConnection):
             raise GetDisposedError()
         
         def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+            raise GetDisposedError()
+        
+        def Remove(self) -> None:
             raise GetDisposedError()
         
         def Dispose(self) -> None:
@@ -180,6 +192,8 @@ class Connection(IConnection):
         
         def GetName(self) -> str:
             return self.__table.GetName()
+        def SetName(self, name: str) -> None:
+            self.__table.SetName(name)
         
         def GetFields(self) -> IArray[IField]:
             return self.__table.GetFields()
@@ -194,6 +208,9 @@ class Connection(IConnection):
         
         def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
             return self.__table.GetUpdateQuery(values, conditions)
+        
+        def Remove(self) -> None:
+            self.__table.Remove()
         
         def Dispose(self) -> None:
             if self.__tableList is None:
