@@ -91,6 +91,37 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         self.Close()
 
+class IDataStream[T](IStream):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def TryRead(self, size: int) -> T|None:
+        pass
+    @abstractmethod
+    def Read(self, size: int) -> T:
+        pass
+    
+    @abstractmethod
+    def TryWrite(self, value: T) -> bool:
+        pass
+    @abstractmethod
+    def Write(self, value: T) -> None:
+        pass
+
+class ITextStream(IDataStream[str]):
+    def __init__(self):
+        super().__init__()
+    
+    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
+        return self.TryWrite(text + eol)
+    def WriteLine(self, text: str) -> None:
+        if not self.TryWriteLine(text):
+            raise IOError()
+class IBinaryStream(IDataStream[bytes]):
+    def __init__(self):
+        super().__init__()
+
 class IFile(IStream):
     def __init__(self):
         super().__init__()
@@ -114,23 +145,9 @@ class IFile(IStream):
     def Delete(self) -> None:
         pass
 
-class IFileStream[T](IFile):
+class IFileStream[T](IDataStream[T], IFile):
     def __init__(self):
         super().__init__()
-
-    @abstractmethod
-    def TryRead(self, size: int) -> T|None:
-        pass
-    @abstractmethod
-    def Read(self, size: int) -> T:
-        pass
-    
-    @abstractmethod
-    def TryWrite(self, value: T) -> bool:
-        pass
-    @abstractmethod
-    def Write(self, value: T) -> None:
-        pass
 
 class File[T](IFileStream[T]):
     @final
@@ -351,7 +368,7 @@ class FileStream[TStream: IOBase, TData](File[TData]):
         
         return False
 
-class TextFile(FileStream[TextIOWrapper, str]):
+class TextFile(FileStream[TextIOWrapper, str], ITextStream):
     def __init__(self, path: str):
         super().__init__(path)
     
@@ -370,16 +387,8 @@ class TextFile(FileStream[TextIOWrapper, str]):
 
         if stream is not None:
             stream.write(value)
-    
-    @final
-    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
-        return self.TryWrite(text + eol)
-    @final
-    def WriteLine(self, text: str) -> None:
-        if not self.TryWriteLine(text):
-            raise IOError()
 
-class BinaryFile(FileStream[BufferedIOBase, bytes]):
+class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryStream):
     def __init__(self, path: str):
         super().__init__(path)
     
@@ -399,7 +408,18 @@ class BinaryFile(FileStream[BufferedIOBase, bytes]):
         if stream is not None:
             stream.write(value)
 
-class MemoryTextStream(IStream, IStringable):
+class IMemoryTextStream(ITextStream, IStringable):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Open(self) -> None:
+        pass
+
+    @abstractmethod
+    def TryToString(self) -> str|None:
+        pass
+class MemoryTextStream(IMemoryTextStream):
     def __init__(self):
         super().__init__()
 
@@ -431,26 +451,18 @@ class MemoryTextStream(IStream, IStringable):
         return result
     
     @final
-    def TryWrite(self, text: str) -> bool:
+    def TryWrite(self, value: str) -> bool:
         stream: StringIO|None = self._GetStream()
 
         if self.IsOpen() and stream is not None:
-            stream.write(text)
+            stream.write(value)
 
             return True
         
         return False
     @final
-    def Write(self, text: str) -> None:
-        if not self.TryWrite(text):
-            raise IOError()
-
-    @final
-    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
-        return self.TryWrite(text + eol)
-    @final
-    def WriteLine(self, text: str) -> None:
-        if not self.TryWriteLine(text):
+    def Write(self, value: str) -> None:
+        if not self.TryWrite(value):
             raise IOError()
     
     @final
