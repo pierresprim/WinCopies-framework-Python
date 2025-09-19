@@ -160,6 +160,9 @@ class Connection(IConnection):
         def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             raise GetDisposedError()
         
+        def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+            raise GetDisposedError()
+        
         def Dispose(self) -> None:
             pass
     @final
@@ -188,6 +191,9 @@ class Connection(IConnection):
             return self.__table.GetInsertionQuery(items, ignoreExisting)
         def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             return self.__table.GetMultipleInsertionQuery(columns, items, ignoreExisting)
+        
+        def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+            return self.__table.GetUpdateQuery(values, conditions)
         
         def Dispose(self) -> None:
             if self.__tableList is None:
