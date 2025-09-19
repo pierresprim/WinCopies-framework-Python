@@ -108,6 +108,10 @@ class IConnection(IDisposable):
         pass
 
     @abstractmethod
+    def FormatTableName(self, name: str) -> str:
+        pass
+
+    @abstractmethod
     def GetQueryFactory(self) -> IQueryFactory:
         pass
     @abstractmethod
