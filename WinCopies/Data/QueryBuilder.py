@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import final
+from typing import final, Callable, Self
 
 
 
@@ -14,9 +14,9 @@ from WinCopies.Collections.Abstraction import CountableIterable
 from WinCopies.Collections.Enumeration import ICountableIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import CountableIterableQueue
+from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
 
-from WinCopies.IO.Stream import MemoryTextStream
+from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 
 from WinCopies.Typing.Delegate import Converter, Method
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
@@ -28,15 +28,73 @@ from WinCopies.Data.Misc import JoinType, IQueryBase
 from WinCopies.Data.Parameter import IArgument
 from WinCopies.Data.Set import ITableParameter
 
-class IParameterSetBase(IInterface):
+class IConditionalQueryWriter(IQueryBuilder):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def Render(self, writer: ISelectionQueryWriter) -> None:
+    def OpenStream(self) -> None:
         pass
 
-class IJoinBase[T: IParameterSetBase](IInterface):
+    @abstractmethod
+    def Write(self, value: str) -> None:
+        pass
+    
+    @abstractmethod
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
+        pass
+    
+    @abstractmethod
+    def ProcessConditions[T: IArgument|None](self, items: IDictionary[IColumn, T]) -> Generator[str]:
+        pass
+
+class IConditionalQueryBuilder(IConditionalQueryWriter):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
+        pass
+
+class ISelectionQueryWriter(IConditionalQueryWriter):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
+        """
+        SQL-formats a given table or routine call.
+
+        Parameters:
+        - name: A name of either a table or routine call.
+        - parameter: The arguments of the routine call, if applicable.
+
+        Returns:
+        The SQL formatted result of the table or routine call parsing.
+        """
+        pass
+
+    @abstractmethod
+    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
+        pass
+    
+    @abstractmethod
+    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+        pass
+
+class ISelectionQueryBuilder(IConditionalQueryBuilder, ISelectionQueryWriter):
+    def __init__(self):
+        super().__init__()
+
+class IParameterSetBase[T: IConditionalQueryWriter](IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Render(self, writer: T) -> None:
+        pass
+
+class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
     def __init__(self):
         super().__init__()
     
@@ -56,59 +114,8 @@ class IJoinBase[T: IParameterSetBase](IInterface):
     def GetConditions(self) -> T|None:
         pass
 
-class ISelectionQueryWriter(IQueryBuilder):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def OpenStream(self) -> None:
-        pass
-
-    @abstractmethod
-    def Write(self, value: str) -> None:
-        pass
-
-    @abstractmethod
-    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
-        """
-        SQL-formats a given table or routine call.
-
-        Parameters:
-        - name: A name of either a table or routine call.
-        - parameter: The arguments of the routine call, if applicable.
-
-        Returns:
-        The SQL formatted result of the table or routine call parsing.
-        """
-        pass
-
-    @abstractmethod
-    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase]]|None) -> None:
-        pass
-    
-    @abstractmethod
-    def AddConditions(self, conditions: IParameterSetBase|None) -> None:
-        pass
-    
-    @abstractmethod
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
-        pass
-    
-    @abstractmethod
-    def ProcessConditions[T: IArgument|None](self, items: IDictionary[IColumn, T]) -> Generator[str]:
-        pass
-
-class ISelectionQueryBuilder(ISelectionQueryWriter):
-    def __init__(self):
-        super().__init__()
-
-    @abstractmethod
-    def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
-        pass
-
-@final
-class __SelectionQueryWriter(ISelectionQueryWriter):
-    def __init__(self, prefix: str, writer: ISelectionQueryWriter):
+class __ConditionalQueryWriter[T: IConditionalQueryWriter](IConditionalQueryWriter):
+    def __init__(self, prefix: str, writer: T):
         def write(value: str) -> None:
             def write(value: str) -> None:
                 self.__builder.Write(value)
@@ -118,57 +125,78 @@ class __SelectionQueryWriter(ISelectionQueryWriter):
             self.__write = write
         
         super().__init__()
-
-        self.__builder: ISelectionQueryWriter = writer
+        
+        self.__builder: T = writer
         self.__write: Method[str] = write
     
+    @final
+    def _GetBuilder(self) -> T:
+        return self.__builder
+    
     def FormatTableName(self, name: str) -> str:
-        return self.__builder.FormatTableName(name)
+        return self._GetBuilder().FormatTableName(name)
     
     def OpenStream(self) -> None:
-        self.__builder.OpenStream()
+        self._GetBuilder().OpenStream()
 
     def Write(self, value: str) -> None:
         return self.__write(value)
 
-    def JoinParameters[T](self, items: Iterable[T]) -> str:
-        return self.__builder.JoinParameters(items)
+    def JoinParameters[TItems](self, items: Iterable[TItems]) -> str:
+        return self._GetBuilder().JoinParameters(items)
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:
-        return self.__builder.JoinOperands(items)
-
-    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
-        return self.__builder.AddTable(name, parameter)
-
-    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase]]|None) -> None:
-        return self.__builder.AddJoins(joins)
+        return self._GetBuilder().JoinOperands(items)
     
-    def AddConditions(self, conditions: IParameterSetBase|None) -> None:
-        return self.__builder.AddConditions(conditions)
-    
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
-        return self.__builder.ProcessCondition(condition)
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
+        return self._GetBuilder().AddConditions(conditions)
     
     def ProcessConditions(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
-        return self.__builder.ProcessConditions(items)
+        return self._GetBuilder().ProcessConditions(items)
+@final
+class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
+    def __init__(self, prefix: str, writer: ISelectionQueryWriter):
+        super().__init__(prefix, writer)
 
+    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
+        return self._GetBuilder().AddTable(name, parameter)
+
+    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
+        return self._GetBuilder().AddJoins(joins)
+    
+    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+        return self._GetBuilder().ProcessCondition(condition)
+
+def GetPrefixedConditionalQueryWriter(prefix: str, writer: IConditionalQueryWriter) -> IConditionalQueryWriter:
+    return __ConditionalQueryWriter(prefix, writer)
 def GetPrefixedSelectionQueryWriter(prefix: str, writer: ISelectionQueryWriter) -> ISelectionQueryWriter:
     return __SelectionQueryWriter(prefix, writer)
 
-class SelectionQueryBuilderBase[T: IQueryBase[object]](ISelectionQueryBuilder):
-    def __init__(self, query: T):
+class ConditionalQueryBuilder(IConditionalQueryBuilder):
+    def __init__(self, query: IQueryBase[object]):
         super().__init__()
 
-        self.__query: T = query
+        self.__query: IQueryBase[object] = query
+        self.__stream: IMemoryTextStream = MemoryTextStream()
+        self.__args: ICountableIterableList[object] = CountableIterableQueue[object]()
     
     @final
-    def _GetQuery(self) -> T:
+    def _GetQuery(self) -> IQueryBase[object]:
         return self.__query
-class SelectionQueryBuilder(SelectionQueryBuilderBase[IQueryBase[object]]):
-    def __init__(self, query: IQueryBase[object]):
-        super().__init__(query)
-
-        self.__stream: MemoryTextStream = MemoryTextStream()
-        self.__args: CountableIterableQueue[object] = CountableIterableQueue[object]()
+    
+    @final
+    def _GetStream(self) -> IMemoryTextStream:
+        return self.__stream
+    
+    @final
+    def _GetArgs(self) -> ICountableIterableList[object]:
+        return self.__args
+    
+    @final
+    def _RenderConditions[T: IConditionalQueryWriter](self, prefix: str, conditions: IParameterSetBase[T]|None, func: Callable[[str, Self], T]) -> None:
+        if conditions is None:
+            return
+        
+        conditions.Render(func(prefix, self))
     
     @final
     def OpenStream(self) -> None:
@@ -177,6 +205,29 @@ class SelectionQueryBuilder(SelectionQueryBuilderBase[IQueryBase[object]]):
     @final
     def Write(self, value: str) -> None:
         self.__stream.Write(value)
+    
+    @final
+    def FormatTableName(self, name: str) -> str:
+        return self._GetQuery().FormatTableName(name)
+
+    @final
+    def __Push(self, arg: object) -> None:
+        """
+        Add a given value to the list of query arguments.
+
+        Parameters:
+        - arg: The argument to add.
+        """
+        self._GetArgs().Push(arg)
+    
+    @final
+    def GetParameter(self, arg: object|None) -> str:
+        if arg is None:
+            return "NULL"
+        
+        self.__Push(arg)
+        
+        return '?'
     
     @staticmethod
     def Join(values: Iterable[str]) -> str:
@@ -190,71 +241,20 @@ class SelectionQueryBuilder(SelectionQueryBuilderBase[IQueryBase[object]]):
         The concatenated strings.
         """
         return ', '.join(values)
-
-    @final
-    def __Push(self, arg: object) -> None:
-        """
-        Add a given value to the list of query arguments.
-
-        Parameters:
-        - arg: The argument to add.
-        """
-        self.__args.Push(arg)
     
     @final
-    def GetParameter(self, arg: object|None) -> str:
-        if arg is None:
-            return "NULL"
-        
-        self.__Push(arg)
-        
-        return '?'
-    
-    @final
-    def __JoinParameters[T](self, items: Iterable[T], converter: Converter[T, str]) -> str:
-        return SelectionQueryBuilder.Join(Select(items, converter))
+    def _JoinParameters[T](self, items: Iterable[T], converter: Converter[T, str]) -> str:
+        return ConditionalQueryBuilder.Join(Select(items, converter))
     @final
     def JoinParameters[T](self, items: Iterable[T]) -> str:
-        return self.__JoinParameters(items, self.GetParameter)
+        return self._JoinParameters(items, self.GetParameter)
     @final
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:
-        return SelectionQueryBuilder.Join(Select(items, lambda operand: operand.Format(self)))
+        return ConditionalQueryBuilder.Join(Select(items, lambda operand: operand.Format(self)))
     
     @final
-    def FormatTableName(self, name: str) -> str:
-        return self._GetQuery().FormatTableName(name)
-    
-    @final
-    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
-        def getAlias(parameter: ITableParameter[object]) -> str:
-            alias: str|None = parameter.GetAlias()
-
-            return '' if alias is None else f" AS {self.FormatTableName(alias)}"
-        def getArguments(parameter: ITableParameter[object]) -> str:
-            return f"{name}({self.__JoinParameters(parameter, lambda value: value.Render(self))})" # No name formatting: routine.
-
-        return self.FormatTableName(name) if parameter is None else f"{getArguments(parameter)}{getAlias(parameter)}"
-    
-    @final
-    def __RenderConditions(self, prefix: str, conditions: IParameterSetBase|None) -> None:
-        if conditions is None:
-            return
-        
-        conditions.Render(GetPrefixedSelectionQueryWriter(prefix, self))
-    
-    @final
-    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase]]|None) -> None:
-        if joins is None:
-            return
-        
-        for join in joins:
-            self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formatting: can be routines.
-
-            self.__RenderConditions(" ON ", join.GetConditions())
-    
-    @final
-    def AddConditions(self, conditions: IParameterSetBase|None) -> None:
-        self.__RenderConditions(" WHERE ", conditions)
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
+        self._RenderConditions(" WHERE ", conditions, GetPrefixedConditionalQueryWriter)
     
     @final
     def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
@@ -265,11 +265,35 @@ class SelectionQueryBuilder(SelectionQueryBuilderBase[IQueryBase[object]]):
     
     @final
     def ProcessConditions[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:            
-        return (self.ProcessCondition(item) for item in items)
+        return Select(items, self.ProcessCondition)
     
     @final
     def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
-        return DualResult[str, ICountableIterable[object]|None](self.__stream.ToString(), CountableIterable[object].Create(self.__args))
+        return DualResult[str, ICountableIterable[object]|None](self._GetStream().ToString(), CountableIterable[object].Create(self._GetArgs()))
     
     def Dispose(self):
-        self.__stream.Dispose()
+        self._GetStream().Dispose()
+class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
+    def __init__(self, query: IQueryBase[object]):
+        super().__init__(query)
+    
+    @final
+    def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
+        def getAlias(parameter: ITableParameter[object]) -> str:
+            alias: str|None = parameter.GetAlias()
+
+            return '' if alias is None else f" AS {self.FormatTableName(alias)}"
+        def getArguments(parameter: ITableParameter[object]) -> str:
+            return f"{name}({self._JoinParameters(parameter, lambda value: value.Render(self))})" # No name formatting: routine.
+
+        return self.FormatTableName(name) if parameter is None else f"{getArguments(parameter)}{getAlias(parameter)}"
+    
+    @final
+    def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
+        if joins is None:
+            return
+        
+        for join in joins:
+            self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formatting: can be routines.
+
+            self._RenderConditions(" ON ", join.GetConditions(), GetPrefixedSelectionQueryWriter)

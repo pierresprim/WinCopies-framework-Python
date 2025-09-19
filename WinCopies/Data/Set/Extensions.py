@@ -6,6 +6,8 @@ from typing import final
 
 
 
+from WinCopies import IInterface
+
 from WinCopies.Collections import Enumeration, Generator, MakeSequence
 from WinCopies.Collections.Abstraction import Dictionary
 from WinCopies.Collections.Enumeration import IIterable
@@ -24,14 +26,14 @@ from WinCopies.Typing.Pairing import IKeyValuePair
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ITableParameter
-from WinCopies.Data.QueryBuilder import IJoinBase, ISelectionQueryWriter, IParameterSetBase
+from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
 from WinCopies.Data.Set import IParameterSet, IColumnParameterSet, IFieldParameterSet, ITableParameterSet
 
-class IConditionParameterSet(IParameterSetBase, IIterable[IFieldParameterSet[IParameter[IOperandValue]]]):
+class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter], IIterable[IFieldParameterSet[IParameter[IOperandValue]]]):
     def __init__(self):
         super().__init__()
 
-class IBranchSet[T](IParameterSetBase):
+class IBranchSet[T](IParameterSetBase[ISelectionQueryWriter]):
     def __init__(self):
         super().__init__()
     
@@ -55,7 +57,10 @@ class ICaseSet[TKey, TValue](IBranchSet[TKey]):
     def GetConditions(self) -> IDictionary[TKey, TValue]:
         pass
 
-class IExistenceQuery:
+class IExistenceQuery(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetTableName(self) -> str:
         pass
@@ -163,7 +168,7 @@ class ConditionParameterSetBase(IConditionParameterSet):
         super().__init__()
     
     @final
-    def Render(self, writer: ISelectionQueryWriter) -> None:
+    def Render(self, writer: IConditionalQueryWriter) -> None:
         def joinConditions(operator: str, values: Iterable[str]) -> str:
             return f" {operator} ".join(values)
         

@@ -110,7 +110,18 @@ class NullableQuery[T: IQueryExecutionResult](NullableQueryProvider, QueryBase[Q
     def GetQuery(self) -> QueryResult|None:
         return super().GetQuery() if self._Prevalidate() else None
 
-class ISelectionQueryBase(IInterface):
+class IConditionalQuery(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetConditions(self) -> IConditionParameterSet|None:
+        pass
+    @abstractmethod
+    def SetConditions(self, conditions: IConditionParameterSet|None) -> None:
+        pass
+
+class ISelectionQueryBase(IConditionalQuery):
     def __init__(self):
         super().__init__()
     
@@ -161,13 +172,17 @@ class ISubselectionQuery(ISelectionQueryBase):
     def GetColumn(self) -> IKeyValuePair[IColumn, IParameter[object]]:
         pass
 
-class IInsertionQueryBase[T](IQuery[QueryResult, IInsertionQueryExecutionResult]):
+class IWriteQuery(IQuery[QueryResult, IInsertionQueryExecutionResult]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def GetTableName(self) -> str:
         pass
+
+class IInsertionQueryBase[T](IWriteQuery):
+    def __init__(self):
+        super().__init__()
     
     @abstractmethod
     def GetItems(self) -> T:
@@ -182,6 +197,14 @@ class IMultiInsertionQuery(IInsertionQueryBase[Iterable[Iterable[object]]]):
     
     @abstractmethod
     def GetColumns(self) -> Sequence[str]:
+        pass
+
+class IUpdateQuery(IWriteQuery, IConditionalQuery):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetValues(self) -> IDictionary[str, object]:
         pass
 
 class SelectionQueryBase(ISelectionQueryBase):
@@ -368,6 +391,8 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             queryBuilder.AddConditions(self.GetConditions())
             
             return queryBuilder.Build()
+        
+        raise MemoryError()
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IParameter[object]], conditions: IConditionParameterSet|None, subqueries: IIterable[ISubselectionQuery]|None = None):
         super().__init__(tables, conditions, subqueries)
@@ -378,20 +403,11 @@ class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def GetColumn(self) -> IKeyValuePair[IColumn, IParameter[object]]:
         return self.__column
 
-class InsertionQueryStatementProvider(IInterface):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def _GetStatement(self, ignoreExisting: bool = False) -> str:
-        pass
-class InsertionQueryBase[T](Query[IInsertionQueryExecutionResult], IInsertionQueryBase[T], InsertionQueryStatementProvider):
-    def __init__(self, tableName: str, items: T, ignoreExisting: bool = False):
+class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
+    def __init__(self, tableName: str):
         super().__init__()
 
         self.__tableName: str = tableName
-        self.__items: T = items
-        self.__ignoreExisting: bool = ignoreExisting
     
     @final
     def GetTableName(self) -> str:
@@ -399,6 +415,20 @@ class InsertionQueryBase[T](Query[IInsertionQueryExecutionResult], IInsertionQue
     @final
     def GetFormattedTableName(self) -> str:
         return self.FormatTableName(self.GetTableName())
+
+class InsertionQueryStatementProvider(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _GetStatement(self, ignoreExisting: bool = False) -> str:
+        pass
+class InsertionQueryBase[T](WriteQuery, IInsertionQueryBase[T], InsertionQueryStatementProvider):
+    def __init__(self, tableName: str, items: T, ignoreExisting: bool = False):
+        super().__init__(tableName)
+
+        self.__items: T = items
+        self.__ignoreExisting: bool = ignoreExisting
     
     @final
     def GetItems(self) -> T:
@@ -437,9 +467,9 @@ class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQue
                 columns.Push(self.FormatTableName(item.GetKey()))
                 args.Push(item.GetValue())
 
-                return str('?')
+                return '?'
             
-            result: str = join(addValue(item) for item in self.GetItems()) # Needs to be executed before values.AsGenerator().
+            result: str = join(Select(self.GetItems(), addValue)) # Needs to be executed before values.AsGenerator().
 
             return DualResult[str, str](join(columns.AsGenerator()), result)
         
