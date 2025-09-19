@@ -19,11 +19,11 @@ from WinCopies.Data import Field
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import ITableParameterSet, IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
-from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiInsertionQuery
+from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiInsertionQuery, UpdateQuery
 
 @final
 class FieldFactory(IFieldFactory):
@@ -130,3 +130,6 @@ class QueryFactory(IQueryFactory):
         return InsertionQuery(self._GetConnection(), tableName, items, ignoreExisting)
     def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)
+    
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+        return UpdateQuery(self._GetConnection(), tableName, values, conditions)

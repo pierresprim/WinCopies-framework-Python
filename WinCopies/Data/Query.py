@@ -25,7 +25,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 from WinCopies.Data import IColumn
 from WinCopies.Data.Misc import IQueryBase
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.QueryBuilder import ISelectionQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
+from WinCopies.Data.QueryBuilder import IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin
 
@@ -523,3 +523,36 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             return result
         
         return DualResult[str, ICountableIterable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns, lambda column: self.FormatTableName(column)))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableIterable[object].Create(globalArgs))
+
+class UpdateQuery(WriteQuery, IUpdateQuery):
+    def __init__(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None):
+        super().__init__(tableName)
+
+        self.__values: IDictionary[str, object] = values
+        self.__conditions: IConditionParameterSet|None = conditions
+    
+    @final
+    def GetValues(self) -> IDictionary[str, object]:
+        return self.__values
+    
+    @final
+    def GetConditions(self) -> IConditionParameterSet|None:
+        return self.__conditions
+    
+    @final
+    def _GetQueryOverride(self) -> QueryResult:
+        def addValue(queryBuilder: IConditionalQueryBuilder, item: IKeyValuePair[str, object]) -> str:
+            queryBuilder.GetParameter(item.GetValue())
+
+            return self.FormatTableName(item.GetKey()) + " = ?"
+        
+        with (queryBuilder := ConditionalQueryBuilder(self)):
+            queryBuilder.OpenStream()
+
+            queryBuilder.Write(f"UPDATE {self.GetFormattedTableName()} SET {Select(self.GetValues(), lambda item: addValue(queryBuilder, item))}")
+            
+            queryBuilder.AddConditions(self.GetConditions())
+            
+            return queryBuilder.Build()
+        
+        raise MemoryError()

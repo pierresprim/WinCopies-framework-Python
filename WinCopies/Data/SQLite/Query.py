@@ -156,3 +156,12 @@ class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
     
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
+@final
+class UpdateQuery(Query.UpdateQuery, __IQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet | None):
+        super().__init__(tableName, values, conditions)
+
+        self.__connection = connection
+    
+    def Execute(self) -> IInsertionQueryExecutionResult:
+        return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())

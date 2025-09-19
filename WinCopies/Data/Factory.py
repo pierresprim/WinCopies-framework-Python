@@ -40,3 +40,7 @@ class IQueryFactory:
     @abstractmethod
     def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
+    
+    @abstractmethod
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+        pass

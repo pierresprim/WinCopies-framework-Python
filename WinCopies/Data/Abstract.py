@@ -15,7 +15,7 @@ from WinCopies.Data.Field import IField
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
-from WinCopies.Data.Set.Extensions import TableParameterSet
+from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
 
 from WinCopies.Typing import IEquatable, GetDisposedError
 from WinCopies.Typing.Pairing import DualValueNullableInfo
@@ -44,6 +44,10 @@ class ITable(IDisposable, IEquatable['ITable']):
     def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
 
+    @abstractmethod
+    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+        pass
+
     @final
     def Select(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQueryExecutionResult|None:
         return self.GetSelectionQuery(columns).Execute()
@@ -54,6 +58,10 @@ class ITable(IDisposable, IEquatable['ITable']):
     @final
     def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         return self.GetMultipleInsertionQuery(columns, items, ignoreExisting).Execute()
+    
+    @final
+    def Update(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
+        return self.GetUpdateQuery(values, conditions).Execute()
 
 class Table(ITable):
     def __init__(self):
@@ -76,6 +84,10 @@ class Table(ITable):
     @final
     def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return self._GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting)
+
+    @final
+    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+        return self._GetConnection().GetQueryFactory().GetUpdateQuery(self.GetName(), values, conditions)
 
 class IConnection(IDisposable):
     def __init__(self):
