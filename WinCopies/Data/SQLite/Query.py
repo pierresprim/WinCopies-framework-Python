@@ -60,8 +60,8 @@ class __IQuery(ITableNameFormater):
         super().__init__()
     
     @final
-    def FormatTableName(self, tableName: str) -> str:
-        return String.DoubleQuoteSurround(tableName)
+    def FormatTableName(self, name: str) -> str:
+        return String.DoubleQuoteSurround(name)
 
 @final
 class SelectionQuery(Query.SelectionQuery, __IQuery):
