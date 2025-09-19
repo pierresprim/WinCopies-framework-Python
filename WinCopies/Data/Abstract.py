@@ -13,7 +13,7 @@ from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
 
@@ -45,7 +45,7 @@ class ITable(IDisposable, IEquatable['ITable']):
         pass
 
     @abstractmethod
-    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
 
     @final
@@ -86,7 +86,7 @@ class Table(ITable):
         return self._GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting)
 
     @final
-    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         return self._GetConnection().GetQueryFactory().GetUpdateQuery(self.GetName(), values, conditions)
 
 class IConnection(IDisposable):

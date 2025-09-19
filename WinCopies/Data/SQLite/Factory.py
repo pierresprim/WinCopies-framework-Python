@@ -131,5 +131,5 @@ class QueryFactory(IQueryFactory):
     def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)
     
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         return UpdateQuery(self._GetConnection(), tableName, values, conditions)

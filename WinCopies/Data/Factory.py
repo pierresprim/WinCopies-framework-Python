@@ -6,7 +6,7 @@ from WinCopies.Collections.Extensions import IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
@@ -42,5 +42,5 @@ class IQueryFactory:
         pass
     
     @abstractmethod
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
