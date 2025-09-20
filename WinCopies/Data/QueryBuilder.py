@@ -10,7 +10,7 @@ from typing import final, Callable, Self
 from WinCopies import IInterface
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Abstraction import CountableIterable
+from WinCopies.Collections.Abstraction.Enumeration import CountableIterable
 from WinCopies.Collections.Enumeration import ICountableIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select

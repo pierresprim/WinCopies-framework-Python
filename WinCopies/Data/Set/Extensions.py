@@ -9,7 +9,7 @@ from typing import final
 from WinCopies import IInterface
 
 from WinCopies.Collections import Enumeration, Generator, MakeSequence
-from WinCopies.Collections.Abstraction import Dictionary
+from WinCopies.Collections.Abstraction.Collection import Dictionary
 from WinCopies.Collections.Enumeration import IIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select

@@ -7,7 +7,7 @@ from typing import final, Self, Sequence
 from WinCopies import IDisposable
 
 from WinCopies.Collections import Generator, MakeSequence
-from WinCopies.Collections.Abstraction import List, Dictionary
+from WinCopies.Collections.Abstraction.Collection import List, Dictionary
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory

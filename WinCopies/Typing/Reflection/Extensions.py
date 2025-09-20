@@ -11,7 +11,7 @@ from typing import Sequence, final
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
-from WinCopies.Collections.Abstraction import Array
+from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Typing import Reflection, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:

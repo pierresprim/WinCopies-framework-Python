@@ -11,7 +11,7 @@ import sqlite3
 from WinCopies import IInterface, IDisposable, String
 
 from WinCopies.Collections import Generator, MakeSequence
-from WinCopies.Collections.Abstraction import Array
+from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import EnsureOnlyOne
 

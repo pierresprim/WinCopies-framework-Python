@@ -7,7 +7,7 @@ import sqlite3
 
 from WinCopies import String
 from WinCopies.Collections import Enumeration, CreateList
-from WinCopies.Collections.Abstraction import Iterable
+from WinCopies.Collections.Abstraction.Enumeration import Iterable
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing import IInterface

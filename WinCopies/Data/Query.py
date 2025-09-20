@@ -9,7 +9,7 @@ from typing import final
 from WinCopies import IDisposable, IInterface
 
 from WinCopies.Collections import Enumeration
-from WinCopies.Collections.Abstraction import CountableIterable
+from WinCopies.Collections.Abstraction.Enumeration import CountableIterable
 from WinCopies.Collections.Enumeration import IEnumerator, IIterable, ICountableIterable
 from WinCopies.Collections.Enumeration.Extensions import RecursivelyIterable
 from WinCopies.Collections.Extensions import IDictionary
