@@ -388,8 +388,14 @@ class IWriteOnlyCountableIndexable[T](ICountableIndexableBase, IWriteOnlyIndexab
 class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IKeyable[int, T]):
     def __init__(self):
         super().__init__()
+class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWriteOnlyCountableIndexable[T]):
+    def __init__(self):
+        super().__init__()
 
-class IArray[T](IReadOnlyCollection, IReadOnlyCountableIndexable[T]):
+class ITuple[T](IReadOnlyCollection, IReadOnlyCountableIndexable[T]):
+    def __init__(self):
+        super().__init__()
+class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self):
         super().__init__()
 
@@ -430,12 +436,16 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
     def Remove(self, key: TKey) -> None:
         pass
 
-class Array[T](IArray[T]):
+class Tuple[T](ITuple[T]):
     def __init__(self):
         super().__init__()
     
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
+
+class Array[T](Tuple[T], IArray[T]):
+    def __init__(self):
+        super().__init__()
 
 class List[T](Array[T], IList[T]):
     def __init__(self):
