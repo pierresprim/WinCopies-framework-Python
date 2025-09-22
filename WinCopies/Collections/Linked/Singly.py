@@ -31,9 +31,9 @@ class IList[T](IReadOnlyCollection):
     def PushItems(self, items: collections.abc.Iterable[T]) -> None:
         pass
     
-    @abstractmethod
+    @final
     def PushValues(self, *values: T) -> None:
-        pass
+        self.PushItems(values)
     
     @abstractmethod
     def TryPeek(self) -> INullable[T]:
@@ -120,28 +120,17 @@ class List[T](IList[T]):
             self._Push(value, self.__first) # type: ignore
     
     @final
-    def __PushItems(self, items: collections.abc.Iterable[T]) -> None:
+    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
         for value in items:
             self.Push(value)
-    
     @final
     def TryPushItems(self, items: collections.abc.Iterable[T]|None) -> bool:
         if items is None:
             return False
         
-        self.__PushItems(items)
+        self.PushItems(items)
 
         return True
-    @final
-    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
-        if items is None: # type: ignore
-            raise ValueError("items can not be None.")
-        
-        self.__PushItems(items)
-    
-    @final
-    def PushValues(self, *values: T) -> None:
-        self.__PushItems(values)
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -306,10 +295,6 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList
             raise ValueError("No value provided.")
         
         self.__PushItems(items)
-    
-    @final
-    def PushValues(self, *values: TItems) -> None:
-        self.PushItems(values)
     
     @final
     def TryPeek(self) -> INullable[TItems]:
