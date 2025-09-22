@@ -1,11 +1,12 @@
 import collections.abc
 
-from collections.abc import Sequence, MutableSequence
+from collections.abc import Iterator, Sequence, MutableSequence
 from typing import final, Callable
 
 from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions, Generator, IndexOf
 from WinCopies.Collections.Enumeration import IEnumerator, EnumeratorBase
+from WinCopies.Collections.Extensions import IDictionary, ISet
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
@@ -119,7 +120,7 @@ class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedCons
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
+class Dictionary[TKey, TValue](IDictionary[TKey, TValue]):
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
@@ -294,3 +295,57 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     
     def __str__(self) -> str:
         return str(self._GetDictionary())
+
+class Set[T: IEquatableItem](ISet[T]):
+    def __init__(self, items: set[T]|None = None):
+        super().__init__()
+
+        self.__set: set[T] = set[T]() if items is None else items
+    
+    @final
+    def __TryAdd(self, item: T) -> int:
+        count = self.GetCount()
+        
+        self._GetItems().add(item)
+    
+        return count
+    
+    @final
+    def _GetItems(self) -> set[T]:
+        return self.__set
+    
+    @final
+    def GetCount(self) -> int:
+        return len(self._GetItems())
+    
+    @final
+    def TryAdd(self, item: T) -> bool:
+        return self.__TryAdd(item) < self.GetCount()
+    @final
+    def Add(self, item: T) -> None:
+        if self.__TryAdd(item) == self.GetCount():
+            raise ValueError(f"Item {item} already exists.")
+    
+    @final
+    def Remove(self, item: T) -> None:
+        self._GetItems().remove(item)
+    @final
+    def TryRemove(self, item: T) -> bool:
+        try:
+            self.Remove(item)
+
+            return True
+        
+        except KeyError:
+            return False
+    
+    @final
+    def TryGetIterator(self) -> Iterator[T]|None:
+        yield from self._GetItems()
+    
+    @final
+    def Clear(self) -> None:
+        self._GetItems().clear()
+    
+    def ToString(self) -> str:
+        return str(self._GetItems())
