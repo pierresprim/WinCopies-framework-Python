@@ -184,6 +184,14 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         self.__dictionary: dict[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
     
     @final
+    def __TryAdd(self, key: TKey, value: TValue) -> int:
+        count = self.GetCount()
+        
+        self._GetDictionary().setdefault(key, value)
+    
+        return count
+    
+    @final
     def _GetDictionary(self) -> dict[TKey, TValue]:
         return self.__dictionary
     
@@ -229,8 +237,16 @@ class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
         yield from self._GetDictionary().values()
     
     @final
+    def TryAdd(self, key: TKey, value: TValue) -> bool:
+        return self.__TryAdd(key, value) < self.GetCount()
+    @final
+    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.TryAdd(item.GetKey(), item.GetValue())
+    
+    @final
     def Add(self, key: TKey, value: TValue) -> None:
-        self._GetDictionary()[key] = value
+        if self.__TryAdd(key, value) == self.GetCount():
+            raise KeyError(f"Key {key} already exists.")
     @final
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
         self.Add(item.GetKey(), item.GetValue())

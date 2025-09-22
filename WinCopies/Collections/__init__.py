@@ -427,7 +427,14 @@ class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
         pass
     
     @abstractmethod
+    def TryAdd(self, key: TKey, value: TValue) -> bool:
+        pass
+    @abstractmethod
     def Add(self, key: TKey, value: TValue) -> None:
+        pass
+
+    @abstractmethod
+    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
         pass
     @abstractmethod
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
