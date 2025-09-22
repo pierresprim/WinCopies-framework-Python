@@ -244,13 +244,17 @@ class Dictionary[TKey, TValue](IDictionary[TKey, TValue]):
         return self._GetDictionary().get(key, defaultValue)
     
     @final
-    def SetAt(self, key: TKey, value: TValue) -> None:
-        self._GetDictionary()[key] = value
-    @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
-        self.SetAt(key, value)
+        if key in self.GetKeys():
+            self._GetDictionary()[key] = value
 
-        return True
+            return True
+        
+        return False
+    @final
+    def SetAt(self, key: TKey, value: TValue) -> None:
+        if not self.TrySetAt(key, value):
+            raise KeyError(f"Key {key} does not exist.")
     
     @final
     def GetKeys(self) -> Generator[TKey]:
@@ -287,13 +291,13 @@ class Dictionary[TKey, TValue](IDictionary[TKey, TValue]):
     
     @final
     def Clear(self) -> None:
-        return self._GetDictionary().clear()
+        self._GetDictionary().clear()
     
     @final
     def TryGetIterator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
         return Dictionary[TKey, TValue].Enumerator(self._GetDictionary())
     
-    def __str__(self) -> str:
+    def ToString(self) -> str:
         return str(self._GetDictionary())
 
 class Set[T: IEquatableItem](ISet[T]):
