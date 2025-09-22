@@ -16,7 +16,14 @@ class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
     def __init__(self, value: T, nextNode: Self|None):
         super().__init__(value, nextNode)
 
-class IList[T](IReadOnlyCollection):
+class IReadOnlyList[T](IReadOnlyCollection):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def TryPeek(self) -> INullable[T]:
+        pass
+class IList[T](IReadOnlyList[T]):
     def __init__(self):
         super().__init__()
     
@@ -36,10 +43,6 @@ class IList[T](IReadOnlyCollection):
         self.PushItems(values)
     
     @abstractmethod
-    def TryPeek(self) -> INullable[T]:
-        pass
-    
-    @abstractmethod
     def TryPop(self) -> INullable[T]:
         pass
     
@@ -56,14 +59,24 @@ class IList[T](IReadOnlyCollection):
             
             result = self.TryPop()
 
-class IIterableList[T](IList[T], IIterable[T]):
+class IReadOnlyIterableList[T](IReadOnlyList[T], IIterable[T]):
     def __init__(self):
         super().__init__()
-class ICountableList[T](IList[T], ICountable):
+class IIterableList[T](IReadOnlyIterableList[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class ICountableIterableList[T](ICountableIterable[T], IIterableList[T], ICountableList[T]):
+class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
+    def __init__(self):
+        super().__init__()
+class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
+    def __init__(self):
+        super().__init__()
+
+class IReadOnlyCountableIterableList[T](ICountableIterable[T], IReadOnlyIterableList[T], IReadOnlyCountableList[T]):
+    def __init__(self):
+        super().__init__()
+class ICountableIterableList[T](IReadOnlyCountableIterableList[T], IIterableList[T], ICountableList[T]):
     def __init__(self):
         super().__init__()
 
