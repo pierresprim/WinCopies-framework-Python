@@ -399,7 +399,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self):
         super().__init__()
 
-class IList[T](IArray[T], ICollection[T], IIndexable[T], IWriteOnlyCountableIndexable[T], IClearable):
+class IList[T](IArray[T], ICollection[T], IClearable):
     def __init__(self):
         super().__init__()
     
