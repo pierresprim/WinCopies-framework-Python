@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Type
+from typing import final, Callable, Type
 
 import WinCopies
 
@@ -188,6 +188,20 @@ class INullable[T](IInterface):
     @final
     def TryGetValue[U](self, default: U|None = None) -> T|U|None:
         return self.GetValue() if self.HasValue() else default
+    
+    @final
+    def Convert[TOut](self, converter: Callable[[T], TOut]) -> TOut:
+        return converter(self.GetValue())
+    @final
+    def TryConvert[U, TOut](self, converter: Callable[[T], TOut], default: U|None = None) -> TOut|U|None:
+        return self.Convert(converter) if self.HasValue() else default
+    
+    @final
+    def ConvertToNullable[TOut](self, converter: Callable[[T], TOut]) -> INullable[TOut]:
+        return GetNullable(converter(self.GetValue()))
+    @final
+    def TryConvertToNullable[TOut](self, converter: Callable[[T], TOut]) -> INullable[TOut]:
+        return self.ConvertToNullable(converter) if self.HasValue() else GetNullValue()
 
 @final
 class __Nullable[T](INullable[T]):
