@@ -53,6 +53,15 @@ class List[T](Extensions.List[T]):
         self._GetList().append(item)
     
     @final
+    def TryInsert(self, index: int, value: T) -> bool:
+        if self.ValidateIndex(index):
+            self._GetList().insert(index, value)
+            
+            return True
+        
+        return False
+    
+    @final
     def RemoveAt(self, index: int) -> None:
         self._GetList().pop(index)
     @final

@@ -402,6 +402,14 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
 class IList[T](IArray[T], ICollection[T], IIndexable[T], IWriteOnlyCountableIndexable[T], IClearable):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def TryInsert(self, index: int, value: T) -> bool:
+        pass
+    @final
+    def Insert(self, index: int, value: T) -> None:
+        if not self.TryInsert(index, value):
+            raise IndexError(index)
 
 class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
     def __init__(self):
