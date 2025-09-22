@@ -3,11 +3,18 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import Collections
-from WinCopies.Collections.Enumeration import IIterable, IEnumerator, EnumeratorBase
+from WinCopies import Collections, IStringable
+from WinCopies.Collections.Enumeration import IIterable, IEquatableIterable, IEnumerator, EnumeratorBase
+from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class IArray[T](Collections.IArray[T], IIterable[T]):
+class ITuple[T](Collections.ITuple[T], IIterable[T], IStringable):
+    def __init__(self):
+        super().__init__()
+class IEquatableTuple[T: IEquatableItem](ITuple[T], IEquatableIterable[T]):
+    def __init__(self):
+        super().__init__()
+class IArray[T](Collections.IArray[T], ITuple[T]):
     def __init__(self):
         super().__init__()
 class IList[T](Collections.IList[T], IArray[T]):
