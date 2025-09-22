@@ -12,7 +12,7 @@ from typing import final
 
 from WinCopies import Delegates, IInterface
 from WinCopies.Collections import ICountable
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Function
 
 type SystemIterable[T] = collections.abc.Iterable[T]
@@ -114,6 +114,10 @@ class IIterable[T](collections.abc.Iterable[T], IInterface):
     @final
     def __iter__(self) -> SystemIterator[T]:
         return self.GetIterator()
+
+class IEquatableIterable[T: IEquatableItem](IIterable[T], IEquatableItem):
+    def __init__(self):
+        super().__init__()
 
 @final
 class __NullEnumerable[T](IIterable[T]):
@@ -355,7 +359,10 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     
     def _ResetOverride(self) -> bool:
         return self.__enumerator.TryReset() is True
-class AbstractEnumerator[T](AbstractEnumeratorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
+class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
+    def __init__(self, enumerator: IEnumerator[TIn]):
+        super().__init__(enumerator)
+class AbstractEnumerator[T](Selector[T, T]):
     def __init__(self, enumerator: IEnumerator[T]):
         super().__init__(enumerator)
     
