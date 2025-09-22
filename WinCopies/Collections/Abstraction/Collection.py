@@ -1,61 +1,80 @@
 import collections.abc
 
-from collections.abc import Sequence
+from collections.abc import Sequence, MutableSequence
 from typing import final, Callable
 
+from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions, Generator, IndexOf
 from WinCopies.Collections.Enumeration import IEnumerator, EnumeratorBase
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class Array[T](Extensions.Array[T]):
-    def __init__(self, items: Sequence[T]|collections.abc.Iterable[T]):
+class TupleBase[TItem, TSequence](GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+    def __init__(self, items: TSequence):
         super().__init__()
 
-        self.__sequence: Sequence[T] = items if isinstance(items, Sequence) else tuple(items)
+        self.__items: TSequence = items
     
-    def _GetSequence(self) -> Sequence[T]:
-        return self.__sequence
+    @final
+    def _GetContainer(self) -> TSequence:
+        return self.__items
     
     @final
     def GetCount(self) -> int:
-        return len(self._GetSequence())
+        return len(self._GetInnerContainer())
     
     @final
-    def GetAt(self, key: int) -> T:
-        return self._GetSequence()[key]
+    def GetAt(self, key: int) -> TItem:
+        return self._GetInnerContainer()[key]
 
-class List[T](Extensions.List[T]):
+class Tuple[T](TupleBase[T, tuple[T, ...]], Extensions.Tuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
+    def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
+        super().__init__(items if isinstance(items, tuple) else tuple(items))
+    
+    def ToString(self) -> str:
+        return str(self._GetContainer())
+class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
+    def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
+        super().__init__(items if isinstance(items, tuple) else tuple(items))
+    
+    def Hash(self) -> int:
+        return hash(self._GetContainer())
+    
+    def Equals(self, item: object) -> bool:
+        return self is item
+    
+    def ToString(self) -> str:
+        return str(self._GetContainer())
+
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequence[TItem]]):
+    def __init__(self, items: TSequence):
+        super().__init__(items)
+    
+    @final
+    def SetAt(self, key: int, value: TItem) -> None:
+        self._GetSpecializedContainer()[key] = value
+
+class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequence[T]]):
+    def __init__(self, items: MutableSequence[T]|collections.abc.Iterable[T]):
+        super().__init__(items if isinstance(items, MutableSequence) else list(items))
+    
+    def ToString(self) -> str:
+        return str(self._GetContainer())
+
+class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], list[T]]):
     def __init__(self, items: list[T]|None = None):
-        super().__init__()
-
-        self.__list: list[T] = list[T]() if items is None else items
-    
-    @final
-    def _GetList(self) -> list[T]:
-        return self.__list
-    
-    @final
-    def GetCount(self) -> int:
-        return len(self._GetList())
-    
-    @final
-    def GetAt(self, key: int) -> T:
-        return self._GetList()[key]
-    @final
-    def SetAt(self, key: int, value: T) -> None:
-        self._GetList()[key] = value
+        super().__init__(list[T]() if items is None else items)
     
     @final
     def Add(self, item: T) -> None:
-        self._GetList().append(item)
+        self._GetContainer().append(item)
     
     @final
     def TryInsert(self, index: int, value: T) -> bool:
         if self.ValidateIndex(index):
-            self._GetList().insert(index, value)
+            self._GetContainer().insert(index, value)
             
             return True
         
@@ -63,7 +82,7 @@ class List[T](Extensions.List[T]):
     
     @final
     def RemoveAt(self, index: int) -> None:
-        self._GetList().pop(index)
+        self._GetContainer().pop(index)
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
         if index < 0:
@@ -78,7 +97,7 @@ class List[T](Extensions.List[T]):
     
     @final
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        items: list[T] = self._GetList()
+        items: list[T] = self._GetContainer()
 
         index: int|None = IndexOf(items, item, predicate)
 
@@ -95,7 +114,10 @@ class List[T](Extensions.List[T]):
     
     @final
     def Clear(self) -> None:
-        self._GetList().clear()
+        self._GetContainer().clear()
+    
+    def ToString(self) -> str:
+        return str(self._GetContainer())
 
 class Dictionary[TKey, TValue](Extensions.IDictionary[TKey, TValue]):
     @final
