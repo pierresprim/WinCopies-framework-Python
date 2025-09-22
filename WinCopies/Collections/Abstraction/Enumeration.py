@@ -3,10 +3,18 @@ import collections.abc
 from collections.abc import Iterator
 from typing import final
 
-from WinCopies.Collections import Enumeration
+from WinCopies.Collections import Enumeration, Generator
 from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
+def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
+    yield from iterable
+def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[T]|None:
+    if iterable is None:
+        return None
+    
+    return GetGenerator(iterable)
 
 class IterableBase[TItems, TIterable](IIterable[TItems], GenericConstraint[TIterable, IIterable[TItems]]):
     def __init__(self, iterable: TIterable):
