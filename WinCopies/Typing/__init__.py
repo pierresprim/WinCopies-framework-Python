@@ -33,18 +33,18 @@ class InvalidOperationError(Exception):
     def __init__(self, *args: object):
         super().__init__(*args)
 
-class IEquatable[T](IInterface):
+class IEquatableValue(IInterface):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def Equals(self, item: T|object) -> bool:
+    def Equals(self, item: object) -> bool:
         pass
     
     @final
     def __eq__(self, value: object) -> bool:
         return self.Equals(value)
-class IEquatableObject[T](IEquatable[T]):
+class IEquatableItem(IEquatableValue):
     def __init__(self):
         super().__init__()
     
@@ -56,9 +56,44 @@ class IEquatableObject[T](IEquatable[T]):
     def __hash__(self) -> int:
         return self.Hash()
 
-class IObject[T](IEquatableObject[T], IStringable):
+class IEquatable[T](IEquatableValue):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def Equals(self, item: T|object) -> bool:
+        pass
+class IEquatableObject[T](IEquatable[T], IEquatableItem):
+    def __init__(self):
+        super().__init__()
+
+class IItem(IEquatableItem, IStringable):
+    def __init__(self):
+        super().__init__()
+class IObject[T](IEquatableObject[T], IItem):
+    def __init__(self):
+        super().__init__()
+
+class IString(IObject['IString']):
+    def __init__(self):
+        super().__init__()
+class String(IString):
+    def __init__(self, value: str):
+        super().__init__()
+
+        self.__value: str = value
+    
+    def Equals(self, item: IString|object) -> bool:
+        def equals(item: str) -> bool:
+            return self.ToString() == item
+        
+        return (isinstance(item, IString) and equals(item.ToString())) or (isinstance(item, str) and equals(item))
+    
+    def Hash(self) -> int:
+        return hash(self.ToString())
+    
+    def ToString(self) -> str:
+        return self.__value
 
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
@@ -90,6 +125,13 @@ class __IGenericConstraint[TContainer, TInterface](IInterface):
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
         pass
+class __IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpecialized](__IGenericConstraint[TContainer, TInterface]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _AsSpecialized(self, container: TOverridden) -> TSpecialized:
+        pass
 
 class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
     def __init__(self):
@@ -109,6 +151,13 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
     @final
     def _GetInnerContainer(self) -> TInterface:
         return self._AsContainer(self._GetContainer())
+class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](GenericConstraint[TContainer, TInterface], __IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
+    def __init__(self):
+        super().__init__()
+
+    @final
+    def _GetSpecializedContainer(self) -> TSpecialized:
+        return self._AsSpecialized(self._GetContainer())
 
 class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     def __init__(self):
@@ -116,6 +165,13 @@ class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
     
     @final
     def _AsContainer(self, container: T) -> T:
+        return container
+class IGenericSpecializedConstraintImplementation[TInterface, TSpecialized](IGenericConstraintImplementation[TInterface], __IGenericSpecializedConstraint[TInterface, TSpecialized, TInterface, TSpecialized]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def _AsSpecialized(self, container: TSpecialized) -> TSpecialized:
         return container
 
 class INullable[T](IInterface):
