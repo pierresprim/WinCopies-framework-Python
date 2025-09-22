@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import final
-
 from WinCopies import Collections, IStringable
-from WinCopies.Collections.Enumeration import IIterable, IEquatableIterable, IEnumerator, EnumeratorBase
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Collections import Enumeration
+from WinCopies.Collections.Enumeration import IIterable, IEquatableIterable, IEnumerator
+from WinCopies.Typing import IEquatableItem, GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 class ITuple[T](Collections.ITuple[T], IIterable[T], IStringable):
@@ -35,19 +33,16 @@ class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
     def __init__(self):
         super().__init__()
 
-class ArrayBase[TItems, TList](Collections.Tuple[TItems], ITuple[TItems]):
-    @final
-    class Enumerator(EnumeratorBase[TItems]):
-        def __init__(self, items: ArrayBase[TItems, TList]):
+class ArrayBase[T](Collections.Tuple[T], ITuple[T]):
+    class EnumeratorBase[TList](Enumeration.EnumeratorBase[T], GenericConstraint[TList, ITuple[T]]):
+        def __init__(self, items: TList):
             super().__init__()
 
-            self.__list: ArrayBase[TItems, TList] = items
+            self.__list: TList = items
             self.__i: int = -1
         
-        def _GetListAsArray(self) -> ITuple[TItems]:
+        def _GetContainer(self) -> TList:
             return self.__list
-        def _GetList(self) -> TList:
-            return self.__list._AsList()
         
         def IsResetSupported(self) -> bool:
             return True
@@ -55,10 +50,10 @@ class ArrayBase[TItems, TList](Collections.Tuple[TItems], ITuple[TItems]):
         def _MoveNextOverride(self) -> bool:
             self.__i += 1
             
-            return self.__i < self._GetListAsArray().GetCount()
+            return self.__i < self._GetInnerContainer().GetCount()
         
-        def GetCurrent(self) -> TItems:
-            return self._GetListAsArray().GetAt(self.__i)
+        def GetCurrent(self) -> T:
+            return self._GetInnerContainer().GetAt(self.__i)
         
         def _OnStopped(self) -> None:
             pass
@@ -67,35 +62,26 @@ class ArrayBase[TItems, TList](Collections.Tuple[TItems], ITuple[TItems]):
             self.__i = -1
 
             return True
+    class Enumerator(EnumeratorBase[ITuple[T], T], IGenericConstraintImplementation[ITuple[T]]):
+        def __init__(self, items: ITuple[T]):
+            super().__init__(items)
     
     def __init__(self):
         super().__init__()
     
-    @abstractmethod
-    def _AsList(self) -> TList:
-        pass
-    
     # Not final to allow customization for the enumerator.
-    def TryGetIterator(self) -> IEnumerator[TItems]:
-        return ArrayBase[TItems, TList].Enumerator(self)
+    def TryGetIterator(self) -> IEnumerator[T]:
+        return ArrayBase[T].Enumerator(self)
 
-class Tuple[T](ArrayBase[T, 'Tuple']):
+class Tuple[T](ArrayBase[T]):
     def __init__(self):
         super().__init__()
 class EquatableTuple[T: IEquatableItem](Tuple[T], IEquatableTuple[T]):
     def __init__(self):
         super().__init__()
-class Array[T](Collections.Array[T], ArrayBase[T, 'Array'], IArray[T]):
+class Array[T](Collections.Array[T], ArrayBase[T], IArray[T]):
     def __init__(self):
         super().__init__()
-    
-    @final
-    def _AsList(self) -> Array[T]:
-        return self
-class List[T](Collections.List[T], ArrayBase[T, 'List'], IList[T]):
+class List[T](Collections.List[T], ArrayBase[T], IList[T]):
     def __init__(self):
         super().__init__()
-    
-    @final
-    def _AsList(self) -> List[T]:
-        return self
