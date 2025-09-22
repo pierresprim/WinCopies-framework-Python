@@ -43,10 +43,6 @@ class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TLis
             raise ValueError("items can not be None.")
     
     @final
-    def PushValues(self, *values: TItems) -> None:
-        self.TryPushItems(values)
-    
-    @final
     def TryPeek(self) -> INullable[TItems]:
         first: IDoublyLinkedNode[TItems]|None = self._GetFirst()
 
