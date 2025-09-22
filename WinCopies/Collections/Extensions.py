@@ -24,7 +24,7 @@ class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IIterable
     def __init__(self):
         super().__init__()
 
-class ArrayBase[TItems, TList](Collections.Array[TItems], IArray[TItems]):
+class ArrayBase[TItems, TList](Collections.Tuple[TItems], ITuple[TItems]):
     @final
     class Enumerator(EnumeratorBase[TItems]):
         def __init__(self, items: ArrayBase[TItems, TList]):
@@ -33,7 +33,7 @@ class ArrayBase[TItems, TList](Collections.Array[TItems], IArray[TItems]):
             self.__list: ArrayBase[TItems, TList] = items
             self.__i: int = -1
         
-        def _GetListAsArray(self) -> IArray[TItems]:
+        def _GetListAsArray(self) -> ITuple[TItems]:
             return self.__list
         def _GetList(self) -> TList:
             return self.__list._AsList()
@@ -68,14 +68,19 @@ class ArrayBase[TItems, TList](Collections.Array[TItems], IArray[TItems]):
     def TryGetIterator(self) -> IEnumerator[TItems]:
         return ArrayBase[TItems, TList].Enumerator(self)
 
-class Array[T](ArrayBase[T, 'Array']):
+class Tuple[T](ArrayBase[T, 'Tuple']):
+    def __init__(self):
+        super().__init__()
+class EquatableTuple[T: IEquatableItem](Tuple[T], IEquatableTuple[T]):
+    def __init__(self):
+        super().__init__()
+class Array[T](Collections.Array[T], ArrayBase[T, 'Array'], IArray[T]):
     def __init__(self):
         super().__init__()
     
     @final
     def _AsList(self) -> Array[T]:
         return self
-
 class List[T](Collections.List[T], ArrayBase[T, 'List'], IList[T]):
     def __init__(self):
         super().__init__()
