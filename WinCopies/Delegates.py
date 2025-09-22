@@ -1,6 +1,6 @@
 from typing import Callable
 
-from WinCopies.Typing.Delegate import Action, Function, Method, Predicate, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Converter, Function, Method, Predicate, EqualityComparison, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -316,3 +316,8 @@ def GetIndexedValueValueComparison[T](value: T) -> IndexedValueComparison[T]:
 
 def GetIndexedValueComparison[T](index: int, value: T) -> IndexedValueComparison[T]:
     return lambda i, _value: i == index and value == _value
+
+def GetSelectedEqualityComparison[TIn, TOut](predicate: EqualityComparison[TOut], converter: Converter[TIn, TOut]) -> EqualityComparison[TIn]:
+    return lambda x, y: predicate(converter(x), converter(y))
+def TryGetSelectedEqualityComparison[TIn, TOut](predicate: EqualityComparison[TOut]|None, converter: Converter[TIn, TOut]) -> EqualityComparison[TIn]|None:
+    return None if predicate is None else GetSelectedEqualityComparison(predicate, converter)
