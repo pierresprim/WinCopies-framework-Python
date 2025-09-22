@@ -128,7 +128,7 @@ class IListBase[T](IReadOnlyCollection):
     @abstractmethod
     def GetLast(self) -> IDoublyLinkedNode[T]|None:
         pass
-
+    
     @final
     def __TryGetValue[TDefault](self, default: TDefault, item: INullable[T]) -> T|TDefault:
         return item.GetValue() if item.HasValue() else default
@@ -206,26 +206,26 @@ class IListBase[T](IReadOnlyCollection):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
-class IIterable[T](Enumeration.IIterable[IDoublyLinkedNode[T]]):
+class IIterable[T](Enumeration.IIterable[T]):
     @final
-    class __Iterable(Enumeration.IIterable[T]):
+    class __Iterable(Enumeration.IIterable[IDoublyLinkedNode[T]]):
         def __init__(self, l: IIterable[T]):
             super().__init__()
 
             self.__list: IIterable[T] = l
         
-        def TryGetIterator(self) -> Iterator[T]|None:
-            return self.__list.TryGetValueIterator()
+        def TryGetIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
+            return self.__list.TryGetNodeIterator()
     
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def TryGetValueIterator(self) -> Iterator[T]|None:
+    def TryGetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
         pass
     
     @final
-    def AsValueIterable(self) -> Enumeration.IIterable[T]:
+    def AsNodeIterable(self) -> Enumeration.IIterable[IDoublyLinkedNode[T]]:
         return IIterable[T].__Iterable(self)
 
 class IList[T](IListBase[T], IIterable[T]):
@@ -379,15 +379,15 @@ class List[T](IList[T]):
             node = self.RemoveFirst()
     
     @final
-    def TryGetIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
-        return None if self.IsEmpty() or self.__first is None else DoublyLinkedNodeEnumerator[T](self.__first) # self.__first should not be None if self.IsEmpty().
+    def TryGetIterator(self) -> Iterator[T]|None:
+        return None if self.IsEmpty() or self.__first is None else GetValueIteratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
     
     @final
-    def TryGetValueIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() or self.__first is None else GetValueIteratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
+    def TryGetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
+        return None if self.IsEmpty() or self.__first is None else DoublyLinkedNodeEnumerator[T](self.__first) # self.__first should not be None if self.IsEmpty().
     @final
-    def GetValueIterator(self) -> Iterator[T]:
-        iterator: Iterator[T]|None = self.TryGetValueIterator()
+    def GetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]:
+        iterator: Iterator[IDoublyLinkedNode[T]]|None = self.TryGetNodeIterator()
 
         return AsIterator(iterator)
 

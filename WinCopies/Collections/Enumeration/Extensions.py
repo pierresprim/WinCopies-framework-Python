@@ -530,7 +530,7 @@ class IterableBuilder[T](IIterable[T]):
 
                         return True
                     
-                    self.__builder._SetIterable(self.__items.AsValueIterable())
+                    self.__builder._SetIterable(self.__items)
                     
                     return False
                 

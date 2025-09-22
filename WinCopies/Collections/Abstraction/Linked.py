@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final
 
-from WinCopies.Collections.Iteration import Select
+from WinCopies.Collections.Abstraction.Enumeration import TryGetGenerator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Doubly import List
@@ -102,9 +102,9 @@ class IIterableLinkedListBase[TItems, TList](Singly.IIterable[TItems], GenericCo
         super().__init__()
 
     def TryGetIterator(self) -> Iterator[TItems]|None:
-        iterable: Iterable[IDoublyLinkedNode[TItems]]|None = self._GetInnerContainer()
+        iterable: Iterable[TItems]|None = self._GetInnerContainer()
         
-        return Select(iterable, lambda node: node.GetValue())
+        return TryGetGenerator(iterable)
 class IIterableLinkedList[T](IIterableLinkedListBase[T, Doubly.IList[T]]):
     def __init__(self):
         super().__init__()
