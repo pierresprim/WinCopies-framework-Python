@@ -436,7 +436,7 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
     def TryRemove(self, item: T) -> bool:
         pass
 
-class IReadOnlyDictionary[TKey, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
+class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
     def __init__(self):
         super().__init__()
     
@@ -450,7 +450,7 @@ class IReadOnlyDictionary[TKey, TValue](IReadOnlyKeyable[TKey, TValue], ICountab
     @abstractmethod
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
         pass
-class IDictionary[TKey, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
+class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
     def __init__(self):
         super().__init__()
     

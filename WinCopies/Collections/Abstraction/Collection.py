@@ -120,7 +120,7 @@ class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedCons
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class Dictionary[TKey, TValue](IDictionary[TKey, TValue]):
+class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final

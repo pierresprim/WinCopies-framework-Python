@@ -21,10 +21,10 @@ class IList[T](Collections.IList[T], IArray[T]):
     def __init__(self):
         super().__init__()
 
-class IReadOnlyDictionary[TKey, TValue](Collections.IReadOnlyDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]], IStringable):
+class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self):
         super().__init__()
-class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self):
         super().__init__()
 
