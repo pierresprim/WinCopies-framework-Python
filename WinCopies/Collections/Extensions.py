@@ -20,7 +20,18 @@ class IArray[T](Collections.IArray[T], ITuple[T]):
 class IList[T](Collections.IList[T], IArray[T]):
     def __init__(self):
         super().__init__()
-class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]]):
+
+class IReadOnlyDictionary[TKey, TValue](Collections.IReadOnlyDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]], IStringable):
+    def __init__(self):
+        super().__init__()
+class IDictionary[TKey, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+
+class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet, IIterable[T], IStringable):
+    def __init__(self):
+        super().__init__()
+class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
     def __init__(self):
         super().__init__()
 
