@@ -12,7 +12,7 @@ from WinCopies import Collections, IInterface, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo
 
@@ -411,20 +411,48 @@ class IList[T](IArray[T], ICollection[T], IIndexable[T], IWriteOnlyCountableInde
         if not self.TryInsert(index, value):
             raise IndexError(index)
 
-class IDictionary[TKey, TValue](IKeyable[TKey, TValue], ICountable, IClearable):
+class IReadOnlySet(ICountable, IReadOnlyCollection):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self.GetCount() == 0
+class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def GetKeys(self) -> collections.abc.Iterator[TKey]:
+    def TryAdd(self, item: T) -> bool:
         pass
     @abstractmethod
-    def GetValues(self) -> collections.abc.Iterator[TValue]:
+    def Add(self, item: T) -> None:
+        pass
+    
+    @abstractmethod
+    def Remove(self, item: T) -> None:
+        pass
+    @abstractmethod
+    def TryRemove(self, item: T) -> bool:
+        pass
+
+class IReadOnlyDictionary[TKey, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetKeys(self) -> Iterable[TKey]:
+        pass
+    @abstractmethod
+    def GetValues(self) -> Iterable[TValue]:
         pass
 
     @abstractmethod
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
         pass
+class IDictionary[TKey, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
+    def __init__(self):
+        super().__init__()
     
     @abstractmethod
     def TryAdd(self, key: TKey, value: TValue) -> bool:
