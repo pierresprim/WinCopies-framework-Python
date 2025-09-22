@@ -214,6 +214,7 @@ class __Nullable[T](INullable[T]):
         return True
     def GetValue(self) -> T:
         return self.__value
+@final
 class __NullValue[T](INullable[T]):
     def __init__(self):
         super().__init__()
