@@ -44,9 +44,56 @@ class DoublyLinkedNode[T](NodeBase['DoublyLinkedNode', T]):
     def Ensure(self, l: IList[T]) -> None:
         EnsureTrue(self.Check(l))
 
-class IListBase[T](IReadOnlyCollection):
+class IReadOnlyList[T](IReadOnlyCollection):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def TryGetFirst(self) -> INullable[T]:
+        pass
+    @abstractmethod
+    def TryGetLast(self) -> INullable[T]:
+        pass
+
+    @final
+    def __TryGetValue[TDefault](self, default: TDefault, item: INullable[T]) -> T|TDefault:
+        return item.GetValue() if item.HasValue() else default
+    
+    @final
+    def TryGetFirstValue[TDefault](self, default: TDefault) -> T|TDefault:
+        return self.__TryGetValue(default, self.TryGetFirst())
+    @final
+    def TryGetLastValue[TDefault](self, default: TDefault) -> T|TDefault:
+        return self.__TryGetValue(default, self.TryGetLast())
+    
+    @final
+    def TryGetFirstValueOrNone(self) -> T|None:
+        return self.TryGetFirstValue(None)
+    @final
+    def TryGetLastValueOrNone(self) -> T|None:
+        return self.TryGetLastValue(None)
+
+class IListBase[T](IReadOnlyList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetFirst(self) -> IDoublyLinkedNode[T]|None:
+        pass
+    @abstractmethod
+    def GetLast(self) -> IDoublyLinkedNode[T]|None:
+        pass
+
+    @final
+    def __TryGet(self, node: IDoublyLinkedNode[T]|None) -> INullable[T]:
+        return GetNullValue() if node is None else GetNullable(node.GetValue())
+    
+    @final
+    def TryGetFirst(self) -> INullable[T]:
+        return self.__TryGet(self.GetFirst())
+    @final
+    def TryGetLast(self) -> INullable[T]:
+        return self.__TryGet(self.GetLast())
     
     @abstractmethod
     def AddFirst(self, value: T) -> IDoublyLinkedNode[T]:
@@ -123,42 +170,6 @@ class IListBase[T](IReadOnlyCollection):
         return self.AddItemsAfter(node, values)
     
     @abstractmethod
-    def GetFirst(self) -> IDoublyLinkedNode[T]|None:
-        pass
-    @abstractmethod
-    def GetLast(self) -> IDoublyLinkedNode[T]|None:
-        pass
-    
-    @final
-    def __TryGetValue[TDefault](self, default: TDefault, item: INullable[T]) -> T|TDefault:
-        return item.GetValue() if item.HasValue() else default
-    
-    @final
-    def TryGetFirstValue[TDefault](self, default: TDefault) -> T|TDefault:
-        return self.__TryGetValue(default, self.TryGetFirst())
-    @final
-    def TryGetLastValue[TDefault](self, default: TDefault) -> T|TDefault:
-        return self.__TryGetValue(default, self.TryGetLast())
-    
-    @final
-    def TryGetFirstValueOrNone(self) -> T|None:
-        return self.TryGetFirstValue(None)
-    @final
-    def TryGetLastValueOrNone(self) -> T|None:
-        return self.TryGetLastValue(None)
-
-    @final
-    def __TryGet(self, node: IDoublyLinkedNode[T]|None) -> INullable[T]:
-        return GetNullValue() if node is None else GetNullable(node.GetValue())
-    
-    @final
-    def TryGetFirst(self) -> INullable[T]:
-        return self.__TryGet(self.GetFirst())
-    @final
-    def TryGetLast(self) -> INullable[T]:
-        return self.__TryGet(self.GetLast())
-    
-    @abstractmethod
     def Remove(self, node: IDoublyLinkedNode[T]) -> None:
         pass
     
@@ -206,6 +217,10 @@ class IListBase[T](IReadOnlyCollection):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
+class IReadOnlyIterableList[T](IListBase[T], Enumeration.IIterable[T]):
+    def __init__(self):
+        super().__init__()
+
 class IIterable[T](Enumeration.IIterable[T]):
     @final
     class __Iterable(Enumeration.IIterable[IDoublyLinkedNode[T]]):
@@ -228,7 +243,7 @@ class IIterable[T](Enumeration.IIterable[T]):
     def AsNodeIterable(self) -> Enumeration.IIterable[IDoublyLinkedNode[T]]:
         return IIterable[T].__Iterable(self)
 
-class IList[T](IListBase[T], IIterable[T]):
+class IList[T](IReadOnlyIterableList[T], IIterable[T]):
     def __init__(self):
         super().__init__()
 
