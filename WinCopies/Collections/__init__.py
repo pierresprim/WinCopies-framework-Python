@@ -349,6 +349,13 @@ class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
 class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
     def __init__(self):
         super().__init__()
+    
+    @final
+    def Swap(self, x: TKey, y: TKey) -> None:
+        value: TValue = self.GetAt(x)
+
+        self.SetAt(x, self.GetAt(y))
+        self.SetAt(y, value)
 
 class ICountableIndexableBase(ICountable, IKeyableBase[int]):
     def __init__(self):
