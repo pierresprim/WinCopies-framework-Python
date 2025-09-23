@@ -302,29 +302,39 @@ class IClearable(IInterface):
     def Clear(self) -> None:
         pass
 
-class IKeyableBase[TKey](IInterface):
+class IKeyableBase[T](IInterface):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def ContainsKey(self, key: TKey) -> bool:
+    def ContainsKey(self, key: T) -> bool:
         pass
 
-class IReadOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
+class IGetter[TKey, TValue](IInterface):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def __getitem__(self, key: TKey) -> TValue:
+        pass
+class ISetter[TKey, TValue](IInterface):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def __setitem__(self, key: TKey, value: TValue) -> None:
+        pass
+
+class IAccessor[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def GetAt(self, key: TKey) -> TValue:
         pass
-    @abstractmethod
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
-        pass
-
-    @final
-    def __getitem__(self, key: TKey) -> TValue:
-        return self.GetAt(key)
-class IWriteOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault: # Can be overridden for optimization.
+        return self.GetAt(key) if self.ContainsKey(key) else defaultValue
+class IMutator[TKey, TValue](IKeyableBase[TKey], ISetter[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
@@ -335,18 +345,37 @@ class IWriteOnlyKeyable[TKey, TValue](IKeyableBase[TKey]):
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
         pass
 
+class IReadOnlyKeyable[TKey, TValue](IAccessor[TKey, TValue], IGetter[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+
+    @final
+    def __getitem__(self, key: TKey) -> TValue:
+        return self.GetAt(key)
+class IWriteOnlyKeyable[TKey, TValue](IMutator[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+
     @final
     def __setitem__(self, key: TKey, value: TValue) -> None:
         self.SetAt(key, value)
 
-class IReadOnlyIndexable[T](IReadOnlyKeyable[int, T]):
+class IReadOnlyIndexable[T](IAccessor[int, T], IGetter[int|slice[int, int, int], T|object]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice[int, int, int]) -> object:
+        pass
+
+    @final
+    def __getitem__(self, key: int|slice[int, int, int]) -> T|object:
+        return self.SliceAt(key) if isinstance(key, slice) else self.GetAt(key)
 class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
     def __init__(self):
         super().__init__()
 
-class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
+class IReadWriteCollection[TKey, TValue](IAccessor[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
@@ -356,8 +385,11 @@ class IKeyable[TKey, TValue](IReadOnlyKeyable[TKey, TValue], IWriteOnlyKeyable[T
 
         self.SetAt(x, self.GetAt(y))
         self.SetAt(y, value)
+class IKeyable[TKey, TValue](IReadWriteCollection[TKey, TValue], IReadOnlyKeyable[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
 
-class ICountableIndexableBase(ICountable, IKeyableBase[int]):
+class ICountableIndexableBase(IKeyableBase[int], ICountable):
     def __init__(self):
         super().__init__()
     
@@ -365,14 +397,10 @@ class ICountableIndexableBase(ICountable, IKeyableBase[int]):
     def ContainsKey(self, key: int) -> bool:
         return self.ValidateIndex(key)
 
-class IReadOnlyCountableIndexable[T](ICountableIndexableBase, IReadOnlyIndexable[T]):
+class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableBase):
     def __init__(self):
         super().__init__()
-    
-    @final
-    def TryGetAt[TDefault](self, key: int, defaultValue: TDefault) -> T|TDefault:
-        return self.GetAt(key) if self.ValidateIndex(key) else defaultValue
-class IWriteOnlyCountableIndexable[T](ICountableIndexableBase, IWriteOnlyIndexable[T]):
+class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexableBase):
     def __init__(self):
         super().__init__()
     
@@ -385,23 +413,31 @@ class IWriteOnlyCountableIndexable[T](ICountableIndexableBase, IWriteOnlyIndexab
         
         return False
 
-class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IKeyable[int, T]):
+class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IReadWriteCollection[int, T]):
     def __init__(self):
         super().__init__()
 class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWriteOnlyCountableIndexable[T]):
     def __init__(self):
         super().__init__()
 
-class ITuple[T](IReadOnlyCollection, IReadOnlyCountableIndexable[T]):
+class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCollection):
     def __init__(self):
         super().__init__()
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice[int, int, int]) -> Collections.IArray[T]:
+        pass
 
 class IList[T](IArray[T], ICollection[T], IClearable):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice[int, int, int]) -> Collections.IList[T]:
+        pass
     
     @abstractmethod
     def TryInsert(self, index: int, value: T) -> bool:

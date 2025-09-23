@@ -4,15 +4,15 @@ from collections.abc import Iterator, Sequence, MutableSequence
 from typing import final, Callable
 
 from WinCopies import IStringable
-from WinCopies.Collections import Enumeration, Extensions, Generator, IndexOf
+from WinCopies.Collections import Enumeration, Extensions, Generator, IReadOnlyCountableIndexable, IndexOf
 from WinCopies.Collections.Enumeration import IEnumerator, EnumeratorBase
-from WinCopies.Collections.Extensions import IDictionary, ISet
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class TupleBase[TItem, TSequence](GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+class TupleBase[TItem, TSequence](GenericConstraint[TSequence, Sequence[TItem]], IReadOnlyCountableIndexable[TItem], IStringable):
     def __init__(self, items: TSequence):
         super().__init__()
 
@@ -34,11 +34,19 @@ class Tuple[T](TupleBase[T, tuple[T, ...]], Extensions.Tuple[T], IGenericConstra
     def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
+    @final
+    def SliceAt(self, key: slice[int, int, int]) -> ITuple[T]:
+        return Tuple[T](self._GetContainer()[key])
+    
     def ToString(self) -> str:
         return str(self._GetContainer())
 class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
     def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
+    
+    @final
+    def SliceAt(self, key: slice[int, int, int]) -> IEquatableTuple[T]:
+        return EquatableTuple[T](self._GetContainer()[key])
     
     def Hash(self) -> int:
         return hash(self._GetContainer())
@@ -61,12 +69,20 @@ class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSp
     def __init__(self, items: MutableSequence[T]|collections.abc.Iterable[T]):
         super().__init__(items if isinstance(items, MutableSequence) else list(items))
     
+    @final
+    def SliceAt(self, key: slice[int, int, int]) -> IArray[T]:
+        return Array[T](self._GetContainer()[key])
+    
     def ToString(self) -> str:
         return str(self._GetContainer())
 
 class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], list[T]]):
     def __init__(self, items: list[T]|None = None):
         super().__init__(list[T]() if items is None else items)
+    
+    @final
+    def SliceAt(self, key: slice[int, int, int]) -> IList[T]:
+        return List[T](self._GetContainer()[key])
     
     @final
     def Add(self, item: T) -> None:

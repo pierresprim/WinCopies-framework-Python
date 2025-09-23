@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+from abc import abstractmethod
+
 from WinCopies import Collections, IStringable
 from WinCopies.Collections import Enumeration
-from WinCopies.Collections.Enumeration import IIterable, IEquatableIterable, IEnumerator
+from WinCopies.Collections.Enumeration import ICountableIterable, IEquatableIterable, IEnumerator
 from WinCopies.Typing import IEquatableItem, GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class ITuple[T](Collections.ITuple[T], IIterable[T], IStringable):
+class ITuple[T](Collections.ITuple[T], ICountableIterable[T], IStringable):
     def __init__(self):
         super().__init__()
 class IEquatableTuple[T: IEquatableItem](ITuple[T], IEquatableIterable[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice[int, int, int]) -> IEquatableTuple[T]:
+        pass
 class IArray[T](Collections.IArray[T], ITuple[T]):
     def __init__(self):
         super().__init__()
@@ -19,14 +25,14 @@ class IList[T](Collections.IList[T], IArray[T]):
     def __init__(self):
         super().__init__()
 
-class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], IIterable[IKeyValuePair[TKey, TValue]], IStringable):
+class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableIterable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self):
         super().__init__()
 class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self):
         super().__init__()
 
-class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet, IIterable[T], IStringable):
+class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet, ICountableIterable[T], IStringable):
     def __init__(self):
         super().__init__()
 class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
