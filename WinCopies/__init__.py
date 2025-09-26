@@ -7,7 +7,7 @@ Created on Fri May 26 14:21:00 2023
 
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from enum import Enum
 from types import TracebackType
 from typing import final, Self
@@ -15,6 +15,10 @@ from typing import final, Self
 class IInterface:
     def __init__(self):
         pass
+
+class Abstract(ABC, IInterface):
+    def __init__(self):
+        super().__init__()
 
 class IBooleanable(IInterface):
     def __init__(self):

@@ -251,6 +251,13 @@ class IReadOnlyCollection(IInterface):
     def ThrowIfEmpty(self) -> None:
         if self.IsEmpty():
             raise EmptyException()
+class IReadOnlyList[T](IReadOnlyCollection):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def Contains(self, value: T|object) -> bool:
+        pass
 
 class ICollection[T](IReadOnlyCollection):
     def __init__(self):
@@ -293,6 +300,10 @@ class ICountable(IInterface):
     @final
     def __len__(self) -> int:
         return self.GetCount()
+
+class ICountableCollection[T](IReadOnlyList[T], ICountable):
+    def __init__(self):
+        super().__init__()
 
 class IClearable(IInterface):
     def __init__(self):
