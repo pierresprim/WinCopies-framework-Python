@@ -1,32 +1,51 @@
-from typing import MutableSequence, final
+from abc import abstractmethod
+from typing import final
 
-from WinCopies import Collections
+from WinCopies import Collections, IStringable
 from WinCopies.Collections import IndexOf
-from WinCopies.Collections.Extensions import List
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, Tuple, EquatableTuple, Array, List
+from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 from WinCopies.Typing.Delegate import EqualityComparison
 
-class CircularList[T](List[T]):
-    def __init__(self, items: MutableSequence[T], start: int):
+class ICircularTuple[T](ITuple[T]):
+    def __init__(self):
         super().__init__()
-        
-        self.__list: MutableSequence[T] = items
-        self.__start: int = start % len(items)
-    
-    @final
-    def _GetList(self) -> MutableSequence[T]:
-        return self.__list
     
     @final
     def IsEmpty(self) -> bool:
-        return len(self._GetList()) == 0
+        return self.GetCount() == 0
+    
+    @abstractmethod
+    def GetStart(self) -> int:
+        pass
     
     @final
     def GetIndex(self, index: int) -> int:
         return Collections.GetIndex(index, self.GetCount(), self.GetStart())[0]
+class ICircularEquatableTuple[T: IEquatableItem](ICircularTuple[T], IEquatableTuple[T]):
+    def __init__(self):
+        super().__init__()
+class ICircularArray[T](ICircularTuple[T], IArray[T]):
+    def __init__(self):
+        super().__init__()
+class ICircularList[T](ICircularArray[T], IList[T]):
+    def __init__(self):
+        super().__init__()
+
+class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], ICircularTuple[TItem], IStringable):
+    def __init__(self, items: TList, start: int):
+        super().__init__()
+        
+        self.__list: TList = items
+        self.__start: int = start % self.GetCount()
+    
+    @final
+    def _GetContainer(self) -> TList:
+        return self.__list
     
     @final
     def GetCount(self) -> int:
-        return len(self._GetList())
+        return self._GetInnerContainer().GetCount()
     
     @final
     def GetStart(self) -> int:
@@ -36,55 +55,74 @@ class CircularList[T](List[T]):
         self.__start = start
     
     @final
-    def GetAt(self, key: int) -> T:
-        return self._GetList()[self.GetIndex(key)]
+    def GetAt(self, key: int) -> TItem:
+        return self._GetInnerContainer().GetAt(self.GetIndex(key))
+    
+    def ToString(self) -> str:
+        return self._GetInnerContainer().ToString()
+
+class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintImplementation[ITuple[T]]):
+    def __init__(self, items: ITuple[T], start: int):
+        super().__init__(items, start)
+class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
+    def __init__(self, items: IEquatableTuple[T], start: int):
+        super().__init__(items, start)
+    
+    def Hash(self) -> int:
+        return self._GetContainer().Hash()
+    
+    def Equals(self, item: object) -> bool:
+        return self is item
+
+class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], Array[TItem], ICircularArray[TItem]):
+    def __init__(self, items: TList, start: int):
+        super().__init__(items, start)
+    
     @final
-    def SetAt(self, key: int, value: T) -> None:
-        self._GetList()[self.GetIndex(key)] = value
+    def SetAt(self, key: int, value: TItem) -> None:
+        self._GetSpecializedContainer().SetAt(self.GetIndex(key), value)
+class CircularArray[T](CircularArrayBase[T, IArray[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
+    def __init__(self, items: IArray[T], start: int):
+        super().__init__(items, start)
+class CircularList[T](CircularBase[T, IList[T]], List[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
+    def __init__(self, items: IList[T], start: int):
+        super().__init__(items, start)
     
     @final
     def Add(self, item: T) -> None:
-        self._GetList().append(item)
+        index: int = self.GetIndex(self.GetLastIndex())
+
+        self._GetContainer().Insert(index, item)
+
+        self.Swap(index, index + 1)
     
     @final
-    def Insert(self, index: int, value: T) -> None:
-        self._GetList().insert(self.GetIndex(index), value)
+    def TryInsert(self, index: int, value: T) -> bool:
+        return self._GetContainer().TryInsert(self.GetIndex(index), value)
     
     @final
     def RemoveAt(self, index: int) -> None:
-        self._GetList().pop(self.GetIndex(index))
+        self._GetContainer().RemoveAt(self.GetIndex(index))
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
-        if index < 0:
-            return None
-        
-        if index >= self.GetCount():
-            return False
-        
-        self.RemoveAt(index)
-        
-        return True
+        return self._GetContainer().TryRemoveAt(self.GetIndex(index))
     
     @final
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        items: MutableSequence[T] = self._GetList()
+        items: IList[T] = self._GetContainer()
 
-        index: int|None = IndexOf(items, item, predicate)
+        index: int|None = IndexOf(items.AsSequence(), item, predicate)
 
         if index is None:
             return False
         
-        items.pop(index)
+        items.RemoveAt(index)
 
         return True
     @final
     def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        if not self.TryRemove(item, predicate):
-            raise ValueError(item)
+        self._GetContainer().Remove(item, predicate)
     
     @final
     def Clear(self) -> None:
-        self._GetList().clear()
-    
-    def __str__(self) -> str:
-        return str(self._GetList())
+        self._GetContainer().Clear()
