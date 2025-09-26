@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Callable, Type
+from typing import final, Callable, Type as SystemType
 
 import WinCopies
 
-from WinCopies import IInterface, IStringable
+from WinCopies import IInterface, IStringable, Abstract
 
 class IStruct[T](IInterface):
     def __init__(self):
@@ -70,30 +70,72 @@ class IEquatableObject[T](IEquatable[T], IEquatableItem):
 class IItem(IEquatableItem, IStringable):
     def __init__(self):
         super().__init__()
+
 class IObject[T](IEquatableObject[T], IItem):
     def __init__(self):
         super().__init__()
-
-class IString(IObject['IString']):
+class Object[T](Abstract, IObject[T]):
     def __init__(self):
         super().__init__()
-class String(IString):
-    def __init__(self, value: str):
+
+class IValueObject[TValue, TObject](IObject[TObject]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetValue(self) -> TValue:
+        pass
+class ValueObject[TValue, TObject](Object[TObject], IValueObject[TValue, TObject]):
+    def __init__(self, value: TValue):
         super().__init__()
 
-        self.__value: str = value
+        self.__value: TValue = value
+    
+    @final
+    def GetValue(self) -> TValue:
+        return self.__value
+
+class IString(IValueObject[str, 'IString']):
+    def __init__(self):
+        super().__init__()
+class String(ValueObject[str, IString], IString):
+    def __init__(self, value: str):
+        super().__init__(value)
     
     def Equals(self, item: IString|object) -> bool:
         def equals(item: str) -> bool:
-            return self.ToString() == item
+            return self.GetValue() == item
         
-        return (isinstance(item, IString) and equals(item.ToString())) or (isinstance(item, str) and equals(item))
+        return (isinstance(item, IString) and equals(item.GetValue())) or (isinstance(item, str) and equals(item))
     
     def Hash(self) -> int:
-        return hash(self.ToString())
+        return hash(self.GetValue())
     
     def ToString(self) -> str:
-        return self.__value
+        return self.GetValue()
+
+class IType[T](IValueObject[type[T], 'IType']):
+    def __init__(self):
+        super().__init__()
+class Type[T](ValueObject[type[T], IType[T]], IType[T]):
+    def __init__(self, t: type[T]):
+        super().__init__(t)
+    
+    def Equals(self, item: IType[T]|object) -> bool:
+        def equals(item: type[T]) -> bool:
+            return self.GetValue() == item
+        
+        return (isinstance(item, IType) and equals(item.GetValue())) or (isinstance(item, type) and equals(item)) # type: ignore
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+    
+    def ToString(self) -> str:
+        return str(self.GetValue())
+    
+    @staticmethod
+    def Create(value: T) -> IType[T]:
+        return Type[T](type(value))
 
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
@@ -315,7 +357,7 @@ class DisposableProvider[T: IDisposableInfo](IDisposableProvider[T]):
     def Dispose(self) -> None:
         self.__item = self.__item.Dispose()
 
-def TryGetValueAs[TValue, TDefault](type: Type[TValue], value: object, default: TDefault) -> TValue|TDefault:
+def TryGetValueAs[TValue, TDefault](type: SystemType[TValue], value: object, default: TDefault) -> TValue|TDefault:
     return value if isinstance(value, type) else default
-def TryGetAs[T](type: Type[T], value: object) -> T|None:
+def TryGetAs[T](type: SystemType[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
