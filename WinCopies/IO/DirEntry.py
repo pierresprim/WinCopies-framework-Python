@@ -12,18 +12,18 @@ import os
 from typing import final
 
 from WinCopies import IO, String
-from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IIterable
-from WinCopies.Collections.Enumeration.Extensions import RecursivelyIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerator
+from WinCopies.Collections.Iteration import Select
+from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
-class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
+class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
     def __init__(self):
         super().__init__()
     
     @final
-    def _AsRecursivelyIterable(self, container: IDirEntry) -> IIterable[IDirEntry]:
+    def _AsRecursivelyEnumerable(self, container: IDirEntry) -> IEnumerable[IDirEntry]:
         return container
     
     @final
@@ -31,8 +31,8 @@ class IterableDirEntry(RecursivelyIterable[IDirEntry], IDirEntry):
         return os.path.isdir(self.GetPath())
     
     @final
-    def TryGetIterator(self) -> Generator[IterableDirEntry]|None:
-        return (SystemDirEntry(dirEntry) for dirEntry in os.scandir(self.GetPath())) if self.IsDirectory() else None
+    def TryGetEnumerator(self) -> IEnumerator[IterableDirEntry]|None:
+        return AsEnumerator(Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry))) if self.IsDirectory() else None
 
 class SystemDirEntry(IterableDirEntry):
     def __init__(self, dirEntry: os.DirEntry[str]):

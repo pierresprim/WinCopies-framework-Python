@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Sequence, AnyStr
 
-from WinCopies.Collections.Enumeration.Extensions import IRecursivelyIterable
+from WinCopies.Collections.Enumeration.Extensions import IRecursivelyEnumerable
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualValueNullableBool
@@ -26,7 +26,7 @@ class FileKind(Enum):
     Junction = 5
     Archive = 6
 
-class IDirEntry(IRecursivelyIterable['IDirEntry']):
+class IDirEntry(IRecursivelyEnumerable['IDirEntry']):
     def __init__(self):
         super().__init__()
     
