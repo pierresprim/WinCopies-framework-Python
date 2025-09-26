@@ -229,11 +229,6 @@ class Connection(IConnection):
             
             self.__table = Connection._GetNullTable()
     
-    @final
-    class FactoryDictionary[T](Dictionary[type, T]):
-        def __init__(self, dictionary: dict[type, T]|None = None):
-            super().__init__(dictionary)
-    
     __table: ITable = NullTable()
 
     __fieldFactories: IDictionary[IType[Connection], IFieldFactory] = Dictionary[IType[Self], IFieldFactory]()

@@ -13,7 +13,10 @@ from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
 from WinCopies.Typing import IString
 
-class IFieldFactory:
+class IFieldFactory(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def CreateNull(self, name: str, attribute: FieldAttributes) -> GenericField:
         pass
@@ -32,7 +35,10 @@ class IFieldFactory:
     def CreateText(self, name: str, attribute: FieldAttributes, mode: TextMode) -> TextField:
         pass
 
-class IQueryFactory:
+class IQueryFactory(IInterface):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
     def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         pass
