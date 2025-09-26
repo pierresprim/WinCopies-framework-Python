@@ -35,7 +35,7 @@ class Tuple[T](TupleBase[T, tuple[T, ...]], Extensions.Tuple[T], IGenericConstra
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
-    def SliceAt(self, key: slice[int, int, int]) -> ITuple[T]:
+    def SliceAt(self, key: slice) -> ITuple[T]:
         return Tuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str:
@@ -45,7 +45,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
-    def SliceAt(self, key: slice[int, int, int]) -> IEquatableTuple[T]:
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         return EquatableTuple[T](self._GetContainer()[key])
     
     def Hash(self) -> int:
@@ -70,7 +70,7 @@ class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSp
         super().__init__(items if isinstance(items, MutableSequence) else list(items))
     
     @final
-    def SliceAt(self, key: slice[int, int, int]) -> IArray[T]:
+    def SliceAt(self, key: slice) -> IArray[T]:
         return Array[T](self._GetContainer()[key])
     
     def ToString(self) -> str:
@@ -81,7 +81,7 @@ class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedCons
         super().__init__(list[T]() if items is None else items)
     
     @final
-    def SliceAt(self, key: slice[int, int, int]) -> IList[T]:
+    def SliceAt(self, key: slice) -> IList[T]:
         return List[T](self._GetContainer()[key])
     
     @final

@@ -16,7 +16,7 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T], IEquatableIterable[T]):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice[int, int, int]) -> IEquatableTuple[T]:
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
 class IArray[T](Collections.IArray[T], ITuple[T]):
     def __init__(self):

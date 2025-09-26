@@ -371,16 +371,16 @@ class IWriteOnlyKeyable[TKey, TValue](IMutator[TKey, TValue]):
     def __setitem__(self, key: TKey, value: TValue) -> None:
         self.SetAt(key, value)
 
-class IReadOnlyIndexable[T](IAccessor[int, T], IGetter[int|slice[int, int, int], T|object]):
+class IReadOnlyIndexable[T](IAccessor[int, T], IGetter[int|slice, T|object]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice[int, int, int]) -> object:
+    def SliceAt(self, key: slice) -> object:
         pass
 
     @final
-    def __getitem__(self, key: int|slice[int, int, int]) -> T|object:
+    def __getitem__(self, key: int|slice) -> T|object:
         return self.SliceAt(key) if isinstance(key, slice) else self.GetAt(key)
 class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
     def __init__(self):
@@ -439,7 +439,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice[int, int, int]) -> Collections.IArray[T]:
+    def SliceAt(self, key: slice) -> Collections.IArray[T]:
         pass
 
 class IList[T](IArray[T], ICollection[T], IClearable):
@@ -447,7 +447,7 @@ class IList[T](IArray[T], ICollection[T], IClearable):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice[int, int, int]) -> Collections.IList[T]:
+    def SliceAt(self, key: slice) -> Collections.IList[T]:
         pass
     
     @abstractmethod
