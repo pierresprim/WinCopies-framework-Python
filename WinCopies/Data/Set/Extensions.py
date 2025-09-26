@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from typing import final
 
 
@@ -10,14 +10,14 @@ from WinCopies import IInterface
 
 from WinCopies.Collections import Enumeration, Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Dictionary
-from WinCopies.Collections.Enumeration import IIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
 
 from WinCopies.String import StringifyIfNone
 
-from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing import InvalidOperationError, IEquatableItem, IString
 from WinCopies.Typing.Delegate import Selector
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -29,7 +29,7 @@ from WinCopies.Data.Parameter import IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
 from WinCopies.Data.Set import IParameterSet, IColumnParameterSet, IFieldParameterSet, ITableParameterSet
 
-class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter], IIterable[IFieldParameterSet[IParameter[IOperandValue]]]):
+class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter], IEnumerable[IFieldParameterSet[IParameter[IOperandValue]]]):
     def __init__(self):
         super().__init__()
 
@@ -45,7 +45,7 @@ class IBranchSet[T](IParameterSetBase[ISelectionQueryWriter]):
     def GetDefault(self) -> T:
         pass
 
-class ICaseSet[TKey, TValue](IBranchSet[TKey]):
+class ICaseSet[TKey: IEquatableItem, TValue](IBranchSet[TKey]):
     def __init__(self):
         super().__init__()
     
@@ -121,13 +121,13 @@ class IExistenceSet(IBranchSet[bool]):
     def GetQuery(self) -> IExistenceQuery:
         pass
 
-class IMatchSet[T](ICaseSet[T, T]):
+class IMatchSet[T: IEquatableItem](ICaseSet[T, T]):
     def __init__(self):
         super().__init__()
-class IConditionSet[T](ICaseSet[T, IParameter[object]]):
+class IConditionSet[T: IEquatableItem](ICaseSet[T, IParameter[object]]):
     def __init__(self):
         super().__init__()
-class IIfSet[T](ICaseSet[T, IConditionParameterSet]):
+class IIfSet[T: IEquatableItem](ICaseSet[T, IConditionParameterSet]):
     def __init__(self):
         super().__init__()
 
@@ -155,15 +155,15 @@ def MakeColumnParameterSetIterable[T: IParameter[object]](*dictionaries: dict[IC
 def MakeFieldParameterSetIterable[T: IParameter[IOperandValue]](*dictionaries: dict[IColumn, T]|None) -> Generator[IFieldParameterSet[T]]:
     return (FieldParameterSet[T](dictionary) for dictionary in dictionaries)
 
-class TableParameterSet(Dictionary[str, ITableParameter[object]|None], ITableParameterSet):
-    def __init__(self, dictionary: dict[str, ITableParameter[object]|None]|None = None):
+class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITableParameterSet):
+    def __init__(self, dictionary: dict[IString, ITableParameter[object]|None]|None = None):
         super().__init__(dictionary)
     
     @staticmethod
-    def Create(tableNames: Iterable[str]) -> ITableParameterSet:
+    def Create(tableNames: Iterable[IString]) -> ITableParameterSet:
         return TableParameterSet(dict.fromkeys(tableNames))
 
-class ConditionParameterSetBase(IConditionParameterSet):
+class ConditionParameterSetBase(Enumerable[IFieldParameterSet[IParameter[IOperandValue]]], IConditionParameterSet):
     def __init__(self):
         super().__init__()
     
@@ -172,18 +172,18 @@ class ConditionParameterSetBase(IConditionParameterSet):
         def joinConditions(operator: str, values: Iterable[str]) -> str:
             return f" {operator} ".join(values)
         
-        writer.Write(joinConditions("OR", (f"({joinConditions("AND", writer.ProcessConditions(dic))})" for dic in self)))
+        writer.Write(joinConditions("OR", (f"({joinConditions("AND", writer.ProcessConditions(dic))})" for dic in self.AsIterable())))
 class ConditionParameterSet(ConditionParameterSetBase):
     def __init__(self, conditions: Iterable[IFieldParameterSet[IParameter[IOperandValue]]]):
         super().__init__()
 
-        self.__conditions: IIterable[IFieldParameterSet[IParameter[IOperandValue]]] = Enumeration.Iterable[IFieldParameterSet[IParameter[IOperandValue]]].Create(conditions)
+        self.__conditions: IEnumerable[IFieldParameterSet[IParameter[IOperandValue]]] = Enumeration.Iterable[IFieldParameterSet[IParameter[IOperandValue]]].Create(conditions)
     
     @final
-    def TryGetIterator(self) -> Iterator[IFieldParameterSet[IParameter[IOperandValue]]]|None:
-        return self.__conditions.TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[IFieldParameterSet[IParameter[IOperandValue]]]|None:
+        return self.__conditions.TryGetEnumerator()
 
-class BranchSetBase[T](IBranchSet[T]):
+class BranchSetBase[T](Enumerable[T], IBranchSet[T]):
     def __init__(self, alias: str):
         super().__init__()
 
@@ -252,7 +252,7 @@ class ExistenceSet(BranchSetBase[bool], IExistenceSet):
     def GetQuery(self) -> IExistenceQuery:
         return self.__query
 
-class CaseSet[TKey, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
+class CaseSet[TKey: IEquatableItem, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, conditions: IDictionary[TKey, TValue]|None = None):
         super().__init__(alias, defaultValue)
 
@@ -270,7 +270,7 @@ class CaseSet[TKey, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
 
             writer.Write(f" THEN {writer.JoinParameters(MakeSequence(item.GetKey()))}")
 
-        if not DoForEachItem(self.GetConditions(), render):
+        if not DoForEachItem(self.GetConditions().AsIterable(), render):
             raise ValueError("No condition given.")
     
     @final
@@ -281,7 +281,7 @@ class CaseSet[TKey, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
     def GetConditions(self) -> IDictionary[TKey, TValue]:
         return self.__conditions
 
-class MatchSet[T](CaseSet[T, T], IMatchSet[T]):
+class MatchSet[T: IEquatableItem](CaseSet[T, T], IMatchSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, T]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
     
@@ -293,7 +293,7 @@ class MatchSet[T](CaseSet[T, T], IMatchSet[T]):
     def _RenderValue(self, value: T, writer: ISelectionQueryWriter) -> None:
         writer.Write(writer.JoinParameters(MakeSequence(value)))
 
-class ConditionalSet[TKey, TValue](CaseSet[TKey, TValue]):
+class ConditionalSet[TKey: IEquatableItem, TValue](CaseSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, dictionary: IDictionary[TKey, TValue]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
     
@@ -301,7 +301,7 @@ class ConditionalSet[TKey, TValue](CaseSet[TKey, TValue]):
     def _GetColumn(self) -> None:
         return None
 
-class ConditionSet[T](ConditionalSet[T, IParameter[object]], IConditionSet[T]):
+class ConditionSet[T: IEquatableItem](ConditionalSet[T, IParameter[object]], IConditionSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, IParameter[object]]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
     
@@ -325,8 +325,8 @@ class ConditionSet[T](ConditionalSet[T, IParameter[object]], IConditionSet[T]):
             for argument in arguments:
                 yield func(argument)
         
-        writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinParameters(getArgument(value))))
-class IfSet[T](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):
+        writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinParameters(getArgument(value.AsIterable()))))
+class IfSet[T: IEquatableItem](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, IConditionParameterSet]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
     

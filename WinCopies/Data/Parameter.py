@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Generator
 from typing import final
 
 from WinCopies import IInterface
 
-from WinCopies.Collections import Enumeration, Generator
-from WinCopies.Collections.Enumeration import IIterable
+from WinCopies.Collections import Enumeration
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase
 from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
@@ -26,7 +26,7 @@ class IArgument(IInterface):
     def Join(self, builder: IQueryBuilder, column: str) -> str:
         pass
 
-class IParameter[T](IIterable[T], IArgument):
+class IParameter[T](IEnumerable[T], IArgument):
     def __init__(self):
         super().__init__()
     
@@ -57,7 +57,7 @@ class IFieldParameter[T](__IColumnParameterBase[T, IOperand[T]]):
         super().__init__()
 
 @final
-class Parameter(IParameter[None]):
+class Parameter(Enumerable[None], IParameter[None]):
     def __init__(self):
         super().__init__()
     
@@ -65,12 +65,12 @@ class Parameter(IParameter[None]):
         return key
     
     def Join(self, builder: IQueryBuilder, column: str) -> str:
-        return self.Format(column, builder.JoinParameters(self))
+        return self.Format(column, builder.JoinParameters(self.AsIterable()))
     
-    def TryGetIterator(self) -> None:
+    def TryGetEnumerator(self) -> None:
         return None
 
-class __ColumnParameterBase[TKey, TOperand: IOperandValue](__IColumnParameterBase[TKey, TOperand]):
+class __ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand], __IColumnParameterBase[TKey, TOperand]):
     def __init__(self, operand: TOperand):
         super().__init__()
 
@@ -82,14 +82,14 @@ class __ColumnParameterBase[TKey, TOperand: IOperandValue](__IColumnParameterBas
     
     @final
     def Join(self, builder: IQueryBuilder, column: str) -> str:
-        return self.Format(column, builder.JoinOperands(self))
+        return self.Format(column, builder.JoinOperands(self.AsIterable()))
     
     @final
     def Format(self, key: str, values: str|None) -> str:
         return f"{key} {self._GetInnerContainer().GetValue()} {values}"
     
     @final
-    def TryGetIterator(self) -> Generator[TOperand]:
+    def _TryGetIterator(self) -> Generator[TOperand]:
         yield self._GetContainer()
 class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnParameter, IGenericConstraintImplementation[IColumnOperand]):
     def __init__(self, operand: IColumnOperand):
@@ -131,19 +131,19 @@ __nullProvider = __FunctionUpdater()
 def GetNullFieldParameter() -> FieldParameter[None]:
     return __nullProvider.GetValue()
 
-class RoutineParameter[T](IParameter[T]):
-    def __init__(self, args: IIterable[T]):
+class RoutineParameter[T](Enumerable[T], IParameter[T]):
+    def __init__(self, args: IEnumerable[T]):
         super().__init__()
 
-        self.__args: IIterable[T] = args
+        self.__args: IEnumerable[T] = args
     
     @final
     def Format(self, key: str, values: str|None) -> str:
         return f"{key}({StringifyIfNone(values)})"
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return self.__args.TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self.__args.TryGetEnumerator()
 
 class ITableArgument[T](IInterface):
     def __init__(self):
@@ -186,24 +186,24 @@ def MakeTableValueIterable[T](*values: T) -> Iterable[ITableArgument[T]]:
 def MakeTableColumnIterable(*columns: IColumn) -> Iterable[ITableArgument[IColumn]]:
     return Select(columns, lambda column: TableColumnArgument(column))
 
-class ITableParameter[T](IIterable[ITableArgument[T]]):
+class ITableParameter[T](IEnumerable[ITableArgument[T]]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def GetAlias(self) -> str|None:
         pass
-class TableParameter[T](ITableParameter[T]):
+class TableParameter[T](Enumerable[ITableArgument[T]], ITableParameter[T]):
     def __init__(self, alias: str|None, arguments: Iterable[ITableArgument[T]]|None):
         super().__init__()
 
         self.__alias: str|None = alias
-        self.__arguments: IIterable[ITableArgument[T]]|None = Enumeration.Iterable[ITableArgument[T]].TryCreate(arguments)
+        self.__arguments: IEnumerable[ITableArgument[T]]|None = Enumeration.Iterable[ITableArgument[T]].TryCreate(arguments)
     
     @final
     def GetAlias(self) -> str|None:
         return self.__alias
     
     @final
-    def TryGetIterator(self) -> Iterator[ITableArgument[T]]|None:
-        return None if self.__arguments is None else self.__arguments.TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[ITableArgument[T]]|None:
+        return None if self.__arguments is None else self.__arguments.TryGetEnumerator()

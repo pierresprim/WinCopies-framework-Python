@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Sequence
 
+from WinCopies import IInterface
 from WinCopies.Collections.Extensions import IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
@@ -9,6 +10,8 @@ from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
+
+from WinCopies.Typing import IString
 
 class IFieldFactory:
     @abstractmethod
@@ -35,12 +38,12 @@ class IQueryFactory:
         pass
 
     @abstractmethod
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
     
     @abstractmethod
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass

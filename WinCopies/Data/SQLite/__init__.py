@@ -8,16 +8,17 @@ import sqlite3
 
 
 
-from WinCopies import IInterface, IDisposable, String
+from WinCopies import IInterface, IDisposable
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
-from WinCopies.Collections.Iteration import EnsureOnlyOne
+from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
 
 from WinCopies.Enum import HasFlag
 
-from WinCopies.Typing import InvalidOperationError, GetDisposedError
+from WinCopies.String import DoubleQuoteSurround
+from WinCopies.Typing import InvalidOperationError, String, GetDisposedError
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -36,7 +37,7 @@ from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, FieldParamet
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory
 
 @final
-class __Connection(IInterface):
+class _Connection(IInterface):
     def __init__(self, connection: Connection, innerCollection: sqlite3.Connection):
         super().__init__()
 
@@ -53,8 +54,8 @@ class __Connection(IInterface):
 class Table(Abstract.Table):
     @final
     class __Connection(IDisposable):
-        def __init__(self, connection: __Connection) -> None:
-            self.__connection: __Connection|None = connection
+        def __init__(self, connection: _Connection) -> None:
+            self.__connection: _Connection|None = connection
         
         def GetConnection(self) -> IConnection:
             if self.__connection is None:
@@ -85,7 +86,7 @@ class Table(Abstract.Table):
         Unique = auto()
         Nullable = auto()
     
-    def __init__(self, connection: __Connection, name: str):
+    def __init__(self, connection: _Connection, name: str):
         EnsureDirectModuleCall()
         
         super().__init__()
@@ -156,7 +157,7 @@ class Table(Abstract.Table):
                 result: DualResult[FieldType, Enum|None]|None = None
                 query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
                     TableParameterSet(
-                        {"PRAGMA_TABLE_INFO": TableParameter(
+                        {String("PRAGMA_TABLE_INFO"): TableParameter(
                             't', MakeTableValueIterable(self.GetName()))}),
                     ColumnParameterSet[IParameter[object]](
                         {Column("name"): None,
@@ -196,7 +197,7 @@ class Table(Abstract.Table):
                 fieldFactory: IFieldFactory = connection.GetFieldFactory()
                 attributes: Table.FieldAttributes|None = None
 
-                for row in columns:
+                for row in columns.AsIterable():
                     result = getFieldType(str(row[1]))
 
                     attributes = Table.FieldAttributes.Null
@@ -228,7 +229,7 @@ class Table(Abstract.Table):
 @final
 class Connection(Abstract.Connection):
     def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
-        return Table(__Connection(self, connection), name)
+        return Table(_Connection(self, connection), name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField]) -> None:
         connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(field.ToString() for field in fields)}) STRICT")
@@ -259,15 +260,24 @@ class Connection(Abstract.Connection):
         return True
     
     def FormatTableName(self, name: str) -> str:
-        return String.DoubleQuoteSurround(name)
+        return DoubleQuoteSurround(name)
     
     def GetTableNames(self) -> Generator[str]:
-        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(TableParameterSet.Create("sqlite_master"), ColumnParameterSet({Column("name"): None}), ConditionParameterSet(MakeSequence(FieldParameterSet({Column("type"): FieldParameter[str].Create(Operator.Equals, "table")})))).Execute()
+        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(
+            TableParameterSet.Create(
+                MakeSequence(
+                    String("sqlite_master"))),
+            ColumnParameterSet(
+                {Column("name"): None}),
+            ConditionParameterSet(
+                MakeSequence(
+                    FieldParameterSet(
+                        {Column("type"): FieldParameter[str].Create(Operator.Equals, "table")})))).Execute()
 
         if queryExecutionResult is None:
             return
 
-        for row in queryExecutionResult:
+        for row in queryExecutionResult.AsIterable():
             yield str(row[0])
     
     @staticmethod

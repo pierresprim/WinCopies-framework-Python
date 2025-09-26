@@ -1,4 +1,5 @@
 from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Typing import IString
 
 
 
@@ -16,6 +17,6 @@ class IFieldParameterSet[T: IParameter[IOperandValue]|None](IParameterSet[T]):
     def __init__(self):
         super().__init__()
 
-class ITableParameterSet(IDictionary[str, ITableParameter[object]|None]):
+class ITableParameterSet(IDictionary[IString, ITableParameter[object]|None]):
     def __init__(self):
         super().__init__()

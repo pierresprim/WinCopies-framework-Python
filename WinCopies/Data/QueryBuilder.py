@@ -10,8 +10,8 @@ from typing import final, Callable, Self
 from WinCopies import IInterface
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Abstraction.Enumeration import CountableIterable
-from WinCopies.Collections.Enumeration import ICountableIterable
+from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
+from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
@@ -53,7 +53,7 @@ class IConditionalQueryBuilder(IConditionalQueryWriter):
         super().__init__()
 
     @abstractmethod
-    def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
+    def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
         pass
 
 class ISelectionQueryWriter(IConditionalQueryWriter):
@@ -265,11 +265,11 @@ class ConditionalQueryBuilder(IConditionalQueryBuilder):
     
     @final
     def ProcessConditions[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:            
-        return Select(items, self.ProcessCondition)
+        return Select(items.AsIterable(), self.ProcessCondition)
     
     @final
-    def Build(self) -> DualResult[str, ICountableIterable[object]|None]:
-        return DualResult[str, ICountableIterable[object]|None](self._GetStream().ToString(), CountableIterable[object].Create(self._GetArgs()))
+    def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
+        return DualResult[str, ICountableEnumerable[object]|None](self._GetStream().ToString(), CountableEnumerable[object].Create(self._GetArgs()))
     
     def Dispose(self):
         self._GetStream().Dispose()
@@ -284,7 +284,7 @@ class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
 
             return '' if alias is None else f" AS {self.FormatTableName(alias)}"
         def getArguments(parameter: ITableParameter[object]) -> str:
-            return f"{name}({self._JoinParameters(parameter, lambda value: value.Render(self))})" # No name formatting: routine.
+            return f"{name}({self._JoinParameters(parameter.AsIterable(), lambda value: value.Render(self))})" # No name formating: routine.
 
         return self.FormatTableName(name) if parameter is None else f"{getArguments(parameter)}{getAlias(parameter)}"
     
@@ -294,6 +294,6 @@ class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
             return
         
         for join in joins:
-            self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formatting: can be routines.
+            self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formating: can be routines.
 
             self._RenderConditions(" ON ", join.GetConditions(), GetPrefixedSelectionQueryWriter)

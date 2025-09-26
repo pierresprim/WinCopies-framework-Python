@@ -10,16 +10,17 @@ from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import List, Dictionary
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
+from WinCopies.Typing import IEquatable, IString, String, IType, Type, GetDisposedError
+from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Pairing import DualValueNullableInfo
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
-
-from WinCopies.Typing import IEquatable, GetDisposedError
-from WinCopies.Typing.Pairing import DualValueNullableInfo
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class ITable(IDisposable, IEquatable['ITable']):
     def __init__(self):
@@ -41,14 +42,14 @@ class ITable(IDisposable, IEquatable['ITable']):
         pass
     
     @abstractmethod
-    def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
 
     @abstractmethod
-    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
 
     @final
@@ -56,14 +57,14 @@ class ITable(IDisposable, IEquatable['ITable']):
         return self.GetSelectionQuery(columns).Execute()
     
     @final
-    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+    def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         return self.GetInsertionQuery(items, ignoreExisting).Execute()
     @final
-    def InsertMultiple(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+    def InsertMultiple(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         return self.GetMultipleInsertionQuery(columns, items, ignoreExisting).Execute()
     
     @final
-    def Update(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
         return self.GetUpdateQuery(values, conditions).Execute()
     
     @abstractmethod
@@ -83,17 +84,17 @@ class Table(ITable):
     
     @final
     def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
-        return self._GetConnection().GetQueryFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(self.GetName())), columns)
+        return self._GetConnection().GetQueryFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(String(self.GetName()))), columns)
     
     @final
-    def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         return self._GetConnection().GetQueryFactory().GetInsertionQuery(self.GetName(), items, ignoreExisting)
     @final
-    def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return self._GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting)
 
     @final
-    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         return self._GetConnection().GetQueryFactory().GetUpdateQuery(self.GetName(), values, conditions)
 
 class IConnection(IDisposable):
@@ -168,12 +169,12 @@ class Connection(IConnection):
         def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
             raise GetDisposedError()
         
-        def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+        def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
             raise GetDisposedError()
-        def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             raise GetDisposedError()
         
-        def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+        def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
             raise GetDisposedError()
         
         def Remove(self) -> None:
@@ -205,12 +206,12 @@ class Connection(IConnection):
         def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]]) -> ISelectionQuery:
             return self.__table.GetSelectionQuery(columns)
         
-        def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+        def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
             return self.__table.GetInsertionQuery(items, ignoreExisting)
-        def GetMultipleInsertionQuery(self, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             return self.__table.GetMultipleInsertionQuery(columns, items, ignoreExisting)
         
-        def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
+        def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
             return self.__table.GetUpdateQuery(values, conditions)
         
         def Remove(self) -> None:
@@ -234,8 +235,8 @@ class Connection(IConnection):
     
     __table: ITable = NullTable()
 
-    __fieldFactories: IDictionary[type[Connection], IFieldFactory] = Dictionary[type[Self], IFieldFactory]()
-    __queryFactories: IDictionary[type[Connection], IQueryFactory] = Dictionary[type[Self], IQueryFactory]()
+    __fieldFactories: IDictionary[IType[Connection], IFieldFactory] = Dictionary[IType[Self], IFieldFactory]()
+    __queryFactories: IDictionary[IType[Connection], IQueryFactory] = Dictionary[IType[Self], IQueryFactory]()
 
     @staticmethod
     def _GetNullTable() -> ITable:
@@ -247,10 +248,20 @@ class Connection(IConnection):
         self.__tables: List[Connection.Table] = List[Connection.Table]()
     
     @final
-    def __TryGetFactory[T](self, dictionary: IDictionary[type[Connection], T]) -> DualValueNullableInfo[type[Connection], T]:
-        t: type[Connection] = type(self)
+    def __TryGetFactory[T](self, dictionary: IDictionary[IType[Connection], T]) -> DualValueNullableInfo[IType[Connection], T]:
+        t: IType[Connection] = Type[Connection].Create(self)
 
-        return DualValueNullableInfo[type[Connection], T](t, dictionary.TryGetAt(t, None))
+        return DualValueNullableInfo[IType[Connection], T](t, dictionary.TryGetAt(t, None))
+    @final
+    def __GetFactory[T](self, factories: IDictionary[IType[Connection], T], func: Function[T]) -> T:
+        result: DualValueNullableInfo[IType[Connection], T|None] = self.__TryGetFactory(factories)
+
+        factory: T|None = result.GetValue()
+
+        if factory is None:
+            factories.Add(result.GetKey(), factory := func())
+        
+        return factory
     
     @abstractmethod
     def _GetFieldFactory(self) -> IFieldFactory:
@@ -261,24 +272,10 @@ class Connection(IConnection):
 
     @final
     def GetFieldFactory(self) -> IFieldFactory:
-        result: DualValueNullableInfo[type[Connection], IFieldFactory|None] = self.__TryGetFactory(Connection.__fieldFactories)
-
-        factory: IFieldFactory|None = result.GetValue()
-
-        if factory is None:
-            Connection.__fieldFactories.Add(result.GetKey(), factory := self._GetFieldFactory())
-        
-        return factory
+        return self.__GetFactory(Connection.__fieldFactories, self._GetFieldFactory)
     @final
     def GetQueryFactory(self) -> IQueryFactory:
-        result: DualValueNullableInfo[type[Connection], IQueryFactory|None] = self.__TryGetFactory(Connection.__queryFactories)
-
-        factory: IQueryFactory|None = result.GetValue()
-
-        if factory is None:
-            Connection.__queryFactories.Add(result.GetKey(), factory := self._GetQueryFactory())
-        
-        return factory
+        return self.__GetFactory(Connection.__queryFactories, self._GetQueryFactory)
     
     @abstractmethod
     def _GetTable(self, name: str) -> ITable:

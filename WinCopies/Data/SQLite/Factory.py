@@ -11,6 +11,7 @@ import WinCopies.Data
 from WinCopies import String
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Enum import HasFlag
+from WinCopies.Typing import IString
 from WinCopies.Typing.Reflection import EnsureDirectPackageCall, EnsureCallerPackage
 
 
@@ -126,10 +127,10 @@ class QueryFactory(IQueryFactory):
     def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         return SelectionQuery(self._GetConnection(), tables, columns, conditions)
     
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         return InsertionQuery(self._GetConnection(), tableName, items, ignoreExisting)
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)
     
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         return UpdateQuery(self._GetConnection(), tableName, values, conditions)
