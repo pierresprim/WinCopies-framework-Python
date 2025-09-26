@@ -29,6 +29,7 @@ from WinCopies.Data.Abstract import IConnection, ITable
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
+from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
@@ -231,20 +232,20 @@ class Connection(Abstract.Connection):
     def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
         return Table(_Connection(self, connection), name)
     
-    def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField]) -> None:
-        connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(field.ToString() for field in fields)}) STRICT")
-    def __TryCreateTable(self, name: str, fields: Iterable[IField]) -> None:
+    def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
+        connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT")
+    def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         if self.__connection is None:
             raise GetDisposedError()
         
-        self.__DoCreateTable(self.__connection, "IF NOT EXISTS ", name, fields)
+        self.__DoCreateTable(self.__connection, "IF NOT EXISTS ", name, fields, indices)
 
         return None
-    def __CreateTable(self, name: str, fields: Iterable[IField]) -> ITable:
+    def __CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
         if self.__connection is None:
             raise GetDisposedError()
         
-        self.__DoCreateTable(self.__connection, '', name, fields)
+        self.__DoCreateTable(self.__connection, '', name, fields, indices)
 
         return self.__GetTable(self.__connection, name)
     
@@ -284,14 +285,14 @@ class Connection(Abstract.Connection):
     def __EnsureFields(fields: Iterable[IField]) -> None:
         EnsureOnlyOne(fields, lambda field: field.GetAttributes() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
     
-    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField]) -> ITable|None:
+    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable|None:
         Connection.__EnsureFields(fields)
 
-        self.__TryCreateTable(name, fields)
-    def _CreateTableOverride(self, name: str, fields: Iterable[IField]) -> ITable:
+        self.__TryCreateTable(name, fields, indices)
+    def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
         Connection.__EnsureFields(fields)
         
-        return self.__CreateTable(name, fields)
+        return self.__CreateTable(name, fields, indices)
 
     def _GetTable(self, name: str) -> ITable:
         if self.__connection is None:

@@ -17,6 +17,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
 from WinCopies.Data.Field import IField
+from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
@@ -124,10 +125,10 @@ class IConnection(IDisposable):
         pass
 
     @abstractmethod
-    def TryCreateTable(self, name: str, fields: Iterable[IField]) -> ITable:
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         pass
     @abstractmethod
-    def CreateTable(self, name: str, fields: Iterable[IField]) -> ITable:
+    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         pass
 
     @abstractmethod
@@ -301,20 +302,20 @@ class Connection(IConnection):
         return self.__AddNewTable(self._GetTable(name))
     
     @abstractmethod
-    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField]) -> ITable|None:
+    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable|None:
         pass
     @abstractmethod
-    def _CreateTableOverride(self, name: str, fields: Iterable[IField]) -> ITable:
+    def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
         pass
 
     @final
-    def TryCreateTable(self, name: str, fields: Iterable[IField]) -> ITable:
-        table: ITable|None = self._TryCreateTableOverride(name, fields)
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+        table: ITable|None = self._TryCreateTableOverride(name, fields, indices)
         
         return self.__AddTable(name) if table is None else self.__AddNewTable(table)
     @final
-    def CreateTable(self, name: str, fields: Iterable[IField]) -> ITable:
-        return self.__AddNewTable(self._CreateTableOverride(name, fields))
+    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+        return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
     
     @final
     def TryGetTable(self, name: str) -> ITable|None:
