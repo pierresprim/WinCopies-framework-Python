@@ -1,18 +1,18 @@
 import collections.abc
 
-from collections.abc import Iterator, Sequence, MutableSequence
-from typing import final, Callable
+from collections.abc import Iterable, Iterator, Sequence, MutableSequence
+from typing import overload, final, Callable, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections import Enumeration, Extensions, Generator, IReadOnlyCountableIndexable, IndexOf
-from WinCopies.Collections.Enumeration import IEnumerator, EnumeratorBase
+from WinCopies.Collections import Enumeration, Extensions, IndexOf
+from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class TupleBase[TItem, TSequence](GenericConstraint[TSequence, Sequence[TItem]], IReadOnlyCountableIndexable[TItem], IStringable):
+class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self, items: TSequence):
         super().__init__()
 
@@ -29,8 +29,21 @@ class TupleBase[TItem, TSequence](GenericConstraint[TSequence, Sequence[TItem]],
     @final
     def GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer()[key]
+    
+    @final
+    def Contains(self, value: TItem|object) -> bool:
+        return value in self._GetInnerContainer()
+    
+    @overload
+    def __getitem__(self, index: int) -> TItem: ...
+    @overload
+    def __getitem__(self, index: slice) -> collections.abc.Sequence[TItem]: ...
+    
+    @final
+    def __getitem__(self, index: int|slice) -> TItem|collections.abc.Sequence[TItem]:
+        return self._GetInnerContainer()[index]
 
-class Tuple[T](TupleBase[T, tuple[T, ...]], Extensions.Tuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
+class Tuple[T](TupleBase[T, Sequence[T]], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
@@ -76,7 +89,7 @@ class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSp
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], list[T]]):
+class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], list[T]]):
     def __init__(self, items: list[T]|None = None):
         super().__init__(list[T]() if items is None else items)
     
@@ -135,8 +148,56 @@ class List[T](ArrayBase[T, list[T]], Extensions.List[T], IGenericSpecializedCons
     
     def ToString(self) -> str:
         return str(self._GetContainer())
+    
+    @final
+    def insert(self, index: int, value: T) -> None:
+        self._GetContainer().insert(index, value)
+    
+    @overload
+    def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
+    @overload
+    def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
+    
+    @final
+    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
+        self._GetContainer()[index] = value # type: ignore
+    
+    @final
+    def __delitem__(self, index: int|slice):
+        del self._GetContainer()[index]
 
-class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
+class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+    class __Enumerable[T](CountableEnumerable[T]):
+        def __init__(self, dic: Dictionary[TKey, TValue]):
+            super().__init__()
+
+            self.__dic: Dictionary[TKey, TValue] = dic
+        
+        @final
+        def _GetDictionary(self) -> dict[TKey, TValue]:
+            return self.__dic._GetDictionary()
+        
+        @final
+        def GetCount(self) -> int:
+            return self.__dic.GetCount()
+        
+        @final
+        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+            return TryAsEnumerator(self._TryGetIterator())
+    @final
+    class __KeyEnumerable(__Enumerable[TKey]):
+        def __init__(self, dic: Dictionary[TKey, TValue]):
+            super().__init__(dic)
+        
+        def _TryGetIterator(self) -> Iterator[TKey]|None:
+            return iter(self._GetDictionary().keys())
+    @final
+    class __ValueEnumerable(__Enumerable[TValue]):
+        def __init__(self, dic: Dictionary[TKey, TValue]):
+            super().__init__(dic)
+        
+        def _TryGetIterator(self) -> Iterator[TValue]|None:
+            return iter(self._GetDictionary().values())
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
@@ -221,6 +282,8 @@ class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
         super().__init__()
 
         self.__dictionary: dict[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
+        self.__keys: ICountableEnumerable[TKey] = Dictionary[TKey, TValue].__KeyEnumerable(self)
+        self.__values: ICountableEnumerable[TValue] = Dictionary[TKey, TValue].__ValueEnumerable(self)
     
     @final
     def __TryAdd(self, key: TKey, value: TValue) -> int:
@@ -261,7 +324,7 @@ class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
-        if key in self.GetKeys():
+        if key in self.GetKeys().AsIterable():
             self._GetDictionary()[key] = value
 
             return True
@@ -273,11 +336,11 @@ class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
             raise KeyError(f"Key {key} does not exist.")
     
     @final
-    def GetKeys(self) -> Generator[TKey]:
-        yield from self._GetDictionary().keys()
+    def GetKeys(self) -> ICountableEnumerable[TKey]:
+        return self.__keys
     @final
-    def GetValues(self) -> Generator[TValue]:
-        yield from self._GetDictionary().values()
+    def GetValues(self) -> ICountableEnumerable[TValue]:
+        return self.__values
     
     @final
     def TryAdd(self, key: TKey, value: TValue) -> bool:
@@ -310,13 +373,13 @@ class Dictionary[TKey: IEquatableItem, TValue](IDictionary[TKey, TValue]):
         self._GetDictionary().clear()
     
     @final
-    def TryGetIterator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
+    def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
         return Dictionary[TKey, TValue].Enumerator(self._GetDictionary())
     
     def ToString(self) -> str:
         return str(self._GetDictionary())
 
-class Set[T: IEquatableItem](ISet[T]):
+class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
     def __init__(self, items: set[T]|None = None):
         super().__init__()
 
@@ -360,8 +423,8 @@ class Set[T: IEquatableItem](ISet[T]):
             return False
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        yield from self._GetItems()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TryAsEnumerator(item for item in self._GetItems())
     
     @final
     def Clear(self) -> None:

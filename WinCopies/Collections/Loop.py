@@ -49,7 +49,7 @@ def ForEachUntilTrue[T](items: Iterable[T], action: Callable[[int, T], bool]) ->
 def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
     enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
 
-    for entry in Enumeration.Iterable[T](enumerator):
+    for entry in enumerator.AsIterator():
         if predicate(entry):
             return True
     
@@ -80,7 +80,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
 def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
 
-    for entry in Enumeration.Iterable[T](enumerator):
+    for entry in enumerator.AsIterator():
         action(entry)
     
     return enumerator.HasProcessedItems()

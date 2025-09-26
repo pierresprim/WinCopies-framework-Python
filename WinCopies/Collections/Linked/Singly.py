@@ -1,12 +1,11 @@
 import collections.abc
 
 from abc import abstractmethod
-from collections.abc import Iterator
 from typing import final, Callable, Self
 
 from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
@@ -59,7 +58,7 @@ class IList[T](IReadOnlyList[T]):
             
             result = self.TryPop()
 
-class IReadOnlyIterableList[T](IReadOnlyList[T], IIterable[T]):
+class IReadOnlyIterableList[T](IReadOnlyList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
 class IIterableList[T](IReadOnlyIterableList[T], IList[T]):
@@ -73,7 +72,7 @@ class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class IReadOnlyCountableIterableList[T](ICountableIterable[T], IReadOnlyIterableList[T], IReadOnlyCountableList[T]):
+class IReadOnlyCountableIterableList[T](ICountableEnumerable[T], IReadOnlyIterableList[T], IReadOnlyCountableList[T]):
     def __init__(self):
         super().__init__()
 class ICountableIterableList[T](IReadOnlyCountableIterableList[T], IIterableList[T], ICountableList[T]):
@@ -89,13 +88,13 @@ class Iterable[T](IIterableList[T]):
         pass
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
         if self.IsEmpty():
             return None
         
         first: SinglyLinkedNode[T]|None = self._GetFirst() # Should never be None here.
         
-        return None if first is None else GetValueIteratorFromNode(first)
+        return None if first is None else GetValueEnumeratorFromNode(first)
 
 class List[T](IList[T]):
     def __init__(self):
@@ -357,8 +356,8 @@ class CountableIterableQueue[T](CountableIterable[T]):
         self.PushItems(values)
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return self._GetCollection().TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetCollection().TryGetEnumerator()
 class CountableIterableStack[T](CountableIterable[T]):
     def __init__(self, *values: T):
         super().__init__(IterableStack[T]())
@@ -366,5 +365,5 @@ class CountableIterableStack[T](CountableIterable[T]):
         self.PushItems(values)
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return self._GetCollection().TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetCollection().TryGetEnumerator()

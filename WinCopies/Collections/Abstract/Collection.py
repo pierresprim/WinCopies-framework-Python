@@ -1,21 +1,20 @@
-import collections.abc
-
 from abc import abstractmethod
+from collections.abc import Iterable, Iterator
 from typing import final
 
 from WinCopies import IStringable
 from WinCopies.Collections import Extensions
 from WinCopies.Collections.Abstract import Converter, Selector
-from WinCopies.Collections.Abstract.Enumeration import IterableBase, Enumerator
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
+from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IArray, IList, IDictionary, ISet
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Delegates import TryGetSelectedEqualityComparison
 from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem
-from WinCopies.Typing.Delegate import EqualityComparison
+from WinCopies.Typing.Delegate import EqualityComparison, Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.ArrayBase[TOut], IterableBase[TIn, TOut]):
+class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: TSequence):
         super().__init__(items)
     
@@ -48,7 +47,7 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
     
     @final
     def SetAt(self, key: int, value: TOut) -> None:
-        self._GetSpecializedContainer()[key] = self._ConvertBack(value)
+        self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
 
 class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: IArray[TIn]):
@@ -82,6 +81,22 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], I
 
 class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], IDictionary[TKey, TValueOut]):
     @final
+    class __ValueEnumerable(CountableEnumerable[TValueOut]):
+        def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]):
+            super().__init__()
+
+            self.__enumerable: ICountableEnumerable[TValueIn] = dic.GetValues()
+            self.__iterable: Iterable[TValueOut] = Select(self.__enumerable.AsIterable(), converter)
+        
+        def GetCount(self) -> int:
+            return self.__enumerable.GetCount()
+        
+        def _TryGetIterator(self) -> Iterator[TValueOut]|None:
+            return iter(self.__iterable)
+        
+        def TryGetEnumerator(self) -> IEnumerator[TValueOut]|None:
+            return TryAsEnumerator(self._TryGetIterator())
+    @final
     class __Enumerator(Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
         def __init__(self, dictionary: Dictionary[TKey, TValueIn, TValueOut], enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]):
             super().__init__(enumerator)
@@ -93,6 +108,8 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
     
     def __init__(self, dictionary: IDictionary[TKey, TValueIn]):
         super().__init__(dictionary)
+
+        self.__valueEnumerable: ICountableEnumerable[TValueOut] = Dictionary[TKey, TValueIn, TValueOut].__ValueEnumerable(self._GetItems(), self._Convert)
     
     @final
     def GetCount(self) -> int:
@@ -123,11 +140,11 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         self._GetItems().SetAt(key, self._ConvertBack(value))
     
     @final
-    def GetKeys(self) -> collections.abc.Iterable[TKey]:
+    def GetKeys(self) -> ICountableEnumerable[TKey]:
         return self._GetItems().GetKeys()
     @final
-    def GetValues(self) -> collections.abc.Iterable[TValueOut]:
-        return Select(self._GetItems().GetValues(), self._Convert)
+    def GetValues(self) -> ICountableEnumerable[TValueOut]:
+        return self.__valueEnumerable
     
     @final
     def TryAdd(self, key: TKey, value: TValueOut) -> bool:
@@ -161,12 +178,12 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         return self._GetItems().Clear()
     
     @final
-    def TryGetIterator(self) -> IEnumerator[IKeyValuePair[TKey, TValueOut]]|None:
+    def TryGetIterator(self) -> Iterator[IKeyValuePair[TKey, TValueOut]]|None:
         enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]|None = self._GetItems().TryGetEnumerator()
 
         return None if enumerator is None else Dictionary[TKey, TValueIn, TValueOut].__Enumerator(self, enumerator)
 
-class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], ISet[TOut], IterableBase[TIn, TOut]):
+class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], ISet[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: Extensions.ISet[TIn]):
         super().__init__(items)
 

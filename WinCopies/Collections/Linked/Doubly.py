@@ -7,8 +7,8 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, Iterator, Accessor, AsIterator
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueIteratorFromNode
+from WinCopies.Collections.Enumeration import IEnumerator, Iterator, Accessor, GetEnumerator
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Converter
@@ -217,33 +217,33 @@ class IListBase[T](IReadOnlyList[T]):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
-class IReadOnlyIterableList[T](IListBase[T], Enumeration.IIterable[T]):
+class IReadOnlyIterableList[T](IListBase[T], Enumeration.IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
-class IIterable[T](Enumeration.IIterable[T]):
+class IEnumerable[T](Enumeration.IEnumerable[T]):
     @final
-    class __Iterable(Enumeration.IIterable[IDoublyLinkedNode[T]]):
-        def __init__(self, l: IIterable[T]):
+    class __Enumerable(Enumeration.Enumerable[IDoublyLinkedNode[T]]):
+        def __init__(self, l: IEnumerable[T]):
             super().__init__()
 
-            self.__list: IIterable[T] = l
+            self.__list: IEnumerable[T] = l
         
-        def TryGetIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
-            return self.__list.TryGetNodeIterator()
+        def TryGetEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
+            return self.__list.TryGetNodeEnumerator()
     
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def TryGetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
+    def TryGetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
         pass
     
     @final
-    def AsNodeIterable(self) -> Enumeration.IIterable[IDoublyLinkedNode[T]]:
-        return IIterable[T].__Iterable(self)
+    def AsNodeIterable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
+        return IEnumerable[T].__Enumerable(self)
 
-class IList[T](IReadOnlyIterableList[T], IIterable[T]):
+class IList[T](IReadOnlyIterableList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
@@ -394,17 +394,17 @@ class List[T](IList[T]):
             node = self.RemoveFirst()
     
     @final
-    def TryGetIterator(self) -> Iterator[T]|None:
-        return None if self.IsEmpty() or self.__first is None else GetValueIteratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return None if self.IsEmpty() or self.__first is None else GetValueEnumeratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
     
     @final
-    def TryGetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]|None:
+    def TryGetNodeIterator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
         return None if self.IsEmpty() or self.__first is None else DoublyLinkedNodeEnumerator[T](self.__first) # self.__first should not be None if self.IsEmpty().
     @final
-    def GetNodeIterator(self) -> Iterator[IDoublyLinkedNode[T]]:
-        iterator: Iterator[IDoublyLinkedNode[T]]|None = self.TryGetNodeIterator()
+    def GetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]:
+        enumerator: IEnumerator[IDoublyLinkedNode[T]]|None = self.TryGetNodeEnumerator()
 
-        return AsIterator(iterator)
+        return GetEnumerator(enumerator)
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode], IGenericConstraint[TNode, IDoublyLinkedNode[TItems]]):
     def __init__(self, node: TNode):

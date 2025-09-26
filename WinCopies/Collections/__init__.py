@@ -3,7 +3,7 @@ from __future__ import annotations
 import collections.abc
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence, MutableSequence
+from collections.abc import Sized, Iterable, Container, Sequence, MutableSequence
 from contextlib import AbstractContextManager
 from enum import Enum
 from typing import final, Callable
@@ -259,7 +259,22 @@ class IReadOnlyList[T](IReadOnlyCollection):
     def Contains(self, value: T|object) -> bool:
         pass
 
-class ICollection[T](IReadOnlyCollection):
+    @abstractmethod
+    def AsContainer(self) -> Container[T]:
+        pass
+
+class ReadOnlyList[T](Container[T], IReadOnlyList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def AsContainer(self) -> Container[T]:
+        return self
+    
+    @final
+    def __contains__(self, x: object) -> bool:
+        return self.Contains(x)
+
+class ICollection[T](IReadOnlyList[T]):
     def __init__(self):
         super().__init__()
     
@@ -297,6 +312,17 @@ class ICountable(IInterface):
     def ValidateIndex(self, index: int) -> bool:
         return Collections.ValidateIndex(index, self.GetCount())
     
+    @abstractmethod
+    def AsSized(self) -> Sized:
+        pass
+
+class Countable(Sized, ICountable):
+    def __init__(self):
+        super().__init__()
+    
+    def AsSized(self) -> Sized:
+        return self
+    
     @final
     def __len__(self) -> int:
         return self.GetCount()
@@ -321,22 +347,7 @@ class IKeyableBase[T](IInterface):
     def ContainsKey(self, key: T) -> bool:
         pass
 
-class IGetter[TKey, TValue](IInterface):
-    def __init__(self):
-        super().__init__()
-
-    @abstractmethod
-    def __getitem__(self, key: TKey) -> TValue:
-        pass
-class ISetter[TKey, TValue](IInterface):
-    def __init__(self):
-        super().__init__()
-
-    @abstractmethod
-    def __setitem__(self, key: TKey, value: TValue) -> None:
-        pass
-
-class IAccessor[TKey, TValue](IKeyableBase[TKey]):
+class IGetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
@@ -345,7 +356,7 @@ class IAccessor[TKey, TValue](IKeyableBase[TKey]):
         pass
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault: # Can be overridden for optimization.
         return self.GetAt(key) if self.ContainsKey(key) else defaultValue
-class IMutator[TKey, TValue](IKeyableBase[TKey], ISetter[TKey, TValue]):
+class ISetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
@@ -356,37 +367,25 @@ class IMutator[TKey, TValue](IKeyableBase[TKey], ISetter[TKey, TValue]):
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
         pass
 
-class IReadOnlyKeyable[TKey, TValue](IAccessor[TKey, TValue], IGetter[TKey, TValue]):
+class IReadOnlyKeyable[TKey, TValue](IGetter[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+class IWriteOnlyKeyable[TKey, TValue](ISetter[TKey, TValue]):
     def __init__(self):
         super().__init__()
 
-    @final
-    def __getitem__(self, key: TKey) -> TValue:
-        return self.GetAt(key)
-class IWriteOnlyKeyable[TKey, TValue](IMutator[TKey, TValue]):
-    def __init__(self):
-        super().__init__()
-
-    @final
-    def __setitem__(self, key: TKey, value: TValue) -> None:
-        self.SetAt(key, value)
-
-class IReadOnlyIndexable[T](IAccessor[int, T], IGetter[int|slice, T|object]):
+class IReadOnlyIndexable[T](IGetter[int, T]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice) -> object:
+    def SliceAt(self, key: slice) -> IReadOnlyIndexable[T]:
         pass
-
-    @final
-    def __getitem__(self, key: int|slice) -> T|object:
-        return self.SliceAt(key) if isinstance(key, slice) else self.GetAt(key)
 class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
     def __init__(self):
         super().__init__()
 
-class IReadWriteCollection[TKey, TValue](IAccessor[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
+class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
@@ -431,7 +430,7 @@ class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWri
     def __init__(self):
         super().__init__()
 
-class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCollection):
+class ITuple[T](IReadOnlyCountableIndexable[T], ICountableCollection[T]):
     def __init__(self):
         super().__init__()
 class IArray[T](ITuple[T], ICountableIndexable[T]):
@@ -486,13 +485,6 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
     def __init__(self):
         super().__init__()
-    
-    @abstractmethod
-    def GetKeys(self) -> Iterable[TKey]:
-        pass
-    @abstractmethod
-    def GetValues(self) -> Iterable[TValue]:
-        pass
 
     @abstractmethod
     def TryGetValue(self, key: TKey) -> INullable[TValue]:

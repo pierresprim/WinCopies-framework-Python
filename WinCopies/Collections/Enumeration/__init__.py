@@ -11,7 +11,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Delegates, IInterface
-from WinCopies.Collections import ICountable
+from WinCopies.Collections import ICountable, Countable
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Function
 
@@ -40,13 +40,21 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def HasProcessedItems(self) -> bool:
         pass
-class IEnumerator[T](collections.abc.Iterator[T], IEnumeratorBase):
+class IEnumerator[T](IEnumeratorBase):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def GetCurrent(self) -> T|None:
         pass
+
+    @abstractmethod
+    def AsIterator(self) -> SystemIterator[T]:
+        pass
+
+class IteratorBase[T](collections.abc.Iterator[T], IEnumerator[T]):
+    def __init__(self):
+        super().__init__()
     
     @final
     def __next__(self) -> T:
@@ -62,11 +70,15 @@ class IEnumerator[T](collections.abc.Iterator[T], IEnumeratorBase):
             raise StopIteration
     
     @final
+    def AsIterator(self) -> collections.abc.Iterator[T]:
+        return self
+    
+    @final
     def __iter__(self) -> SystemIterator[T]:
         return self
 
 @final
-class __EmptyEnumerator[T](IEnumerator[T]):
+class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self):
         super().__init__()
     
@@ -90,37 +102,32 @@ __emptyEnumerator = __EmptyEnumerator[None]()
 def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
     return __emptyEnumerator # type: ignore
 
-def AsIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return GetEmptyEnumerator() if iterator is None else iterator
+def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
+    return GetEmptyEnumerator() if enumerator is None else enumerator
+def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
+    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
 
-class IIterable[T](collections.abc.Iterable[T], IInterface):
+class IEnumerable[T](IInterface):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def TryGetIterator(self) -> SystemIterator[T]|None:
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
         pass
     @final
-    def GetIterator(self) -> SystemIterator[T]:
-        return AsIterator(self.TryGetIterator())
-    
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TryAsEnumerator(self.TryGetIterator())
-    @final
     def GetEnumerator(self) -> IEnumerator[T]:
-        return AsEnumerator(self.GetIterator())
+        return GetEnumerator(self.TryGetEnumerator())
     
-    @final
-    def __iter__(self) -> SystemIterator[T]:
-        return self.GetIterator()
+    @abstractmethod
+    def AsIterable(self) -> collections.abc.Iterable[T]:
+        pass
 
-class IEquatableIterable[T: IEquatableItem](IIterable[T], IEquatableItem):
+class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
     def __init__(self):
         super().__init__()
 
 @final
-class __NullEnumerable[T](IIterable[T]):
+class __NullEnumerable[T](IEnumerable[T]):
     def __init__(self):
         super().__init__()
     
@@ -129,14 +136,35 @@ class __NullEnumerable[T](IIterable[T]):
 
 __nullEnumerable = __NullEnumerable[None]()
 
-def GetNullEnumerable[T]() -> IIterable[T]: # type: ignore
+def GetNullEnumerable[T]() -> IEnumerable[T]: # type: ignore
     return __nullEnumerable # type: ignore
 
-class ICountableIterable[T](IIterable[T], ICountable):
+class ICountableEnumerable[T](IEnumerable[T], ICountable):
     def __init__(self):
         super().__init__()
 
-class EnumeratorBase[T](IEnumerator[T]):
+class Enumerable[T](collections.abc.Iterable[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def AsIterable(self) -> SystemIterable[T]:
+        return self
+    
+    def _TryGetIterator(self) -> SystemIterator[T]|None:
+        return self.GetEnumerator().AsIterator()
+    
+    @final
+    def __iter__(self) -> SystemIterator[T]:
+        return GetIterator(self._TryGetIterator())
+
+class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+class CountableEnumerable[T](Countable, Enumerable[T], ICountableEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+
+class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self):
         super().__init__()
 
@@ -291,6 +319,13 @@ class Iterator[T](Enumerator[T]):
 
     def _ResetOverride(self) -> bool:
         return False
+    
+    @staticmethod
+    def Create(iterator: SystemIterator[T]) -> IEnumerator[T]:
+        return iterator if isinstance(iterator, IEnumerator) else Iterator(iterator)
+    @staticmethod
+    def TryCreate(iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
+        return None if iterator is None else Iterator[T].Create(iterator)
 
 def __AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
     return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
@@ -303,7 +338,21 @@ def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
 def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
     return None if iterator is None else __AsEnumerator(iterator)
 
-class Iterable[T](IIterable[T]):
+def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
+    return None if enumerator is None else enumerator.AsIterator()
+
+class IterableBase[T](Enumerable[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _TryGetIterator(self) -> collections.abc.Iterator[T]|None:
+        pass
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TryAsEnumerator(self._TryGetIterator())
+class Iterable[T](IterableBase[T]):
     def __init__(self, iterable: SystemIterable[T]):
         super().__init__()
 
@@ -314,25 +363,29 @@ class Iterable[T](IIterable[T]):
         return self.__iterable
     
     @final
-    def TryGetIterator(self) -> SystemIterator[T]|None:
-        return self.__iterable.__iter__()
+    def _TryGetIterator(self) -> collections.abc.Iterator[T]|None:
+        return iter(self._GetIterable())
     
     @staticmethod
-    def Create(iterable: SystemIterable[T]) -> IIterable[T]:
-        return iterable if isinstance(iterable, IIterable) else Iterable(iterable)
+    def Create(iterable: SystemIterable[T]) -> IEnumerable[T]:
+        return iterable if isinstance(iterable, IEnumerable) else Iterable(iterable)
     @staticmethod
-    def TryCreate(iterable: SystemIterable[T]|None) -> IIterable[T]|None:
-        return None if iterable is None else (iterable if isinstance(iterable, IIterable) else Iterable(iterable))
+    def TryCreate(iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
+        return None if iterable is None else Iterable[T].Create(iterable)
 
-class IteratorProvider[T](IIterable[T]):
+class IteratorProvider[T](Enumerable[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):
         super().__init__()
         
         self.__iteratorProvider: Function[SystemIterator[T]]|None = iteratorProvider
     
     @final
-    def TryGetIterator(self) -> IEnumerator[T]|None:
-        return None if self.__iteratorProvider is None else TryAsEnumerator(self.__iteratorProvider())
+    def _TryGetIterator(self) -> SystemIterator[T]|None:
+        return None if self.__iteratorProvider is None else GetIterator(self.__iteratorProvider())
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TryAsEnumerator(self._TryGetIterator())
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator):

@@ -1,11 +1,10 @@
 import collections.abc
 
-from collections.abc import Iterator
 from typing import final
 
 from WinCopies.Collections import Enumeration, Generator
-from WinCopies.Collections.Enumeration import IIterable, ICountableIterable
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, ICountableEnumerable, IEnumerator, AbstractEnumerator
+from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
@@ -16,46 +15,94 @@ def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[
     
     return GetGenerator(iterable)
 
-class IterableBase[TItems, TIterable](IIterable[TItems], GenericConstraint[TIterable, IIterable[TItems]]):
-    def __init__(self, iterable: TIterable):
+class Enumerable[T](Enumeration.Enumerable[T]):
+    def __init__(self, enumerable: IEnumerable[T]):
         EnsureDirectModuleCall()
 
         super().__init__()
 
-        self.__iterable: TIterable = iterable
+        self.__enumerable: IEnumerable[T] = enumerable
     
     @final
-    def _GetContainer(self) -> TIterable:
-        return self.__iterable
-    @final
-    def _GetIterable(self) -> IIterable[TItems]:
-        return self._GetInnerContainer()
+    def _GetEnumerable(self) -> IEnumerable[T]:
+        return self.__enumerable
     
-    @final
-    def TryGetIterator(self) -> Iterator[TItems]|None:
-        return self._GetIterable().TryGetIterator()
-class Iterable[T](IterableBase[T, IIterable[T]], IGenericConstraintImplementation[IIterable[T]]):
-    def __init__(self, iterable: IIterable[T]):
-        super().__init__(iterable)
+    def TryGetEnumerator(self) -> IEnumerator[T] | None:
+        return self._GetEnumerable().TryGetEnumerator()
     
     @staticmethod
-    def Create(iterable: collections.abc.Iterable[T]) -> collections.abc.Iterable[T]:
-        return iterable if type(iterable) == Iterable[T] else Iterable[T](Enumeration.Iterable[T].Create(iterable))
+    def Create(enumerable: IEnumerable[T]) -> IEnumerable[T]:
+        return enumerable if type(enumerable) == Enumerable[T] else Enumerable[T](enumerable)
     @staticmethod
-    def TryCreate(iterable: collections.abc.Iterable[T]|None) -> collections.abc.Iterable[T]|None:
-        return None if iterable is None else Iterable[T].Create(iterable)
+    def TryCreate(enumerable: IEnumerable[T]|None) -> IEnumerable[T]|None:
+        return None if enumerable is None else Enumerable[T].Create(enumerable)
 
-class CountableIterable[T](IterableBase[T, ICountableIterable[T]], ICountableIterable[T], IGenericConstraintImplementation[ICountableIterable[T]]):
-    def __init__(self, collection: ICountableIterable[T]):
-        super().__init__(collection)
+class EquatableEnumerable[T: IEquatableItem](Enumeration.EquatableEnumerable[T]):
+    def __init__(self, enumerable: IEquatableEnumerable[T]):
+        EnsureDirectModuleCall()
+
+        super().__init__()
+
+        self.__enumerable: IEquatableEnumerable[T] = enumerable
+    
+    @final
+    def _GetEnumerable(self) -> IEquatableEnumerable[T]:
+        return self.__enumerable
+    
+    @final
+    def Equals(self, item: object) -> bool:
+        return self.__enumerable.Equals(item)
+    
+    @final
+    def Hash(self) -> int:
+        return self.__enumerable.Hash()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetEnumerable().TryGetEnumerator()
+    
+    @staticmethod
+    def Create(enumerable: IEquatableEnumerable[T]) -> IEquatableEnumerable[T]:
+        return enumerable if type(enumerable) == EquatableEnumerable[T] else EquatableEnumerable[T](enumerable)
+    @staticmethod
+    def TryCreate(enumerable: IEquatableEnumerable[T]|None) -> IEquatableEnumerable[T]|None:
+        return None if enumerable is None else EquatableEnumerable[T].Create(enumerable)
+class CountableEnumerable[T](Enumeration.CountableEnumerable[T]):
+    def __init__(self, enumerable: ICountableEnumerable[T]):
+        EnsureDirectModuleCall()
+
+        super().__init__()
+
+        self.__enumerable: ICountableEnumerable[T] = enumerable
+    
+    @final
+    def _GetEnumerable(self) -> ICountableEnumerable[T]:
+        return self.__enumerable
     
     @final
     def GetCount(self) -> int:
-        return self._GetContainer().GetCount()
+        return self._GetEnumerable().GetCount()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetEnumerable().TryGetEnumerator()
+    
+    @staticmethod
+    def Create(enumerable: ICountableEnumerable[T]) -> ICountableEnumerable[T]:
+        return enumerable if type(enumerable) == CountableEnumerable[T] else CountableEnumerable[T](enumerable)
+    @staticmethod
+    def TryCreate(enumerable: ICountableEnumerable[T]|None) -> ICountableEnumerable[T]|None:
+        return None if enumerable is None else CountableEnumerable[T].Create(enumerable)
 
+class Enumerator[T](AbstractEnumerator[T]):
+    def __init__(self, enumerator: IEnumerator[T]):
+        EnsureDirectModuleCall()
+
+        super().__init__(enumerator)
+    
     @staticmethod
-    def Create(collection: ICountableIterable[T]) -> ICountableIterable[T]:
-        return collection if type(collection) == CountableIterable[T] else CountableIterable[T](collection)
+    def Create(enumerator: IEnumerator[T]) -> IEnumerator[T]:
+        return enumerator if type(enumerator) == Enumerator[T] else Enumerator[T](enumerator)
     @staticmethod
-    def TryCreate(collection: ICountableIterable[T]|None) -> ICountableIterable[T]|None:
-        return None if collection is None else CountableIterable[T].Create(collection)
+    def TryCreate(enumerator: IEnumerator[T]|None) -> IEnumerator[T]|None:
+        return None if enumerator is None else Enumerator[T].Create(enumerator)

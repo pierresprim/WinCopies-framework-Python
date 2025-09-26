@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
-from WinCopies.Collections.Enumeration import IIterable, IEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Delegates import FuncNone
 from WinCopies.Typing.Delegate import Function, ValueFunction
 
@@ -32,16 +32,16 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
     def GetCurrent(self) -> TOut|None:
         return self.__getCurrent()
 
-class IterableBase[TIn, TOut](ConverterBase[TIn, TOut], IIterable[TOut]):
+class EnumerableBase[TIn, TOut](ConverterBase[TIn, TOut], IEnumerable[TOut]):
     @final
     class __Enumerator(Enumerator[TIn, TOut]):
-        def __init__(self, iterable: IterableBase[TIn, TOut], enumerator: IEnumerator[TIn]):
+        def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]):
             super().__init__(enumerator)
 
-            self.__iterable: IterableBase[TIn, TOut] = iterable
+            self.__enumerable: EnumerableBase[TIn, TOut] = enumerable
         
         def _Convert(self, item: TIn) -> TOut:
-            return self.__iterable._Convert(item)
+            return self.__enumerable._Convert(item)
     
     def __init__(self):
         super().__init__()
@@ -51,16 +51,16 @@ class IterableBase[TIn, TOut](ConverterBase[TIn, TOut], IIterable[TOut]):
         pass
     
     @final
-    def TryGetIterator(self) -> IEnumerator[TOut]|None:
+    def TryGetEnumerator(self) -> IEnumerator[TOut]|None:
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
-        return None if result is None else IterableBase[TIn, TOut].__Enumerator(self, result)
-class Iterable[TIn, TOut](IterableBase[TIn, TOut]):
-    def __init__(self, iterable: IIterable[TIn]):
+        return None if result is None else EnumerableBase[TIn, TOut].__Enumerator(self, result)
+class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut]):
+    def __init__(self, enumerable: IEnumerable[TIn]):
         super().__init__()
 
-        self.__iterable: IIterable[TIn] = iterable
+        self.__enumerable: IEnumerable[TIn] = enumerable
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
-        return self.__iterable.TryGetEnumerator()
+        return self.__enumerable.TryGetEnumerator()

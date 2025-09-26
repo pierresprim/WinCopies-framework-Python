@@ -14,7 +14,7 @@ from typing import final
 
 from WinCopies import IInterface, NullableBoolean, ToNullableBoolean
 
-from WinCopies.Collections.Enumeration import IIterable, SystemIterable, SystemIterator, IEnumerator, EnumeratorBase, AbstractEnumerator, AbstractionEnumerator, Iterator, AsIterator, AsEnumerator, GetNullEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, SystemIterable, SystemIterator, IEnumerator, Enumerable, EnumeratorBase, IteratorProvider, AbstractEnumerator, AbstractionEnumerator, Iterator, GetEnumerator, GetNullEnumerable, GetIterator
 from WinCopies.Collections.Linked.Singly import Stack
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 
@@ -28,7 +28,7 @@ class _RecursiveEnumeratorBase[T](IInterface):
         super().__init__()
     
     @abstractmethod
-    def _GetEnumerationItems(self, enumerationItems: T) -> SystemIterable[T]:
+    def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
         pass
 class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], _RecursiveEnumeratorBase[TEnumerationItems]):
     def __init__(self, enumerator: IEnumerator[TEnumerationItems]):
@@ -145,7 +145,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
         def moveNext() -> bool:
             def getEnumerator() -> DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]]:
                 item: TEnumerationItems = self.__currentEnumerator.GetCurrent() # type: ignore
-                iterator: SystemIterator[TEnumerationItems] = self._GetEnumerationItems(item).__iter__()
+                iterator: SystemIterator[TEnumerationItems] = iter(self._GetEnumerationItems(item).AsIterable())
 
                 return DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]](item, iterator if isinstance(iterator, IEnumerator) else Iterator[TEnumerationItems](iterator))
             
@@ -317,69 +317,77 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
     def _GetStackItemAsCookie(self, item: DualResult[T, IEnumerator[T]]) -> T:
         return item.GetKey()
 
-class IRecursivelyIterable[T](IIterable[T]):
+class IRecursivelyEnumerable[T](IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
     @abstractmethod
-    def TryGetRecursiveIterator(self) -> SystemIterator[T]|None:
+    def TryGetRecursiveEnumerator(self) -> IEnumerator[T]|None:
         pass
     @final
-    def GetRecursiveIterator(self) -> SystemIterator[T]:
-        return AsIterator(self.TryGetRecursiveIterator())
+    def GetRecursiveEnumerator(self) -> IEnumerator[T]:
+        return GetEnumerator(self.TryGetRecursiveEnumerator())
+    
+    @abstractmethod
+    def AsRecursivelyIterable(self) -> SystemIterable[T]:
+        pass
 
-class RecursivelyIterable[T](IRecursivelyIterable[T]):
+class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
     class __IEnumerator(_RecursiveEnumeratorBase[T]):
         def __init__(self):
             super().__init__()
         
         @abstractmethod
-        def _GetIterable(self) -> RecursivelyIterable[T]:
+        def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
             pass
         
         @final
-        def _GetEnumerationItems(self, enumerationItems: T) -> SystemIterable[T]:
-            return self._GetIterable()._AsRecursivelyIterable(enumerationItems)
+        def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
+            return self._GetEnumerable()._AsRecursivelyEnumerable(enumerationItems)
 
     class Enumerator(RecursiveEnumerator[T], __IEnumerator[T]):
-        def __init__(self, iterable: RecursivelyIterable[T], enumerator: IEnumerator[T]):
+        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T]):
             super().__init__(enumerator)
 
-            self.__iterable: RecursivelyIterable[T] = iterable
+            self.__enumerable: RecursivelyEnumerable[T] = enumerable
         
         @final
-        def _GetIterable(self) -> RecursivelyIterable[T]:
-            return self.__iterable
+        def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
+            return self.__enumerable
     class StackedEnumerator(StackedRecursiveEnumerator[T], __IEnumerator[T]):
-        def __init__(self, iterable: RecursivelyIterable[T], enumerator: IEnumerator[T]):
+        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T]):
             super().__init__(enumerator)
 
-            self.__iterable: RecursivelyIterable[T] = iterable
+            self.__enumerable: RecursivelyEnumerable[T] = enumerable
         
         @final
-        def _GetIterable(self) -> RecursivelyIterable[T]:
-            return self.__iterable
+        def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
+            return self.__enumerable
     
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def _AsRecursivelyIterable(self, container: T) -> IIterable[T]:
+    def _AsRecursivelyEnumerable(self, container: T) -> IEnumerable[T]:
         pass
-    
-    def _TryGetRecursiveIterator(self, iterator: IEnumerator[T]) -> SystemIterator[T]|None:
-        return RecursivelyIterable[T].Enumerator(self, iterator)
 
-    def TryGetRecursiveIterator(self) -> SystemIterator[T]|None:
-        iterator: SystemIterator[T]|None = self.TryGetIterator()
-
-        return None if iterator is None else self._TryGetRecursiveIterator(AsEnumerator(iterator))
-
-class IterableBuilder[T](IIterable[T]):
     @final
-    class __Iterable(IIterable[T]):
+    def AsRecursivelyIterable(self) -> SystemIterable[T]:
+        return IteratorProvider[T](lambda: GetIterator(self.TryGetRecursiveEnumerator())) # type: ignore
+    
+    def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[T]) -> IEnumerator[T]|None:
+        return RecursivelyEnumerable[T].Enumerator(self, enumerator)
+
+    def TryGetRecursiveEnumerator(self) -> IEnumerator[T]|None:
+        enumerator: IEnumerator[T]|None = self.TryGetEnumerator()
+
+        return None if enumerator is None else self._TryGetRecursiveEnumerator(enumerator)
+
+class IterableBuilder[T](Enumerable[T]):
+    @final
+    class __Iterable(Enumerable[T]):
         @final
-        class __Iterable(IIterable[T]):
+        class __Iterable(Enumerable[T]):
             @final
             class __Enumerator(AbstractionEnumerator[T, T]):
                 @final
@@ -551,40 +559,40 @@ class IterableBuilder[T](IIterable[T]):
 
                 self.__enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator = IterableBuilder[T].__Iterable.__Iterable.__Enumerator(builder, enumerator)
             
-            def TryGetIterator(self) -> SystemIterator[T]|None:
+            def TryGetEnumerator(self) -> IEnumerator[T]|None:
                 return self.__enumerator.GetItemEnumerator()
         
-        def __init__(self, builder: IterableBuilder[T], iterable: IIterable[T]):
+        def __init__(self, builder: IterableBuilder[T], iterable: IEnumerable[T]):
             super().__init__()
 
             self.__builder: IterableBuilder[T] = builder
-            self.__iterable: IIterable[T] = iterable
+            self.__iterable: IEnumerable[T] = iterable
         
-        def TryGetIterator(self) -> SystemIterator[T]|None:
-            iterator: SystemIterator[T]|None = self.__iterable.TryGetIterator()
+        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+            enumerator: IEnumerator[T]|None = self.__iterable.TryGetEnumerator()
 
-            if iterator is None:
+            if enumerator is None:
                 self.__builder._UnsetIterable()
 
                 return None
             
-            iterable: IIterable[T] = IterableBuilder[T].__Iterable.__Iterable(self.__builder, AsEnumerator(iterator))
+            iterable: IEnumerable[T] = IterableBuilder[T].__Iterable.__Iterable(self.__builder, enumerator)
 
             self.__builder._SetIterable(iterable)
 
-            return iterable.TryGetIterator()
+            return iterable.TryGetEnumerator()
     
-    def __init__(self, iterable: IIterable[T]):
+    def __init__(self, iterable: IEnumerable[T]):
         super().__init__()
 
-        self.__iterable: IIterable[T] = IterableBuilder[T].__Iterable(self, iterable)
+        self.__iterable: IEnumerable[T] = IterableBuilder[T].__Iterable(self, iterable)
     
     @final
-    def __SetIterable(self, iterable: IIterable[T]) -> None:
+    def __SetIterable(self, iterable: IEnumerable[T]) -> None:
         self.__iterable = iterable
     
     @final
-    def _SetIterable(self, iterable: IIterable[T]) -> None:
+    def _SetIterable(self, iterable: IEnumerable[T]) -> None:
         EnsureDirectModuleCall()
 
         self.__SetIterable(iterable)
@@ -595,5 +603,5 @@ class IterableBuilder[T](IIterable[T]):
         self.__SetIterable(GetNullEnumerable())
     
     @final
-    def TryGetIterator(self) -> SystemIterator[T]|None:
-        return self.__iterable.TryGetIterator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self.__iterable.TryGetEnumerator()

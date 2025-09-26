@@ -1,8 +1,9 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from typing import final
 
-from WinCopies.Collections.Abstraction.Enumeration import TryGetGenerator
+from WinCopies.Collections.Abstraction.Enumeration import Enumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Doubly import List
@@ -93,14 +94,14 @@ class Stack[T](StackBase[T, Doubly.IListBase[T]], IGenericConstraintImplementati
     def __init__(self, l: Doubly.IListBase[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
 
-class IIterableLinkedListBase[TItems, TList](Singly.IIterable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
+class IIterableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
     def __init__(self):
         super().__init__()
 
-    def TryGetIterator(self) -> Iterator[TItems]|None:
-        iterable: Iterable[TItems]|None = self._GetInnerContainer()
+    def TryGetEnumerator(self) -> IEnumerator[TItems]|None:
+        enumerable: IEnumerable[TItems]|None = self._GetInnerContainer()
         
-        return TryGetGenerator(iterable)
+        return Enumerator[TItems].TryCreate(enumerable.TryGetEnumerator())
 class IIterableLinkedList[T](IIterableLinkedListBase[T, Doubly.IList[T]]):
     def __init__(self):
         super().__init__()
