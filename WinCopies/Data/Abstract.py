@@ -131,7 +131,7 @@ class IConnection(IDisposable):
 
 class Connection(IConnection):
     @final
-    class NullTable(ITable):
+    class NullTable(ABC, ITable):
         def __init__(self):
             super().__init__()
         
@@ -141,6 +141,9 @@ class Connection(IConnection):
         def GetName(self) -> str:
             raise GetDisposedError()
         def SetName(self, name: str) -> None:
+            raise GetDisposedError()
+
+        def GetQueryFactory(self) -> IQueryFactory:
             raise GetDisposedError()
         
         def GetFields(self) -> IArray[IField]:
@@ -152,7 +155,7 @@ class Connection(IConnection):
         def Dispose(self) -> None:
             pass
     @final
-    class Table(ITable):
+    class Table(ABC, ITable):
         def __init__(self, tableList: IList[Connection.Table], table: ITable):
             EnsureDirectModuleCall()
 
@@ -168,6 +171,9 @@ class Connection(IConnection):
             return self.__table.GetName()
         def SetName(self, name: str) -> None:
             self.__table.SetName(name)
+
+        def GetQueryFactory(self) -> IQueryFactory:
+            return self.__table.GetQueryFactory()
         
         def GetFields(self) -> IArray[IField]:
             return self.__table.GetFields()
