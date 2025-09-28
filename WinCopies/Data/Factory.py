@@ -53,3 +53,22 @@ class IQueryFactory(IInterface):
     @abstractmethod
     def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
+
+class ITableQueryFactory(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+        pass
+
+    @abstractmethod
+    def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
+        pass
+    @abstractmethod
+    def GetMultiInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        pass
+    
+    @abstractmethod
+    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+        pass

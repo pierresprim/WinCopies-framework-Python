@@ -16,11 +16,11 @@ from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualValueNullableInfo
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
-from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
+from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IParameter
-from WinCopies.Data.Query import ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
 
@@ -40,39 +40,73 @@ class ITable(IEquatable['ITable'], IDisposable):
         pass
 
     @abstractmethod
-    def GetQueryFactory(self) -> IQueryFactory:
+    def GetQueryFactory(self) -> ITableQueryFactory:
         pass
 
     @final
     def Select(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQueryExecutionResult|None:
-        return self.GetQueryFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(String(self.GetName()))), columns, conditions).Execute()
+        return self.GetQueryFactory().GetSelectionQuery(columns, conditions).Execute()
     
     @final
     def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetInsertionQuery(self.GetName(), items, ignoreExisting).Execute()
+        return self.GetQueryFactory().GetInsertionQuery(items, ignoreExisting).Execute()
     @final
     def InsertMultiple(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting).Execute()
+        return self.GetQueryFactory().GetMultiInsertionQuery(columns, items, ignoreExisting).Execute()
     
     @final
     def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetUpdateQuery(self.GetName(), values, conditions).Execute()
+        return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
     
     @abstractmethod
     def Remove(self) -> None:
         pass
 
 class Table(ABC, ITable):
+    class _QueryFactory(ABC, ITableQueryFactory):
+        def __init__(self, table: Table):
+            super().__init__()
+
+            self.__table: Table = table
+            self.__factory: IQueryFactory = table._GetConnection().GetQueryFactory()
+        
+        @final
+        def _GetTable(self) -> Table:
+            return self.__table
+        @final
+        def _GetFactory(self) -> IQueryFactory:
+            return self.__factory
+
+        @final
+        def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+            return self._GetFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(String(self._GetTable().GetName()))), columns, conditions)
+
+        @final
+        def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
+            return self._GetFactory().GetInsertionQuery(self._GetTable().GetName(), items, ignoreExisting)
+        @final
+        def GetMultiInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+            return self._GetFactory().GetMultiInsertionQuery(self._GetTable().GetName(), columns, items, ignoreExisting)
+        
+        @final
+        def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+            return self._GetFactory().GetUpdateQuery(self._GetTable().GetName(), values, conditions)
+    
     def __init__(self):
         super().__init__()
+
+        self.__queryFactory: ITableQueryFactory|None = None
     
     @abstractmethod
     def _GetConnection(self) -> IConnection:
         pass
     
     @final
-    def GetQueryFactory(self) -> IQueryFactory:
-        return self._GetConnection().GetQueryFactory()
+    def GetQueryFactory(self) -> ITableQueryFactory:
+        if self.__queryFactory is None:
+            self.__queryFactory = Table._QueryFactory(self)
+        
+        return self.__queryFactory
     
     def Equals(self, item: ITable|object) -> bool:
         return item is self
@@ -143,7 +177,7 @@ class Connection(IConnection):
         def SetName(self, name: str) -> None:
             raise GetDisposedError()
 
-        def GetQueryFactory(self) -> IQueryFactory:
+        def GetQueryFactory(self) -> ITableQueryFactory:
             raise GetDisposedError()
         
         def GetFields(self) -> IArray[IField]:
@@ -172,7 +206,7 @@ class Connection(IConnection):
         def SetName(self, name: str) -> None:
             self.__table.SetName(name)
 
-        def GetQueryFactory(self) -> IQueryFactory:
+        def GetQueryFactory(self) -> ITableQueryFactory:
             return self.__table.GetQueryFactory()
         
         def GetFields(self) -> IArray[IField]:
