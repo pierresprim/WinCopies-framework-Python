@@ -195,7 +195,7 @@ class IMultiInsertionQuery(IInsertionQueryBase[Iterable[Iterable[object]]]):
         super().__init__()
     
     @abstractmethod
-    def GetColumns(self) -> Sequence[IString]:
+    def GetColumns(self) -> ICountableEnumerable[IString]:
         pass
 
 class IUpdateQuery(IWriteQuery, IConditionalQuery):
@@ -476,13 +476,13 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
         
         return DualResult[str, ICountableEnumerable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableEnumerable[object].Create(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
-    def __init__(self, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
+    def __init__(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
         super().__init__(tableName, items, ignoreExisting)
 
-        self.__columns: Sequence[IString] = columns
+        self.__columns: ICountableEnumerable[IString] = columns
     
     @final
-    def GetColumns(self) -> Sequence[IString]:
+    def GetColumns(self) -> ICountableEnumerable[IString]:
         return self.__columns
     
     @final
@@ -491,9 +491,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             return ", ".join(values)
         
         globalArgs: CountableIterableQueue[object] = CountableIterableQueue[object]()
-        columns: Sequence[IString] = self.GetColumns()
-
-        length: int = len(columns)
+        columns: ICountableEnumerable[IString] = self.GetColumns()
 
         def getArguments(values: Iterable[object]) -> str:
             def getResult() -> str|None:
@@ -507,7 +505,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
                 args = CountableQueue[object]()
                 result: str = join(getArgument(value) for value in values)
 
-                if args.GetCount() == length:
+                if args.GetCount() == columns.GetCount():
                     globalArgs.PushItems(args.AsGenerator())
 
                     return f"({result})"
@@ -521,7 +519,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             return result
         
-        return DualResult[str, ICountableEnumerable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns, lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableEnumerable[object].Create(globalArgs))
+        return DualResult[str, ICountableEnumerable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableEnumerable[object].Create(globalArgs))
 
 class UpdateQuery(WriteQuery, IUpdateQuery):
     def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None):

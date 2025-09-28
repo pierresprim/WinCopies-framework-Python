@@ -148,7 +148,7 @@ class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
         super().__init__(tableName, columns, items, ignoreExisting)
 
         self.__connection = connection

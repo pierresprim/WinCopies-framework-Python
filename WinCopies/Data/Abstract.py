@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Iterable
-from typing import final, Self, Sequence
+from typing import final, Self
 
 from WinCopies import IDisposable
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import List, Dictionary
+from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
 from WinCopies.Typing import IEquatable, IString, String, IType, Type, GetDisposedError
@@ -23,7 +24,7 @@ from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInserti
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
 
-class ITable(IDisposable, IEquatable['ITable']):
+class ITable(IEquatable['ITable'], IDisposable):
     def __init__(self):
         super().__init__()
     
@@ -46,7 +47,7 @@ class ITable(IDisposable, IEquatable['ITable']):
     def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultipleInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
 
     @abstractmethod
@@ -61,7 +62,7 @@ class ITable(IDisposable, IEquatable['ITable']):
     def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         return self.GetInsertionQuery(items, ignoreExisting).Execute()
     @final
-    def InsertMultiple(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+    def InsertMultiple(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
         return self.GetMultipleInsertionQuery(columns, items, ignoreExisting).Execute()
     
     @final
@@ -72,7 +73,7 @@ class ITable(IDisposable, IEquatable['ITable']):
     def Remove(self) -> None:
         pass
 
-class Table(ITable):
+class Table(ABC, ITable):
     def __init__(self):
         super().__init__()
     
@@ -91,7 +92,7 @@ class Table(ITable):
     def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         return self._GetConnection().GetQueryFactory().GetInsertionQuery(self.GetName(), items, ignoreExisting)
     @final
-    def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultipleInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return self._GetConnection().GetQueryFactory().GetMultiInsertionQuery(self.GetName(), columns, items, ignoreExisting)
 
     @final
@@ -172,7 +173,7 @@ class Connection(IConnection):
         
         def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
             raise GetDisposedError()
-        def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        def GetMultipleInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             raise GetDisposedError()
         
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:
@@ -209,7 +210,7 @@ class Connection(IConnection):
         
         def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
             return self.__table.GetInsertionQuery(items, ignoreExisting)
-        def GetMultipleInsertionQuery(self, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+        def GetMultipleInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
             return self.__table.GetMultipleInsertionQuery(columns, items, ignoreExisting)
         
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IUpdateQuery:

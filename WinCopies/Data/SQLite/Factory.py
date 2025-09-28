@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from enum import Enum
-from typing import final, Sequence
+from typing import final
 
 import sqlite3
 
@@ -9,6 +9,7 @@ import sqlite3
 import WinCopies.Data
 
 from WinCopies import String
+from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Enum import HasFlag
 from WinCopies.Typing import IString
@@ -129,7 +130,7 @@ class QueryFactory(IQueryFactory):
     
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         return InsertionQuery(self._GetConnection(), tableName, items, ignoreExisting)
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)
     
     def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:

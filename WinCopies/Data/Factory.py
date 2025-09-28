@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import Sequence
 
 from WinCopies import IInterface
+from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
@@ -47,7 +47,7 @@ class IQueryFactory(IInterface):
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
         pass
     @abstractmethod
-    def GetMultiInsertionQuery(self, tableName: str, columns: Sequence[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         pass
     
     @abstractmethod
