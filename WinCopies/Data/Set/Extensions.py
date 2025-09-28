@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Iterable
 from typing import final
 
@@ -183,7 +183,7 @@ class ConditionParameterSet(ConditionParameterSetBase):
     def TryGetEnumerator(self) -> IEnumerator[IFieldParameterSet[IParameter[IOperandValue]]]|None:
         return self.__conditions.TryGetEnumerator()
 
-class BranchSetBase[T](Enumerable[T], IBranchSet[T]):
+class BranchSetBase[T](ABC, IBranchSet[T]):
     def __init__(self, alias: str):
         super().__init__()
 
