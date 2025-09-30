@@ -12,7 +12,7 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEn
 from WinCopies.Typing import IEquatableItem, GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class ICollection[T](ICountableCollection[T], ICountableEnumerable[T]):
+class IReadOnlyCollection[T](ICountableCollection[T], ICountableEnumerable[T]):
     def __init__(self):
         super().__init__()
     
@@ -27,7 +27,7 @@ class ICollection[T](ICountableCollection[T], ICountableEnumerable[T]):
     def AsIterable(self) -> Iterable[T]:
         return self.AsCollection()
 
-class ISequence[T](ICollection[T]):
+class ISequence[T](IReadOnlyCollection[T]):
     def __init__(self):
         super().__init__()
     
@@ -62,7 +62,7 @@ class IMutableSequence[T](ISequence[T]):
     def AsSequence(self) -> collections.abc.Sequence[T]:
         return self.AsMutableSequence()
 
-class Collection[T](collections.abc.Collection[T], ICollection[T]):
+class ReadOnlyCollection[T](collections.abc.Collection[T], IReadOnlyCollection[T]):
     def __init__(self):
         super().__init__()
     
@@ -90,7 +90,7 @@ class Collection[T](collections.abc.Collection[T], ICollection[T]):
     def AsCollection(self) -> collections.abc.Collection[T]:
         return self
 
-class Sequence[T](collections.abc.Sequence[T], Collection[T], ISequence[T]):
+class Sequence[T](collections.abc.Sequence[T], ReadOnlyCollection[T], ISequence[T]):
     def __init__(self):
         super().__init__()
     
@@ -140,6 +140,7 @@ class IList[T](Collections.IList[T], IArray[T], IMutableSequence[T]):
     def __init__(self):
         super().__init__()
 
+# TODO: Should implement a Mapping abstractor provider.
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self):
         super().__init__()
@@ -150,6 +151,7 @@ class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDic
     @abstractmethod
     def GetValues(self) -> ICountableEnumerable[TValue]:
         pass
+# TODO: Should implement a MutableMapping abstractor provider.
 class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self):
         super().__init__()
