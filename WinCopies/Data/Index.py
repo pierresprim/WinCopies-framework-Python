@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Iterable, Iterator
 from enum import Enum
 from typing import final
@@ -86,7 +86,7 @@ class IForeignKey(ISingleColumnKey):
     def GetForeignKey(self) -> DualResult[str, str]:
         pass
 
-class Index(IIndex):
+class Index(ABC, IIndex):
     def __init__(self, name: str):
         super().__init__()
         
