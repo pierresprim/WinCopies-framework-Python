@@ -1,9 +1,9 @@
 from collections.abc import Iterable
 from typing import final
 
-from Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Abstract import TwoWayConverterBase
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
+from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import IIterableList, ICountableList, ICountableIterableList
