@@ -178,7 +178,7 @@ class Connection(IConnection):
             self.Query: IQueryFactory|None = None
             self.Index: IIndexFactory|None = None
     @final
-    class NullTable(Abstract, ITable):
+    class __NullTable(Abstract, ITable):
         def __init__(self):
             super().__init__()
         
@@ -205,17 +205,17 @@ class Connection(IConnection):
         def Dispose(self) -> None:
             pass
     @final
-    class Table(Abstract, ITable):
-        def __init__(self, tableList: IList[Connection.Table], table: ITable):
+    class _Table(Abstract, ITable):
+        def __init__(self, tableList: IList[Connection._Table], table: ITable):
             EnsureDirectModuleCall()
 
             super().__init__()
             
-            self.__tableList: IList[Connection.Table]|None = tableList
+            self.__tableList: IList[Connection._Table]|None = tableList
             self.__table: ITable = table
         
         def Equals(self, item: ITable|object) -> bool:
-            return isinstance(item, Connection.Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
+            return isinstance(item, Connection._Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
         
         def GetName(self) -> str:
             return self.__table.GetName()
@@ -245,7 +245,7 @@ class Connection(IConnection):
             
             self.__table = Connection._GetNullTable()
     
-    __table: ITable = NullTable()
+    __table: ITable = __NullTable()
 
     @staticmethod
     def _GetNullTable() -> ITable:
@@ -254,7 +254,7 @@ class Connection(IConnection):
     def __init__(self):
         super().__init__()
 
-        self.__tables: List[Connection.Table] = List[Connection.Table]()
+        self.__tables: List[Connection._Table] = List[Connection._Table]()
 
         self.__factories: Connection.__Factories = Connection.__Factories()
     
@@ -301,7 +301,7 @@ class Connection(IConnection):
     
     @final
     def __AddNewTable(self, table: ITable) -> ITable:
-        _table: Connection.Table = Connection.Table(self.__tables, table)
+        _table: Connection._Table = Connection._Table(self.__tables, table)
         
         self.__tables.Add(_table)
 
