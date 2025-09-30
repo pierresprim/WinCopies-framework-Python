@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
-from WinCopies import IDisposable
+from WinCopies import IDisposable, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import List
@@ -64,8 +64,8 @@ class ITable(IEquatable['ITable'], IDisposable):
     def Remove(self) -> None:
         pass
 
-class Table(ABC, ITable):
-    class _QueryFactory(ABC, ITableQueryFactory):
+class Table(Abstract, ITable):
+    class _QueryFactory(Abstract, ITableQueryFactory):
         def __init__(self, table: Table):
             super().__init__()
 
@@ -170,7 +170,7 @@ class IConnection(IDisposable):
 
 class Connection(IConnection):
     @final
-    class __Factories(ABC):
+    class __Factories(Abstract):
         def __init__(self):
             super().__init__()
 
@@ -178,7 +178,7 @@ class Connection(IConnection):
             self.Query: IQueryFactory|None = None
             self.Index: IIndexFactory|None = None
     @final
-    class NullTable(ABC, ITable):
+    class NullTable(Abstract, ITable):
         def __init__(self):
             super().__init__()
         
@@ -205,7 +205,7 @@ class Connection(IConnection):
         def Dispose(self) -> None:
             pass
     @final
-    class Table(ABC, ITable):
+    class Table(Abstract, ITable):
         def __init__(self, tableList: IList[Connection.Table], table: ITable):
             EnsureDirectModuleCall()
 
