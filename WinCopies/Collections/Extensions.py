@@ -51,7 +51,7 @@ class ISequence[T](IReadOnlyCollection[T]):
         return self.AsSequence()
     def AsCollection(self) -> collections.abc.Collection[T]:
         return self.AsSequence()
-class IMutableSequence[T](ISequence[T]):
+class IMutableSequence[T](ISequence[T], ICollection[T]):
     def __init__(self):
         super().__init__()
     
