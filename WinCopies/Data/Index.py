@@ -9,7 +9,6 @@ from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEquatableEnumerable, IEnumerator
 from WinCopies.Collections.Extensions import ICollection, IEquatableTuple, ISet, ReadOnlyCollection
-from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
 from WinCopies.Typing import IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
@@ -111,10 +110,6 @@ class MultiColumnIndex(Index, IMultiColumnIndex):
 
         self.__columns: IEquatableTuple[IString] = columns if isinstance(columns, IEquatableTuple) else EquatableTuple[IString](columns)
     
-    @staticmethod
-    def CreateFromString(name: str, columns: Iterable[str]) -> IMultiColumnIndex:
-        return MultiColumnIndex(name, Select(columns, lambda column: String(column)))
-    
     @final
     def GetColumns(self) -> IEquatableTuple[IString]:
         return self.__columns
@@ -130,10 +125,6 @@ class UnicityIndex(MultiColumnIndex):
     def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
         super().__init__(name, columns)
     
-    @staticmethod
-    def CreateFromString(name: str, columns: Iterable[str]) -> IMultiColumnIndex:
-        return UnicityIndex(name, Select(columns, lambda column: String(column)))
-    
     @final
     def GetType(self) -> IndexType:
         return IndexType.Unique
@@ -141,10 +132,6 @@ class UnicityIndex(MultiColumnIndex):
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
     def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
         super().__init__(name, columns)
-    
-    @staticmethod
-    def CreateFromString(name: str, columns: Iterable[str]) -> IMultiColumnKey:
-        return PrimaryKey(name, Select(columns, lambda column: String(column)))
     
     @final
     def GetKeyType(self) -> KeyType:
