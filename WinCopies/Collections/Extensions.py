@@ -7,12 +7,12 @@ from collections.abc import Sized, Container, Iterable
 from typing import final
 
 from WinCopies import Collections, IStringable
-from WinCopies.Collections import Enumeration, ICountableCollection, ICountableList as ICountableListBase
+from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, GetIterator, TryAsIterator
 from WinCopies.Typing import IEquatableItem, GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class IReadOnlyCollection[T](ICountableCollection[T], ICountableEnumerable[T]):
+class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self):
         super().__init__()
     
