@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from enum import Enum
 from typing import final
 
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
-from WinCopies.Collections.Enumeration import IEquatableEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
+from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
 from WinCopies.Typing import IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
@@ -152,7 +153,7 @@ class IIndexList[T: IIndex](IReadOnlyCollection[T]):
     def Append(self, index: T) -> None:
         pass
 
-class IIndexCollection(IInterface):
+class IIndexCollection(IEnumerable[IIndex]):
     def __init__(self):
         super().__init__()
     
@@ -168,7 +169,7 @@ class IIndexCollection(IInterface):
     @abstractmethod
     def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]:
         pass
-class IndexCollection(IIndexCollection):
+class IndexCollection(IterableBase[IIndex], IIndexCollection):
     @final
     class __Indices(IInterface):
         class __IByName(IEquatableObject[IIndex]):
@@ -318,3 +319,7 @@ class IndexCollection(IIndexCollection):
     @final
     def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]:
         return self.__unicityIndices
+    
+    @final
+    def _TryGetIterator(self) -> Iterator[IIndex]|None:
+        return PrependItem(AppendIterableValues(self.GetUnicityIndices().AsIterable(), self.GetForeignKeys().AsIterable(), self.GetNormalIndices().AsIterable()), self.GetPrimaryKey())
