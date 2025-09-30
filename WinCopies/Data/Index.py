@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEquatableEnumerable, IEnumerator
-from WinCopies.Collections.Extensions import ICollection, IEquatableTuple, ISet, ReadOnlyCollection
+from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
 from WinCopies.Typing import IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
@@ -144,7 +144,7 @@ class ForeignKey(SingleColumnIndex, ISingleColumnKey):
     def GetKeyType(self) -> KeyType:
         return KeyType.Foreign
 
-class IIndexList[T: IIndex](ICollection[T]):
+class IIndexList[T: IIndex](IReadOnlyCollection[T]):
     def __init__(self):
         super().__init__()
     
