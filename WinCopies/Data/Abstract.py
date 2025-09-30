@@ -16,7 +16,7 @@ from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import DualValueNullableInfo
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
-from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory
+from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IParameter
@@ -37,6 +37,10 @@ class ITable(IEquatable['ITable'], IDisposable):
 
     @abstractmethod
     def GetFields(self) -> IArray[IField]:
+        pass
+
+    @abstractmethod
+    def GetIndices(self) -> IArray[IIndex]:
         pass
 
     @abstractmethod
@@ -132,6 +136,9 @@ class IConnection(IDisposable):
     @abstractmethod
     def GetFieldFactory(self) -> IFieldFactory:
         pass
+    @abstractmethod
+    def GetIndexFactory(self) -> IIndexFactory:
+        pass
     
     @abstractmethod
     def GetTableNames(self) -> Iterable[str]:
@@ -182,6 +189,9 @@ class Connection(IConnection):
         
         def GetFields(self) -> IArray[IField]:
             raise GetDisposedError()
+
+        def GetIndices(self) -> IArray[IIndex]:
+            raise GetDisposedError()
         
         def Remove(self) -> None:
             raise GetDisposedError()
@@ -208,6 +218,9 @@ class Connection(IConnection):
 
         def GetQueryFactory(self) -> ITableQueryFactory:
             return self.__table.GetQueryFactory()
+
+        def GetIndices(self) -> IArray[IIndex]:
+            return self.__table.GetIndices()
         
         def GetFields(self) -> IArray[IField]:
             return self.__table.GetFields()
@@ -230,6 +243,7 @@ class Connection(IConnection):
 
     __fieldFactories: IDictionary[IType[Connection], IFieldFactory] = Dictionary[IType[Self], IFieldFactory]()
     __queryFactories: IDictionary[IType[Connection], IQueryFactory] = Dictionary[IType[Self], IQueryFactory]()
+    __indexFactories: IDictionary[IType[Connection], IIndexFactory] = Dictionary[IType[Self], IIndexFactory]()
 
     @staticmethod
     def _GetNullTable() -> ITable:
@@ -262,6 +276,9 @@ class Connection(IConnection):
     @abstractmethod
     def _GetQueryFactory(self) -> IQueryFactory:
         pass
+    @abstractmethod
+    def _GetIndexFactory(self) -> IIndexFactory:
+        pass
 
     @final
     def GetFieldFactory(self) -> IFieldFactory:
@@ -269,6 +286,9 @@ class Connection(IConnection):
     @final
     def GetQueryFactory(self) -> IQueryFactory:
         return self.__GetFactory(Connection.__queryFactories, self._GetQueryFactory)
+    @final
+    def GetIndexFactory(self) -> IIndexFactory:
+        return self.__GetFactory(Connection.__indexFactories, self._GetIndexFactory)
     
     @abstractmethod
     def _GetTable(self, name: str) -> ITable:
