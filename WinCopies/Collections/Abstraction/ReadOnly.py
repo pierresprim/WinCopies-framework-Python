@@ -34,6 +34,7 @@ class Tuple[T](ITuple[T], IStringable):
     def ToString(self) -> str:
         return self._GetItems().ToString()
 
+# TODO: Should inherit from Mapping
 class ReadOnlyDictionary[TKey: IEquatableItem, TValue](Extensions.IReadOnlyDictionary[TKey, TValue]):
     def __init__(self, dictionary: Extensions.IReadOnlyDictionary[TKey, TValue]):
         super().__init__()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections.abc
 
-from collections.abc import Iterable, Iterator, Sequence, MutableSequence
+from collections.abc import Iterable, Iterator, Sequence, MutableSequence, MutableMapping
 from typing import overload, final, Callable, SupportsIndex
 
 from WinCopies import IStringable
@@ -168,6 +168,7 @@ class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.L
     def __delitem__(self, index: int|slice):
         del self._GetContainer()[index]
 
+# TODO: Should inherit from MutableMapping
 class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     class __Enumerable[T](CountableEnumerable[T]):
         def __init__(self, dic: Dictionary[TKey, TValue]):
@@ -176,7 +177,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
             self.__dic: Dictionary[TKey, TValue] = dic
         
         @final
-        def _GetDictionary(self) -> dict[TKey, TValue]:
+        def _GetDictionary(self) -> MutableMapping[TKey, TValue]:
             return self.__dic._GetDictionary()
         
         @final
@@ -224,10 +225,10 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
             def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
                 return isinstance(item, Dictionary.Enumerator.KeyValuePair)
         
-        def __init__(self, dictionary: dict[TKey, TValue]):
+        def __init__(self, dictionary: MutableMapping[TKey, TValue]):
             super().__init__()
 
-            self.__dictionary: dict[TKey, TValue] = dictionary
+            self.__dictionary: MutableMapping[TKey, TValue] = dictionary
             self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
             self.__current: IKeyValuePair[TKey, TValue]|None = None
         
@@ -280,10 +281,10 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
 
     __getInstance: Function[Dictionary.__None] = GetSingletonInstanceProvider(__None)
     
-    def __init__(self, dictionary: dict[TKey, TValue]|None = None):
+    def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None):
         super().__init__()
 
-        self.__dictionary: dict[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
+        self.__dictionary: MutableMapping[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
         self.__keys: ICountableEnumerable[TKey] = Dictionary[TKey, TValue].__KeyEnumerable(self)
         self.__values: ICountableEnumerable[TValue] = Dictionary[TKey, TValue].__ValueEnumerable(self)
     
@@ -296,7 +297,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
         return count
     
     @final
-    def _GetDictionary(self) -> dict[TKey, TValue]:
+    def _GetDictionary(self) -> MutableMapping[TKey, TValue]:
         return self.__dictionary
     
     @final
