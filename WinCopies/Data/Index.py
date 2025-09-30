@@ -11,7 +11,8 @@ from WinCopies.Collections.Enumeration import IEquatableEnumerable, IEnumerator
 from WinCopies.Collections.Extensions import ICollection, IEquatableTuple, ISet, Collection as CollectionBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
-from WinCopies.Typing import IEquatableObject, IString, String
+from WinCopies.Typing import IEquatableObject, IString
+from WinCopies.Typing.Pairing import DualResult
 
 class IndexType(Enum):
     Null = 0
@@ -23,6 +24,13 @@ class KeyType(Enum):
     Null = 0
     Primary = 1
     Foreign = 2
+
+class IndexKind(Enum):
+    Null = 0
+    Normal = 1
+    Unique = 2
+    PrimaryKey = 3
+    ForeignKey = 4
 
 class IIndex(IStringable):
     def __init__(self):
@@ -69,6 +77,14 @@ class ISingleColumnKey(IKey, ISingleColumnIndex):
 class IMultiColumnKey(IKey, IMultiColumnIndex):
     def __init__(self):
         super().__init__()
+
+class IForeignKey(ISingleColumnKey):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetForeignKey(self) -> DualResult[str, str]:
+        pass
 
 class Index(IIndex):
     def __init__(self, name: str):

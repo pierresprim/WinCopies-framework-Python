@@ -36,4 +36,4 @@ def GetField(fieldFactory: IFieldFactory, name: str, attribute: FieldAttributes,
 
             return fieldFactory.CreateNull(name, attribute)
     
-    raise ValueError(f"Wrong {FieldType.__name__}.")
+    raise ValueError(f"Wrong {FieldType}.")

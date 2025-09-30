@@ -3,15 +3,17 @@ from collections.abc import Iterable
 
 from WinCopies import IInterface
 from WinCopies.Collections.Enumeration import ICountableEnumerable
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
+from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
 from WinCopies.Typing import IString
+from WinCopies.Typing.Pairing import DualResult
 
 class IFieldFactory(IInterface):
     def __init__(self):
@@ -71,4 +73,21 @@ class ITableQueryFactory(IInterface):
     
     @abstractmethod
     def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+        pass
+
+class IIndexFactory(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetPrimaryKey(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
+        pass
+    @abstractmethod
+    def GetForeignKey(self, name: str, column: str, foreignKey: DualResult[str, str]) -> IForeignKey:
+        pass
+    @abstractmethod
+    def GetNormalIndex(self, name: str, column: str) -> ISingleColumnIndex:
+        pass
+    @abstractmethod
+    def GetUnicityIndex(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
         pass
