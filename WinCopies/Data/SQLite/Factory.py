@@ -35,7 +35,7 @@ from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiIns
 
 @final
 class FieldFactory(IFieldFactory):
-    class FieldBase(IField):
+    class _FieldBase(IField):
         def __init__(self):
             EnsureCallerPackage(WinCopies.Data)
             
@@ -83,7 +83,7 @@ class FieldFactory(IFieldFactory):
             return getField() if result is None else f"{getField()} {result}"
     
     @final
-    class __GenericField(Field.GenericField, FieldBase):
+    class __GenericField(Field.GenericField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
             super().__init__(name, attribute)
 
@@ -93,7 +93,7 @@ class FieldFactory(IFieldFactory):
             return self.__connection
     
     @final
-    class __BooleanField(Field.BooleanField, FieldBase):
+    class __BooleanField(Field.BooleanField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
             super().__init__(name, attribute)
 
@@ -103,7 +103,7 @@ class FieldFactory(IFieldFactory):
             return self.__connection
     
     @final
-    class __IntergerField(Field.IntegerField, FieldBase):
+    class __IntergerField(Field.IntegerField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode, connection: IConnection):
             super().__init__(name, attribute, mode)
 
@@ -112,7 +112,7 @@ class FieldFactory(IFieldFactory):
         def _GetConnection(self) -> IConnection:
             return self.__connection
     @final
-    class __RealField(Field.RealField, FieldBase):
+    class __RealField(Field.RealField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode, connection: IConnection):
             super().__init__(name, attribute, mode)
 
@@ -121,7 +121,7 @@ class FieldFactory(IFieldFactory):
         def _GetConnection(self) -> IConnection:
             return self.__connection
     @final
-    class __TextField(Field.TextField, FieldBase):
+    class __TextField(Field.TextField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode, connection: IConnection):
             super().__init__(name, attribute, mode)
 
