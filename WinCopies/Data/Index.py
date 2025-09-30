@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEquatableEnumerable, IEnumerator
-from WinCopies.Collections.Extensions import ICollection, IEquatableTuple, ISet, Collection as CollectionBase
+from WinCopies.Collections.Extensions import ICollection, IEquatableTuple, ISet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
 from WinCopies.Typing import IEquatableObject, IString
@@ -246,7 +246,7 @@ class IndexCollection(IIndexCollection):
         def TryAddMultiColumnIndex(self, index: IMultiColumnIndex) -> bool:
             return self.__TryAddIndex(index) and self.__byFields.TryAdd(IndexCollection.__Indices.__ByFields(index))
     
-    class _Collection[T: IIndex](CollectionBase[T], IIndexList[T]):
+    class _Collection[T: IIndex](ReadOnlyCollection[T], IIndexList[T]):
         def __init__(self):
             super().__init__()
 
