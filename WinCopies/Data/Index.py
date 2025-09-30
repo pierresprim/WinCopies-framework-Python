@@ -137,13 +137,19 @@ class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
     @final
     def GetKeyType(self) -> KeyType:
         return KeyType.Primary
-class ForeignKey(SingleColumnIndex, ISingleColumnKey):
-    def __init__(self, name: str, column: str):
+class ForeignKey(SingleColumnIndex, IForeignKey):
+    def __init__(self, name: str, column: str, foreignKey: DualResult[str, str]):
         super().__init__(name, column)
+
+        self.__foreignKey: DualResult[str, str] = foreignKey
     
     @final
     def GetKeyType(self) -> KeyType:
         return KeyType.Foreign
+    
+    @final
+    def GetForeignKey(self) -> DualResult[str, str]:
+        return self.__foreignKey
 
 class IIndexList[T: IIndex](IReadOnlyCollection[T]):
     def __init__(self):
