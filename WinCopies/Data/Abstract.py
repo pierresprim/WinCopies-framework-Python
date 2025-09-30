@@ -2,18 +2,16 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from collections.abc import Iterable
-from typing import final, Self
+from typing import final
 
 from WinCopies import IDisposable
 
 from WinCopies.Collections import Generator, MakeSequence
-from WinCopies.Collections.Abstraction.Collection import List, Dictionary
+from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
-from WinCopies.Typing import IEquatable, IString, String, IType, Type, GetDisposedError
-from WinCopies.Typing.Delegate import Function
-from WinCopies.Typing.Pairing import DualValueNullableInfo
+from WinCopies.Typing import IEquatable, IString, String, GetDisposedError
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
@@ -172,6 +170,14 @@ class IConnection(IDisposable):
 
 class Connection(IConnection):
     @final
+    class __Factories(ABC):
+        def __init__(self):
+            super().__init__()
+
+            self.Field: IFieldFactory|None = None
+            self.Query: IQueryFactory|None = None
+            self.Index: IIndexFactory|None = None
+    @final
     class NullTable(ABC, ITable):
         def __init__(self):
             super().__init__()
@@ -241,10 +247,6 @@ class Connection(IConnection):
     
     __table: ITable = NullTable()
 
-    __fieldFactories: IDictionary[IType[Connection], IFieldFactory] = Dictionary[IType[Self], IFieldFactory]()
-    __queryFactories: IDictionary[IType[Connection], IQueryFactory] = Dictionary[IType[Self], IQueryFactory]()
-    __indexFactories: IDictionary[IType[Connection], IIndexFactory] = Dictionary[IType[Self], IIndexFactory]()
-
     @staticmethod
     def _GetNullTable() -> ITable:
         return Connection.__table
@@ -253,22 +255,8 @@ class Connection(IConnection):
         super().__init__()
 
         self.__tables: List[Connection.Table] = List[Connection.Table]()
-    
-    @final
-    def __TryGetFactory[T](self, dictionary: IDictionary[IType[Connection], T]) -> DualValueNullableInfo[IType[Connection], T]:
-        t: IType[Connection] = Type[Connection].Create(self)
 
-        return DualValueNullableInfo[IType[Connection], T](t, dictionary.TryGetAt(t, None))
-    @final
-    def __GetFactory[T](self, factories: IDictionary[IType[Connection], T], func: Function[T]) -> T:
-        result: DualValueNullableInfo[IType[Connection], T|None] = self.__TryGetFactory(factories)
-
-        factory: T|None = result.GetValue()
-
-        if factory is None:
-            factories.Add(result.GetKey(), factory := func())
-        
-        return factory
+        self.__factories: Connection.__Factories = Connection.__Factories()
     
     @abstractmethod
     def _GetFieldFactory(self) -> IFieldFactory:
@@ -282,13 +270,22 @@ class Connection(IConnection):
 
     @final
     def GetFieldFactory(self) -> IFieldFactory:
-        return self.__GetFactory(Connection.__fieldFactories, self._GetFieldFactory)
+        if self.__factories.Field is None:
+            self.__factories.Field = self._GetFieldFactory()
+        
+        return self.__factories.Field
     @final
     def GetQueryFactory(self) -> IQueryFactory:
-        return self.__GetFactory(Connection.__queryFactories, self._GetQueryFactory)
+        if self.__factories.Query is None:
+            self.__factories.Query = self._GetQueryFactory()
+        
+        return self.__factories.Query
     @final
     def GetIndexFactory(self) -> IIndexFactory:
-        return self.__GetFactory(Connection.__indexFactories, self._GetIndexFactory)
+        if self.__factories.Index is None:
+            self.__factories.Index = self._GetIndexFactory()
+        
+        return self.__factories.Index
     
     @abstractmethod
     def _GetTable(self, name: str) -> ITable:
