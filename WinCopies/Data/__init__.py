@@ -193,8 +193,7 @@ class __Operand[T](IInterface):
     def GetValue(self) -> Operator:
         return self.__operator
 
-@final
-class __NullOperand(IOperand[None]):
+class __NullityOperand(IOperand[None]):
     def __init__(self):
         super().__init__()
     
@@ -204,16 +203,31 @@ class __NullOperand(IOperand[None]):
     def GetKey(self) -> None:
         return None
     
-    def GetValue(self) -> Operator:
-        return Operator.IsValue
-    
     def Format(self, builder: IQueryBuilder) -> str:
         return builder.GetParameter(None)
 
+@final
+class __NullOperand(__NullityOperand):
+    def __init__(self):
+        super().__init__()
+    
+    def GetValue(self) -> Operator:
+        return Operator.IsValue
+@final
+class __NotNullOperand(__NullityOperand):
+    def __init__(self):
+        super().__init__()
+    
+    def GetValue(self) -> Operator:
+        return Operator.IsNot
+
 __nullOperand: IOperand[None] = __NullOperand()
+__notNullOperand: IOperand[None] = __NotNullOperand()
 
 def GetNullOperand() -> IOperand[None]:
     return __nullOperand
+def GetNotNullOperand() -> IOperand[None]:
+    return __notNullOperand
 
 class Operand[T](__Operand[T], IOperand[T]):
     def __init__(self, operator: Operator, value: T):

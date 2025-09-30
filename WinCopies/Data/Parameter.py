@@ -10,7 +10,7 @@ from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase
 from WinCopies.Collections.Iteration import Select
 
-from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
+from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, GetNotNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
 
 from WinCopies.String import StringifyIfNone
 
@@ -114,8 +114,9 @@ class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T
         return FieldParameter[T](Operand(operator, value))
 
 __nullProvider: IFunction[FieldParameter[None]]
+__notNullProvider: IFunction[FieldParameter[None]]
 
-class __FunctionUpdater(IFunction["FieldParameter[None]"]):
+class __NullProviderFunctionUpdater(IFunction["FieldParameter[None]"]):
     def __init__(self):
         super().__init__()
     
@@ -124,12 +125,25 @@ class __FunctionUpdater(IFunction["FieldParameter[None]"]):
         __nullProvider = ValueFunction(FieldParameter[None](GetNullOperand()))
         
         return __nullProvider()
+class __NotNullProviderFunctionUpdater(IFunction["FieldParameter[None]"]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def GetValue(self) -> FieldParameter[None]:
+        __notNullProvider = ValueFunction(FieldParameter[None](GetNotNullOperand()))
+        
+        return __notNullProvider()
 
-__nullProvider = __FunctionUpdater()
+__nullProvider = __NullProviderFunctionUpdater()
+__notNullProvider = __NotNullProviderFunctionUpdater()
 
 @staticmethod
 def GetNullFieldParameter() -> FieldParameter[None]:
     return __nullProvider.GetValue()
+@staticmethod
+def GetNotNullFieldParameter() -> FieldParameter[None]:
+    return __notNullProvider.GetValue()
 
 class RoutineParameter[T](Enumerable[T], IParameter[T]):
     def __init__(self, args: IEnumerable[T]):
