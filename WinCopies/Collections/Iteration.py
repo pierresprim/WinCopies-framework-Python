@@ -24,11 +24,21 @@ def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]
     
     for value in TryEnumerate(values):
         yield value
+def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
+    for item in TryEnumerate(items):
+        yield item
+    
+    yield value
 def AppendValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return Append(items, values)
 
 def Prepend[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
     return Append(values, items)
+def PrependItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
+    yield value
+    
+    for item in TryEnumerate(items):
+        yield item
 def PrependValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return Prepend(items, values)
 
