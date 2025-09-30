@@ -306,14 +306,14 @@ class ConditionSet[TKey: IEquatableItem, TValue](ConditionalSet[TKey, IParameter
         super().__init__(alias, defaultValue, column, dictionary)
     
     @final
-    def _RenderValue(self, value: IParameter[object], writer: ISelectionQueryWriter) -> None:
-        def getArgument(arguments: Iterable[object]) -> Generator[object]:
-            func: Selector[object]|None = None
+    def _RenderValue(self, value: IParameter[IOperand[TValue]], writer: ISelectionQueryWriter) -> None:
+        def getArgument(arguments: Iterable[IOperand[TValue]]) -> Generator[IOperand[TValue]]:
+            func: Selector[IOperand[TValue]]|None = None
 
-            def getArgument(argument: object) -> object:
+            def getArgument(argument: IOperand[TValue]) -> IOperand[TValue]:
                 nonlocal func
 
-                def throw(_: object) -> None:
+                def throw(_: IOperand[TValue]) -> IOperand[TValue]:
                     raise InvalidOperationError("Only one argument must be given in Case statements.")
 
                 func = throw
@@ -325,7 +325,7 @@ class ConditionSet[TKey: IEquatableItem, TValue](ConditionalSet[TKey, IParameter
             for argument in arguments:
                 yield func(argument)
         
-        writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinParameters(getArgument(value.AsIterable()))))
+        writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinOperands(getArgument(value.AsIterable()))))
 class IfSet[T: IEquatableItem](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, IConditionParameterSet]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
