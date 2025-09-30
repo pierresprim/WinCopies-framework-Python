@@ -106,10 +106,10 @@ class SingleColumnIndex(Index, ISingleColumnIndex):
     def GetColumn(self) -> str:
         return self.__columns
 class MultiColumnIndex(Index, IMultiColumnIndex):
-    def __init__(self, name: str, columns: EquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
         super().__init__(name)
 
-        self.__columns: IEquatableTuple[IString] = columns if isinstance(columns, EquatableTuple) else EquatableTuple[IString](columns)
+        self.__columns: IEquatableTuple[IString] = columns if isinstance(columns, IEquatableTuple) else EquatableTuple[IString](columns)
     
     @staticmethod
     def CreateFromString(name: str, columns: Iterable[str]) -> IMultiColumnIndex:
@@ -127,7 +127,7 @@ class NormalIndex(SingleColumnIndex):
     def GetType(self) -> IndexType:
         return IndexType.Normal
 class UnicityIndex(MultiColumnIndex):
-    def __init__(self, name: str, columns: EquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
         super().__init__(name, columns)
     
     @staticmethod
@@ -139,7 +139,7 @@ class UnicityIndex(MultiColumnIndex):
         return IndexType.Unique
 
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
-    def __init__(self, name: str, columns: EquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
         super().__init__(name, columns)
     
     @staticmethod
