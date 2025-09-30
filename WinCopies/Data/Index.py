@@ -167,7 +167,7 @@ class IIndexCollection(IEnumerable[IIndex]):
     def GetPrimaryKey(self) -> IMultiColumnKey:
         pass
     @abstractmethod
-    def GetForeignKeys(self) -> IIndexList[ISingleColumnKey]:
+    def GetForeignKeys(self) -> IIndexList[IForeignKey]:
         pass
     @abstractmethod
     def GetNormalIndices(self) -> IIndexList[ISingleColumnIndex]:
@@ -308,7 +308,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         indices: IndexCollection.__Indices = IndexCollection.__Indices()
         
         self.__normalIndices: IndexCollection.__SingleColumnIndexCollection[ISingleColumnIndex] = IndexCollection.__SingleColumnIndexCollection[ISingleColumnIndex](indices)
-        self.__foreignKeys: IndexCollection.__SingleColumnIndexCollection[ISingleColumnKey] = IndexCollection.__SingleColumnIndexCollection[ISingleColumnKey](indices)
+        self.__foreignKeys: IndexCollection.__SingleColumnIndexCollection[IForeignKey] = IndexCollection.__SingleColumnIndexCollection[IForeignKey](indices)
         self.__unicityIndices: IndexCollection.__MultiColumnIndexCollection = IndexCollection.__MultiColumnIndexCollection(indices)
 
         self.__primaryKey: IMultiColumnKey = primaryKey
@@ -317,7 +317,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
     def GetPrimaryKey(self) -> IMultiColumnKey:
         return self.__primaryKey
     @final
-    def GetForeignKeys(self) -> IIndexList[ISingleColumnKey]:
+    def GetForeignKeys(self) -> IIndexList[IForeignKey]:
         return self.__foreignKeys
     @final
     def GetNormalIndices(self) -> IIndexList[ISingleColumnIndex]:
