@@ -297,7 +297,7 @@ class Table(Abstract.Table):
                     query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
                             String("PRAGMA_INDEX_LIST"): TableParameter(
-                                'il', MakeTableValueIterable(self.GetName()))}),
+                                "il", MakeTableValueIterable(self.GetName()))}),
                         ColumnParameterSet[IParameter[object]]({
                             TableColumn("il", "name"): None,
                             TableColumn("ii", "seqno"): None,
@@ -307,7 +307,7 @@ class Table(Abstract.Table):
                             TableColumn("ii", "partial"): None}),
                         ConditionParameterSet(
                             MakeFieldParameterSetEnumerable(
-                                {TableColumn('il', "name"): GetNotNullFieldParameter()})))
+                                {TableColumn("il", "name"): GetNotNullFieldParameter()})))
                     
                     query.GetCases().Add(
                         ConditionSet[IEnumValue[IndexKind], str](
@@ -357,7 +357,7 @@ class Table(Abstract.Table):
                     query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
                             String("PRAGMA_FOREIGN_KEY_LIST"): TableParameter(
-                                'fk', MakeTableValueIterable(self.GetName()))}),
+                                "fk", MakeTableValueIterable(self.GetName()))}),
                         ColumnParameterSet[IParameter[object]]({
                             TableColumn("fk", "id"): None,
                             TableColumn("fk", "seq"): None,
