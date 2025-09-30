@@ -304,7 +304,7 @@ class Table(Abstract.Table):
                             TableColumn("ii", "name"): None,
                             TableColumn("ii", "desc"): None,
                             TableColumn("ii", "coll"): None,
-                            TableColumn("ii", "partial"): None}),
+                            TableColumn("il", "partial"): None}),
                         ConditionParameterSet(
                             MakeFieldParameterSetEnumerable(
                                 {TableColumn("il", "name"): GetNotNullFieldParameter()})))
