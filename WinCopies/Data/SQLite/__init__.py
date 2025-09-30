@@ -176,7 +176,7 @@ class Table(Abstract.Table):
                 
                 uniqueFlagQuery: IExistenceQuery = ExistenceQuery(
                     "PRAGMA_INDEX_LIST",
-                    TableParameter[object](
+                    TableParameter[str](
                         'i',
                         MakeTableValueIterable(self.GetName())),
                     ConditionParameterSet(
@@ -187,7 +187,7 @@ class Table(Abstract.Table):
                         Join(
                             JoinType.Inner,
                             "PRAGMA_INDEX_INFO",
-                            TableParameter(
+                            TableParameter[IColumn](
                                 "info",
                                 MakeTableColumnIterable(
                                     TableColumn('i', "name"))),
