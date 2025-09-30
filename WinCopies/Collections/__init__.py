@@ -331,7 +331,7 @@ class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
     def __init__(self):
         super().__init__()
 
-class ICountableCollection[T](IReadOnlyList[T], ICountable):
+class ICountableCollection[T](IReadOnlyCountableList[T], ICollection[T]):
     def __init__(self):
         super().__init__()
 
@@ -438,7 +438,7 @@ class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWri
     def __init__(self):
         super().__init__()
 
-class ITuple[T](IReadOnlyCountableIndexable[T], ICountableCollection[T]):
+class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
     def __init__(self):
         super().__init__()
 class IArray[T](ITuple[T], ICountableIndexable[T]):
@@ -449,7 +449,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     def SliceAt(self, key: slice) -> Collections.IArray[T]:
         pass
 
-class IList[T](IArray[T], ICollection[T], IClearable):
+class IList[T](IArray[T], ICountableList[T]):
     def __init__(self):
         super().__init__()
     
