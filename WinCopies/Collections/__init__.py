@@ -327,6 +327,10 @@ class Countable(Sized, ICountable):
     def __len__(self) -> int:
         return self.GetCount()
 
+class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
+    def __init__(self):
+        super().__init__()
+
 class ICountableCollection[T](IReadOnlyList[T], ICountable):
     def __init__(self):
         super().__init__()
@@ -338,6 +342,10 @@ class IClearable(IInterface):
     @abstractmethod
     def Clear(self) -> None:
         pass
+
+class ICountableList[T](ICountableCollection[T], IClearable):
+    def __init__(self):
+        super().__init__()
 
 class IKeyableBase[T](IInterface):
     def __init__(self):
