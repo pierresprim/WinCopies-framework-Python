@@ -150,8 +150,6 @@ class FieldParameterSet[T: IParameter[IOperandValue]](ParameterSet[T], IFieldPar
     def __init__(self, dictionary: dict[IColumn, T]|None = None):
         super().__init__(dictionary)
 
-def MakeColumnParameterSetIterable[T: IParameter[object]](*dictionaries: dict[IColumn, T|None]|None) -> Generator[ColumnParameterSet[T]]:
-    return (ColumnParameterSet[T](dictionary) for dictionary in dictionaries)
 def MakeFieldParameterSetIterable[T: IParameter[IOperandValue]](*dictionaries: dict[IColumn, T]|None) -> Generator[IFieldParameterSet[T]]:
     return (FieldParameterSet[T](dictionary) for dictionary in dictionaries)
 
