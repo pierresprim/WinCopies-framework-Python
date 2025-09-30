@@ -23,7 +23,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair
 
 
 
-from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue
+from WinCopies.Data import IColumn, Column, TableColumn, IOperand, IOperandValue
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
@@ -124,7 +124,7 @@ class IExistenceSet(IBranchSet[bool]):
 class IMatchSet[T: IEquatableItem](ICaseSet[T, T]):
     def __init__(self):
         super().__init__()
-class IConditionSet[T: IEquatableItem](ICaseSet[T, IParameter[object]]):
+class IConditionSet[TKey: IEquatableItem, TValue](ICaseSet[TKey, IParameter[IOperand[TValue]]]):
     def __init__(self):
         super().__init__()
 class IIfSet[T: IEquatableItem](ICaseSet[T, IConditionParameterSet]):
@@ -299,8 +299,8 @@ class ConditionalSet[TKey: IEquatableItem, TValue](CaseSet[TKey, TValue]):
     def _GetColumn(self) -> None:
         return None
 
-class ConditionSet[T: IEquatableItem](ConditionalSet[T, IParameter[object]], IConditionSet[T]):
-    def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, IParameter[object]]|None = None):
+class ConditionSet[TKey: IEquatableItem, TValue](ConditionalSet[TKey, IParameter[IOperand[TValue]]], IConditionSet[TKey, TValue]):
+    def __init__(self, alias: str, defaultValue: TKey, column: IColumn, dictionary: IDictionary[TKey, IParameter[IOperand[TValue]]]|None = None):
         super().__init__(alias, defaultValue, column, dictionary)
     
     @final
