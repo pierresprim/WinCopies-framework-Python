@@ -8,9 +8,9 @@ from typing import final
 
 from WinCopies import IInterface
 
-from WinCopies.Collections import Enumeration, Generator, MakeSequence
+from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Dictionary
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
@@ -150,8 +150,8 @@ class FieldParameterSet[T: IParameter[IOperandValue]](ParameterSet[T], IFieldPar
     def __init__(self, dictionary: dict[IColumn, T]|None = None):
         super().__init__(dictionary)
 
-def MakeFieldParameterSetIterable[T: IParameter[IOperandValue]](*dictionaries: dict[IColumn, T]|None) -> Generator[IFieldParameterSet[T]]:
-    return (FieldParameterSet[T](dictionary) for dictionary in dictionaries)
+def MakeFieldParameterSetEnumerable[T: IParameter[IOperandValue]](*dictionaries: dict[IColumn, T]|None) -> IEnumerable[IFieldParameterSet[T]]:
+    return IteratorProvider[IFieldParameterSet[T]](lambda: (FieldParameterSet[T](dictionary) for dictionary in dictionaries))
 
 class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITableParameterSet):
     def __init__(self, dictionary: dict[IString, ITableParameter[object]|None]|None = None):
@@ -172,10 +172,10 @@ class ConditionParameterSetBase(Enumerable[IFieldParameterSet[IParameter[IOperan
         
         writer.Write(joinConditions("OR", (f"({joinConditions("AND", writer.ProcessConditions(dic))})" for dic in self.AsIterable())))
 class ConditionParameterSet(ConditionParameterSetBase):
-    def __init__(self, conditions: Iterable[IFieldParameterSet[IParameter[IOperandValue]]]):
+    def __init__(self, conditions: IEnumerable[IFieldParameterSet[IParameter[IOperandValue]]]):
         super().__init__()
 
-        self.__conditions: IEnumerable[IFieldParameterSet[IParameter[IOperandValue]]] = Enumeration.Iterable[IFieldParameterSet[IParameter[IOperandValue]]].Create(conditions)
+        self.__conditions: IEnumerable[IFieldParameterSet[IParameter[IOperandValue]]] = conditions
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IFieldParameterSet[IParameter[IOperandValue]]]|None:

@@ -18,6 +18,7 @@ from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
 from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
+
 from WinCopies.Typing import InvalidOperationError, String, GetDisposedError
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
@@ -33,7 +34,7 @@ from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
-from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, FieldParameterSet, ConditionParameterSet, TableParameterSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeFieldParameterSetIterable
+from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, ConditionParameterSet, TableParameterSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeFieldParameterSetEnumerable
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory
 
@@ -174,7 +175,7 @@ class Table(Abstract.Table):
                         'i',
                         MakeTableValueIterable(self.GetName())),
                     ConditionParameterSet(
-                        MakeFieldParameterSetIterable(
+                        MakeFieldParameterSetEnumerable(
                             {TableColumn('i', "unique"): FieldParameter[int].Create(Operator.Equals, 1)})))
                 uniqueFlagQuery.SetJoins(
                     MakeSequence(
@@ -186,7 +187,7 @@ class Table(Abstract.Table):
                                 MakeTableColumnIterable(
                                     TableColumn('i', "name"))),
                             ConditionParameterSet(
-                                MakeFieldParameterSetIterable(
+                                MakeFieldParameterSetEnumerable(
                                     {TableColumn("info", "cid"): ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid")})))))
 
                 query.SetCases(ExistenceSet("isUnique", uniqueFlagQuery))
@@ -272,9 +273,8 @@ class Connection(Abstract.Connection):
             ColumnParameterSet(
                 {Column("name"): None}),
             ConditionParameterSet(
-                MakeSequence(
-                    FieldParameterSet(
-                        {Column("type"): FieldParameter[str].Create(Operator.Equals, "table")})))).Execute()
+                MakeFieldParameterSetEnumerable(
+                    {Column("type"): FieldParameter[str].Create(Operator.Equals, "table")}))).Execute()
 
         if queryExecutionResult is None:
             return
