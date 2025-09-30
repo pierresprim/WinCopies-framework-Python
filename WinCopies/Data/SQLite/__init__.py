@@ -28,7 +28,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 from WinCopies.Data import Abstract, Column, TableColumn, Operator
 from WinCopies.Data.Abstract import IConnection, ITable
 from WinCopies.Data.Extensions import GetField
-from WinCopies.Data.Factory import IFieldFactory, IQueryFactory
+from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Misc import JoinType
@@ -36,7 +36,7 @@ from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, ConditionParameterSet, TableParameterSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeFieldParameterSetEnumerable
 
-from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory
+from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
 @final
 class _Connection(IInterface):
@@ -308,6 +308,11 @@ class Connection(Abstract.Connection):
             raise GetDisposedError()
         
         return QueryFactory(self.__connection)
+    def _GetIndexFactory(self) -> IIndexFactory:
+        if self.__connection is None:
+            raise GetDisposedError()
+        
+        return IndexFactory(self)
     
     def Commit(self) -> bool:
         if self.__connection is None:
