@@ -327,6 +327,9 @@ class Iterator[T](Enumerator[T]):
     def TryCreate(iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
         return None if iterator is None else Iterator[T].Create(iterator)
 
+def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
+    return None if enumerable is None else enumerable.AsIterable()
+
 def __AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
     return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
 
