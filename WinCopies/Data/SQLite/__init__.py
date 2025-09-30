@@ -302,7 +302,7 @@ class Connection(Abstract.Connection):
         return self.__GetTable(self.__connection, name)
     
     def _GetFieldFactory(self) -> IFieldFactory:
-        return FieldFactory()
+        return FieldFactory(self)
     def _GetQueryFactory(self) -> IQueryFactory:
         if self.__connection is None:
             raise GetDisposedError()

@@ -41,6 +41,10 @@ class FieldFactory(IFieldFactory):
             
             super().__init__()
         
+        @abstractmethod
+        def _GetConnection(self) -> IConnection:
+            pass
+        
         def ToString(self) -> str:
             def getEnumName(enum: Enum) -> str:
                 return enum.name.upper()
@@ -72,7 +76,7 @@ class FieldFactory(IFieldFactory):
                 raise ValueError()
             
             def getField() -> str:
-                return f"{self.GetName()} {getEnumName(self.GetType())}"
+                return f"{self._GetConnection().FormatTableName(self.GetName())} {getEnumName(self.GetType())}"
                 
             result: str|None = getAttributes(self.GetAttributes())
             
@@ -80,44 +84,71 @@ class FieldFactory(IFieldFactory):
     
     @final
     class __GenericField(Field.GenericField, FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes):
+        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
             super().__init__(name, attribute)
+
+            self.__connection: IConnection = connection
+        
+        def _GetConnection(self) -> IConnection:
+            return self.__connection
     
     @final
     class __BooleanField(Field.BooleanField, FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes):
+        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
             super().__init__(name, attribute)
+
+            self.__connection: IConnection = connection
+        
+        def _GetConnection(self) -> IConnection:
+            return self.__connection
     
     @final
     class __IntergerField(Field.IntegerField, FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode, connection: IConnection):
             super().__init__(name, attribute, mode)
+
+            self.__connection: IConnection = connection
+        
+        def _GetConnection(self) -> IConnection:
+            return self.__connection
     @final
     class __RealField(Field.RealField, FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode, connection: IConnection):
             super().__init__(name, attribute, mode)
+
+            self.__connection: IConnection = connection
+        
+        def _GetConnection(self) -> IConnection:
+            return self.__connection
     @final
     class __TextField(Field.TextField, FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode, connection: IConnection):
             super().__init__(name, attribute, mode)
+
+            self.__connection: IConnection = connection
+        
+        def _GetConnection(self) -> IConnection:
+            return self.__connection
     
-    def __init__(self):
+    def __init__(self, connection: IConnection):
         EnsureDirectPackageCall()
         
         super().__init__()
+
+        self.__connection: IConnection = connection
     
     def CreateNull(self, name: str, attribute: FieldAttributes) -> Field.GenericField:
-        return FieldFactory.__GenericField(name, attribute)
+        return FieldFactory.__GenericField(name, attribute, self.__connection)
     
     def CreateBool(self, name: str, attribute: FieldAttributes) -> Field.BooleanField:
-        return FieldFactory.__BooleanField(name, attribute)
+        return FieldFactory.__BooleanField(name, attribute, self.__connection)
     
     def CreateInteger(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> __IntergerField:
-        return FieldFactory.__IntergerField(name, attribute, mode)
+        return FieldFactory.__IntergerField(name, attribute, mode, self.__connection)
     def CreateReal(self, name: str, attribute: FieldAttributes, mode: RealMode) -> __RealField:
-        return FieldFactory.__RealField(name, attribute, mode)
+        return FieldFactory.__RealField(name, attribute, mode, self.__connection)
     def CreateText(self, name: str, attribute: FieldAttributes, mode: TextMode) -> __TextField:
-        return FieldFactory.__TextField(name, attribute, mode)
+        return FieldFactory.__TextField(name, attribute, mode, self.__connection)
 
 @final
 class QueryFactory(IQueryFactory):
