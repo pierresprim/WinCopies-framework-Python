@@ -190,7 +190,7 @@ class Table(Abstract.Table):
                                 MakeFieldParameterSetEnumerable(
                                     {TableColumn("info", "cid"): ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid")})))))
 
-                query.SetCases(ExistenceSet("isUnique", uniqueFlagQuery))
+                query.GetCases().Add(ExistenceSet("isUnique", uniqueFlagQuery))
 
                 columns: ISelectionQueryExecutionResult|None = query.Execute()
 

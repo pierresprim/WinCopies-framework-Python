@@ -8,10 +8,11 @@ from typing import final
 
 from WinCopies import IDisposable, IInterface
 
+from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerator, IEnumerable, ICountableEnumerable, IterableBase
 from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableIterableQueue
@@ -151,17 +152,10 @@ class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecuti
         pass
 
     @abstractmethod
-    def GetJoins(self) -> Iterable[IJoin]|None:
+    def GetJoins(self) -> ICollection[IJoin]:
         pass
     @abstractmethod
-    def SetJoins(self, joins: Iterable[IJoin]|None) -> None:
-        pass
-
-    @abstractmethod
-    def GetCases(self) -> IBranchSet[object]|None:
-        pass
-    @abstractmethod
-    def SetCases(self, cases: IBranchSet[object]|None) -> None:
+    def GetCases(self) -> ICollection[IBranchSet[object]]:
         pass
 class ISubselectionQuery(ISelectionQueryBase):
     def __init__(self):
@@ -293,8 +287,8 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     def __init__(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None):
         super().__init__(tables, conditions)
 
-        self.__cases: IBranchSet[object]|None = None
-        self.__joins: Iterable[IJoin]|None = None
+        self.__cases: ICollection[IBranchSet[object]] = List[IBranchSet[object]]()
+        self.__joins: ICollection[IJoin] = List[IJoin]()
         self.__columns: IColumnParameterSet[IParameter[object]] = columns
     
     @final
@@ -302,18 +296,11 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         return self.__columns
 
     @final
-    def GetJoins(self) -> Iterable[IJoin]|None:
+    def GetJoins(self) -> ICollection[IJoin]:
         return self.__joins
     @final
-    def SetJoins(self, joins: Iterable[IJoin]|None) -> None:
-        self.__joins = joins
-    
-    @final
-    def GetCases(self) -> IBranchSet[object]|None:
+    def GetCases(self) -> ICollection[IBranchSet[object]]:
         return self.__cases
-    @final
-    def SetCases(self, cases: IBranchSet[object]|None) -> None:
-        self.__cases = cases
     
     @final
     def _GetQueryOverride(self) -> QueryResult|None:
@@ -361,12 +348,8 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 return False # Process succeeded; continue query building.
             
             def addCases() -> None:
-                cases: IBranchSet[object]|None = self.GetCases()
-
-                if cases is None:
-                    return
-                
-                cases.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
+                for case in self.GetCases().AsIterable():
+                    case.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
             
             queryBuilder.Write(f"SELECT {getColumns()}")
 
@@ -377,7 +360,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             
             queryBuilder.Write(f" FROM {getTables(self)}")
 
-            queryBuilder.AddJoins(self.GetJoins())
+            queryBuilder.AddJoins(self.GetJoins().AsIterable())
 
             return False # Continue query rendering.
         
