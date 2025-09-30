@@ -402,7 +402,7 @@ class Connection(Abstract.Connection):
         return Table(_Connection(self, connection), name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
-        connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: self.FormatTableName(item.ToString())))}) STRICT")
+        connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
     def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         if self.__connection is None:
             raise GetDisposedError()
