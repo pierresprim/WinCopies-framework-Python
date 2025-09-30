@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from enum import Enum
 from typing import final, Callable, Type as SystemType
 
 import WinCopies
@@ -94,6 +95,48 @@ class ValueObject[TValue, TObject](Object[TObject], IValueObject[TValue, TObject
     @final
     def GetValue(self) -> TValue:
         return self.__value
+
+class IInteger(IValueObject[int, 'IInteger']):
+    def __init__(self):
+        super().__init__()
+class Integer(ValueObject[int, IInteger], IInteger):
+    def __init__(self, value: int):
+        super().__init__(value)
+    
+    @staticmethod
+    def FromEnum(value: Enum) -> IInteger:
+        return Integer(value.value)
+    
+    def Equals(self, item: IInteger|object) -> bool:
+        def equals(item: int) -> bool:
+            return self.GetValue() == item
+        
+        return (isinstance(item, IInteger) and equals(item.GetValue())) or (isinstance(item, int) and equals(item))
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+    
+    def ToString(self) -> str:
+        return str(self.GetValue())
+
+class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue']):
+    def __init__(self):
+        super().__init__()
+class EnumValue[T: Enum](ValueObject[T, IEnumValue[T]], IEnumValue[T]):
+    def __init__(self, value: T):
+        super().__init__(value)
+    
+    def Equals(self, item: IEnumValue[T]|object) -> bool:
+        def equals(item: Enum) -> bool:
+            return self.GetValue() == item
+        
+        return (isinstance(item, IEnumValue) and equals(item.GetValue())) or (isinstance(item, Enum) and equals(item)) # type: ignore
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue().value)
+    
+    def ToString(self) -> str:
+        return str(self.GetValue().name)
 
 class IString(IValueObject[str, 'IString']):
     def __init__(self):
