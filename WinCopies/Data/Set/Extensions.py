@@ -206,7 +206,7 @@ class BranchSetBase[T](ABC, IBranchSet[T]):
 
             return '' if columnName == '' else ' ' + columnName
         
-        writer.Write(f"CASE{getColumnName()} WHEN ")
+        writer.Write(f"CASE{getColumnName()}")
         
         self._WriteConditions(writer)
         
@@ -235,7 +235,7 @@ class ExistenceSet(BranchSetBase[bool], IExistenceSet):
     def _WriteConditions(self, writer: ISelectionQueryWriter) -> None:
         query: IExistenceQuery = self.GetQuery()
 
-        writer.Write(f"(SELECT 1 FROM {writer.AddTable(query.GetTableName(), query.GetTableParameter())}")
+        writer.Write(f" WHEN (SELECT 1 FROM {writer.AddTable(query.GetTableName(), query.GetTableParameter())}")
 
         writer.AddJoins(query.GetJoins())
         writer.AddConditions(query.GetConditions())
@@ -264,6 +264,8 @@ class CaseSet[TKey: IEquatableItem, TValue](BranchSet[TKey], ICaseSet[TKey, TVal
     @final
     def _WriteConditions(self, writer: ISelectionQueryWriter) -> None:
         def render(item: IKeyValuePair[TKey, TValue]) -> None:
+            writer.Write(" WHEN ")
+
             self._RenderValue(item.GetValue(), writer)
 
             writer.Write(f" THEN {writer.JoinParameters(MakeSequence(item.GetKey()))}")
