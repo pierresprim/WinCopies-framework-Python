@@ -93,14 +93,14 @@ class IValueItem(IItem, IValueProvider):
     @abstractmethod
     def GetValue(self) -> object:
         pass
-class IValueObject[TValue, TObject](IObject[TObject]):
+class IValueObject[TValue, TObject](IObject[TObject], IValueItem):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def GetValue(self) -> TValue:
         pass
-class ValueObject[TValue, TObject](Object[TObject], IValueObject[TValue, TObject]):
+class ValueObjectBase[TValue, TUnderlying, TObject](Object[TObject], IValueObject[TValue, TObject]):
     def __init__(self, value: TValue):
         super().__init__()
 
@@ -109,6 +109,17 @@ class ValueObject[TValue, TObject](Object[TObject], IValueObject[TValue, TObject
     @final
     def GetValue(self) -> TValue:
         return self.__value
+    
+    @abstractmethod
+    def GetUnderlyingValue(self) -> TUnderlying:
+        pass
+class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
+    def __init__(self, value: TValue):
+        super().__init__(value)
+    
+    @final
+    def GetUnderlyingValue(self) -> TValue:
+        return self.GetValue()
 
 class IInteger(IValueObject[int, 'IInteger']):
     def __init__(self):
@@ -136,9 +147,13 @@ class Integer(ValueObject[int, IInteger], IInteger):
 class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue']):
     def __init__(self):
         super().__init__()
-class EnumValue[T: Enum](ValueObject[T, IEnumValue[T]], IEnumValue[T]):
+class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
     def __init__(self, value: T):
         super().__init__(value)
+    
+    @final
+    def GetUnderlyingValue(self) -> int:
+        return self.GetValue().value
     
     def Equals(self, item: IEnumValue[T]|object) -> bool:
         def equals(item: Enum) -> bool:
