@@ -240,6 +240,15 @@ class Table(Abstract.Table):
                 
                 def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None]:
                     return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
+                    
+                def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: Singly.IList[str]) -> IIndex:
+                    match kind:
+                        case IndexKind.Unique:
+                            return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
+                        case IndexKind.PrimaryKey:
+                            return factory.GetPrimaryKey(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
+                        case _:
+                            raise ValueError("The index kind is not valid.")
                 
                 def _parse(factory: IIndexFactory, currentName: str, name: str, kind: IndexKind, columnName: str, columns: Singly.IList[str]) -> Generator[IIndex]|None:
                     nonlocal func
@@ -247,14 +256,8 @@ class Table(Abstract.Table):
                     def push() -> None:
                         columns.Push(columnName)
                     
-                    def getIndex() -> IIndex:
-                        match kind:
-                            case IndexKind.Unique:
-                                return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
-                            case IndexKind.PrimaryKey:
-                                return factory.GetPrimaryKey(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
-                            case _:
-                                raise ValueError("The index kind is not valid.")
+                    def _getIndex() -> IIndex:
+                        return getIndex(factory, currentName, kind, columns)
                     
                     if currentName == name:
                         push()
@@ -264,14 +267,14 @@ class Table(Abstract.Table):
                     index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
 
                     if index is None:
-                        index = getIndex()
+                        index = _getIndex()
                         
                         push()
 
                         yield index
                     
                     else:
-                        yield getIndex()
+                        yield _getIndex()
 
                         yield index
 
@@ -341,16 +344,20 @@ class Table(Abstract.Table):
                 
                 factory: IIndexFactory = connection.GetIndexFactory()
                 indexName: str = ''
+                indexKind: IndexKind = IndexKind.Null
                 result: Generator[IIndex]|None = None
                 columns: Singly.IList[str] = Queue[str]()
                 func: Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None] = getParser()
 
                 for row in indices.AsIterable():
-                    if (result := func(factory, indexName, str(row[0]), IndexKind(row[6]), str(row[2]), columns)) is None:
+                    if (result := func(factory, indexName, str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
                         continue
 
                     for index in result:
                         yield index
+                
+                if columns.HasItems():
+                    yield getIndex(factory, indexName, indexKind, columns)
             
             def getForeignKeys(connection: IConnection) -> Generator[IIndex]:
                 def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
