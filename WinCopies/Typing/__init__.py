@@ -79,6 +79,20 @@ class Object[T](Abstract, IObject[T]):
     def __init__(self):
         super().__init__()
 
+class IValueProvider(IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetUnderlyingValue(self) -> object:
+        pass
+class IValueItem(IItem, IValueProvider):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetValue(self) -> object:
+        pass
 class IValueObject[TValue, TObject](IObject[TObject]):
     def __init__(self):
         super().__init__()
