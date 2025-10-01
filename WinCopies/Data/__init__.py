@@ -6,8 +6,8 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IDisposable, IInterface
-from WinCopies.Typing import IEquatableObject
 from WinCopies.Typing.Delegate import Selector
+from WinCopies.Typing.Object import IEquatableObject
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater

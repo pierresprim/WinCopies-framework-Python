@@ -15,7 +15,8 @@ from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Enum import HasFlag
 from WinCopies.String import CommaJoin
-from WinCopies.Typing import InvalidOperationError, IString
+from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectPackageCall, EnsureCallerPackage
 

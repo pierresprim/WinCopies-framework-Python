@@ -11,7 +11,8 @@ from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 
-from WinCopies.Typing import IEquatable, IString, String, GetDisposedError
+from WinCopies.Typing import IEquatable, GetDisposedError
+from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory

@@ -11,7 +11,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable,
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
-from WinCopies.Typing import IEquatableObject, IString
+from WinCopies.Typing.Object import  IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
 
 class IndexType(Enum):

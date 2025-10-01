@@ -12,7 +12,7 @@ from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInserti
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
-from WinCopies.Typing import IString
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 
 class IFieldFactory(IInterface):

@@ -17,8 +17,9 @@ from WinCopies.Collections.Loop import DoForEachItem
 
 from WinCopies.String import StringifyIfNone
 
-from WinCopies.Typing import InvalidOperationError, IEquatableItem, IString
+from WinCopies.Typing import InvalidOperationError, IEquatableItem
 from WinCopies.Typing.Delegate import Selector
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 

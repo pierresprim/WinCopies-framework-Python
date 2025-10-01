@@ -17,7 +17,8 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableIterableQueue
 
-from WinCopies.Typing import InvalidOperationError, IString
+from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 

@@ -21,8 +21,9 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import InvalidOperationError, IEnumValue, EnumValue, String, GetDisposedError
+from WinCopies.Typing import InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Object import IEnumValue, EnumValue, String
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 

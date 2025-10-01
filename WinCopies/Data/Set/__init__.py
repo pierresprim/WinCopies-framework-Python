@@ -1,5 +1,5 @@
 from WinCopies.Collections.Extensions import IDictionary
-from WinCopies.Typing import IString
+from WinCopies.Typing.Object import IString
 
 
 
