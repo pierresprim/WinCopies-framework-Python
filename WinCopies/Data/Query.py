@@ -18,7 +18,7 @@ from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableIterableQueue
 
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Object import IString
+from WinCopies.Typing.Object import IValueItem, IString
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 
@@ -156,7 +156,7 @@ class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecuti
     def GetJoins(self) -> ICollection[IJoin]:
         pass
     @abstractmethod
-    def GetCases(self) -> ICollection[IBranchSet[object]]:
+    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
         pass
 class ISubselectionQuery(ISelectionQueryBase):
     def __init__(self):
@@ -288,7 +288,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     def __init__(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None):
         super().__init__(tables, conditions)
 
-        self.__cases: ICollection[IBranchSet[object]] = List[IBranchSet[object]]()
+        self.__cases: ICollection[IBranchSet[IValueItem]] = List[IBranchSet[IValueItem]]()
         self.__joins: ICollection[IJoin] = List[IJoin]()
         self.__columns: IColumnParameterSet[IParameter[object]] = columns
     
@@ -300,7 +300,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     def GetJoins(self) -> ICollection[IJoin]:
         return self.__joins
     @final
-    def GetCases(self) -> ICollection[IBranchSet[object]]:
+    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
         return self.__cases
     
     @final
