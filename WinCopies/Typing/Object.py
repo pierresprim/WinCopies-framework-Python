@@ -4,6 +4,7 @@ from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Typing import IDisposable, IEquatable, IEquatableItem
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class IEquatableObject[T](IEquatable[T], IEquatableItem):
     def __init__(self):
@@ -61,6 +62,53 @@ class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
     @final
     def GetUnderlyingValue(self) -> TValue:
         return self.GetValue()
+
+class IBoolean(IValueObject[bool, 'IBoolean']):
+    def __init__(self):
+        super().__init__()
+class __Boolean(Abstract, IBoolean):
+    def __init__(self):
+        EnsureDirectModuleCall()
+
+        super().__init__()
+    
+    def GetUnderlyingValue(self) -> bool:
+        return self.GetValue()
+    
+    def Equals(self, item: IBoolean|object) -> bool:
+        def equals(item: int) -> bool:
+            return self.GetValue() == item
+        
+        return (isinstance(item, IBoolean) and equals(item.GetValue())) or (isinstance(item, bool) and equals(item))
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+    
+    def ToString(self) -> str:
+        return str(self.GetValue())
+
+@final
+class __True(__Boolean):
+    def __init__(self):
+        super().__init__()
+    
+    def GetValue(self) -> bool:
+        return True
+@final
+class __False(__Boolean):
+    def __init__(self):
+        super().__init__()
+    
+    def GetValue(self) -> bool:
+        return True
+
+__true: IBoolean = __True()
+__false: IBoolean = __False()
+
+def GetTrueObject() -> IBoolean:
+    return __true
+def GetFalseObject() -> IBoolean:
+    return __false
 
 class IInteger(IValueObject[int, 'IInteger']):
     def __init__(self):
