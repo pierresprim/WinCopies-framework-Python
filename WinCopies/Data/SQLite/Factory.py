@@ -104,7 +104,7 @@ class FieldFactory(IFieldFactory):
             return self.__connection
     
     @final
-    class __IntergerField(Field.IntegerField, _FieldBase):
+    class __IntegerField(Field.IntegerField, _FieldBase):
         def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode, connection: IConnection):
             super().__init__(name, attribute, mode)
 
@@ -144,8 +144,8 @@ class FieldFactory(IFieldFactory):
     def CreateBool(self, name: str, attribute: FieldAttributes) -> Field.BooleanField:
         return FieldFactory.__BooleanField(name, attribute, self.__connection)
     
-    def CreateInteger(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> __IntergerField:
-        return FieldFactory.__IntergerField(name, attribute, mode, self.__connection)
+    def CreateInteger(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> __IntegerField:
+        return FieldFactory.__IntegerField(name, attribute, mode, self.__connection)
     def CreateReal(self, name: str, attribute: FieldAttributes, mode: RealMode) -> __RealField:
         return FieldFactory.__RealField(name, attribute, mode, self.__connection)
     def CreateText(self, name: str, attribute: FieldAttributes, mode: TextMode) -> __TextField:
