@@ -260,31 +260,37 @@ class Table(Abstract.Table):
                     def _getIndex() -> IIndex:
                         return getIndex(factory, currentName, kind, columns)
                     
+                    def getGenerator() -> Generator[IIndex]:
+                        index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
+
+                        if index is None:
+                            index = _getIndex()
+                            
+                            push()
+
+                            yield index
+                        
+                        else:
+                            yield _getIndex()
+
+                            yield index
+                    
                     if currentName == name:
                         push()
 
                         return None
-                    
-                    index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
 
-                    if index is None:
-                        index = _getIndex()
-                        
-                        push()
+                    func = getParser()
 
-                        yield index
-                    
-                    else:
-                        yield _getIndex()
-
-                        yield index
-
-                        func = getParser()
+                    return getGenerator()
                 
                 def parse(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str, columns: Singly.IList[str]) -> Generator[IIndex]|None:
                     # TODO: Use GROUP_CONCAT instead.
 
                     nonlocal func
+
+                    def getGenerator(index: IIndex) -> Generator[IIndex]:
+                        yield index
 
                     index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
 
@@ -294,8 +300,8 @@ class Table(Abstract.Table):
                         func = _parse
 
                         return None
-                    
-                    yield index
+
+                    return getGenerator(index)
                 
                 def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
                     query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
@@ -344,21 +350,23 @@ class Table(Abstract.Table):
                     return
                 
                 factory: IIndexFactory = connection.GetIndexFactory()
-                indexName: str = ''
+                oldIndexName: str = ''
+                newIndexName: str = ''
                 indexKind: IndexKind = IndexKind.Null
                 result: Generator[IIndex]|None = None
                 columns: Singly.IList[str] = Queue[str]()
                 func: Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None] = getParser()
 
                 for row in indices.AsIterable():
-                    if (result := func(factory, indexName, str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
-                        continue
+                    if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
+                        oldIndexName = newIndexName
 
-                    for index in result:
-                        yield index
+                    else:
+                        for index in result:
+                            yield index
                 
                 if columns.HasItems():
-                    yield getIndex(factory, indexName, indexKind, columns)
+                    yield getIndex(factory, oldIndexName, indexKind, columns)
             
             def getForeignKeys(connection: IConnection) -> Generator[IIndex]:
                 def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
