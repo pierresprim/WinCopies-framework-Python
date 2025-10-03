@@ -446,6 +446,10 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
         super().__init__()
     
     @abstractmethod
+    def AsReadOnly(self) -> ITuple[T]:
+        pass
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> Collections.IArray[T]:
         pass
 
@@ -477,6 +481,10 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
         super().__init__()
     
     @abstractmethod
+    def AsReadOnly(self) -> IReadOnlySet:
+        pass
+    
+    @abstractmethod
     def TryAdd(self, item: T) -> bool:
         pass
     @abstractmethod
@@ -500,6 +508,10 @@ class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, T
 class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
+        pass
     
     @abstractmethod
     def TryAdd(self, key: TKey, value: TValue) -> bool:

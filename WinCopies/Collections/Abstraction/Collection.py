@@ -8,7 +8,7 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions, IndexOf
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function, EqualityComparison
@@ -169,7 +169,7 @@ class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.L
         del self._GetContainer()[index]
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValue]):
     class __Enumerable[T](CountableEnumerable[T]):
         def __init__(self, dic: Dictionary[TKey, TValue]):
             super().__init__()
@@ -382,7 +382,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
     def ToString(self) -> str:
         return str(self._GetDictionary())
 
-class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
+class Set[T: IEquatableItem](Extensions.Set[T]):
     def __init__(self, items: set[T]|None = None):
         super().__init__()
 
