@@ -217,7 +217,7 @@ class IListBase[T](IReadOnlyList[T]):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
-class IReadOnlyEnumerableList[T](IListBase[T], Enumeration.IEnumerable[T]):
+class IReadOnlyEnumerableList[T](IReadOnlyList[T], Enumeration.IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
@@ -233,7 +233,7 @@ class IEnumerable[T](Enumeration.IEnumerable[T]):
     def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
         pass
 
-class IList[T](IReadOnlyEnumerableList[T], IEnumerable[T]):
+class IList[T](IListBase[T], IReadOnlyEnumerableList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
