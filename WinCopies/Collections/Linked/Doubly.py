@@ -416,7 +416,7 @@ class List[T](IList[T]):
         return None if self.IsEmpty() or self.__first is None else GetValueEnumeratorFromNode(self.__first) # self.__first should not be None if self.IsEmpty().
     
     @final
-    def TryGetNodeIterator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
+    def TryGetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
         return None if self.IsEmpty() or self.__first is None else DoublyLinkedNodeEnumerator[T](self.__first) # self.__first should not be None if self.IsEmpty().
     @final
     def GetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]:
