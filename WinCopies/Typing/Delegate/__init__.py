@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import final, Callable
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]
@@ -25,7 +25,7 @@ class IFunction[T](IInterface):
         return self.GetValue()
 
 @final
-class ValueFunction[T](IFunction[T]):
+class ValueFunction[T](Abstract, IFunction[T]):
     def __init__(self, value: T):
         super().__init__()
 
@@ -34,7 +34,7 @@ class ValueFunction[T](IFunction[T]):
     def GetValue(self) -> T:
         return self.__value
 
-class FunctionUpdater[T](IFunction[T]):
+class FunctionUpdater[T](Abstract, IFunction[T]):
     def __init__(self, updater: Method[IFunction[T]]):
         super().__init__()
 
