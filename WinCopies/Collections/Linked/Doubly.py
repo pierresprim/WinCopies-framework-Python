@@ -6,9 +6,9 @@ from typing import final, Callable
 
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
-from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
+from WinCopies.Collections import Enumeration, Generator, IReadOnlyCollection, ICountable
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, Iterator, Accessor, GetEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, CountableEnumerable, Iterator, Accessor, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, GenericConstraint, INullable, GetNullable, GetNullValue
@@ -271,7 +271,7 @@ class _ReadOnlyListBase[TItem, TList](IReadOnlyList[TItem], GenericConstraint[TL
     def TryGetLast(self) -> INullable[TItem]:
         return self._GetInnerContainer().TryGetLast()
 
-class List[T](Enumerable[T], IList[T]):
+class ListBase[T](Enumerable[T], IList[T]):
     @final
     class __Enumerable(Enumerable[IDoublyLinkedNode[T]]):
         def __init__(self, l: IList[T]):
@@ -295,29 +295,29 @@ class List[T](Enumerable[T], IList[T]):
     
     @final
     class __EnumerableUpdater(ValueFunctionUpdater[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]):
-        def __init__(self, items: List[T], updater: Method[IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]]):
+        def __init__(self, items: ListBase[T], updater: Method[IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]]):
             super().__init__(updater)
 
-            self.__items: List[T] = items
+            self.__items: ListBase[T] = items
         
         def _GetValue(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
-            return List[T].__Enumerable(self.__items)
+            return ListBase[T].__Enumerable(self.__items)
     
     @final
     class __ReadOnlyUpdater(ValueFunctionUpdater[IReadOnlyList[T]]):
-        def __init__(self, items: List[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+        def __init__(self, items: ListBase[T], updater: Method[IFunction[IReadOnlyList[T]]]):
             super().__init__(updater)
 
-            self.__items: List[T] = items
+            self.__items: ListBase[T] = items
         
         def _GetValue(self) -> IReadOnlyList[T]:
             return self.__items._AsReadOnly()
     @final
     class __ReadOnlyEnumerableUpdater(ValueFunctionUpdater[IReadOnlyEnumerableList[T]]):
-        def __init__(self, items: List[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+        def __init__(self, items: ListBase[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
             super().__init__(updater)
 
-            self.__items: List[T] = items
+            self.__items: ListBase[T] = items
         
         def _GetValue(self) -> IReadOnlyEnumerableList[T]:
             return self.__items._AsReadOnlyEnumerable()
@@ -335,18 +335,18 @@ class List[T](Enumerable[T], IList[T]):
         self.__first: DoublyLinkedNode[T]|None = None
         self.__last: DoublyLinkedNode[T]|None = None
 
-        self.__nodeEnumerable: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]] = List[T].__EnumerableUpdater(self, updateNodeEnumerable)
-        self.__readOnly: IFunction[IReadOnlyList[T]] = List[T].__ReadOnlyUpdater(self, updateReadOnly)
-        self.__readOnlyEnumerable: IFunction[IReadOnlyEnumerableList[T]] = List[T].__ReadOnlyEnumerableUpdater(self, updateReadOnlyEnumerable)
+        self.__nodeEnumerable: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]] = ListBase[T].__EnumerableUpdater(self, updateNodeEnumerable)
+        self.__readOnly: IFunction[IReadOnlyList[T]] = ListBase[T].__ReadOnlyUpdater(self, updateReadOnly)
+        self.__readOnlyEnumerable: IFunction[IReadOnlyEnumerableList[T]] = ListBase[T].__ReadOnlyEnumerableUpdater(self, updateReadOnlyEnumerable)
     
     def _AsReadOnly(self) -> IReadOnlyList[T]:
-        return List[T]._ReadOnlyList(self)
+        return ListBase[T]._ReadOnlyList(self)
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]:
         return self.__readOnly.GetValue()
     
     def _AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
-        return List[T]._ReadOnlyEnumerableList(self)
+        return ListBase[T]._ReadOnlyEnumerableList(self)
     @final
     def AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
         return self.__readOnlyEnumerable.GetValue()
@@ -358,11 +358,15 @@ class List[T](Enumerable[T], IList[T]):
     def HasItems(self) -> bool:
         return super().HasItems()
     
+    @abstractmethod
+    def _GetNode(self, value: T, previous: DoublyLinkedNode[T]|None, next: DoublyLinkedNode[T]|None) -> DoublyLinkedNode[T]:
+        pass
+    
     @final
     def AddFirst(self, value: T) -> DoublyLinkedNode[T]:
         first: DoublyLinkedNode[T]|None = self.__first
 
-        self.__first = DoublyLinkedNode[T](value, self, None, first)
+        self.__first = self._GetNode(value, None, first)
 
         if first is not None:
             first._SetPrevious(self.__first) # type: ignore
@@ -375,7 +379,7 @@ class List[T](Enumerable[T], IList[T]):
     def AddLast(self, value: T) -> DoublyLinkedNode[T]:
         last: DoublyLinkedNode[T]|None = self.__last
         
-        self.__last = DoublyLinkedNode[T](value, self, last, None)
+        self.__last = self._GetNode(value, last, None)
         
         if last is not None:
             last._SetNext(self.__last) # type: ignore
@@ -396,7 +400,7 @@ class List[T](Enumerable[T], IList[T]):
         node.Ensure(self)
         
         previousNode: DoublyLinkedNode[T]|None = node.GetPrevious()
-        newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, previousNode, node)
+        newNode: DoublyLinkedNode[T] = self._GetNode(value, previousNode, node)
 
         previousNode._SetNext(newNode) # type: ignore
         node._SetPrevious(newNode) # type: ignore
@@ -413,7 +417,7 @@ class List[T](Enumerable[T], IList[T]):
         node.Ensure(self)
 
         nextNode: DoublyLinkedNode[T]|None = node.GetNext()
-        newNode: DoublyLinkedNode[T] = DoublyLinkedNode[T](value, self, node, nextNode)
+        newNode: DoublyLinkedNode[T] = self._GetNode(value, node, nextNode)
 
         nextNode._SetPrevious(newNode) # type: ignore
         node._SetNext(newNode) # type: ignore
@@ -506,6 +510,100 @@ class List[T](Enumerable[T], IList[T]):
     @final
     def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
         return self.__nodeEnumerable.GetValue()
+class List[T](ListBase[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def _GetNode(self, value: T, previous: DoublyLinkedNode[T]|None, next: DoublyLinkedNode[T]|None) -> DoublyLinkedNode[T]:
+        return DoublyLinkedNode[T](value, self, previous, next)
+
+class ICountableList[T](IList[T], ICountable):
+    def __init__(self):
+        super().__init__()
+class CountableList[T](CountableEnumerable[T], ICountableList[T]):
+    @final
+    class __List(ListBase[T]):
+        def __init__(self, l: CountableList[T]):
+            super().__init__()
+
+            self.__items: CountableList[T] = l
+        
+        def _GetNode(self, value: T, previous: DoublyLinkedNode[T]|None, next: DoublyLinkedNode[T]|None) -> DoublyLinkedNode[T]:
+            return DoublyLinkedNode[T](value, self.__items, previous, next)
+    
+    def __init__(self):
+        super().__init__()
+
+        self.__items: IList[T] = CountableList[T].__List(self)
+        self.__count: int = 0
+    
+    @final
+    def _GetItems(self) -> IList[T]:
+        return self.__items
+    
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        return self._GetItems().AsReadOnly()
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetItems().IsEmpty()
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__count
+    
+    @final
+    def GetFirst(self) -> IDoublyLinkedNode[T]|None:
+        return self._GetItems().GetFirst()
+    @final
+    def GetLast(self) -> IDoublyLinkedNode[T]|None:
+        return self._GetItems().GetLast()
+    
+    @final
+    def AddFirst(self, value: T) -> IDoublyLinkedNode[T]:
+        return self._GetItems().AddFirst(value)
+    @final
+    def AddLast(self, value: T) -> IDoublyLinkedNode[T]:
+        return self._GetItems().AddLast(value)
+    
+    @final
+    def AddBefore(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
+        return self._GetItems().AddBefore(node, value)
+    @final
+    def AddAfter(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
+        return self._GetItems().AddAfter(node, value)
+    
+    @final
+    def Remove(self, node: IDoublyLinkedNode[T]) -> None:
+        return self._GetItems().Remove(node)
+    
+    @final
+    def RemoveFirst(self) -> INullable[T]:
+        return self._GetItems().RemoveFirst()
+    @final
+    def RemoveLast(self) -> INullable[T]:
+        return self._GetItems().RemoveLast()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetItems().TryGetEnumerator()
+    @final
+    def TryGetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
+        return self._GetItems().TryGetNodeEnumerator()
+    
+    @final
+    def AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
+        return self._GetItems().AsReadOnlyEnumerable()
+    
+    @final
+    def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
+        return self._GetItems().AsNodeEnumerable()
+    
+    @final
+    def Clear(self) -> None:
+        self._GetItems().Clear()
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode], IGenericConstraint[TNode, IDoublyLinkedNode[TItems]]):
     def __init__(self, node: TNode):
