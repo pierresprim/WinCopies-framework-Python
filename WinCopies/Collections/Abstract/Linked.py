@@ -6,7 +6,7 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
-from WinCopies.Collections.Linked.Singly import IIterableList, ICountableList, ICountableIterableList
+from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableList, ICountableEnumerableList
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
@@ -52,8 +52,8 @@ class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, Singly.IList[T
     def __init__(self, items: Singly.IList[TIn]):
         super().__init__(items)
 
-class IterableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IIterableList[TIn]], EnumerableBase[TIn, TOut], IIterableList[TOut], IGenericConstraintImplementation[IIterableList[TIn]]):
-    def __init__(self, items: IIterableList[TIn]):
+class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableBase[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):
+    def __init__(self, items: IEnumerableList[TIn]):
         super().__init__(items)
     
     @final
@@ -67,8 +67,8 @@ class CountableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICoun
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 
-class CountableIterableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableIterableList[TIn]], EnumerableBase[TIn, TOut], ICountableIterableList[TOut], IGenericConstraintImplementation[ICountableIterableList[TIn]]):
-    def __init__(self, items: ICountableIterableList[TIn]):
+class CountableEnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableEnumerableList[TIn]], EnumerableBase[TIn, TOut], ICountableEnumerableList[TOut], IGenericConstraintImplementation[ICountableEnumerableList[TIn]]):
+    def __init__(self, items: ICountableEnumerableList[TIn]):
         super().__init__(items)
     
     @final
