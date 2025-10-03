@@ -8,7 +8,7 @@ from contextlib import AbstractContextManager
 from enum import Enum
 from typing import final, Callable
 
-from WinCopies import Collections, IInterface, Not
+from WinCopies import IInterface, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
@@ -310,7 +310,7 @@ class ICountable(IInterface):
     
     @final
     def ValidateIndex(self, index: int) -> bool:
-        return Collections.ValidateIndex(index, self.GetCount())
+        return ValidateIndex(index, self.GetCount())
     
     @abstractmethod
     def AsSized(self) -> Sized:
@@ -424,7 +424,7 @@ class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexabl
     
     @final
     def TrySetAt(self, key: int, value: T) -> bool:
-        if Collections.ValidateIndex(key, self.GetCount()):
+        if ValidateIndex(key, self.GetCount()):
             self.SetAt(key, value)
 
             return True
@@ -450,7 +450,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
         pass
     
     @abstractmethod
-    def SliceAt(self, key: slice) -> Collections.IArray[T]:
+    def SliceAt(self, key: slice) -> IArray[T]:
         pass
 
 class IList[T](IArray[T], ICountableList[T]):
@@ -458,7 +458,7 @@ class IList[T](IArray[T], ICountableList[T]):
         super().__init__()
     
     @abstractmethod
-    def SliceAt(self, key: slice) -> Collections.IList[T]:
+    def SliceAt(self, key: slice) -> IList[T]:
         pass
     
     @abstractmethod
