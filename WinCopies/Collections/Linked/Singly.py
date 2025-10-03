@@ -3,8 +3,9 @@ import collections.abc
 from abc import abstractmethod
 from typing import final, Callable, Self
 
+from WinCopies import Abstract
 from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, Enumerable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
@@ -79,7 +80,7 @@ class ICountableIterableList[T](IReadOnlyCountableIterableList[T], IIterableList
     def __init__(self):
         super().__init__()
 
-class Iterable[T](IIterableList[T]):
+class Iterable[T](Enumerable[T], IIterableList[T]):
     def __init__(self):
         super().__init__()
     
@@ -96,7 +97,7 @@ class Iterable[T](IIterableList[T]):
         
         return None if first is None else GetValueEnumeratorFromNode(first)
 
-class List[T](IList[T]):
+class List[T](Abstract, IList[T]):
     def __init__(self):
         super().__init__()
         
@@ -210,7 +211,6 @@ class Queue[T](List[T]):
         if self.IsEmpty():
             self.__last = None
             self.__updater = self.__GetUpdater()
-
 class Stack[T](List[T]):
     def __init__(self, *values: T):
         super().__init__()
@@ -239,7 +239,7 @@ class IterableStack[T](Stack[T], Iterable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
 
-class CollectionBase[TItems, TList](GenericConstraint[TList, IList[TItems]], IList[TItems]):
+class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TItems]], IList[TItems]):
     def __init__(self, l: TList):
         super().__init__()
         
