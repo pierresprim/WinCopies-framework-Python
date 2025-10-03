@@ -10,8 +10,7 @@ from WinCopies.Collections import Enumeration, CreateList
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Object import IString
-from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Delegate.Extensions import GetDefaultFunction
+from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data import Query
