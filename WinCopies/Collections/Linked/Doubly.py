@@ -7,7 +7,7 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
-from WinCopies.Collections.Enumeration import IEnumerator, Iterator, Accessor, GetEnumerator
+from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, Iterator, Accessor, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
@@ -217,7 +217,7 @@ class IListBase[T](IReadOnlyList[T]):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
-class IReadOnlyEnumerableList[T](IReadOnlyList[T], Enumeration.IEnumerable[T]):
+class IReadOnlyEnumerableList[T](IReadOnlyList[T], ICountableEnumerable[T]):
     def __init__(self):
         super().__init__()
 
