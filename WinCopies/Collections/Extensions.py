@@ -217,9 +217,9 @@ class Tuple[T](ArrayBase[T]):
 class EquatableTuple[T: IEquatableItem](Tuple[T], IEquatableTuple[T]):
     def __init__(self):
         super().__init__()
-class Array[T](Collections.Array[T], ArrayBase[T], IArray[T]):
+class Array[T](Collections.Array[T], Tuple[T], IArray[T]):
     def __init__(self):
         super().__init__()
-class List[T](Collections.List[T], ArrayBase[T], IList[T]):
+class List[T](Collections.List[T], Array[T], IList[T]):
     def __init__(self):
         super().__init__()
