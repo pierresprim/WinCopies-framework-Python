@@ -217,11 +217,27 @@ class IListBase[T](IReadOnlyList[T]):
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsValueEnumerator(self.RemoveLast)
 
-class IReadOnlyIterableList[T](IListBase[T], Enumeration.IEnumerable[T]):
+class IReadOnlyEnumerableList[T](IListBase[T], Enumeration.IEnumerable[T]):
     def __init__(self):
         super().__init__()
 
 class IEnumerable[T](Enumeration.IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def TryGetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
+        pass
+    
+    @abstractmethod
+    def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
+        pass
+
+class IList[T](IReadOnlyEnumerableList[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+
+class List[T](IList[T]):
     @final
     class __Enumerable(Enumeration.Enumerable[IDoublyLinkedNode[T]]):
         def __init__(self, l: IEnumerable[T]):
@@ -232,22 +248,6 @@ class IEnumerable[T](Enumeration.IEnumerable[T]):
         def TryGetEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
             return self.__list.TryGetNodeEnumerator()
     
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def TryGetNodeEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
-        pass
-    
-    @final
-    def AsNodeIterable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
-        return IEnumerable[T].__Enumerable(self)
-
-class IList[T](IReadOnlyIterableList[T], IEnumerable[T]):
-    def __init__(self):
-        super().__init__()
-
-class List[T](IList[T]):
     def __init__(self):
         super().__init__()
         
@@ -405,6 +405,10 @@ class List[T](IList[T]):
         enumerator: IEnumerator[IDoublyLinkedNode[T]]|None = self.TryGetNodeEnumerator()
 
         return GetEnumerator(enumerator)
+    
+    @final
+    def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
+        return List[T].__Enumerable(self)
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode], IGenericConstraint[TNode, IDoublyLinkedNode[TItems]]):
     def __init__(self, node: TNode):

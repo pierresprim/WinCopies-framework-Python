@@ -1,11 +1,11 @@
-import collections.abc
+from collections.abc import Iterable
 
 from abc import abstractmethod
 from typing import final, Callable, Self
 
 from WinCopies import Abstract
-from WinCopies.Collections import Generator, ICountable, IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, Enumerable
+from WinCopies.Collections import Enumeration, Generator, ICountable, IReadOnlyCollection
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
@@ -32,10 +32,10 @@ class IList[T](IReadOnlyList[T]):
         pass
     
     @abstractmethod
-    def TryPushItems(self, items: collections.abc.Iterable[T]|None) -> bool:
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
         pass
     @abstractmethod
-    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
+    def PushItems(self, items: Iterable[T]) -> None:
         pass
     
     @final
@@ -59,10 +59,10 @@ class IList[T](IReadOnlyList[T]):
             
             result = self.TryPop()
 
-class IReadOnlyIterableList[T](IReadOnlyList[T], IEnumerable[T]):
+class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
-class IIterableList[T](IReadOnlyIterableList[T], IList[T]):
+class IEnumerableList[T](IReadOnlyEnumerableList[T], IList[T]):
     def __init__(self):
         super().__init__()
 
@@ -73,14 +73,14 @@ class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class IReadOnlyCountableIterableList[T](ICountableEnumerable[T], IReadOnlyIterableList[T], IReadOnlyCountableList[T]):
+class IReadOnlyCountableEnumerableList[T](ICountableEnumerable[T], IReadOnlyEnumerableList[T], IReadOnlyCountableList[T]):
     def __init__(self):
         super().__init__()
-class ICountableIterableList[T](IReadOnlyCountableIterableList[T], IIterableList[T], ICountableList[T]):
+class ICountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IEnumerableList[T], ICountableList[T]):
     def __init__(self):
         super().__init__()
 
-class Iterable[T](Enumerable[T], IIterableList[T]):
+class Enumerable[T](Enumeration.Enumerable[T], IEnumerableList[T]):
     def __init__(self):
         super().__init__()
     
@@ -133,11 +133,11 @@ class List[T](Abstract, IList[T]):
             self._Push(value, self.__first) # type: ignore
     
     @final
-    def PushItems(self, items: collections.abc.Iterable[T]) -> None:
+    def PushItems(self, items: Iterable[T]) -> None:
         for value in items:
             self.Push(value)
     @final
-    def TryPushItems(self, items: collections.abc.Iterable[T]|None) -> bool:
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
@@ -232,10 +232,10 @@ class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLink
     def __init__(self, node: SinglyLinkedNode[T]):
         super().__init__(node)
 
-class IterableQueue[T](Queue[T], Iterable[T]):
+class EnumerableQueue[T](Queue[T], Enumerable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
-class IterableStack[T](Stack[T], Iterable[T]):
+class EnumerableStack[T](Stack[T], Enumerable[T]):
     def __init__(self, *values: T):
         super().__init__(*values)
 
@@ -284,7 +284,7 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList
         self.__Increment()
     
     @final
-    def __PushItems(self, items: collections.abc.Iterable[TItems]) -> None:
+    def __PushItems(self, items: Iterable[TItems]) -> None:
         def loop() -> Generator[TItems]:
             for item in items:
                 yield item
@@ -294,7 +294,7 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList
         self._GetInnerContainer().PushItems(loop())
     
     @final
-    def TryPushItems(self, items: collections.abc.Iterable[TItems]|None) -> bool:
+    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
         if items is None:
             return False
         
@@ -302,7 +302,7 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList
 
         return True
     @final
-    def PushItems(self, items: collections.abc.Iterable[TItems]) -> None:
+    def PushItems(self, items: Iterable[TItems]) -> None:
         if items is None: # type: ignore
             raise ValueError("No value provided.")
         
@@ -342,25 +342,25 @@ class CountableStack[T](Countable[T]):
 
         self.PushItems(values)
 
-class CountableIterableBase[TItems, TList](CountableBase[TItems, TList], ICountableIterableList[TItems], GenericConstraint[TList, Iterable[TItems]]):
+class CountableEnumerableBase[TItems, TList](CountableBase[TItems, TList], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
     def __init__(self, l: TList):
         super().__init__(l)
-class CountableIterable[T](CountableIterableBase[T, Iterable[T]], IGenericConstraintImplementation[Iterable[T]]):
-    def __init__(self, l: Iterable[T]):
+class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
+    def __init__(self, l: Enumerable[T]):
         super().__init__(l)
 
-class CountableIterableQueue[T](CountableIterable[T]):
+class CountableEnumerableQueue[T](CountableEnumerable[T]):
     def __init__(self, *values: T):
-        super().__init__(IterableQueue[T]())
+        super().__init__(EnumerableQueue[T]())
 
         self.PushItems(values)
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetCollection().TryGetEnumerator()
-class CountableIterableStack[T](CountableIterable[T]):
+class CountableEnumerableStack[T](CountableEnumerable[T]):
     def __init__(self, *values: T):
-        super().__init__(IterableStack[T]())
+        super().__init__(EnumerableStack[T]())
 
         self.PushItems(values)
     
