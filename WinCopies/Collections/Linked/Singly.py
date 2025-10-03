@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from abc import abstractmethod
 from typing import final, Callable, Self
 
-from WinCopies import Abstract
+from WinCopies import Collections, Abstract
 from WinCopies.Collections import Enumeration, Generator, ICountable, IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
@@ -261,7 +261,7 @@ class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementatio
     def __init__(self, l: IList[T]):
         super().__init__(l)
 
-class CountableBase[TItems, TList](CollectionBase[TItems, TList], ICountableList[TItems]):
+class CountableBase[TItems, TList](CollectionBase[TItems, TList], Collections.Countable, ICountableList[TItems]):
     def __init__(self, l: TList):
         EnsureDirectModuleCall()
 
