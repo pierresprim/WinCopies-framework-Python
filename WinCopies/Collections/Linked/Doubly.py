@@ -7,11 +7,11 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, Iterator, Accessor, GetEnumerator
+from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, Iterator, Accessor, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Function, Converter
+from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 @final
@@ -239,20 +239,38 @@ class IList[T](IListBase[T], IReadOnlyEnumerableList[T], IEnumerable[T]):
 
 class List[T](IList[T]):
     @final
-    class __Enumerable(Enumeration.Enumerable[IDoublyLinkedNode[T]]):
-        def __init__(self, l: IEnumerable[T]):
+    class __Enumerable(CountableEnumerable[IDoublyLinkedNode[T]]):
+        def __init__(self, l: IList[T]):
             super().__init__()
 
-            self.__list: IEnumerable[T] = l
+            self.__list: IList[T] = l
+        
+        def GetCount(self) -> int:
+            return self.__list.GetCount()
         
         def TryGetEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
             return self.__list.TryGetNodeEnumerator()
     
+    @final
+    class __Updater(ValueFunctionUpdater[ICountableEnumerable[IDoublyLinkedNode[T]]]):
+        def __init__(self, items: List[T], updater: Method[IFunction[ICountableEnumerable[IDoublyLinkedNode[T]]]]):
+            super().__init__(updater)
+
+            self.__items: List[T] = items
+        
+        def _GetValue(self) -> ICountableEnumerable[IDoublyLinkedNode[T]]:
+            return List[T].__Enumerable(self.__items)
+    
     def __init__(self):
+        def update(func: IFunction[ICountableEnumerable[IDoublyLinkedNode[T]]]) -> None:
+            self.__nodeEnumerable = func
+        
         super().__init__()
         
         self.__first: DoublyLinkedNode[T]|None = None
         self.__last: DoublyLinkedNode[T]|None = None
+
+        self.__nodeEnumerable: IFunction[ICountableEnumerable[IDoublyLinkedNode[T]]] = List[T].__Updater(self, update)
 
     @final
     def IsEmpty(self) -> bool:
@@ -408,7 +426,7 @@ class List[T](IList[T]):
     
     @final
     def AsNodeEnumerable(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
-        return List[T].__Enumerable(self)
+        return self.__nodeEnumerable.GetValue()
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode], IGenericConstraint[TNode, IDoublyLinkedNode[TItems]]):
     def __init__(self, node: TNode):
