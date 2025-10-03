@@ -79,9 +79,9 @@ class LinkedList[T](LinkedListBase[T, Doubly.IListBase[T]], IGenericConstraintIm
     @staticmethod
     def GetList(l: Doubly.IListBase[T]|None) -> Doubly.IListBase[T]:
         return List[T]() if l is None else l
-class IterableLinkedList[T](LinkedListBase[T, Doubly.IList[T]], IGenericConstraintImplementation[Doubly.IList[T]]):
+class EnumerableLinkedList[T](LinkedListBase[T, Doubly.IList[T]], IGenericConstraintImplementation[Doubly.IList[T]]):
     def __init__(self, l: Doubly.IList[T]|None = None):
-        super().__init__(IterableLinkedList[T].GetList(l))
+        super().__init__(EnumerableLinkedList[T].GetList(l))
     
     @staticmethod
     def GetList(l: Doubly.IList[T]|None) -> Doubly.IList[T]:
@@ -94,7 +94,7 @@ class Stack[T](StackBase[T, Doubly.IListBase[T]], IGenericConstraintImplementati
     def __init__(self, l: Doubly.IListBase[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
 
-class IIterableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
+class IEnumerableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
     def __init__(self):
         super().__init__()
 
@@ -102,13 +102,13 @@ class IIterableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], Generic
         enumerable: IEnumerable[TItems]|None = self._GetInnerContainer()
         
         return Enumerator[TItems].TryCreate(enumerable.TryGetEnumerator())
-class IIterableLinkedList[T](IIterableLinkedListBase[T, Doubly.IList[T]]):
+class IEnumerableLinkedList[T](IEnumerableLinkedListBase[T, Doubly.IList[T]]):
     def __init__(self):
         super().__init__()
 
-class IterableQueue[T](QueueBase[T, Doubly.IList[T]], IIterableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+class EnumerableQueue[T](QueueBase[T, Doubly.IList[T]], IEnumerableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
     def __init__(self, l: Doubly.IList[T]|None = None):
-        super().__init__(IterableLinkedList[T].GetList(l))
-class IterableStack[T](StackBase[T, Doubly.IList[T]], IIterableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+        super().__init__(EnumerableLinkedList[T].GetList(l))
+class EnumerableStack[T](StackBase[T, Doubly.IList[T]], IEnumerableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
     def __init__(self, l: Doubly.IList[T]|None = None):
-        super().__init__(IterableLinkedList[T].GetList(l))
+        super().__init__(EnumerableLinkedList[T].GetList(l))
