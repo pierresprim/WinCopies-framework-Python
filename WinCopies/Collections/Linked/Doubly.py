@@ -7,10 +7,11 @@ from typing import final, Callable
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
 from WinCopies.Collections import Generator, IReadOnlyCollection, Enumeration
+from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, Iterator, Accessor, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
-from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, GenericConstraint, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -76,6 +77,10 @@ class IReadOnlyList[T](IReadOnlyCollection):
 class IListBase[T](IReadOnlyList[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        pass
     
     @abstractmethod
     def GetFirst(self) -> IDoublyLinkedNode[T]|None:
@@ -236,8 +241,37 @@ class IEnumerable[T](Enumeration.IEnumerable[T]):
 class IList[T](IListBase[T], IReadOnlyEnumerableList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
+        pass
 
-class List[T](IList[T]):
+class _ReadOnlyListBase[TItem, TList](IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
+    def __init__(self, items: TList):
+        super().__init__()
+
+        self.__items: TList = items
+    
+    @final
+    def _GetContainer(self) -> TList:
+        return self.__items
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetInnerContainer().IsEmpty()
+    
+    @final
+    def HasItems(self) -> bool:
+        return super().HasItems()
+    
+    @final
+    def TryGetFirst(self) -> INullable[TItem]:
+        return self._GetInnerContainer().TryGetFirst()
+    @final
+    def TryGetLast(self) -> INullable[TItem]:
+        return self._GetInnerContainer().TryGetLast()
+
+class List[T](Enumerable[T], IList[T]):
     @final
     class __Enumerable(Enumerable[IDoublyLinkedNode[T]]):
         def __init__(self, l: IList[T]):
@@ -248,8 +282,19 @@ class List[T](IList[T]):
         def TryGetEnumerator(self) -> IEnumerator[IDoublyLinkedNode[T]]|None:
             return self.__list.TryGetNodeEnumerator()
     
+    class _ReadOnlyList(_ReadOnlyListBase[T, IReadOnlyList[T]], IGenericConstraintImplementation[IReadOnlyList[T]]):
+        def __init__(self, items: IReadOnlyList[T]):
+            super().__init__(items)
+    class _ReadOnlyEnumerableList(_ReadOnlyListBase[T, IReadOnlyEnumerableList[T]], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IReadOnlyEnumerableList[T]]):
+        def __init__(self, items: IReadOnlyEnumerableList[T]):
+            super().__init__(items)
+        
+        @final
+        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+            return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+    
     @final
-    class __Updater(ValueFunctionUpdater[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]):
+    class __EnumerableUpdater(ValueFunctionUpdater[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]):
         def __init__(self, items: List[T], updater: Method[IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]]):
             super().__init__(updater)
 
@@ -258,16 +303,53 @@ class List[T](IList[T]):
         def _GetValue(self) -> Enumeration.IEnumerable[IDoublyLinkedNode[T]]:
             return List[T].__Enumerable(self.__items)
     
+    @final
+    class __ReadOnlyUpdater(ValueFunctionUpdater[IReadOnlyList[T]]):
+        def __init__(self, items: List[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+            super().__init__(updater)
+
+            self.__items: List[T] = items
+        
+        def _GetValue(self) -> IReadOnlyList[T]:
+            return self.__items._AsReadOnly()
+    @final
+    class __ReadOnlyEnumerableUpdater(ValueFunctionUpdater[IReadOnlyEnumerableList[T]]):
+        def __init__(self, items: List[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+            super().__init__(updater)
+
+            self.__items: List[T] = items
+        
+        def _GetValue(self) -> IReadOnlyEnumerableList[T]:
+            return self.__items._AsReadOnlyEnumerable()
+    
     def __init__(self):
-        def update(func: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]) -> None:
+        def updateNodeEnumerable(func: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]]) -> None:
             self.__nodeEnumerable = func
+        def updateReadOnly(func: IFunction[IReadOnlyList[T]]) -> None:
+            self.__readOnly = func
+        def updateReadOnlyEnumerable(func: IFunction[IReadOnlyEnumerableList[T]]) -> None:
+            self.__readOnlyEnumerable = func
         
         super().__init__()
         
         self.__first: DoublyLinkedNode[T]|None = None
         self.__last: DoublyLinkedNode[T]|None = None
 
-        self.__nodeEnumerable: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]] = List[T].__Updater(self, update)
+        self.__nodeEnumerable: IFunction[Enumeration.IEnumerable[IDoublyLinkedNode[T]]] = List[T].__EnumerableUpdater(self, updateNodeEnumerable)
+        self.__readOnly: IFunction[IReadOnlyList[T]] = List[T].__ReadOnlyUpdater(self, updateReadOnly)
+        self.__readOnlyEnumerable: IFunction[IReadOnlyEnumerableList[T]] = List[T].__ReadOnlyEnumerableUpdater(self, updateReadOnlyEnumerable)
+    
+    def _AsReadOnly(self) -> IReadOnlyList[T]:
+        return List[T]._ReadOnlyList(self)
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        return self.__readOnly.GetValue()
+    
+    def _AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
+        return List[T]._ReadOnlyEnumerableList(self)
+    @final
+    def AsReadOnlyEnumerable(self) -> IReadOnlyEnumerableList[T]:
+        return self.__readOnlyEnumerable.GetValue()
 
     @final
     def IsEmpty(self) -> bool:
