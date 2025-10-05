@@ -6,7 +6,7 @@ from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import Extensions
-from WinCopies.Collections.Abstract import Converter, Selector
+from WinCopies.Collections.Abstract import Converter, TwoWayConverter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
@@ -70,13 +70,9 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
 
-class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
+class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], TwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: TSequence):
         super().__init__(items)
-    
-    @abstractmethod
-    def _ConvertBack(self, item: TOut) -> TIn:
-        pass
     
     @final
     def SetAt(self, key: int, value: TOut) -> None:
