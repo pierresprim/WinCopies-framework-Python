@@ -441,6 +441,10 @@ class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWri
 class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
     def __init__(self):
         super().__init__()
+class IEquatableTuple[T: IEquatableItem](ITuple[T]):
+    def __init__(self):
+        super().__init__()
+
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self):
         super().__init__()

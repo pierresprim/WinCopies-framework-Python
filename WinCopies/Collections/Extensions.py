@@ -136,7 +136,7 @@ class MutableSequence[T](collections.abc.MutableSequence[T], Sequence[T], IMutab
 class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
     def __init__(self):
         super().__init__()
-class IEquatableTuple[T: IEquatableItem](ITuple[T], IEquatableEnumerable[T]):
+class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[T], IEquatableEnumerable[T]):
     def __init__(self):
         super().__init__()
     
