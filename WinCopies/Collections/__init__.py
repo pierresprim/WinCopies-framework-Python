@@ -8,7 +8,7 @@ from contextlib import AbstractContextManager
 from enum import Enum
 from typing import final, Callable
 
-from WinCopies import IInterface, Not
+from WinCopies import IInterface, Abstract, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
@@ -538,7 +538,7 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
     def Remove(self, key: TKey) -> None:
         pass
 
-class Tuple[T](ITuple[T]):
+class Tuple[T](Abstract, ITuple[T]):
     def __init__(self):
         super().__init__()
     
