@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import IInterface, IStringable
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Typing import GenericConstraint
 
 class ConverterBase[TIn, TOut](IInterface):
@@ -23,7 +23,7 @@ class SelectorBase[TIn, TOut](ConverterBase[TIn, TOut], IStringable):
     def __init__(self):
         super().__init__()
 
-class Converter[TIn, TOut, TSequence: IStringable, TInterface](SelectorBase[TIn, TOut], GenericConstraint[TSequence, TInterface]):
+class Converter[TIn, TOut, TSequence: IStringable, TInterface](Abstract, SelectorBase[TIn, TOut], GenericConstraint[TSequence, TInterface]):
     def __init__(self, items: TSequence):
         super().__init__()
 
@@ -39,7 +39,7 @@ class TwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](Converter[T
     def __init__(self, items: TSequence):
         super().__init__(items)
 
-class Selector[TIn, TOut, TSequence: IStringable](TwoWayConverterBase[TIn, TOut], SelectorBase[TIn, TOut]):
+class Selector[TIn, TOut, TSequence: IStringable](Abstract, TwoWayConverterBase[TIn, TOut], SelectorBase[TIn, TOut]):
     def __init__(self, items: TSequence):
         super().__init__()
 
