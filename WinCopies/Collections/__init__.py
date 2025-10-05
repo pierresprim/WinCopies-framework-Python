@@ -418,6 +418,10 @@ class ICountableIndexableBase(IKeyableBase[int], ICountable):
 class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableBase):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IReadOnlyCountableIndexable[T]:
+        pass
 class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexableBase):
     def __init__(self):
         super().__init__()
@@ -441,9 +445,17 @@ class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWri
 class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> ITuple[T]:
+        pass
 class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
+        pass
 
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self):

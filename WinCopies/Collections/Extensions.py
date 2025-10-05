@@ -136,6 +136,10 @@ class MutableSequence[T](collections.abc.MutableSequence[T], Sequence[T], IMutab
 class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> ITuple[T]:
+        pass
 class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[T], IEquatableEnumerable[T]):
     def __init__(self):
         super().__init__()
@@ -150,9 +154,17 @@ class IArray[T](Collections.IArray[T], ITuple[T]):
     @abstractmethod
     def AsReadOnly(self) -> ITuple[T]:
         pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IArray[T]:
+        pass
 class IList[T](Collections.IList[T], IArray[T], IMutableSequence[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IList[T]:
+        pass
 
 # TODO: Should implement a Mapping abstractor provider.
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):

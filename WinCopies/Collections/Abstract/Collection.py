@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator, Sequence
-from typing import final, overload, SupportsIndex
+from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import Extensions
@@ -19,6 +19,10 @@ from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: TSequence):
         super().__init__(items)
+    
+    @abstractmethod
+    def _Clone(self, items: TSequence) -> Self:
+        pass
     
     @final
     def GetCount(self) -> int:
@@ -48,6 +52,10 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
 class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]):
         super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> ITuple[TOut]:
+        return self._Clone(self._GetContainer().SliceAt(key))
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], Extensions.EquatableTuple[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]):
         super().__init__(items)
@@ -57,6 +65,10 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
     
     def Equals(self, item: object) -> bool:
         return self is item or self._GetContainer().Equals(item)
+    
+    @final
+    def SliceAt(self, key: slice) -> IEquatableTuple[TOut]:
+        return self._Clone(self._GetContainer().SliceAt(key))
 
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: TSequence):
@@ -73,10 +85,18 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
 class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: IArray[TIn]):
         super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> IArray[TOut]:
+        return self._Clone(self._GetContainer().SliceAt(key))
 
 class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], Extensions.MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
     def __init__(self, items: IList[TIn]):
         super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> IList[TOut]:
+        return self._Clone(self._GetContainer().SliceAt(key))
     
     @final
     def Add(self, item: TOut) -> None:
