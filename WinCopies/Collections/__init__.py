@@ -200,7 +200,7 @@ def ContainsSequenceMultipleTimes[T](l: Sequence[T], values: Sequence[T], i: int
     
     result = GetIndexOfSequence(l, values, initialResult + 1)
     
-    return (result[0] is int, initialResult, result[1], result[2])
+    return (result[0] is not None, initialResult, result[1], result[2])
 def ContainsMultipleSequences[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
     return ContainsSequenceMultipleTimes(l, values)[0]
 
