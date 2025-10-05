@@ -169,6 +169,10 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
 
         self.__valueEnumerable: ICountableEnumerable[TValueOut] = Dictionary[TKey, TValueIn, TValueOut].__ValueEnumerable(self._GetItems(), self._Convert)
     
+    @abstractmethod
+    def _Convert(self, item: TValueIn) -> TValueOut:
+        pass
+    
     @final
     def GetCount(self) -> int:
         return self._GetItems().GetCount()
