@@ -10,7 +10,7 @@ from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
-from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Typing.Object import  IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
 
@@ -244,10 +244,10 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         def __init__(self):
             super().__init__()
 
-            self.__indices: ICountableIterableList[T] = CountableIterableQueue[T]()
+            self.__indices: ICountableEnumerableList[T] = CountableEnumerableQueue[T]()
         
         @final
-        def _GetIndices(self) -> ICountableIterableList[T]:
+        def _GetIndices(self) -> ICountableEnumerableList[T]:
             return self.__indices
         
         @abstractmethod

@@ -14,7 +14,7 @@ from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import ICountableIterableList, CountableIterableQueue
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 
@@ -177,7 +177,7 @@ class ConditionalQueryBuilder(IConditionalQueryBuilder):
 
         self.__query: IQueryBase[object] = query
         self.__stream: IMemoryTextStream = MemoryTextStream()
-        self.__args: ICountableIterableList[object] = CountableIterableQueue[object]()
+        self.__args: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
     
     @final
     def _GetQuery(self) -> IQueryBase[object]:
@@ -188,7 +188,7 @@ class ConditionalQueryBuilder(IConditionalQueryBuilder):
         return self.__stream
     
     @final
-    def _GetArgs(self) -> ICountableIterableList[object]:
+    def _GetArgs(self) -> ICountableEnumerableList[object]:
         return self.__args
     
     @final

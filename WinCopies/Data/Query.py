@@ -15,7 +15,7 @@ from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
-from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableIterableQueue
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
 
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Object import IValueItem, IString
@@ -438,7 +438,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
-        args: CountableIterableQueue[object] = CountableIterableQueue[object]()
+        args: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
 
         def getValues() -> DualResult[str, str]:
             def join(values: Iterable[str]) -> str:
@@ -474,7 +474,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
         def join(values: Iterable[str]) -> str:
             return ", ".join(values)
         
-        globalArgs: CountableIterableQueue[object] = CountableIterableQueue[object]()
+        globalArgs: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
         columns: ICountableEnumerable[IString] = self.GetColumns()
 
         def getArguments(values: Iterable[object]) -> str:
