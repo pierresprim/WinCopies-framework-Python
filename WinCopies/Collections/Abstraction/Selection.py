@@ -1,4 +1,4 @@
-from typing import final, Self
+from typing import final
 
 from WinCopies.Collections.Abstract import Collection
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
@@ -11,8 +11,7 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
 
         self.__converter: Converter[TIn, TOut] = converter
     
-    @final
-    def _Clone(self, items: ITuple[TIn]) -> Self:
+    def _Clone(self, items: ITuple[TIn]) -> Tuple[TIn, TOut]:
         return Tuple[TIn, TOut](items, self.__converter)
     
     @final
@@ -24,8 +23,7 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Equat
 
         self.__converter: Converter[TIn, TOut] = converter
     
-    @final
-    def _Clone(self, items: IEquatableTuple[TIn]) -> Self:
+    def _Clone(self, items: IEquatableTuple[TIn]) -> EquatableTuple[TIn, TOut]:
         return EquatableTuple[TIn, TOut](items, self.__converter)
     
     @final
@@ -39,8 +37,7 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
         self.__converter: Converter[TIn, TOut] = converter
         self.__backConverter: Converter[TOut, TIn] = backConverter
     
-    @final
-    def _Clone(self, items: IArray[TIn]) -> Self:
+    def _Clone(self, items: IArray[TIn]) -> Array[TIn, TOut]:
         return Array[TIn, TOut](items, self.__converter, self.__backConverter)
     
     @final
@@ -57,8 +54,7 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
         self.__converter: Converter[TIn, TOut] = converter
         self.__backConverter: Converter[TOut, TIn] = backConverter
     
-    @final
-    def _Clone(self, items: IList[TIn]) -> Self:
+    def _Clone(self, items: IList[TIn]) -> List[TIn, TOut]:
         return List[TIn, TOut](items, self.__converter, self.__backConverter)
     
     @final
