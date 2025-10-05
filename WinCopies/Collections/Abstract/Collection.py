@@ -180,7 +180,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         return self._GetItems().Clear()
     
     @final
-    def TryGetIterator(self) -> Iterator[IKeyValuePair[TKey, TValueOut]]|None:
+    def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValueOut]]|None:
         enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]|None = self._GetItems().TryGetEnumerator()
 
         return None if enumerator is None else Dictionary[TKey, TValueIn, TValueOut].__Enumerator(self, enumerator)
