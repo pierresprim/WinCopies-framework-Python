@@ -474,7 +474,7 @@ class CountableStack[T](Countable[T]):
 
         self.PushItems(values)
 
-class CountableEnumerableBase[TItems, TList](CountableBase[TItems, TList], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
+class CountableEnumerableBase[TItems, TList](CountableBase[TItems, TList], Enumeration.Enumerable[TItems], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
     def __init__(self, l: TList):
         super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
