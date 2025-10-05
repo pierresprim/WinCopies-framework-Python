@@ -539,6 +539,21 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T]):
         self.__count: int = 0
     
     @final
+    def __OnAdded(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]:
+        self.__count += 1
+
+        return node
+    
+    @final
+    def __OnRemovedItem(self) -> None:
+        self.__count -= 1
+    @final
+    def __OnRemoved(self, value: INullable[T]) -> INullable[T]:
+        self.__OnRemovedItem()
+
+        return value
+    
+    @final
     def _GetItems(self) -> IList[T]:
         return self.__items
     
@@ -563,28 +578,30 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T]):
     
     @final
     def AddFirst(self, value: T) -> IDoublyLinkedNode[T]:
-        return self._GetItems().AddFirst(value)
+        return self.__OnAdded(self._GetItems().AddFirst(value))
     @final
     def AddLast(self, value: T) -> IDoublyLinkedNode[T]:
-        return self._GetItems().AddLast(value)
+        return self.__OnAdded(self._GetItems().AddLast(value))
     
     @final
     def AddBefore(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
-        return self._GetItems().AddBefore(node, value)
+        return self.__OnAdded(self._GetItems().AddBefore(node, value))
     @final
     def AddAfter(self, node: IDoublyLinkedNode[T], value: T) -> IDoublyLinkedNode[T]:
-        return self._GetItems().AddAfter(node, value)
+        return self.__OnAdded(self._GetItems().AddAfter(node, value))
     
     @final
     def Remove(self, node: IDoublyLinkedNode[T]) -> None:
-        return self._GetItems().Remove(node)
+        self._GetItems().Remove(node)
+
+        self.__OnRemovedItem()
     
     @final
     def RemoveFirst(self) -> INullable[T]:
-        return self._GetItems().RemoveFirst()
+        return self.__OnRemoved(self._GetItems().RemoveFirst())
     @final
     def RemoveLast(self) -> INullable[T]:
-        return self._GetItems().RemoveLast()
+        return self.__OnRemoved(self._GetItems().RemoveLast())
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
