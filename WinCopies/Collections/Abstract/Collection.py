@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
-from typing import final
+from collections.abc import Iterable, Iterator, Sequence
+from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import Extensions
@@ -29,8 +29,21 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
         return self._Convert(self._GetInnerContainer().GetAt(key))
     
     @final
+    def Contains(self, value: TOut|object) -> bool:
+        return value in self.AsSequence()
+    
+    @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetInnerContainer().TryGetEnumerator()
+    
+    @overload
+    def __getitem__(self, index: int) -> TOut: ...
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[TOut]: ...
+    
+    @final
+    def __getitem__(self, index: int|slice) -> TOut|Sequence[TOut]:
+        return self._Convert(self._GetInnerContainer().GetAt(index)) if isinstance(index, int) else self.SliceAt(index).AsSequence()
 
 class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]):
@@ -38,6 +51,12 @@ class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut]
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], Extensions.EquatableTuple[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]):
         super().__init__(items)
+    
+    def Hash(self) -> int:
+        return self._GetContainer().Hash()
+    
+    def Equals(self, item: object) -> bool:
+        return self is item or self._GetContainer().Equals(item)
 
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: TSequence):
@@ -64,6 +83,10 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], E
         self._GetContainer().Add(self._ConvertBack(item))
     
     @final
+    def TryInsert(self, index: int, value: TOut) -> bool:
+        return self._GetContainer().TryInsert(index, self._ConvertBack(value))
+    
+    @final
     def RemoveAt(self, index: int) -> None:
         self._GetContainer().RemoveAt(index)
     @final
@@ -80,6 +103,23 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], E
     @final
     def Clear(self) -> None:
         self._GetContainer().Clear()
+    
+    @final
+    def insert(self, index: int, value: TOut) -> None:
+        self._GetContainer().AsMutableSequence().insert(index, self._ConvertBack(value))
+    
+    @overload
+    def __setitem__(self, index: SupportsIndex, value: TOut) -> None: ...
+    @overload
+    def __setitem__(self, index: slice, value: Iterable[TOut]) -> None: ...
+    
+    @final
+    def __setitem__(self, index: SupportsIndex|slice, value: TOut|Iterable[TOut]) -> None:
+        self._GetContainer().AsMutableSequence()[index] = value # type: ignore
+    
+    @final
+    def __delitem__(self, index: int|slice):
+        del self._GetContainer().AsMutableSequence()[index]
 
 class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], Extensions.Dictionary[TKey, TValueOut]):
     @final
