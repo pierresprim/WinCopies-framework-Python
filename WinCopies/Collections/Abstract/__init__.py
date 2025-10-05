@@ -35,6 +35,9 @@ class Converter[TIn, TOut, TSequence: IStringable, TInterface](SelectorBase[TIn,
     
     def ToString(self) -> str:
         return self._GetContainer().ToString()
+class TwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](Converter[TIn, TOut, TSequence, TInterface], TwoWayConverterBase[TIn, TOut]):
+    def __init__(self, items: TSequence):
+        super().__init__(items)
 
 class Selector[TIn, TOut, TSequence: IStringable](TwoWayConverterBase[TIn, TOut], SelectorBase[TIn, TOut]):
     def __init__(self, items: TSequence):
