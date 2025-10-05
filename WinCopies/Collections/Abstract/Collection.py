@@ -9,7 +9,7 @@ from WinCopies.Collections import Extensions
 from WinCopies.Collections.Abstract import Converter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IArray, IList, IDictionary, ISet
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Delegates import TryGetSelectedEqualityComparison
 from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem
@@ -35,8 +35,8 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
 class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]):
         super().__init__(items)
-class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.EquatableTuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
-    def __init__(self, items: ITuple[TIn]):
+class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], Extensions.EquatableTuple[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
+    def __init__(self, items: IEquatableTuple[TIn]):
         super().__init__(items)
 
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
