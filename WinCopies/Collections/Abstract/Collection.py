@@ -16,7 +16,7 @@ from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImp
 from WinCopies.Typing.Delegate import EqualityComparison, Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
+class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: TSequence):
         super().__init__(items)
     
@@ -55,7 +55,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut]
     def __init__(self, items: IArray[TIn]):
         super().__init__(items)
 
-class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
+class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], Extensions.MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
     def __init__(self, items: IList[TIn]):
         super().__init__(items)
     
@@ -81,7 +81,7 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], I
     def Clear(self) -> None:
         self._GetContainer().Clear()
 
-class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], IDictionary[TKey, TValueOut]):
+class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], Extensions.Dictionary[TKey, TValueOut]):
     @final
     class __ValueEnumerable(CountableEnumerable[TValueOut]):
         def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]):
@@ -185,7 +185,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
 
         return None if enumerator is None else Dictionary[TKey, TValueIn, TValueOut].__Enumerator(self, enumerator)
 
-class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], ISet[TOut], EnumerableBase[TIn, TOut]):
+class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], Extensions.Set[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: Extensions.ISet[TIn]):
         super().__init__(items)
 
