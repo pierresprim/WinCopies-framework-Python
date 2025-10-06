@@ -196,6 +196,9 @@ def GetNullable[T](value: T) -> INullable[T]:
 def GetNullValue[T]() -> INullable[T]: # type: ignore
     return __nullValue # type: ignore
 
+def TryGetValue[T](value: INullable[T]|None) -> T|None:
+    return None if value is None else value.TryGetValue()
+
 class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
     def __init__(self):
         super().__init__()
