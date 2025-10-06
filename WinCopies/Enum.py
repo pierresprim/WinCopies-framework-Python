@@ -43,27 +43,27 @@ def EnsureFieldOf(e: Type[Enum], f: Enum) -> None:
     if not IsFieldOf(e, f):
         raise ValueError
 
-def AsKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
+def ToKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
     return KeyValuePair(e.name, e.value)
 
-def AsKeyValuePairs(e: Type[Enum]) -> Iterable[KeyValuePair[str, int]]:
+def ToKeyValuePairs(e: Type[Enum]) -> Iterable[KeyValuePair[str, int]]:
     for value in e:
-        yield AsKeyValuePair(value)
+        yield ToKeyValuePair(value)
 
-def AsTuple(e: Enum) -> tuple[str, int]:
+def ToTuple(e: Enum) -> tuple[str, int]:
     return (e.name, e.value)
 
-def AsTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
+def ToTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
     for value in e:
-        yield AsTuple(value)
+        yield ToTuple(value)
 
 def IsIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> bool:
     EnsureEnum(e)
 
     if isinstance(t, tuple):
-        return t in AsTuples(e)
+        return t in ToTuples(e)
     
-    for item in AsKeyValuePairs(e):
+    for item in ToKeyValuePairs(e):
         if t.GetKey() == item.GetKey() and t.GetValue() == item.GetValue():
             return True
     
