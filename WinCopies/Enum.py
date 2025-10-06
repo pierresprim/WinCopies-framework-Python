@@ -1,8 +1,8 @@
-from collections.abc import Iterable
 from typing import Type
 from enum import Enum, Flag
 
 from WinCopies.Assertion import EnsureSubclass, EnsureEnum
+from WinCopies.Collections import Generator
 from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Predicate, Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
@@ -120,7 +120,7 @@ def ToKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
     """
     return KeyValuePair(e.name, e.value)
 
-def ToKeyValuePairs(e: Type[Enum]) -> Iterable[KeyValuePair[str, int]]:
+def ToKeyValuePairs(e: Type[Enum]) -> Generator[KeyValuePair[str, int]]:
     """Converts all members of an enum to key-value pairs.
 
     Args:
@@ -143,7 +143,7 @@ def ToTuple(e: Enum) -> tuple[str, int]:
     """
     return (e.name, e.value)
 
-def ToTuples(e: Type[Enum]) -> Iterable[tuple[str, int]]:
+def ToTuples(e: Type[Enum]) -> Generator[tuple[str, int]]:
     """Converts all members of an enum to tuples.
 
     Args:
