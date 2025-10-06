@@ -150,9 +150,13 @@ class INullable[T](IInterface):
     @abstractmethod
     def GetValue(self) -> T:
         pass
+    
     @final
-    def TryGetValue[U](self, default: U|None = None) -> T|U|None:
+    def TryGetValueOrDefault[U](self, default: U) -> T|U:
         return self.GetValue() if self.HasValue() else default
+    @final
+    def TryGetValue(self) -> T|None:
+        return self.TryGetValueOrDefault(None)
     
     @final
     def Convert[TOut](self, converter: Callable[[T], TOut]) -> TOut:
