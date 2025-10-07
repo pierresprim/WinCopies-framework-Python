@@ -12,7 +12,7 @@ from typing import Sequence, final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction.Collection import Array
-from WinCopies.Typing import Reflection, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import Reflection, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -88,7 +88,7 @@ class IFrameInspector(IInterface):
         pass
     
     @abstractmethod
-    def TryGetModuleName(self) -> INullable[str|None]:
+    def TryGetModuleName(self) -> INullable[str]|None:
         pass
     
     @abstractmethod
@@ -96,7 +96,7 @@ class IFrameInspector(IInterface):
         pass
     
     @abstractmethod
-    def TryGetModule(self) -> INullable[ModuleType|None]:
+    def TryGetModule(self) -> INullable[ModuleType]|None:
         pass
     
     @abstractmethod
@@ -122,14 +122,14 @@ class IFrameInspector(IInterface):
         pass
     
     @abstractmethod
-    def TryGetFunctionFullName(self) -> INullable[str|None]:
+    def TryGetFunctionFullName(self) -> INullable[str]|None:
         pass
     
     @abstractmethod
-    def TryIsMain(self) -> INullable[bool|None]:
+    def TryIsMain(self) -> INullable[bool]|None:
         pass
     @abstractmethod
-    def TryIsBuiltin(self) -> INullable[bool|None]:
+    def TryIsBuiltin(self) -> INullable[bool]|None:
         pass
 class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
     def __init__(self):
@@ -197,16 +197,16 @@ class __FrameInspector(IFrameInspector):
     def GetFileName(self) -> str:
         return self.__frameInfo.GetFileName()
     
-    def TryGetModuleName(self) -> INullable[str|None]:
+    def TryGetModuleName(self) -> INullable[str]|None:
         return Reflection.TryGetModuleNameFromFrame(self.GetFrame())
     
     def TryGetPackageName(self) -> str|None:
         return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
     
-    def TryGetModule(self) -> INullable[ModuleType|None]:
-        module: INullable[ModuleType|None] = Reflection.TryGetModuleFromFrame(self.GetFrame())
+    def TryGetModule(self) -> INullable[ModuleType]|None:
+        module: INullable[ModuleType]|None = Reflection.TryGetModuleFromFrame(self.GetFrame())
 
-        return GetNullable(Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())) if module.TryGetValue() is None else module
+        return GetNullable(Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())) if TryGetValue(module) is None else module
     
     def TryGetPackage(self) -> ModuleType|None:
         packageName: str|None = self.TryGetPackageName()
@@ -228,23 +228,23 @@ class __FrameInspector(IFrameInspector):
         return self.__frameInfo.GetLineNumber()
     
     def HasModule(self) -> bool:
-        return self.TryGetModule().TryGetValue() is not None
+        return TryGetValue(self.TryGetModule()) is not None
     def HasPackage(self) -> bool:
         return self.TryGetPackage() is not None
     
-    def TryGetFunctionFullName(self) -> INullable[str|None]:
-        moduleName: INullable[str|None] = self.TryGetModuleName()
+    def TryGetFunctionFullName(self) -> INullable[str]|None:
+        moduleName: INullable[str]|None = self.TryGetModuleName()
 
-        if moduleName.HasValue():
-            value: str|None = moduleName.TryGetValue()
+        if moduleName is None:
+            return None
 
-            return GetNullable(None if value is None else f"{value}.{self.GetFunctionName()}")
-        
-        return moduleName
+        value: str|None = moduleName.TryGetValue()
+
+        return GetNullValue() if value is None else GetNullable(f"{value}.{self.GetFunctionName()}")
     
-    def TryIsMain(self) -> INullable[bool|None]:
+    def TryIsMain(self) -> INullable[bool]|None:
         return Reflection.TryIsMain(self.GetFrame())
-    def TryIsBuiltin(self) -> INullable[bool|None]:
+    def TryIsBuiltin(self) -> INullable[bool]|None:
         return Reflection.TryIsBuiltin(self.GetFrame())
 
 def CreateFrameInspector(frameInfo: FrameInfo) -> IFrameInspector:
@@ -289,13 +289,13 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     def GetFileName(self) -> str:
         return self.__GetFrameInspector().GetFileName()
     
-    def TryGetModuleName(self) -> INullable[str|None]:
+    def TryGetModuleName(self) -> INullable[str]|None:
         return self.__GetFrameInspector().TryGetModuleName()
     
     def TryGetPackageName(self) -> str|None:
         return self.__GetFrameInspector().TryGetPackageName()
     
-    def TryGetModule(self) -> INullable[ModuleType|None]:
+    def TryGetModule(self) -> INullable[ModuleType]|None:
         return self.__GetFrameInspector().TryGetModule()
     
     def TryGetPackage(self) -> ModuleType|None:
@@ -314,12 +314,12 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     def HasPackage(self) -> bool:
         return self.__GetFrameInspector().HasPackage()
     
-    def TryGetFunctionFullName(self) -> INullable[str|None]:
+    def TryGetFunctionFullName(self) -> INullable[str]|None:
         return self.__GetFrameInspector().TryGetFunctionFullName()
     
-    def TryIsMain(self) -> INullable[bool|None]:
+    def TryIsMain(self) -> INullable[bool]|None:
         return self.__GetFrameInspector().TryIsMain()
-    def TryIsBuiltin(self) -> INullable[bool|None]:
+    def TryIsBuiltin(self) -> INullable[bool]|None:
         return self.__GetFrameInspector().TryIsBuiltin()
     
     def Dispose(self) -> None:
@@ -333,23 +333,23 @@ class FrameHierarchy(IInterface):
         self.__hierarchy: INullable[IArray[str]]|None = None
     
     def TryGetModuleName(self) -> str|None:
-        return self.__inspector.TryGetModuleName().TryGetValue()
+        return TryGetValue(self.__inspector.TryGetModuleName())
     def TryGetPackageName(self) -> str|None:
         return self.__inspector.TryGetPackageName()
     
     def TryIsMain(self) -> bool|None:
-        return self.__inspector.TryIsMain().TryGetValue()
+        return TryGetValue(self.__inspector.TryIsMain())
     def TryIsBuiltin(self) -> bool|None:
-        return self.__inspector.TryIsBuiltin().TryGetValue()
+        return TryGetValue(self.__inspector.TryIsBuiltin())
     
     def GetFileName(self) -> str:
         return self.__inspector.GetFileName()
     
     def TryGetHierarchy(self) -> INullable[IArray[str]]:
         def tryGetModuleName(inspector: IFrameInspector) -> str|None:
-            moduleName: INullable[str|None] = inspector.TryGetModuleName()
+            moduleName: INullable[str]|None = inspector.TryGetModuleName()
 
-            return moduleName.TryGetValue()
+            return TryGetValue(moduleName)
         
         if self.__hierarchy is None:
             def tryGetHierarchy() -> INullable[IArray[str]]:

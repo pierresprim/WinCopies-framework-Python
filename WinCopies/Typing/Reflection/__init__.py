@@ -10,7 +10,7 @@ from typing import List, Type
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
 from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
-from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
 from WinCopies.Typing.Delegate import Converter, Selector
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
@@ -167,39 +167,36 @@ def EnsureModuleIsInPackage(module: ModuleType, package: ModuleType) -> None:
     """
     EnsureTrue(IsModuleInPackage(module, package))
 
-def TryGetModuleNameFromFrame(frame: FrameType) -> INullable[str|None]:
+def TryGetModuleNameFromFrame(frame: FrameType) -> INullable[str]|None:
     """Tries to get the module name from a frame.
 
     Args:
         frame: The frame to extract the module name from.
 
     Returns:
-        INullable with None if not found, with the name if found, or null value if invalid type.
+        None if not found; or INullable with the name if found or null value if invalid type.
     """
     moduleName: object|None = frame.f_globals.get('__name__')
 
-    return GetNullable(None) if moduleName is None else (GetNullable(moduleName) if isinstance(moduleName, str) else GetNullValue())
+    return None if moduleName is None else (GetNullable(moduleName) if isinstance(moduleName, str) else GetNullValue())
 
-def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType|None]:
+def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType]|None:
     """Tries to get the module from a frame.
 
     Args:
         frame: The frame to extract the module from.
 
     Returns:
-        INullable with None if module name not found, with the module if found, or null value if module not in sys.modules.
+        None if module name not found; or INullable with the module if found or null value if module not in sys.modules.
     """
-    moduleName: str|None = TryGetModuleNameFromFrame(frame).TryGetValue()
+    moduleName: str|None = TryGetValue(TryGetModuleNameFromFrame(frame))
 
     if moduleName is None:
-        return GetNullable(None)
+        return None
 
     module: ModuleType|None = modules.get(moduleName)
 
-    if module is not None:
-        return GetNullable(module)
-
-    return GetNullValue()
+    return GetNullValue() if module is None else GetNullable(module)
 
 def TryFindModuleFromFileName(fileName: str) -> ModuleType|None:
     """Tries to find a module by its file name in sys.modules.
@@ -249,12 +246,7 @@ def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> 
     Returns:
         True if the module is in the package, False otherwise.
     """
-    def tryGetModule() -> ModuleType|None:
-        module: INullable[ModuleType|None] = TryGetModuleFromFrame(frame)
-
-        return module.GetValue() if module.HasValue() else None
-
-    module: ModuleType|None = tryGetModule()
+    module: ModuleType|None = TryGetValue(TryGetModuleFromFrame(frame))
 
     if module is None:
         return False
@@ -272,15 +264,15 @@ def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> 
 
         return IsSubmoduleFromNames(getName(module), getName(package))
 
-def __TryOnModuleNameFromFrame[T](frame: FrameType, func: Converter[str, T]) -> INullable[T|None]:
-    result: INullable[str|None] = TryGetModuleNameFromFrame(frame)
+def __TryOnModuleNameFromFrame[T](frame: FrameType, func: Converter[str, T]) -> INullable[T]|None:
+    result: INullable[str]|None = TryGetModuleNameFromFrame(frame)
 
-    if result.HasValue():
-        value: str|None = result.GetValue()
+    if result is None:
+        return None
 
-        return GetNullable(None if value is None else func(value))
-    
-    return GetNullValue()
+    value: str|None = result.TryGetValue()
+
+    return GetNullValue() if value is None else GetNullable(func(value))
 def IsMain(moduleName: str) -> bool:
     """Checks if a module name is '__main__'.
 
@@ -291,14 +283,14 @@ def IsMain(moduleName: str) -> bool:
         True if the module name is '__main__', False otherwise.
     """
     return moduleName == '__main__'
-def TryIsMain(frame: FrameType) -> INullable[bool|None]:
+def TryIsMain(frame: FrameType) -> INullable[bool]|None:
     """Tries to check if the module from a frame is '__main__'.
 
     Args:
         frame: The frame to check.
 
     Returns:
-        INullable with None if module name not found, with bool result if found, or null value if invalid.
+        None if module name not found; or INullable with bool result if found or null value if invalid.
     """
     return __TryOnModuleNameFromFrame(frame, IsMain)
 
@@ -312,14 +304,14 @@ def IsBuiltin(moduleName: str) -> bool:
         True if the module is built-in, False otherwise.
     """
     return moduleName in builtin_module_names
-def TryIsBuiltin(frame: FrameType) -> INullable[bool|None]:
+def TryIsBuiltin(frame: FrameType) -> INullable[bool]|None:
     """Tries to check if the module from a frame is built-in.
 
     Args:
         frame: The frame to check.
 
     Returns:
-        INullable with None if module name not found, with bool result if found, or null value if invalid.
+        None if module name not found; or INullable with bool result if found or null value if invalid.
     """
     return __TryOnModuleNameFromFrame(frame, IsBuiltin)
 
