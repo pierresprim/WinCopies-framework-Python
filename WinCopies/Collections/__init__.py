@@ -5,10 +5,9 @@ import collections.abc
 from abc import abstractmethod
 from collections.abc import Sized, Iterable, Container, Sequence, MutableSequence
 from contextlib import AbstractContextManager
-from enum import Enum
 from typing import final, Callable
 
-from WinCopies import IInterface, Abstract, Not
+from WinCopies import IInterface, Abstract, BooleanableEnum, NullableBoolean, Not
 from WinCopies.Delegates import CompareEquality
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
@@ -18,17 +17,25 @@ from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo
 
 type Generator[T] = collections.abc.Generator[T, None, None]
 
-class IterableScanResult(Enum):
+class IterableScanResult(BooleanableEnum):
     DoesNotExist = -2
     Empty = -1
     Success = 0
     Error = 1
-
-    def __bool__(self) -> bool:
-        return self.value >= 0
     
     def Not(self) -> IterableScanResult:
         return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
+class IterationResult(BooleanableEnum):
+    Error = -1
+    Success = 0
+    Empty = 1
+    Null = 2
+    
+    def ToNullableBool(self) -> bool|None:
+        return True if self == IterationResult.Success else (None if self.value > 0 else False)
+    
+    def ToNullableBoolean(self) -> NullableBoolean:
+        return NullableBoolean.BoolTrue if self == IterationResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
 
 def ValidateIndex(index: int, length: int) -> bool:
     return Between(0, index, length, True, False)

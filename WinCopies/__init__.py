@@ -39,13 +39,14 @@ class INullableBooleanable(IInterface):
     def ToNullableBool(self) -> bool|None:
         return ToNullableBool(self.ToNullableBoolean())
 
-class NullableBoolean(Enum):
+class BooleanableEnum(Enum):
+    def __bool__(self) -> bool:
+        return self.value >= 0
+
+class NullableBoolean(BooleanableEnum):
     BoolFalse = -1
     Null = 0
     BoolTrue = 1
-
-    def __bool__(self) -> bool:
-        return self.value > 0
     
     def Not(self) -> NullableBoolean:
         return NullableBoolean.BoolFalse if self else NullableBoolean.BoolTrue
