@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Iterator
 
+from WinCopies import NullableBoolean
 from WinCopies.Collections import Enumeration, Generator, IterationResult
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
@@ -505,6 +506,26 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
             return IterationResult.Error
 
     return IterationResult.Success if enumerator.HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
+def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
+    match ValidateOnlyOne(items, predicate):
+        case IterationResult.Success:
+            return True
+        case IterationResult.Null:
+            return None
+        case _:
+            return False
+
 def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
     if not ValidateOnlyOne(items, predicate):
         raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
+def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
+    def raiseError(msg: str) -> None:
+        raise ValueError(msg if errorMessage is None else errorMessage)
+    
+    match ValidateOnlyOne(items, predicate).ToNullableBoolean():
+        case NullableBoolean.Null:
+            raiseError("No item found.")
+        case NullableBoolean.BoolFalse:
+            raiseError("More than one value validating the given predicate were found.")
+        case _:
+            pass
