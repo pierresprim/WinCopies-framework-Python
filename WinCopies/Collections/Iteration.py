@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Iterator
 
-from WinCopies.Collections import Generator, Enumeration
+from WinCopies.Collections import Enumeration, Generator, IterationResult
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
@@ -478,9 +478,9 @@ def Any[T](items: Iterable[T]|None) -> bool|None:
 
     return False
 
-def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
+def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> IterationResult:
     if items is None:
-        return None
+        return IterationResult.Null
 
     validator: Predicate[T]|None = None
 
@@ -494,12 +494,17 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool
 
     validator = validate
 
-    for item in items:
+    enumerator: IEnumerator[T]|None = Enumeration.Iterable[T].Create(items).TryGetEnumerator()
+
+    if enumerator is None:
+        return IterationResult.Empty
+    
+    for item in enumerator.AsIterator():
         if validator(item):
             # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
-            return False
+            return IterationResult.Error
 
-    return True # Validation succeeded.
+    return IterationResult.Success if enumerator.HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
 def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
     if not ValidateOnlyOne(items, predicate):
         raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
