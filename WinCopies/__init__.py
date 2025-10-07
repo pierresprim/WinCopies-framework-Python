@@ -62,11 +62,11 @@ def ToNullableBool(value: NullableBoolean) -> bool|None:
             return True
     
     return ValueError(value)
-def ToNullableBoolean(value: bool|None|object) -> NullableBoolean:
+def ToNullableBoolean(value: bool|None) -> NullableBoolean:
     if value is None:
         return NullableBoolean.Null
     
-    if isinstance(value, bool):
+    if isinstance(value, bool): # type: ignore
         return NullableBoolean.BoolTrue if value else NullableBoolean.BoolFalse
     
     raise ValueError(f"value must be True, False or None. value is: {type(value)}", value)
