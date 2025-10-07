@@ -96,7 +96,7 @@ class IFrameInspector(IInterface):
         pass
     
     @abstractmethod
-    def TryGetModule(self) -> INullable[ModuleType]|None:
+    def TryGetModule(self) -> ModuleType|None:
         pass
     
     @abstractmethod
@@ -203,15 +203,21 @@ class __FrameInspector(IFrameInspector):
     def TryGetPackageName(self) -> str|None:
         return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
     
-    def TryGetModule(self) -> INullable[ModuleType]|None:
+    def TryGetModule(self) -> ModuleType|None:
+        def getResult() -> ModuleType|None:
+            return Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())
+        
         module: INullable[ModuleType]|None = Reflection.TryGetModuleFromFrame(self.GetFrame())
 
-        if TryGetValue(module) is None:
-            result: ModuleType|None = Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())
-
-            return None if result is None else GetNullable(result)
+        if module is None:
+            return getResult()
         
-        return module
+        result: ModuleType|None = module.TryGetValue()
+
+        if result is None:
+            return getResult()
+        
+        return result
     
     def TryGetPackage(self) -> ModuleType|None:
         packageName: str|None = self.TryGetPackageName()
@@ -233,7 +239,7 @@ class __FrameInspector(IFrameInspector):
         return self.__frameInfo.GetLineNumber()
     
     def HasModule(self) -> bool:
-        return TryGetValue(self.TryGetModule()) is not None
+        return self.TryGetModule() is not None
     def HasPackage(self) -> bool:
         return self.TryGetPackage() is not None
     
@@ -300,7 +306,7 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     def TryGetPackageName(self) -> str|None:
         return self.__GetFrameInspector().TryGetPackageName()
     
-    def TryGetModule(self) -> INullable[ModuleType]|None:
+    def TryGetModule(self) -> ModuleType|None:
         return self.__GetFrameInspector().TryGetModule()
     
     def TryGetPackage(self) -> ModuleType|None:
