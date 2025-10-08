@@ -3,7 +3,7 @@ from typing import final, Callable
 
 from WinCopies import IInterface
 from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode
-from WinCopies.Collections.Abstraction.Linked import IterableStack
+from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
@@ -52,7 +52,7 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
     def __init__(self):
         super().__init__()
 
-        self.__events = IterableStack[EventHandler[TSender, TArgs]]()
+        self.__events = EnumerableStack[EventHandler[TSender, TArgs]]()
     
     @final
     def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie:
