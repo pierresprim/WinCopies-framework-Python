@@ -449,6 +449,8 @@ class ListBase[T](Enumerable[T], IList[T]):
 
         node._SetPrevious(None) # type: ignore
         node._SetNext(None) # type: ignore
+
+        node._OnRemoved() # type: ignore
     @final
     def Remove(self, node: IDoublyLinkedNode[T]) -> None:
         if not isinstance(node, DoublyLinkedNode):
