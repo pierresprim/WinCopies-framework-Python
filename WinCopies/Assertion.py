@@ -150,4 +150,4 @@ def EnsureFlagEnum(e: type) -> None:
     Raises:
         AssertionError: If e is not a Flag enum type.
     """
-    EnsureSubclass(e, Flag, "e must be Flag enum.")
+    EnsureSubclass(e, Flag, "e must be a Flag enum.")
