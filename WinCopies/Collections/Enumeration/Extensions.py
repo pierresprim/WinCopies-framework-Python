@@ -329,7 +329,7 @@ class IRecursivelyEnumerable[T](IEnumerable[T]):
         return GetEnumerator(self.TryGetRecursiveEnumerator())
     
     @abstractmethod
-    def AsRecursivelyIterable(self) -> SystemIterable[T]:
+    def AsRecursivelyEnumerable(self) -> SystemIterable[T]:
         pass
 
 class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
@@ -372,7 +372,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
         pass
 
     @final
-    def AsRecursivelyIterable(self) -> SystemIterable[T]:
+    def AsRecursivelyEnumerable(self) -> SystemIterable[T]:
         return IteratorProvider[T](lambda: GetIterator(self.TryGetRecursiveEnumerator())) # type: ignore
     
     def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[T]) -> IEnumerator[T]|None:
