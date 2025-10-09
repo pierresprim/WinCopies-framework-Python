@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import final, Self
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 from WinCopies.Typing.Reflection import EnsureDirectPackageCall
 
 class ILinkedNode[T](IInterface):
@@ -26,7 +26,7 @@ class IDoublyLinkedNode[T](ILinkedNode[T]):
     def GetPrevious(self) -> Self|None:
         pass
 
-class LinkedNodeBase[T](IInterface):
+class LinkedNodeBase[T](Abstract, IInterface):
     def __init__(self, value: T):
         super().__init__()
         
@@ -51,7 +51,7 @@ class LinkedNode[TNode: 'LinkedNode', TItems](LinkedNodeBase[TItems], ILinkedNod
     @final
     def _SetNext(self, nextNode: TNode|None) -> None:
         EnsureDirectPackageCall()
-
+        
         self.__next = nextNode
 
 class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
