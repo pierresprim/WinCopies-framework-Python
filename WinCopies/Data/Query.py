@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Sequence
 from typing import final
 
 
@@ -10,7 +10,7 @@ from WinCopies import IDisposable, IInterface
 
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
-from WinCopies.Collections.Enumeration import IEnumerator, IEnumerable, ICountableEnumerable, IterableBase
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
 from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -237,16 +237,14 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     @final
     class __Enumerable(RecursivelyEnumerable[ISubselectionQuery]):
         @final
-        class __IterableSelectionQuery(IterableBase[ISubselectionQuery]):
+        class __IterableSelectionQuery(Enumerable[ISubselectionQuery]):
             def __init__(self, query: ISubselectionQuery):
                 super().__init__()
 
                 self.__query: ISubselectionQuery = query
             
-            def _TryGetIterator(self) -> Iterator[ISubselectionQuery]|None:
-                queries: IEnumerable[ISubselectionQuery]|None = self.__query.GetSubqueries()
-
-                return None if queries is None else (query for query in queries.AsIterable())
+            def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
+                return TryGetEnumerator(self.__query.GetSubqueries())
         
         @final
         class __Enumerator(RecursivelyEnumerable[ISubselectionQuery].StackedEnumerator):
