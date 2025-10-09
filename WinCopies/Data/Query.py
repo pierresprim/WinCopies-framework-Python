@@ -237,7 +237,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     @final
     class __Enumerable(RecursivelyEnumerable[ISubselectionQuery]):
         @final
-        class __IterableSelectionQuery(Enumerable[ISubselectionQuery]):
+        class __EnumerableSelectionQuery(Enumerable[ISubselectionQuery]):
             def __init__(self, query: ISubselectionQuery):
                 super().__init__()
 
@@ -275,7 +275,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             self.__queryBuilder: ISelectionQueryBuilder = queryBuilder
         
         def _AsRecursivelyEnumerable(self, container: ISubselectionQuery) -> IEnumerable[ISubselectionQuery]:
-            return SelectionQuery.__Enumerable.__IterableSelectionQuery(container)
+            return SelectionQuery.__Enumerable.__EnumerableSelectionQuery(container)
         
         def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery]) -> IEnumerator[ISubselectionQuery]|None:
             return SelectionQuery.__Enumerable.__Enumerator(self, enumerator, self.__queryBuilder)
