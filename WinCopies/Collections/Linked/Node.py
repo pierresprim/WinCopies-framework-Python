@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Typing.Reflection import EnsureDirectPackageCall
 
 class ILinkedNode[T](IInterface):
     def __init__(self):
@@ -50,8 +49,6 @@ class LinkedNode[TNode: 'LinkedNode', TItems](LinkedNodeBase[TItems], ILinkedNod
         return self.__next
     @final
     def _SetNext(self, nextNode: TNode|None) -> None:
-        EnsureDirectPackageCall()
-        
         self.__next = nextNode
 
 class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
@@ -65,6 +62,4 @@ class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLink
         return self.__previous
     @final
     def _SetPrevious(self, previous: TNode|None) -> None:
-        EnsureDirectPackageCall()
-        
         self.__previous = previous
