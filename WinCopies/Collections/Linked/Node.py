@@ -17,13 +17,6 @@ class ILinkedNode[T](IInterface):
     @abstractmethod
     def GetNext(self) -> Self|None:
         pass
-class IDoublyLinkedNode[T](ILinkedNode[T]):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def GetPrevious(self) -> Self|None:
-        pass
 
 class LinkedNodeBase[T](Abstract, IInterface):
     def __init__(self, value: T):
@@ -50,16 +43,3 @@ class LinkedNode[TNode: 'LinkedNode', TItems](LinkedNodeBase[TItems], ILinkedNod
     @final
     def _SetNext(self, nextNode: TNode|None) -> None:
         self.__next = nextNode
-
-class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
-    def __init__(self, value: TItems, previousNode: TNode|None, nextNode: TNode|None):
-        super().__init__(value, nextNode)
-
-        self.__previous: TNode|None = previousNode
-    
-    @final
-    def GetPrevious(self) -> TNode|None:
-        return self.__previous
-    @final
-    def _SetPrevious(self, previous: TNode|None) -> None:
-        self.__previous = previous

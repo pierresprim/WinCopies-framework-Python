@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import final, Callable
+from typing import final, Callable, Self as SelfType
 
 from WinCopies.Assertion import EnsureTrue, GetAssertionError
 from WinCopies.Delegates import Self
@@ -10,10 +10,31 @@ from WinCopies.Collections import Enumeration, Generator, IReadOnlyCollection, I
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, CountableEnumerable, Iterator, Accessor, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import IDoublyLinkedNode, NodeBase
+from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing import InvalidOperationError, IGenericConstraint, IGenericConstraintImplementation, GenericConstraint, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
+class IDoublyLinkedNode[T](ILinkedNode[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetPrevious(self) -> SelfType|None:
+        pass
+
+class NodeBase[TNode: 'NodeBase', TItems](LinkedNode[TNode, TItems], IDoublyLinkedNode[TItems]):
+    def __init__(self, value: TItems, previousNode: TNode|None, nextNode: TNode|None):
+        super().__init__(value, nextNode)
+
+        self.__previous: TNode|None = previousNode
+    
+    @final
+    def GetPrevious(self) -> TNode|None:
+        return self.__previous
+    @final
+    def _SetPrevious(self, previous: TNode|None) -> None:
+        self.__previous = previous
 
 @final
 class DoublyLinkedNode[T](NodeBase['DoublyLinkedNode', T]):
