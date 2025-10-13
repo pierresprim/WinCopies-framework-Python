@@ -768,47 +768,47 @@ class DoublyLinkedNode[TItem, TNode: "DoublyLinkedNode", TNodeInterface, TList, 
         return super().Remove()
 
 @final
-class __Node[T](DoublyLinkedNode[T, "__Node", IDoublyLinkedNode[T], IList[T], ListBase[T, "__Node"]], EnumerableList[T, "__Node", IDoublyLinkedNode[T], ListBase[T, "__Node"]].NodeBase, IDoublyLinkedNode[T], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, value: T, l: ListBase[T, __Node[T]]|None, previousNode: SelfType|None, nextNode: SelfType|None):
+class _Node[T](DoublyLinkedNode[T, "_Node", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node"]], EnumerableList[T, "_Node", IDoublyLinkedNode[T], ListBase[T, "_Node"]].NodeBase, IDoublyLinkedNode[T], IGenericConstraintImplementation[IList[T]]):
+    def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, previousNode: SelfType|None, nextNode: SelfType|None):
         super().__init__(value, l, previousNode, nextNode)
     
     @final
-    def _GetListAsClass(self, l: ListBase[T, __Node[T]]) -> IList[T]:
+    def _GetListAsClass(self, l: ListBase[T, _Node[T]]) -> IList[T]:
         return l
     @final
-    def _GetListAsSpecialized(self, l: ListBase[T, __Node[T]]) -> EnumerableList[T, __Node[T], IDoublyLinkedNode[T], ListBase[T, __Node[T]]]:
+    def _GetListAsSpecialized(self, l: ListBase[T, _Node[T]]) -> EnumerableList[T, _Node[T], IDoublyLinkedNode[T], ListBase[T, _Node[T]]]:
         return l
     
     @final
-    def _GetNodeAsClass(self, node: __Node[T]) -> IDoublyLinkedNode[T]:
+    def _GetNodeAsClass(self, node: _Node[T]) -> IDoublyLinkedNode[T]:
         return node
     
     @final
-    def _AsNode(self) -> __Node[T]:
+    def _AsNode(self) -> _Node[T]:
         return self
     
     @final
-    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> __Node[T]:
-        return __Node[T](value, self._GetInnerList(), previous, next)
+    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _Node[T]:
+        return _Node[T](value, self._GetInnerList(), previous, next)
     
     @final
     def GetList(self) -> IList[T]|None:
         return self._GetList()
 
-class List[T](ListBase[T, __Node[T]]):
+class List[T](ListBase[T, _Node[T]]):
     def __init__(self):
         super().__init__()
     
     @final
-    def _GetNodeAsClass(self, node: __Node[T]) -> IDoublyLinkedNode[T]:
+    def _GetNodeAsClass(self, node: _Node[T]) -> IDoublyLinkedNode[T]:
         return node
     @final
-    def _GetNodeAsInterface(self, node: __Node[T]) -> IDoublyLinkedNodeBase[T, __Node[T]]:
+    def _GetNodeAsInterface(self, node: _Node[T]) -> IDoublyLinkedNodeBase[T, _Node[T]]:
         return node
     
     @final
-    def _GetNode(self, value: T) -> __Node[T]:
-        return __Node[T](value, self, None, None)
+    def _GetNode(self, value: T) -> _Node[T]:
+        return _Node[T](value, self, None, None)
 
 class ICountableLinkedListNode[T](INode[T]):
     def __init__(self):
@@ -854,7 +854,7 @@ class CountableListBase[TItem, TNode](EnumerableList[TItem, TNode, ICountableLin
         return CountableLinkedListNodeEnumerator[TItem](node)
 
 @final
-class __CountableListNode[T](_DoublyLinkedNode[T, "__CountableListNode", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], EnumerableList[T, "__CountableListNode", ICountableLinkedListNode[T], CountableListProvider[T]].NodeBase, ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
+class _CountableListNode[T](_DoublyLinkedNode[T, "_CountableListNode", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], EnumerableList[T, "_CountableListNode", ICountableLinkedListNode[T], CountableListProvider[T]].NodeBase, ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
     def __init__(self, value: T, l: CountableListProvider[T]|None, previousNode: SelfType|None, nextNode: SelfType|None):
         super().__init__(value, l, previousNode, nextNode)
     
@@ -862,11 +862,11 @@ class __CountableListNode[T](_DoublyLinkedNode[T, "__CountableListNode", ICounta
     def _GetListAsClass(self, l: CountableListProvider[T]) -> ICountableList[T]:
         return l.GetItems()
     @final
-    def _GetListAsSpecialized(self, l: CountableListProvider[T]) -> EnumerableList[T, __CountableListNode[T], ICountableLinkedListNode[T], CountableListProvider[T]]:
+    def _GetListAsSpecialized(self, l: CountableListProvider[T]) -> EnumerableList[T, _CountableListNode[T], ICountableLinkedListNode[T], CountableListProvider[T]]:
         return l.GetInnerItems()
     
     @final
-    def _GetNodeAsClass(self, node: __CountableListNode[T]) -> ICountableLinkedListNode[T]:
+    def _GetNodeAsClass(self, node: _CountableListNode[T]) -> ICountableLinkedListNode[T]:
         return node
     
     @final
@@ -874,8 +874,8 @@ class __CountableListNode[T](_DoublyLinkedNode[T, "__CountableListNode", ICounta
         return self
     
     @final
-    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> __CountableListNode[T]:
-        return __CountableListNode[T](value, self._GetInnerList(), previous, next)
+    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _CountableListNode[T]:
+        return _CountableListNode[T](value, self._GetInnerList(), previous, next)
     
     @final
     def GetList(self) -> ICountableList[T]|None:
@@ -893,15 +893,15 @@ class __CountableListNode[T](_DoublyLinkedNode[T, "__CountableListNode", ICounta
             l.OnRemoved(value)
     
     @final
-    def SetPrevious(self, value: T) -> __CountableListNode[T]:
-        node: __CountableListNode[T] = super().SetPrevious(value)
+    def SetPrevious(self, value: T) -> _CountableListNode[T]:
+        node: _CountableListNode[T] = super().SetPrevious(value)
 
         self._OnAdded(node)
 
         return node
     @final
-    def SetNext(self, value: T) -> __CountableListNode[T]:
-        node: __CountableListNode[T] = super().SetNext(value)
+    def SetNext(self, value: T) -> _CountableListNode[T]:
+        node: _CountableListNode[T] = super().SetNext(value)
 
         self._OnAdded(node)
 
@@ -918,20 +918,20 @@ class __CountableListNode[T](_DoublyLinkedNode[T, "__CountableListNode", ICounta
         return value
 
 @final
-class _CountableInnerList[T](CountableListBase[T, __CountableListNode[T]]):
+class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     def __init__(self, l: CountableListProvider[T]):
         super().__init__()
 
         self.__items: CountableListProvider[T] = l
         self.__count: int = 0
     
-    def _GetNodeAsClass(self, node: __CountableListNode[T]) -> ICountableLinkedListNode[T]:
+    def _GetNodeAsClass(self, node: _CountableListNode[T]) -> ICountableLinkedListNode[T]:
         return node
-    def _GetNodeAsInterface(self, node: __CountableListNode[T]) -> IDoublyLinkedNodeBase[T, __CountableListNode[T]]:
+    def _GetNodeAsInterface(self, node: _CountableListNode[T]) -> IDoublyLinkedNodeBase[T, _CountableListNode[T]]:
         return node
     
-    def _GetNode(self, value: T) -> __CountableListNode[T]:
-        return __CountableListNode[T](value, self.__items, None, None)
+    def _GetNode(self, value: T) -> _CountableListNode[T]:
+        return _CountableListNode[T](value, self.__items, None, None)
     
     def AsSized(self) -> Sized:
         return self.__items.AsSized()
