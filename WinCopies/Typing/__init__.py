@@ -105,6 +105,13 @@ class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer
     @final
     def _TryAsContainer(self, container: TContainer|None) -> TInterface|None:
         return None if container is None else self._AsContainer(container)
+class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGenericConstraint[TContainer, TInterface], __IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def _TryAsSpecialized(self, container: TContainer|None) -> TSpecialized|None:
+        return None if container is None else self._AsSpecialized(container)
 
 class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface]):
     def __init__(self):
@@ -116,7 +123,7 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
     @final
     def _GetInnerContainer(self) -> TInterface:
         return self._AsContainer(self._GetContainer())
-class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](GenericConstraint[TContainer, TInterface], __IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
+class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](GenericConstraint[TContainer, TInterface], IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized]):
     def __init__(self):
         super().__init__()
 
