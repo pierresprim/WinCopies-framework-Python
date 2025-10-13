@@ -1,11 +1,9 @@
 from typing import final
 
-import WinCopies.Collections
-
-from WinCopies.Collections import ICountable
+from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
-class Countable(WinCopies.Collections.Countable):
+class Countable(CountableBase):
     def __init__(self, collection: ICountable):
         EnsureDirectModuleCall()
 
@@ -22,5 +20,8 @@ class Countable(WinCopies.Collections.Countable):
         return self._GetCollection().GetCount()
     
     @staticmethod
-    def Create(collection: ICountable) -> ICountable:
+    def Create(collection: ICountable) -> CountableBase:
         return collection if type(collection) == Countable else Countable(collection)
+    @staticmethod
+    def TryCreate(collection: ICountable|None) -> CountableBase|None:
+        return None if collection is None else Countable.Create(collection)
