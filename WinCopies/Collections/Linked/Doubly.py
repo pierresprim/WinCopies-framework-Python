@@ -366,14 +366,13 @@ class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInt
             return self._GetNode(value, previousNode, self._AsNode())
         
         def tryAddFirst() -> TNode|None:
-            def tryAdd(l: TListInterface) -> TNode|None:
+            def tryAdd(l: TListInterface) -> None:
                 if self is self.__GetList(l).GetFirstNode():
-                    return self._AddFirst(getNode(None), l)
+                    self._AddFirst(getNode(None), l)
 
             l: TListInterface|None = self._GetInnerList()
 
-            if l is not None:
-                return tryAdd(l)
+            return None if l is None else tryAdd(l)
         
         result: TNode|None = tryAddFirst()
 
@@ -394,14 +393,13 @@ class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInt
             return self._GetNode(value, self._AsNode(), nextNode)
         
         def tryAddLast() -> TNode|None:
-            def tryAdd(l: TListInterface) -> TNode|None:
+            def tryAdd(l: TListInterface) -> None:
                 if self is self.__GetList(l).GetLastNode():
-                    return self._AddLast(getNode(None), l)
+                    self._AddLast(getNode(None), l)
 
             l: TListInterface|None = self._GetInnerList()
 
-            if l is not None:
-                return tryAdd(l)
+            return None if l is None else tryAdd(l)
         
         result: TNode|None = tryAddLast()
 
@@ -628,7 +626,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     
     @final
     def __TryGetNodeAsClass(self, node: TNode|None) -> TNodeInterface|None:
-        None if node is None else self._GetNodeAsClass(node)
+        return None if node is None else self._GetNodeAsClass(node)
     
     def _AsReadOnly(self) -> IReadOnlyList[TItem]:
         return EnumerableList[TItem, TNode, TNodeInterface, TList]._ReadOnlyList(self)
