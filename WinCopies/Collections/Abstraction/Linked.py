@@ -45,9 +45,7 @@ class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TLis
     
     @final
     def TryPeek(self) -> INullable[TItems]:
-        first: IDoublyLinkedNode[TItems]|None = self._GetFirst()
-
-        return GetNullValue() if first is None else GetNullable(first.GetValue())
+        return self._GetInnerContainer().TryGetFirst()
     
     @final
     def TryPop(self) -> INullable[TItems]:
