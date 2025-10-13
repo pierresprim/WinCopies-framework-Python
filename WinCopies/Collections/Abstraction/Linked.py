@@ -4,13 +4,12 @@ from typing import final
 
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
-from WinCopies.Collections.Linked.Node import IDoublyLinkedNode
 from WinCopies.Collections.Linked import Singly, Doubly
-from WinCopies.Collections.Linked.Doubly import List
+from WinCopies.Collections.Linked.Doubly import INode, List
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
-class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TList, Doubly.IListBase[TItems]]):
+class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TList, Doubly.IReadWriteList[TItems]]):
     def __init__(self, l: TList):
         super().__init__()
 
@@ -20,15 +19,15 @@ class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TLis
     def _GetContainer(self) -> TList:
         return self.__list
     @final
-    def _GetFirst(self) -> IDoublyLinkedNode[TItems]|None: # Needed for iteration.
-        return self._GetInnerContainer().GetFirst()
+    def _GetFirst(self) -> INode[TItems]|None: # Needed for iteration.
+        return self._GetInnerContainer().GetFirstNode()
     
     @final
     def IsEmpty(self) -> bool:
         return self._GetInnerContainer().IsEmpty()
     
     @abstractmethod
-    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
+    def _Push(self, value: TItems) -> INode[TItems]:
         pass
     
     @final
@@ -60,22 +59,22 @@ class QueueBase[TItems, TList](LinkedListBase[TItems, TList]):
         super().__init__(l)
     
     @final
-    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
-        return self._GetInnerContainer().AddLast(value)
+    def _Push(self, value: TItems) -> INode[TItems]:
+        return self._GetInnerContainer().AddLastNode(value)
 class StackBase[TItems, TList](LinkedListBase[TItems, TList]):
     def __init__(self, l: TList):
         super().__init__(l)
     
     @final
-    def _Push(self, value: TItems) -> IDoublyLinkedNode[TItems]:
-        return self._GetInnerContainer().AddFirst(value)
+    def _Push(self, value: TItems) -> INode[TItems]:
+        return self._GetInnerContainer().AddFirstNode(value)
 
-class LinkedList[T](LinkedListBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+class LinkedList[T](LinkedListBase[T, Doubly.IReadWriteList[T]], IGenericConstraintImplementation[Doubly.IReadWriteList[T]]):
+    def __init__(self, l: Doubly.IReadWriteList[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
     
     @staticmethod
-    def GetList(l: Doubly.IListBase[T]|None) -> Doubly.IListBase[T]:
+    def GetList(l: Doubly.IReadWriteList[T]|None) -> Doubly.IReadWriteList[T]:
         return List[T]() if l is None else l
 class EnumerableLinkedList[T](LinkedListBase[T, Doubly.IList[T]], IGenericConstraintImplementation[Doubly.IList[T]]):
     def __init__(self, l: Doubly.IList[T]|None = None):
@@ -85,11 +84,11 @@ class EnumerableLinkedList[T](LinkedListBase[T, Doubly.IList[T]], IGenericConstr
     def GetList(l: Doubly.IList[T]|None) -> Doubly.IList[T]:
         return List[T]() if l is None else l
 
-class Queue[T](QueueBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+class Queue[T](QueueBase[T, Doubly.IReadWriteList[T]], IGenericConstraintImplementation[Doubly.IReadWriteList[T]]):
+    def __init__(self, l: Doubly.IReadWriteList[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
-class Stack[T](StackBase[T, Doubly.IListBase[T]], IGenericConstraintImplementation[Doubly.IListBase[T]]):
-    def __init__(self, l: Doubly.IListBase[T]|None = None):
+class Stack[T](StackBase[T, Doubly.IReadWriteList[T]], IGenericConstraintImplementation[Doubly.IReadWriteList[T]]):
+    def __init__(self, l: Doubly.IReadWriteList[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
 
 class IEnumerableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
