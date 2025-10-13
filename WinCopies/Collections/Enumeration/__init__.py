@@ -6,13 +6,14 @@ Created on Sun Feb 6 20:37:51 2022
 """
 
 from abc import abstractmethod
-from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator
+from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
 from typing import final
 
 from WinCopies import Delegates, IInterface
-from WinCopies.Collections import ICountable, Countable
+from WinCopies.Collections import ICountable, Countable as CountableBase
+from WinCopies.Collections.Abstraction import Countable
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, IEquatableItem
-from WinCopies.Typing.Delegate import Converter, Function
+from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 
 class IEnumeratorBase(IInterface):
     def __init__(self):
@@ -159,9 +160,28 @@ class Enumerable[T](SystemIterable[T], IEnumerable[T]):
 class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
     def __init__(self):
         super().__init__()
-class CountableEnumerable[T](Countable, Enumerable[T], ICountableEnumerable[T]):
+class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
+    @final
+    class __Updater(ValueFunctionUpdater[CountableBase]):
+        def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]):
+            super().__init__(updater)
+
+            self.__items: ICountableEnumerable[T] = items
+        
+        def _GetValue(self) -> CountableBase:
+            return Countable.Create(self.__items)
+    
     def __init__(self):
+        def update(func: IFunction[CountableBase]) -> None:
+            self.__countable = func
+        
         super().__init__()
+        
+        self.__countable: IFunction[CountableBase] = CountableEnumerable[T].__Updater(self, update)
+    
+    @final
+    def AsSized(self) -> Sized:
+        return self.__countable.GetValue()
 
 class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self):
