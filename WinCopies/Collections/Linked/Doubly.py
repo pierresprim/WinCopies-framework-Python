@@ -211,10 +211,10 @@ class IReadWriteList[T](IReadOnlyList[T]):
         return Accessor(lambda: Iterator(enumerate()))
     
     @final
-    def AsQueuedValueEnumerator(self) -> IEnumerator[T]:
+    def AsQueuedEnumerator(self) -> IEnumerator[T]:
         return self.__AsEnumerator(self.RemoveFirst)
     @final
-    def AsStackedValueEnumerator(self) -> IEnumerator[T]:
+    def AsStackedEnumerator(self) -> IEnumerator[T]:
         return self.__AsEnumerator(self.RemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
