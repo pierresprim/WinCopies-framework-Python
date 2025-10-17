@@ -78,7 +78,6 @@ def assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConve
     populateList(l)
 
     enumerator: IEnumerator[T] = assertNotNone(test, enumeratorConverter(l))
-
     values: PyList[int] = []
     
     for value in enumerator.AsIterator():
@@ -372,8 +371,6 @@ class TestList(unittest.TestCase):
 
     def test_enumerate_nodes(self):
         """Enumerate nodes"""
-        populateList(self.__list)
-
         assertEnumeration(self, self.__list, lambda l: l.TryGetNodeEnumerator(), lambda node: node.GetValue())
 
     def test_as_queued_enumerator(self):
