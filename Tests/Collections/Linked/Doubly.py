@@ -22,8 +22,8 @@ from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Converter
 
 def __populateList(l: IReadWriteList[int], action: Callable[[IReadWriteList[int], int], INode[int]], value: int = 3) -> None:
-    for i in range(1, value):
-        action(l, i)
+    for i in range(0, value):
+        action(l, i + 1)
 
 def populateList(l: IReadWriteList[int], value: int = 3) -> None:
     __populateList(l, lambda l, value: l.AddLastNode(value), value)
