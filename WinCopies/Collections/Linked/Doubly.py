@@ -150,7 +150,7 @@ class IReadWriteList[T](IReadOnlyList[T]):
         pass
 
     @final
-    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, INode[T]], other: Converter[INode[T], Converter[T, INode[T]]]) -> bool:
+    def __AddItems(self, items: Iterable[T]|None, first: Converter[T, INode[T]]) -> bool:
         if items is None:
             return False
         
@@ -159,7 +159,7 @@ class IReadWriteList[T](IReadOnlyList[T]):
 
         def add(item: T) -> INode[T]:
             def add(item: T) -> INode[T]:
-                return other(node)(item)
+                return node.SetNext(item)
 
             nonlocal adder
 
@@ -176,13 +176,13 @@ class IReadWriteList[T](IReadOnlyList[T]):
 
     @final
     def AddFirstItems(self, items: Iterable[T]|None) -> bool:
-        return self.__AddItems(items, self.AddFirstNode, lambda node: node.SetNext)
+        return self.__AddItems(items, self.AddFirstNode)
     @final
     def AddFirstValues(self, *values: T) -> bool:
         return self.AddFirstItems(values)
     @final
     def AddLastItems(self, items: Iterable[T]|None) -> bool:
-        return self.__AddItems(items, self.AddLastNode, lambda node: node.SetPrevious)
+        return self.__AddItems(items, self.AddLastNode)
     @final
     def AddLastValues(self, *values: T) -> bool:
         return self.AddLastItems(values)
