@@ -701,9 +701,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
         return None if self.IsEmpty() or first is None else self._GetNodeEnumerator(first) # self.GetFirst() should not be None if self.IsEmpty().
     @final
     def GetNodeEnumerator(self) -> IEnumerator[TNodeInterface]:
-        enumerator: IEnumerator[TNodeInterface]|None = self.TryGetNodeEnumerator()
-
-        return GetEnumerator(enumerator)
+        return GetEnumerator(self.TryGetNodeEnumerator())
     
     @final
     def AsNodeEnumerable(self) -> IEnumerable[TNodeInterface]:
