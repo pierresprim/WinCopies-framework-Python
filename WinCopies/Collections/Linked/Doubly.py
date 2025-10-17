@@ -351,21 +351,25 @@ class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInt
             return self._GetNode(value, previousNode, self._AsNode())
         
         def tryAddFirst() -> TNode|None:
-            def tryAdd(l: TListInterface) -> None:
+            def tryAdd(l: TListInterface) -> TNode|None:
                 if self is self.__GetList(l).GetFirstNode():
-                    self._AddFirst(getNode(None), l)
+                    node: TNode = getNode(None)
+                    
+                    self._AddFirst(node, l)
+
+                    return node
+                
+                return None
 
             l: TListInterface|None = self._GetInnerList()
 
             return None if l is None else tryAdd(l)
-        
-        result: TNode|None = tryAddFirst()
 
-        if result is not None:
-            return result._AsNode()
-        
         previousNode: TNode|None = self.GetPrevious()
-        newNode: TNode = getNode(previousNode)
+        newNode: TNode|None = tryAddFirst()
+        
+        if newNode is None:
+            newNode = getNode(previousNode)
 
         if previousNode is not None:
             previousNode._SetNext(newNode)
@@ -378,21 +382,25 @@ class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInt
             return self._GetNode(value, self._AsNode(), nextNode)
         
         def tryAddLast() -> TNode|None:
-            def tryAdd(l: TListInterface) -> None:
+            def tryAdd(l: TListInterface) -> TNode|None:
                 if self is self.__GetList(l).GetLastNode():
-                    self._AddLast(getNode(None), l)
+                    node: TNode = getNode(None)
+                    
+                    self._AddLast(node, l)
+
+                    return node
+                
+                return None
 
             l: TListInterface|None = self._GetInnerList()
 
             return None if l is None else tryAdd(l)
         
-        result: TNode|None = tryAddLast()
-
-        if result is not None:
-            return result._AsNode()
-        
         nextNode: TNode|None = self.GetNext()
-        newNode: TNode = getNode(nextNode)
+        newNode: TNode|None = tryAddLast()
+        
+        if newNode is None:
+            newNode = getNode(nextNode)
 
         if nextNode is not None:
             nextNode._SetPrevious(newNode)
