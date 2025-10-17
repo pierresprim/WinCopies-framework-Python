@@ -942,7 +942,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     def Decrement(self) -> None:
         self.__count -= 1
 
-class CountableList[T](CountableEnumerable[T], ICountableList[T]):
+class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     @final
     class __CountableListProvider(CountableListProvider[T]):
         def __init__(self, l: CountableList[T]):
@@ -977,7 +977,7 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T]):
     def _OnRemoved(self, value: T) -> None:
         self._GetItems().Decrement()
     
-    @abstractmethod
+    @final
     def _GetItems(self) -> _CountableInnerList[T]:
         return self.__items
     
