@@ -632,7 +632,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     def HasItems(self) -> bool:
         return super().HasItems()
     
-    def __AddNode(self, value: TItem) -> TNode:
+    def _AddNode(self, value: TItem) -> TNode:
         node: TNode = self._GetNode(value)
 
         self._SetFirst(node)
@@ -644,12 +644,12 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     def AddFirst(self, value: TItem) -> TNodeInterface:
         node: TNode|None = self._GetFirst()
         
-        return self._GetNodeAsClass(self.__AddNode(value) if node is None else self._GetNodeAsInterface(node).SetPreviousNode(value))
+        return self._GetNodeAsClass(self._AddNode(value) if node is None else self._GetNodeAsInterface(node).SetPreviousNode(value))
     @final
     def AddLast(self, value: TItem) -> TNodeInterface:
         node: TNode|None = self._GetLast()
         
-        return self._GetNodeAsClass(self.__AddNode(value) if node is None else self._GetNodeAsInterface(node).SetNextNode(value))
+        return self._GetNodeAsClass(self._AddNode(value) if node is None else self._GetNodeAsInterface(node).SetNextNode(value))
     
     @final
     def GetFirst(self) -> TNodeInterface|None:
@@ -704,6 +704,10 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
 class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], "ListBase"], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
     def __init__(self):
         super().__init__()
+    
+    @final
+    def _AddNode(self, value: TItem) -> TNode:
+        return super()._AddNode(value)
     
     @final
     def _GetNodeEnumerator(self, node: IDoublyLinkedNode[TItem]) -> IEnumerator[IDoublyLinkedNode[TItem]]:
@@ -915,6 +919,14 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     
     def _GetNode(self, value: T) -> _CountableListNode[T]:
         return _CountableListNode[T](value, self.__items, None, None)
+    
+    @final
+    def _AddNode(self, value: T) -> _CountableListNode[T]:
+        node: _CountableListNode[T] = super()._AddNode(value)
+
+        self.Increment()
+
+        return node
     
     def AsSized(self) -> Sized:
         return self.__items.AsSized()
