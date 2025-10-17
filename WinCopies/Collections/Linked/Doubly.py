@@ -6,7 +6,6 @@ from typing import final, Callable, Self as SelfType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
-from WinCopies.Delegates import Self
 from WinCopies.Collections import Generator, IReadOnlyCollection, ICountable
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, CountableEnumerable, Iterator, Accessor, GetEnumerator
@@ -200,37 +199,23 @@ class IReadWriteList[T](IReadOnlyList[T]):
         pass
     
     @final
-    def __AsItemEnumerator[TOut](self, func: Function[INullable[T]], converter: Converter[INullable[T], TOut]) -> IEnumerator[TOut]:
-        def enumerate() -> Generator[TOut]:
+    def __AsEnumerator(self, func: Function[INullable[T]]) -> IEnumerator[T]:
+        def enumerate() -> Generator[T]:
             result: INullable[T] = func()
 
             while result.HasValue():
-                yield converter(result)
+                yield result.GetValue()
                 
                 result = func()
         
         return Accessor(lambda: Iterator(enumerate()))
     
     @final
-    def __AsEnumerator(self, func: Function[INullable[T]]) -> IEnumerator[INullable[T]]:
-        return self.__AsItemEnumerator(func, Self)
-    @final
-    def __AsValueEnumerator(self, func: Function[INullable[T]]) -> IEnumerator[T]:
-        return self.__AsItemEnumerator(func, lambda item: item.GetValue())
-    
-    @final
-    def AsQueuedEnumerator(self) -> IEnumerator[INullable[T]]:
+    def AsQueuedValueEnumerator(self) -> IEnumerator[T]:
         return self.__AsEnumerator(self.RemoveFirst)
     @final
-    def AsStackedEnumerator(self) -> IEnumerator[INullable[T]]:
-        return self.__AsEnumerator(self.RemoveLast)
-    
-    @final
-    def AsQueuedValueEnumerator(self) -> IEnumerator[T]:
-        return self.__AsValueEnumerator(self.RemoveFirst)
-    @final
     def AsStackedValueEnumerator(self) -> IEnumerator[T]:
-        return self.__AsValueEnumerator(self.RemoveLast)
+        return self.__AsEnumerator(self.RemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
     def __init__(self):
