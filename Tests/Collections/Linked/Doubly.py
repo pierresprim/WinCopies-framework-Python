@@ -34,8 +34,8 @@ def assertEmpty[T](test: unittest.TestCase, l: IReadOnlyList[T]) -> None:
     test.assertTrue(l.IsEmpty())
     test.assertFalse(l.HasItems())
 def assertNotEmpty[T](test: unittest.TestCase, l: IReadOnlyList[T]) -> None:
-    test.assertTrue(l.IsEmpty())
-    test.assertFalse(l.HasItems())
+    test.assertFalse(l.IsEmpty())
+    test.assertTrue(l.HasItems())
 
 def assertNotNone[T](test: unittest.TestCase, value: T|None) -> T:
     if value is None:
