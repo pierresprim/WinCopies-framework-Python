@@ -444,7 +444,7 @@ class AbstractEnumerator[T](Selector[T, T]):
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
-class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self):
         super().__init__()
 
@@ -648,7 +648,7 @@ class AccessorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumera
         return self._GetEnumerator().MoveNext()
     
     def _OnStopped(self) -> None:
-        super()._OnStopped()
+        pass
 class Accessor[T](AccessorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, func: Function[IEnumerator[T]]):
         super().__init__(func)
