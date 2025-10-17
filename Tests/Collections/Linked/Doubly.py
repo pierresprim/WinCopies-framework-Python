@@ -56,19 +56,22 @@ def assertNullValue[T](test: unittest.TestCase, l: IList[T], value: INullable[T]
 
     test.assertFalse(value.HasValue())
 
-def assertNullableValue[T](test: unittest.TestCase, l: IList[T], expected: T, actual: INullable[T]) -> None:
-    assertNotEmpty(test, l)
-
+def _assertNullableValue[T](test: unittest.TestCase, l: IList[T], expected: T, actual: INullable[T]) -> None:
     test.assertTrue(actual.HasValue())
 
     test.assertEqual(actual.GetValue(), expected)
+def assertNullableValue[T](test: unittest.TestCase, l: IList[T], expected: T, actual: INullable[T]) -> None:
+    assertNotEmpty(test, l)
+
+    _assertNullableValue(test, l, expected, actual)
+
 def assertValue[T](test: unittest.TestCase, l: IList[T], expected: T, actual: T|None) -> None:
     assertNotEmpty(test, l)
 
     test.assertEqual(actual, expected)
 
 def assertValueAndEmpty[T](test: unittest.TestCase, l: IList[T], expected: T, actual: INullable[T]) -> None:
-    assertNullableValue(test, l, expected, actual)
+    _assertNullableValue(test, l, expected, actual)
     assertEmpty(test, l)
 
 def assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConverter: Converter[IList[int], IEnumerator[T]|None], valueConverter: Converter[T, int]) -> None:
