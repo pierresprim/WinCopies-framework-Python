@@ -72,9 +72,7 @@ def assertValueAndEmpty[T](test: unittest.TestCase, l: IList[T], expected: T, ac
     assertEmpty(test, l)
 
 def assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConverter: Converter[IList[int], IEnumerator[T]|None], valueConverter: Converter[T, int]) -> None:
-    l.AddLast(1)
-    l.AddLast(2)
-    l.AddLast(3)
+    populateList(l)
 
     enumerator: IEnumerator[T] = assertNotNone(test, enumeratorConverter(l))
 
