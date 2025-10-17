@@ -502,7 +502,7 @@ class TestListNode(unittest.TestCase):
         node: IDoublyLinkedNode[int] = l.AddLast(42)
 
         self.assertEqual(node.Remove(), 42)
-        assertEmpty(self, self.__list)
+        assertEmpty(self, l)
 
 class TestCountableList(unittest.TestCase):
     """Tests for the CountableList[T] class - list with counter"""
