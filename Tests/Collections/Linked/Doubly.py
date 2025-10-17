@@ -352,7 +352,7 @@ class TestList(unittest.TestCase):
         assertNodeValue(self, self.__list, self.__list.GetLast(), 1)
 
     def test_add_last_values_varargs(self):
-        """Ajout de valeurs via *args à la fin"""
+        """Add values via *args at the end"""
         self.assertTrue(self.__list.AddLastValues(1, 2, 3))
 
         # Preserved order: 1, 2, 3
