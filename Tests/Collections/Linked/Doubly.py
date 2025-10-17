@@ -321,19 +321,21 @@ class TestList(unittest.TestCase):
 
     def test_add_first_items_from_list(self):
         """Add multiple items at the beginning from an iterable"""
-        self.assertTrue(self.__list.AddFirstItems((1, 2, 3)))
+        populateList(self.__list)
 
-        # Reversed order because we add at the beginning: 3, 2, 1
-        assertNodeValue(self, self.__list, self.__list.GetFirst(), 3)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 1)
+        self.assertTrue(self.__list.AddFirstItems((4, 5, 6)))
+
+        assertNodeValue(self, self.__list, self.__list.GetFirst(), 4)
+        assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
 
     def test_add_last_items_from_list(self):
         """Add multiple items at the end from an iterable"""
-        self.assertTrue(self.__list.AddLastItems((1, 2, 3)))
+        populateList(self.__list)
+
+        self.assertTrue(self.__list.AddLastItems((4, 5, 6)))
         
-        # Preserved order: 1, 2, 3
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
+        assertNodeValue(self, self.__list, self.__list.GetLast(), 6)
 
     def test_add_first_items_none(self):
         """AddFirstItems with None must return False"""
@@ -345,19 +347,21 @@ class TestList(unittest.TestCase):
 
     def test_add_first_values_varargs(self):
         """Add values via *args at the beginning"""
-        self.assertTrue(self.__list.AddFirstValues(1, 2, 3))
+        populateList(self.__list)
+
+        self.assertTrue(self.__list.AddFirstValues(4, 5, 6))
         
-        # Reversed order: 3, 2, 1
-        assertNodeValue(self, self.__list, self.__list.GetFirst(), 3)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 1)
+        assertNodeValue(self, self.__list, self.__list.GetFirst(), 4)
+        assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
 
     def test_add_last_values_varargs(self):
         """Add values via *args at the end"""
-        self.assertTrue(self.__list.AddLastValues(1, 2, 3))
+        populateList(self.__list)
 
-        # Preserved order: 1, 2, 3
+        self.assertTrue(self.__list.AddLastValues(4, 5, 6))
+
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
+        assertNodeValue(self, self.__list, self.__list.GetLast(), 6)
 
     # Tests des énumérateurs
 
