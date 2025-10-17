@@ -172,6 +172,9 @@ class TestList(unittest.TestCase):
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 3)
         assertNodeValue(self, self.__list, self.__list.GetLast(), 1)
 
+        self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
+        self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
+
     def test_add_last_multiple_items(self):
         """Add multiple items at the end (preserved order)"""
         populateList(self.__list)
@@ -179,6 +182,9 @@ class TestList(unittest.TestCase):
         # Item order should be: 1, 2, 3
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
         assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
+
+        self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
+        self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
 
     def test_add_mixed_first_and_last(self):
         """Add to both beginning and end"""
