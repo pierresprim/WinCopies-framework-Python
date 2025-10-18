@@ -2,7 +2,8 @@ from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies import IInterface
-from WinCopies.Collections.Linked.Doubly import DoublyLinkedNode
+from WinCopies.Collections.Linked.Singly import IEnumerable
+from WinCopies.Collections.Linked.Doubly import INode, IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
@@ -39,11 +40,11 @@ class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWrit
         pass
 
 class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
-    class __EventCookie(IEvent):
-        def __init__(self, node: DoublyLinkedNode[EventHandler[TSender, TArgs]]):
+    class __Event(IEvent):
+        def __init__(self, node: INode[EventHandler[TSender, TArgs]]):
             super().__init__()
 
-            self.__node: DoublyLinkedNode[EventHandler[TSender, TArgs]] = node
+            self.__node: INode[EventHandler[TSender, TArgs]] = node
         
         @final
         def Remove(self) -> None:
@@ -52,18 +53,23 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
     def __init__(self):
         super().__init__()
 
-        self.__events = EnumerableStack[EventHandler[TSender, TArgs]]()
+        self.__cookies: IList[EventHandler[TSender, TArgs]] = List[EventHandler[TSender, TArgs]]()
+        self.__events = EnumerableStack[EventHandler[TSender, TArgs]](self.__cookies)
+    
+    @final
+    def _GetEvents(self) -> IEnumerable[EventHandler[TSender, TArgs]]:
+        return self.__events
     
     @final
     def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
-        return EventManager.__EventCookie(self.__events._Push(handler))
+        return EventManager.__Event(self.__cookies.AddLast(handler))
     
     @final
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         if self.__events.IsEmpty():
             return False
         
-        for event in self.__events:
+        for event in self.__events.AsIterable():
             event(sender, args)
         
         return True
