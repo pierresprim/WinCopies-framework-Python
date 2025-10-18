@@ -31,13 +31,16 @@ class IWriteOnlyEventManager[TSender, TArgs, TEvent: IEvent](IInterface):
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         pass
 
-class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, IEvent]):
+class IEventManagerBase[TSender, TArgs, TEvent: IEvent](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         pass
+class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent]):
+    def __init__(self):
+        super().__init__()
 
 class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
     class __Event(IEvent):
