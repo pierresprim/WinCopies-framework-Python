@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Linked import Singly, Doubly
 from WinCopies.Collections.Linked.Doubly import INode, List
 
@@ -91,21 +91,17 @@ class Stack[T](StackBase[T, Doubly.IReadWriteList[T]], IGenericConstraintImpleme
     def __init__(self, l: Doubly.IReadWriteList[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
 
-class IEnumerableLinkedListBase[TItems, TList](Singly.IEnumerable[TItems], GenericConstraint[TList, Doubly.IList[TItems]]):
-    def __init__(self):
-        super().__init__()
-
-    def TryGetEnumerator(self) -> IEnumerator[TItems]|None:
-        enumerable: IEnumerable[TItems]|None = self._GetInnerContainer()
-        
-        return Enumerator[TItems].TryCreate(enumerable.TryGetEnumerator())
-class IEnumerableLinkedList[T](IEnumerableLinkedListBase[T, Doubly.IList[T]]):
-    def __init__(self):
-        super().__init__()
-
-class EnumerableQueue[T](QueueBase[T, Doubly.IList[T]], IEnumerableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+class EnumerableQueue[T](QueueBase[T, Doubly.IList[T]], Singly.IEnumerable[T]):
     def __init__(self, l: Doubly.IList[T]|None = None):
         super().__init__(EnumerableLinkedList[T].GetList(l))
-class EnumerableStack[T](StackBase[T, Doubly.IList[T]], IEnumerableLinkedList[T], IGenericConstraintImplementation[Doubly.IList[T]]):
+
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+class EnumerableStack[T](StackBase[T, Doubly.IList[T]], Singly.IEnumerable[T]):
     def __init__(self, l: Doubly.IList[T]|None = None):
         super().__init__(EnumerableLinkedList[T].GetList(l))
+
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
