@@ -7,7 +7,7 @@ from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEventCookie(IInterface):
+class IEvent(IInterface):
     def __init__(self):
         super().__init__()
     
@@ -30,16 +30,16 @@ class IWriteOnlyEventManager[TSender, TArgs, TCookie](IInterface):
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TCookie:
         pass
 
-class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, IEventCookie]):
+class IEventManager[TSender, TArgs](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, IEvent]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
         pass
 
 class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
-    class __EventCookie(IEventCookie):
+    class __EventCookie(IEvent):
         def __init__(self, node: DoublyLinkedNode[EventHandler[TSender, TArgs]]):
             super().__init__()
 
@@ -55,7 +55,7 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
         self.__events = EnumerableStack[EventHandler[TSender, TArgs]]()
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEventCookie:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
         return EventManager.__EventCookie(self.__events._Push(handler))
     
     @final
