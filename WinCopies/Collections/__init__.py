@@ -313,18 +313,20 @@ class ICollection[T](IReadOnlyList[T]):
         pass
 
     @abstractmethod
-    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        pass
-    @abstractmethod
-    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        pass
-
-    @abstractmethod
     def TryRemoveAt(self, index: int) -> bool|None:
         pass
-    @abstractmethod
+    @final
     def RemoveAt(self, index: int) -> None:
+        if self.TryRemoveAt(index) is not True:
+            raise IndexError(index)
+
+    @abstractmethod
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         pass
+    @final
+    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
+        if not self.TryRemove(item, predicate):
+            raise ValueError(item)
 
 class ICountable(IInterface):
     def __init__(self):
@@ -541,6 +543,10 @@ class IList[T](IArray[T], ICountableList[T]):
     def Insert(self, index: int, value: T) -> None:
         if not self.TryInsert(index, value):
             raise IndexError(index)
+    
+    @final
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
+        return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
 
 class IReadOnlySet(ICountable, IReadOnlyCollection):
     def __init__(self):

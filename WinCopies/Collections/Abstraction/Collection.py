@@ -113,9 +113,6 @@ class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.L
         return False
     
     @final
-    def RemoveAt(self, index: int) -> None:
-        self._GetContainer().pop(index)
-    @final
     def TryRemoveAt(self, index: int) -> bool|None:
         if index < 0:
             return None
@@ -123,26 +120,9 @@ class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.L
         if index >= self.GetCount():
             return False
         
-        self.RemoveAt(index)
+        self._GetContainer().pop(index)
         
         return True
-    
-    @final
-    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        items: list[T] = self._GetContainer()
-
-        index: int|None = IndexOf(items, item, predicate)
-
-        if index is None:
-            return False
-        
-        items.pop(index)
-
-        return True
-    @final
-    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        if not self.TryRemove(item, predicate):
-            raise ValueError(item)
     
     @final
     def Clear(self) -> None:

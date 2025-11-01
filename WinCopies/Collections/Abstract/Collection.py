@@ -103,18 +103,8 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], E
         return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     
     @final
-    def RemoveAt(self, index: int) -> None:
-        self._GetContainer().RemoveAt(index)
-    @final
     def TryRemoveAt(self, index: int) -> bool|None:
         return self._GetContainer().TryRemoveAt(index)
-    
-    @final
-    def TryRemove(self, item: TOut, predicate: EqualityComparison[TOut]|None = None) -> bool:
-        return self._GetContainer().TryRemove(self._ConvertBack(item), TryGetSelectedEqualityComparison(predicate, self._Convert))
-    @final
-    def Remove(self, item: TOut, predicate: EqualityComparison[TOut]|None = None) -> None:
-        self._GetContainer().Remove(self._ConvertBack(item), TryGetSelectedEqualityComparison(predicate, self._Convert))
     
     @final
     def Clear(self) -> None:
