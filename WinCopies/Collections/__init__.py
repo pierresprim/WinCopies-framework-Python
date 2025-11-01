@@ -87,6 +87,9 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 def GetLastIndex[T](l: Sequence[T]) -> int:
     return len(l) - 1
 
+def ReverseIndex(index: int, length: int) -> int:
+    return length - 1 - index
+
 def TryGetAt[T](l: Sequence[T], index: int, default: T|None = None) -> T|None:
     return l[index] if ValidateIndex(index, len(l)) else default
 def TryGetAtStr(l: Sequence[str], index: int) -> str:
