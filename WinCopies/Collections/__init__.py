@@ -392,20 +392,32 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
         super().__init__()
     
     @abstractmethod
-    def GetAt(self, key: TKey) -> TValue:
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         pass
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault: # Can be overridden for optimization.
-        return self.GetAt(key) if self.ContainsKey(key) else defaultValue
+    @final
+    def TryGetItem(self, key: TKey) -> INullable[TValue]:
+        result: DualValueBool[TValue|None] = self.TryGetAt(key, None)
+
+        return GetNullable(result.GetKey()) if result.GetValue() else GetNullValue() # type: ignore
+    @final
+    def GetAt(self, key: TKey) -> TValue:
+        result: INullable[TValue] = self.TryGetItem(key)
+        
+        if result.HasValue():
+            return result.GetValue()
+        
+        raise KeyError(f"Key {key} does not exist.")
 class ISetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def SetAt(self, key: TKey, value: TValue) -> None:
-        pass
-    @abstractmethod
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
         pass
+    @final
+    def SetAt(self, key: TKey, value: TValue) -> None:
+        if not self.TrySetAt(key, value):
+            raise KeyError(f"Key {key} does not exist.")
 
 class IReadOnlyKeyable[TKey, TValue](IGetter[TKey, TValue]):
     def __init__(self):
@@ -457,15 +469,6 @@ class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableB
 class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexableBase):
     def __init__(self):
         super().__init__()
-    
-    @final
-    def TrySetAt(self, key: int, value: T) -> bool:
-        if ValidateIndex(key, self.GetCount()):
-            self.SetAt(key, value)
-
-            return True
-        
-        return False
 
 class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IReadWriteCollection[int, T]):
     def __init__(self):

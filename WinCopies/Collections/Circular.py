@@ -2,10 +2,8 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Collections, IStringable
-from WinCopies.Collections import IndexOf
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, Tuple, EquatableTuple, Array, List
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
-from WinCopies.Typing.Delegate import EqualityComparison
 
 class ICircularTuple[T](ITuple[T]):
     def __init__(self):
@@ -44,6 +42,10 @@ class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], ICircu
         return self.__list
     
     @final
+    def _GetAt(self, key: int) -> TItem:
+        return self._GetInnerContainer().GetAt(self.GetIndex(key))
+    
+    @final
     def GetCount(self) -> int:
         return self._GetInnerContainer().GetCount()
     
@@ -53,10 +55,6 @@ class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], ICircu
     @final
     def SetStart(self, start: int = 0) -> None:
         self.__start = start
-    
-    @final
-    def GetAt(self, key: int) -> TItem:
-        return self._GetInnerContainer().GetAt(self.GetIndex(key))
     
     def ToString(self) -> str:
         return self._GetInnerContainer().ToString()
@@ -79,7 +77,7 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecial
         super().__init__(items, start)
     
     @final
-    def SetAt(self, key: int, value: TItem) -> None:
+    def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer().SetAt(self.GetIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int):
@@ -101,27 +99,8 @@ class CircularList[T](CircularBase[T, IList[T]], List[T], ICircularList[T], IGen
         return self._GetContainer().TryInsert(self.GetIndex(index), value)
     
     @final
-    def RemoveAt(self, index: int) -> None:
-        self._GetContainer().RemoveAt(self.GetIndex(index))
-    @final
     def TryRemoveAt(self, index: int) -> bool|None:
         return self._GetContainer().TryRemoveAt(self.GetIndex(index))
-    
-    @final
-    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        items: IList[T] = self._GetContainer()
-
-        index: int|None = IndexOf(items.AsSequence(), item, predicate)
-
-        if index is None:
-            return False
-        
-        items.RemoveAt(index)
-
-        return True
-    @final
-    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        self._GetContainer().Remove(item, predicate)
     
     @final
     def Clear(self) -> None:

@@ -24,7 +24,7 @@ class CircularBase[TItem, TList](GenericConstraint[TList, ICircularTuple[TItem]]
         return self._GetInnerContainer().GetStart()
     
     @final
-    def GetAt(self, key: int) -> TItem:
+    def _GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer().GetAt(key)
     
     def ToString(self) -> str:

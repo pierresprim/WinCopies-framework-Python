@@ -259,7 +259,7 @@ class Array[T](Collections.Array[T], Tuple[T], IArray[T]):
             return self._GetItems().GetCount()
         
         @final
-        def GetAt(self, key: int) -> T:
+        def _GetAt(self, key: int) -> T:
             return self._GetItems().GetAt(key)
         
         @final
@@ -367,11 +367,8 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
             return self._GetDictionary().TryGetValue(key)
         
         @final
-        def GetAt(self, key: TKey) -> TValue:
+        def _GetAt(self, key: TKey) -> TValue:
             return self._GetDictionary().GetAt(key)
-        @final
-        def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
-            return self._GetDictionary().TryGetAt(key, defaultValue)
         
         @final
         def GetKeys(self) -> ICountableEnumerable[TKey]:

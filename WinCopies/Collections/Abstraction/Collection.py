@@ -6,13 +6,13 @@ from collections.abc import Iterable, Iterator, Sequence, MutableSequence, Mutab
 from typing import overload, final, Callable, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections import Enumeration, Extensions, IndexOf
+from WinCopies.Collections import Enumeration, Extensions
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import Function, EqualityComparison
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
+from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self, items: TSequence):
@@ -29,7 +29,7 @@ class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[T
         return len(self._GetInnerContainer())
     
     @final
-    def GetAt(self, key: int) -> TItem:
+    def _GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer()[key]
     
     @final
@@ -289,21 +289,10 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return key in self._GetDictionary()
     
     @final
-    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> INullable[TValue]:
-        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance()) # type: ignore
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        result: TValue|Dictionary[TKey, TValue].__None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # type: ignore
 
-        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
-    
-    @final
-    def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        return self.__TryGetValue(lambda dic, default: dic.get(key, default))
-    
-    @final
-    def GetAt(self, key: TKey) -> TValue:
-        return self._GetDictionary()[key]
-    @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
-        return self._GetDictionary().get(key, defaultValue)
+        return DualValueBool[TDefault](defaultValue, False) if isinstance(result, Dictionary[TKey, TValue].__None) else DualValueBool[TValue](result, True)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
@@ -313,10 +302,16 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
             return True
         
         return False
+    
     @final
-    def SetAt(self, key: TKey, value: TValue) -> None:
-        if not self.TrySetAt(key, value):
-            raise KeyError(f"Key {key} does not exist.")
+    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> INullable[TValue]:
+        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance()) # type: ignore
+
+        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
+    
+    @final
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
+        return self.__TryGetValue(lambda dic, default: dic.get(key, default))
     
     @final
     def GetKeys(self) -> ICountableEnumerable[TKey]:

@@ -11,10 +11,9 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerato
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Delegates import TryGetSelectedEqualityComparison
 from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem
-from WinCopies.Typing.Delegate import EqualityComparison, Converter as ConverterDelegate
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
+from WinCopies.Typing.Delegate import Converter as ConverterDelegate
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: TSequence):
@@ -29,7 +28,7 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
         return self._GetInnerContainer().GetCount()
     
     @final
-    def GetAt(self, key: int) -> TOut:
+    def _GetAt(self, key: int) -> TOut:
         return self._Convert(self._GetInnerContainer().GetAt(key))
     
     @final
@@ -176,20 +175,14 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         return self._GetItems().TryGetValue(key).TryConvertToNullable(self._Convert)
     
     @final
-    def GetAt(self, key: TKey) -> TValueOut:
-        return self._Convert(self._GetItems().GetAt(key))
-    @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> TValueOut|TDefault:
-        result: INullable[TValueOut] = self.TryGetValue(key)
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
+        result: DualValueBool[TValueIn|TDefault] = self._GetItems().TryGetAt(key, defaultValue)
 
-        return result.GetValue() if result.HasValue() else defaultValue
+        return DualValueBool[TValueOut](self._Convert(result.GetKey()), True) if result.GetValue() else DualValueBool[TDefault](defaultValue, False) # type: ignore
     
     @final
     def TrySetAt(self, key: TKey, value: TValueOut) -> bool:
         return self._GetItems().TrySetAt(key, self._ConvertBack(value))
-    @final
-    def SetAt(self, key: TKey, value: TValueOut) -> None:
-        self._GetItems().SetAt(key, self._ConvertBack(value))
     
     @final
     def GetKeys(self) -> ICountableEnumerable[TKey]:
