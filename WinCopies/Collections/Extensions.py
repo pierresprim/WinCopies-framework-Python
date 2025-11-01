@@ -136,11 +136,19 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
         super().__init__()
     
     @abstractmethod
+    def AsReversed(self) -> ITuple[T]:
+        pass
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
 class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[T], IEquatableEnumerable[T]):
     def __init__(self):
         super().__init__()
+
+    @abstractmethod
+    def AsReversed(self) -> IEquatableTuple[T]:
+        pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
@@ -154,11 +162,19 @@ class IArray[T](Collections.IArray[T], ITuple[T]):
         pass
     
     @abstractmethod
+    def AsReversed(self) -> IArray[T]:
+        pass
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 class IList[T](Collections.IList[T], IArray[T], IMutableSequence[T]):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def AsReversed(self) -> IList[T]:
+        pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IList[T]:
