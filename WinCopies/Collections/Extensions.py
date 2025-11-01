@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import collections.abc
-
 from abc import abstractmethod
-from collections.abc import Sized, Container, Iterable
+from collections.abc import Sized, Container, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import final
 
 from WinCopies import Collections, IStringable
@@ -19,7 +17,7 @@ class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T])
         super().__init__()
     
     @abstractmethod
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         pass
     
     def AsSized(self) -> Sized:
@@ -42,7 +40,7 @@ class ISequence[T](IReadOnlyCollection[T]):
         super().__init__()
     
     @abstractmethod
-    def AsSequence(self) -> collections.abc.Sequence[T]:
+    def AsSequence(self) -> SequenceBase[T]:
         pass
 
     def AsSized(self) -> Sized:
@@ -51,14 +49,14 @@ class ISequence[T](IReadOnlyCollection[T]):
         return self.AsSequence()
     def AsIterable(self) -> Iterable[T]:
         return self.AsSequence()
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         return self.AsSequence()
 class IMutableSequence[T](ISequence[T], ICollection[T]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def AsMutableSequence(self) -> collections.abc.MutableSequence[T]:
+    def AsMutableSequence(self) -> MutableSequenceBase[T]:
         pass
 
     def AsSized(self) -> Sized:
@@ -67,12 +65,12 @@ class IMutableSequence[T](ISequence[T], ICollection[T]):
         return self.AsMutableSequence()
     def AsIterable(self) -> Iterable[T]:
         return self.AsMutableSequence()
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         return self.AsMutableSequence()
-    def AsSequence(self) -> collections.abc.Sequence[T]:
+    def AsSequence(self) -> SequenceBase[T]:
         return self.AsMutableSequence()
 
-class ReadOnlyCollection[T](collections.abc.Collection[T], IReadOnlyCollection[T]):
+class ReadOnlyCollection[T](CollectionBase[T], IReadOnlyCollection[T]):
     def __init__(self):
         super().__init__()
     
@@ -84,11 +82,11 @@ class ReadOnlyCollection[T](collections.abc.Collection[T], IReadOnlyCollection[T
     def __contains__(self, x: object) -> bool:
         return self.Contains(x)
     
-    def _TryGetIterator(self) -> collections.abc.Iterator[T]|None:
+    def _TryGetIterator(self) -> Iterator[T]|None:
         return TryAsIterator(self.TryGetEnumerator())
     
     @final
-    def __iter__(self) -> collections.abc.Iterator[T]:
+    def __iter__(self) -> Iterator[T]:
         return GetIterator(self._TryGetIterator())
     
     def AsSized(self) -> Sized:
@@ -97,14 +95,14 @@ class ReadOnlyCollection[T](collections.abc.Collection[T], IReadOnlyCollection[T
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         return self
 
-class Sequence[T](collections.abc.Sequence[T], ReadOnlyCollection[T], ISequence[T]):
+class Sequence[T](SequenceBase[T], ReadOnlyCollection[T], ISequence[T]):
     def __init__(self):
         super().__init__()
     
-    def AsSequence(self) -> collections.abc.Sequence[T]:
+    def AsSequence(self) -> SequenceBase[T]:
         return self
 
     def AsSized(self) -> Sized:
@@ -113,13 +111,13 @@ class Sequence[T](collections.abc.Sequence[T], ReadOnlyCollection[T], ISequence[
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         return self
-class MutableSequence[T](collections.abc.MutableSequence[T], Sequence[T], IMutableSequence[T]):
+class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T]):
     def __init__(self):
         super().__init__()
     
-    def AsMutableSequence(self) -> collections.abc.MutableSequence[T]:
+    def AsMutableSequence(self) -> MutableSequenceBase[T]:
         return self
 
     def AsSized(self) -> Sized:
@@ -128,9 +126,9 @@ class MutableSequence[T](collections.abc.MutableSequence[T], Sequence[T], IMutab
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
-    def AsCollection(self) -> collections.abc.Collection[T]:
+    def AsCollection(self) -> CollectionBase[T]:
         return self
-    def AsSequence(self) -> collections.abc.Sequence[T]:
+    def AsSequence(self) -> SequenceBase[T]:
         return self
 
 class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
@@ -282,7 +280,7 @@ class Array[T](Collections.Array[T], Tuple[T], IArray[T]):
     def __init__(self):
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__readOnly = func
-
+        
         super().__init__()
 
         self.__readOnly: IFunction[ITuple[T]] = Array[T].__Updater(self, update)
