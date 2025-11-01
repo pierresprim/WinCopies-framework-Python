@@ -11,7 +11,7 @@ from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
-from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo
+from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
 
 type Generator[T] = GeneratorBase[T, None, None]
 
@@ -472,7 +472,18 @@ class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWri
     def __init__(self):
         super().__init__()
 
-class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
+class IReadOnlyCountableIndexableList[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        pass
+    @abstractmethod
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        pass
+
+class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def __init__(self):
         super().__init__()
     
