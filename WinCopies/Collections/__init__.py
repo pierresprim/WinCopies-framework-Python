@@ -477,11 +477,19 @@ class ITuple[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
         super().__init__()
     
     @abstractmethod
+    def AsReversed(self) -> ITuple[T]:
+        pass
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
 class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     def __init__(self):
         super().__init__()
+
+    @abstractmethod
+    def AsReversed(self) -> IEquatableTuple[T]:
+        pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
@@ -494,6 +502,10 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     @abstractmethod
     def AsReadOnly(self) -> ITuple[T]:
         pass
+
+    @abstractmethod
+    def AsReversed(self) -> IArray[T]:
+        pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IArray[T]:
@@ -502,6 +514,10 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
 class IList[T](IArray[T], ICountableList[T]):
     def __init__(self):
         super().__init__()
+
+    @abstractmethod
+    def AsReversed(self) -> IList[T]:
+        pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IList[T]:
