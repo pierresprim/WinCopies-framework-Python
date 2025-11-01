@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import collections.abc
-
 from abc import abstractmethod
-from collections.abc import Sized, Iterable, Container, Sequence, MutableSequence
+from collections.abc import Generator as GeneratorBase, Sized, Iterable, Container, Sequence, MutableSequence
 from contextlib import AbstractContextManager
 from typing import final, Callable
 
@@ -15,7 +13,7 @@ from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValu
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo
 
-type Generator[T] = collections.abc.Generator[T, None, None]
+type Generator[T] = GeneratorBase[T, None, None]
 
 class IterableScanResult(BooleanableEnum):
     DoesNotExist = -2
