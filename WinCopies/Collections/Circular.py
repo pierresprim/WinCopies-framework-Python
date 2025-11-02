@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import Collections, IStringable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, Tuple, EquatableTuple, Array, List
+from WinCopies import IStringable
+from WinCopies.Collections import GetIndex
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 
 class ICircularTuple[T](ITuple[T]):
@@ -11,7 +12,7 @@ class ICircularTuple[T](ITuple[T]):
     
     @final
     def IsEmpty(self) -> bool:
-        return self.GetCount() == 0
+        return super().IsEmpty()
     
     @abstractmethod
     def GetStart(self) -> int:
@@ -19,7 +20,7 @@ class ICircularTuple[T](ITuple[T]):
     
     @final
     def GetIndex(self, index: int) -> int:
-        return Collections.GetIndex(index, self.GetCount(), self.GetStart())[0]
+        return GetIndex(index, self.GetCount(), self.GetStart())[0]
 class ICircularEquatableTuple[T: IEquatableItem](ICircularTuple[T], IEquatableTuple[T]):
     def __init__(self):
         super().__init__()
@@ -30,7 +31,7 @@ class ICircularList[T](ICircularArray[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], ICircularTuple[TItem], IStringable):
+class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable):
     def __init__(self, items: TList, start: int):
         super().__init__()
         
@@ -72,17 +73,17 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, IEquatableTuple[
     def Equals(self, item: object) -> bool:
         return self is item
 
-class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], Array[TItem], ICircularArray[TItem]):
+class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], ArrayBase[TItem, TList], ICircularArray[TItem]):
     def __init__(self, items: TList, start: int):
         super().__init__(items, start)
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer().SetAt(self.GetIndex(key), value)
-class CircularArray[T](CircularArrayBase[T, IArray[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
+class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int):
         super().__init__(items, start)
-class CircularList[T](CircularBase[T, IList[T]], List[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
+class CircularList[T](CircularBase[T, IList[T]], List[T], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
     def __init__(self, items: IList[T], start: int):
         super().__init__(items, start)
     
