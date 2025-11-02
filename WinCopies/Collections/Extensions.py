@@ -279,6 +279,19 @@ class ArrayBase[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
     def __init__(self):
         super().__init__()
     
+    @final
+    def __FindIndex(self, sequence: SequenceBase[T], item: T, predicate: EqualityComparison[T]|None) -> int:
+        result: int|None = IndexOf(sequence, item, predicate)
+
+        return -1 if result is None else result
+    
+    @final
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return self.__FindIndex(self.AsSequence(), item, predicate)
+    @final
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return self.__FindIndex(self.AsReversed().AsSequence(), item, predicate)
+    
     # Not final to allow customization for the enumerator.
     def TryGetEnumerator(self) -> IEnumerator[T]:
         return ArrayBase[T].Enumerator(self)
