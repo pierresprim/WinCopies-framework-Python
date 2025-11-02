@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import collections.abc
-
 from collections.abc import Iterable, Iterator, Sequence, MutableSequence, MutableMapping
 from typing import overload, final, Callable, SupportsIndex
 
@@ -37,16 +35,16 @@ class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[T
         return value in self._GetInnerContainer()
     
     @overload
-    def __getitem__(self, index: int) -> TItem: ...
+    def __getitem__(self, index: SupportsIndex) -> TItem: ...
     @overload
-    def __getitem__(self, index: slice) -> collections.abc.Sequence[TItem]: ...
+    def __getitem__(self, index: slice) -> Sequence[TItem]: ...
     
     @final
-    def __getitem__(self, index: int|slice) -> TItem|collections.abc.Sequence[TItem]:
-        return self._GetInnerContainer()[index]
+    def __getitem__(self, index: SupportsIndex|slice) -> TItem|Sequence[TItem]:
+        return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 class Tuple[T](TupleBase[T, Sequence[T]], IGenericConstraintImplementation[Sequence[T]]):
-    def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
+    def __init__(self, items: tuple[T]|Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
@@ -56,7 +54,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], IGenericConstraintImplementation[Seque
     def ToString(self) -> str:
         return str(self._GetContainer())
 class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
-    def __init__(self, items: tuple[T]|collections.abc.Iterable[T]):
+    def __init__(self, items: tuple[T]|Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
@@ -81,7 +79,7 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], GenericSpecialize
         self._GetSpecializedContainer()[key] = value
 
 class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequence[T]]):
-    def __init__(self, items: MutableSequence[T]|collections.abc.Iterable[T]):
+    def __init__(self, items: MutableSequence[T]|Iterable[T]):
         super().__init__(items if isinstance(items, MutableSequence) else list(items))
     
     @final
