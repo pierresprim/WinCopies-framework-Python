@@ -40,13 +40,13 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
         return self._GetInnerContainer().TryGetEnumerator()
     
     @overload
-    def __getitem__(self, index: int) -> TOut: ...
+    def __getitem__(self, index: SupportsIndex) -> TOut: ...
     @overload
     def __getitem__(self, index: slice) -> Sequence[TOut]: ...
     
     @final
-    def __getitem__(self, index: int|slice) -> TOut|Sequence[TOut]:
-        return self._Convert(self._GetInnerContainer().GetAt(index)) if isinstance(index, int) else self.SliceAt(index).AsSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> TOut|Sequence[TOut]:
+        return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]):
