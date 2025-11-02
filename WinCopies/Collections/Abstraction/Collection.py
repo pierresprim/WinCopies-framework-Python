@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Sequence, MutableSequence, MutableMapping
-from typing import overload, final, Callable, SupportsIndex
+from typing import overload, final, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions
@@ -75,7 +75,7 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], GenericSpecialize
         super().__init__(items)
     
     @final
-    def SetAt(self, key: int, value: TItem) -> None:
+    def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer()[key] = value
 
 class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequence[T]]):
@@ -302,16 +302,6 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return False
     
     @final
-    def __TryGetValue(self, func: Callable[[dict[TKey, TValue], Dictionary.__None], TValue|Dictionary.__None]) -> INullable[TValue]:
-        result: TValue|Dictionary.__None = func(self._GetDictionary(), Dictionary.__getInstance()) # type: ignore
-
-        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
-    
-    @final
-    def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        return self.__TryGetValue(lambda dic, default: dic.get(key, default))
-    
-    @final
     def GetKeys(self) -> ICountableEnumerable[TKey]:
         return self.__keys
     @final
@@ -342,7 +332,9 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return self._GetDictionary().pop(key, defaultValue)
     @final
     def TryRemoveValue(self, key: TKey) -> INullable[TValue]:
-        return self.__TryGetValue(lambda dic, default: dic.pop(key, default))
+        result: TValue|Dictionary.__None = self._GetDictionary().pop(key, Dictionary[TKey, TValue].__getInstance()) # type: ignore
+
+        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
     
     @final
     def Clear(self) -> None:
