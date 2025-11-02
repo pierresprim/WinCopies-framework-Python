@@ -12,7 +12,7 @@ from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self, items: TSequence):
         super().__init__()
 
@@ -43,7 +43,7 @@ class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tuple[T
     def __getitem__(self, index: SupportsIndex|slice) -> TItem|Sequence[TItem]:
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
-class Tuple[T](TupleBase[T, Sequence[T]], IGenericConstraintImplementation[Sequence[T]]):
+class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: tuple[T]|Iterable[T]):
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
@@ -70,7 +70,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequence[TItem]]):
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequence[TItem]]):
     def __init__(self, items: TSequence):
         super().__init__(items)
     
