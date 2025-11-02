@@ -15,7 +15,7 @@ from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImp
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.ArrayBase[TOut], EnumerableBase[TIn, TOut]):
+class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.TupleBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: TSequence):
         super().__init__(items)
     
