@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 
 from abc import abstractmethod
 from typing import final, Callable, Self
 
 from WinCopies import Collections, Abstract
-from WinCopies.Collections import Enumeration, Generator, ICountable, IReadOnlyCollection
+from WinCopies.Collections import Enumeration, Generator, ICountable, IReadOnlyCollection, Countable as CountableCollection
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, IterableBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNode
 
@@ -97,12 +97,44 @@ class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
     def __init__(self):
         super().__init__()
 class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
+    @final
+    class __Updater(ValueFunctionUpdater[ICountableEnumerable[T]]):
+        @final
+        class __Enumerable(IterableBase[T], CountableCollection, ICountableEnumerable[T]):
+            def __init__(self, items: ICountableList[T]):
+                super().__init__()
+
+                self.__items: ICountableList[T] = items
+            
+            def _TryGetIterator(self) -> Iterator[T]|None:
+                return self.__items.AsGenerator()
+            
+            def GetCount(self) -> int:
+                return self.__items.GetCount()
+        
+        def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerable[T]]]):
+            super().__init__(updater)
+
+            self.__items: ICountableList[T] = items
+        
+        def _GetValue(self) -> ICountableEnumerable[T]:
+            return ICountableList[T].__Updater.__Enumerable(self.__items)
+    
     def __init__(self):
+        def update(func: IFunction[ICountableEnumerable[T]]) -> None:
+            self.__generator = func
+        
         super().__init__()
+
+        self.__generator: IFunction[ICountableEnumerable[T]] = ICountableList[T].__Updater(self, update)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableList[T]:
         pass
+
+    @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[T]:
+        return self.__generator.GetValue()
 
 class IReadOnlyCountableEnumerableList[T](ICountableEnumerable[T], IReadOnlyEnumerableList[T], IReadOnlyCountableList[T]):
     def __init__(self):
