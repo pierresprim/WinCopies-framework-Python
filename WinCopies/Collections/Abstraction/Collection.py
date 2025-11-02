@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence, MutableSequence, MutableMapping
+from collections.abc import Iterable, Iterator, Sequence, MutableSequence as MutableSequenceBase, MutableMapping
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
@@ -70,7 +70,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequence[TItem]]):
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self, items: TSequence):
         super().__init__(items)
     
@@ -78,9 +78,9 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayB
     def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer()[key] = value
 
-class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequence[T]]):
-    def __init__(self, items: MutableSequence[T]|Iterable[T]):
-        super().__init__(items if isinstance(items, MutableSequence) else list(items))
+class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]):
+        super().__init__(items if isinstance(items, MutableSequenceBase) else list(items))
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]:
@@ -89,8 +89,8 @@ class Array[T](ArrayBase[T, MutableSequence[T]], Extensions.Array[T], IGenericSp
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class List[T](ArrayBase[T, list[T]], Extensions.MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], list[T]]):
-    def __init__(self, items: list[T]|None = None):
+class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+    def __init__(self, items: MutableSequenceBase[T]|None = None):
         super().__init__(list[T]() if items is None else items)
     
     @final
