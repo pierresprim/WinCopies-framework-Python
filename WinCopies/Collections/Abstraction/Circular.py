@@ -3,7 +3,6 @@ from typing import final
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Extensions import TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
-from WinCopies.Typing.Delegate import EqualityComparison
 
 class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], GenericConstraint[TList, ICircularTuple[TItem]]):
     def __init__(self, items: TList):
@@ -48,7 +47,7 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], ArrayBase[TIte
         super().__init__(items)
     
     @final
-    def SetAt(self, key: int, value: TItem) -> None:
+    def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer().SetAt(key, value)
 class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularArray[T]]):
     def __init__(self, items: ICircularArray[T]):
@@ -66,18 +65,8 @@ class CircularList[T](CircularArrayBase[T, ICircularList[T]], MutableSequence[T]
         return self._GetContainer().TryInsert(index, value)
     
     @final
-    def RemoveAt(self, index: int) -> None:
-        self._GetContainer().RemoveAt(index)
-    @final
     def TryRemoveAt(self, index: int) -> bool|None:
         return self._GetContainer().TryRemoveAt(index)
-    
-    @final
-    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        return self._GetContainer().TryRemove(item, predicate)
-    @final
-    def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        self._GetContainer().Remove(item, predicate)
     
     @final
     def Clear(self) -> None:
