@@ -28,8 +28,28 @@ class IReadOnlyList[T](IReadOnlyCollection):
     def TryPeek(self) -> INullable[T]:
         pass
 class IList[T](IReadOnlyList[T]):
+    @final
+    class __Updater(ValueFunctionUpdater[Generator[T]]):
+        def __init__(self, items: IList[T], updater: Method[IFunction[Generator[T]]]):
+            super().__init__(updater)
+
+            self.__items: IList[T] = items
+        
+        def _GetValue(self) -> Generator[T]:
+            result: INullable[T] = self.__items.TryPop()
+
+            while result.HasValue():
+                yield result.GetValue()
+                
+                result = self.__items.TryPop()
+    
     def __init__(self):
+        def update(func: IFunction[Generator[T]]) -> None:
+            self.__generator = func
+        
         super().__init__()
+
+        self.__generator: IFunction[Generator[T]] = IList[T].__Updater(self, update)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyList[T]:
@@ -60,12 +80,7 @@ class IList[T](IReadOnlyList[T]):
     
     @final
     def AsGenerator(self) -> Generator[T]:
-        result: INullable[T] = self.TryPop()
-
-        while result.HasValue():
-            yield result.GetValue()
-            
-            result = self.TryPop()
+        return self.__generator.GetValue()
 
 class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
     def __init__(self):
