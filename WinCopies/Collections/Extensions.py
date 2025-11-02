@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Container, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
-from typing import final
+from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, IStringable
-from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase
+from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, IndexOf
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Typing import INullable, IEquatableItem, GenericConstraint, IGenericConstraintImplementation
-from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Pairing import IKeyValuePair
+from WinCopies.Typing import INullable, IEquatableItem, IGenericConstraint, GenericConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self):
@@ -211,7 +211,39 @@ class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
     def AsReadOnly(self) -> IReadOnlySet[T]:
         pass
 
-class ArrayBase[T](Collections.Tuple[T], ITuple[T]):
+class GetterBase[TKey, TValue](IGetter[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _GetAt(self, key: TKey) -> TValue:
+        pass
+    
+    @final
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        return DualValueBool[TValue](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TDefault](defaultValue, False)
+class SetterBase[TKey, TValue](ISetter[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _SetAt(self, key: TKey, value: TValue) -> None:
+        pass
+    
+    @final
+    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+        if self.ContainsKey(key):
+            self._SetAt(key, value)
+
+            return True
+        
+        return False
+
+class KeyableBase[TKey, TValue](GetterBase[TKey, TValue], SetterBase[TKey, TValue]):
+    def __init__(self):
+        super().__init__()
+
+class ArrayBase[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
     class EnumeratorBase[TItem, TList](Enumeration.EnumeratorBase[TItem], GenericConstraint[TList, ITuple[TItem]]):
         def __init__(self, items: TList):
             super().__init__()
@@ -257,7 +289,7 @@ class Tuple[T](ArrayBase[T]):
 class EquatableTuple[T: IEquatableItem](Tuple[T], IEquatableTuple[T]):
     def __init__(self):
         super().__init__()
-class Array[T](Collections.Array[T], Tuple[T], IArray[T]):
+class Array[T](Collections.Array[T], Tuple[T], KeyableBase[int, T], IArray[T]):
     class _ReadOnlyTuple(ITuple[T], IStringable):
         def __init__(self, items: IArray[T]):
             super().__init__()
