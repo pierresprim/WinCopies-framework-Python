@@ -74,7 +74,7 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
         super().__init__(items)
     
     @final
-    def SetAt(self, key: int, value: TOut) -> None:
+    def _SetAt(self, key: int, value: TOut) -> None:
         self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
 
 class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
@@ -169,10 +169,6 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
     @final
     def ContainsKey(self, key: TKey) -> bool:
         return self._GetItems().ContainsKey(key)
-    
-    @final
-    def TryGetValue(self, key: TKey) -> INullable[TValueOut]:
-        return self._GetItems().TryGetValue(key).TryConvertToNullable(self._Convert)
     
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
