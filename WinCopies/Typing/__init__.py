@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Callable, Type as SystemType
 
-from WinCopies import IInterface, IDisposable as IDisposableBase
+from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 
 class IStruct[T](IInterface):
     def __init__(self):
@@ -296,3 +296,32 @@ def TryGetValueAs[TValue, TDefault](type: SystemType[TValue], value: object, def
     return value if isinstance(value, type) else default
 def TryGetAs[T](type: SystemType[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
+
+class IMonitor(IDisposable):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def IsBusy(self) -> bool:
+        pass
+class Monitor(Abstract, IMonitor):
+    def __init__(self):
+        super().__init__()
+
+        self.__isBusy: bool = False
+    
+    @final
+    def __Reset(self) -> None:
+        self.__isBusy = False
+    
+    @final
+    def Initialize(self) -> None:
+        self.__isBusy = True
+    
+    @final
+    def IsBusy(self) -> bool:
+        return self.__isBusy
+    
+    @final
+    def Dispose(self) -> None:
+        self.__Reset()
