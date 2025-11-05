@@ -1,12 +1,15 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
+from enum import Enum
 from typing import overload, final, SupportsIndex
 
+from WinCopies import IDisposable
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence
 from WinCopies.Collections.Range import SetItems, RemoveItems
-from WinCopies.Typing import IGenericConstraintImplementation, GenericConstraint
+from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError, IGenericConstraintImplementation, GenericConstraint
 from WinCopies.Typing.Delegate import EqualityComparison
+from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventArgs, EventHandler, EventManager
 
 class __CollectionAbstractor[T](Sequence[T], KeyableBase[int, T], IList[T]):
     def __init__(self):
@@ -48,6 +51,12 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     def _SetItem(self, index: int, item: TItem) -> bool:
         return self._GetInnerContainer().TrySetAt(index, item)
+    
+    def _MoveItem(self, x: int, y: int) -> None:
+        self._GetInnerContainer().Move(x, y)
+    
+    def _SwapItems(self, x: int, y: int) -> None:
+        self._GetInnerContainer().Swap(x, y)
     
     def _InsertItem(self, index: int|None, item: TItem) -> bool:
         if index is None:
@@ -92,6 +101,14 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
         self._SetItem(key, value)
+    
+    @final
+    def Move(self, x: int, y: int) -> None:
+        self._MoveItem(x, y)
+    
+    @final
+    def Swap(self, x: int, y: int) -> None:
+        self._SwapItems(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[TItem]:
