@@ -1,16 +1,28 @@
 from abc import abstractmethod
 from typing import final, Callable
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEvent(IInterface):
+class IEventArgs[T](IInterface):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def GetSender(self) -> T:
+        pass
+
+class IEvent[T](IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetArgs(self) -> IEventArgs[T]:
+        pass
     
     @abstractmethod
     def Remove(self) -> None:
@@ -23,7 +35,7 @@ class IReadOnlyEventManager[TSender, TArgs](IInterface):
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         pass
-class IWriteOnlyEventManager[TSender, TArgs, TEvent: IEvent](IInterface):
+class IWriteOnlyEventManager[TSender, TArgs, TEvent](IInterface):
     def __init__(self):
         super().__init__()
     
@@ -31,19 +43,29 @@ class IWriteOnlyEventManager[TSender, TArgs, TEvent: IEvent](IInterface):
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         pass
 
-class IEventManagerBase[TSender, TArgs, TEvent: IEvent](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
+class IEventManagerBase[TSender, TArgs, TEvent](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         pass
-class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent]):
+class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent[TSender]]):
     def __init__(self):
         super().__init__()
+
+class EventArgs[T](Abstract, IEventArgs[T]):
+    def __init__(self, sender: T):
+        super().__init__()
+
+        self.__sender: T = sender
+    
+    @final
+    def GetSender(self) -> T:
+        return self.__sender
 
 class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
-    class __Event(IEvent):
+    class __Event(IEvent[TSender]):
         def __init__(self, node: INode[EventHandler[TSender, TArgs]]):
             super().__init__()
 
@@ -64,8 +86,8 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
         return self.__events
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
-        return EventManager.__Event(self.__cookies.AddLast(handler))
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent[TSender]:
+        return EventManager[TSender, TArgs].__Event(self.__cookies.AddLast(handler))
     
     @final
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
@@ -77,7 +99,7 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
         
         return True
 
-class EventManagerAbstractor[TSender, TArgs, TEvent: IEvent](IInterface):
+class EventManagerAbstractor[TSender, TArgs, TEvent](IInterface):
     def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]):
         super().__init__()
 
@@ -87,14 +109,14 @@ class EventManagerAbstractor[TSender, TArgs, TEvent: IEvent](IInterface):
     def _GetEventManager(self) -> IEventManagerBase[TSender, TArgs, TEvent]:
         return self.__manager
 
-class ReadOnlyEventManager[TSender, TArgs, TEvent: IEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IReadOnlyEventManager[TSender, TArgs]):
+class ReadOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IReadOnlyEventManager[TSender, TArgs]):
     def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]):
         super().__init__(manager)
     
     @final
     def Invoke(self, sender: TSender, args: TArgs) -> bool:
         return self._GetEventManager().Invoke(sender, args)
-class WriteOnlyEventManager[TSender, TArgs, TEvent: IEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
+class WriteOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
     def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]):
         super().__init__(manager)
     
