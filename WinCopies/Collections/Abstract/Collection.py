@@ -86,12 +86,20 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut]
         super().__init__(items)
     
     @final
+    def Swap(self, x: int, y: int) -> None:
+        super().Swap(x, y)
+    
+    @final
     def SliceAt(self, key: slice) -> IArray[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
 
 class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], Extensions.MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
     def __init__(self, items: IList[TIn]):
         super().__init__(items)
+    
+    @final
+    def Swap(self, x: int, y: int) -> None:
+        super().Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[TOut]:

@@ -87,6 +87,10 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
         Move(self._GetContainer(), x, y)
     
     @final
+    def Swap(self, x: int, y: int) -> None:
+        super().Swap(x, y)
+    
+    @final
     def SliceAt(self, key: slice) -> IArray[T]:
         return Array[T](self._GetContainer()[key])
     
@@ -100,6 +104,10 @@ class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensio
     @final
     def Move(self, x: int, y: int) -> None:
         Move(self._GetContainer(), x, y)
+    
+    @final
+    def Swap(self, x: int, y: int) -> None:
+        super().Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]:
