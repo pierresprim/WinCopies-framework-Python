@@ -582,6 +582,10 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
 
         def AsReversed(self) -> IArray[TItem]:
             return self._GetSpecializedContainer()
+        
+        @final
+        def Move(self, x: int, y: int) -> None:
+            self._GetSpecializedContainer().Move(x, y)
     
     @final
     class __ReadOnlyUpdater(ValueFunctionUpdater[ITuple[TItem]]):

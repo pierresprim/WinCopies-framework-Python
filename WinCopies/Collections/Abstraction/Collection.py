@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator, Sequence, MutableSequence as Mut
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections import Enumeration, Extensions
+from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
@@ -83,6 +83,10 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
         super().__init__(items if isinstance(items, MutableSequenceBase) else list(items))
     
     @final
+    def Move(self, x: int, y: int) -> None:
+        Move(self._GetContainer(), x, y)
+    
+    @final
     def SliceAt(self, key: slice) -> IArray[T]:
         return Array[T](self._GetContainer()[key])
     
@@ -92,6 +96,10 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
 class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|None = None):
         super().__init__(list[T]() if items is None else items)
+    
+    @final
+    def Move(self, x: int, y: int) -> None:
+        Move(self._GetContainer(), x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]:

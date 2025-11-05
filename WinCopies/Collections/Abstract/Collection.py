@@ -74,6 +74,10 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
         super().__init__(items)
     
     @final
+    def Move(self, x: int, y: int) -> None:
+        self._GetSpecializedContainer().Move(x, y)
+    
+    @final
     def _SetAt(self, key: int, value: TOut) -> None:
         self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
 
