@@ -799,10 +799,6 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
             return self._GetDictionary().ContainsKey(key)
         
         @final
-        def TryGetValue(self, key: TKey) -> INullable[TValue]:
-            return self._GetDictionary().TryGetValue(key)
-        
-        @final
         def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
             return self._GetDictionary().TryGetAt(key, defaultValue)
         

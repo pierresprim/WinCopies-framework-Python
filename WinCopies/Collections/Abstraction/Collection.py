@@ -7,7 +7,7 @@ from WinCopies import IStringable
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
-from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
+from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
@@ -275,6 +275,10 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
 
     __getInstance: Function[Dictionary.__None] = GetSingletonInstanceProvider(__None)
     
+    @staticmethod
+    def __GetNoneInstance() -> Dictionary.__None:
+        return Dictionary[TKey, TValue].__getInstance() # type: ignore
+    
     def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None):
         super().__init__()
 
@@ -344,13 +348,13 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         self._GetDictionary().pop(key)
     
     @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
-        return self._GetDictionary().pop(key, defaultValue)
-    @final
-    def TryRemoveValue(self, key: TKey) -> INullable[TValue]:
-        result: TValue|Dictionary.__None = self._GetDictionary().pop(key, Dictionary[TKey, TValue].__getInstance()) # type: ignore
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        def getResult(key: TValue|TDefault, value: bool) -> DualValueBool[TValue|TDefault]:
+            return DualValueBool[TValue|TDefault](key, value)
+        
+        result: TValue|Dictionary[TKey, TValue].__None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
 
-        return GetNullValue() if isinstance(result, Dictionary.__None) else GetNullable(result)
+        return getResult(defaultValue, False) if isinstance(result, Dictionary.__None) else getResult(result, True)
     
     @final
     def Clear(self) -> None:

@@ -11,7 +11,7 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerato
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem
+from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
@@ -218,13 +218,14 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         self._GetItems().Remove(key)
     
     @final
-    def TryRemoveValue(self, key: TKey) -> INullable[TValueOut]:
-        return self._GetItems().TryRemoveValue(key).TryConvertToNullable(self._Convert)
-    @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValueOut|TDefault:
-        result: INullable[TValueOut] = self.TryRemoveValue(key)
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
+        def getResult(key: TValueOut|TDefault, value: bool) -> DualValueBool[TValueOut|TDefault]:
+            return DualValueBool[TValueOut|TDefault](key, value)
+        
+        result: DualValueBool[TValueIn|None] = self._GetItems().TryRemove(key, None)
+        value: TValueIn|None = result.GetKey()
 
-        return result.GetValue() if result.HasValue() else defaultValue
+        return getResult(self._Convert(value), True) if result.GetValue() and value is not None else getResult(defaultValue, False)
     
     @final
     def Clear(self) -> None:

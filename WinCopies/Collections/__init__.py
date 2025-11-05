@@ -407,18 +407,18 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         pass
     @final
-    def TryGetItem(self, key: TKey) -> INullable[TValue]:
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
         result: DualValueBool[TValue|None] = self.TryGetAt(key, None)
 
         return GetNullable(result.GetKey()) if result.GetValue() else GetNullValue() # type: ignore
     @final
     def GetAt(self, key: TKey) -> TValue:
-        result: INullable[TValue] = self.TryGetItem(key)
+        result: INullable[TValue] = self.TryGetValue(key)
         
         if result.HasValue():
             return result.GetValue()
         
-        raise KeyError(f"Key {key} does not exist.")
+        raise KeyError(f"The key {key} does not exist.")
 class ISetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self):
         super().__init__()
@@ -598,10 +598,6 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
     def __init__(self):
         super().__init__()
-
-    @abstractmethod
-    def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        pass
 class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
     def __init__(self):
         super().__init__()
@@ -625,11 +621,14 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
         pass
     
     @abstractmethod
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> TValue|TDefault:
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         pass
-    @abstractmethod
-    def TryRemoveValue(self, key: TKey) -> INullable[TValue]:
-        pass
+    @final
+    def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
+        result: DualValueBool[TValue|None] = self.TryRemove(key, None)
+        value: TValue|None = result.GetKey()
+
+        return GetNullable(value) if result.GetValue() and value is not None else GetNullValue()
 
     @abstractmethod
     def Remove(self, key: TKey) -> None:
