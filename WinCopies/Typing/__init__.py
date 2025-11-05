@@ -3,9 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Callable, Type as SystemType
 
-import WinCopies
-
-from WinCopies import IInterface
+from WinCopies import IInterface, IDisposable as IDisposableBase
 
 class IStruct[T](IInterface):
     def __init__(self):
@@ -67,7 +65,7 @@ class IEquatable[T](IEquatableValue):
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
 
-class IDisposable(WinCopies.IDisposable):
+class IDisposable(IDisposableBase):
     def __init__(self):
         super().__init__()
 
