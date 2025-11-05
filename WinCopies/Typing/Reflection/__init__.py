@@ -1,10 +1,9 @@
 from collections.abc import Iterable
 from importlib import import_module
-from inspect import getfile
-from inspect import FrameInfo, stack, getfile
+from inspect import FrameInfo, stack, getfile, getmembers, ismethod
 from os import path, sep
 from sys import modules, builtin_module_names
-from types import ModuleType, FrameType
+from types import ModuleType, FrameType, MethodType
 from typing import List, Type
 
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
@@ -12,6 +11,7 @@ from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
 from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
 from WinCopies.Typing.Delegate import Converter, Selector
+from WinCopies.Typing.Pairing import KeyValuePair
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
@@ -464,3 +464,6 @@ def AreInstances(type: type, *values: object) -> bool:
             return False
 
     return True
+
+def GetMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
+    return (KeyValuePair(method_name, method) for (method_name, method) in getmembers(obj.__class__, ismethod))
