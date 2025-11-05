@@ -453,7 +453,6 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyabl
     def __init__(self):
         super().__init__()
     
-    @final
     def Swap(self, x: TKey, y: TKey) -> None:
         value: TValue = self.GetAt(x)
 
