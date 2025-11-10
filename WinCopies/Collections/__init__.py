@@ -323,6 +323,14 @@ class ICollection[T](IReadOnlyList[T]):
     @abstractmethod
     def Add(self, item: T) -> None:
         pass
+    def AddItems(self, items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
+        
+        for item in items:
+            self.Add(item)
+        
+        return True
 
     @abstractmethod
     def TryRemoveAt(self, index: int) -> bool|None:
