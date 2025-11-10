@@ -4,7 +4,7 @@ from typing import final, Callable
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly import INode, IList, List
-from WinCopies.Collections.Abstraction.Linked import EnumerableStack
+from WinCopies.Collections.Abstraction.Linked import EnumerableQueue
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
@@ -166,7 +166,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         super().__init__()
 
         self.__cookies: IList[EventHandler[TSender, TArgs]] = List[EventHandler[TSender, TArgs]]()
-        self.__events = EnumerableStack[EventHandler[TSender, TArgs]](self.__cookies)
+        self.__events = EnumerableQueue[EventHandler[TSender, TArgs]](self.__cookies)
     
     @final
     def _GetEvents(self) -> IEnumerableList[EventHandler[TSender, TArgs]]:
