@@ -8,20 +8,12 @@ from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
-class IEventArgs[T](IInterface):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def GetSender(self) -> T:
-        pass
-
 class IEvent[T](IInterface):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
-    def GetArgs(self) -> IEventArgs[T]:
+    def GetArgs(self) -> T:
         pass
     
     @abstractmethod
@@ -54,17 +46,7 @@ class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent[TSe
     def __init__(self):
         super().__init__()
 
-class EventArgs[T](Abstract, IEventArgs[T]):
-    def __init__(self, sender: T):
-        super().__init__()
-
-        self.__sender: T = sender
-    
-    @final
-    def GetSender(self) -> T:
-        return self.__sender
-
-class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
+class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
     class __Event(IEvent[TSender]):
         def __init__(self, node: INode[EventHandler[TSender, TArgs]]):
             super().__init__()
@@ -99,7 +81,7 @@ class EventManager[TSender, TArgs](IEventManager[TSender, TArgs]):
         
         return True
 
-class EventManagerAbstractor[TSender, TArgs, TEvent](IInterface):
+class EventManagerAbstractor[TSender, TArgs, TEvent](Abstract):
     def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]):
         super().__init__()
 
