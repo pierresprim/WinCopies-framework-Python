@@ -5,6 +5,7 @@ from typing import final
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Linked import Singly, Doubly
+from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly import INode, List
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
@@ -91,14 +92,14 @@ class Stack[T](StackBase[T, Doubly.IReadWriteList[T]], IGenericConstraintImpleme
     def __init__(self, l: Doubly.IReadWriteList[T]|None = None):
         super().__init__(LinkedList[T].GetList(l))
 
-class EnumerableQueue[T](QueueBase[T, Doubly.IList[T]], Singly.IEnumerable[T]):
+class EnumerableQueue[T](QueueBase[T, Doubly.IList[T]], IEnumerableList[T]):
     def __init__(self, l: Doubly.IList[T]|None = None):
         super().__init__(EnumerableLinkedList[T].GetList(l))
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
-class EnumerableStack[T](StackBase[T, Doubly.IList[T]], Singly.IEnumerable[T]):
+class EnumerableStack[T](StackBase[T, Doubly.IList[T]], IEnumerableList[T]):
     def __init__(self, l: Doubly.IList[T]|None = None):
         super().__init__(EnumerableLinkedList[T].GetList(l))
 
