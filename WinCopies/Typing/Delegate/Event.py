@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Linked.Singly import IEnumerable
+from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly import INode, IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableStack
 
@@ -64,7 +64,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         self.__events = EnumerableStack[EventHandler[TSender, TArgs]](self.__cookies)
     
     @final
-    def _GetEvents(self) -> IEnumerable[EventHandler[TSender, TArgs]]:
+    def _GetEvents(self) -> IEnumerableList[EventHandler[TSender, TArgs]]:
         return self.__events
     
     @final
