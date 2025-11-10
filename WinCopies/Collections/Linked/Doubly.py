@@ -188,10 +188,10 @@ class IReadWriteList[T](IReadOnlyList[T]):
         return self.AddLastItems(values)
     
     @abstractmethod
-    def RemoveFirst(self) -> INullable[T]:
+    def TryRemoveFirst(self) -> INullable[T]:
         pass
     @abstractmethod
-    def RemoveLast(self) -> INullable[T]:
+    def TryRemoveLast(self) -> INullable[T]:
         pass
     
     @abstractmethod
@@ -212,10 +212,10 @@ class IReadWriteList[T](IReadOnlyList[T]):
     
     @final
     def AsQueuedEnumerator(self) -> IEnumerator[T]:
-        return self.__AsEnumerator(self.RemoveFirst)
+        return self.__AsEnumerator(self.TryRemoveFirst)
     @final
     def AsStackedEnumerator(self) -> IEnumerator[T]:
-        return self.__AsEnumerator(self.RemoveLast)
+        return self.__AsEnumerator(self.TryRemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
     def __init__(self):
@@ -667,22 +667,22 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
         return self.__TryGetNodeAsClass(self._GetLast())
     
     @final
-    def RemoveFirst(self) -> INullable[TItem]:
+    def TryRemoveFirst(self) -> INullable[TItem]:
         node: TNode|None = self._GetFirst()
 
         return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).Remove())
     @final
-    def RemoveLast(self) -> INullable[TItem]:
+    def TryRemoveLast(self) -> INullable[TItem]:
         node: TNode|None = self._GetLast()
 
         return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).Remove())
     
     @final
     def Clear(self) -> None:
-        node: INullable[TItem] = self.RemoveFirst()
+        node: INullable[TItem] = self.TryRemoveFirst()
 
         while node.HasValue():
-            node = self.RemoveFirst()
+            node = self.TryRemoveFirst()
     
     @abstractmethod
     def _GetNodeEnumerator(self, node: TNodeInterface) -> IEnumerator[TNodeInterface]:
@@ -1012,10 +1012,10 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     
     @final
     def RemoveFirst(self) -> INullable[T]:
-        return self._GetItems().RemoveFirst()
+        return self._GetItems().TryRemoveFirst()
     @final
     def RemoveLast(self) -> INullable[T]:
-        return self._GetItems().RemoveLast()
+        return self._GetItems().TryRemoveLast()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:

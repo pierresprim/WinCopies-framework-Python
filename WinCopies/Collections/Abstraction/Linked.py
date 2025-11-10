@@ -49,7 +49,7 @@ class LinkedListBase[TItems, TList](Singly.IList[TItems], GenericConstraint[TLis
     
     @final
     def TryPop(self) -> INullable[TItems]:
-        return self._GetInnerContainer().RemoveFirst()
+        return self._GetInnerContainer().TryRemoveFirst()
     
     @final
     def Clear(self) -> None:
