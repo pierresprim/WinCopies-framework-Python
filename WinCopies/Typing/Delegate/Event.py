@@ -25,7 +25,7 @@ class IReadOnlyEventManager[TSender, TArgs](IInterface):
         super().__init__()
     
     @abstractmethod
-    def Invoke(self, sender: TSender, args: TArgs) -> bool:
+    def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
         pass
 class IWriteOnlyEventManager[TSender, TArgs, TEvent](IInterface):
     def __init__(self):
@@ -72,7 +72,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         return EventManager[TSender, TArgs].__Event(self.__cookies.AddLast(handler))
     
     @final
-    def Invoke(self, sender: TSender, args: TArgs) -> bool:
+    def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
         if self.__events.IsEmpty():
             return False
         
@@ -96,7 +96,7 @@ class ReadOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSende
         super().__init__(manager)
     
     @final
-    def Invoke(self, sender: TSender, args: TArgs) -> bool:
+    def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
         return self._GetEventManager().Invoke(sender, args)
 class WriteOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
     def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]):
