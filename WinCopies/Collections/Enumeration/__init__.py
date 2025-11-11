@@ -108,16 +108,33 @@ class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
         return False
     def HasProcessedItems(self) -> bool:
         return False
+@final
+class __EmptyEnumerable[T](IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return None
 
 __emptyEnumerator = __EmptyEnumerator[None]()
+__emptyEnumerable = __EmptyEnumerable[None]()
 
 def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
     return __emptyEnumerator # type: ignore
+def GetEmptyEnumerable[T]() -> IEnumerable[T]: # type: ignore
+    return __emptyEnumerable # type: ignore
+def GetEmptyIterable[T]() -> SystemIterable[T]: # type: ignore
+    return GetEmptyEnumerable().AsIterable() # type: ignore
 
 def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
     return GetEmptyEnumerator() if enumerator is None else enumerator
 def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
     return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
+
+def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
+    return GetEmptyEnumerable() if enumerable is None else enumerable
+def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
+    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # type: ignore
 
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
     def __init__(self):
@@ -408,6 +425,19 @@ class IteratorProvider[T](Enumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return TryAsEnumerator(self._TryGetIterator())
+class EnumeratorProvider[T](Enumerable[T]):
+    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None):
+        super().__init__()
+        
+        self.__enumeratorProvider: Function[IEnumerator[T]|None]|None = enumeratorProvider
+    
+    @final
+    def _TryGetIterator(self) -> SystemIterator[T]|None:
+        return super()._TryGetIterator()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator):
