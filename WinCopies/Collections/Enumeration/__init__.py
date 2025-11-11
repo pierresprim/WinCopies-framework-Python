@@ -74,6 +74,21 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __iter__(self) -> SystemIterator[T]:
         return self
 
+class IEnumerable[T](IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        pass
+    @final
+    def GetEnumerator(self) -> IEnumerator[T]:
+        return GetEnumerator(self.TryGetEnumerator())
+    
+    @abstractmethod
+    def AsIterable(self) -> SystemIterable[T]:
+        pass
+
 @final
 class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self):
@@ -103,21 +118,6 @@ def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
     return GetEmptyEnumerator() if enumerator is None else enumerator
 def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
     return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
-
-class IEnumerable[T](IInterface):
-    def __init__(self):
-        super().__init__()
-    
-    @abstractmethod
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        pass
-    @final
-    def GetEnumerator(self) -> IEnumerator[T]:
-        return GetEnumerator(self.TryGetEnumerator())
-    
-    @abstractmethod
-    def AsIterable(self) -> SystemIterable[T]:
-        pass
 
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
     def __init__(self):
@@ -396,10 +396,10 @@ class Iterable[T](IterableBase[T]):
         return None if iterable is None else Iterable[T].Create(iterable)
 
 class IteratorProvider[T](Enumerable[T]):
-    def __init__(self, iteratorProvider: Function[SystemIterator[T]]|None):
+    def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]|None):
         super().__init__()
         
-        self.__iteratorProvider: Function[SystemIterator[T]]|None = iteratorProvider
+        self.__iteratorProvider: Function[SystemIterator[T]|None]|None = iteratorProvider
     
     @final
     def _TryGetIterator(self) -> SystemIterator[T]|None:
