@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import Sequence, AnyStr
 
-from WinCopies.Collections.Enumeration.Extensions import IRecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable
 from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualValueNullableBool

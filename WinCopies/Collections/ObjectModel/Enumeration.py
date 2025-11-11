@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
-from WinCopies.Collections.Enumeration.Extensions import IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 
 from WinCopies.Typing import InvalidOperationError, IMonitor, Monitor
 from WinCopies.Typing.Delegate.Event import IEvent, INotifyableEvent, IEventManager, CancellableEventArgs, NotifyableEventArgs, EventHandler, EventManager, CancellableEventManager

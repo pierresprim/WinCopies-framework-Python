@@ -14,7 +14,7 @@ from typing import final
 from WinCopies import IO, String
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Recursive import RecursivelyEnumerable
 from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 

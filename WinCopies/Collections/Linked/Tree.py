@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies.Collections.Enumeration import GetIterator, IEnumerable, IEnumerator, ConverterEnumerator, IteratorProvider
-from WinCopies.Collections.Enumeration.Extensions import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter, RecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter, RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, IEnumerableList, DoublyLinkedNode, EnumerableList, DoublyLinkedNodeEnumeratorBase
 from WinCopies.Typing import IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
