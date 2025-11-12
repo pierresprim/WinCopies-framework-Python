@@ -29,6 +29,13 @@ class IRecursivelyEnumerable[T](IEnumerable[T]):
     @final
     def GetRecursiveStackedEnumerator(self, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> IEnumerator[T]:
         return GetEnumerator(self.TryGetRecursiveStackedEnumerator(handler))
+
+    @final
+    def GetRecursiveEnumerable(self, handler: IRecursiveEnumerationHandler[T]|None = None) -> IEnumerable[T]:
+        return EnumeratorProvider[T](lambda: self.TryGetRecursiveEnumerator(handler))
+    @final
+    def GetRecursiveStackedEnumerable(self, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> IEnumerable[T]:
+        return EnumeratorProvider[T](lambda: self.TryGetRecursiveStackedEnumerator(handler))
     
     @abstractmethod
     def AsRecursivelyEnumerable(self) -> IEnumerable[T]:
