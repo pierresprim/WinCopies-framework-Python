@@ -1011,10 +1011,10 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         return self._GetItems().AddLast(value)
     
     @final
-    def RemoveFirst(self) -> INullable[T]:
+    def TryRemoveFirst(self) -> INullable[T]:
         return self._GetItems().TryRemoveFirst()
     @final
-    def RemoveLast(self) -> INullable[T]:
+    def TryRemoveLast(self) -> INullable[T]:
         return self._GetItems().TryRemoveLast()
     
     @final
