@@ -5,7 +5,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract, NullableBoolean, ToNullableBoolean
 
-from WinCopies.Collections.Enumeration import IEnumerable, SystemIterator, IEnumerator, Enumerable, IteratorProvider, AbstractEnumerator, Iterator, GetEnumerator, GetIterator
+from WinCopies.Collections.Enumeration import IEnumerable, SystemIterator, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, Iterator, GetEnumerator
 from WinCopies.Collections.Linked.Singly import Stack
 
 from WinCopies.Typing import InvalidOperationError, INullable
@@ -511,7 +511,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
             self.__enumerable: IRecursivelyEnumerable[T] = enumerable
         
         def _GetValue(self) -> IEnumerable[T]:
-            return IteratorProvider[T](lambda: GetIterator(self.__enumerable.TryGetRecursiveEnumerator())) # type: ignore
+            return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
     
     def __init__(self):
         def update(func: IFunction[IEnumerable[T]]) -> None:
