@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
-from WinCopies.Collections.Enumeration import GetIterator, IEnumerable, IEnumerator, ConverterEnumerator, IteratorProvider
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumerator, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter, RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, IEnumerableList, DoublyLinkedNode, EnumerableList, DoublyLinkedNodeEnumeratorBase
 from WinCopies.Typing import IGenericConstraintImplementation
@@ -47,7 +47,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
             self.__tree: ITree[TItem] = tree
         
         def _GetValue(self) -> IEnumerable[TItem]:
-            return IteratorProvider[TItem](lambda: GetIterator(self.__tree.TryGetRecursiveEnumerator())) # type: ignore
+            return EnumeratorProvider[TItem](lambda: self.__tree.TryGetRecursiveEnumerator())
     @final
     class __NodeRecursiveUpdater(ValueFunctionUpdater[IRecursivelyEnumerable[ITreeNode[TItem]]]):
         def __init__(self, tree: ITree[TItem], updater: Method[IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]]):
