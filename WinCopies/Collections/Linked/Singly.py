@@ -147,7 +147,7 @@ class ICountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IEnumerab
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
         pass
 
-class _ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
+class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
     def __init__(self, items: TList):
         super().__init__()
 
@@ -251,7 +251,7 @@ class ListBase[T](Abstract, IList[T]):
         self._OnRemoved()
 
 class List[T](ListBase[T]):
-    class _ReadOnlyList(_ReadOnlyList[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
         def __init__(self, items: IList[T]):
             super().__init__(items)
     
@@ -280,7 +280,7 @@ class List[T](ListBase[T]):
         return self.__readOnly.GetValue()
 
 class Enumerable[T](ListBase[T], Enumeration.Enumerable[T], IEnumerableList[T]):
-    class _ReadOnlyList(_ReadOnlyList[T, IReadOnlyEnumerableList[T]], Enumeration.Enumerable[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IReadOnlyEnumerableList[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, IReadOnlyEnumerableList[T]], Enumeration.Enumerable[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IReadOnlyEnumerableList[T]]):
         def __init__(self, items: IReadOnlyEnumerableList[T]):
             super().__init__(items)
         
@@ -478,7 +478,7 @@ class CountableBase[TItems, TList](CollectionBase[TItems, TList], Collections.Co
         self.__count = 0
 
 class Countable[T](CountableBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    class _ReadOnlyList(_ReadOnlyList[T, IReadOnlyCountableList[T]], Collections.Countable, IReadOnlyCountableList[T], IGenericConstraintImplementation[IReadOnlyCountableList[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, IReadOnlyCountableList[T]], Collections.Countable, IReadOnlyCountableList[T], IGenericConstraintImplementation[IReadOnlyCountableList[T]]):
         def __init__(self, items: IReadOnlyCountableList[T]):
             super().__init__(items)
         
@@ -525,7 +525,7 @@ class CountableEnumerableBase[TItems, TList](CountableBase[TItems, TList], Enume
     def __init__(self, l: TList):
         super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
-    class _ReadOnlyList(_ReadOnlyList[T, IReadOnlyCountableEnumerableList[T]], Enumeration.CountableEnumerable[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[IReadOnlyCountableEnumerableList[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, IReadOnlyCountableEnumerableList[T]], Enumeration.CountableEnumerable[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[IReadOnlyCountableEnumerableList[T]]):
         def __init__(self, items: IReadOnlyCountableEnumerableList[T]):
             super().__init__(items)
         
