@@ -6,7 +6,7 @@ from abc import abstractmethod
 from typing import final, Callable, Self
 
 from WinCopies import Collections, Abstract
-from WinCopies.Collections import Enumeration, Generator, ICountable, IReadOnlyCollection, Countable as CountableCollection
+from WinCopies.Collections import Enumeration, Generator, EnumerationOrder, ICountable, IReadOnlyCollection, Countable as CountableCollection
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, IterableBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
@@ -23,6 +23,10 @@ class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
 class IReadOnlyList[T](IReadOnlyCollection):
     def __init__(self):
         super().__init__()
+    
+    @abstractmethod
+    def GetOrder(self) -> EnumerationOrder:
+        pass
     
     @abstractmethod
     def TryPeek(self) -> INullable[T]:
@@ -164,6 +168,10 @@ class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstrai
     @final
     def HasItems(self) -> bool:
         return super().HasItems()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return self._GetInnerContainer().GetOrder()
     
     @final
     def TryPeek(self) -> INullable[TItem]:
@@ -331,6 +339,10 @@ class QueueBase[T](ListBase[T]):
         self.PushItems(values)
     
     @final
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.FIFO
+    
+    @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
         def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
             previousNode._SetNext(newNode) # type: ignore
@@ -359,6 +371,10 @@ class StackBase[T](ListBase[T]):
         super().__init__()
 
         self.PushItems(values)
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.LIFO
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
@@ -406,6 +422,10 @@ class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TIt
     @final
     def HasItems(self) -> bool:
         return self._GetInnerContainer().HasItems()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return self._GetInnerContainer().GetOrder()
 
 class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, l: IList[T]):
