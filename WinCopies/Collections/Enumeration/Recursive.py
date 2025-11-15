@@ -304,8 +304,10 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
     
     @final
     def __MoveNext(self) -> bool:
-        def setCurrentEnumerator(value: IEnumerator[TEnumerationItems]) -> None:
+        def setCurrentEnumerator(value: IEnumerator[TEnumerationItems]) -> IEnumerator[TEnumerationItems]:
             self.__currentEnumerator = value
+
+            return value
         
         def moveNext() -> bool:
             def getEnumerator() -> DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]]:
@@ -390,21 +392,23 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
 
                 if loopResult is not None:
                     return loopResult
-        
-            self.__OnExitingMainLevel(self._GetStackItemAsCookie(self.__first)) # type: ignore
+            
+            first: TStackItems|None = self.__first
+            
+            if first is not None:
+                self.__OnExitingMainLevel(self._GetStackItemAsCookie(first))
 
             self.__moveNext = self.__MoveNext
 
             return self.__moveNext()
         
         current: TEnumerationItems|None = None
+        currentEnumerator: IEnumerator[TEnumerationItems]|None = None
 
-        while super()._MoveNextOverride():
-            setCurrentEnumerator(self._GetEnumerator())
-
-            match ToNullableBoolean(self.__OnEnteringMainLevel(current := self.__currentEnumerator.GetCurrent(), self.__currentEnumerator)): # type: ignore
+        while super()._MoveNextOverride() and (current := (currentEnumerator := setCurrentEnumerator(self._GetEnumerator())).GetCurrent()) is not None:
+            match ToNullableBoolean(self.__OnEnteringMainLevel(current)):
                 case NullableBoolean.BoolTrue:
-                    self.__first = self._GetStackItemAsCookie(self._GetStackItem(current, self.__currentEnumerator)) # type: ignore
+                    self.__first = self._GetStackItem(current, currentEnumerator)
                     
                     self.__moveNext = moveNext
 
