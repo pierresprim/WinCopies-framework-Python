@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Generator as GeneratorBase, Sized, Iterable, Container, Sequence, MutableSequence
 from contextlib import AbstractContextManager
+from enum import Enum
 from typing import final, Callable
 
 from WinCopies import IInterface, Abstract, BooleanableEnum, NullableBoolean, Not
@@ -14,6 +15,11 @@ from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityCo
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
 
 type Generator[T] = GeneratorBase[T, None, None]
+
+class EnumerationOrder(Enum):
+    Null = 0
+    FIFO = 1
+    LIFO = 2
 
 class IterableScanResult(BooleanableEnum):
     DoesNotExist = -2
