@@ -59,7 +59,7 @@ class Point(IPoint):
         self.__y: int = y
     
     @staticmethod
-    def FromCoordinates(x: int, y: int) -> IPoint:
+    def Create(x: int, y: int) -> IPoint:
         return Point.__Point(x) if x == y else Point(x, y)
     
     def GetX(self) -> int:
@@ -69,15 +69,15 @@ class Point(IPoint):
 
 @final
 class Point3D(IPoint3D):
-    def __init__(self, point: Point, z: int):
+    def __init__(self, point: IPoint, z: int):
         super().__init__()
 
-        self.__point: Point = point
+        self.__point: IPoint = point
         self.__z: int = z
     
     @staticmethod
-    def FromCoordinates(x: int, y: int, z: int) -> IPoint3D:
-        return Point3D(Point(x, y), z)
+    def Create(x: int, y: int, z: int) -> IPoint3D:
+        return Point3D(Point.Create(x, y), z)
     
     def Get2D(self) -> IPoint:
         return self.__point
