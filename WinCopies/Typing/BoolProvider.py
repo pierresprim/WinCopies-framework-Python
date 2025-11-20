@@ -34,7 +34,7 @@ class INullableBoolProvider(IInterface):
     def AsNullableBool(self) -> bool|None:
         pass
 
-def AsBool[T](value: IAsBool[T]|None) -> bool:
+def AsBool(value: IBoolProvider|None) -> bool:
     return False if value is None else value.AsBool()
 
 def AsNullableBool(value: IBoolProvider|INullableBoolProvider|None) -> bool|None:
