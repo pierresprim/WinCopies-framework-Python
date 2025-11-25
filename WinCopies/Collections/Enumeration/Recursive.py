@@ -7,7 +7,7 @@ from typing import final
 from WinCopies import IInterface, Abstract, NullableBoolean, ToNullableBoolean
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, SystemIterator, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, Iterator, GetEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, GetEnumerator
 from WinCopies.Collections.Linked.Singly import Stack
 
 from WinCopies.Typing import InvalidOperationError, INullable, IDisposable
@@ -378,12 +378,7 @@ class RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abst
             
             item: TEnumerationItems|None = enumerator.GetCurrent()
 
-            if item is None:
-                return None
-            
-            iterator: SystemIterator[TEnumerationItems] = iter(self._GetCookie().GetEnumerationItems(item).AsIterable())
-
-            return DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]](item, iterator if isinstance(iterator, IEnumerator) else Iterator[TEnumerationItems](iterator))
+            return None if item is None else DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]](item, self._GetCookie().GetEnumerationItems(item).GetEnumerator())
         
         result: DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]]|None = getEnumerator()
 
