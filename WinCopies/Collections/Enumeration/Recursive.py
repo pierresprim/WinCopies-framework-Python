@@ -748,6 +748,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
     def __init__(self, enumerator: IEnumerator[TEnumerationItems], delegate: IRecursiveEnumerationDelegate[TEnumerationItems]|None, handler: IRecursiveEnumerationHandlerBase[TEnumerationItems, TCookie]|None):
         super().__init__(enumerator)
         
+        self.__cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems].__Cookie(self)
         self.__moveNext: IRecursiveEnumerationDelegate[TEnumerationItems] = _NullRecursiveEnumerationDelegate[TEnumerationItems]() if delegate is None else delegate
         self.__handler: IRecursiveEnumerationHandlerBase[TEnumerationItems, TCookie] = _NullRecursiveEnumerationHandler[TEnumerationItems, TCookie]() if handler is None else handler
     
@@ -764,7 +765,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
     
     @final
     def _GetCookie(self) -> IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]:
-        return RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems].__Cookie(self)
+        return self.__cookie
     
     @abstractmethod
     def _GetStackItem(self, item: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> TStackItems:
