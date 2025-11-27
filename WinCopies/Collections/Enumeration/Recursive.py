@@ -357,16 +357,16 @@ class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelega
     def Dispose(self) -> None:
         pass
 class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abstract, IRecursiveEnumerationDelegate[TEnumerationItems]):
-    def __init__(self, cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]):
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]):
         super().__init__()
 
         self.__moveNext: Function[bool]|None = None
         self.__currentEnumerator: IEnumerator[TEnumerationItems]|None = None
-        self.__cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = cookie
+        self.__cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]] = cookieProvider
     
     @final
     def _GetCookie(self) -> IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]:
-        return self.__cookie
+        return self.__cookieProvider()
     
     def _OnEnteringLevel(self, currentItem: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> None:
         self._GetCookie().Push(self._GetCookie().GetStackItem(currentItem, enumerator))
@@ -487,8 +487,8 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
 
 @final
 class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems]):
-    def __init__(self, cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]):
-        super().__init__(cookie)
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]):
+        super().__init__(cookieProvider)
         
         self.__first: TStackItems|None = None
     
@@ -565,8 +565,8 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
         self.__first = None
 @final
 class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]]):
-    def __init__(self, cookie: IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]):
-        super().__init__(cookie)
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]):
+        super().__init__(cookieProvider)
         
         self.__first: DualResult[T, IEnumerator[T]]|None = None
     
@@ -853,7 +853,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
         self.__handler.OnStoppedEnumeration()
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandlerBase[T, None]|None = None):
-        super().__init__(enumerator, _FIFO(self._GetCookie()), handler)
+        super().__init__(enumerator, _FIFO(self._GetCookie), handler)
     
     @final
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> IEnumerator[T]:
@@ -866,18 +866,18 @@ class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
         return None
 class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, IEnumerator[T]]]):
     def __init__(self, enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder, handler: IRecursiveEnumerationHandlerBase[T, T]|None = None):
-        def getDelegate(enumerationOrder: EnumerationOrder, cookie: IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]) -> IRecursiveEnumerationDelegate[T]|None:
+        def getDelegate(enumerationOrder: EnumerationOrder, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]) -> IRecursiveEnumerationDelegate[T]|None:
             match enumerationOrder:
                 case EnumerationOrder.Null:
                     return None
                 case EnumerationOrder.FIFO:
-                    return _FIFO(cookie)
+                    return _FIFO(cookieProvider)
                 case EnumerationOrder.LIFO:
-                    return _LIFO(cookie)
+                    return _LIFO(cookieProvider)
                 case _:
                     raise ValueError(enumerationOrder)
         
-        super().__init__(enumerator, getDelegate(enumerationOrder, self._GetCookie()), handler)
+        super().__init__(enumerator, getDelegate(enumerationOrder, self._GetCookie), handler)
     
     @final
     def _CreateStack(self) -> Stack[DualResult[T, IEnumerator[T]]]:
