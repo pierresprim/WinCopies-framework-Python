@@ -356,7 +356,7 @@ class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelega
     
     def Dispose(self) -> None:
         pass
-class RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abstract, IRecursiveEnumerationDelegate[TEnumerationItems]):
+class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abstract, IRecursiveEnumerationDelegate[TEnumerationItems]):
     def __init__(self, cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]):
         super().__init__()
 
@@ -486,7 +486,7 @@ class RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abst
         self.__moveNext = None
 
 @final
-class FIFO[TEnumerationItems, TCookie, TStackItems](RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems]):
+class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems]):
     def __init__(self, cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]):
         super().__init__(cookie)
         
@@ -564,7 +564,7 @@ class FIFO[TEnumerationItems, TCookie, TStackItems](RecursiveEnumerationDelegate
 
         self.__first = None
 @final
-class LIFO[T](RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]]):
+class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]]):
     def __init__(self, cookie: IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]):
         super().__init__(cookie)
         
@@ -853,7 +853,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
         self.__handler.OnStoppedEnumeration()
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandlerBase[T, None]|None = None):
-        super().__init__(enumerator, FIFO(self._GetCookie()), handler)
+        super().__init__(enumerator, _FIFO(self._GetCookie()), handler)
     
     @final
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> IEnumerator[T]:
@@ -871,9 +871,9 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
                 case EnumerationOrder.Null:
                     return None
                 case EnumerationOrder.FIFO:
-                    return FIFO(cookie)
+                    return _FIFO(cookie)
                 case EnumerationOrder.LIFO:
-                    return LIFO(cookie)
+                    return _LIFO(cookie)
                 case _:
                     raise ValueError(enumerationOrder)
         
