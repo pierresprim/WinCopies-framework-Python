@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
+from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumerator, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter, RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, IEnumerableList, DoublyLinkedNode, EnumerableList, DoublyLinkedNodeEnumeratorBase
@@ -85,11 +86,11 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
         return self.__nodeRecursive.GetValue()
     
     @final
-    def TryGetRecursiveEnumerator(self, handler: IRecursiveEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
-        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveEnumerator(None if handler is None else RecursiveEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda item: item.GetValue())))
+    def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
+        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveEnumerator(enumerationOrder, None if handler is None else RecursiveEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda item: item.GetValue())))
     @final
-    def TryGetRecursiveStackedEnumerator(self, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
-        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
+    def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
+        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
 
 @final
 class __TreeNode[T](DoublyLinkedNode[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"], TreeBase[T, "__TreeNode"]], EnumerableList[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"]].NodeBase, ITreeNode[T], IGenericConstraintImplementation[IEnumerableList[T, ITreeNode[T]]]):
