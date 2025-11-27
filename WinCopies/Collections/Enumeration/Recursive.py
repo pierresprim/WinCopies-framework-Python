@@ -853,7 +853,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
         self.__handler.OnStoppedEnumeration()
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandlerBase[T, None]|None = None):
-        super().__init__(enumerator, _FIFO(self._GetCookie), handler)
+        super().__init__(enumerator, _FIFO[T, None, IEnumerator[T]](self._GetCookie), handler)
     
     @final
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> IEnumerator[T]:
@@ -871,9 +871,9 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
                 case EnumerationOrder.Null:
                     return None
                 case EnumerationOrder.FIFO:
-                    return _FIFO(cookieProvider)
+                    return _FIFO[T, T, DualResult[T, IEnumerator[T]]](cookieProvider)
                 case EnumerationOrder.LIFO:
-                    return _LIFO(cookieProvider)
+                    return _LIFO[T](cookieProvider)
                 case _:
                     raise ValueError(enumerationOrder)
         
