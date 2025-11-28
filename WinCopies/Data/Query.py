@@ -8,10 +8,11 @@ from typing import final
 
 from WinCopies import IDisposable, IInterface
 
+from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
-from WinCopies.Collections.Enumeration.Extensions import RecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyEnumerable
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked import Singly
@@ -256,12 +257,12 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             def __Write(self, value: str) -> None:
                 self.__queryBuilder.Write(value)
             
-            def _OnEnteringMainLevel(self, item: ISubselectionQuery, enumerator: IEnumerator[ISubselectionQuery]):
+            def _OnEnteringMainLevel(self, item: ISubselectionQuery) -> bool:
                 self.__Write(', ')
                 
                 return True
             
-            def _OnEnteringLevel(self, item: ISubselectionQuery, enumerator: IEnumerator[ISubselectionQuery]) -> None:
+            def _OnEnteringLevel(self, item: ISubselectionQuery) -> None:
                 self.__Write('(')
             
             def _OnExitingLevel(self, cookie: ISubselectionQuery) -> None:
@@ -277,8 +278,10 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         def _AsRecursivelyEnumerable(self, container: ISubselectionQuery) -> IEnumerable[ISubselectionQuery]:
             return SelectionQuery.__Enumerable.__EnumerableSelectionQuery(container)
         
-        def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery]) -> IEnumerator[ISubselectionQuery]|None:
+        def _TryGetRecursiveStackedEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None:
             return SelectionQuery.__Enumerable.__Enumerator(self, enumerator, self.__queryBuilder)
+        def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], handler: IRecursiveEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None:
+            return self._TryGetRecursiveStackedEnumerator(enumerator)
         
         def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
             return self.__queries.TryGetEnumerator()
