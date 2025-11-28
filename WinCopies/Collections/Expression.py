@@ -8,7 +8,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerat
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Function, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 class ICompositeExpressionNodeBase[TValue, TConnector](IInterface):
@@ -555,3 +555,23 @@ class CompositeExpressionValueNode[TValue, TConnector](_CompositeExpressionNodeB
 class CompositeExpressionNode[TValue, TConnector](_CompositeExpressionNodeBase[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpressionNode[TValue, TConnector]):
         super().__init__(_CompositeExpression[TValue, TConnector](self._GetCookie, None, initial, None))
+
+def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, *values: TValue) -> TRoot|None:
+    def _add(root: ICompositeExpressionRoot[TValue, TConnector], value: TValue) -> None:
+        root.GetLast().SetNext(connector, value)
+    def add(value: TValue) -> None:
+        nonlocal set
+        nonlocal action
+
+        __set: TRoot = constructor(value)
+        _set: ICompositeExpressionRoot[TValue, TConnector] = converter(__set)
+        set = __set
+        action = lambda condition: _add(_set, condition)
+
+    set: TRoot|None = None
+    action: Method[TValue] = add
+
+    for value in values:
+        action(value)
+    
+    return set
