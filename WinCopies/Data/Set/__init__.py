@@ -1,9 +1,9 @@
+from WinCopies.Collections.Expression import ICompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Object import IString
+from WinCopies.Typing.Pairing import IKeyValuePair
 
-
-
-from WinCopies.Data import IColumn, IOperandValue
+from WinCopies.Data import ConditionalOperator, IColumn, IOperandValue
 from WinCopies.Data.Parameter import IParameter, ITableParameter
 
 class IParameterSet[T](IDictionary[IColumn, T]):
@@ -13,7 +13,7 @@ class IParameterSet[T](IDictionary[IColumn, T]):
 class IColumnParameterSet[T: IParameter[object]](IParameterSet[T|None]):
     def __init__(self):
         super().__init__()
-class IFieldParameterSet[T: IParameter[IOperandValue]|None](IParameterSet[T]):
+class IFieldParameterSet[T: IParameter[IOperandValue]|None](ICompositeExpressionRoot[IKeyValuePair[IColumn, T], ConditionalOperator]):
     def __init__(self):
         super().__init__()
 

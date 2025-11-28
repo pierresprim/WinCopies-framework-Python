@@ -29,7 +29,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
-from WinCopies.Data import Abstract, IColumn, Column, TableColumn, IOperand, Operator
+from WinCopies.Data import Abstract, IOperandValue, IOperand, IColumn, Column, TableColumn, Operator
 from WinCopies.Data.Abstract import IConnection, ITable
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
@@ -38,7 +38,7 @@ from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
-from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, ConditionParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeFieldParameterSetEnumerable
+from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeConjonctionSet
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
@@ -180,9 +180,8 @@ class Table(Abstract.Table):
                     TableParameter[str](
                         'i',
                         MakeTableValueIterable(self.GetName())),
-                    ConditionParameterSet(
-                        MakeFieldParameterSetEnumerable(
-                            {TableColumn('i', "unique"): FieldParameter[int].Create(Operator.Equals, 1)})))
+                    MakeConjonctionSet(
+                        DualResult[IColumn, IParameter[IOperandValue]](TableColumn('i', "unique"), FieldParameter[int].Create(Operator.Equals, 1))))
                 uniqueFlagQuery.SetJoins(
                     MakeSequence(
                         Join(
@@ -192,9 +191,8 @@ class Table(Abstract.Table):
                                 "info",
                                 MakeTableColumnIterable(
                                     TableColumn('i', "name"))),
-                            ConditionParameterSet(
-                                MakeFieldParameterSetEnumerable({
-                                    TableColumn("info", "cid"): ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid")})))))
+                            MakeConjonctionSet(
+                                DualResult[IColumn, IParameter[IOperandValue]](TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid"))))))
 
                 query.GetCases().Add(ExistenceSet("isUnique", uniqueFlagQuery))
 
@@ -315,9 +313,8 @@ class Table(Abstract.Table):
                             TableColumn("ii", "desc"): None,
                             TableColumn("ii", "coll"): None,
                             TableColumn("il", "partial"): None}),
-                        ConditionParameterSet(
-                            MakeFieldParameterSetEnumerable(
-                                {TableColumn("il", "name"): GetNotNullFieldParameter()})))
+                        MakeConjonctionSet(
+                            DualResult[IColumn, IParameter[IOperandValue]](TableColumn("il", "name"), GetNotNullFieldParameter())))
                     
                     query.GetCases().Add(
                         ConditionSet[IEnumValue[IndexKind], str](
@@ -336,9 +333,8 @@ class Table(Abstract.Table):
                                 "ii",
                                 MakeTableColumnIterable(
                                     TableColumn("il", "name"))),
-                            ConditionParameterSet(
-                                MakeFieldParameterSetEnumerable({
-                                    TableColumn("ii", "key"): FieldParameter[int].Create(Operator.Equals, 1)}))))
+                            MakeConjonctionSet(
+                                DualResult[IColumn, IParameter[IOperandValue]](TableColumn("ii", "key"), FieldParameter[int].Create(Operator.Equals, 1)))))
 
                     # TODO: ORDER BY il.name, ii.seqno
                     
@@ -455,9 +451,8 @@ class Connection(Abstract.Connection):
                     String("sqlite_master"))),
             ColumnParameterSet(
                 {Column("name"): None}),
-            ConditionParameterSet(
-                MakeFieldParameterSetEnumerable(
-                    {Column("type"): FieldParameter[str].Create(Operator.Equals, "table")}))).Execute()
+            MakeConjonctionSet(
+                DualResult[IColumn, IParameter[IOperandValue]](Column("type"), FieldParameter[str].Create(Operator.Equals, "table")))).Execute()
 
         if queryExecutionResult is None:
             return
