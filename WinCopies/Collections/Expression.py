@@ -16,10 +16,10 @@ class ICompositeExpressionNodeBase[TValue, TConnector](IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetFirst(self) -> ICompositeExpression[TValue, TConnector]|None:
+    def GetFirst(self) -> ICompositeExpression[TValue, TConnector]:
         pass
     @abstractmethod
-    def GetLast(self) -> ICompositeExpression[TValue, TConnector]|None:
+    def GetLast(self) -> ICompositeExpression[TValue, TConnector]:
         pass
 
 class ICompositeExpression[TValue, TConnector](IInterface):
@@ -365,10 +365,6 @@ class CompositeExpressionEnumerator[TValue, TConnector](EnumeratorBase[IComposit
                 return True
 
             self.__current = self.__node.GetFirst()
-
-            if self.__current is None:
-                return False
-
             self.__moveNext = moveNext
 
             return True
