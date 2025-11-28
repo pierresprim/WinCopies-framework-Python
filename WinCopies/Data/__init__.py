@@ -113,6 +113,20 @@ class Operator(Enum):
             case _:
                 return ''
 
+class ConditionalOperator(Enum):
+    Null = 0
+    And = 1
+    Or = 2
+
+    @final
+    def __str__(self) -> str:
+        match self:
+            case ConditionalOperator.And | ConditionalOperator.Or:
+                return self.name.upper()
+            
+            case _:
+                return ''
+
 class IParameterProvider(IInterface):
     def __init__(self):
         super().__init__()
