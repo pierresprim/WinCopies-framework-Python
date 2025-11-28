@@ -327,7 +327,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             A boolean value indicating whether the query building initialization FAILED (for optimization reason).
             """
             def getColumns() -> str:
-                return queryBuilder.Join(queryBuilder.ProcessConditions(self.GetColumns()))
+                return queryBuilder.Join(queryBuilder.ProcessColumns(self.GetColumns()))
             
             def getSubqueries() -> bool:
                 """

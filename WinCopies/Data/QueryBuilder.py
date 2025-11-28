@@ -25,8 +25,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 from WinCopies.Data import IOperandValue, IColumn, IQueryBuilder
 from WinCopies.Data.Misc import JoinType, IQueryBase
-from WinCopies.Data.Parameter import IArgument
-from WinCopies.Data.Set import ITableParameter
+from WinCopies.Data.Parameter import IArgument, ITableParameter
 
 class IConditionalQueryWriter(IQueryBuilder):
     def __init__(self):
@@ -43,9 +42,13 @@ class IConditionalQueryWriter(IQueryBuilder):
     @abstractmethod
     def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
         pass
+
+    @abstractmethod
+    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+        pass
     
     @abstractmethod
-    def ProcessConditions[T: IArgument|None](self, items: IDictionary[IColumn, T]) -> Generator[str]:
+    def ProcessColumns[T: IArgument|None](self, items: IDictionary[IColumn, T]) -> Generator[str]:
         pass
 
 class IConditionalQueryBuilder(IConditionalQueryWriter):
@@ -150,8 +153,8 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](IConditionalQueryWrit
     def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
         return self._GetBuilder().AddConditions(conditions)
     
-    def ProcessConditions(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
-        return self._GetBuilder().ProcessConditions(items)
+    def ProcessColumns(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
+        return self._GetBuilder().ProcessColumns(items)
 @final
 class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
     def __init__(self, prefix: str, writer: ISelectionQueryWriter):
@@ -264,7 +267,7 @@ class ConditionalQueryBuilder(IConditionalQueryBuilder):
         return process(condition.GetKey().ToString(self.FormatTableName), condition.GetValue())
     
     @final
-    def ProcessConditions[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:            
+    def ProcessColumns[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:            
         return Select(items.AsIterable(), self.ProcessCondition)
     
     @final
