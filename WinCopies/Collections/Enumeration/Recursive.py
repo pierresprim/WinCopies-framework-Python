@@ -137,7 +137,7 @@ class RecursiveEnumerationHandlerBase[TItem, TCookie](Abstract, IRecursiveEnumer
     def OnStoppedEnumeration(self) -> None:
         pass
 
-class RecursiveEnumerationHandler[T](Abstract, IRecursiveEnumerationHandler[T]):
+class RecursiveEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, None], IRecursiveEnumerationHandler[T]):
     @final
     class __Updater(ValueFunctionUpdater[IRecursiveStackedEnumerationHandler[T]]):
         def __init__(self, handler: IRecursiveEnumerationHandler[T], updater: Method[IFunction[IRecursiveStackedEnumerationHandler[T]]]):
