@@ -100,7 +100,7 @@ class __False(__Boolean):
         super().__init__()
     
     def GetValue(self) -> bool:
-        return True
+        return False
 
 __true: IBoolean = __True()
 __false: IBoolean = __False()
