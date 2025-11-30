@@ -117,6 +117,26 @@ class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
     def OnStoppedEnumeration(self) -> None:
         self.__handler.OnStoppedEnumeration()
 
+class RecursiveEnumerationHandlerBase[TItem, TCookie](Abstract, IRecursiveEnumerationHandlerBase[TItem, TCookie]):
+    def __init__(self):
+        super().__init__()
+    
+    def OnStartingEnumeration(self) -> bool:
+        return True
+    
+    def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
+        return True
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool|None:
+        return True
+    
+    def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
+        return True
+    def OnExitingSubenumerationLevel(self, cookie: TCookie) -> bool|None:
+        return True
+    
+    def OnStoppedEnumeration(self) -> None:
+        pass
+
 class RecursiveEnumerationHandler[T](Abstract, IRecursiveEnumerationHandler[T]):
     @final
     class __Updater(ValueFunctionUpdater[IRecursiveStackedEnumerationHandler[T]]):
@@ -139,6 +159,9 @@ class RecursiveEnumerationHandler[T](Abstract, IRecursiveEnumerationHandler[T]):
     @final
     def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[T]:
         return self.__handler.GetValue()
+class RecursiveStackedEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, T], IRecursiveStackedEnumerationHandler[T]):
+    def __init__(self):
+        super().__init__()
 
 class RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TCookieIn, TCookieOut](Abstract, IRecursiveEnumerationHandlerBase[TIn, TCookieIn]):
     def __init__(self, handler: IRecursiveEnumerationHandlerBase[TOut, TCookieOut]):
