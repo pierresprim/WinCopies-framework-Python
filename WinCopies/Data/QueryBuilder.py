@@ -7,7 +7,7 @@ from typing import final, Callable, Self
 
 
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
@@ -144,7 +144,10 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](IConditionalQueryWrit
 
     def Write(self, value: str) -> None:
         return self.__write(value)
-
+    
+    def GetParameter(self, arg: object|None) -> str:
+        return self._GetBuilder().GetParameter(arg)
+    
     def JoinParameters[TItems](self, items: Iterable[TItems]) -> str:
         return self._GetBuilder().JoinParameters(items)
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:
@@ -153,8 +156,16 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](IConditionalQueryWrit
     def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
         return self._GetBuilder().AddConditions(conditions)
     
+    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+        return self._GetBuilder().ProcessCondition(condition)
+    
     def ProcessColumns(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
         return self._GetBuilder().ProcessColumns(items)
+    
+    def Dispose(self) -> None:
+        self._GetBuilder().Dispose()
+
+        self.__write: Method[str] = lambda value: None
 @final
 class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
     def __init__(self, prefix: str, writer: ISelectionQueryWriter):
@@ -165,9 +176,6 @@ class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], IS
 
     def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
         return self._GetBuilder().AddJoins(joins)
-    
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
-        return self._GetBuilder().ProcessCondition(condition)
 
 def GetPrefixedConditionalQueryWriter(prefix: str, writer: IConditionalQueryWriter) -> IConditionalQueryWriter:
     return __ConditionalQueryWriter(prefix, writer)
