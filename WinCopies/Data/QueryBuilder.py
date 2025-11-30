@@ -175,29 +175,38 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
     def _GetBuilder(self) -> T:
         return self.__builder.GetBuilder()
     
+    @final
     def FormatTableName(self, name: str) -> str:
         return self._GetBuilder().FormatTableName(name)
     
+    @final
     def OpenStream(self) -> None:
         self._GetBuilder().OpenStream()
 
+    @final
     def Write(self, value: str) -> None:
         return self._GetBuilder().Write(value)
     
+    @final
     def GetParameter(self, arg: object|None) -> str:
         return self._GetBuilder().GetParameter(arg)
     
+    @final
     def JoinParameters[TItems](self, items: Iterable[TItems]) -> str:
         return self._GetBuilder().JoinParameters(items)
+    @final
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:
         return self._GetBuilder().JoinOperands(items)
     
+    @final
     def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
         return self._GetBuilder().AddConditions(conditions)
     
+    @final
     def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
         return self._GetBuilder().ProcessCondition(condition)
     
+    @final
     def ProcessColumns(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
         return self._GetBuilder().ProcessColumns(items)
     
