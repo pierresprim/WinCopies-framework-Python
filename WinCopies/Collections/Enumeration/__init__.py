@@ -655,37 +655,3 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     @final
     def GetCurrent(self) -> TOut|None:
         return self.__current
-
-class AccessorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
-    def __init__(self, func: Function[TEnumerator]):
-        def getEnumerator() -> TEnumerator:
-            self.__enumerator = func()
-            self.__func = lambda: self.__enumerator
-
-            return self.__enumerator
-
-        super().__init__()
-
-        self.__func: Function[TEnumerator] = getEnumerator
-        self.__enumerator: TEnumerator = None # type: ignore
-    
-    @final
-    def _GetEnumerator(self) -> TEnumerator:
-        return self.__func()
-    
-    @final
-    def _MoveNextOverride(self) -> bool:
-        return self._GetEnumerator().MoveNext()
-    
-    def _OnStopped(self) -> None:
-        pass
-class Accessor[T](AccessorBase[T, T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
-    def __init__(self, func: Function[IEnumerator[T]]):
-        super().__init__(func)
-    
-    @final
-    def GetCurrent(self) -> T|None:
-        return self._GetEnumerator().GetCurrent()
-    
-    def _ResetOverride(self) -> bool:
-        return True
