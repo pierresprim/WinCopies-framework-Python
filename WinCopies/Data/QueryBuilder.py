@@ -117,7 +117,7 @@ class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
     def GetConditions(self) -> T|None:
         pass
 
-class __ConditionalQueryWriter[T: IConditionalQueryWriter](IConditionalQueryWriter):
+class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
     def __init__(self, prefix: str, writer: T):
         def write(value: str) -> None:
             def write(value: str) -> None:
@@ -182,7 +182,7 @@ def GetPrefixedConditionalQueryWriter(prefix: str, writer: IConditionalQueryWrit
 def GetPrefixedSelectionQueryWriter(prefix: str, writer: ISelectionQueryWriter) -> ISelectionQueryWriter:
     return __SelectionQueryWriter(prefix, writer)
 
-class ConditionalQueryBuilder(IConditionalQueryBuilder):
+class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     def __init__(self, query: IQueryBase[object]):
         super().__init__()
 
