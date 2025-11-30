@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator, Sized
+from collections.abc import Iterable, Sized
 from typing import final, Callable, Self as SelfType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator, IReadOnlyCollection, ICountable
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, CountableEnumerable, Iterator, Accessor, GetEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing import IGenericConstraint, IGenericConstraintImplementation, GenericConstraint, INullable, GetNullable, GetNullValue
@@ -199,23 +199,20 @@ class IReadWriteList[T](IReadOnlyList[T]):
         pass
     
     @final
-    def __AsEnumerator(self, func: Function[INullable[T]]) -> IEnumerator[T]:
-        def enumerate() -> Generator[T]:
-            result: INullable[T] = func()
+    def __AsGenerator(self, func: Function[INullable[T]]) -> Generator[T]:
+        result: INullable[T] = func()
 
-            while result.HasValue():
-                yield result.GetValue()
-                
-                result = func()
-        
-        return Accessor(lambda: Iterator(enumerate()))
+        while result.HasValue():
+            yield result.GetValue()
+            
+            result = func()
     
     @final
-    def AsQueuedEnumerator(self) -> IEnumerator[T]:
-        return self.__AsEnumerator(self.TryRemoveFirst)
+    def AsQueuedGenerator(self) -> Generator[T]:
+        return self.__AsGenerator(self.TryRemoveFirst)
     @final
-    def AsStackedEnumerator(self) -> IEnumerator[T]:
-        return self.__AsEnumerator(self.TryRemoveLast)
+    def AsStackedGenerator(self) -> Generator[T]:
+        return self.__AsGenerator(self.TryRemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
     def __init__(self):
