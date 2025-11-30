@@ -117,7 +117,19 @@ class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
     def GetConditions(self) -> T|None:
         pass
 
-class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
+class __IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def GetBuilder(self) -> T:
+        pass
+
+    @abstractmethod
+    def Write(self, value: str) -> None:
+        pass
+
+class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
     def __init__(self, prefix: str, writer: T):
         def write(value: str) -> None:
             def write(value: str) -> None:
@@ -133,8 +145,35 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         self.__write: Method[str] = write
     
     @final
-    def _GetBuilder(self) -> T:
+    def GetBuilder(self) -> T:
         return self.__builder
+
+    @final
+    def Write(self, value: str) -> None:
+        return self.__write(value)
+class __NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
+    def __init__(self, writer: T):
+        super().__init__()
+
+        self.__builder: T = writer
+    
+    @final
+    def GetBuilder(self) -> T:
+        return self.__builder
+
+    @final
+    def Write(self, value: str) -> None:
+        pass
+
+class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
+    def __init__(self, prefix: str, writer: T):
+        super().__init__()
+        
+        self.__builder: __IConditionalQueryWriterCookie[T] = __ConditionalQueryWriterCookie[T](prefix, writer)
+    
+    @final
+    def _GetBuilder(self) -> T:
+        return self.__builder.GetBuilder()
     
     def FormatTableName(self, name: str) -> str:
         return self._GetBuilder().FormatTableName(name)
@@ -143,7 +182,7 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         self._GetBuilder().OpenStream()
 
     def Write(self, value: str) -> None:
-        return self.__write(value)
+        return self._GetBuilder().Write(value)
     
     def GetParameter(self, arg: object|None) -> str:
         return self._GetBuilder().GetParameter(arg)
@@ -163,9 +202,11 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         return self._GetBuilder().ProcessColumns(items)
     
     def Dispose(self) -> None:
-        self._GetBuilder().Dispose()
+        builder: T = self._GetBuilder()
 
-        self.__write: Method[str] = lambda value: None
+        builder.Dispose()
+
+        self.__builder = __NullConditionalQueryWriterCookie[T](builder)
 @final
 class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
     def __init__(self, prefix: str, writer: ISelectionQueryWriter):
