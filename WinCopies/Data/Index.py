@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from enum import Enum
 from typing import final
 
-from WinCopies import IInterface, IStringable
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
@@ -86,7 +86,7 @@ class IForeignKey(ISingleColumnKey):
     def GetForeignKey(self) -> DualResult[str, str]:
         pass
 
-class Index(ABC, IIndex):
+class Index(Abstract, IIndex):
     def __init__(self, name: str):
         super().__init__()
         
