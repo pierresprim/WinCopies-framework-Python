@@ -10,7 +10,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Dictionary
-from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive import RecursiveEnumerationHandler
 from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, MakeCompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -176,7 +176,7 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
 
 class ConditionParameterSet(IConditionParameterSet):
     @final
-    class __Handler(IRecursiveEnumerationHandler[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]):
+    class __Handler(RecursiveEnumerationHandler[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]):
         def __init__(self, writer: IConditionalQueryWriter, action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]], connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]]):
             super().__init__()
 

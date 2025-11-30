@@ -362,7 +362,7 @@ class Table(Abstract.Table):
                             yield index
                 
                 if columns.HasItems():
-                    yield getIndex(factory, oldIndexName, indexKind, columns)
+                    yield getIndex(factory, newIndexName, indexKind, columns)
             
             def getForeignKeys(connection: IConnection) -> Generator[IIndex]:
                 def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
