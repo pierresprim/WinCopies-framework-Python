@@ -140,19 +140,6 @@ class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
     def __init__(self):
         super().__init__()
 
-@final
-class __NullEnumerable[T](IEnumerable[T]):
-    def __init__(self):
-        super().__init__()
-    
-    def TryGetIterator(self) -> SystemIterator[T]|None:
-        return None
-
-__nullEnumerable = __NullEnumerable[None]()
-
-def GetNullEnumerable[T]() -> IEnumerable[T]: # type: ignore
-    return __nullEnumerable # type: ignore
-
 class ICountableEnumerable[T](IEnumerable[T], ICountable):
     def __init__(self):
         super().__init__()
