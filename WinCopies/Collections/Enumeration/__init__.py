@@ -9,7 +9,7 @@ from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
 from typing import final
 
-from WinCopies import Delegates, IInterface
+from WinCopies import IInterface, Delegates
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, IEquatableItem
@@ -108,13 +108,26 @@ class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
         return False
     def HasProcessedItems(self) -> bool:
         return False
+
+class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def AsIterable(self) -> SystemIterable[T]:
+        return self
+
 @final
-class __EmptyEnumerable[T](IEnumerable[T]):
+class __EmptyEnumerable[T](_SystemIterable[T]):
     def __init__(self):
         super().__init__()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return None
+    
+    @final
+    def __iter__(self) -> SystemIterator[T]:
+        return GetEmptyEnumerator().AsIterator() # type: ignore
 
 __emptyEnumerator = __EmptyEnumerator[None]()
 __emptyEnumerable = __EmptyEnumerable[None]()
@@ -147,12 +160,9 @@ class ICountableEnumerable[T](IEnumerable[T], ICountable):
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
 
-class Enumerable[T](SystemIterable[T], IEnumerable[T]):
+class Enumerable[T](_SystemIterable[T]):
     def __init__(self):
         super().__init__()
-    
-    def AsIterable(self) -> SystemIterable[T]:
-        return self
     
     def _TryGetIterator(self) -> SystemIterator[T]|None:
         return self.GetEnumerator().AsIterator()
