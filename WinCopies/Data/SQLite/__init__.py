@@ -8,7 +8,7 @@ import sqlite3
 
 
 
-from WinCopies import IInterface, IDisposable
+from WinCopies import IDisposable, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
@@ -29,8 +29,8 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
-from WinCopies.Data import Abstract, IOperandValue, IOperand, IColumn, Column, TableColumn, Operator
-from WinCopies.Data.Abstract import IConnection, ITable
+from WinCopies.Data import IOperandValue, IOperand, IColumn, Column, TableColumn, Operator
+from WinCopies.Data.Abstract import IConnection, ITable, Connection as ConnectionBase, Table as TableBase
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
@@ -43,7 +43,7 @@ from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParamet
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
 @final
-class _Connection(IInterface):
+class _Connection(Abstract):
     def __init__(self, connection: Connection, innerCollection: sqlite3.Connection):
         super().__init__()
 
@@ -57,7 +57,7 @@ class _Connection(IInterface):
         return self.__innerCollection
 
 @final
-class Table(Abstract.Table):
+class Table(TableBase):
     @final
     class __Connection(IDisposable):
         def __init__(self, connection: _Connection) -> None:
@@ -409,7 +409,7 @@ class Table(Abstract.Table):
         self.__connection.Dispose()
 
 @final
-class Connection(Abstract.Connection):
+class Connection(ConnectionBase):
     def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
         return Table(_Connection(self, connection), name)
     

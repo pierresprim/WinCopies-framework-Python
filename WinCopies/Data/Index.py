@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from enum import Enum
 from typing import final
 
-from WinCopies import IInterface, IStringable, Abstract
+from WinCopies import IStringable, Abstract
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
@@ -177,7 +177,7 @@ class IIndexCollection(IEnumerable[IIndex]):
         pass
 class IndexCollection(IterableBase[IIndex], IIndexCollection):
     @final
-    class __Indices(IInterface):
+    class __Indices(Abstract):
         class __IByName(IEquatableObject[IIndex]):
             def __init__(self):
                 super().__init__()
@@ -192,7 +192,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             def Equals(self, item: IIndex|object) -> bool:
                 return isinstance(item, IIndex) and self.GetName() == item.GetName()
         @final
-        class __ByName(__IByName):
+        class __ByName(Abstract, __IByName):
             def __init__(self, index: IIndex):
                 super().__init__()
 
@@ -201,7 +201,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             def GetName(self) -> str:
                 return self.__index.GetName()
         @final
-        class __ByField(__IByName):
+        class __ByField(Abstract, __IByName):
             def __init__(self, index: ISingleColumnIndex):
                 super().__init__()
 
@@ -210,7 +210,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             def GetName(self) -> str:
                 return self.__index.GetColumn()
         @final
-        class __ByFields(IEquatableObject[IMultiColumnIndex]):
+        class __ByFields(Abstract, IEquatableObject[IMultiColumnIndex]):
             def __init__(self, index: IMultiColumnIndex):
                 super().__init__()
 

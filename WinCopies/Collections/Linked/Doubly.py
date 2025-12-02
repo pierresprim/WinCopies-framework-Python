@@ -489,7 +489,7 @@ class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInt
     def Ensure(self, l: TList) -> None:
         EnsureTrue(self.Check(l))
 
-class _ReadOnlyListBase[TItem, TList](IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
+class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
     def __init__(self, items: TList):
         super().__init__()
 

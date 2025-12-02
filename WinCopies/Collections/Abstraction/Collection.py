@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Sequence, MutableSequence as MutableSequenceBase, MutableMapping
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IStringable
+from WinCopies import IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
@@ -198,7 +198,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     @final
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
-        class KeyValuePair(IKeyValuePair[TKey, TValue]):
+        class KeyValuePair(Abstract, IKeyValuePair[TKey, TValue]):
             def __init__(self, item: tuple[TKey, TValue]):
                 super().__init__()
                 

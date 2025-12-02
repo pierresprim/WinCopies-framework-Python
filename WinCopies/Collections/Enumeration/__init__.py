@@ -89,66 +89,6 @@ class IEnumerable[T](IInterface):
     def AsIterable(self) -> SystemIterable[T]:
         pass
 
-@final
-class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
-    def __init__(self):
-        super().__init__()
-    
-    def IsStarted(self) -> bool:
-        return False
-    def GetCurrent(self) -> T|None:
-        return None
-    def MoveNext(self) -> bool:
-        return False
-    def Stop(self) -> None:
-        pass
-    def TryReset(self) -> bool|None:
-        return None
-    def IsResetSupported(self) -> bool:
-        return False
-    def HasProcessedItems(self) -> bool:
-        return False
-
-class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
-    def __init__(self):
-        super().__init__()
-    
-    @final
-    def AsIterable(self) -> SystemIterable[T]:
-        return self
-
-@final
-class __EmptyEnumerable[T](_SystemIterable[T]):
-    def __init__(self):
-        super().__init__()
-    
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return None
-    
-    @final
-    def __iter__(self) -> SystemIterator[T]:
-        return GetEmptyEnumerator().AsIterator() # type: ignore
-
-__emptyEnumerator = __EmptyEnumerator[None]()
-__emptyEnumerable = __EmptyEnumerable[None]()
-
-def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
-    return __emptyEnumerator # type: ignore
-def GetEmptyEnumerable[T]() -> IEnumerable[T]: # type: ignore
-    return __emptyEnumerable # type: ignore
-def GetEmptyIterable[T]() -> SystemIterable[T]: # type: ignore
-    return GetEmptyEnumerable().AsIterable() # type: ignore
-
-def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
-    return GetEmptyEnumerator() if enumerator is None else enumerator
-def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
-
-def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
-    return GetEmptyEnumerable() if enumerable is None else enumerable
-def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
-    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # type: ignore
-
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
     def __init__(self):
         super().__init__()
@@ -159,6 +99,14 @@ class ICountableEnumerable[T](IEnumerable[T], ICountable):
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
+
+class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def AsIterable(self) -> SystemIterable[T]:
+        return self
 
 class Enumerable[T](_SystemIterable[T]):
     def __init__(self):
@@ -196,6 +144,57 @@ class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     @final
     def AsSized(self) -> Sized:
         return self.__countable.GetValue()
+
+@final
+class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def IsStarted(self) -> bool:
+        return False
+    def GetCurrent(self) -> T|None:
+        return None
+    def MoveNext(self) -> bool:
+        return False
+    def Stop(self) -> None:
+        pass
+    def TryReset(self) -> bool|None:
+        return None
+    def IsResetSupported(self) -> bool:
+        return False
+    def HasProcessedItems(self) -> bool:
+        return False
+@final
+class __EmptyEnumerable[T](_SystemIterable[T]):
+    def __init__(self):
+        super().__init__()
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return None
+    
+    @final
+    def __iter__(self) -> SystemIterator[T]:
+        return GetEmptyEnumerator().AsIterator() # type: ignore
+
+__emptyEnumerator = __EmptyEnumerator[None]()
+__emptyEnumerable = __EmptyEnumerable[None]()
+
+def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
+    return __emptyEnumerator # type: ignore
+def GetEmptyEnumerable[T]() -> IEnumerable[T]: # type: ignore
+    return __emptyEnumerable # type: ignore
+def GetEmptyIterable[T]() -> SystemIterable[T]: # type: ignore
+    return GetEmptyEnumerable().AsIterable() # type: ignore
+
+def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
+    return GetEmptyEnumerator() if enumerator is None else enumerator
+def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
+    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
+
+def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
+    return GetEmptyEnumerable() if enumerable is None else enumerable
+def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
+    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # type: ignore
 
 class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self):

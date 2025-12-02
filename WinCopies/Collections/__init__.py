@@ -663,7 +663,7 @@ class List[T](Array[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class FinderPredicate[T](IInterface):
+class FinderPredicate[T](Abstract):
     def __init__(self):
         super().__init__()
         

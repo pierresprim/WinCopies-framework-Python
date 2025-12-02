@@ -15,7 +15,7 @@ class IStruct[T](IInterface):
     @abstractmethod
     def SetValue(self, value: T) -> None:
         pass
-class Struct[T](IStruct[T]):
+class Struct[T](Abstract, IStruct[T]):
     def __init__(self, value: T):
         super().__init__()
 
@@ -178,7 +178,7 @@ class INullable[T](IInterface):
         return self.ConvertToNullable(converter) if self.HasValue() else GetNullValue()
 
 @final
-class __Nullable[T](INullable[T]):
+class __Nullable[T](Abstract, INullable[T]):
     def __init__(self, value: T):
         super().__init__()
         
@@ -189,7 +189,7 @@ class __Nullable[T](INullable[T]):
     def GetValue(self) -> T:
         return self.__value
 @final
-class __NullValue[T](INullable[T]):
+class __NullValue[T](Abstract, INullable[T]):
     def __init__(self):
         super().__init__()
     
@@ -224,7 +224,7 @@ class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
     def Dispose(self) -> __IDisposableProviderItem[T]:
         pass
 @final
-class __DisposedItem[T: IDisposableInfo](__IDisposableProviderItem[T]):
+class __DisposedItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
     def __init__(self):
         super().__init__()
     
@@ -240,7 +240,7 @@ class __DisposedItem[T: IDisposableInfo](__IDisposableProviderItem[T]):
 __disposedItem = __DisposedItem() # type: ignore
 
 @final
-class __DisposableProviderItem[T: IDisposableInfo](__IDisposableProviderItem[T]):
+class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
     def __init__(self, item: T):
         super().__init__()
 
@@ -274,7 +274,7 @@ class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
     @final
     def TryGetItem(self) -> INullable[T]:
         return GetNullValue() if self.IsDisposed() else GetNullable(self._GetItem())
-class DisposableProvider[T: IDisposableInfo](IDisposableProvider[T]):
+class DisposableProvider[T: IDisposableInfo](Abstract, IDisposableProvider[T]):
     def __init__(self, item: T):
         super().__init__()
 

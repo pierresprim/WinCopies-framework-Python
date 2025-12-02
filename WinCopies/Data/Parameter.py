@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Generator
 from typing import final
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase
@@ -116,7 +116,7 @@ class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T
 __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]
 
-class __NullProviderFunctionUpdater(IFunction["FieldParameter[None]"]):
+class __NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
     def __init__(self):
         super().__init__()
     
@@ -125,7 +125,7 @@ class __NullProviderFunctionUpdater(IFunction["FieldParameter[None]"]):
         __nullProvider = ValueFunction(FieldParameter[None](GetNullOperand()))
         
         return __nullProvider()
-class __NotNullProviderFunctionUpdater(IFunction["FieldParameter[None]"]):
+class __NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
     def __init__(self):
         super().__init__()
     
@@ -170,7 +170,7 @@ class ITableArgument[T](IInterface):
     @abstractmethod
     def Render(self, builder: IQueryBuilder) -> str:
         pass
-class TableArgument[T](ITableArgument[T]):
+class TableArgument[T](Abstract, ITableArgument[T]):
     def __init__(self, value: T):
         super().__init__()
 

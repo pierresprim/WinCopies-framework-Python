@@ -2,7 +2,7 @@ from abc import abstractmethod
 from enum import auto, Enum, Flag
 from typing import final
 
-from WinCopies import IStringable
+from WinCopies import IStringable, Abstract
 from WinCopies.Enum import EnsureFieldOf
 
 class FieldType(Enum):
@@ -58,7 +58,7 @@ class IModularField[T: Enum](IField):
     def GetMode(self) -> T:
         pass
 
-class Field(IField):
+class Field(Abstract, IField):
     def __init__(self, name: str, attribute: FieldAttributes):
         super().__init__()
 

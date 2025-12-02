@@ -8,7 +8,7 @@ Created on Mon Jul 01 14:21:00 2024
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 
 class IPoint(IInterface):
     def __init__(self):
@@ -39,9 +39,9 @@ class IPoint3D(IPoint):
         return f"{super().__str__()};{self.GetZ()}"
 
 @final
-class Point(IPoint):
+class Point(Abstract, IPoint):
     @final
-    class __Point(IPoint):
+    class __Point(Abstract, IPoint):
         def __init__(self, value: int):
             super().__init__()
 
@@ -68,7 +68,7 @@ class Point(IPoint):
         return self.__y
 
 @final
-class Point3D(IPoint3D):
+class Point3D(Abstract, IPoint3D):
     def __init__(self, point: IPoint, z: int):
         super().__init__()
 
@@ -114,7 +114,7 @@ class IRectangle(IInterface):
         return self.GetBottomRight().GetX()
 
 @final
-class Rectangle(IRectangle):
+class Rectangle(Abstract, IRectangle):
     def __init__(self, topLeft: Point, bottomRight: Point):
         super().__init__()
         

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import IInterface
+from WinCopies import Abstract
 from WinCopies.Collections.Enumeration import IEnumerator, AbstractEnumerator
 from WinCopies.Delegates import GetAndAlsoFunc
 from WinCopies.Typing.Delegate import Function, Predicate
@@ -38,7 +38,7 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
     def _OnStopped(self) -> None:
         pass
 
-class _PredicateEnumerator[T](IInterface):
+class _PredicateEnumerator[T](Abstract):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]):
         super().__init__()
         

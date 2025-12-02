@@ -693,14 +693,14 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
 
         self.__first = None
 
-class _RecursiveEnumeratorBase[T](IEnumerator[T]):
+class _IRecursiveEnumeratorBase[T](IEnumerator[T]):
     def __init__(self):
         super().__init__()
     
     @abstractmethod
     def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
         pass
-class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], _RecursiveEnumeratorBase[TEnumerationItems]):
+class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], _IRecursiveEnumeratorBase[TEnumerationItems]):
     class _IDelegate(IInterface):
         def __init__(self):
             super().__init__()
@@ -917,7 +917,7 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
         return item.GetKey()
 
 class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
-    class __IEnumerator(_RecursiveEnumeratorBase[T]):
+    class __IEnumerator(_IRecursiveEnumeratorBase[T]):
         def __init__(self):
             super().__init__()
         

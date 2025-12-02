@@ -6,7 +6,7 @@ from typing import final
 
 
 
-from WinCopies import IInterface, IDisposable
+from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
@@ -60,7 +60,7 @@ class IQuery[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](IQ
     def Execute(self) -> TQueryExecutionResult:
         pass
 
-class QueryProvider[T](IQueryBase[T]):
+class QueryProvider[T](Abstract, IQueryBase[T]):
     def __init__(self):
         super().__init__()
 
@@ -199,7 +199,7 @@ class IUpdateQuery(IWriteQuery, IConditionalQuery):
     def GetValues(self) -> IDictionary[IString, object]:
         pass
 
-class SelectionQueryBase(ISelectionQueryBase):
+class SelectionQueryBase(Abstract, ISelectionQueryBase):
     def __init__(self, tables: ITableParameterSet, conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None):
         super().__init__()
     
@@ -397,7 +397,7 @@ class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
     def GetFormattedTableName(self) -> str:
         return self.FormatTableName(self.GetTableName())
 
-class InsertionQueryStatementProvider(IInterface):
+class InsertionQueryStatementProvider(Abstract):
     def __init__(self):
         super().__init__()
     

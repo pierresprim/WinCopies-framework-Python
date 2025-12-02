@@ -10,7 +10,7 @@ from typing import final
 
 
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
@@ -39,7 +39,7 @@ class IterableBuilder[T](Enumerable[T]):
                         def MoveNext(self) -> bool:
                             pass
                     @final
-                    class __NullToken(IToken):
+                    class __NullToken(Abstract, IToken):
                         def __init__(self):
                             super().__init__()
                         
@@ -49,7 +49,7 @@ class IterableBuilder[T](Enumerable[T]):
                         def MoveNext(self) -> bool:
                             return False
                     @final
-                    class Token(IToken):
+                    class Token(Abstract, IToken):
                         def __init__(self, node: IDoublyLinkedNode[T]):
                             def moveNext() -> bool:
                                 def moveNext() -> bool:
@@ -77,7 +77,7 @@ class IterableBuilder[T](Enumerable[T]):
                             return self.__moveNext()
                     
                     @final
-                    class __Enumerator(IInterface):
+                    class __Enumerator(Abstract):
                         def __init__(self, enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator):
                             super().__init__()
 

@@ -9,7 +9,7 @@ import sqlite3
 
 import WinCopies.Data
 
-from WinCopies import String
+from WinCopies import Abstract, String
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -35,8 +35,8 @@ from WinCopies.Data.Set.Extensions import IConditionParameterSet
 from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiInsertionQuery, UpdateQuery
 
 @final
-class FieldFactory(IFieldFactory):
-    class _FieldBase(IField):
+class FieldFactory(Abstract, IFieldFactory):
+    class _FieldBase(Abstract, IField):
         def __init__(self):
             EnsureCallerPackage(WinCopies.Data)
             
@@ -152,7 +152,7 @@ class FieldFactory(IFieldFactory):
         return FieldFactory.__TextField(name, attribute, mode, self.__connection)
 
 @final
-class QueryFactory(IQueryFactory):
+class QueryFactory(Abstract, IQueryFactory):
     def __init__(self, connection: sqlite3.Connection):
         EnsureDirectPackageCall()
 
@@ -175,8 +175,8 @@ class QueryFactory(IQueryFactory):
         return UpdateQuery(self._GetConnection(), tableName, values, conditions)
 
 @final
-class IndexFactory(IIndexFactory):
-    class _Index(IIndex):
+class IndexFactory(Abstract, IIndexFactory):
+    class _Index(Abstract, IIndex):
         def __init__(self):
             EnsureCallerPackage(WinCopies.Data)
 

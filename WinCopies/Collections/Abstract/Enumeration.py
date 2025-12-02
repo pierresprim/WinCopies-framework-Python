@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final
 
+from WinCopies import Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
@@ -34,7 +35,7 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
     def GetCurrent(self) -> TOut|None:
         return self.__getCurrent()
 
-class EnumerableBase[TIn, TOut](ConverterBase[TIn, TOut], IEnumerable[TOut]):
+class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     @final
     class __Enumerator(Enumerator[TIn, TOut]):
         def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]):

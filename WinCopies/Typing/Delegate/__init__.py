@@ -64,7 +64,7 @@ class ValueFunctionUpdater[T](FunctionUpdater[T]):
         return ValueFunction[T](self._GetValue())
 
 @final
-class __DefaultFunction(IFunction[None]):
+class __DefaultFunction(Abstract, IFunction[None]):
     def __init__(self):
         super().__init__()
     

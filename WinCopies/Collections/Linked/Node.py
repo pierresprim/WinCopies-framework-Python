@@ -18,7 +18,7 @@ class ILinkedNode[T](IInterface):
     def GetNext(self) -> Self|None:
         pass
 
-class LinkedNodeBase[T](Abstract, IInterface):
+class LinkedNodeBase[T](Abstract):
     def __init__(self, value: T):
         super().__init__()
         

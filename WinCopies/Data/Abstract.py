@@ -169,7 +169,7 @@ class IConnection(IDisposable):
     def Dispose(self) -> None:
         self.Close()
 
-class Connection(IConnection):
+class Connection(Abstract, IConnection):
     @final
     class __Factories(Abstract):
         def __init__(self):

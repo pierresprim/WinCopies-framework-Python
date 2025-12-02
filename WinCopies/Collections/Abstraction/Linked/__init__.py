@@ -12,7 +12,7 @@ from WinCopies.Collections.Linked.Doubly import IReadWriteList, IList as IDoubly
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 
-class _IReadOnlyListUpdater[TIn, TOut](ValueFunctionUpdater[TOut]):
+class _ReadOnlyListUpdater[TIn, TOut](ValueFunctionUpdater[TOut]):
     def __init__(self, items: TIn, updater: Method[IFunction[TOut]]):
         super().__init__(updater)
 
@@ -26,9 +26,9 @@ class _IReadOnlyListUpdater[TIn, TOut](ValueFunctionUpdater[TOut]):
     def _GetValue(self) -> TOut:
         return self._GetList(self.__items)
 
-class _ReadOnlyList[T](ISinglyLinkedList[T]):
+class _ReadOnlyList[T](Abstract, ISinglyLinkedList[T]):
     @final
-    class __Updater(_IReadOnlyListUpdater[ISinglyLinkedList[T], IReadOnlyList[T]]):
+    class __Updater(_ReadOnlyListUpdater[ISinglyLinkedList[T], IReadOnlyList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ISinglyLinkedList[T]], IGenericConstraintImplementation[ISinglyLinkedList[T]]):
             def __init__(self, items: ISinglyLinkedList[T]):
@@ -51,9 +51,9 @@ class _ReadOnlyList[T](ISinglyLinkedList[T]):
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]:
         return self.__updater.GetValue()
-class _ReadOnlyCountableList[T](ICountableSinglyLinkedList[T]):
+class _ReadOnlyCountableList[T](Abstract, ICountableSinglyLinkedList[T]):
     @final
-    class __Updater(_IReadOnlyListUpdater[ICountableSinglyLinkedList[T], IReadOnlyCountableList[T]]):
+    class __Updater(_ReadOnlyListUpdater[ICountableSinglyLinkedList[T], IReadOnlyCountableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ICountableSinglyLinkedList[T]], Countable, IReadOnlyCountableList[T], IGenericConstraintImplementation[ICountableSinglyLinkedList[T]]):
             def __init__(self, items: ICountableSinglyLinkedList[T]):
@@ -80,9 +80,9 @@ class _ReadOnlyCountableList[T](ICountableSinglyLinkedList[T]):
     def AsReadOnly(self) -> IReadOnlyCountableList[T]:
         return self.__updater.GetValue()
 
-class _ReadOnlyEnumerableList[T](IEnumerableList[T]):
+class _ReadOnlyEnumerableList[T](Abstract, IEnumerableList[T]):
     @final
-    class __Updater(_IReadOnlyListUpdater[IEnumerableList[T], IReadOnlyEnumerableList[T]]):
+    class __Updater(_ReadOnlyListUpdater[IEnumerableList[T], IReadOnlyEnumerableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, IEnumerableList[T]], EnumerableBase[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IEnumerableList[T]]):
             def __init__(self, items: IEnumerableList[T]):
@@ -108,9 +108,9 @@ class _ReadOnlyEnumerableList[T](IEnumerableList[T]):
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
         return self.__updater.GetValue()
-class _ReadOnlyCountableEnumerableList[T](ICountableEnumerableList[T]):
+class _ReadOnlyCountableEnumerableList[T](Abstract, ICountableEnumerableList[T]):
     @final
-    class __Updater(_IReadOnlyListUpdater[ICountableEnumerableList[T], IReadOnlyCountableEnumerableList[T]]):
+    class __Updater(_ReadOnlyListUpdater[ICountableEnumerableList[T], IReadOnlyCountableEnumerableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ICountableEnumerableList[T]], CountableEnumerable[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableEnumerableList[T]]):
             def __init__(self, items: ICountableEnumerableList[T]):

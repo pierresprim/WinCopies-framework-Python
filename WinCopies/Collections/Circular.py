@@ -33,7 +33,7 @@ class ICircularList[T](ICircularArray[T], IList[T]):
     def __init__(self):
         super().__init__()
 
-class CircularBase[TItem, TList](GenericConstraint[TList, ITuple[TItem]], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable):
+class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int):
         super().__init__()
         

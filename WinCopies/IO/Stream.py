@@ -13,7 +13,7 @@ from io import IOBase, TextIOWrapper, BufferedIOBase, StringIO
 from os import remove, path
 from typing import cast, final
 
-from WinCopies import IDisposable, IStringable
+from WinCopies import IDisposable, IStringable, Abstract
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Decorators import constant, SingletonMeta
 from WinCopies.Typing.Delegate import Function, Predicate
@@ -149,7 +149,7 @@ class IFileStream[T](IDataStream[T], IFile):
     def __init__(self):
         super().__init__()
 
-class File[T](IFileStream[T]):
+class File[T](Abstract, IFileStream[T]):
     @final
     class __Consts(metaclass=SingletonMeta):
         @constant
@@ -419,7 +419,7 @@ class IMemoryTextStream(ITextStream, IStringable):
     @abstractmethod
     def TryToString(self) -> str|None:
         pass
-class MemoryTextStream(IMemoryTextStream):
+class MemoryTextStream(Abstract, IMemoryTextStream):
     def __init__(self):
         super().__init__()
 

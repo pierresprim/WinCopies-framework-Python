@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from typing import final
 
+from WinCopies import Abstract
 from WinCopies.Collections.Abstract import TwoWayConverterBase
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
 from WinCopies.Collections.Enumeration import IEnumerator
@@ -10,7 +11,7 @@ from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableList,
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
-class SinglyLinkedListBase[TIn, TOut, TList](TwoWayConverterBase[TIn, TOut], Singly.IList[TOut], GenericConstraint[TList, Singly.IList[TIn]]):
+class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, TOut], Singly.IList[TOut], GenericConstraint[TList, Singly.IList[TIn]]):
     def __init__(self, items: TList):
         super().__init__()
 

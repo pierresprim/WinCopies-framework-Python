@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import final
 
-from WinCopies import IDisposable, IInterface
+from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Typing.Delegate import Selector
 from WinCopies.Typing.Object import IEquatableObject
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -49,7 +49,7 @@ class ITableColumn(IColumn):
     def Hash(self) -> int:
         return hash((self.GetTableName(), self.GetColumnName()))
 
-class Column(IColumn):
+class Column(Abstract, IColumn):
     def __init__(self, columnName: str):
         super().__init__()
 
@@ -188,7 +188,7 @@ class IColumnOperand(__IOperandValue[IColumn]):
     def __init__(self):
         super().__init__()
 
-class __Operand[T](IInterface):
+class __Operand[T](Abstract):
     def __init__(self, operator: Operator, value: T):
         super().__init__()
 
@@ -207,7 +207,7 @@ class __Operand[T](IInterface):
     def GetValue(self) -> Operator:
         return self.__operator
 
-class __NullityOperand(IOperand[None]):
+class __NullityOperand(Abstract, IOperand[None]):
     def __init__(self):
         super().__init__()
     

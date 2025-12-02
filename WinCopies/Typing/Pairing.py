@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
+from WinCopies import Abstract
 from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
@@ -29,7 +30,7 @@ class IKeyValuePair[TKey, TValue](IEquatable[Self]): # type: ignore
     def Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue() # type: ignore
 
-class KeyValuePairBase[TKey, TValue](IKeyValuePair[TKey, TValue]):
+class KeyValuePairBase[TKey, TValue](Abstract, IKeyValuePair[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
@@ -58,7 +59,7 @@ class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
     def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return isinstance(item, KeyValuePair)
 
-class DualResult[TValue, TInfo](IKeyValuePair[TValue, TInfo]):
+class DualResult[TValue, TInfo](Abstract, IKeyValuePair[TValue, TInfo]):
     def __init__(self, value: TValue, info: TInfo):
         super().__init__()
         

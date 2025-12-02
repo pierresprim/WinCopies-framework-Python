@@ -381,7 +381,7 @@ class _ReversedArray[TItem, TCollection](_Reversed[TItem, TCollection], IArray[T
     def AsReadOnly(self) -> ITuple[TItem]:
         return self.__readOnly.GetValue()
 
-class GetterBase[TKey, TValue](IGetter[TKey, TValue]):
+class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
@@ -392,7 +392,7 @@ class GetterBase[TKey, TValue](IGetter[TKey, TValue]):
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         return DualValueBool[TValue](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TDefault](defaultValue, False)
-class SetterBase[TKey, TValue](ISetter[TKey, TValue]):
+class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
     def __init__(self):
         super().__init__()
     
