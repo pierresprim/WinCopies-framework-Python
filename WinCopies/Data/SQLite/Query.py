@@ -128,7 +128,7 @@ class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionRe
     def GetLastRowId(self) -> int:
         return self._GetCursor().lastrowid # type: ignore
 
-class __InsertionQuery(__IQuery, InsertionQueryStatementProvider):
+class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
     def __init__(self):
         super().__init__()
     
@@ -143,6 +143,9 @@ class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
 
         self.__connection = connection
     
+    def _Validate(self) -> str|None:
+        pass
+    
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
@@ -152,6 +155,9 @@ class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
 
         self.__connection = connection
     
+    def _Validate(self) -> str|None:
+        pass
+    
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
@@ -160,6 +166,9 @@ class UpdateQuery(Query.UpdateQuery, __IQuery):
         super().__init__(tableName, values, conditions)
 
         self.__connection = connection
+    
+    def _Validate(self) -> str|None:
+        pass
     
     def Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
