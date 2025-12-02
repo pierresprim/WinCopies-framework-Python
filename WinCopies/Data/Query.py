@@ -6,7 +6,7 @@ from typing import final
 
 
 
-from WinCopies import IDisposable, IInterface
+from WinCopies import IInterface, IDisposable
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
@@ -118,9 +118,6 @@ class IConditionalQuery(IInterface):
     
     @abstractmethod
     def GetConditions(self) -> IConditionParameterSet|None:
-        pass
-    @abstractmethod
-    def SetConditions(self, conditions: IConditionParameterSet|None) -> None:
         pass
 
 class ISelectionQueryBase(IConditionalQuery):
