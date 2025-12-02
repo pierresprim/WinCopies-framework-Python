@@ -538,7 +538,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     class _ReadOnlyList(_ReadOnlyListBase[TItem, IReadOnlyList[TItem]], IGenericConstraintImplementation[IReadOnlyList[TItem]]):
         def __init__(self, items: IReadOnlyList[TItem]):
             super().__init__(items)
-    class _ReadOnlyEnumerableList(_ReadOnlyListBase[TItem, IReadOnlyEnumerableList[TItem]], IReadOnlyEnumerableList[TItem], IGenericConstraintImplementation[IReadOnlyEnumerableList[TItem]]):
+    class _ReadOnlyEnumerableList(_ReadOnlyListBase[TItem, IReadOnlyEnumerableList[TItem]], Enumerable[TItem], IReadOnlyEnumerableList[TItem], IGenericConstraintImplementation[IReadOnlyEnumerableList[TItem]]):
         def __init__(self, items: IReadOnlyEnumerableList[TItem]):
             super().__init__(items)
         
