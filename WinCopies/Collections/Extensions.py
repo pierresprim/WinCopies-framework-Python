@@ -733,7 +733,7 @@ class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
         return self._AsReversed()
 
 class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
-    class _ReadOnlySet(IReadOnlySet[T]):
+    class _ReadOnlySet(CountableEnumerable[T], IReadOnlySet[T]):
         def __init__(self, items: IReadOnlySet[T]):
             super().__init__()
 
@@ -780,7 +780,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
 
 class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
-    class _ReadOnlyDictionary(IReadOnlyDictionary[TKey, TValue]):
+    class _ReadOnlyDictionary(CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
         def __init__(self, dictionary: Dictionary[TKey, TValue]):
             super().__init__()
 
