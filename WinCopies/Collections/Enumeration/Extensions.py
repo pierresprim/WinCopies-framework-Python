@@ -12,7 +12,7 @@ from typing import final
 
 from WinCopies import IInterface
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetNullEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 
 from WinCopies.Typing.Delegate import Converter, Function
@@ -235,7 +235,7 @@ class IterableBuilder[T](Enumerable[T]):
     def _UnsetIterable(self) -> None:
         EnsureDirectModuleCall()
 
-        self.__SetIterable(GetNullEnumerable())
+        self.__SetIterable(GetEmptyEnumerable())
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
