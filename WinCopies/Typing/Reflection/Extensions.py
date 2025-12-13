@@ -9,6 +9,7 @@ from sys import modules
 from types import ModuleType, FrameType
 from typing import Sequence, final
 
+from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction.Collection import Array
@@ -52,7 +53,7 @@ def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
 
     return any(imp.startswith(packageName) for imp in imports)
 
-class PackageInspector(IInterface):
+class PackageInspector(Abstract):
     def __init__(self, package: ModuleType|str):
         super().__init__()
 
@@ -153,7 +154,7 @@ class __IFrameInfo(IInterface):
         pass
 
 @final
-class __FrameInfo(__IFrameInfo):
+class __FrameInfo(Abstract, __IFrameInfo):
     def __init__(self, frameInfo: FrameInfo):
         super().__init__()
 
@@ -168,24 +169,85 @@ class __FrameInfo(__IFrameInfo):
     def GetLineNumber(self) -> int:
         return self.__frameInfo.lineno
 @final
-class __Traceback(__IFrameInfo, IDisposableInfo):
+class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
+    class _IHandle(__IFrameInfo):
+        def __init__(self):
+            super().__init__()
+        
+        @abstractmethod
+        def IsDisposed(self) -> bool:
+            pass
+        
+        @abstractmethod
+        def Dispose(self) -> __Traceback._IHandle:
+            pass
+    
+    @final
+    class _NullHandle(Abstract, _IHandle):
+        def __init__(self):
+            super().__init__()
+        
+        def IsDisposed(self) -> bool:
+            return True
+
+        def GetFrame(self) -> FrameType:
+            raise GetDisposedError()
+        def GetFileName(self) -> str:
+            raise GetDisposedError()
+        def GetFunction(self) -> str:
+            raise GetDisposedError()
+        def GetLineNumber(self) -> int:
+            raise GetDisposedError()
+        
+        def Dispose(self) -> __Traceback._IHandle:
+            return self
+    @final
+    class _Handle(Abstract, _IHandle):
+        def __init__(self, frame: FrameType, traceback: Traceback):
+            super().__init__()
+
+            self.__frame: FrameType = frame
+            self.__traceback: Traceback = traceback
+        
+        def IsDisposed(self) -> bool:
+            return False
+
+        def GetFrame(self) -> FrameType:
+            return self.__frame
+        def GetFileName(self) -> str:
+            return self.__traceback.filename
+        def GetFunction(self) -> str:
+            return self.__traceback.function
+        def GetLineNumber(self) -> int:
+            return self.__traceback.lineno
+        
+        def Dispose(self) -> __Traceback._IHandle:
+            del self.__traceback
+
+            return __Traceback._NullHandle()
+    
     def __init__(self, frame: FrameType, traceback: Traceback):
         super().__init__()
 
-        self.__frame: FrameType = frame
-        self.__traceback: Traceback = traceback
+        self.__handle: __Traceback._IHandle = __Traceback._Handle(frame, traceback)
+    
+    def IsDisposed(self) -> bool:
+        return self.__handle.IsDisposed()
     
     def GetFrame(self) -> FrameType:
-        return self.__frame
+        return self.__handle.GetFrame()
     def GetFileName(self) -> str:
-        return self.__traceback.filename
+        return self.__handle.GetFileName()
     def GetFunction(self) -> str:
-        return self.__traceback.function
+        return self.__handle.GetFunction()
     def GetLineNumber(self) -> int:
-        return self.__traceback.lineno
+        return self.__handle.GetLineNumber()
+    
+    def Dispose(self) -> None:
+        self.__handle = self.__handle.Dispose()
 
 @final
-class __FrameInspector(IFrameInspector):
+class __FrameInspector(Abstract, IFrameInspector):
     def __init__(self, frameInfo: __IFrameInfo):
         super().__init__()
 
@@ -264,7 +326,7 @@ def CreateFrameInspectorFromFrame(frame: FrameType) -> IFrameInspector:
     return __FrameInspector(__Traceback(frame, getframeinfo(frame)))
 
 @final
-class __DisposableFrameInspector(IDisposableInfo):
+class __DisposableFrameInspector(Abstract, IDisposableInfo):
     def __init__(self, frame: FrameType):
         super().__init__()
 
@@ -285,7 +347,7 @@ class __DisposableFrameInspector(IDisposableInfo):
 
         del self.__frame
 
-class DisposableFrameInspector(IDisposableFrameInspector):
+class DisposableFrameInspector(Abstract, IDisposableFrameInspector):
     def __init__(self, frame: FrameType):
         super().__init__()
 
@@ -336,7 +398,7 @@ class DisposableFrameInspector(IDisposableFrameInspector):
     def Dispose(self) -> None:
         self.__frameInspector.Dispose()
 
-class FrameHierarchy(IInterface):
+class FrameHierarchy(Abstract):
     def __init__(self, inspector: IFrameInspector):
         super().__init__()
 

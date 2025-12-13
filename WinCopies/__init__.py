@@ -94,16 +94,16 @@ class IDisposable(IInterface):
     
     def Initialize(self) -> None:
         pass
+    
+    @abstractmethod
+    def Dispose(self) -> None:
+        pass
 
     @final
     def __enter__(self) -> Self:
         self.Initialize()
         
         return self
-    
-    @abstractmethod
-    def Dispose(self) -> None:
-        pass
     
     @final
     def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: TracebackType) -> bool:
