@@ -1,0 +1,174 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+from typing import final
+
+import sqlite3
+
+from WinCopies import String, Abstract
+from WinCopies.Collections import Enumeration, CreateList
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable
+from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Typing.Object import IString
+from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
+from WinCopies.Data import Query
+from WinCopies.Data.Query import QueryResult, InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Misc import ITableNameFormater
+from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
+from WinCopies.Data.Set.Extensions import IConditionParameterSet
+
+class QueryResultBase(Abstract):
+    def __init__(self, connection: sqlite3.Connection, query: QueryResult):
+        self.__cursor: sqlite3.Cursor = self.__ExecuteQuery(connection, query)
+    
+    @final
+    def __ExecuteQuery(self, connection: sqlite3.Connection, query: QueryResult) -> sqlite3.Cursor:
+        def getArguments(args: ICountableEnumerable[object]|None) -> list[object]:
+            if args is None:
+                return []
+            
+            l: list[object] = CreateList(args.GetCount())
+            i: int = 0
+
+            for arg in args.AsIterable():
+                l[i] = arg
+
+                i += 1
+            
+            return l
+        
+        return connection.execute(query.GetKey(), getArguments(query.GetValue()))
+    
+    @final
+    def _GetCursor(self) -> sqlite3.Cursor:
+        return self.__cursor
+    
+    @final
+    def GetRowCount(self) -> int:
+        return self._GetCursor().rowcount
+    
+    def Dispose(self) -> None:
+        self._GetCursor().close()
+
+class __IQuery(ITableNameFormater):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def FormatTableName(self, name: str) -> str:
+        return String.DoubleQuoteSurround(name)
+
+@final
+class SelectionQuery(Query.SelectionQuery, __IQuery):
+    @final
+    class ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
+        @final
+        class Enumerator(Enumeration.Iterator[Sequence[object]]):
+            def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action):
+                EnsureDirectModuleCall()
+
+                super().__init__(cursor)
+
+                self.__enumeratorUpdater: Action = enumeratorUpdater
+            
+            def _OnEnded(self) -> None:
+                self.__enumeratorUpdater()
+        
+        @final
+        class FunctionUpdater(ValueFunctionUpdater[IEnumerator[Sequence[object]]|None]):
+            def __init__(self, cursor: sqlite3.Cursor, updater: Method[IFunction[IEnumerator[Sequence[object]]|None]], enumeratorUpdater: Action):
+                super().__init__(updater)
+
+                self.__cursor: sqlite3.Cursor = cursor
+                self.__enumeratorUpdater: Action = enumeratorUpdater
+            
+            def _GetValue(self) -> IEnumerator[Sequence[object]]:
+                return SelectionQuery.ExecutionResult.Enumerator(self.__cursor, self.__enumeratorUpdater)
+        
+        def __init__(self, connection: sqlite3.Connection, query: QueryResult):
+            EnsureDirectModuleCall()
+
+            super().__init__(connection, query)
+
+            self.__function: IFunction[IEnumerator[Sequence[object]]|None]
+
+            def updateFunction(func: IFunction[IEnumerator[Sequence[object]]|None]) -> None:
+                self.__function = func
+            def resetFunction() -> None:
+                self.__function = GetDefaultFunction()
+
+            self.__function = SelectionQuery.ExecutionResult.FunctionUpdater(self._GetCursor(), updateFunction, resetFunction)
+        
+        def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
+            return self.__function.GetValue()
+    
+    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None):
+        super().__init__(tables, columns, conditions)
+
+        self.__connection: sqlite3.Connection = connection
+    
+    def _Validate(self) -> str|None:
+        return "There must be at most one table." if self.GetTables().GetCount() > 1 else None
+    
+    def Execute(self) -> ISelectionQueryExecutionResult|None:
+        query: QueryResult|None = self.GetQuery()
+
+        return None if query is None else SelectionQuery.ExecutionResult(self.__connection, query)
+
+@final
+class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionResult):
+    def __init__(self, cursor: sqlite3.Connection, query: QueryResult):
+        EnsureDirectModuleCall()
+
+        super().__init__(cursor, query)
+    
+    def GetLastRowId(self) -> int:
+        return self._GetCursor().lastrowid # type: ignore
+
+class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def _GetStatement(self, ignoreExisting: bool = False) -> str:
+        return Query.InsertionQuery.GetStandardStatement(ignoreExisting)
+
+@final
+class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False):
+        super().__init__(tableName, items, ignoreExisting)
+
+        self.__connection = connection
+    
+    def _Validate(self) -> str|None:
+        pass
+    
+    def Execute(self) -> IInsertionQueryExecutionResult:
+        return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
+@final
+class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
+        super().__init__(tableName, columns, items, ignoreExisting)
+
+        self.__connection = connection
+    
+    def _Validate(self) -> str|None:
+        pass
+    
+    def Execute(self) -> IInsertionQueryExecutionResult:
+        return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
+@final
+class UpdateQuery(Query.UpdateQuery, __IQuery):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None):
+        super().__init__(tableName, values, conditions)
+
+        self.__connection = connection
+    
+    def _Validate(self) -> str|None:
+        pass
+    
+    def Execute(self) -> IInsertionQueryExecutionResult:
+        return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())

@@ -1,148 +1,350 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator
+
 from abc import abstractmethod
-from typing import _T, final
+from typing import final, Callable, Self
 
-from .Singly import Base
-from WinCopies.Collections import Collection
+from WinCopies import Collections, Abstract
+from WinCopies.Collections import Enumeration, Generator, EnumerationOrder, ICountable, IReadOnlyCollection, Countable as CountableCollection
+from WinCopies.Collections.Abstraction.Enumeration import Enumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, IterableBase
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
+from WinCopies.Collections.Linked.Node import LinkedNode
 
-class IList(Collection[_T]):
+from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
+class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
+    def __init__(self, value: T, nextNode: Self|None):
+        super().__init__(value, nextNode)
+
+class IReadOnlyList[T](IReadOnlyCollection):
     def __init__(self):
-        pass
-
+        super().__init__()
+    
     @abstractmethod
-    def Push(self, value: _T) -> None:
+    def GetOrder(self) -> EnumerationOrder:
         pass
     
     @abstractmethod
-    def TryPop(self) -> tuple[bool, _T|None]:
+    def TryPeek(self) -> INullable[T]:
         pass
+class IList[T](IReadOnlyList[T]):
+    def __init__(self):
+        super().__init__()
+    
     @abstractmethod
-    def Pop(self) -> _T:
+    def AsReadOnly(self) -> IReadOnlyList[T]:
         pass
     
     @abstractmethod
-    def TryPull(self) -> tuple[bool, _T|None]:
+    def Push(self, value: T) -> None:
+        pass
+    
+    @abstractmethod
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
         pass
     @abstractmethod
-    def Pull(self) -> _T:
+    def PushItems(self, items: Iterable[T]) -> None:
+        pass
+    
+    @final
+    def PushValues(self, *values: T) -> None:
+        self.PushItems(values)
+    
+    @abstractmethod
+    def TryPop(self) -> INullable[T]:
         pass
     
     @abstractmethod
     def Clear(self) -> None:
         pass
+    
+    @final
+    def AsGenerator(self) -> Generator[T]:
+        result: INullable[T] = self.TryPop()
 
-class Base(IList[_T]):
-    class _Node:
-        def __init__(self, value: _T, next):
-            self.__value: _T = value
-            self.__next = next
+        while result.HasValue():
+            yield result.GetValue()
+            
+            result = self.TryPop()
+
+class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
+    def __init__(self):
+        super().__init__()
+class IEnumerableList[T](IReadOnlyEnumerableList[T], IList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+        pass
+
+class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
+    def __init__(self):
+        super().__init__()
+class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
+    @final
+    class __Updater(ValueFunctionUpdater[ICountableEnumerable[T]]):
+        @final
+        class __Enumerable(IterableBase[T], CountableCollection, ICountableEnumerable[T]):
+            def __init__(self, items: ICountableList[T]):
+                super().__init__()
+
+                self.__items: ICountableList[T] = items
+            
+            def _TryGetIterator(self) -> Iterator[T]|None:
+                return self.__items.AsGenerator()
+            
+            def GetCount(self) -> int:
+                return self.__items.GetCount()
         
-        @final
-        def GetValue(self) -> _T:
-            return self.__value
+        def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerable[T]]]):
+            super().__init__(updater)
+
+            self.__items: ICountableList[T] = items
         
-        @final
-        def _GetNext(self):
-            return self.__next
-        @final
-        def _SetNext(self, next):
-            self.__next = next
+        def _GetValue(self) -> ICountableEnumerable[T]:
+            return ICountableList[T].__Updater.__Enumerable(self.__items)
     
     def __init__(self):
-        self.__first: Base._Node|None = None
+        def update(func: IFunction[ICountableEnumerable[T]]) -> None:
+            self.__generator = func
+        
+        super().__init__()
+
+        self.__generator: IFunction[ICountableEnumerable[T]] = ICountableList[T].__Updater(self, update)
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableList[T]:
+        pass
+
+    @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[T]:
+        return self.__generator.GetValue()
+
+class IReadOnlyCountableEnumerableList[T](ICountableEnumerable[T], IReadOnlyEnumerableList[T], IReadOnlyCountableList[T]):
+    def __init__(self):
+        super().__init__()
+class ICountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IEnumerableList[T], ICountableList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+        pass
+
+class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IList[TItem]]):
+    def __init__(self, items: TList):
+        super().__init__()
+
+        self.__items: TList = items
+    
+    @final
+    def _GetContainer(self) -> TList:
+        return self.__items
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetInnerContainer().IsEmpty()
+    
+    @final
+    def HasItems(self) -> bool:
+        return super().HasItems()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return self._GetInnerContainer().GetOrder()
+    
+    @final
+    def TryPeek(self) -> INullable[TItem]:
+        return self._GetInnerContainer().TryPeek()
+
+class ListBase[T](Abstract, IList[T]):
+    def __init__(self):
+        super().__init__()
+        
+        self.__first: SinglyLinkedNode[T]|None = None
 
     @final
     def IsEmpty(self) -> bool:
         return self.__first is None
     @final
     def HasItems(self) -> bool:
-        return super().HasItems(self)
-    
-    @abstractmethod
-    def _InitNode(self, value: _T) -> None:
-        pass
-    def _OnNodeInitialized(self) -> None:
-        pass
+        return super().HasItems()
     
     @final
-    def _GetFirst(self) -> Base._Node:
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
         return self.__first
     @final
-    def _SetFirst(self, node: Base._Node) -> None:
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
         self.__first = node
-
+    
+    @abstractmethod
     def _OnRemoved(self) -> None:
         pass
     
+    @abstractmethod
+    def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
+        pass
     @final
-    def _GetFirstValue(self) -> _T:
-        return self.__first.GetValue()
-    @final
-    def _RemoveFirstValue(self) -> _T:
-        node: Base._Node = self.__first
-        value: _T = node.GetValue()
-
-        self.__first = node._GetNext()
-        self._OnRemoved()
-
-        return value
-    
-    @final
-    def Push(self, value: _T) -> None:
+    def Push(self, value: T) -> None:
         if self.IsEmpty():
-            self.__first = Base._Node(value, None, None)
-            self._OnInitialNodeAdded()
+            self.__first = SinglyLinkedNode[T](value, None)
         
         else:
-            self._InitNode(value)
-            self._OnNodeInitialized()
+            self._Push(value, self.__first) # type: ignore
     
     @final
-    def TryPop(self) -> tuple[bool, _T|None]:
-        return (False, None) if self.IsEmpty() else (True, self._GetFirstValue())
+    def PushItems(self, items: Iterable[T]) -> None:
+        for value in items:
+            self.Push(value)
     @final
-    def Pop(self) -> _T:
-        self.ThrowIfEmpty()
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
         
-        return self._GetFirstValue()
-    
-    @final
-    def TryPull(self) -> tuple[bool, _T|None]:
-        return (False, None) if self.IsEmpty() else (True, self._RemoveFirstValue())
-    @final
-    def Pull(self) -> _T:
-        self.ThrowIfEmpty()
+        self.PushItems(items)
 
-        return self._RemoveFirstValue()
+        return True
     
     @final
-    def _Weld(self, last: _Node) -> None:
-        last._SetNext(self.__first)
+    def TryPeek(self) -> INullable[T]:
+        return GetNullValue() if self.IsEmpty() else (GetNullValue() if self.__first is None else GetNullable(self.__first.GetValue())) # self.__first should never be None if self.IsEmpty().
+    
+    @final
+    def TryPop(self) -> INullable[T]:
+        result: INullable[T] = self.TryPeek()
+
+        if result.HasValue():
+            first: SinglyLinkedNode[T]|None = self.__first
+
+            if first is None: # Should never be None here.
+                return result
+
+            self.__first = first.GetNext()
+
+            first._SetNext(None) # type: ignore # Needed in case of a running enumeration.
+
+            self._OnRemoved()
+
+        return result
     
     @final
     def Clear(self) -> None:
-        self._OnRemoved()
+        result: INullable[T] = self.TryPop()
+
+        while result.HasValue(): # Needed in case of a running enumeration.
+            result = self.TryPop()
 
         self.__first = None
 
-class Queue(Base[_T]):
+        self._OnRemoved()
+
+class List[T](ListBase[T]):
+    class _ReadOnlyList(ReadOnlyList[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
+        def __init__(self, items: IList[T]):
+            super().__init__(items)
+    
+    @final
+    class __Updater(ValueFunctionUpdater[IReadOnlyList[T]]):
+        def __init__(self, items: List[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+            super().__init__(updater)
+
+            self.__items: List[T] = items
+        
+        def _GetValue(self) -> IReadOnlyList[T]:
+            return self.__items._AsReadOnly()
+    
     def __init__(self):
+        def update(func: IFunction[IReadOnlyList[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__()
+
+        self.__readOnly: IFunction[IReadOnlyList[T]] = List[T].__Updater(self, update)
+    
+    def _AsReadOnly(self) -> IReadOnlyList[T]:
+        return List[T]._ReadOnlyList(self)
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        return self.__readOnly.GetValue()
+
+class Enumerable[T](ListBase[T], Enumeration.Enumerable[T], IEnumerableList[T]):
+    class _ReadOnlyList(ReadOnlyList[T, IEnumerableList[T]], Enumeration.Enumerable[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IEnumerableList[T]]):
+        def __init__(self, items: IEnumerableList[T]):
+            super().__init__(items)
+        
+        @final
+        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+            return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+    
+    @final
+    class __Updater(ValueFunctionUpdater[IReadOnlyEnumerableList[T]]):
+        def __init__(self, items: Enumerable[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+            super().__init__(updater)
+
+            self.__items: Enumerable[T] = items
+        
+        def _GetValue(self) -> IReadOnlyEnumerableList[T]:
+            return self.__items._AsReadOnly()
+    
+    def __init__(self):
+        def update(func: IFunction[IReadOnlyEnumerableList[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__()
+
+        self.__readOnly: IFunction[IReadOnlyEnumerableList[T]] = Enumerable[T].__Updater(self, update)
+    
+    def _AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+        return Enumerable[T]._ReadOnlyList(self)
+    @final
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+        return self.__readOnly.GetValue()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        if self.IsEmpty():
+            return None
+        
+        first: SinglyLinkedNode[T]|None = self._GetFirst() # Should never be None here.
+        
+        return None if first is None else GetValueEnumeratorFromNode(first)
+
+class QueueBase[T](ListBase[T]):
+    def __init__(self, *values: T):
         super().__init__()
         
-        self.__last: Base._Node|None = None
-    
-    @final
-    def _GetLast(self) -> Base._Node:
-        return self.__last
-    @final
-    def _SetLast(self, last: Base._Node) -> None:
-        self.__last = last
-    
-    @final
-    def _InitNode(self, value):
-        node: Base._Node = Base._Node(value, None)
+        self.__last: SinglyLinkedNode[T]|None = None
+        self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
 
-        self.__last._SetNext(node)        
-        self.__last = node
+        self.PushItems(values)
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.FIFO
+    
+    @final
+    def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
+        def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
+            previousNode._SetNext(newNode) # type: ignore
+
+            self.__last = newNode
+        
+        push(first, newNode)
+
+        self.__updater = lambda first, newNode: push(self.__last, newNode) # type: ignore
+    
+    @final
+    def __GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+        return lambda first, newNode: self.__Push(first, newNode)
+    
+    @final
+    def _Push(self, value: T, first: SinglyLinkedNode[T]):
+        self.__updater(first, SinglyLinkedNode[T](value, None))
     
     def _OnRemovedNode(self) -> None:
         pass
@@ -150,87 +352,237 @@ class Queue(Base[_T]):
     def _OnRemoved(self) -> None:
         if self.IsEmpty():
             self.__last = None
-        else:
-            self._OnRemovedNode()
-class Stack(Base[_T]):
-    def __init__(self):
+            self.__updater = self.__GetUpdater()
+class StackBase[T](ListBase[T]):
+    def __init__(self, *values: T):
         super().__init__()
+
+        self.PushItems(values)
     
     @final
-    def _InitNode(self, value) -> None:
-        self._SetFirst(Base._Node(value, self._GetFirst()))
-
-class IBuffer(IList[_T]):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def _GetFirst(self) -> Base._Node:
-        pass
-
-    @final
-    def _IsFirstAndLast(self) -> tuple[bool, Base._Node, Base._Node]:
-        first: Base._Node = self._GetFirst()
-        next: Base._Node = first._GetNext()
-
-        return (first is next, first, next)
-
-    @abstractmethod
-    def _SetFirst(node: Base._Node) -> None:
-        pass
-    @abstractmethod
-    def _SetLast(node: Base._Node) -> None:
-        pass
-
-    @abstractmethod
-    def _Weld(self, last: Base._Node) -> None:
-        pass
-    
-    @abstractmethod
-    def _GetLast(self) -> Base._Node:
-        pass
-    
-    def _WeldLast(self) -> None:
-        self._Weld(self._GetLast())
-
-    def _OnNodeInitialized(self) -> None:
-        self._WeldLast()
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.LIFO
     
     @final
-    def Move(self) -> bool:
-        result: tuple[bool, Base._Node, Base._Node] = self._IsFirstAndLast()
+    def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
+        self._SetFirst(SinglyLinkedNode[T](value, first))
+    
+    @final
+    def _OnRemoved(self) -> None:
+        pass
+
+class Queue[T](QueueBase[T], List[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+class Stack[T](StackBase[T], List[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+
+class SinglyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
+    def __init__(self, node: TNode):
+        super().__init__(node)
+class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLinkedNode[T]]):
+    def __init__(self, node: SinglyLinkedNode[T]):
+        super().__init__(node)
+
+class EnumerableQueue[T](QueueBase[T], Enumerable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+class EnumerableStack[T](StackBase[T], Enumerable[T]):
+    def __init__(self, *values: T):
+        super().__init__(*values)
+
+class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TItems]], IList[TItems]):
+    def __init__(self, l: TList):
+        super().__init__()
         
-        if result[0]:
+        self.__list: TList = l
+    
+    def _GetContainer(self) -> TList:
+        return self.__list
+    def _GetCollection(self) -> TList:
+        return self._GetContainer()
+
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetInnerContainer().IsEmpty()
+    @final
+    def HasItems(self) -> bool:
+        return self._GetInnerContainer().HasItems()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return self._GetInnerContainer().GetOrder()
+
+class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
+    def __init__(self, l: IList[T]):
+        super().__init__(l)
+
+class CountableBase[TItems, TList](CollectionBase[TItems, TList], Collections.Countable, ICountableList[TItems]):
+    def __init__(self, l: TList):
+        EnsureDirectModuleCall()
+
+        super().__init__(l)
+
+        self.__count: int = 0
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__count
+    
+    @final
+    def __Increment(self) -> None:
+        self.__count += 1
+    
+    @final
+    def Push(self, value: TItems) -> None:
+        self._GetInnerContainer().Push(value)
+
+        self.__Increment()
+    
+    @final
+    def __PushItems(self, items: Iterable[TItems]) -> None:
+        def loop() -> Generator[TItems]:
+            for item in items:
+                yield item
+                
+                self.__Increment()
+        
+        self._GetInnerContainer().PushItems(loop())
+    
+    @final
+    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+        if items is None:
             return False
         
-        self._SetFirst(result[2])
-        self._SetLast(result[1])
-        
+        self.__PushItems(items)
+
         return True
-class BufferedQueue(Queue[_T], IBuffer[_T]):
-    def __init__(self):
-        super().__init__()
-    
-    def _OnInitialNodeAdded(self) -> None:
-        self._WeldLast()
-    
-    def _OnRemovedNode(self) -> None:
-        self._WeldLast()
-class BufferedStack(Stack[_T], IBuffer[_T]):
-    def __init__(self):
-        super().__init__()
-        self.__last: Base._Node|None = None
+    @final
+    def PushItems(self, items: Iterable[TItems]) -> None:
+        if items is None: # type: ignore
+            raise ValueError("No value provided.")
+        
+        self.__PushItems(items)
     
     @final
-    def _GetLast(self) -> Base._Node:
-        return self.__last
+    def TryPeek(self) -> INullable[TItems]:
+        return self._GetInnerContainer().TryPeek()
     
-    def _OnInitialNodeAdded(self) -> None:
-        self.__last = self._GetFirst()
-        self._WeldLast()
+    @final
+    def TryPop(self) ->  INullable[TItems]:
+        result: INullable[TItems] = self._GetInnerContainer().TryPop()
+
+        if result.HasValue():
+            self.__count -= 1
         
-    def _OnRemoved(self) -> None:
-        if self.IsEmpty():
-            self.__last = None
-        else:
-            self._WeldLast()
+        return result
+    
+    @final
+    def Clear(self) -> None:
+        self._GetInnerContainer().Clear()
+
+        self.__count = 0
+
+class Countable[T](CountableBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, ICountableList[T]], Collections.Countable, IReadOnlyCountableList[T], IGenericConstraintImplementation[ICountableList[T]]):
+        def __init__(self, items: ICountableList[T]):
+            super().__init__(items)
+        
+        @final
+        def GetCount(self) -> int:
+            return self._GetContainer().GetCount()
+    
+    @final
+    class __Updater(ValueFunctionUpdater[IReadOnlyCountableList[T]]):
+        def __init__(self, items: Countable[T], updater: Method[IFunction[IReadOnlyCountableList[T]]]):
+            super().__init__(updater)
+
+            self.__items: Countable[T] = items
+        
+        def _GetValue(self) -> IReadOnlyCountableList[T]:
+            return self.__items._AsReadOnly()
+    
+    def __init__(self, l: IList[T]):
+        def update(func: IFunction[IReadOnlyCountableList[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__(l)
+
+        self.__readOnly: IFunction[IReadOnlyCountableList[T]] = Countable[T].__Updater(self, update)
+    
+    def _AsReadOnly(self) -> IReadOnlyCountableList[T]:
+        return Countable[T]._ReadOnlyList(self)
+    @final
+    def AsReadOnly(self) -> IReadOnlyCountableList[T]:
+        return self.__readOnly.GetValue()
+
+class CountableQueue[T](Countable[T]):
+    def __init__(self, *values: T):
+        super().__init__(Queue[T]())
+
+        self.PushItems(values)
+class CountableStack[T](Countable[T]):
+    def __init__(self, *values: T):
+        super().__init__(Stack[T]())
+
+        self.PushItems(values)
+
+class CountableEnumerableBase[TItems, TList](CountableBase[TItems, TList], Enumeration.Enumerable[TItems], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
+    def __init__(self, l: TList):
+        super().__init__(l)
+class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
+    class _ReadOnlyList(ReadOnlyList[T, ICountableEnumerableList[T]], Enumeration.CountableEnumerable[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableEnumerableList[T]]):
+        def __init__(self, items: ICountableEnumerableList[T]):
+            super().__init__(items)
+        
+        @final
+        def GetCount(self) -> int:
+            return self._GetContainer().GetCount()
+        
+        @final
+        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+            return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+    
+    @final
+    class __Updater(ValueFunctionUpdater[IReadOnlyCountableEnumerableList[T]]):
+        def __init__(self, items: CountableEnumerable[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]):
+            super().__init__(updater)
+
+            self.__items: CountableEnumerable[T] = items
+        
+        def _GetValue(self) -> IReadOnlyCountableEnumerableList[T]:
+            return self.__items._AsReadOnly()
+    
+    def __init__(self, l: Enumerable[T]):
+        def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__(l)
+
+        self.__readOnly: IFunction[IReadOnlyCountableEnumerableList[T]] = CountableEnumerable[T].__Updater(self, update)
+    
+    def _AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+        return CountableEnumerable[T]._ReadOnlyList(self)
+    @final
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+        return self.__readOnly.GetValue()
+
+class CountableEnumerableQueue[T](CountableEnumerable[T]):
+    def __init__(self, *values: T):
+        super().__init__(EnumerableQueue[T]())
+
+        self.PushItems(values)
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetCollection().TryGetEnumerator()
+class CountableEnumerableStack[T](CountableEnumerable[T]):
+    def __init__(self, *values: T):
+        super().__init__(EnumerableStack[T]())
+
+        self.PushItems(values)
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self._GetCollection().TryGetEnumerator()
