@@ -138,15 +138,27 @@ class CircularList[T](CircularBase[T, IList[T]], List[T], MutableSequence[T], IC
     
     @final
     def Add(self, item: T) -> None:
+        def tryAdd() -> bool:
+            if index == self.GetLastIndex():
+                self._GetContainer().Add(item)
+
+                return True
+            
+            return False
+
         index: int = self.GetIndex(self.GetLastIndex())
 
-        self._GetContainer().Insert(index, item)
+        if tryAdd():
+            return
+        
+        index += 1
 
-        self.Swap(index, index + 1)
+        if not tryAdd():
+            self._GetContainer().Insert(index, item)
     
     @final
     def TryInsert(self, index: int, value: T) -> bool:
-        return self._GetContainer().TryInsert(self.GetIndex(index), value)
+        return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetIndex(index), value)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
