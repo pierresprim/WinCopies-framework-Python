@@ -183,8 +183,18 @@ class ListBase[T](Abstract, IList[T]):
         self.__first = node
     
     @abstractmethod
+    def _OnCleared(self) -> None:
+        pass
     def _OnRemoved(self) -> None:
         pass
+
+    @final
+    def __OnRemoved(self) -> None:
+        if self.IsEmpty():
+            self._OnCleared()
+        
+        else:
+            self._OnRemoved()
     
     @abstractmethod
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
@@ -228,7 +238,7 @@ class ListBase[T](Abstract, IList[T]):
 
             first._SetNext(None) # type: ignore # Needed in case of a running enumeration.
 
-            self._OnRemoved()
+            self.__OnRemoved()
 
         return result
     
@@ -241,7 +251,7 @@ class ListBase[T](Abstract, IList[T]):
 
         self.__first = None
 
-        self._OnRemoved()
+        self.__OnRemoved()
 
 class List[T](ListBase[T]):
     class _ReadOnlyList(ReadOnlyList[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
@@ -346,13 +356,9 @@ class QueueBase[T](ListBase[T]):
     def _Push(self, value: T, first: SinglyLinkedNode[T]):
         self.__updater(first, SinglyLinkedNode[T](value, None))
     
-    def _OnRemovedNode(self) -> None:
-        pass
-    
-    def _OnRemoved(self) -> None:
-        if self.IsEmpty():
-            self.__last = None
-            self.__updater = self.__GetUpdater()
+    def _OnCleared(self) -> None:
+        self.__last = None
+        self.__updater = self.__GetUpdater()
 class StackBase[T](ListBase[T]):
     def __init__(self, *values: T):
         super().__init__()
@@ -367,8 +373,7 @@ class StackBase[T](ListBase[T]):
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
         self._SetFirst(SinglyLinkedNode[T](value, first))
     
-    @final
-    def _OnRemoved(self) -> None:
+    def _OnCleared(self) -> None:
         pass
 
 class Queue[T](QueueBase[T], List[T]):
