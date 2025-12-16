@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies import IInterface, Abstract
+from WinCopies.Typing import GenericConstraint
 
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]
@@ -62,6 +63,19 @@ class ValueFunctionUpdater[T](FunctionUpdater[T]):
     @final
     def _GetFunction(self) -> IFunction[T]:
         return ValueFunction[T](self._GetValue())
+
+class SelectionUpdater[TClass, TInterface](ValueFunctionUpdater[TInterface], GenericConstraint[TClass, TInterface]):
+    def __init__(self, value: TClass, updater: Method[IFunction[TInterface]]):
+        super().__init__(updater)
+
+        self.__value: TClass = value
+    
+    @final
+    def _GetContainer(self) -> TClass:
+        return self.__value
+    
+    def _GetValue(self) -> TInterface:
+        return self._AsContainer(self._GetContainer())
 
 @final
 class __DefaultFunction(Abstract, IFunction[None]):
