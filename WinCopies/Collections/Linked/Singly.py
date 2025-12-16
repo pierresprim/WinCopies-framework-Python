@@ -14,7 +14,6 @@ from WinCopies.Collections.Linked.Node import LinkedNode
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
     def __init__(self, value: T, nextNode: Self|None):
@@ -675,13 +674,11 @@ class _CountableCollectionBase[TItems, TList](CollectionBase[TItems, TList], Cou
         def update(func: IFunction[ICountableEnumerable[TItems]]) -> None:
             self.__generator = func
         
-        EnsureDirectModuleCall()
-
         super().__init__(l)
 
         self.__count: int = 0
         self.__generator: IFunction[ICountableEnumerable[TItems]] = _EnumerableUpdater[TItems](self, update)
-
+    
     @final
     def AsCountableGenerator(self) -> ICountableEnumerable[TItems]:
         return self.__generator.GetValue()
