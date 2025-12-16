@@ -74,7 +74,7 @@ class IList[T](IReadOnlyList[T]):
 class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
     def __init__(self):
         super().__init__()
-class IEnumerableList[T](IReadOnlyEnumerableList[T], IList[T]):
+class IEnumerableList[T](IList[T], IReadOnlyEnumerableList[T]):
     def __init__(self):
         super().__init__()
     
@@ -85,7 +85,7 @@ class IEnumerableList[T](IReadOnlyEnumerableList[T], IList[T]):
 class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
     def __init__(self):
         super().__init__()
-class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
+class ICountableList[T](IList[T], IReadOnlyCountableList[T]):
     @final
     class __Updater(ValueFunctionUpdater[ICountableEnumerable[T]]):
         @final
@@ -125,10 +125,10 @@ class ICountableList[T](IReadOnlyCountableList[T], IList[T]):
     def AsCountableGenerator(self) -> ICountableEnumerable[T]:
         return self.__generator.GetValue()
 
-class IReadOnlyCountableEnumerableList[T](ICountableEnumerable[T], IReadOnlyEnumerableList[T], IReadOnlyCountableList[T]):
+class IReadOnlyCountableEnumerableList[T](IReadOnlyEnumerableList[T], IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self):
         super().__init__()
-class ICountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IEnumerableList[T], ICountableList[T]):
+class ICountableEnumerableList[T](IEnumerableList[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]):
     def __init__(self):
         super().__init__()
     
