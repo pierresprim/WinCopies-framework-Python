@@ -245,25 +245,56 @@ class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstrai
     def TryPeek(self) -> INullable[TItem]:
         return self._GetInnerContainer().TryPeek()
 
-class ListBase[T](Abstract, IList[T]):
+class AbstractList[T](Abstract, IReadOnlyList[T]):
     def __init__(self):
         super().__init__()
-        
-        self.__first: SinglyLinkedNode[T]|None = None
+    
+    @abstractmethod
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+        pass
+    @abstractmethod
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
+        pass
+class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+        pass
+    @abstractmethod
+    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+        pass
+
+class ListBase[T](AbstractList[T], IList[T]):
+    def __init__(self):
+        super().__init__()
 
     @final
     def IsEmpty(self) -> bool:
-        return self.__first is None
+        return self._GetFirst() is None
     @final
     def HasItems(self) -> bool:
         return super().HasItems()
     
-    @final
+    @abstractmethod
     def _GetFirst(self) -> SinglyLinkedNode[T]|None:
-        return self.__first
-    @final
+        pass
+    @abstractmethod
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
-        self.__first = node
+        pass
+    
+    @abstractmethod
+    def _UnsetFirst(self) -> None:
+        pass
+    
+    @final
+    def _UpdateFirst(self, node: SinglyLinkedNode[T]|None) -> None:
+        if node is None:
+            self._UnsetFirst()
+        
+        else:
+            self._SetFirst(node)
     
     @abstractmethod
     def _OnCleared(self) -> None:
@@ -285,10 +316,10 @@ class ListBase[T](Abstract, IList[T]):
     @final
     def Push(self, value: T) -> None:
         if self.IsEmpty():
-            self.__first = SinglyLinkedNode[T](value, None)
+            self._SetFirst(SinglyLinkedNode[T](value, None))
         
         else:
-            self._Push(value, self.__first) # type: ignore
+            self._Push(value, self._GetFirst()) # type: ignore
     
     @final
     def PushItems(self, items: Iterable[T]) -> None:
@@ -312,12 +343,12 @@ class ListBase[T](Abstract, IList[T]):
         result: INullable[T] = self.TryPeek()
 
         if result.HasValue():
-            first: SinglyLinkedNode[T]|None = self.__first
+            first: SinglyLinkedNode[T]|None = self._GetFirst()
 
             if first is None: # Should never be None here.
                 return result
 
-            self.__first = first.GetNext()
+            self._UpdateFirst(first.GetNext())
 
             first._SetNext(None) # type: ignore # Needed in case of a running enumeration.
 
@@ -344,6 +375,19 @@ class List[T](ListBase[T]):
     def __init__(self):
         super().__init__()
 
+        self.__first: SinglyLinkedNode[T]|None = None
+    
+    @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+        return self.__first
+    @final
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
+        self.__first = node
+    
+    @final
+    def _UnsetFirst(self) -> None:
+        self.__first = None
+
 class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]):
     class ReadOnlyList(ReadOnlyList[T, IEnumerableList[T]], EnumerableCollectionBase[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IEnumerableList[T]]):
         def __init__(self, items: IEnumerableList[T]):
@@ -365,42 +409,46 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
         
         return None if first is None else GetValueEnumeratorFromNode(first)
 
-class QueueBase[T](ListBase[T], IQueue[T]):
-    def __init__(self, *values: T):
+class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
+    def __init__(self):
         super().__init__()
-        
-        self.__last: SinglyLinkedNode[T]|None = None
-        self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
-
-        self.PushItems(values)
     
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
         def push(previousNode: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
             previousNode._SetNext(newNode) # type: ignore
 
-            self.__last = newNode
+            self._SetLast(newNode)
         
         push(first, newNode)
 
-        self.__updater = lambda first, newNode: push(self.__last, newNode) # type: ignore
+        self._SetUpdater(lambda first, newNode: push(self._GetLast(), newNode)) # type: ignore
+
+    @abstractmethod
+    def _UnsetLast(self) -> None:
+        pass
     
     @final
-    def __GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+    def _CreateUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
         return lambda first, newNode: self.__Push(first, newNode)
+    
+    @abstractmethod
+    def _GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+        pass
+    @abstractmethod
+    def _SetUpdater(self, updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]) -> None:
+        pass
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]):
-        self.__updater(first, SinglyLinkedNode[T](value, None))
+        self._GetUpdater()(first, SinglyLinkedNode[T](value, None))
     
     def _OnCleared(self) -> None:
-        self.__last = None
-        self.__updater = self.__GetUpdater()
+        self._UnsetLast()
+        self._SetUpdater(self._CreateUpdater())
 class StackBase[T](ListBase[T], IStack[T]):
-    def __init__(self, *values: T):
+    def __init__(self):
         super().__init__()
-
-        self.PushItems(values)
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
@@ -409,7 +457,7 @@ class StackBase[T](ListBase[T], IStack[T]):
     def _OnCleared(self) -> None:
         pass
 
-class Queue[T](QueueBase[T], List[T]):
+class Queue[T](List[T], QueueBase[T]):
     class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyQueue[T]):
         def __init__(self, items: IQueue[T]):
             super().__init__(items)
@@ -426,14 +474,36 @@ class Queue[T](QueueBase[T], List[T]):
         def update(func: IFunction[IReadOnlyQueue[T]]) -> None:
             self.__readOnly = func
         
-        super().__init__(*values)
+        super().__init__()
 
+        self.__last: SinglyLinkedNode[T]|None = None
         self.__readOnly: IFunction[IReadOnlyQueue[T]] = Queue[T].__Updater(self, update)
+        self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self._CreateUpdater()
+
+        self.PushItems(values)
+    
+    @final
+    def _GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+        return self.__updater
+    @final
+    def _SetUpdater(self, updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]) -> None:
+        self.__updater = updater
+    
+    @final
+    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+        return self.__last
+    @final
+    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+        self.__last = node
+    
+    @final
+    def _UnsetLast(self) -> None:
+        self.__last = None
     
     @final
     def AsReadOnly(self) -> IReadOnlyQueue[T]:
         return self.__readOnly.GetValue()
-class Stack[T](StackBase[T], List[T]):
+class Stack[T](List[T], StackBase[T]):
     class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyStack[T]):
         def __init__(self, items: IStack[T]):
             super().__init__(items)
@@ -450,9 +520,11 @@ class Stack[T](StackBase[T], List[T]):
         def update(func: IFunction[IReadOnlyStack[T]]) -> None:
             self.__readOnly = func
         
-        super().__init__(*values)
+        super().__init__()
 
         self.__readOnly: IFunction[IReadOnlyStack[T]] = Stack[T].__Updater(self, update)
+
+        self.PushItems(values)
     
     @final
     def AsReadOnly(self) -> IReadOnlyStack[T]:
@@ -471,14 +543,65 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
             super().__init__(items)
     
     def __init__(self, *values: T):
-        super().__init__(*values)
+        super().__init__()
+
+        self.__first: SinglyLinkedNode[T]|None = None
+        self.__last: SinglyLinkedNode[T]|None = None
+
+        self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self._CreateUpdater()
+
+        self.PushItems(values)
+    
+    @final
+    def _GetUpdater(self) -> Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]:
+        return self.__updater
+    @final
+    def _SetUpdater(self, updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None]) -> None:
+        self.__updater = updater
+    
+    @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+        return self.__first
+    @final
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
+        self.__first = node
+    
+    @final
+    def _UnsetFirst(self) -> None:
+        self.__first = None
+    
+    @final
+    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+        return self.__last
+    @final
+    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+        self.__last = node
+    
+    @final
+    def _UnsetLast(self) -> None:
+        self.__last = None
 class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
     class ReadOnlyList(Enumerable[T].ReadOnlyList, IReadOnlyEnumerableStack[T]):
         def __init__(self, items: IEnumerableStack[T]):
             super().__init__(items)
     
     def __init__(self, *values: T):
-        super().__init__(*values)
+        super().__init__()
+
+        self.__first: SinglyLinkedNode[T]|None = None
+
+        self.PushItems(values)
+    
+    @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+        return self.__first
+    @final
+    def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
+        self.__first = node
+    
+    @final
+    def _UnsetFirst(self) -> None:
+        self.__first = None
 
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     @final
