@@ -127,6 +127,102 @@ class ICountableEnumerableList[T](IEnumerableList[T], ICountableList[T], IReadOn
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
         pass
 
+class IReadOnlyQueue[T](IReadOnlyList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.FIFO
+class IReadOnlyStack[T](IReadOnlyList[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @final
+    def GetOrder(self) -> EnumerationOrder:
+        return EnumerationOrder.LIFO
+
+class IReadOnlyCountableQueue[T](IReadOnlyQueue[T], IReadOnlyCountableList[T]):
+    def __init__(self):
+        super().__init__()
+class IReadOnlyCountableStack[T](IReadOnlyStack[T], IReadOnlyCountableList[T]):
+    def __init__(self):
+        super().__init__()
+
+class IReadOnlyEnumerableQueue[T](IReadOnlyQueue[T], IReadOnlyEnumerableList[T]):
+    def __init__(self):
+        super().__init__()
+class IReadOnlyEnumerableStack[T](IReadOnlyStack[T], IReadOnlyEnumerableList[T]):
+    def __init__(self):
+        super().__init__()
+
+class IReadOnlyCountableEnumerableQueue[T](IReadOnlyCountableEnumerableList[T], IReadOnlyEnumerableQueue[T], IReadOnlyCountableQueue[T]):
+    def __init__(self):
+        super().__init__()
+class IReadOnlyCountableEnumerableStack[T](IReadOnlyCountableEnumerableList[T], IReadOnlyEnumerableStack[T], IReadOnlyCountableStack[T]):
+    def __init__(self):
+        super().__init__()
+
+class IQueue[T](IList[T], IReadOnlyQueue[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyQueue[T]:
+        pass
+class IStack[T](IList[T], IReadOnlyStack[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyStack[T]:
+        pass
+
+class ICountableQueue[T](ICountableList[T], IQueue[T], IReadOnlyCountableQueue[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableQueue[T]:
+        pass
+class ICountableStack[T](ICountableList[T], IStack[T], IReadOnlyCountableStack[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableStack[T]:
+        pass
+
+class IEnumerableQueue[T](IEnumerableList[T], IQueue[T], IReadOnlyEnumerableQueue[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]:
+        pass
+class IEnumerableStack[T](IEnumerableList[T], IStack[T], IReadOnlyEnumerableStack[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]:
+        pass
+
+class ICountableEnumerableQueue[T](ICountableEnumerableList[T], ICountableQueue[T], IEnumerableQueue[T], IReadOnlyCountableEnumerableQueue[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]:
+        pass
+class ICountableEnumerableStack[T](ICountableEnumerableList[T], ICountableStack[T], IEnumerableStack[T], IReadOnlyCountableEnumerableStack[T]):
+    def __init__(self):
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
+        pass
+
 class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IList[TItem]]):
     def __init__(self, items: TList):
         super().__init__()
@@ -144,10 +240,6 @@ class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstrai
     @final
     def HasItems(self) -> bool:
         return super().HasItems()
-    
-    @final
-    def GetOrder(self) -> EnumerationOrder:
-        return self._GetInnerContainer().GetOrder()
     
     @final
     def TryPeek(self) -> INullable[TItem]:
@@ -273,7 +365,7 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
         
         return None if first is None else GetValueEnumeratorFromNode(first)
 
-class QueueBase[T](ListBase[T]):
+class QueueBase[T](ListBase[T], IQueue[T]):
     def __init__(self, *values: T):
         super().__init__()
         
@@ -281,10 +373,6 @@ class QueueBase[T](ListBase[T]):
         self.__updater: Callable[[SinglyLinkedNode[T], SinglyLinkedNode[T]], None] = self.__GetUpdater()
 
         self.PushItems(values)
-    
-    @final
-    def GetOrder(self) -> EnumerationOrder:
-        return EnumerationOrder.FIFO
     
     @final
     def __Push(self, first: SinglyLinkedNode[T], newNode: SinglyLinkedNode[T]) -> None:
@@ -308,15 +396,11 @@ class QueueBase[T](ListBase[T]):
     def _OnCleared(self) -> None:
         self.__last = None
         self.__updater = self.__GetUpdater()
-class StackBase[T](ListBase[T]):
+class StackBase[T](ListBase[T], IStack[T]):
     def __init__(self, *values: T):
         super().__init__()
 
         self.PushItems(values)
-    
-    @final
-    def GetOrder(self) -> EnumerationOrder:
-        return EnumerationOrder.LIFO
     
     @final
     def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
@@ -326,52 +410,52 @@ class StackBase[T](ListBase[T]):
         pass
 
 class Queue[T](QueueBase[T], List[T]):
-    class _ReadOnlyList(List[T].ReadOnlyList):
-        def __init__(self, items: QueueBase[T]):
+    class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyQueue[T]):
+        def __init__(self, items: IQueue[T]):
             super().__init__(items)
     
     @final
-    class __Updater(SelectionUpdater[QueueBase[T], IReadOnlyList[T]]):
-        def __init__(self, value: Queue[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+    class __Updater(SelectionUpdater[IQueue[T], IReadOnlyQueue[T]]):
+        def __init__(self, value: IQueue[T], updater: Method[IFunction[IReadOnlyQueue[T]]]):
             super().__init__(value, updater)
         
-        def _AsContainer(self, container: QueueBase[T]) -> IReadOnlyList[T]:
+        def _AsContainer(self, container: IQueue[T]) -> IReadOnlyQueue[T]:
             return Queue[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyQueue[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(*values)
 
-        self.__readOnly: IFunction[IReadOnlyList[T]] = Queue[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyQueue[T]] = Queue[T].__Updater(self, update)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyList[T]:
+    def AsReadOnly(self) -> IReadOnlyQueue[T]:
         return self.__readOnly.GetValue()
 class Stack[T](StackBase[T], List[T]):
-    class _ReadOnlyList(List[T].ReadOnlyList):
-        def __init__(self, items: StackBase[T]):
+    class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyStack[T]):
+        def __init__(self, items: IStack[T]):
             super().__init__(items)
     
     @final
-    class __Updater(SelectionUpdater[StackBase[T], IReadOnlyList[T]]):
-        def __init__(self, value: StackBase[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+    class __Updater(SelectionUpdater[IStack[T], IReadOnlyStack[T]]):
+        def __init__(self, value: IStack[T], updater: Method[IFunction[IReadOnlyStack[T]]]):
             super().__init__(value, updater)
         
-        def _AsContainer(self, container: StackBase[T]) -> IReadOnlyList[T]:
+        def _AsContainer(self, container: IStack[T]) -> IReadOnlyStack[T]:
             return Stack[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyStack[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(*values)
 
-        self.__readOnly: IFunction[IReadOnlyList[T]] = Stack[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyStack[T]] = Stack[T].__Updater(self, update)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyList[T]:
+    def AsReadOnly(self) -> IReadOnlyStack[T]:
         return self.__readOnly.GetValue()
 
 class SinglyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
@@ -381,16 +465,16 @@ class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLink
     def __init__(self, node: SinglyLinkedNode[T]):
         super().__init__(node)
 
-class EnumerableQueueBase[T](QueueBase[T], Enumerable[T]):
-    class ReadOnlyList(Enumerable[T].ReadOnlyList):
-        def __init__(self, items: EnumerableQueueBase[T]):
+class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
+    class ReadOnlyList(Enumerable[T].ReadOnlyList, IReadOnlyEnumerableQueue[T]):
+        def __init__(self, items: IEnumerableQueue[T]):
             super().__init__(items)
     
     def __init__(self, *values: T):
         super().__init__(*values)
-class EnumerableStackBase[T](StackBase[T], Enumerable[T]):
-    class ReadOnlyList(Enumerable[T].ReadOnlyList):
-        def __init__(self, items: EnumerableStackBase[T]):
+class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
+    class ReadOnlyList(Enumerable[T].ReadOnlyList, IReadOnlyEnumerableStack[T]):
+        def __init__(self, items: IEnumerableStack[T]):
             super().__init__(items)
     
     def __init__(self, *values: T):
@@ -398,43 +482,43 @@ class EnumerableStackBase[T](StackBase[T], Enumerable[T]):
 
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     @final
-    class __Updater(SelectionUpdater[EnumerableQueueBase[T], IReadOnlyEnumerableList[T]]):
-        def __init__(self, value: EnumerableQueueBase[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+    class __Updater(SelectionUpdater[IEnumerableQueue[T], IReadOnlyEnumerableQueue[T]]):
+        def __init__(self, value: IEnumerableQueue[T], updater: Method[IFunction[IReadOnlyEnumerableQueue[T]]]):
             super().__init__(value, updater)
         
-        def _AsContainer(self, container: EnumerableQueueBase[T]) -> IReadOnlyEnumerableList[T]:
+        def _AsContainer(self, container: IEnumerableQueue[T]) -> IReadOnlyEnumerableQueue[T]:
             return EnumerableQueueBase[T].ReadOnlyList(container)
     
     def __init__(self):
-        def update(func: IFunction[IReadOnlyEnumerableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None:
             self.__readOnly = func
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlyEnumerableList[T]] = EnumerableQueue[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = EnumerableQueue[T].__Updater(self, update)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+    def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]:
         return self.__readOnly.GetValue()
 class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
     @final
-    class __Updater(SelectionUpdater[EnumerableStackBase[T], IReadOnlyEnumerableList[T]]):
-        def __init__(self, value: EnumerableStackBase[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+    class __Updater(SelectionUpdater[IEnumerableStack[T], IReadOnlyEnumerableStack[T]]):
+        def __init__(self, value: IEnumerableStack[T], updater: Method[IFunction[IReadOnlyEnumerableStack[T]]]):
             super().__init__(value, updater)
         
-        def _AsContainer(self, container: EnumerableStackBase[T]) -> IReadOnlyEnumerableList[T]:
+        def _AsContainer(self, container: IEnumerableStack[T]) -> IReadOnlyEnumerableStack[T]:
             return EnumerableStackBase[T].ReadOnlyList(container)
     
     def __init__(self):
-        def update(func: IFunction[IReadOnlyEnumerableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyEnumerableStack[T]]) -> None:
             self.__readOnly = func
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlyEnumerableList[T]] = EnumerableStack[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyEnumerableStack[T]] = EnumerableStack[T].__Updater(self, update)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+    def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]:
         return self.__readOnly.GetValue()
 
 class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TItems]], IList[TItems]):
@@ -563,59 +647,59 @@ class Countable[T](CountableBase[T]):
     def _CreateList(self, *values: T) -> IList[T]:
         pass
 
-class CountableQueue[T](Countable[T]):
-    class _ReadOnlyList(CountableBase[T].ReadOnlyList):
-        def __init__(self, items: Countable[T]):
+class CountableQueue[T](Countable[T], ICountableQueue[T]):
+    class _ReadOnlyList(CountableBase[T].ReadOnlyList, IReadOnlyCountableQueue[T]):
+        def __init__(self, items: ICountableQueue[T]):
             super().__init__(items)
     
     @final
-    class __Updater(SelectionUpdater[Countable[T], IReadOnlyCountableList[T]]):
-        def __init__(self, items: Countable[T], updater: Method[IFunction[IReadOnlyCountableList[T]]]):
+    class __Updater(SelectionUpdater[ICountableQueue[T], IReadOnlyCountableQueue[T]]):
+        def __init__(self, items: ICountableQueue[T], updater: Method[IFunction[IReadOnlyCountableQueue[T]]]):
             super().__init__(items, updater)
 
-        def _AsContainer(self, container: Countable[T]) -> IReadOnlyCountableList[T]:
+        def _AsContainer(self, container: ICountableQueue[T]) -> IReadOnlyCountableQueue[T]:
             return CountableQueue[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyCountableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyCountableQueue[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(*values)
 
-        self.__readOnly: IFunction[IReadOnlyCountableList[T]] = CountableQueue[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyCountableQueue[T]] = CountableQueue[T].__Updater(self, update)
     
-    def _CreateList(self, *values: T) -> Queue[T]:
+    def _CreateList(self, *values: T) -> IQueue[T]:
         return Queue[T](*values)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyCountableList[T]:
+    def AsReadOnly(self) -> IReadOnlyCountableQueue[T]:
         return self.__readOnly.GetValue()
-class CountableStack[T](Countable[T]):
-    class _ReadOnlyList(CountableBase[T].ReadOnlyList):
-        def __init__(self, items: Countable[T]):
+class CountableStack[T](Countable[T], ICountableStack[T]):
+    class _ReadOnlyList(CountableBase[T].ReadOnlyList, IReadOnlyCountableStack[T]):
+        def __init__(self, items: ICountableStack[T]):
             super().__init__(items)
     
     @final
-    class __Updater(SelectionUpdater[Countable[T], IReadOnlyCountableList[T]]):
-        def __init__(self, items: Countable[T], updater: Method[IFunction[IReadOnlyCountableList[T]]]):
+    class __Updater(SelectionUpdater[ICountableStack[T], IReadOnlyCountableStack[T]]):
+        def __init__(self, items: ICountableStack[T], updater: Method[IFunction[IReadOnlyCountableStack[T]]]):
             super().__init__(items, updater)
 
-        def _AsContainer(self, container: Countable[T]) -> IReadOnlyCountableList[T]:
+        def _AsContainer(self, container: ICountableStack[T]) -> IReadOnlyCountableStack[T]:
             return CountableStack[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyCountableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyCountableStack[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(*values)
 
-        self.__readOnly: IFunction[IReadOnlyCountableList[T]] = CountableStack[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyCountableStack[T]] = CountableStack[T].__Updater(self, update)
     
-    def _CreateList(self, *values: T) -> Stack[T]:
+    def _CreateList(self, *values: T) -> IStack[T]:
         return Stack[T](*values)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyCountableList[T]:
+    def AsReadOnly(self) -> IReadOnlyCountableStack[T]:
         return self.__readOnly.GetValue()
 
 class CountableEnumerableBase[TItems, TList](_CountableCollectionBase[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
@@ -637,57 +721,57 @@ class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGeneric
     def __init__(self, l: Enumerable[T]):
         super().__init__(l)
 
-class CountableEnumerableQueue[T](CountableEnumerable[T]):
-    class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList):
-        def __init__(self, l: CountableEnumerable[T]):
+class CountableEnumerableQueue[T](CountableEnumerable[T], ICountableEnumerableQueue[T]):
+    class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList, IReadOnlyCountableEnumerableQueue[T]):
+        def __init__(self, l: ICountableEnumerableQueue[T]):
             super().__init__(l)
     
     @final
-    class __Updater(SelectionUpdater[CountableEnumerable[T], IReadOnlyCountableEnumerableList[T]]):
-        def __init__(self, items: CountableEnumerable[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]):
+    class __Updater(SelectionUpdater[ICountableEnumerableQueue[T], IReadOnlyCountableEnumerableQueue[T]]):
+        def __init__(self, items: ICountableEnumerableQueue[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]):
             super().__init__(items, updater)
         
-        def _AsContainer(self, container: CountableEnumerable[T]) -> IReadOnlyCountableEnumerableList[T]:
+        def _AsContainer(self, container: ICountableEnumerableQueue[T]) -> IReadOnlyCountableEnumerableQueue[T]:
             return CountableEnumerableQueue[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyCountableEnumerableQueue[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(EnumerableQueue[T](*values))
 
-        self.__readOnly: IFunction[IReadOnlyCountableEnumerableList[T]] = CountableEnumerableQueue[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyCountableEnumerableQueue[T]] = CountableEnumerableQueue[T].__Updater(self, update)
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetCollection().TryGetEnumerator()
     
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]:
         return self.__readOnly.GetValue()
-class CountableEnumerableStack[T](CountableEnumerable[T]):
-    class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList):
-        def __init__(self, l: CountableEnumerable[T]):
+class CountableEnumerableStack[T](CountableEnumerable[T], ICountableEnumerableStack[T]):
+    class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList, IReadOnlyCountableEnumerableStack[T]):
+        def __init__(self, l: ICountableEnumerableStack[T]):
             super().__init__(l)
     
     @final
-    class __Updater(SelectionUpdater[CountableEnumerable[T], IReadOnlyCountableEnumerableList[T]]):
-        def __init__(self, items: CountableEnumerable[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]):
+    class __Updater(SelectionUpdater[ICountableEnumerableStack[T], IReadOnlyCountableEnumerableStack[T]]):
+        def __init__(self, items: ICountableEnumerableStack[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]):
             super().__init__(items, updater)
         
-        def _AsContainer(self, container: CountableEnumerable[T]) -> IReadOnlyCountableEnumerableList[T]:
+        def _AsContainer(self, container: ICountableEnumerableStack[T]) -> IReadOnlyCountableEnumerableStack[T]:
             return CountableEnumerableStack[T]._ReadOnlyList(container)
     
     def __init__(self, *values: T):
-        def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
+        def update(func: IFunction[IReadOnlyCountableEnumerableStack[T]]) -> None:
             self.__readOnly = func
         
         super().__init__(EnumerableStack[T](*values))
 
-        self.__readOnly: IFunction[IReadOnlyCountableEnumerableList[T]] = CountableEnumerableStack[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyCountableEnumerableStack[T]] = CountableEnumerableStack[T].__Updater(self, update)
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetCollection().TryGetEnumerator()
     
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
         return self.__readOnly.GetValue()
