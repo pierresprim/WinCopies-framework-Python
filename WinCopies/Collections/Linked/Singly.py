@@ -424,7 +424,7 @@ class _CountableCollectionBase[TItems, TList](CollectionBase[TItems, TList], Cou
         super().__init__(l)
 
         self.__count: int = 0
-        self.__generator: IFunction[ICountableEnumerable[TItems]] = _EnumerableUpdater(self, update)
+        self.__generator: IFunction[ICountableEnumerable[TItems]] = _EnumerableUpdater[TItems](self, update)
 
     @final
     def AsCountableGenerator(self) -> ICountableEnumerable[TItems]:
