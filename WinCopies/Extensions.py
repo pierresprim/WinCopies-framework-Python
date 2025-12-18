@@ -1,7 +1,7 @@
 from WinCopies import AskConfirmation, ReadInt
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
 
-def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range."):
+def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range.") -> int:
     value: int = 0
     
     def loop() -> int:
@@ -16,11 +16,11 @@ def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The val
     
     return value
 
-def Process(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def Process(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
     while AskConfirmation(message, info, value):
         action()
 
-def DoProcess(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y"):
+def DoProcess(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
     action()
     
     Process(action, message, info, value)
