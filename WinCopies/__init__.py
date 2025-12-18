@@ -10,25 +10,25 @@ from __future__ import annotations
 from abc import abstractmethod, ABC
 from enum import Enum
 from types import TracebackType
-from typing import final, Self
+from typing import final, Literal, Self
 
 class IInterface:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
 class Abstract(ABC, IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IBooleanable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def ToBool(self) -> bool:
         pass
 class INullableBooleanable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -41,7 +41,7 @@ class INullableBooleanable(IInterface):
 
 class BooleanableEnum(Enum):
     def __bool__(self) -> bool:
-        return self.value >= 0
+        return int(self.value) >= 0
 
 class NullableBoolean(BooleanableEnum):
     BoolFalse = -1
@@ -64,13 +64,15 @@ def ToNullableBool(value: NullableBoolean) -> bool|None:
     
     return ValueError(value)
 def ToNullableBoolean(value: bool|None) -> NullableBoolean:
-    if value is None:
-        return NullableBoolean.Null
-    
-    if isinstance(value, bool): # type: ignore
-        return NullableBoolean.BoolTrue if value else NullableBoolean.BoolFalse
-    
-    raise ValueError(f"value must be True, False or None. value is: {type(value)}", value)
+    match value:
+        case True:
+            return NullableBoolean.BoolTrue
+        
+        case False:
+            return NullableBoolean.BoolFalse
+        
+        case _:
+            return NullableBoolean.Null
 
 class Endianness(Enum):
     Null = 0
@@ -89,7 +91,7 @@ class BitDepthLevel(Enum):
     Four = 64
 
 class IDisposable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def Initialize(self) -> None:
@@ -106,13 +108,13 @@ class IDisposable(IInterface):
         return self
     
     @final
-    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: TracebackType) -> bool:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: TracebackType) -> Literal[False]:
         self.Dispose()
         
         return False
 
 class IStringable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
