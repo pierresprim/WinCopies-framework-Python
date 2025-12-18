@@ -1,0 +1,141 @@
+# Package configuration
+
+# ============================================================================
+# BUILD SYSTEM
+# ============================================================================
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
+
+
+# ============================================================================
+# PROJET METADATA
+# ============================================================================
+[project]
+name = "WinCopies"
+dynamic = ["version"]
+
+description = "A rigorous, architecture-first Python framework."
+
+readme = "README.md"
+
+requires-python = ">=3.12"
+
+# License (SPDX license identifier)
+license = {text = "GPL-3.0"}
+
+authors = [
+    {name = "Pierre Sprimont"}
+]
+
+maintainers = [
+    {name = "Pierre Sprimont"}
+]
+
+keywords = [
+    "framework",
+    "typing",
+    "abstractions",
+    "architecture",
+    "dotnet-inspired",
+    "enumeration",
+    "collections"
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://wincopies.com"
+# Documentation = "https://wincopies.readthedocs.io"
+Repository = "https://github.com/pierresprim/WinCopies-framework-Python"
+"Bug Tracker" = "https://github.com/pierresprim/WinCopies-framework-Python/issues"
+Changelog = "https://github.com/pierresprim/WinCopies-framework-Python/blob/main/CHANGELOG.md"
+
+# dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.5"
+]
+
+# ============================================================================
+# SETUPTOOLS CONFIGURATION
+# ============================================================================
+[tool.setuptools]
+# Package discovery automatique
+packages = ["WinCopies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "WinCopies.__version__"}
+
+
+# ============================================================================
+# MYPY CONFIGURATION - Type checker
+# ============================================================================
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = "Tests.*"
+disallow_untyped_defs = false
+
+
+# ============================================================================
+# PYTEST CONFIGURATION - Tests
+# ============================================================================
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=WinCopies",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+testpaths = ["Tests"]
+pythonpath = ["."]
+
+
+# ============================================================================
+# COVERAGE CONFIGURATION
+# ============================================================================
+[tool.coverage.run]
+source = ["WinCopies"]
+omit = [
+    "*/Tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:"
+]
