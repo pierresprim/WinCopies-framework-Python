@@ -11,6 +11,18 @@ Created on Fri May 26 14:21:00 2023
 
 from __future__ import annotations
 
+import sys
+
+__version__ = "0.1.0"
+__author__ = "Pierre Sprimont"
+__python_requires__ = ">=3.12"
+
+_MIN_VERSION = (3, 12)
+if sys.version_info < _MIN_VERSION:
+    raise RuntimeError(
+        f"WinCopies requires Python {_MIN_VERSION[0]}.{_MIN_VERSION[1]}+. "
+        f"You are using Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.")
+
 from abc import abstractmethod, ABC
 from enum import Enum
 from types import TracebackType
