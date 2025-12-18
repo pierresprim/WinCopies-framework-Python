@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """
+WinCopies Framework
+
+Architecture-first Python framework.
+
 Created on Fri May 26 14:21:00 2023
 
 @author: Pierre Sprimont
