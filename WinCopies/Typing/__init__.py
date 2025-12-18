@@ -7,7 +7,7 @@ from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 
 class IStruct[T](IInterface):
     def __init__(self) -> None:
-        pass
+        super().__init__()
     
     @abstractmethod
     def GetValue(self) -> T:
