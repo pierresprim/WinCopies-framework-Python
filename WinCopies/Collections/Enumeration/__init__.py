@@ -16,7 +16,7 @@ from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 
 class IEnumeratorBase(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -38,7 +38,7 @@ class IEnumeratorBase(IInterface):
     def HasProcessedItems(self) -> bool:
         pass
 class IEnumerator[T](IEnumeratorBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -50,7 +50,7 @@ class IEnumerator[T](IEnumeratorBase):
         pass
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -75,7 +75,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
         return self
 
 class IEnumerable[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -90,18 +90,18 @@ class IEnumerable[T](IInterface):
         pass
 
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class ICountableEnumerable[T](IEnumerable[T], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
 
 class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -109,7 +109,7 @@ class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
         return self
 
 class Enumerable[T](_SystemIterable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _TryGetIterator(self) -> SystemIterator[T]|None:
@@ -120,7 +120,7 @@ class Enumerable[T](_SystemIterable[T]):
         return GetIterator(self._TryGetIterator())
 
 class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     @final
@@ -133,7 +133,7 @@ class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
         def _GetValue(self) -> CountableBase:
             return Countable.Create(self.__items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[CountableBase]) -> None:
             self.__countable = func
         
@@ -147,7 +147,7 @@ class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
 
 @final
 class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def IsStarted(self) -> bool:
@@ -166,7 +166,7 @@ class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
         return False
 @final
 class __EmptyEnumerable[T](_SystemIterable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
@@ -197,7 +197,7 @@ def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
     return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # type: ignore
 
 class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__moveNextFunc: Function[bool] = self.__MoveNext

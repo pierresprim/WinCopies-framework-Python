@@ -17,7 +17,7 @@ from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, Va
 from WinCopies.Typing.Pairing import DualResult
 
 class IRecursivelyEnumerable[T](IEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod

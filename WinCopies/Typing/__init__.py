@@ -82,14 +82,14 @@ class IDisposableInfo(IDisposable):
         pass
 
 class __IGenericConstraint[TContainer, TInterface](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
         pass
 class __IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpecialized](__IGenericConstraint[TContainer, TInterface]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -97,14 +97,14 @@ class __IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpec
         pass
 
 class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def _TryAsContainer(self, container: TContainer|None) -> TInterface|None:
         return None if container is None else self._AsContainer(container)
 class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGenericConstraint[TContainer, TInterface], __IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -112,7 +112,7 @@ class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGener
         return None if container is None else self._AsSpecialized(container)
 
 class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -122,7 +122,7 @@ class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, T
     def _GetInnerContainer(self) -> TInterface:
         return self._AsContainer(self._GetContainer())
 class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](GenericConstraint[TContainer, TInterface], IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -130,14 +130,14 @@ class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](Generic
         return self._AsSpecialized(self._GetContainer())
 
 class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def _AsContainer(self, container: T) -> T:
         return container
 class IGenericSpecializedConstraintImplementation[TInterface, TSpecialized](IGenericConstraintImplementation[TInterface], __IGenericSpecializedConstraint[TInterface, TSpecialized, TInterface, TSpecialized]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -145,7 +145,7 @@ class IGenericSpecializedConstraintImplementation[TInterface, TSpecialized](IGen
         return container
 
 class INullable[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -190,7 +190,7 @@ class __Nullable[T](Abstract, INullable[T]):
         return self.__value
 @final
 class __NullValue[T](Abstract, INullable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def HasValue(self) -> bool:
@@ -209,7 +209,7 @@ def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
 
 class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -225,7 +225,7 @@ class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
         pass
 @final
 class __DisposedItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetItem(self) -> T:
@@ -258,7 +258,7 @@ class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProvid
         return __disposedItem # type: ignore
 
 class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -298,14 +298,14 @@ def TryGetAs[T](type: SystemType[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
 
 class IMonitor(IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def IsBusy(self) -> bool:
         pass
 class Monitor(Abstract, IMonitor):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__isBusy: bool = False
