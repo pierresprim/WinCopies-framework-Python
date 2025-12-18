@@ -59,7 +59,7 @@ class IDoublyLinkedNodeBase[TItem, TNode](INode[TItem]):
     def SetNextNode(self, value: TItem) -> TNode:
         return self.SetNext(value)._AsNode()
 
-class NodeBase[TItem, TNode: 'NodeBase'](LinkedNode[TNode, TItem], IDoublyLinkedNodeBase[TItem, TNode]):
+class NodeBase[TItem, TNode: NodeBase](LinkedNode[TNode, TItem], IDoublyLinkedNodeBase[TItem, TNode]):
     def __init__(self, value: TItem, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, nextNode)
 
@@ -292,7 +292,7 @@ class _INodeBase[TItem, TNode, TNodeInterface, TList](IInterface):
     def _SetLast(self, l: TList, node: TNodeInterface|None) -> None:
         pass
 
-class DoublyLinkedNodeBase[TItem, TNode: "DoublyLinkedNodeBase", TList, TListInterface](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
+class DoublyLinkedNodeBase[TItem, TNode: DoublyLinkedNodeBase, TList, TListInterface](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
         EnsureDirectModuleCall()
 
@@ -716,7 +716,7 @@ class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TIte
     def _GetNodeEnumerator(self, node: IDoublyLinkedNode[TItem]) -> IEnumerator[IDoublyLinkedNode[TItem]]:
         return DoublyLinkedNodeEnumerator[TItem](node)
 
-class _DoublyLinkedNode[TItem, TNode: "_DoublyLinkedNode", TNodeInterface, TList, TListInterface](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TItem, TNode, TNodeInterface, TListInterface], IAbstractNode[TNode, TNodeInterface]):
+class _DoublyLinkedNode[TItem, TNode: _DoublyLinkedNode, TNodeInterface, TList, TListInterface](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TItem, TNode, TNodeInterface, TListInterface], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, l, previousNode, nextNode)
     
@@ -741,7 +741,7 @@ class _DoublyLinkedNode[TItem, TNode: "_DoublyLinkedNode", TNodeInterface, TList
     def _RemoveLast(self, l: TListInterface) -> None:
         self._SetLast(l, None)
 
-class DoublyLinkedNode[TItem, TNode: "DoublyLinkedNode", TNodeInterface, TList, TListInterface](_DoublyLinkedNode[TItem, TNode, TNodeInterface, TList, TListInterface]):
+class DoublyLinkedNode[TItem, TNode: DoublyLinkedNode, TNodeInterface, TList, TListInterface](_DoublyLinkedNode[TItem, TNode, TNodeInterface, TList, TListInterface]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
         super().__init__(value, l, previousNode, nextNode)
     
