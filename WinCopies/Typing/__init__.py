@@ -6,7 +6,7 @@ from typing import final, Callable, Type as SystemType
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 
 class IStruct[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
     
     @abstractmethod
@@ -32,7 +32,7 @@ class InvalidOperationError(Exception):
         super().__init__(*args)
 
 class IEquatableValue(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -43,7 +43,7 @@ class IEquatableValue(IInterface):
     def __eq__(self, value: object) -> bool:
         return self.Equals(value)
 class IEquatableItem(IEquatableValue):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -55,7 +55,7 @@ class IEquatableItem(IEquatableValue):
         return self.Hash()
 
 class IEquatable[T](IEquatableValue):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -66,7 +66,7 @@ def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
 
 class IDisposable(IDisposableBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -74,7 +74,7 @@ class IDisposable(IDisposableBase):
         raise GetDisposedError()
 
 class IDisposableInfo(IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod

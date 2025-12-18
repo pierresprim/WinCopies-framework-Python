@@ -19,7 +19,7 @@ class SingletonMeta(type):
     def _WhenNew(cls, *args: object, **kwargs: object) -> None:
         cls.__instance = super().__call__(*args, **kwargs)
     
-    def __call__(cls, *args: object, **kwargs: object):
+    def __call__(cls, *args: object, **kwargs: object) -> object|None:
         cls._WhenNew(*args, **kwargs) if cls.__instance is None else cls._WhenExisting(*args, **kwargs)
         
         return cls.__instance

@@ -7,36 +7,36 @@ from WinCopies.Typing import IDisposable, IEquatable, IEquatableItem
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class IEquatableObject[T](IEquatable[T], IEquatableItem):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IItem(IEquatableItem, IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IObject[T](IEquatableObject[T], IItem):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class Object[T](Abstract, IObject[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IValueProvider(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetUnderlyingValue(self) -> object:
         pass
 class IValueItem(IItem, IValueProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetValue(self) -> object:
         pass
 class IValueObject[TValue, TObject](IObject[TObject], IValueItem):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod

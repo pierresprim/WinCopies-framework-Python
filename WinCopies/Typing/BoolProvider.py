@@ -4,7 +4,7 @@ from typing import final
 from WinCopies import IInterface
 
 class IBoolProvider(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -19,7 +19,7 @@ class IBoolProvider(IInterface):
     def __nonzero__(self) -> bool:
         return self.AsBool()
 class IAsBool[T](IBoolProvider):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -27,7 +27,7 @@ class IAsBool[T](IBoolProvider):
         pass
 
 class INullableBoolProvider(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
