@@ -13,7 +13,7 @@ from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 
 class _ReadOnlyListUpdater[TIn, TOut](ValueFunctionUpdater[TOut]):
-    def __init__(self, items: TIn, updater: Method[IFunction[TOut]]):
+    def __init__(self, items: TIn, updater: Method[IFunction[TOut]]) -> None:
         super().__init__(updater)
 
         self.__items: TIn = items
@@ -31,16 +31,16 @@ class _ReadOnlyList[T](Abstract, ISinglyLinkedList[T]):
     class __Updater(_ReadOnlyListUpdater[ISinglyLinkedList[T], IReadOnlyList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ISinglyLinkedList[T]], IGenericConstraintImplementation[ISinglyLinkedList[T]]):
-            def __init__(self, items: ISinglyLinkedList[T]):
+            def __init__(self, items: ISinglyLinkedList[T]) -> None:
                 super().__init__(items)
         
-        def __init__(self, items: ISinglyLinkedList[T], updater: Method[IFunction[IReadOnlyList[T]]]):
+        def __init__(self, items: ISinglyLinkedList[T], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
             super().__init__(items, updater)
         
         def _GetList(self, items: ISinglyLinkedList[T]) -> IReadOnlyList[T]:
             return _ReadOnlyList[T].__Updater._ReadOnlyList(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None:
             self.__updater = func
         
@@ -56,19 +56,19 @@ class _ReadOnlyCountableList[T](Abstract, ICountableSinglyLinkedList[T]):
     class __Updater(_ReadOnlyListUpdater[ICountableSinglyLinkedList[T], IReadOnlyCountableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ICountableSinglyLinkedList[T]], Countable, IReadOnlyCountableList[T], IGenericConstraintImplementation[ICountableSinglyLinkedList[T]]):
-            def __init__(self, items: ICountableSinglyLinkedList[T]):
+            def __init__(self, items: ICountableSinglyLinkedList[T]) -> None:
                 super().__init__(items)
             
             def GetCount(self) -> int:
                 return self._GetContainer().GetCount()
         
-        def __init__(self, items: ICountableSinglyLinkedList[T], updater: Method[IFunction[IReadOnlyCountableList[T]]]):
+        def __init__(self, items: ICountableSinglyLinkedList[T], updater: Method[IFunction[IReadOnlyCountableList[T]]]) -> None:
             super().__init__(items, updater)
         
         def _GetList(self, items: ICountableSinglyLinkedList[T]) -> IReadOnlyCountableList[T]:
             return _ReadOnlyCountableList[T].__Updater._ReadOnlyList(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyCountableList[T]]) -> None:
             self.__updater = func
         
@@ -85,19 +85,19 @@ class _ReadOnlyEnumerableList[T](Abstract, IEnumerableList[T]):
     class __Updater(_ReadOnlyListUpdater[IEnumerableList[T], IReadOnlyEnumerableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, IEnumerableList[T]], EnumerableBase[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IEnumerableList[T]]):
-            def __init__(self, items: IEnumerableList[T]):
+            def __init__(self, items: IEnumerableList[T]) -> None:
                 super().__init__(items)
             
             def TryGetEnumerator(self) -> IEnumerator[T]|None:
                 return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
         
-        def __init__(self, items: IEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]):
+        def __init__(self, items: IEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]) -> None:
             super().__init__(items, updater)
         
         def _GetList(self, items: IEnumerableList[T]) -> IReadOnlyEnumerableList[T]:
             return _ReadOnlyEnumerableList[T].__Updater._ReadOnlyList(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyEnumerableList[T]]) -> None:
             self.__updater = func
         
@@ -113,7 +113,7 @@ class _ReadOnlyCountableEnumerableList[T](Abstract, ICountableEnumerableList[T])
     class __Updater(_ReadOnlyListUpdater[ICountableEnumerableList[T], IReadOnlyCountableEnumerableList[T]]):
         @final
         class _ReadOnlyList(ReadOnlyList[T, ICountableEnumerableList[T]], CountableEnumerable[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableEnumerableList[T]]):
-            def __init__(self, items: ICountableEnumerableList[T]):
+            def __init__(self, items: ICountableEnumerableList[T]) -> None:
                 super().__init__(items)
             
             def GetCount(self) -> int:
@@ -122,13 +122,13 @@ class _ReadOnlyCountableEnumerableList[T](Abstract, ICountableEnumerableList[T])
             def TryGetEnumerator(self) -> IEnumerator[T]|None:
                 return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
         
-        def __init__(self, items: ICountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]):
+        def __init__(self, items: ICountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]) -> None:
             super().__init__(items, updater)
         
         def _GetList(self, items: ICountableEnumerableList[T]) -> IReadOnlyCountableEnumerableList[T]:
             return _ReadOnlyCountableEnumerableList[T].__Updater._ReadOnlyList(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
             self.__updater = func
         
@@ -147,7 +147,7 @@ class ListBase[T](Abstract, ISinglyLinkedList[T]):
             raise ValueError("items can not be None.")
 
 class LinkedListBase[TItem, TList](ListBase[TItem], GenericConstraint[TList, IReadWriteList[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__list: TList = items
@@ -173,7 +173,7 @@ class LinkedListBase[TItem, TList](ListBase[TItem], GenericConstraint[TList, IRe
         self._GetInnerContainer().Clear()
 
 class QueueBase[TItems, TList](LinkedListBase[TItems, TList]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__(l)
     
     @final
@@ -183,7 +183,7 @@ class QueueBase[TItems, TList](LinkedListBase[TItems, TList]):
     def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
         return self._GetInnerContainer().AddLastItems(items)
 class StackBase[TItems, TList](LinkedListBase[TItems, TList]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__(l)
     
     @final
@@ -201,35 +201,35 @@ def _GetCountableList[T](l: ICountableDoublyLinkedList[T]|None) -> ICountableDou
     return CountableList[T]() if l is None else l
 
 class LinkedList[T](LinkedListBase[T, IReadWriteList[T]], _ReadOnlyList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: IReadWriteList[T]|None = None):
+    def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 class CountableLinkedList[T](LinkedListBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableList[T], IGenericConstraintImplementation[ICountableDoublyLinkedList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
 
 class EnumerableLinkedList[T](LinkedListBase[T, IDoublyLinkedList[T]], _ReadOnlyEnumerableList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: IDoublyLinkedList[T]|None = None):
+    def __init__(self, l: IDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 class CountableEnumerableLinkedList[T](LinkedListBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableDoublyLinkedList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
 
 class Queue[T](QueueBase[T, IReadWriteList[T]], _ReadOnlyList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: IReadWriteList[T]|None = None):
+    def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 class Stack[T](StackBase[T, IReadWriteList[T]], _ReadOnlyList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: IReadWriteList[T]|None = None):
+    def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 
 class CountableQueue[T](QueueBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
     
     @final
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 class CountableStack[T](StackBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableList[T], IGenericConstraintImplementation[IReadWriteList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
     
     @final
@@ -237,7 +237,7 @@ class CountableStack[T](StackBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCo
         return self._GetContainer().GetCount()
 
 class EnumerableQueue[T](QueueBase[T, IDoublyLinkedList[T]], _ReadOnlyEnumerableList[T], IGenericConstraintImplementation[IDoublyLinkedList[T]]):
-    def __init__(self, l: IDoublyLinkedList[T]|None = None):
+    def __init__(self, l: IDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 
     @final
@@ -248,7 +248,7 @@ class EnumerableQueue[T](QueueBase[T, IDoublyLinkedList[T]], _ReadOnlyEnumerable
     def AsIterable(self) -> Iterable[T]:
         return Enumerable[T](self._GetContainer()).AsIterable()
 class EnumerableStack[T](StackBase[T, IDoublyLinkedList[T]], _ReadOnlyEnumerableList[T], IGenericConstraintImplementation[IDoublyLinkedList[T]]):
-    def __init__(self, l: IDoublyLinkedList[T]|None = None):
+    def __init__(self, l: IDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 
     @final
@@ -260,7 +260,7 @@ class EnumerableStack[T](StackBase[T, IDoublyLinkedList[T]], _ReadOnlyEnumerable
         return Enumerable[T](self._GetContainer()).AsIterable()
 
 class CountableEnumerableQueue[T](QueueBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableDoublyLinkedList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
 
     @final
@@ -275,7 +275,7 @@ class CountableEnumerableQueue[T](QueueBase[T, ICountableDoublyLinkedList[T]], _
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 class CountableEnumerableStack[T](StackBase[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableDoublyLinkedList[T]]):
-    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None):
+    def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         super().__init__(_GetCountableList(l))
 
     @final

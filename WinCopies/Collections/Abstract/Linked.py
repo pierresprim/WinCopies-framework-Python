@@ -12,7 +12,7 @@ from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableList,
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
 class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, TOut], Singly.IList[TOut], GenericConstraint[TList, Singly.IList[TIn]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__items: TList = items
@@ -50,18 +50,18 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
         return self._GetInnerContainer().Clear()
 
 class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, Singly.IList[TIn]], Singly.IList[TOut], IGenericConstraintImplementation[Singly.IList[TIn]]):
-    def __init__(self, items: Singly.IList[TIn]):
+    def __init__(self, items: Singly.IList[TIn]) -> None:
         super().__init__(items)
 
 class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableBase[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):
-    def __init__(self, items: IEnumerableList[TIn]):
+    def __init__(self, items: IEnumerableList[TIn]) -> None:
         super().__init__(items)
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetContainer().TryGetEnumerator()
 class CountableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableList[TIn]], ICountableList[TOut], IGenericConstraintImplementation[ICountableList[TIn]]):
-    def __init__(self, items: ICountableList[TIn]):
+    def __init__(self, items: ICountableList[TIn]) -> None:
         super().__init__(items)
     
     @final
@@ -69,7 +69,7 @@ class CountableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICoun
         return self._GetContainer().GetCount()
 
 class CountableEnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableEnumerableList[TIn]], EnumerableBase[TIn, TOut], ICountableEnumerableList[TOut], IGenericConstraintImplementation[ICountableEnumerableList[TIn]]):
-    def __init__(self, items: ICountableEnumerableList[TIn]):
+    def __init__(self, items: ICountableEnumerableList[TIn]) -> None:
         super().__init__(items)
     
     @final

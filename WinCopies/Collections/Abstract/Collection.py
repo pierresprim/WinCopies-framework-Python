@@ -16,7 +16,7 @@ from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequence, ITuple[TIn]], Extensions.Sequence[TOut], Extensions.TupleBase[TOut], EnumerableBase[TIn, TOut]):
-    def __init__(self, items: TSequence):
+    def __init__(self, items: TSequence) -> None:
         super().__init__(items)
     
     @abstractmethod
@@ -49,14 +49,14 @@ class TupleBase[TIn, TOut, TSequence: IStringable](Converter[TIn, TOut, TSequenc
         return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class Tuple[TIn, TOut](TupleBase[TIn, TOut, ITuple[TIn]], Extensions.Tuple[TOut], IGenericConstraintImplementation[ITuple[TIn]]):
-    def __init__(self, items: ITuple[TIn]):
+    def __init__(self, items: ITuple[TIn]) -> None:
         super().__init__(items)
     
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], Extensions.EquatableTuple[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
-    def __init__(self, items: IEquatableTuple[TIn]):
+    def __init__(self, items: IEquatableTuple[TIn]) -> None:
         super().__init__(items)
     
     def Hash(self) -> int:
@@ -70,7 +70,7 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
         return self._Clone(self._GetContainer().SliceAt(key))
 
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], TwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
-    def __init__(self, items: TSequence):
+    def __init__(self, items: TSequence) -> None:
         super().__init__(items)
     
     @final
@@ -82,7 +82,7 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
         self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
 
 class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
-    def __init__(self, items: IArray[TIn]):
+    def __init__(self, items: IArray[TIn]) -> None:
         super().__init__(items)
     
     @final
@@ -94,7 +94,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], Extensions.Array[TOut]
         return self._Clone(self._GetContainer().SliceAt(key))
 
 class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], Extensions.MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
-    def __init__(self, items: IList[TIn]):
+    def __init__(self, items: IList[TIn]) -> None:
         super().__init__(items)
     
     @final
@@ -141,7 +141,7 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], E
 class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], Extensions.Dictionary[TKey, TValueOut]):
     @final
     class __ValueEnumerable(CountableEnumerable[TValueOut]):
-        def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]):
+        def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]) -> None:
             super().__init__()
 
             self.__enumerable: ICountableEnumerable[TValueIn] = dic.GetValues()
@@ -157,7 +157,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
             return TryAsEnumerator(self._TryGetIterator())
     @final
     class __Enumerator(Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
-        def __init__(self, dictionary: Dictionary[TKey, TValueIn, TValueOut], enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]):
+        def __init__(self, dictionary: Dictionary[TKey, TValueIn, TValueOut], enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]) -> None:
             super().__init__(enumerator)
 
             self.__dictionary: Dictionary[TKey, TValueIn, TValueOut] = dictionary
@@ -165,7 +165,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         def _Convert(self, item: IKeyValuePair[TKey, TValueIn]) -> IKeyValuePair[TKey, TValueOut]:
             return KeyValuePair[TKey, TValueOut](item.GetKey(), self.__dictionary._Convert(item.GetValue()))
     
-    def __init__(self, dictionary: IDictionary[TKey, TValueIn]):
+    def __init__(self, dictionary: IDictionary[TKey, TValueIn]) -> None:
         super().__init__(dictionary)
 
         self.__valueEnumerable: ICountableEnumerable[TValueOut] = Dictionary[TKey, TValueIn, TValueOut].__ValueEnumerable(self._GetItems(), self._Convert)
@@ -238,7 +238,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         return None if enumerator is None else Dictionary[TKey, TValueIn, TValueOut].__Enumerator(self, enumerator)
 
 class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], Extensions.Set[TOut], EnumerableBase[TIn, TOut]):
-    def __init__(self, items: Extensions.ISet[TIn]):
+    def __init__(self, items: Extensions.ISet[TIn]) -> None:
         super().__init__(items)
 
     @final

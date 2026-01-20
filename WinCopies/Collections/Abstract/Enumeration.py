@@ -11,7 +11,7 @@ from WinCopies.Delegates import FuncNone
 from WinCopies.Typing.Delegate import Function, ValueFunction
 
 class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, TOut]):
-    def __init__(self, enumerator: IEnumerator[TIn]):
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
         self.__getCurrent: Function[TOut|None] = FuncNone
@@ -38,7 +38,7 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
 class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     @final
     class __Enumerator(Enumerator[TIn, TOut]):
-        def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]):
+        def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]) -> None:
             super().__init__(enumerator)
 
             self.__enumerable: EnumerableBase[TIn, TOut] = enumerable
@@ -46,7 +46,7 @@ class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[
         def _Convert(self, item: TIn) -> TOut:
             return self.__enumerable._Convert(item)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -59,7 +59,7 @@ class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[
 
         return None if result is None else EnumerableBase[TIn, TOut].__Enumerator(self, result)
 class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut]):
-    def __init__(self, enumerable: IEnumerable[TIn]):
+    def __init__(self, enumerable: IEnumerable[TIn]) -> None:
         super().__init__()
 
         self.__enumerable: IEnumerable[TIn] = enumerable
