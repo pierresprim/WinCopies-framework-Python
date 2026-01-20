@@ -12,10 +12,6 @@ class ICircularTuple[T](ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    @final
-    def IsEmpty(self) -> bool:
-        return super().IsEmpty()
-    
     @abstractmethod
     def GetStart(self) -> int:
         pass
