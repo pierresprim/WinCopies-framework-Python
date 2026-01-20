@@ -15,7 +15,6 @@ from typing import cast, final
 
 from WinCopies import IDisposable, IStringable, Abstract
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing.Decorators import constant, SingletonMeta
 from WinCopies.Typing.Delegate import Function, Predicate
 
 class FileMode(Enum):
