@@ -286,7 +286,7 @@ class EmptyException(Exception):
         super().__init__(*args)
 
 class IReadOnlyCollection(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -300,7 +300,7 @@ class IReadOnlyCollection(IInterface):
         if self.IsEmpty():
             raise EmptyException()
 class IReadOnlyList[T](IReadOnlyCollection):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -312,7 +312,7 @@ class IReadOnlyList[T](IReadOnlyCollection):
         pass
 
 class ReadOnlyList[T](Container[T], IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def AsContainer(self) -> Container[T]:
@@ -323,7 +323,7 @@ class ReadOnlyList[T](Container[T], IReadOnlyList[T]):
         return self.Contains(x)
 
 class ICollection[T](IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -355,7 +355,7 @@ class ICollection[T](IReadOnlyList[T]):
             raise ValueError(item)
 
 class ICountable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -375,7 +375,7 @@ class ICountable(IInterface):
         pass
 
 class Countable(Sized, ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def AsSized(self) -> Sized:
@@ -386,15 +386,15 @@ class Countable(Sized, ICountable):
         return self.GetCount()
 
 class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class ICountableCollection[T](IReadOnlyCountableList[T], ICollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IClearable(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -402,11 +402,11 @@ class IClearable(IInterface):
         pass
 
 class ICountableList[T](ICountableCollection[T], IClearable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IKeyableBase[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -414,7 +414,7 @@ class IKeyableBase[T](IInterface):
         pass
 
 class IGetter[TKey, TValue](IKeyableBase[TKey]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -434,7 +434,7 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
         
         raise KeyError(f"The key {key} does not exist.")
 class ISetter[TKey, TValue](IKeyableBase[TKey]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -446,25 +446,25 @@ class ISetter[TKey, TValue](IKeyableBase[TKey]):
             raise KeyError(f"Key {key} does not exist.")
 
 class IReadOnlyKeyable[TKey, TValue](IGetter[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IWriteOnlyKeyable[TKey, TValue](ISetter[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyIndexable[T](IGetter[int, T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyIndexable[T]:
         pass
 class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -477,11 +477,11 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyabl
         self.SetAt(x, self.GetAt(y))
         self.SetAt(y, value)
 class IKeyable[TKey, TValue](IReadWriteCollection[TKey, TValue], IReadOnlyKeyable[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class ICountableIndexableBase(IKeyableBase[int], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -489,25 +489,25 @@ class ICountableIndexableBase(IKeyableBase[int], ICountable):
         return self.ValidateIndex(key)
 
 class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyCountableIndexable[T]:
         pass
 class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexableBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IIndexable[T](IReadOnlyIndexable[T], IWriteOnlyIndexable[T], IReadWriteCollection[int, T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICountableIndexable[T](IIndexable[T], IReadOnlyCountableIndexable[T], IWriteOnlyCountableIndexable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyCountableIndexableList[T](IReadOnlyCountableIndexable[T], IReadOnlyCountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -518,7 +518,7 @@ class IReadOnlyCountableIndexableList[T](IReadOnlyCountableIndexable[T], IReadOn
         pass
 
 class ITuple[T](IReadOnlyCountableIndexableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -529,7 +529,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
 class IEquatableTuple[T: IEquatableItem](ITuple[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -541,7 +541,7 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
         pass
 
 class IArray[T](ITuple[T], ICountableIndexable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -557,7 +557,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
         pass
 
 class IList[T](IArray[T], ICountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -581,14 +581,14 @@ class IList[T](IArray[T], ICountableList[T]):
         return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
 
 class IReadOnlySet(ICountable, IReadOnlyCollection):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
 class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -610,10 +610,10 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
         pass
 
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -649,22 +649,22 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
         pass
 
 class Tuple[T](Abstract, ITuple[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
 
 class Array[T](Tuple[T], IArray[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class List[T](Array[T], IList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class FinderPredicate[T](Abstract):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         
         self.__Reset()
