@@ -48,7 +48,7 @@ class IConditionalQueryWriter(IQueryBuilder):
         pass
     
     @abstractmethod
-    def ProcessColumns[T: IArgument|None](self, items: IDictionary[IColumn, T]) -> Generator[str]:
+    def ProcessColumns[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:
         pass
 
 class IConditionalQueryBuilder(IConditionalQueryWriter):
@@ -142,7 +142,7 @@ class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __ICo
         super().__init__()
         
         self.__builder: T = writer
-        self.__write: Method[str] = write
+        self.__write: Method[str] = write # type: ignore[no-redef]
     
     @final
     def GetBuilder(self) -> T:

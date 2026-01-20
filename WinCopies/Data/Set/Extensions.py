@@ -211,7 +211,7 @@ class ConditionParameterSet(IConditionParameterSet):
     @final
     def Render(self, writer: IConditionalQueryWriter) -> None:
         value: INullable[IKeyValuePair[IColumn, IParameter[IOperandValue]]]|None = None
-        action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = lambda value: None
+        action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = lambda _: None
 
         def updateAction(_action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]) -> None:
             nonlocal action
