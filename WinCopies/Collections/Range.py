@@ -30,7 +30,7 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
             
             return count
         
-        items: ICountableEnumerable[T]|None = getItems()
+        items: ICountableEnumerable[T] = getItems()
         
         if getRangeCount(i, l, s) == items.GetCount():
             for item in items.AsIterable():
@@ -102,7 +102,7 @@ def RemoveValues[T](lst: IList[T], key: slice) -> None:
     if i >= l:
         raise IndexError()
     
-    for index in EnumerableStack(*range(i, l, s)):
+    for index in EnumerableStack[int](*range(i, l, s)):
         lst.RemoveAt(index)
 def RemoveItems[T](lst: IList[T], index: SupportsIndex|slice) -> None:
     if isinstance(index, SupportsIndex):
