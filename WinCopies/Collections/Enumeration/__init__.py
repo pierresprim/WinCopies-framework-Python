@@ -246,7 +246,7 @@ class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
         self._OnCompleted()
     
     @final
-    def IsStarted(self):
+    def IsStarted(self) -> bool:
         return self.__isStarted
     
     @abstractmethod

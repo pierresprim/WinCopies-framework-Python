@@ -41,7 +41,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
 
         return True
     
-    def _OnStarting(self):
+    def _OnStarting(self) -> bool:
         if super()._OnStarting():
             self.__moveNextFunc = self.__MoveNext
 
