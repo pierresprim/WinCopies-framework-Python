@@ -60,10 +60,3 @@ def static(cls):
     cls.__new__ = lambda _: Static.Throw()
     
     return cls
-
-def constant(f):
-    def fget(self):
-        return f()
-    def fset(self, value):
-        raise TypeError
-    return property(fget, fset)
