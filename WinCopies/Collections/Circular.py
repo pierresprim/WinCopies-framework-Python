@@ -182,5 +182,5 @@ class CircularList[T](CircularBase[T, IList[T]], List[T], MutableSequence[T], IC
         SetItems(self, self._GetIndexOrKey(index), value)
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         RemoveItems(self, self._GetIndexOrKey(index))

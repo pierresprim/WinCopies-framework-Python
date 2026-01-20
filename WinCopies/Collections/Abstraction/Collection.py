@@ -159,7 +159,7 @@ class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensio
         self._GetContainer()[index] = value # type: ignore
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         del self._GetContainer()[index]
 
 # TODO: Should inherit from MutableMapping

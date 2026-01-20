@@ -135,7 +135,7 @@ class List[TIn, TOut](ArrayBase[TIn, TOut, IList[TIn]], Extensions.List[TOut], E
         self._GetContainer().AsMutableSequence()[index] = value # type: ignore
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         del self._GetContainer().AsMutableSequence()[index]
 
 class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], Extensions.Dictionary[TKey, TValueOut]):

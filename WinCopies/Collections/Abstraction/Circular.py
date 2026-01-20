@@ -173,5 +173,5 @@ class CircularList[T](CircularArrayBase[T, ICircularList[T]], MutableSequence[T]
         SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         RemoveItems(self, index)

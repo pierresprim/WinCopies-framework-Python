@@ -147,7 +147,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         RemoveItems(self, index)
 class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, items: IList[T]) -> None:

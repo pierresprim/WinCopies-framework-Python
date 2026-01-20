@@ -699,7 +699,7 @@ class ReversedListBase[TItem, TList](ArrayBase[TItem, TList].Reversed, MutableSe
         self.__GetContainerAsList().AsMutableSequence()[self._GetIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)] = value # type: ignore
     
     @final
-    def __delitem__(self, index: int|slice):
+    def __delitem__(self, index: int|slice) -> None:
         del self.__GetContainerAsList().AsMutableSequence()[self._GetIndex(index) if isinstance(index, int) else self._GetKey(index)]
 
 class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
