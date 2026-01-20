@@ -557,6 +557,9 @@ class CompositeExpressionNode[TValue, TConnector](_CompositeExpressionNodeBase[T
         super().__init__(_CompositeExpression[TValue, TConnector](self._GetCookie, None, initial, None))
 
 def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, *values: TValue) -> TRoot|None:
+    set: TRoot|None = None
+    action: Method[TValue]|None = None
+
     def _add(root: ICompositeExpressionRoot[TValue, TConnector], value: TValue) -> None:
         root.GetLast().SetNext(connector, value)
     def add(value: TValue) -> None:
@@ -568,8 +571,7 @@ def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converte
         set = __set
         action = lambda condition: _add(_set, condition)
 
-    set: TRoot|None = None
-    action: Method[TValue] = add
+    action = add
 
     for value in values:
         action(value)
