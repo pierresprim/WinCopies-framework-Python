@@ -141,6 +141,9 @@ class _ReadOnlyCountableEnumerableList[T](Abstract, ICountableEnumerableList[T])
         return self.__updater.GetValue()
 
 class ListBase[T](Abstract, ISinglyLinkedList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
     @final
     def PushItems(self, items: Iterable[T]) -> None:
         if not self.TryPushItems(items):
