@@ -145,7 +145,7 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
         def equals(item: Enum) -> bool:
             return self.GetValue() == item
         
-        return (isinstance(item, IEnumValue) and equals(item.GetValue())) or (isinstance(item, Enum) and equals(item)) # type: ignore
+        return (isinstance(item, IEnumValue) and equals(item.GetValue())) or (isinstance(item, Enum) and equals(item)) # pyright: ignore[reportUnknownArgumentType]
     
     def Hash(self) -> int:
         return hash(self.GetValue().value)
@@ -183,7 +183,7 @@ class Type[T](ValueObject[type[T], IType[T]], IType[T]):
         def equals(item: type[T]) -> bool:
             return self.GetValue() == item
         
-        return (isinstance(item, IType) and equals(item.GetValue())) or (isinstance(item, type) and equals(item)) # type: ignore
+        return (isinstance(item, IType) and equals(item.GetValue())) or (isinstance(item, type) and equals(item)) # pyright: ignore[reportUnknownArgumentType]
     
     def Hash(self) -> int:
         return hash(self.GetValue())

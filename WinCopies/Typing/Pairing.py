@@ -107,9 +107,9 @@ class DualValueNullableBool[T](DualValueNullableInfo[T, bool], INullableBoolProv
     def AsNullableBool(self) -> bool|None:
         return self.GetValue()
 
-__null = None # type: ignore
+__null = None # pyright: ignore[reportAssignmentType]
 
-def GetNullDualValueBool[T]() -> DualNullableValueBool[T]: # type: ignore
+def GetNullDualValueBool[T]() -> DualNullableValueBool[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __null # type: ignore
 
 class DualNullableValueBool[T](DualNullableValueInfo[T, bool], IBoolProvider):
@@ -130,4 +130,4 @@ class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], I
     def AsNullableBool(self) -> bool|None:
         return self.GetValue()
 
-__null: DualNullableValueBool[None] = DualNullableValueBool[None](None, False)
+__null: DualNullableValueBool[None] = DualNullableValueBool[None](None, False) # type: ignore[no-redef]
