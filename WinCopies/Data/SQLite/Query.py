@@ -121,8 +121,6 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
 @final
 class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionResult):
     def __init__(self, cursor: sqlite3.Connection, query: QueryResult) -> None:
-        EnsureDirectModuleCall()
-
         super().__init__(cursor, query)
     
     def GetLastRowId(self) -> int:
