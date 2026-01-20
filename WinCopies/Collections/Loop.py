@@ -352,6 +352,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
         None if no items, True if all items matched, False if at least one did not match.
     """
     result: bool|None = None
+    func: Method[T]|None = None
     
     def scan(entry: T):
         if predicate(entry):
@@ -368,8 +369,6 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
             func = scan
 
             result = False
-
-    func: Method[T]
 
     def init(entry: T):
         nonlocal result
