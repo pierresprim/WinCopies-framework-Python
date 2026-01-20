@@ -172,7 +172,7 @@ class String(ValueObject[str, IString], IString):
     def ToString(self) -> str:
         return self.GetValue()
 
-class IType[T](IValueObject[type[T], 'IType']):
+class IType[T](IValueObject[type[T], 'IType[T]']):
     def __init__(self) -> None:
         super().__init__()
 class Type[T](ValueObject[type[T], IType[T]], IType[T]):
