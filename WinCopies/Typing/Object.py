@@ -130,7 +130,7 @@ class Integer(ValueObject[int, IInteger], IInteger):
     def ToString(self) -> str:
         return str(self.GetValue())
 
-class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue']):
+class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue[T]']):
     def __init__(self) -> None:
         super().__init__()
 class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
