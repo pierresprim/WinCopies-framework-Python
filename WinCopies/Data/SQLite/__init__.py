@@ -467,7 +467,7 @@ class Connection(ConnectionBase):
     def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable|None:
         Connection.__EnsureFields(fields)
 
-        self.__TryCreateTable(name, fields, indices)
+        return self.__TryCreateTable(name, fields, indices)
     def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
         Connection.__EnsureFields(fields)
         
