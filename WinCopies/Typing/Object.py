@@ -4,7 +4,6 @@ from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Typing import IDisposable, IEquatable, IEquatableItem
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class IEquatableObject[T](IEquatable[T], IEquatableItem):
     def __init__(self) -> None:
@@ -68,8 +67,6 @@ class IBoolean(IValueObject[bool, 'IBoolean']):
         super().__init__()
 class __Boolean(Abstract, IBoolean):
     def __init__(self) -> None:
-        EnsureDirectModuleCall()
-
         super().__init__()
     
     def GetUnderlyingValue(self) -> bool:
@@ -142,7 +139,7 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
     
     @final
     def GetUnderlyingValue(self) -> int:
-        return self.GetValue().value
+        return int(self.GetValue().value)
     
     def Equals(self, item: IEnumValue[T]|object) -> bool:
         def equals(item: Enum) -> bool:
