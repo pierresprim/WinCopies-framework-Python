@@ -210,6 +210,9 @@ class ConditionParameterSet(IConditionParameterSet):
     
     @final
     def Render(self, writer: IConditionalQueryWriter) -> None:
+        value: INullable[IKeyValuePair[IColumn, IParameter[IOperandValue]]]|None = None
+        action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = lambda value: None
+
         def updateAction(_action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]) -> None:
             nonlocal action
 
@@ -219,9 +222,6 @@ class ConditionParameterSet(IConditionParameterSet):
 
             if (value := condition.TryGetValue()).HasValue():
                 writer.Write(writer.ProcessCondition(value.GetValue()))
-
-        value: INullable[IKeyValuePair[IColumn, IParameter[IOperandValue]]]|None = None
-        action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = lambda value: None
 
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
