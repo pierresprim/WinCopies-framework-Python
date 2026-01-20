@@ -439,7 +439,7 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
         pass
     
     @final
-    def _Push(self, value: T, first: SinglyLinkedNode[T]):
+    def _Push(self, value: T, first: SinglyLinkedNode[T]) -> None:
         self._GetUpdater()(first, SinglyLinkedNode[T](value, None))
     
     def _OnCleared(self) -> None:
