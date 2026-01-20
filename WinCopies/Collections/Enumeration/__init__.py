@@ -122,24 +122,25 @@ class Enumerable[T](_SystemIterable[T]):
 class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
-class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
-    @final
-    class __Updater(ValueFunctionUpdater[CountableBase]):
-        def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]) -> None:
-            super().__init__(updater)
 
-            self.__items: ICountableEnumerable[T] = items
-        
-        def _GetValue(self) -> CountableBase:
-            return Countable.Create(self.__items)
+@final
+class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableBase]):
+    def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]) -> None:
+        super().__init__(updater)
+
+        self.__items: ICountableEnumerable[T] = items
     
+    def _GetValue(self) -> CountableBase:
+        return Countable.Create(self.__items)
+
+class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
         def update(func: IFunction[CountableBase]) -> None:
             self.__countable = func
         
         super().__init__()
         
-        self.__countable: IFunction[CountableBase] = CountableEnumerable[T].__Updater(self, update)
+        self.__countable: IFunction[CountableBase] = _CountableEnumerableUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def AsSized(self) -> Sized:
@@ -174,27 +175,27 @@ class __EmptyEnumerable[T](_SystemIterable[T]):
     
     @final
     def __iter__(self) -> SystemIterator[T]:
-        return GetEmptyEnumerator().AsIterator() # type: ignore
+        return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
 __emptyEnumerator = __EmptyEnumerator[None]()
 __emptyEnumerable = __EmptyEnumerable[None]()
 
-def GetEmptyEnumerator[T]() -> IEnumerator[T]: # type: ignore
+def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyEnumerator # type: ignore
-def GetEmptyEnumerable[T]() -> IEnumerable[T]: # type: ignore
+def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyEnumerable # type: ignore
-def GetEmptyIterable[T]() -> SystemIterable[T]: # type: ignore
-    return GetEmptyEnumerable().AsIterable() # type: ignore
+def GetEmptyIterable[T]() -> SystemIterable[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
 
 def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
     return GetEmptyEnumerator() if enumerator is None else enumerator
 def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # type: ignore
+    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # pyright: ignore[reportUnknownVariableType]
 
 def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
     return GetEmptyEnumerable() if enumerable is None else enumerable
 def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
-    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # type: ignore
+    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # pyright: ignore[reportUnknownVariableType]
 
 class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self) -> None:
@@ -362,16 +363,10 @@ class Iterator[T](Enumerator[T]):
 def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
     return None if enumerable is None else enumerable.AsIterable()
 
-def __AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
-    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
-
 def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
-    if iterator is None: # type: ignore
-        raise ValueError()
-    
-    return __AsEnumerator(iterator)
+    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
 def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
-    return None if iterator is None else __AsEnumerator(iterator)
+    return None if iterator is None else AsEnumerator(iterator)
 
 def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
     return None if enumerator is None else enumerator.AsIterator()

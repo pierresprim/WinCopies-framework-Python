@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from enum import Enum
 from typing import overload, final, SupportsIndex
 
@@ -11,21 +11,18 @@ from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError, IGenericC
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
 
-class __CollectionAbstractor[T](Sequence[T], KeyableBase[int, T], IList[T]):
+class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
     @overload
-    def __getitem__(self, index: slice) -> Sequence[T]: ...
+    def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
-        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
-class CollectionAbstractor[T](__CollectionAbstractor[T], MutableSequence[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]:
+        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
 class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstraint[TList, IList[TItem]]):
     def __init__(self, items: TList) -> None:

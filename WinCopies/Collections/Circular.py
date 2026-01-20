@@ -4,7 +4,7 @@ from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections import GetIndex
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 
@@ -29,7 +29,7 @@ class ICircularList[T](ICircularArray[T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
+class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
         
@@ -71,6 +71,9 @@ class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTup
     
     def ToString(self) -> str:
         return self._GetInnerContainer().ToString()
+class CircularBase[TItem, TList](TupleBase[TItem], CircularAbstract[TItem, TList], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
+    def __init__(self, items: TList, start: int) -> None:
+        super().__init__(items, start)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> TItem: ...
@@ -116,7 +119,7 @@ class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecia
     @final
     def SliceAt(self, key: slice) -> IArray[T]:
         return self._GetContainer().SliceAt(self._GetKey(key))
-class CircularList[T](CircularBase[T, IList[T]], List[T], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
+class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
     def __init__(self, items: IList[T], start: int) -> None:
         super().__init__(items, start)
     

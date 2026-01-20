@@ -16,6 +16,7 @@ from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
 from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue
+from WinCopies.Collections.Linked.Singly.Base import IList
 
 from WinCopies.Enum import HasFlag
 
@@ -237,10 +238,10 @@ class Table(TableBase):
                 def checkIndexKind(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str) -> IIndex|None:
                     return factory.GetNormalIndex(name, columnName) if kind == IndexKind.Normal else None
                 
-                def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None]:
+                def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]:
                     return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
                     
-                def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: Singly.IList[str]) -> IIndex:
+                def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: IList[str]) -> IIndex:
                     match kind:
                         case IndexKind.Unique:
                             return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
@@ -249,7 +250,7 @@ class Table(TableBase):
                         case _:
                             raise ValueError("The index kind is not valid.")
                 
-                def _parse(factory: IIndexFactory, currentName: str, name: str, kind: IndexKind, columnName: str, columns: Singly.IList[str]) -> Generator[IIndex]|None:
+                def _parse(factory: IIndexFactory, currentName: str, name: str, kind: IndexKind, columnName: str, columns: IList[str]) -> Generator[IIndex]|None:
                     nonlocal func
 
                     def push() -> None:
@@ -282,7 +283,7 @@ class Table(TableBase):
 
                     return getGenerator()
                 
-                def parse(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str, columns: Singly.IList[str]) -> Generator[IIndex]|None:
+                def parse(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str, columns: IList[str]) -> Generator[IIndex]|None:
                     # TODO: Use GROUP_CONCAT instead.
 
                     nonlocal func
@@ -350,7 +351,7 @@ class Table(TableBase):
                 newIndexName: str = ''
                 indexKind: IndexKind = IndexKind.Null
                 result: Generator[IIndex]|None = None
-                columns: Singly.IList[str] = Queue[str]()
+                columns: IList[str] = Queue[str]()
                 func: Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None] = getParser()
 
                 for row in indices.AsIterable():

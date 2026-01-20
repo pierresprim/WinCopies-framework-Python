@@ -23,7 +23,17 @@ class SelectorBase[TIn, TOut](ConverterBase[TIn, TOut], IStringable):
     def __init__(self) -> None:
         super().__init__()
 
-class Converter[TIn, TOut, TSequence: IStringable, TInterface](Abstract, SelectorBase[TIn, TOut], GenericConstraint[TSequence, TInterface]):
+class StringableConverter[TIn, TOut, TSequence: IStringable, TInterface](Abstract, SelectorBase[TIn, TOut], GenericConstraint[TSequence, TInterface]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def ToString(self) -> str:
+        return self._GetContainer().ToString()
+class StringableTwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](StringableConverter[TIn, TOut, TSequence, TInterface], TwoWayConverterBase[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class Converter[TIn, TOut, TSequence: IStringable, TInterface](StringableConverter[TIn, TOut, TSequence, TInterface]):
     def __init__(self, items: TSequence) -> None:
         super().__init__()
 
@@ -32,10 +42,7 @@ class Converter[TIn, TOut, TSequence: IStringable, TInterface](Abstract, Selecto
     @final
     def _GetContainer(self) -> TSequence:
         return self.__items
-    
-    def ToString(self) -> str:
-        return self._GetContainer().ToString()
-class TwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](Converter[TIn, TOut, TSequence, TInterface], TwoWayConverterBase[TIn, TOut]):
+class TwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](Converter[TIn, TOut, TSequence, TInterface], StringableTwoWayConverter[TIn, TOut, TSequence, TInterface]):
     def __init__(self, items: TSequence) -> None:
         super().__init__(items)
 

@@ -10,7 +10,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Dictionary
-from WinCopies.Collections.Enumeration.Recursive import RecursiveEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive.Base import RecursiveEnumerationHandler
 from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, MakeCompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select

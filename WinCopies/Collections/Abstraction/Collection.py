@@ -12,15 +12,9 @@ from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
-    def __init__(self, items: TSequence) -> None:
+class TupleAbstract[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstract[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+    def __init__(self) -> None:
         super().__init__()
-
-        self.__items: TSequence = items
-    
-    @final
-    def _GetContainer(self) -> TSequence:
-        return self.__items
     
     @final
     def GetCount(self) -> int:
@@ -33,6 +27,15 @@ class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleBa
     @final
     def Contains(self, value: TItem|object) -> bool:
         return value in self._GetInnerContainer()
+class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.TupleBase[TItem]):
+    def __init__(self, items: TSequence) -> None:
+        super().__init__()
+
+        self.__items: TSequence = items
+    
+    @final
+    def _GetContainer(self) -> TSequence:
+        return self.__items
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> TItem: ...
@@ -70,13 +73,16 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
-    def __init__(self, items: TSequence) -> None:
-        super().__init__(items)
+class ArrayAbstract[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.ArrayAbstract[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer()[key] = value
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+    def __init__(self, items: TSequence) -> None:
+        super().__init__(items)
 
 class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
@@ -97,9 +103,15 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class List[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
-        super().__init__(list[T]() if items is None else items)
+        super().__init__()
+
+        self.__items: MutableSequenceBase[T] = list[T]() if items is None else items
+    
+    @final
+    def _GetContainer(self) -> MutableSequenceBase[T]:
+        return self.__items
     
     @final
     def Move(self, x: int, y: int) -> None:
@@ -150,6 +162,15 @@ class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensio
         self._GetContainer().insert(index, value)
     
     @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]:
+        return self._GetSpecializedContainer()[int(index) if isinstance(index, SupportsIndex) else index]
+    
+    @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
     @overload
     def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
@@ -162,16 +183,94 @@ class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensio
     def __delitem__(self, index: int|slice) -> None:
         del self._GetContainer()[index]
 
+@final
+class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
+    def __init__(self, item: tuple[TKey, TValue]) -> None:
+        super().__init__()
+        
+        self.__item: tuple[TKey, TValue] = item
+    
+    @final
+    def IsKeyValuePair(self) -> bool:
+        return True
+    
+    @final
+    def GetKey(self) -> TKey:
+        return self.__item[0]
+    @final
+    def GetValue(self) -> TValue:
+        return self.__item[1]
+
+    @final
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
+        return isinstance(item, EnumerationKeyValuePair)
+
+@final
+class DictionaryEnumerator[TKey: IEquatableItem, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
+    def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
+        super().__init__()
+
+        self.__dictionary: MutableMapping[TKey, TValue] = dictionary
+        self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
+        self.__current: IKeyValuePair[TKey, TValue]|None = None
+    
+    def IsResetSupported(self) -> bool:
+        return True
+    
+    def _OnStarting(self) -> bool:
+        if super()._OnStarting():
+            self.__iterator = Enumeration.Iterator(self.__dictionary.items().__iter__())
+            
+            return True
+        
+        return False
+    
+    def _MoveNextOverride(self) -> bool:
+        if self.__iterator is None:
+            return False
+        
+        if self.__iterator.MoveNext():
+            item: tuple[TKey, TValue]|None = self.__iterator.GetCurrent()
+
+            if item is None:
+                return False
+
+            self.__current = EnumerationKeyValuePair[TKey, TValue](item)
+
+            return True
+        
+        return False
+    
+    def GetCurrent(self) -> IKeyValuePair[TKey, TValue]|None:
+        return self.__current
+    
+    def _OnEnded(self) -> None:
+        self.__iterator = None
+        self.__current = None
+
+        super()._OnEnded()
+    
+    def _OnStopped(self) -> None:
+        pass
+    
+    def _ResetOverride(self) -> bool:
+        return True
+
+@final
+class _None(Singleton):
+    def __init__(self) -> None:
+        super().__init__()
+
 # TODO: Should inherit from MutableMapping
 class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValue]):
-    class __Enumerable[T](CountableEnumerable[T]):
-        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
+    class _Enumerable[_TKey: IEquatableItem, _TValue, _TItem](CountableEnumerable[_TItem]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()
 
-            self.__dic: Dictionary[TKey, TValue] = dic
+            self.__dic: Dictionary[_TKey, _TValue] = dic
         
         @final
-        def _GetDictionary(self) -> MutableMapping[TKey, TValue]:
+        def _GetDictionary(self) -> MutableMapping[_TKey, _TValue]:
             return self.__dic._GetDictionary()
         
         @final
@@ -179,112 +278,35 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
             return self.__dic.GetCount()
         
         @final
-        def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        def TryGetEnumerator(self) -> IEnumerator[_TItem]|None:
             return TryAsEnumerator(self._TryGetIterator())
     @final
-    class __KeyEnumerable(__Enumerable[TKey]):
-        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
+    class _KeyEnumerable[_TKey: IEquatableItem, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[TKey]|None:
+        def _TryGetIterator(self) -> Iterator[_TKey]|None:
             return iter(self._GetDictionary().keys())
     @final
-    class __ValueEnumerable(__Enumerable[TValue]):
-        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
+    class _ValueEnumerable[_TKey: IEquatableItem, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[TValue]|None:
+        def _TryGetIterator(self) -> Iterator[_TValue]|None:
             return iter(self._GetDictionary().values())
-    @final
-    class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
-        @final
-        class KeyValuePair(Abstract, IKeyValuePair[TKey, TValue]):
-            def __init__(self, item: tuple[TKey, TValue]) -> None:
-                super().__init__()
-                
-                self.__item: tuple[TKey, TValue] = item
-            
-            @final
-            def IsKeyValuePair(self) -> bool:
-                return True
-            
-            @final
-            def GetKey(self) -> TKey:
-                return self.__item[0]
-            @final
-            def GetValue(self) -> TValue:
-                return self.__item[1]
     
-            @final
-            def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
-                return isinstance(item, Dictionary.Enumerator.KeyValuePair)
-        
-        def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
-            super().__init__()
-
-            self.__dictionary: MutableMapping[TKey, TValue] = dictionary
-            self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
-            self.__current: IKeyValuePair[TKey, TValue]|None = None
-        
-        def IsResetSupported(self) -> bool:
-            return True
-        
-        def _OnStarting(self) -> bool:
-            if super()._OnStarting():
-                self.__iterator = Enumeration.Iterator(self.__dictionary.items().__iter__())
-                
-                return True
-            
-            return False
-        
-        def _MoveNextOverride(self) -> bool:
-            if self.__iterator is None:
-                return False
-            
-            if self.__iterator.MoveNext():
-                item: tuple[TKey, TValue]|None = self.__iterator.GetCurrent()
-
-                if item is None:
-                    return False
-
-                self.__current = Dictionary.Enumerator.KeyValuePair(item)
-
-                return True
-            
-            return False
-        
-        def GetCurrent(self) -> IKeyValuePair[TKey, TValue]|None:
-            return self.__current
-        
-        def _OnEnded(self) -> None:
-            self.__iterator = None
-            self.__current = None
-
-            super()._OnEnded()
-        
-        def _OnStopped(self) -> None:
-            pass
-        
-        def _ResetOverride(self) -> bool:
-            return True
-    
-    @final
-    class __None(Singleton):
-        def __init__(self) -> None:
-            super().__init__()
-
-    __getInstance: Function[Dictionary.__None] = GetSingletonInstanceProvider(__None)
+    __getInstance: Function[_None] = GetSingletonInstanceProvider(_None)
     
     @staticmethod
-    def __GetNoneInstance() -> Dictionary.__None:
-        return Dictionary[TKey, TValue].__getInstance() # type: ignore
+    def __GetNoneInstance() -> _None:
+        return Dictionary[TKey, TValue].__getInstance() # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType,reportAttributeAccessIssue]
     
     def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None) -> None:
         super().__init__()
 
         self.__dictionary: MutableMapping[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
-        self.__keys: ICountableEnumerable[TKey] = Dictionary[TKey, TValue].__KeyEnumerable(self)
-        self.__values: ICountableEnumerable[TValue] = Dictionary[TKey, TValue].__ValueEnumerable(self)
+        self.__keys: ICountableEnumerable[TKey] = Dictionary._KeyEnumerable(self)
+        self.__values: ICountableEnumerable[TValue] = Dictionary._ValueEnumerable(self)
     
     @final
     def __TryAdd(self, key: TKey, value: TValue) -> int:
@@ -308,9 +330,9 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        result: TValue|Dictionary[TKey, TValue].__None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # type: ignore
+        result: TValue|_None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
 
-        return DualValueBool[TDefault](defaultValue, False) if isinstance(result, Dictionary[TKey, TValue].__None) else DualValueBool[TValue](result, True)
+        return DualValueBool[TDefault](defaultValue, False) if isinstance(result, _None) else DualValueBool[TValue](result, True)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
@@ -352,9 +374,9 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         def getResult(key: TValue|TDefault, value: bool) -> DualValueBool[TValue|TDefault]:
             return DualValueBool[TValue|TDefault](key, value)
         
-        result: TValue|Dictionary[TKey, TValue].__None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
+        result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
 
-        return getResult(defaultValue, False) if isinstance(result, Dictionary.__None) else getResult(result, True)
+        return getResult(defaultValue, False) if isinstance(result, _None) else getResult(result, True)
     
     @final
     def Clear(self) -> None:
@@ -362,7 +384,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
-        return Dictionary[TKey, TValue].Enumerator(self._GetDictionary())
+        return DictionaryEnumerator[TKey, TValue](self._GetDictionary())
     
     def ToString(self) -> str:
         return str(self._GetDictionary())

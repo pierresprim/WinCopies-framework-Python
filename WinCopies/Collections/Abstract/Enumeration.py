@@ -35,17 +35,17 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
     def GetCurrent(self) -> TOut|None:
         return self.__getCurrent()
 
-class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
-    @final
-    class __Enumerator(Enumerator[TIn, TOut]):
-        def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]) -> None:
-            super().__init__(enumerator)
+@final
+class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
+    def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]) -> None:
+        super().__init__(enumerator)
 
-            self.__enumerable: EnumerableBase[TIn, TOut] = enumerable
-        
-        def _Convert(self, item: TIn) -> TOut:
-            return self.__enumerable._Convert(item)
+        self.__enumerable: EnumerableBase[TIn, TOut] = enumerable
     
+    def _Convert(self, item: TIn) -> TOut:
+        return self.__enumerable._Convert(item)
+
+class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -57,7 +57,7 @@ class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[
     def TryGetEnumerator(self) -> IEnumerator[TOut]|None:
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
-        return None if result is None else EnumerableBase[TIn, TOut].__Enumerator(self, result)
+        return None if result is None else _Enumerator[TIn, TOut](self, result)
 class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut]):
     def __init__(self, enumerable: IEnumerable[TIn]) -> None:
         super().__init__()

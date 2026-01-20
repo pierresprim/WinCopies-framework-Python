@@ -1,13 +1,14 @@
 from collections.abc import Iterable
 from typing import final, Callable
 
+from WinCopies import Abstract
 from WinCopies.Collections import IList
 from WinCopies.Collections.Abstraction.Collection import List
-from WinCopies.Collections.Abstraction.Linked import ListBase
+from WinCopies.Collections.Linked.Singly.Base import IList as ISinglyLinkedList
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
-class BufferedList[TItems, TList](ListBase[TItems], GenericConstraint[TList, IList[TItems]]):
+class BufferedList[TItems, TList](Abstract, ISinglyLinkedList[TItems], GenericConstraint[TList, IList[TItems]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
@@ -46,7 +47,7 @@ class BufferedQueueBase[TItems, TList](BufferedList[TItems, TList]):
     def Push(self, value: TItems) -> None:
         self._GetInnerContainer().Add(value)
     @final
-    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+    def PushItems(self, items: Iterable[TItems]) -> None:
         return self._GetInnerContainer().AddItems(items)
 class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
     def __init__(self, items: TList) -> None:
@@ -60,10 +61,10 @@ class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
         else:
             self._GetInnerContainer().Insert(0, value)
     @final
-    def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+    def PushItems(self, items: Iterable[TItems]) -> None:
         adder: Callable[[int, TItems], None]|None = None
         i: int = 0
-
+        
         def insert(index: int, item: TItems) -> None:
             self._GetInnerContainer().TryInsert(index, item)
         def add(index: int, item: TItems) -> None:
@@ -84,15 +85,10 @@ class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
 
             insert(index, item)
         
-        if items is None:
-            return False
-        
         adder = add
 
         for item in items:
             adder(i, item)
-
-        return True
 
 def _GetList[T](l: IList[T]|None) -> IList[T]:
     return List[T]() if l is None else l

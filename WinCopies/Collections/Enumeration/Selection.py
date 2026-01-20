@@ -78,15 +78,18 @@ class InclusionUntilEnumerator[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
     
+    @abstractmethod
+    def _ValidateValue(self) -> bool:
+        pass
     def _Validate(self) -> bool:
-        return not super()._Validate()
+        return not self._ValidateValue()
 class IncluerEnumerator[T](InclusionUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool:
+    def _ValidateValue(self) -> bool:
         return self.__predicate.Validate()
 
 class DoWhileEnumerator[T](ConditionalEnumerator[T]):
@@ -197,9 +200,6 @@ class ExcluerUntilEnumerator[T](ExclusionUntilEnumerator[T]):
 class ExclusionEnumerator[T](ExclusionUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
-    
-    def _Validate(self) -> bool:
-        return not super()._Validate()
 class ExcluerEnumerator[T](ExclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)

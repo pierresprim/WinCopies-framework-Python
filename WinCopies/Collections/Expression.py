@@ -5,7 +5,8 @@ from typing import final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorProvider, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
-from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerator, StackedRecursiveEnumerator
+from WinCopies.Collections.Enumeration.Recursive import RecursiveEnumerator, StackedRecursiveEnumerator
+from WinCopies.Collections.Enumeration.Recursive.Base import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
@@ -84,7 +85,36 @@ class IConnector[TValue, TConnector](IInterface):
     def GetNext(self) -> ICompositeExpression[TValue, TConnector]:
         pass
 
+class ConnectorCookie[TValue, TConnector](Abstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetConnector(self) -> Connector[TValue, TConnector]:
+        pass
+
+    @abstractmethod
+    def SetPrevious(self, expression: CompositeExpressionBase[TValue, TConnector]) -> None:
+        pass
+    @abstractmethod
+    def SetNext(self, expression: CompositeExpressionBase[TValue, TConnector]) -> None:
+        pass
 class Connector[TValue, TConnector](Abstract, IConnector[TValue, TConnector]):
+    @final
+    class _Cookie[_TValue, _TConnector](ConnectorCookie[_TValue, _TConnector]):
+        def __init__(self, connector: Connector[_TValue, _TConnector]) -> None:
+            super().__init__()
+
+            self.__connector: Connector[_TValue, _TConnector] = connector
+        
+        def GetConnector(self) -> Connector[_TValue, _TConnector]:
+            return self.__connector
+        
+        def SetPrevious(self, expression: CompositeExpressionBase[_TValue, _TConnector]) -> None:
+            self.__connector._SetPrevious(expression)
+        def SetNext(self, expression: CompositeExpressionBase[_TValue, _TConnector]) -> None:
+            self.__connector._SetNext(expression)
+    
     def __init__(self, previous: CompositeExpressionBase[TValue, TConnector], connector: TConnector, next: CompositeExpressionBase[TValue, TConnector]) -> None:
         super().__init__()
 
@@ -92,6 +122,10 @@ class Connector[TValue, TConnector](Abstract, IConnector[TValue, TConnector]):
 
         self.__previous: CompositeExpressionBase[TValue, TConnector] = previous
         self.__next: CompositeExpressionBase[TValue, TConnector] = next
+    
+    @final
+    def _ToCookie(self) -> ConnectorCookie[TValue, TConnector]:
+        return Connector._Cookie(self)
     
     @final
     def GetConnector(self) -> TConnector:
@@ -123,32 +157,6 @@ class ICompositeExpressionCookie[TValue, TConnector](IInterface):
         pass
 
 class ICompositeExpressionBase[TValue, TConnector](IInterface):
-    @final
-    class _PreviousValueConnector(Connector[TValue, TConnector]):
-        def __init__(self, value: TValue, connector: TConnector, next: CompositeExpressionBase[TValue, TConnector]) -> None:
-            expression: CompositeExpressionBase[TValue, TConnector] = next._CreateFromValue(None, value, self)
-
-            super().__init__(expression, connector, next)
-    @final
-    class _NextValueConnector(Connector[TValue, TConnector]):
-        def __init__(self, previous: CompositeExpressionBase[TValue, TConnector], connector: TConnector, value: TValue) -> None:
-            expression: CompositeExpressionBase[TValue, TConnector] = previous._CreateFromValue(self, value, None)
-
-            super().__init__(previous, connector, expression)
-    
-    @final
-    class _PreviousConnector(Connector[TValue, TConnector]):
-        def __init__(self, expression: ICompositeExpressionNode[TValue, TConnector], connector: TConnector, next: CompositeExpressionBase[TValue, TConnector]) -> None:
-            _expression: CompositeExpressionBase[TValue, TConnector] = next._CreateFromExpression(None, expression, self)
-
-            super().__init__(_expression, connector, next)
-    @final
-    class _NextConnector(Connector[TValue, TConnector]):
-        def __init__(self, previous: CompositeExpressionBase[TValue, TConnector], connector: TConnector, expression: ICompositeExpressionNode[TValue, TConnector]) -> None:
-            _expression: CompositeExpressionBase[TValue, TConnector] = previous._CreateFromExpression(self, expression, None)
-
-            super().__init__(previous, connector, _expression)
-    
     def __init__(self) -> None:
         super().__init__()
     
@@ -159,78 +167,126 @@ class ICompositeExpressionBase[TValue, TConnector](IInterface):
     def _OnLastUpdated(self, expression: ICompositeExpression[TValue, TConnector]) -> None:
         pass
 
-    @abstractmethod
-    def _CreateFromValue(self, previous: Connector[TValue, TConnector]|None, value: TValue, next: Connector[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
-        pass
-    @abstractmethod
-    def _CreateFromExpression(self, previous: Connector[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: Connector[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
-        pass
-class CompositeExpressionBase[TValue, TConnector](Abstract, ICompositeExpressionBase[TValue, TConnector], ICompositeExpression[TValue, TConnector]):
-    def __init__(self, previous: Connector[TValue, TConnector]|None, next: Connector[TValue, TConnector]|None) -> None:
-        super().__init__()
+class _ICompositeExpressionBase[TValue, TConnector](ICompositeExpressionBase[TValue, TConnector]):
+    @final
+    class _PreviousValueConnector[_TValue, _TConnector](Connector[_TValue, _TConnector]):
+        def __init__(self, value: _TValue, connector: _TConnector, next: CompositeExpressionBase[_TValue, _TConnector]) -> None:
+            expression: CompositeExpressionBase[_TValue, _TConnector] = next._CreateFromValue(None, value, self._ToCookie())
 
-        self.__previous: Connector[TValue, TConnector]|None = previous
-        self.__next: Connector[TValue, TConnector]|None = next
+            super().__init__(expression, connector, next)
+        
+        @staticmethod
+        def CreateCookie(value: _TValue, connector: _TConnector, next: CompositeExpressionBase[_TValue, _TConnector]) -> ConnectorCookie[_TValue, _TConnector]:
+            return _ICompositeExpressionBase._PreviousValueConnector(value, connector, next)._ToCookie()
+    @final
+    class _NextValueConnector[_TValue, _TConnector](Connector[_TValue, _TConnector]):
+        def __init__(self, previous: CompositeExpressionBase[_TValue, _TConnector], connector: _TConnector, value: _TValue) -> None:
+            expression: CompositeExpressionBase[_TValue, _TConnector] = previous._CreateFromValue(self._ToCookie(), value, None)
+
+            super().__init__(previous, connector, expression)
+        
+        @staticmethod
+        def CreateCookie(previous: CompositeExpressionBase[_TValue, _TConnector], connector: _TConnector, value: _TValue) -> ConnectorCookie[_TValue, _TConnector]:
+            return _ICompositeExpressionBase._NextValueConnector(previous, connector, value)._ToCookie()
     
     @final
-    def __OnSetPrevious(self, connector: Connector[TValue, TConnector]) -> None:
-        previous: Connector[TValue, TConnector]|None = self.GetPrevious()
+    class _PreviousConnector[_TValue, _TConnector](Connector[_TValue, _TConnector]):
+        def __init__(self, expression: ICompositeExpressionNode[_TValue, _TConnector], connector: _TConnector, next: CompositeExpressionBase[_TValue, _TConnector]) -> None:
+            _expression: CompositeExpressionBase[_TValue, _TConnector] = next._CreateFromExpression(None, expression, self._ToCookie())
+
+            super().__init__(_expression, connector, next)
+        
+        @staticmethod
+        def CreateCookie(expression: ICompositeExpressionNode[_TValue, _TConnector], connector: _TConnector, next: CompositeExpressionBase[_TValue, _TConnector]) -> ConnectorCookie[_TValue, _TConnector]:
+            return _ICompositeExpressionBase._PreviousConnector(expression, connector, next)._ToCookie()
+    @final
+    class _NextConnector[_TValue, _TConnector](Connector[_TValue, _TConnector]):
+        def __init__(self, previous: CompositeExpressionBase[_TValue, _TConnector], connector: _TConnector, expression: ICompositeExpressionNode[_TValue, _TConnector]) -> None:
+            _expression: CompositeExpressionBase[_TValue, _TConnector] = previous._CreateFromExpression(self._ToCookie(), expression, None)
+
+            super().__init__(previous, connector, _expression)
+        
+        @staticmethod
+        def CreateCookie(previous: CompositeExpressionBase[_TValue, _TConnector], connector: _TConnector, expression: ICompositeExpressionNode[_TValue, _TConnector]) -> ConnectorCookie[_TValue, _TConnector]:
+            return _ICompositeExpressionBase._NextConnector(previous, connector, expression)._ToCookie()
+    
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _CreateFromValue(self, previous: ConnectorCookie[TValue, TConnector]|None, value: TValue, next: ConnectorCookie[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
+        pass
+    @abstractmethod
+    def _CreateFromExpression(self, previous: ConnectorCookie[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: ConnectorCookie[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
+        pass
+class CompositeExpressionBase[TValue, TConnector](Abstract, _ICompositeExpressionBase[TValue, TConnector], ICompositeExpression[TValue, TConnector]):
+    def __init__(self, previous: ConnectorCookie[TValue, TConnector]|None, next: ConnectorCookie[TValue, TConnector]|None) -> None:
+        super().__init__()
+
+        self.__previous: ConnectorCookie[TValue, TConnector]|None = previous
+        self.__next: ConnectorCookie[TValue, TConnector]|None = next
+    
+    @final
+    def __OnSetPrevious(self, connector: ConnectorCookie[TValue, TConnector]) -> None:
+        previous: ConnectorCookie[TValue, TConnector]|None = self.__previous
+        _connector: Connector[TValue, TConnector] = connector.GetConnector()
 
         if previous is None:
-            self._OnFirstUpdated(connector.GetPrevious())
+            self._OnFirstUpdated(_connector.GetPrevious())
         
         else:
-            expression: CompositeExpressionBase[TValue, TConnector] = connector.GetPrevious()
+            expression: CompositeExpressionBase[TValue, TConnector] = _connector.GetPrevious()
 
-            previous._SetNext(expression) # type: ignore
+            previous.SetNext(expression)
             expression._SetPrevious(previous)
 
         self.__previous = connector
     @final
-    def __OnSetNext(self, connector: Connector[TValue, TConnector]) -> None:
-        next: Connector[TValue, TConnector]|None = self.GetNext()
+    def __OnSetNext(self, connector: ConnectorCookie[TValue, TConnector]) -> None:
+        next: ConnectorCookie[TValue, TConnector]|None = self.__next
+        _connector: Connector[TValue, TConnector] = connector.GetConnector()
 
         if next is None:
-            self._OnLastUpdated(connector.GetNext())
+            self._OnLastUpdated(_connector.GetNext())
         
         else:
-            expression: CompositeExpressionBase[TValue, TConnector] = connector.GetNext()
+            expression: CompositeExpressionBase[TValue, TConnector] = _connector.GetNext()
 
-            next._SetPrevious(expression) # type: ignore
+            next.SetPrevious(expression)
             expression._SetNext(next)
         
         self.__next = connector
     
     @final
-    def _SetPrevious(self, connector: Connector[TValue, TConnector]) -> None:
+    def _SetPrevious(self, connector: ConnectorCookie[TValue, TConnector]) -> None:
         self.__previous = connector
     @final
-    def _SetNext(self, connector: Connector[TValue, TConnector]) -> None:
+    def _SetNext(self, connector: ConnectorCookie[TValue, TConnector]) -> None:
         self.__next = connector
     
     @final
     def GetPrevious(self) -> Connector[TValue, TConnector]|None:
-        return self.__previous
+        return None if self.__previous is None else self.__previous.GetConnector()
     @final
     def GetNext(self) -> Connector[TValue, TConnector]|None:
-        return self.__next
+        return None if self.__next is None else self.__next.GetConnector()
 
     @final
     def SetPrevious(self, value: TValue, connector: TConnector) -> None:
-        self.__OnSetPrevious(ICompositeExpressionBase[TValue, TConnector]._PreviousValueConnector(value, connector, self))
+        self.__OnSetPrevious(_ICompositeExpressionBase._PreviousValueConnector[TValue, TConnector].CreateCookie(value, connector, self))
     @final
     def SetNext(self, connector: TConnector, value: TValue) -> None:
-        self.__OnSetNext(ICompositeExpressionBase[TValue, TConnector]._NextValueConnector(self, connector, value))
+        self.__OnSetNext(_ICompositeExpressionBase._NextValueConnector[TValue, TConnector].CreateCookie(self, connector, value))
 
     @final
     def SetPreviousExpression(self, expression: ICompositeExpressionNode[TValue, TConnector], connector: TConnector) -> None:
-        self.__OnSetPrevious(ICompositeExpressionBase[TValue, TConnector]._PreviousConnector(expression, connector, self))
+        self.__OnSetPrevious(_ICompositeExpressionBase._PreviousConnector[TValue, TConnector].CreateCookie(expression, connector, self))
     @final
     def SetNextExpression(self, connector: TConnector, expression: ICompositeExpressionNode[TValue, TConnector]) -> None:
-        self.__OnSetNext(ICompositeExpressionBase[TValue, TConnector]._NextConnector(self, connector, expression))
+        self.__OnSetNext(_ICompositeExpressionBase._NextConnector[TValue, TConnector].CreateCookie(self, connector, expression))
 
 class CompositeExpressionValue[TValue, TConnector](CompositeExpressionBase[TValue, TConnector], ICompositeExpression[TValue, TConnector]):
-    def __init__(self, previous: Connector[TValue, TConnector]|None, value: TValue, next: Connector[TValue, TConnector]|None) -> None:
+    def __init__(self, previous: ConnectorCookie[TValue, TConnector]|None, value: TValue, next: ConnectorCookie[TValue, TConnector]|None) -> None:
         super().__init__(previous, next)
 
         self.__value: TValue = value
@@ -242,7 +298,7 @@ class CompositeExpressionValue[TValue, TConnector](CompositeExpressionBase[TValu
     def TryGetItems(self) -> None:
         return None
 class CompositeExpression[TValue, TConnector](CompositeExpressionBase[TValue, TConnector], ICompositeExpression[TValue, TConnector]):
-    def __init__(self, previous: Connector[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: Connector[TValue, TConnector]|None) -> None:
+    def __init__(self, previous: ConnectorCookie[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: ConnectorCookie[TValue, TConnector]|None) -> None:
         super().__init__(previous, next)
 
         self.__items: ICompositeExpressionNode[TValue, TConnector] = expression
@@ -254,7 +310,7 @@ class CompositeExpression[TValue, TConnector](CompositeExpressionBase[TValue, TC
     def TryGetItems(self) -> ICompositeExpressionNode[TValue, TConnector]:
         return self.__items
 
-class _ICompositeExpression[TValue, TConnector](ICompositeExpressionBase[TValue, TConnector]):
+class _ICompositeExpressionAbstract[TValue, TConnector](_ICompositeExpressionBase[TValue, TConnector]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -263,10 +319,10 @@ class _ICompositeExpression[TValue, TConnector](ICompositeExpressionBase[TValue,
         pass
     
     @final
-    def _CreateFromValue(self, previous: Connector[TValue, TConnector]|None, value: TValue, next: Connector[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
+    def _CreateFromValue(self, previous: ConnectorCookie[TValue, TConnector]|None, value: TValue, next: ConnectorCookie[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
         return _CompositeExpressionValue(self._GetCookie, previous, value, next)
     @final
-    def _CreateFromExpression(self, previous: Connector[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: Connector[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
+    def _CreateFromExpression(self, previous: ConnectorCookie[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: ConnectorCookie[TValue, TConnector]|None) -> CompositeExpressionBase[TValue, TConnector]:
         return _CompositeExpression(self._GetCookie, previous, expression, next)
     
     @final
@@ -276,8 +332,8 @@ class _ICompositeExpression[TValue, TConnector](ICompositeExpressionBase[TValue,
     def _OnLastUpdated(self, expression: ICompositeExpression[TValue, TConnector]) -> None:
         self._GetCookie().SetLast(expression)
 @final
-class _CompositeExpressionValue[TValue, TConnector](CompositeExpressionValue[TValue, TConnector], _ICompositeExpression[TValue, TConnector]):
-    def __init__(self, cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]], previous: Connector[TValue, TConnector]|None, value: TValue, next: Connector[TValue, TConnector]|None) -> None:
+class _CompositeExpressionValue[TValue, TConnector](CompositeExpressionValue[TValue, TConnector], _ICompositeExpressionAbstract[TValue, TConnector]):
+    def __init__(self, cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]], previous: ConnectorCookie[TValue, TConnector]|None, value: TValue, next: ConnectorCookie[TValue, TConnector]|None) -> None:
         super().__init__(previous, value, next)
 
         self.__cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]] = cookieProvider
@@ -285,8 +341,8 @@ class _CompositeExpressionValue[TValue, TConnector](CompositeExpressionValue[TVa
     def _GetCookie(self) -> ICompositeExpressionCookie[TValue, TConnector]:
         return self.__cookieProvider()
 @final
-class _CompositeExpression[TValue, TConnector](CompositeExpression[TValue, TConnector], _ICompositeExpression[TValue, TConnector]):
-    def __init__(self, cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]], previous: Connector[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: Connector[TValue, TConnector]|None) -> None:
+class _CompositeExpression[TValue, TConnector](CompositeExpression[TValue, TConnector], _ICompositeExpressionAbstract[TValue, TConnector]):
+    def __init__(self, cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]], previous: ConnectorCookie[TValue, TConnector]|None, expression: ICompositeExpressionNode[TValue, TConnector], next: ConnectorCookie[TValue, TConnector]|None) -> None:
         super().__init__(previous, expression, next)
 
         self.__cookieProvider: Function[ICompositeExpressionCookie[TValue, TConnector]] = cookieProvider
@@ -296,15 +352,15 @@ class _CompositeExpression[TValue, TConnector](CompositeExpression[TValue, TConn
 
 class _AbstractCompositeExpressionNode[TValue, TConnector](Abstract, ICompositeExpressionNodeBase[TValue, TConnector]):
     @final
-    class __Cookie(Abstract, ICompositeExpressionCookie[TValue, TConnector]):
-        def __init__(self, expressionNode: _AbstractCompositeExpressionNode[TValue, TConnector]) -> None:
+    class __Cookie[_TValue, _TConnector](Abstract, ICompositeExpressionCookie[_TValue, _TConnector]):
+        def __init__(self, expressionNode: _AbstractCompositeExpressionNode[_TValue, _TConnector]) -> None:
             super().__init__()
 
-            self.__expressionNode: _AbstractCompositeExpressionNode[TValue, TConnector] = expressionNode
+            self.__expressionNode: _AbstractCompositeExpressionNode[_TValue, _TConnector] = expressionNode
         
-        def SetFirst(self, expression: ICompositeExpression[TValue, TConnector]) -> None:
+        def SetFirst(self, expression: ICompositeExpression[_TValue, _TConnector]) -> None:
             return self.__expressionNode._SetFirst(expression)
-        def SetLast(self, expression: ICompositeExpression[TValue, TConnector]) -> None:
+        def SetLast(self, expression: ICompositeExpression[_TValue, _TConnector]) -> None:
             return self.__expressionNode._SetLast(expression)
     
     def __init__(self, initial: ICompositeExpression[TValue, TConnector]) -> None:
@@ -445,26 +501,26 @@ class CompositeExpressionStackedRecursiveEnumerator[TValue, TConnector](StackedR
 
         return GetEmptyEnumerable() if items is None else items
 
-class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionRoot[TValue, TConnector]):
-    @final
-    class __RecursiveUpdater(ValueFunctionUpdater[IEnumerable[ICompositeExpression[TValue, TConnector]]]):
-        def __init__(self, enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]], updater: Method[IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]]]) -> None:
-            super().__init__(updater)
+@final
+class _RecursiveUpdater[TValue, TConnector](ValueFunctionUpdater[IEnumerable[ICompositeExpression[TValue, TConnector]]]):
+    def __init__(self, enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]], updater: Method[IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]]]) -> None:
+        super().__init__(updater)
 
-            self.__enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]] = enumerable
-        
-        def _GetValue(self) -> IEnumerable[ICompositeExpression[TValue, TConnector]]:
-            return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__enumerable.TryGetRecursiveEnumerator())
-    @final
-    class __IterableUpdater(ValueFunctionUpdater[Iterable[ICompositeExpression[TValue, TConnector]]]):
-        def __init__(self, root: ICompositeExpressionRoot[TValue, TConnector], updater: Method[IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]]) -> None:
-            super().__init__(updater)
-
-            self.__root: ICompositeExpressionRoot[TValue, TConnector] = root
-        
-        def _GetValue(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
-            return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__root.TryGetEnumerator())
+        self.__enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]] = enumerable
     
+    def _GetValue(self) -> IEnumerable[ICompositeExpression[TValue, TConnector]]:
+        return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__enumerable.TryGetRecursiveEnumerator())
+@final
+class __IterableUpdater[TValue, TConnector](ValueFunctionUpdater[Iterable[ICompositeExpression[TValue, TConnector]]]):
+    def __init__(self, root: ICompositeExpressionRoot[TValue, TConnector], updater: Method[IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]]) -> None:
+        super().__init__(updater)
+
+        self.__root: ICompositeExpressionRoot[TValue, TConnector] = root
+    
+    def _GetValue(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
+        return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__root.TryGetEnumerator())
+
+class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionRoot[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpression[TValue, TConnector]) -> None:
         def updateRecursive(func: IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]]) -> None:
             self.__recursive = func
@@ -473,8 +529,8 @@ class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpress
         
         super().__init__(initial)
     
-        self.__recursive: IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]] = _CompositeExpressionRootBase[TValue, TConnector].__RecursiveUpdater(self, updateRecursive)
-        self.__iterable: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]] = _CompositeExpressionRootBase[TValue, TConnector].__IterableUpdater(self, updateIterable)
+        self.__recursive: IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]] = _RecursiveUpdater[TValue, TConnector](self, updateRecursive) # type: ignore[no-redef]
+        self.__iterable: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]] = __IterableUpdater[TValue, TConnector](self, updateIterable) # type: ignore[no-redef]
     
     @final
     def AsRecursivelyEnumerable(self) -> IEnumerable[ICompositeExpression[TValue, TConnector]]:
@@ -522,24 +578,24 @@ class CompositeExpressionRoot[TValue, TConnector](_CompositeExpressionRootBase[T
     def __init__(self, initial: ICompositeExpressionNode[TValue, TConnector]) -> None:
         super().__init__(_CompositeExpression[TValue, TConnector](self._GetCookie, None, initial, None))
 
-class _CompositeExpressionNodeBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionNode[TValue, TConnector]):
-    @final
-    class __IterableUpdater(ValueFunctionUpdater[Iterable[ICompositeExpression[TValue, TConnector]]]):
-        def __init__(self, enumerable: IEnumerable[ICompositeExpression[TValue, TConnector]], updater: Method[IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]]) -> None:
-            super().__init__(updater)
+@final
+class _IterableUpdater[TValue, TConnector](ValueFunctionUpdater[Iterable[ICompositeExpression[TValue, TConnector]]]):
+    def __init__(self, enumerable: IEnumerable[ICompositeExpression[TValue, TConnector]], updater: Method[IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]]) -> None:
+        super().__init__(updater)
 
-            self.__enumerable: IEnumerable[ICompositeExpression[TValue, TConnector]] = enumerable
-        
-        def _GetValue(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
-            return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__enumerable.TryGetEnumerator())
+        self.__enumerable: IEnumerable[ICompositeExpression[TValue, TConnector]] = enumerable
     
+    def _GetValue(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
+        return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__enumerable.TryGetEnumerator())
+
+class _CompositeExpressionNodeBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionNode[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpression[TValue, TConnector]) -> None:
         def updateIterable(func: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]) -> None:
             self.__iterable = func
         
         super().__init__(initial)
 
-        self.__iterable: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]] = _CompositeExpressionNodeBase[TValue, TConnector].__IterableUpdater(self, updateIterable)
+        self.__iterable: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]] = _IterableUpdater[TValue, TConnector](self, updateIterable) # type: ignore[no-redef]
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:

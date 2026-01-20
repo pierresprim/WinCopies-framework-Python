@@ -12,11 +12,12 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
-from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Recursive import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
+from WinCopies.Collections.Enumeration.Recursive.Base import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked import Singly
-from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
+from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableEnumerableQueue
+from WinCopies.Collections.Linked.Singly.Base import IList, ICountableEnumerableList
 
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Object import IValueItem, IString
@@ -245,7 +246,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 return TryGetEnumerator(self.__query.GetSubqueries())
         
         @final
-        class __Enumerator(RecursivelyEnumerable[ISubselectionQuery].StackedEnumerator):
+        class __Enumerator(DefaultRecursiveStackedEnumerator[ISubselectionQuery]):
             def __init__(self, enumerable: RecursivelyEnumerable[ISubselectionQuery], enumerator: IEnumerator[ISubselectionQuery], queryBuilder: ISelectionQueryBuilder) -> None:
                 super().__init__(enumerable, enumerator)
 
@@ -442,7 +443,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
             def join(values: Iterable[str]) -> str:
                 return ", ".join(values)
 
-            columns: Singly.IList[str] = Queue[str]()
+            columns: IList[str] = Queue[str]()
 
             def addValue(item: IKeyValuePair[IString, object]) -> str:
                 columns.Push(self.FormatTableName(item.GetKey().ToString()))

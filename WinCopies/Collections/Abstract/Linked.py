@@ -6,12 +6,11 @@ from WinCopies.Collections.Abstract import TwoWayConverterBase
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked import Singly
-from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableList, ICountableEnumerableList
+from WinCopies.Collections.Linked.Singly.Base import IList, IEnumerableList, ICountableList, ICountableEnumerableList
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
-class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, TOut], Singly.IList[TOut], GenericConstraint[TList, Singly.IList[TIn]]):
+class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, TOut], IList[TOut], GenericConstraint[TList, IList[TIn]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
@@ -28,14 +27,6 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
     @final
     def PushItems(self, items: Iterable[TOut]) -> None:
         self._GetInnerContainer().PushItems(Select(items, self._ConvertBack))
-    @final
-    def TryPushItems(self, items: Iterable[TOut]|None) -> bool:
-        if items is None:
-            return False
-        
-        self.PushItems(items)
-
-        return True
     
     @final
     def TryPeek(self) -> INullable[TOut]:
@@ -49,8 +40,8 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
     def Clear(self) -> None:
         self._GetInnerContainer().Clear()
 
-class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, Singly.IList[TIn]], Singly.IList[TOut], IGenericConstraintImplementation[Singly.IList[TIn]]):
-    def __init__(self, items: Singly.IList[TIn]) -> None:
+class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IList[TIn]], IList[TOut], IGenericConstraintImplementation[IList[TIn]]):
+    def __init__(self, items: IList[TIn]) -> None:
         super().__init__(items)
 
 class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableBase[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):

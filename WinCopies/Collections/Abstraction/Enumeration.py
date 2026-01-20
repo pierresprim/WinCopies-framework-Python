@@ -97,7 +97,7 @@ class CountableEnumerable[T](CountableEnumerableBase[T]):
 class Enumerator[T](AbstractEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         EnsureDirectModuleCall()
-
+        
         super().__init__(enumerator)
     
     @staticmethod
