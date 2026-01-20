@@ -26,7 +26,7 @@ class ITree[T](IEnumerableList[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
     def AsNodeRecursivelyEnumerable(self) -> IRecursivelyEnumerable[ITreeNode[T]]:
         pass
 
-class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "TreeBase"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
+class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "TreeBase[TItem, TNode]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     @final
     class __RecursivelyEnumerable(RecursivelyEnumerable[ITreeNode[TItem]]):
         def __init__(self, tree: ITree[TItem]) -> None:
@@ -93,7 +93,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
         return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
 
 @final
-class __TreeNode[T](DoublyLinkedNode[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"], TreeBase[T, "__TreeNode"]], EnumerableList[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"]].NodeBase, ITreeNode[T], IGenericConstraintImplementation[IEnumerableList[T, ITreeNode[T]]]):
+class __TreeNode[T](DoublyLinkedNode[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"], TreeBase[T, "__TreeNode[T]"]], EnumerableList[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"]].NodeBase, ITreeNode[T], IGenericConstraintImplementation[IEnumerableList[T, ITreeNode[T]]]):
     def __init__(self, value: T, l: TreeBase[T, __TreeNode[T]]|None, previousNode: __TreeNode[T]|None, nextNode: __TreeNode[T]|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
 
