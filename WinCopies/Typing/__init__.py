@@ -202,8 +202,8 @@ __nullValue: __NullValue = __NullValue() # type: ignore
 
 def GetNullable[T](value: T) -> INullable[T]:
     return __Nullable[T](value)
-def GetNullValue[T]() -> INullable[T]: # type: ignore
-    return __nullValue # type: ignore
+def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __nullValue # pyright: ignore[reportUnknownVariableType]
 
 def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
@@ -255,7 +255,7 @@ class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProvid
     def Dispose(self) -> __IDisposableProviderItem[T]:
         self.__item.Dispose()
         
-        return __disposedItem # type: ignore
+        return __disposedItem # pyright: ignore[reportUnknownVariableType]
 
 class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
     def __init__(self) -> None:
