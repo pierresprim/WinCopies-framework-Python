@@ -94,7 +94,6 @@ class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
 
         return True
 
-@staticmethod
 def _GetList[T](l: IList[T]|None) -> IList[T]:
     return List[T]() if l is None else l
 

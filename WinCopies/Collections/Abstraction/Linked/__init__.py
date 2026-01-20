@@ -196,10 +196,8 @@ class StackBase[TItems, TList](LinkedListBase[TItems, TList]):
     def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
         return self._GetInnerContainer().AddFirstItems(items)
 
-@staticmethod
 def _GetList[T](l: IDoublyLinkedList[T]|None) -> IDoublyLinkedList[T]:
     return List[T]() if l is None else l
-@staticmethod
 def _GetCountableList[T](l: ICountableDoublyLinkedList[T]|None) -> ICountableDoublyLinkedList[T]:
     return CountableList[T]() if l is None else l
 
