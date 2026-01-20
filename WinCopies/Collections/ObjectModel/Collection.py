@@ -123,7 +123,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
-        self._RemoveItemAt(index)
+        return self._RemoveItemAt(index)
     
     @final
     def Clear(self) -> None:
