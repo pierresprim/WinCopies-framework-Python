@@ -369,7 +369,7 @@ class _ReversedArray[TItem, TCollection](_Reversed[TItem, TCollection], IArray[T
         
         super().__init__(items)
         
-        self.__readOnly: IFunction[ITuple[TItem]] = self._GetUpdater(update)
+        self.__readOnly: IFunction[ITuple[TItem]] = self._GetUpdater(update) # type: ignore[no-redef]
     
     @abstractmethod
     def _GetUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
@@ -496,7 +496,7 @@ class Tuple[T](TupleBase[T]):
         
         super().__init__()
 
-        self.__reversed: IFunction[ITuple[T]] = Tuple[T].__Updater(self, update)
+        self.__reversed: IFunction[ITuple[T]] = Tuple[T].__Updater(self, update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> ITuple[T]:
@@ -537,7 +537,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T], IEquatableTuple[T]):
         
         super().__init__()
 
-        self.__reversed: IFunction[IEquatableTuple[T]] = EquatableTuple[T].__Updater(self, update)
+        self.__reversed: IFunction[IEquatableTuple[T]] = EquatableTuple[T].__Updater(self, update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> IEquatableTuple[T]:
@@ -605,8 +605,8 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
         
         super().__init__()
 
-        self.__readOnly: IFunction[ITuple[TItem]] = ArrayBase[TItem, TCollection].__ReadOnlyUpdater(self, updateReadOnly)
-        self.__reversed: IFunction[TCollection] = self._GetUpdater(updateReversed)
+        self.__readOnly: IFunction[ITuple[TItem]] = ArrayBase[TItem, TCollection].__ReadOnlyUpdater(self, updateReadOnly) # type: ignore[no-redef]
+        self.__reversed: IFunction[TCollection] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
     
     @abstractmethod
     def _GetUpdater(self, func: Method[IFunction[TCollection]]) -> IFunction[TCollection]:
@@ -770,7 +770,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlySet[T]] = Set[T].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlySet[T]] = Set[T].__Updater(self, update) # type: ignore[no-redef]
     
     def _AsReadOnly(self) -> IReadOnlySet[T]:
         return Set[T]._ReadOnlySet(self)
@@ -832,7 +832,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlyDictionary[TKey, TValue]] = Dictionary[TKey, TValue].__Updater(self, update)
+        self.__readOnly: IFunction[IReadOnlyDictionary[TKey, TValue]] = Dictionary[TKey, TValue].__Updater(self, update) # type: ignore[no-redef]
     
     def _AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         return Dictionary[TKey, TValue]._ReadOnlyDictionary(self)
