@@ -150,14 +150,8 @@ class IFileStream[T](IDataStream[T], IFile):
         super().__init__()
 
 class File[T](Abstract, IFileStream[T]):
-    @final
-    class __Consts(metaclass=SingletonMeta):
-        @constant
-        def ASK_PATH_MESSAGE() -> str:
-            return "Enter a path: "
+    __ASK_PATH_MESSAGE: str = "Enter a path: "
     
-    CONSTS = __Consts()
-
     def __init__(self, path: str) -> None:
         super().__init__()
         
@@ -247,7 +241,7 @@ class File[T](Abstract, IFileStream[T]):
                 raise ValueError(f"Wrong {type(FileType).name}.", fileType)
     
     @staticmethod
-    def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
         if validator is None:
             # No path validator callback provided. Directly create file.
             return File.GetFile(fileType, message)
@@ -265,11 +259,11 @@ class File[T](Abstract, IFileStream[T]):
         return File.__GetDelegate(fileType, path)()
     
     @staticmethod
-    def GetFile(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE):
+    def GetFile(fileType: FileType, message: str = __ASK_PATH_MESSAGE):
         return File.__GetDelegate(fileType, input(message))()
     
     @staticmethod
-    def TryOpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
+    def TryOpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
         def open() -> TextFile|BinaryFile:
             file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
 
@@ -297,7 +291,7 @@ class File[T](Abstract, IFileStream[T]):
                 return None
     
     @staticmethod
-    def OpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    def OpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
         def open() -> TextFile|BinaryFile:
             file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
 
@@ -321,17 +315,17 @@ class File[T](Abstract, IFileStream[T]):
                 raise e
     
     @staticmethod
-    def TryGetFileCreator(fileType: FileType, validator: Predicate[str]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
+    def TryGetFileCreator(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
         return lambda: File.TryGetFile(fileType, validator, message)
     @staticmethod
-    def GetFileCreator(fileType: FileType, message: str = CONSTS.ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
+    def GetFileCreator(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
         return lambda: File.GetFile(fileType, message)
     
     @staticmethod
-    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE):
         return lambda: File.TryOpenFile(fileMode, fileType, validator, onError, message)
     @staticmethod
-    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = CONSTS.ASK_PATH_MESSAGE):
+    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE):
         return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
 class FileStream[TStream: IOBase, TData](File[TData]):
