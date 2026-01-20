@@ -21,7 +21,7 @@ class IPoint(IInterface):
     def GetY(self) -> int:
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.GetX()};{self.GetY()}"
 class IPoint3D(IPoint):
     def __init__(self) -> None:
@@ -35,7 +35,7 @@ class IPoint3D(IPoint):
     def GetZ(self) -> int:
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{super().__str__()};{self.GetZ()}"
 
 @final
