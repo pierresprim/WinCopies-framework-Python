@@ -259,7 +259,7 @@ class File[T](Abstract, IFileStream[T]):
         return File.__GetDelegate(fileType, path)()
     
     @staticmethod
-    def GetFile(fileType: FileType, message: str = __ASK_PATH_MESSAGE):
+    def GetFile(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
         return File.__GetDelegate(fileType, input(message))()
     
     @staticmethod
@@ -322,10 +322,10 @@ class File[T](Abstract, IFileStream[T]):
         return lambda: File.GetFile(fileType, message)
     
     @staticmethod
-    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE):
+    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
         return lambda: File.TryOpenFile(fileMode, fileType, validator, onError, message)
     @staticmethod
-    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE):
+    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
         return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
 class FileStream[TStream: IOBase, TData](File[TData]):
