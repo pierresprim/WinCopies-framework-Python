@@ -332,7 +332,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
         return DualResult[str, ICountableEnumerable[object]|None](self._GetStream().ToString(), CountableEnumerable[object].Create(self._GetArgs()))
     
-    def Dispose(self):
+    def Dispose(self) -> None:
         self._GetStream().Dispose()
 class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
     def __init__(self, query: IQueryBase[object]) -> None:
