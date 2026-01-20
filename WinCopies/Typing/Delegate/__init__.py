@@ -7,6 +7,7 @@ from WinCopies.Typing import GenericConstraint
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]
 type Function[T] = Callable[[], T]
+type NullableFunction[T] = Callable[[], T|None]
 type Converter[TIn, TOut] = Callable[[TIn], TOut]
 type Predicate[T] = Converter[T, bool]
 type EqualityComparison[T] = Callable[[T, T], bool]
