@@ -125,7 +125,7 @@ class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable
 class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     @final
     class __Updater(ValueFunctionUpdater[CountableBase]):
-        def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]):
+        def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]) -> None:
             super().__init__(updater)
 
             self.__items: ICountableEnumerable[T] = items
@@ -304,7 +304,7 @@ class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
         return self.__hasProcessedItems
 
 class Enumerator[T](EnumeratorBase[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__current: T|None = None
@@ -323,7 +323,7 @@ class Enumerator[T](EnumeratorBase[T]):
         self.__current = current
 
 class Iterator[T](Enumerator[T]):
-    def __init__(self, iterator: SystemIterator[T]):
+    def __init__(self, iterator: SystemIterator[T]) -> None:
         super().__init__()
 
         self.__iterator: SystemIterator[T] = iterator
@@ -377,7 +377,7 @@ def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
     return None if enumerator is None else enumerator.AsIterator()
 
 class IterableBase[T](Enumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -388,7 +388,7 @@ class IterableBase[T](Enumerable[T]):
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return TryAsEnumerator(self._TryGetIterator())
 class Iterable[T](IterableBase[T]):
-    def __init__(self, iterable: SystemIterable[T]):
+    def __init__(self, iterable: SystemIterable[T]) -> None:
         super().__init__()
 
         self.__iterable: SystemIterable[T] = iterable
@@ -409,7 +409,7 @@ class Iterable[T](IterableBase[T]):
         return None if iterable is None else Iterable[T].Create(iterable)
 
 class IteratorProvider[T](Enumerable[T]):
-    def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]|None):
+    def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]|None) -> None:
         super().__init__()
         
         self.__iteratorProvider: Function[SystemIterator[T]|None]|None = iteratorProvider
@@ -422,7 +422,7 @@ class IteratorProvider[T](Enumerable[T]):
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return TryAsEnumerator(self._TryGetIterator())
 class EnumeratorProvider[T](Enumerable[T]):
-    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None):
+    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None) -> None:
         super().__init__()
         
         self.__enumeratorProvider: Function[IEnumerator[T]|None]|None = enumeratorProvider
@@ -436,7 +436,7 @@ class EnumeratorProvider[T](Enumerable[T]):
         return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    def __init__(self, enumerator: TEnumerator):
+    def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
         
         self.__enumerator: TEnumerator = enumerator
@@ -461,17 +461,17 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     def _ResetOverride(self) -> bool:
         return self.__enumerator.TryReset() is True
 class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
-    def __init__(self, enumerator: IEnumerator[TIn]):
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 class AbstractEnumerator[T](Selector[T, T]):
-    def __init__(self, enumerator: IEnumerator[T]):
+    def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
     
     def GetCurrent(self) -> T|None:
         return self._GetEnumerator().GetCurrent()
 
 class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__moveNextFunc: Function[bool] = self.__MoveNext
@@ -567,7 +567,7 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Itera
         return self._GetEnumerator().HasProcessedItems()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
-    def __init__(self, enumerator: TEnumerator):
+    def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
 
         self.__enumerator: TEnumerator = enumerator
@@ -576,11 +576,11 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__Abstr
     def _GetEnumerator(self) -> TEnumerator:
         return self.__enumerator
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
-    def __init__(self, enumerator: IEnumerator[TIn]):
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
 class DelegateEnumerator[T](EnumeratorBase[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__moveNext: Function[bool]|None
@@ -616,7 +616,7 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
         self.__moveNext = None
 
 class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
-    def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]):
+    def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]) -> None:
         super().__init__(enumerator)
 
         self.__selector: Converter[TIn, TOut] = selector

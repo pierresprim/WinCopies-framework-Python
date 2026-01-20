@@ -33,7 +33,7 @@ class IndexKind(Enum):
     ForeignKey = 4
 
 class IIndex(IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -45,14 +45,14 @@ class IIndex(IStringable):
         pass
 
 class ISingleColumnIndex(IIndex):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetColumn(self) -> str:
         pass
 class IMultiColumnIndex(IIndex):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -60,7 +60,7 @@ class IMultiColumnIndex(IIndex):
         pass
 
 class IKey(IIndex):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -72,14 +72,14 @@ class IKey(IIndex):
         pass
 
 class ISingleColumnKey(IKey, ISingleColumnIndex):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IMultiColumnKey(IKey, IMultiColumnIndex):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IForeignKey(ISingleColumnKey):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -87,7 +87,7 @@ class IForeignKey(ISingleColumnKey):
         pass
 
 class Index(Abstract, IIndex):
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__()
         
         self.__name: str = name
@@ -97,7 +97,7 @@ class Index(Abstract, IIndex):
         return self.__name
 
 class SingleColumnIndex(Index, ISingleColumnIndex):
-    def __init__(self, name: str, columns: str):
+    def __init__(self, name: str, columns: str) -> None:
         super().__init__(name)
 
         self.__columns: str = columns
@@ -106,7 +106,7 @@ class SingleColumnIndex(Index, ISingleColumnIndex):
     def GetColumn(self) -> str:
         return self.__columns
 class MultiColumnIndex(Index, IMultiColumnIndex):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name)
 
         self.__columns: IEquatableTuple[IString] = columns if isinstance(columns, IEquatableTuple) else EquatableTuple[IString](columns)
@@ -116,14 +116,14 @@ class MultiColumnIndex(Index, IMultiColumnIndex):
         return self.__columns
 
 class NormalIndex(SingleColumnIndex):
-    def __init__(self, name: str, column: str):
+    def __init__(self, name: str, column: str) -> None:
         super().__init__(name, column)
 
     @final
     def GetType(self) -> IndexType:
         return IndexType.Normal
 class UnicityIndex(MultiColumnIndex):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name, columns)
     
     @final
@@ -131,14 +131,14 @@ class UnicityIndex(MultiColumnIndex):
         return IndexType.Unique
 
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]):
+    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name, columns)
     
     @final
     def GetKeyType(self) -> KeyType:
         return KeyType.Primary
 class ForeignKey(SingleColumnIndex, IForeignKey):
-    def __init__(self, name: str, column: str, foreignKey: DualResult[str, str]):
+    def __init__(self, name: str, column: str, foreignKey: DualResult[str, str]) -> None:
         super().__init__(name, column)
 
         self.__foreignKey: DualResult[str, str] = foreignKey
@@ -152,7 +152,7 @@ class ForeignKey(SingleColumnIndex, IForeignKey):
         return self.__foreignKey
 
 class IIndexList[T: IIndex](IReadOnlyCollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -160,7 +160,7 @@ class IIndexList[T: IIndex](IReadOnlyCollection[T]):
         pass
 
 class IIndexCollection(IEnumerable[IIndex]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -179,7 +179,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
     @final
     class __Indices(Abstract):
         class __IByName(IEquatableObject[IIndex]):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
             
             @abstractmethod
@@ -193,7 +193,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
                 return isinstance(item, IIndex) and self.GetName() == item.GetName()
         @final
         class __ByName(Abstract, __IByName):
-            def __init__(self, index: IIndex):
+            def __init__(self, index: IIndex) -> None:
                 super().__init__()
 
                 self.__index: IIndex = index
@@ -202,7 +202,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
                 return self.__index.GetName()
         @final
         class __ByField(Abstract, __IByName):
-            def __init__(self, index: ISingleColumnIndex):
+            def __init__(self, index: ISingleColumnIndex) -> None:
                 super().__init__()
 
                 self.__index: ISingleColumnIndex = index
@@ -211,7 +211,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
                 return self.__index.GetColumn()
         @final
         class __ByFields(Abstract, IEquatableObject[IMultiColumnIndex]):
-            def __init__(self, index: IMultiColumnIndex):
+            def __init__(self, index: IMultiColumnIndex) -> None:
                 super().__init__()
 
                 self.__index: IMultiColumnIndex = index
@@ -225,7 +225,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             def Equals(self, item: IMultiColumnIndex|object) -> bool:
                 return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
         
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
 
             self.__byName: ISet[IndexCollection.__Indices.__ByName] = Set[IndexCollection.__Indices.__ByName]()
@@ -241,7 +241,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             return self.__TryAddIndex(index) and self.__byFields.TryAdd(IndexCollection.__Indices.__ByFields(index))
     
     class _Collection[T: IIndex](ReadOnlyCollection[T], IIndexList[T]):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
 
             self.__indices: ICountableEnumerableList[T] = CountableEnumerableQueue[T]()
@@ -275,7 +275,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
     
     @final
     class __SingleColumnIndexCollection[T: ISingleColumnIndex](_Collection[T]):
-        def __init__(self, collection: IndexCollection.__Indices):
+        def __init__(self, collection: IndexCollection.__Indices) -> None:
             super().__init__()
             
             self.__collection: IndexCollection.__Indices = collection
@@ -289,7 +289,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             return isinstance(value, ISingleColumnIndex) and value in self._GetIndices().AsIterable() # type: ignore
     @final
     class __MultiColumnIndexCollection(_Collection[IMultiColumnIndex]):
-        def __init__(self, collection: IndexCollection.__Indices):
+        def __init__(self, collection: IndexCollection.__Indices) -> None:
             super().__init__()
             
             self.__collection: IndexCollection.__Indices = collection
@@ -302,7 +302,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         def Contains(self, value: IMultiColumnIndex|object) -> bool:
             return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
     
-    def __init__(self, primaryKey: IMultiColumnKey):
+    def __init__(self, primaryKey: IMultiColumnKey) -> None:
         super().__init__()
 
         indices: IndexCollection.__Indices = IndexCollection.__Indices()

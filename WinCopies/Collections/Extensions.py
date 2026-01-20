@@ -14,7 +14,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -29,15 +29,15 @@ class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T])
         return self.AsCollection()
 
 class IEnumerableCollection[T](IReadOnlyCollection[T], ICountableCollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class ICollection[T](IEnumerableCollection[T], ICountableListBase[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class ISequence[T](IReadOnlyCollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -53,7 +53,7 @@ class ISequence[T](IReadOnlyCollection[T]):
     def AsCollection(self) -> CollectionBase[T]:
         return self.AsSequence()
 class IMutableSequence[T](ISequence[T], ICollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -72,7 +72,7 @@ class IMutableSequence[T](ISequence[T], ICollection[T]):
         return self.AsMutableSequence()
 
 class ReadOnlyCollection[T](CollectionBase[T], IReadOnlyCollection[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -100,7 +100,7 @@ class ReadOnlyCollection[T](CollectionBase[T], IReadOnlyCollection[T]):
         return self
 
 class Sequence[T](SequenceBase[T], ReadOnlyCollection[T], ISequence[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def AsSequence(self) -> SequenceBase[T]:
@@ -115,7 +115,7 @@ class Sequence[T](SequenceBase[T], ReadOnlyCollection[T], ISequence[T]):
     def AsCollection(self) -> CollectionBase[T]:
         return self
 class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def AsMutableSequence(self) -> MutableSequenceBase[T]:
@@ -133,7 +133,7 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T
         return self
 
 class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -144,7 +144,7 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
 class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[T], IEquatableEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -155,7 +155,7 @@ class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
 class IArray[T](Collections.IArray[T], ITuple[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -170,7 +170,7 @@ class IArray[T](Collections.IArray[T], ITuple[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 class IList[T](Collections.IList[T], IArray[T], IMutableSequence[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -183,7 +183,7 @@ class IList[T](Collections.IList[T], IArray[T], IMutableSequence[T]):
 
 # TODO: Should implement a Mapping abstractor provider.
 class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -194,7 +194,7 @@ class IReadOnlyDictionary[TKey: IEquatableItem, TValue](Collections.IReadOnlyDic
         pass
 # TODO: Should implement a MutableMapping abstractor provider.
 class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -202,10 +202,10 @@ class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TV
         pass
 
 class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet, ICountableEnumerable[T], IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -213,7 +213,7 @@ class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
         pass
 
 class _Reversed[TItem, TCollection](Sequence[TItem], ITuple[TItem], GenericConstraint[TCollection, ITuple[TItem]]):
-    def __init__(self, items: TCollection):
+    def __init__(self, items: TCollection) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()
@@ -285,7 +285,7 @@ class _Reversed[TItem, TCollection](Sequence[TItem], ITuple[TItem], GenericConst
 class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
     @final
     class __Reversed(_Reversed[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
-        def __init__(self, items: ITuple[T]):
+        def __init__(self, items: ITuple[T]) -> None:
             super().__init__(items)
         
         def _SliceAt(self, key: slice) -> ITuple[T]:
@@ -298,7 +298,7 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
 
     @final
     class __Updater(ValueFunctionUpdater[ITuple[T]]):
-        def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]):
+        def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: ITuple[T] = array
@@ -306,7 +306,7 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
         def _GetValue(self) -> ITuple[T]:
             return _ReadOnlyTuple[T].__Reversed(self.__array)
     
-    def __init__(self, items: IArray[T]):
+    def __init__(self, items: IArray[T]) -> None:
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__reversed = func
         
@@ -363,7 +363,7 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
         return self._GetItems().AsSequence()
 
 class _ReversedArray[TItem, TCollection](_Reversed[TItem, TCollection], IArray[TItem], GenericSpecializedConstraint[TCollection, ITuple[TItem], IArray[TItem]]):
-    def __init__(self, items: TCollection):
+    def __init__(self, items: TCollection) -> None:
         def update(func: IFunction[ITuple[TItem]]) -> None:
             self.__readOnly = func
         
@@ -382,7 +382,7 @@ class _ReversedArray[TItem, TCollection](_Reversed[TItem, TCollection], IArray[T
         return self.__readOnly.GetValue()
 
 class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -393,7 +393,7 @@ class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         return DualValueBool[TValue](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TDefault](defaultValue, False)
 class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -410,12 +410,12 @@ class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
         return False
 
 class KeyableBase[TKey, TValue](GetterBase[TKey, TValue], SetterBase[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class TupleBase[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
     class EnumeratorBase[TItem, TList](Enumeration.EnumeratorBase[TItem], GenericConstraint[TList, ITuple[TItem]]):
-        def __init__(self, items: TList):
+        def __init__(self, items: TList) -> None:
             super().__init__()
 
             self.__list: TList = items
@@ -443,10 +443,10 @@ class TupleBase[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
 
             return True
     class Enumerator(EnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
-        def __init__(self, items: ITuple[T]):
+        def __init__(self, items: ITuple[T]) -> None:
             super().__init__(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -469,7 +469,7 @@ class TupleBase[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
 class Tuple[T](TupleBase[T]):
     @final
     class __Reversed(_Reversed[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
-        def __init__(self, items: ITuple[T]):
+        def __init__(self, items: ITuple[T]) -> None:
             super().__init__(items)
         
         def _SliceAt(self, key: slice) -> ITuple[T]:
@@ -482,7 +482,7 @@ class Tuple[T](TupleBase[T]):
     
     @final
     class __Updater(ValueFunctionUpdater[ITuple[T]]):
-        def __init__(self, array: Tuple[T], updater: Method[IFunction[ITuple[T]]]):
+        def __init__(self, array: Tuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: Tuple[T] = array
@@ -490,7 +490,7 @@ class Tuple[T](TupleBase[T]):
         def _GetValue(self) -> ITuple[T]:
             return Tuple[T].__Reversed(self.__array)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__reversed = func
         
@@ -504,7 +504,7 @@ class Tuple[T](TupleBase[T]):
 class EquatableTuple[T: IEquatableItem](TupleBase[T], IEquatableTuple[T]):
     @final
     class __Reversed(_Reversed[T, IEquatableTuple[T]], IEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
-        def __init__(self, items: IEquatableTuple[T]):
+        def __init__(self, items: IEquatableTuple[T]) -> None:
             super().__init__(items)
         
         def _SliceAt(self, key: slice) -> IEquatableTuple[T]:
@@ -523,7 +523,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T], IEquatableTuple[T]):
     
     @final
     class __Updater(ValueFunctionUpdater[IEquatableTuple[T]]):
-        def __init__(self, array: EquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]):
+        def __init__(self, array: EquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: EquatableTuple[T] = array
@@ -531,7 +531,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T], IEquatableTuple[T]):
         def _GetValue(self) -> IEquatableTuple[T]:
             return EquatableTuple[T].__Reversed(self.__array)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None:
             self.__reversed = func
         
@@ -547,7 +547,7 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
     class Reversed(_ReversedArray[TItem, TCollection], IArray[TItem], IGenericConstraint[TCollection, IArray[TItem]]):
         @final
         class __Updater(ValueFunctionUpdater[ITuple[TItem]]):
-            def __init__(self, array: IArray[TItem], updater: Method[IFunction[ITuple[TItem]]]):
+            def __init__(self, array: IArray[TItem], updater: Method[IFunction[ITuple[TItem]]]) -> None:
                 super().__init__(updater)
 
                 self.__array: IArray[TItem] = array
@@ -555,7 +555,7 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
             def _GetValue(self) -> ITuple[TItem]:
                 return _ReadOnlyTuple(self.__array)
         
-        def __init__(self, items: TCollection):
+        def __init__(self, items: TCollection) -> None:
             def update(func: IFunction[ITuple[TItem]]) -> None:
                 self.__readOnly = func
             
@@ -589,7 +589,7 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
     
     @final
     class __ReadOnlyUpdater(ValueFunctionUpdater[ITuple[TItem]]):
-        def __init__(self, array: IArray[TItem], updater: Method[IFunction[ITuple[TItem]]]):
+        def __init__(self, array: IArray[TItem], updater: Method[IFunction[ITuple[TItem]]]) -> None:
             super().__init__(updater)
 
             self.__array: IArray[TItem] = array
@@ -597,7 +597,7 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
         def _GetValue(self) -> ITuple[TItem]:
             return _ReadOnlyTuple[TItem](self.__array)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ITuple[TItem]]) -> None:
             self.__readOnly = func
         def updateReversed(func: IFunction[TCollection]) -> None:
@@ -623,12 +623,12 @@ class ArrayBase[TItem, TCollection](TupleBase[TItem], KeyableBase[int, TItem], I
 class Array[T](Collections.Array[T], ArrayBase[T, IArray[T]]):
     @final
     class __Reversed(ArrayBase[T, IArray[T]].Reversed, IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
-        def __init__(self, items: IArray[T]):
+        def __init__(self, items: IArray[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(ValueFunctionUpdater[IArray[T]]):
-        def __init__(self, array: Array[T], updater: Method[IFunction[IArray[T]]]):
+        def __init__(self, array: Array[T], updater: Method[IFunction[IArray[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: Array[T] = array
@@ -636,7 +636,7 @@ class Array[T](Collections.Array[T], ArrayBase[T, IArray[T]]):
         def _GetValue(self) -> IArray[T]:
             return Array[T].__Reversed(self.__array)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -648,7 +648,7 @@ class Array[T](Collections.Array[T], ArrayBase[T, IArray[T]]):
         return self._AsReversed()
 
 class ReversedListBase[TItem, TList](ArrayBase[TItem, TList].Reversed, MutableSequence[TItem], IList[TItem]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__(items)
     
     @abstractmethod
@@ -705,7 +705,7 @@ class ReversedListBase[TItem, TList](ArrayBase[TItem, TList].Reversed, MutableSe
 class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
     @final
     class __Reversed(ReversedListBase[T, IList[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
-        def __init__(self, items: IList[T]):
+        def __init__(self, items: IList[T]) -> None:
             super().__init__(items)
         
         def _GetContainerAsList(self, container: IList[T]) -> IList[T]:
@@ -713,7 +713,7 @@ class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
     
     @final
     class __Updater(ValueFunctionUpdater[IList[T]]):
-        def __init__(self, array: List[T], updater: Method[IFunction[IList[T]]]):
+        def __init__(self, array: List[T], updater: Method[IFunction[IList[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: List[T] = array
@@ -721,7 +721,7 @@ class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
         def _GetValue(self) -> IList[T]:
             return List[T].__Reversed(self.__array)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -734,7 +734,7 @@ class List[T](Collections.List[T], ArrayBase[T, IList[T]], IList[T]):
 
 class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
     class _ReadOnlySet(CountableEnumerable[T], IReadOnlySet[T]):
-        def __init__(self, items: IReadOnlySet[T]):
+        def __init__(self, items: IReadOnlySet[T]) -> None:
             super().__init__()
 
             self.__set: IReadOnlySet[T] = items
@@ -756,7 +756,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
     
     @final
     class __Updater(ValueFunctionUpdater[IReadOnlySet[T]]):
-        def __init__(self, items: Set[T], updater: Method[IFunction[IReadOnlySet[T]]]):
+        def __init__(self, items: Set[T], updater: Method[IFunction[IReadOnlySet[T]]]) -> None:
             super().__init__(updater)
 
             self.__items: Set[T] = items
@@ -764,7 +764,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
         def _GetValue(self) -> IReadOnlySet[T]:
             return self.__items._AsReadOnly()
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlySet[T]]) -> None:
             self.__readOnly = func
         
@@ -781,7 +781,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
 class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     class _ReadOnlyDictionary(CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
-        def __init__(self, dictionary: Dictionary[TKey, TValue]):
+        def __init__(self, dictionary: Dictionary[TKey, TValue]) -> None:
             super().__init__()
 
             self.__dictionary: Dictionary[TKey, TValue] = dictionary
@@ -818,7 +818,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
     
     @final
     class __Updater(ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
-        def __init__(self, dictionary: Dictionary[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]):
+        def __init__(self, dictionary: Dictionary[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
             super().__init__(updater)
 
             self.__dictionary: Dictionary[TKey, TValue] = dictionary
@@ -826,7 +826,7 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
         def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]:
             return self.__dictionary._AsReadOnly()
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None:
             self.__readOnly = func
         

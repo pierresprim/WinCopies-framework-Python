@@ -10,7 +10,7 @@ from WinCopies.Typing import IGenericConstraint, IGenericConstraintImplementatio
 from WinCopies.Typing.Delegate import Function
 
 class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TNode, ILinkedNode[TItems]]):
-    def __init__(self, node: TNode):
+    def __init__(self, node: TNode) -> None:
         super().__init__()
 
         self.__first: TNode = node
@@ -70,7 +70,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
         return True
 
 class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IGenericConstraintImplementation[ILinkedNode[T]]):
-    def __init__(self, node: ILinkedNode[T]):
+    def __init__(self, node: ILinkedNode[T]) -> None:
         super().__init__(node)
     
     @final

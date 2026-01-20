@@ -8,7 +8,7 @@ from WinCopies.Collections.Abstraction.Linked import ListBase
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
 class BufferedList[TItems, TList](ListBase[TItems], GenericConstraint[TList, IList[TItems]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__list: TList = items
@@ -39,7 +39,7 @@ class BufferedList[TItems, TList](ListBase[TItems], GenericConstraint[TList, ILi
         self._GetInnerContainer().Clear()
 
 class BufferedQueueBase[TItems, TList](BufferedList[TItems, TList]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__(items)
     
     @final
@@ -49,7 +49,7 @@ class BufferedQueueBase[TItems, TList](BufferedList[TItems, TList]):
     def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
         return self._GetInnerContainer().AddItems(items)
 class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__(items)
     
     @final
@@ -97,8 +97,8 @@ def _GetList[T](l: IList[T]|None) -> IList[T]:
     return List[T]() if l is None else l
 
 class BufferedQueue[T](BufferedQueueBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, l: IList[T]|None = None):
+    def __init__(self, l: IList[T]|None = None) -> None:
         super().__init__(_GetList(l))
 class BufferedStack[T](BufferedStackBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, l: IList[T]|None = None):
+    def __init__(self, l: IList[T]|None = None) -> None:
         super().__init__(_GetList(l))

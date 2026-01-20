@@ -28,7 +28,7 @@ from WinCopies.Data.Misc import JoinType, IQueryBase
 from WinCopies.Data.Parameter import IArgument, ITableParameter
 
 class IConditionalQueryWriter(IQueryBuilder):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -52,7 +52,7 @@ class IConditionalQueryWriter(IQueryBuilder):
         pass
 
 class IConditionalQueryBuilder(IConditionalQueryWriter):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -60,7 +60,7 @@ class IConditionalQueryBuilder(IConditionalQueryWriter):
         pass
 
 class ISelectionQueryWriter(IConditionalQueryWriter):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -86,11 +86,11 @@ class ISelectionQueryWriter(IConditionalQueryWriter):
         pass
 
 class ISelectionQueryBuilder(IConditionalQueryBuilder, ISelectionQueryWriter):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IParameterSetBase[T: IConditionalQueryWriter](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -98,7 +98,7 @@ class IParameterSetBase[T: IConditionalQueryWriter](IInterface):
         pass
 
 class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -118,7 +118,7 @@ class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
         pass
 
 class __IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -130,7 +130,7 @@ class __IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
         pass
 
 class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
-    def __init__(self, prefix: str, writer: T):
+    def __init__(self, prefix: str, writer: T) -> None:
         def write(value: str) -> None:
             def write(value: str) -> None:
                 self.__builder.Write(value)
@@ -152,7 +152,7 @@ class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __ICo
     def Write(self, value: str) -> None:
         return self.__write(value)
 class __NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
-    def __init__(self, writer: T):
+    def __init__(self, writer: T) -> None:
         super().__init__()
 
         self.__builder: T = writer
@@ -166,7 +166,7 @@ class __NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, _
         pass
 
 class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
-    def __init__(self, prefix: str, writer: T):
+    def __init__(self, prefix: str, writer: T) -> None:
         super().__init__()
         
         self.__builder: __IConditionalQueryWriterCookie[T] = __ConditionalQueryWriterCookie[T](prefix, writer)
@@ -218,7 +218,7 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         self.__builder = __NullConditionalQueryWriterCookie[T](builder)
 @final
 class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
-    def __init__(self, prefix: str, writer: ISelectionQueryWriter):
+    def __init__(self, prefix: str, writer: ISelectionQueryWriter) -> None:
         super().__init__(prefix, writer)
 
     def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str:
@@ -233,7 +233,7 @@ def GetPrefixedSelectionQueryWriter(prefix: str, writer: ISelectionQueryWriter) 
     return __SelectionQueryWriter(prefix, writer)
 
 class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
-    def __init__(self, query: IQueryBase[object]):
+    def __init__(self, query: IQueryBase[object]) -> None:
         super().__init__()
 
         self.__query: IQueryBase[object] = query
@@ -335,7 +335,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     def Dispose(self):
         self._GetStream().Dispose()
 class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
-    def __init__(self, query: IQueryBase[object]):
+    def __init__(self, query: IQueryBase[object]) -> None:
         super().__init__(query)
     
     @final

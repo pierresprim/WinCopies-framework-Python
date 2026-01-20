@@ -16,7 +16,7 @@ def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[
     return GetGenerator(iterable)
 
 class Enumerable[T](EnumerableBase[T]):
-    def __init__(self, enumerable: IEnumerable[T]):
+    def __init__(self, enumerable: IEnumerable[T]) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()
@@ -38,7 +38,7 @@ class Enumerable[T](EnumerableBase[T]):
         return None if enumerable is None else Enumerable[T].Create(enumerable)
 
 class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
-    def __init__(self, enumerable: IEquatableEnumerable[T]):
+    def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()
@@ -68,7 +68,7 @@ class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
     def TryCreate(enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerableBase[T]|None:
         return None if enumerable is None else EquatableEnumerable[T].Create(enumerable)
 class CountableEnumerable[T](CountableEnumerableBase[T]):
-    def __init__(self, enumerable: ICountableEnumerable[T]):
+    def __init__(self, enumerable: ICountableEnumerable[T]) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()
@@ -95,7 +95,7 @@ class CountableEnumerable[T](CountableEnumerableBase[T]):
         return None if enumerable is None else CountableEnumerable[T].Create(enumerable)
 
 class Enumerator[T](AbstractEnumerator[T]):
-    def __init__(self, enumerator: IEnumerator[T]):
+    def __init__(self, enumerator: IEnumerator[T]) -> None:
         EnsureDirectModuleCall()
 
         super().__init__(enumerator)

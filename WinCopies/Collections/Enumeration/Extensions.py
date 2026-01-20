@@ -28,7 +28,7 @@ class IterableBuilder[T](Enumerable[T]):
                 @final
                 class __Enumerator(EnumeratorBase[T]):
                     class IToken(IInterface):
-                        def __init__(self):
+                        def __init__(self) -> None:
                             super().__init__()
                         
                         @abstractmethod
@@ -40,7 +40,7 @@ class IterableBuilder[T](Enumerable[T]):
                             pass
                     @final
                     class __NullToken(Abstract, IToken):
-                        def __init__(self):
+                        def __init__(self) -> None:
                             super().__init__()
                         
                         def GetCurrent(self) -> T|None:
@@ -50,7 +50,7 @@ class IterableBuilder[T](Enumerable[T]):
                             return False
                     @final
                     class Token(Abstract, IToken):
-                        def __init__(self, node: IDoublyLinkedNode[T]):
+                        def __init__(self, node: IDoublyLinkedNode[T]) -> None:
                             def moveNext() -> bool:
                                 def moveNext() -> bool:
                                     if self.__node is None:
@@ -78,7 +78,7 @@ class IterableBuilder[T](Enumerable[T]):
                     
                     @final
                     class __Enumerator(Abstract):
-                        def __init__(self, enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator):
+                        def __init__(self, enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator) -> None:
                             super().__init__()
 
                             self.__enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator = enumerator
@@ -92,7 +92,7 @@ class IterableBuilder[T](Enumerable[T]):
                         def MoveNext(self) -> bool:
                             return self.__enumerator.MoveNext()
                     
-                    def __init__(self, enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator):
+                    def __init__(self, enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator) -> None:
                         super().__init__()
 
                         self.__enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator.__Enumerator.__Enumerator = IterableBuilder[T].__Iterable.__Iterable.__Enumerator.__Enumerator.__Enumerator(enumerator)
@@ -123,7 +123,7 @@ class IterableBuilder[T](Enumerable[T]):
 
                         return True
                 
-                def __init__(self, builder: IterableBuilder[T], enumerator: IEnumerator[T]):
+                def __init__(self, builder: IterableBuilder[T], enumerator: IEnumerator[T]) -> None:
                     super().__init__(enumerator)
 
                     self.__builder: IterableBuilder[T] = builder
@@ -189,7 +189,7 @@ class IterableBuilder[T](Enumerable[T]):
                 def _ResetOverride(self) -> bool:
                     return True
             
-            def __init__(self, builder: IterableBuilder[T], enumerator: IEnumerator[T]):
+            def __init__(self, builder: IterableBuilder[T], enumerator: IEnumerator[T]) -> None:
                 super().__init__()
 
                 self.__enumerator: IterableBuilder[T].__Iterable.__Iterable.__Enumerator = IterableBuilder[T].__Iterable.__Iterable.__Enumerator(builder, enumerator)
@@ -197,7 +197,7 @@ class IterableBuilder[T](Enumerable[T]):
             def TryGetEnumerator(self) -> IEnumerator[T]|None:
                 return self.__enumerator.GetItemEnumerator()
         
-        def __init__(self, builder: IterableBuilder[T], iterable: IEnumerable[T]):
+        def __init__(self, builder: IterableBuilder[T], iterable: IEnumerable[T]) -> None:
             super().__init__()
 
             self.__builder: IterableBuilder[T] = builder
@@ -217,7 +217,7 @@ class IterableBuilder[T](Enumerable[T]):
 
             return iterable.TryGetEnumerator()
     
-    def __init__(self, iterable: IEnumerable[T]):
+    def __init__(self, iterable: IEnumerable[T]) -> None:
         super().__init__()
 
         self.__iterable: IEnumerable[T] = IterableBuilder[T].__Iterable(self, iterable)

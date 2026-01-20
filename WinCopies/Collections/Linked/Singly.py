@@ -16,11 +16,11 @@ from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IG
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 
 class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
-    def __init__(self, value: T, nextNode: Self|None):
+    def __init__(self, value: T, nextNode: Self|None) -> None:
         super().__init__(value, nextNode)
 
 class IReadOnlyList[T](IReadOnlyCollection):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -31,7 +31,7 @@ class IReadOnlyList[T](IReadOnlyCollection):
     def TryPeek(self) -> INullable[T]:
         pass
 class IList[T](IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -71,10 +71,10 @@ class IList[T](IReadOnlyList[T]):
             result = self.TryPop()
 
 class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IEnumerableList[T](IList[T], IReadOnlyEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -85,7 +85,7 @@ class IEnumerableList[T](IList[T], IReadOnlyEnumerableList[T]):
 class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
     @final
     class __Enumerable(IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
-        def __init__(self, items: ICountableList[T]):
+        def __init__(self, items: ICountableList[T]) -> None:
             super().__init__()
 
             self.__items: ICountableList[T] = items
@@ -96,7 +96,7 @@ class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
         def GetCount(self) -> int:
             return self.__items.GetCount()
     
-    def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerable[T]]]):
+    def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerable[T]]]) -> None:
         super().__init__(updater)
 
         self.__items: ICountableList[T] = items
@@ -105,10 +105,10 @@ class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
         return _EnumerableUpdater[T].__Enumerable(self.__items)
 
 class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICountableList[T](IList[T], IReadOnlyCountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -116,10 +116,10 @@ class ICountableList[T](IList[T], IReadOnlyCountableList[T]):
         pass
 
 class IReadOnlyCountableEnumerableList[T](IReadOnlyEnumerableList[T], IReadOnlyCountableList[T], ICountableEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICountableEnumerableList[T](IEnumerableList[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -127,14 +127,14 @@ class ICountableEnumerableList[T](IEnumerableList[T], ICountableList[T], IReadOn
         pass
 
 class IReadOnlyQueue[T](IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def GetOrder(self) -> EnumerationOrder:
         return EnumerationOrder.FIFO
 class IReadOnlyStack[T](IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -142,35 +142,35 @@ class IReadOnlyStack[T](IReadOnlyList[T]):
         return EnumerationOrder.LIFO
 
 class IReadOnlyCountableQueue[T](IReadOnlyQueue[T], IReadOnlyCountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyCountableStack[T](IReadOnlyStack[T], IReadOnlyCountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyEnumerableQueue[T](IReadOnlyQueue[T], IReadOnlyEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyEnumerableStack[T](IReadOnlyStack[T], IReadOnlyEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyCountableEnumerableQueue[T](IReadOnlyCountableEnumerableList[T], IReadOnlyEnumerableQueue[T], IReadOnlyCountableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyCountableEnumerableStack[T](IReadOnlyCountableEnumerableList[T], IReadOnlyEnumerableStack[T], IReadOnlyCountableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IQueue[T](IList[T], IReadOnlyQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyQueue[T]:
         pass
 class IStack[T](IList[T], IReadOnlyStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -178,14 +178,14 @@ class IStack[T](IList[T], IReadOnlyStack[T]):
         pass
 
 class ICountableQueue[T](ICountableList[T], IQueue[T], IReadOnlyCountableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableQueue[T]:
         pass
 class ICountableStack[T](ICountableList[T], IStack[T], IReadOnlyCountableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -193,14 +193,14 @@ class ICountableStack[T](ICountableList[T], IStack[T], IReadOnlyCountableStack[T
         pass
 
 class IEnumerableQueue[T](IEnumerableList[T], IQueue[T], IReadOnlyEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]:
         pass
 class IEnumerableStack[T](IEnumerableList[T], IStack[T], IReadOnlyEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -208,14 +208,14 @@ class IEnumerableStack[T](IEnumerableList[T], IStack[T], IReadOnlyEnumerableStac
         pass
 
 class ICountableEnumerableQueue[T](ICountableEnumerableList[T], ICountableQueue[T], IEnumerableQueue[T], IReadOnlyCountableEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]:
         pass
 class ICountableEnumerableStack[T](ICountableEnumerableList[T], ICountableStack[T], IEnumerableStack[T], IReadOnlyCountableEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -223,7 +223,7 @@ class ICountableEnumerableStack[T](ICountableEnumerableList[T], ICountableStack[
         pass
 
 class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IList[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__items: TList = items
@@ -245,7 +245,7 @@ class ReadOnlyList[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstrai
         return self._GetInnerContainer().TryPeek()
 
 class AbstractList[T](Abstract, IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -255,7 +255,7 @@ class AbstractList[T](Abstract, IReadOnlyList[T]):
     def _SetFirst(self, node: SinglyLinkedNode[T]) -> None:
         pass
 class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -266,7 +266,7 @@ class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T]):
         pass
 
 class ListBase[T](AbstractList[T], IList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -368,10 +368,10 @@ class ListBase[T](AbstractList[T], IList[T]):
 
 class List[T](ListBase[T]):
     class ReadOnlyList(ReadOnlyList[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-        def __init__(self, items: IList[T]):
+        def __init__(self, items: IList[T]) -> None:
             super().__init__(items)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__first: SinglyLinkedNode[T]|None = None
@@ -389,14 +389,14 @@ class List[T](ListBase[T]):
 
 class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]):
     class ReadOnlyList(ReadOnlyList[T, IEnumerableList[T]], EnumerableCollectionBase[T], IReadOnlyEnumerableList[T], IGenericConstraintImplementation[IEnumerableList[T]]):
-        def __init__(self, items: IEnumerableList[T]):
+        def __init__(self, items: IEnumerableList[T]) -> None:
             super().__init__(items)
         
         @final
         def TryGetEnumerator(self) -> IEnumerator[T]|None:
             return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -409,7 +409,7 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
         return None if first is None else GetValueEnumeratorFromNode(first)
 
 class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -446,7 +446,7 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
         self._UnsetLast()
         self._SetUpdater(self._CreateUpdater())
 class StackBase[T](ListBase[T], IStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -458,18 +458,18 @@ class StackBase[T](ListBase[T], IStack[T]):
 
 class Queue[T](List[T], QueueBase[T]):
     class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyQueue[T]):
-        def __init__(self, items: IQueue[T]):
+        def __init__(self, items: IQueue[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IQueue[T], IReadOnlyQueue[T]]):
-        def __init__(self, value: IQueue[T], updater: Method[IFunction[IReadOnlyQueue[T]]]):
+        def __init__(self, value: IQueue[T], updater: Method[IFunction[IReadOnlyQueue[T]]]) -> None:
             super().__init__(value, updater)
         
         def _AsContainer(self, container: IQueue[T]) -> IReadOnlyQueue[T]:
             return Queue[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -504,18 +504,18 @@ class Queue[T](List[T], QueueBase[T]):
         return self.__readOnly.GetValue()
 class Stack[T](List[T], StackBase[T]):
     class _ReadOnlyList(List[T].ReadOnlyList, IReadOnlyStack[T]):
-        def __init__(self, items: IStack[T]):
+        def __init__(self, items: IStack[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IStack[T], IReadOnlyStack[T]]):
-        def __init__(self, value: IStack[T], updater: Method[IFunction[IReadOnlyStack[T]]]):
+        def __init__(self, value: IStack[T], updater: Method[IFunction[IReadOnlyStack[T]]]) -> None:
             super().__init__(value, updater)
         
         def _AsContainer(self, container: IStack[T]) -> IReadOnlyStack[T]:
             return Stack[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyStack[T]]) -> None:
             self.__readOnly = func
         
@@ -530,18 +530,18 @@ class Stack[T](List[T], StackBase[T]):
         return self.__readOnly.GetValue()
 
 class SinglyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
-    def __init__(self, node: TNode):
+    def __init__(self, node: TNode) -> None:
         super().__init__(node)
 class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLinkedNode[T]]):
-    def __init__(self, node: SinglyLinkedNode[T]):
+    def __init__(self, node: SinglyLinkedNode[T]) -> None:
         super().__init__(node)
 
 class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
     class ReadOnlyList(Enumerable[T].ReadOnlyList, IReadOnlyEnumerableQueue[T]):
-        def __init__(self, items: IEnumerableQueue[T]):
+        def __init__(self, items: IEnumerableQueue[T]) -> None:
             super().__init__(items)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         super().__init__()
 
         self.__first: SinglyLinkedNode[T]|None = None
@@ -581,10 +581,10 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
         self.__last = None
 class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
     class ReadOnlyList(Enumerable[T].ReadOnlyList, IReadOnlyEnumerableStack[T]):
-        def __init__(self, items: IEnumerableStack[T]):
+        def __init__(self, items: IEnumerableStack[T]) -> None:
             super().__init__(items)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         super().__init__()
 
         self.__first: SinglyLinkedNode[T]|None = None
@@ -605,13 +605,13 @@ class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     @final
     class __Updater(SelectionUpdater[IEnumerableQueue[T], IReadOnlyEnumerableQueue[T]]):
-        def __init__(self, value: IEnumerableQueue[T], updater: Method[IFunction[IReadOnlyEnumerableQueue[T]]]):
+        def __init__(self, value: IEnumerableQueue[T], updater: Method[IFunction[IReadOnlyEnumerableQueue[T]]]) -> None:
             super().__init__(value, updater)
         
         def _AsContainer(self, container: IEnumerableQueue[T]) -> IReadOnlyEnumerableQueue[T]:
             return EnumerableQueueBase[T].ReadOnlyList(container)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -625,13 +625,13 @@ class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
 class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
     @final
     class __Updater(SelectionUpdater[IEnumerableStack[T], IReadOnlyEnumerableStack[T]]):
-        def __init__(self, value: IEnumerableStack[T], updater: Method[IFunction[IReadOnlyEnumerableStack[T]]]):
+        def __init__(self, value: IEnumerableStack[T], updater: Method[IFunction[IReadOnlyEnumerableStack[T]]]) -> None:
             super().__init__(value, updater)
         
         def _AsContainer(self, container: IEnumerableStack[T]) -> IReadOnlyEnumerableStack[T]:
             return EnumerableStackBase[T].ReadOnlyList(container)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyEnumerableStack[T]]) -> None:
             self.__readOnly = func
         
@@ -644,7 +644,7 @@ class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
         return self.__readOnly.GetValue()
 
 class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TItems]], IList[TItems]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__()
         
         self.__list: TList = l
@@ -666,11 +666,11 @@ class CollectionBase[TItems, TList](Abstract, GenericConstraint[TList, IList[TIt
         return self._GetInnerContainer().GetOrder()
 
 class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, l: IList[T]):
+    def __init__(self, l: IList[T]) -> None:
         super().__init__(l)
 
 class _CountableCollectionBase[TItems, TList](CollectionBase[TItems, TList], CountableCollectionBase, ICountableList[TItems]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         def update(func: IFunction[ICountableEnumerable[TItems]]) -> None:
             self.__generator = func
         
@@ -743,24 +743,24 @@ class _CountableCollectionBase[TItems, TList](CollectionBase[TItems, TList], Cou
 
 class _CountableCollection[TItem, TList](_CountableCollectionBase[TItem, TList]):
     class ReadOnlyList(ReadOnlyList[TItem, ICountableList[TItem]], CountableCollectionBase, IReadOnlyCountableList[TItem], IGenericConstraintImplementation[ICountableList[TItem]]):
-        def __init__(self, items: ICountableList[TItem]):
+        def __init__(self, items: ICountableList[TItem]) -> None:
             super().__init__(items)
         
         @final
         def GetCount(self) -> int:
             return self._GetContainer().GetCount()
     
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__(l)
 class CountableCollection[TItem, TList](_CountableCollection[TItem, TList]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__(l)
 
 class CountableBase[T](CountableCollection[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, l: IList[T]):
+    def __init__(self, l: IList[T]) -> None:
         super().__init__(l)
 class Countable[T](CountableBase[T]):
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         super().__init__(self._CreateList(*values))
     
     @abstractmethod
@@ -769,18 +769,18 @@ class Countable[T](CountableBase[T]):
 
 class CountableQueue[T](Countable[T], ICountableQueue[T]):
     class _ReadOnlyList(CountableBase[T].ReadOnlyList, IReadOnlyCountableQueue[T]):
-        def __init__(self, items: ICountableQueue[T]):
+        def __init__(self, items: ICountableQueue[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[ICountableQueue[T], IReadOnlyCountableQueue[T]]):
-        def __init__(self, items: ICountableQueue[T], updater: Method[IFunction[IReadOnlyCountableQueue[T]]]):
+        def __init__(self, items: ICountableQueue[T], updater: Method[IFunction[IReadOnlyCountableQueue[T]]]) -> None:
             super().__init__(items, updater)
 
         def _AsContainer(self, container: ICountableQueue[T]) -> IReadOnlyCountableQueue[T]:
             return CountableQueue[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -796,18 +796,18 @@ class CountableQueue[T](Countable[T], ICountableQueue[T]):
         return self.__readOnly.GetValue()
 class CountableStack[T](Countable[T], ICountableStack[T]):
     class _ReadOnlyList(CountableBase[T].ReadOnlyList, IReadOnlyCountableStack[T]):
-        def __init__(self, items: ICountableStack[T]):
+        def __init__(self, items: ICountableStack[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[ICountableStack[T], IReadOnlyCountableStack[T]]):
-        def __init__(self, items: ICountableStack[T], updater: Method[IFunction[IReadOnlyCountableStack[T]]]):
+        def __init__(self, items: ICountableStack[T], updater: Method[IFunction[IReadOnlyCountableStack[T]]]) -> None:
             super().__init__(items, updater)
 
         def _AsContainer(self, container: ICountableStack[T]) -> IReadOnlyCountableStack[T]:
             return CountableStack[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableStack[T]]) -> None:
             self.__readOnly = func
         
@@ -823,11 +823,11 @@ class CountableStack[T](Countable[T], ICountableStack[T]):
         return self.__readOnly.GetValue()
 
 class CountableEnumerableBase[TItems, TList](_CountableCollectionBase[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableList[TItems], GenericConstraint[TList, Enumerable[TItems]]):
-    def __init__(self, l: TList):
+    def __init__(self, l: TList) -> None:
         super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
     class ReadOnlyList(ReadOnlyList[T, ICountableEnumerableList[T]], CountableEnumerableCollectionBase[T], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[ICountableEnumerableList[T]]):
-        def __init__(self, items: ICountableEnumerableList[T]):
+        def __init__(self, items: ICountableEnumerableList[T]) -> None:
             super().__init__(items)
         
         @final
@@ -838,23 +838,23 @@ class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGeneric
         def TryGetEnumerator(self) -> IEnumerator[T]|None:
             return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
     
-    def __init__(self, l: Enumerable[T]):
+    def __init__(self, l: Enumerable[T]) -> None:
         super().__init__(l)
 
 class CountableEnumerableQueue[T](CountableEnumerable[T], ICountableEnumerableQueue[T]):
     class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList, IReadOnlyCountableEnumerableQueue[T]):
-        def __init__(self, l: ICountableEnumerableQueue[T]):
+        def __init__(self, l: ICountableEnumerableQueue[T]) -> None:
             super().__init__(l)
     
     @final
     class __Updater(SelectionUpdater[ICountableEnumerableQueue[T], IReadOnlyCountableEnumerableQueue[T]]):
-        def __init__(self, items: ICountableEnumerableQueue[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]):
+        def __init__(self, items: ICountableEnumerableQueue[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: ICountableEnumerableQueue[T]) -> IReadOnlyCountableEnumerableQueue[T]:
             return CountableEnumerableQueue[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableEnumerableQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -870,18 +870,18 @@ class CountableEnumerableQueue[T](CountableEnumerable[T], ICountableEnumerableQu
         return self.__readOnly.GetValue()
 class CountableEnumerableStack[T](CountableEnumerable[T], ICountableEnumerableStack[T]):
     class _ReadOnlyList(CountableEnumerable[T].ReadOnlyList, IReadOnlyCountableEnumerableStack[T]):
-        def __init__(self, l: ICountableEnumerableStack[T]):
+        def __init__(self, l: ICountableEnumerableStack[T]) -> None:
             super().__init__(l)
     
     @final
     class __Updater(SelectionUpdater[ICountableEnumerableStack[T], IReadOnlyCountableEnumerableStack[T]]):
-        def __init__(self, items: ICountableEnumerableStack[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]):
+        def __init__(self, items: ICountableEnumerableStack[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: ICountableEnumerableStack[T]) -> IReadOnlyCountableEnumerableStack[T]:
             return CountableEnumerableStack[T]._ReadOnlyList(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableEnumerableStack[T]]) -> None:
             self.__readOnly = func
         
@@ -897,7 +897,7 @@ class CountableEnumerableStack[T](CountableEnumerable[T], ICountableEnumerableSt
         return self.__readOnly.GetValue()
 
 class IBufferBase(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
     
     @abstractmethod
@@ -905,10 +905,10 @@ class IBufferBase(IInterface):
         pass
 
 class IReadOnlyBuffer[T](IReadOnlyList[T], IBufferBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IBuffer[T](IList[T], IBufferBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -916,10 +916,10 @@ class IBuffer[T](IList[T], IBufferBase):
         pass
 
 class IReadOnlyCountableBuffer[T](IReadOnlyBuffer[T], IReadOnlyCountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICountableBuffer[T](IBuffer[T], ICountableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -927,10 +927,10 @@ class ICountableBuffer[T](IBuffer[T], ICountableList[T]):
         pass
 
 class IReadOnlyEnumerableBuffer[T](IReadOnlyBuffer[T], IReadOnlyEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IEnumerableBuffer[T](IBuffer[T], IEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -938,10 +938,10 @@ class IEnumerableBuffer[T](IBuffer[T], IEnumerableList[T]):
         pass
 
 class IReadOnlyCountableEnumerableBuffer[T](IReadOnlyCountableBuffer[T], IReadOnlyEnumerableBuffer[T], IReadOnlyCountableEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICountableEnumerableBuffer[T](ICountableBuffer[T], IEnumerableBuffer[T], ICountableEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -949,42 +949,42 @@ class ICountableEnumerableBuffer[T](ICountableBuffer[T], IEnumerableBuffer[T], I
         pass
 
 class IReadOnlyBufferedQueue[T](IReadOnlyBuffer[T], IReadOnlyQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyBufferedStack[T](IReadOnlyBuffer[T], IReadOnlyStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyCountableBufferedQueue[T](IReadOnlyCountableBuffer[T], IReadOnlyBufferedQueue[T], IReadOnlyCountableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyCountableBufferedStack[T](IReadOnlyCountableBuffer[T], IReadOnlyBufferedStack[T], IReadOnlyCountableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyEnumerableBufferedQueue[T](IReadOnlyEnumerableBuffer[T], IReadOnlyBufferedQueue[T], IReadOnlyEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyEnumerableBufferedStack[T](IReadOnlyEnumerableBuffer[T], IReadOnlyBufferedStack[T], IReadOnlyEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IReadOnlyCountableEnumerableBufferedQueue[T](IReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableBufferedQueue[T], IReadOnlyEnumerableBufferedQueue[T], IReadOnlyCountableEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadOnlyCountableEnumerableBufferedStack[T](IReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableBufferedStack[T], IReadOnlyEnumerableBufferedStack[T], IReadOnlyCountableEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IBufferedQueue[T](IBuffer[T], IQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyBufferedQueue[T]:
         pass
 class IBufferedStack[T](IBuffer[T], IStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -992,14 +992,14 @@ class IBufferedStack[T](IBuffer[T], IStack[T]):
         pass
 
 class ICountableBufferedQueue[T](ICountableBuffer[T], IBufferedQueue[T], ICountableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableBufferedQueue[T]:
         pass
 class ICountableBufferedStack[T](ICountableBuffer[T], IBufferedStack[T], ICountableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -1007,14 +1007,14 @@ class ICountableBufferedStack[T](ICountableBuffer[T], IBufferedStack[T], ICounta
         pass
 
 class IEnumerableBufferedQueue[T](IEnumerableBuffer[T], IBufferedQueue[T], IEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyEnumerableBufferedQueue[T]:
         pass
 class IEnumerableBufferedStack[T](IEnumerableBuffer[T], IBufferedStack[T], IEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -1022,14 +1022,14 @@ class IEnumerableBufferedStack[T](IEnumerableBuffer[T], IBufferedStack[T], IEnum
         pass
 
 class ICountableEnumerableBufferedQueue[T](ICountableEnumerableBuffer[T], ICountableBufferedQueue[T], IEnumerableBufferedQueue[T], ICountableEnumerableQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableBufferedQueue[T]:
         pass
 class ICountableEnumerableBufferedStack[T](ICountableEnumerableBuffer[T], ICountableBufferedStack[T], IEnumerableBufferedStack[T], ICountableEnumerableStack[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -1037,7 +1037,7 @@ class ICountableEnumerableBufferedStack[T](ICountableEnumerableBuffer[T], ICount
         pass
 
 class AbstractBuffer[T](AbstractList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -1045,7 +1045,7 @@ class AbstractBuffer[T](AbstractList[T]):
         pass
 
 class BufferBase[T](AbstractBuffer[T], IBufferBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -1074,25 +1074,25 @@ class BufferBase[T](AbstractBuffer[T], IBufferBase):
 
 class Buffer[T](BufferBase[T], IBuffer[T]):
     class ReadOnlyBuffer(ReadOnlyList[T, IBuffer[T]], IReadOnlyBuffer[T], IGenericConstraintImplementation[IBuffer[T]]):
-        def __init__(self, items: IBuffer[T]):
+        def __init__(self, items: IBuffer[T]) -> None:
             super().__init__(items)
         
         @final
         def Move(self) -> bool|None:
             return self._GetContainer().Move()
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class AbstractBufferedQueue[T](AbstractBuffer[T], AbstractQueue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _OnSetFirst(self, first: SinglyLinkedNode[T], last: SinglyLinkedNode[T]) -> None:
         self._SetFirst(first)
         self._SetLast(last)
 class AbstractBufferedStack[T](AbstractBuffer[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _OnSetFirst(self, first: SinglyLinkedNode[T], last: SinglyLinkedNode[T]) -> None:
@@ -1100,18 +1100,18 @@ class AbstractBufferedStack[T](AbstractBuffer[T]):
 
 class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBufferedQueue[T]):
     class _ReadOnlyBuffer(Buffer[T].ReadOnlyBuffer, IReadOnlyBufferedQueue[T]):
-        def __init__(self, items: IBuffer[T]):
+        def __init__(self, items: IBuffer[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IBufferedQueue[T], IReadOnlyBufferedQueue[T]]):
-        def __init__(self, items: IBufferedQueue[T], updater: Method[IFunction[IReadOnlyBufferedQueue[T]]]):
+        def __init__(self, items: IBufferedQueue[T], updater: Method[IFunction[IReadOnlyBufferedQueue[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: IBufferedQueue[T]) -> IReadOnlyBufferedQueue[T]:
             return BufferedQueue[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyBufferedQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -1158,18 +1158,18 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
         return self.__readOnly.GetValue()
 class BufferedStack[T](StackBase[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T]):
     class _ReadOnlyBuffer(Buffer[T].ReadOnlyBuffer, IReadOnlyBufferedStack[T]):
-        def __init__(self, items: IBuffer[T]):
+        def __init__(self, items: IBuffer[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IBufferedStack[T], IReadOnlyBufferedStack[T]]):
-        def __init__(self, items: IBufferedStack[T], updater: Method[IFunction[IReadOnlyBufferedStack[T]]]):
+        def __init__(self, items: IBufferedStack[T], updater: Method[IFunction[IReadOnlyBufferedStack[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: IBufferedStack[T]) -> IReadOnlyBufferedStack[T]:
             return BufferedStack[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyBufferedStack[T]]) -> None:
             self.__readOnly = func
         
@@ -1196,7 +1196,7 @@ class BufferedStack[T](StackBase[T], Buffer[T], AbstractBufferedStack[T], IBuffe
         return self.__readOnly.GetValue()
 
 class IBufferCookie[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -1207,7 +1207,7 @@ class IBufferCookie[T](IInterface):
         pass
 
 class IBufferedQueueCookie[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -1218,7 +1218,7 @@ class IBufferedQueueCookie[T](IInterface):
         pass
 
 class IBufferedList[T](IBuffer[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -1226,7 +1226,7 @@ class IBufferedList[T](IBuffer[T]):
         pass
 
 class IBufferedQueueList[T](IBufferedList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -1236,7 +1236,7 @@ class IBufferedQueueList[T](IBufferedList[T]):
 class _BufferedList[T](Buffer[T], IBufferedList[T]):
     @final
     class _Cookie(IBufferCookie[T]):
-        def __init__(self, buffer: _BufferedList[T]):
+        def __init__(self, buffer: _BufferedList[T]) -> None:
             super().__init__()
 
             self.__buffer: _BufferedList[T] = buffer
@@ -1248,7 +1248,7 @@ class _BufferedList[T](Buffer[T], IBufferedList[T]):
     
     @final
     class __Updater(ValueFunctionUpdater[IBufferCookie[T]]):
-        def __init__(self, buffer: _BufferedList[T], updater: Method[IFunction[IBufferCookie[T]]]):
+        def __init__(self, buffer: _BufferedList[T], updater: Method[IFunction[IBufferCookie[T]]]) -> None:
             super().__init__(updater)
 
             self.__buffer: _BufferedList[T] = buffer
@@ -1256,7 +1256,7 @@ class _BufferedList[T](Buffer[T], IBufferedList[T]):
         def _GetValue(self) -> IBufferCookie[T]:
             return _BufferedList[T]._Cookie(self.__buffer)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -1273,7 +1273,7 @@ class _BufferedList[T](Buffer[T], IBufferedList[T]):
 class _BufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueueList[T]):
     @final
     class _QueueCookie(IBufferedQueueCookie[T]):
-        def __init__(self, buffer: _BufferedQueue[T]):
+        def __init__(self, buffer: _BufferedQueue[T]) -> None:
             super().__init__()
 
             self.__buffer: _BufferedQueue[T] = buffer
@@ -1283,7 +1283,7 @@ class _BufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueueList[T
     
     @final
     class __Updater(ValueFunctionUpdater[IBufferedQueueCookie[T]]):
-        def __init__(self, buffer: _BufferedQueue[T], updater: Method[IFunction[IBufferedQueueCookie[T]]]):
+        def __init__(self, buffer: _BufferedQueue[T], updater: Method[IFunction[IBufferedQueueCookie[T]]]) -> None:
             super().__init__(updater)
 
             self.__buffer: _BufferedQueue[T] = buffer
@@ -1291,7 +1291,7 @@ class _BufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueueList[T
         def _GetValue(self) -> IBufferedQueueCookie[T]:
             return _BufferedQueue[T]._QueueCookie(self.__buffer)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -1303,15 +1303,15 @@ class _BufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueueList[T
         self._SetLast(node)
 
 class _IBufferedQueue[T](IBufferedQueue[T], IBufferedQueueList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class _IBufferedStack[T](IBufferedStack[T], IBufferedList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class _CountableBufferBase[TItem, TList](_CountableCollection[TItem, TList], BufferBase[TItem], ICountableBuffer[TItem], GenericSpecializedConstraint[TList, IList[TItem], IBufferedList[TItem]]):
     class ReadOnlyBuffer(ReadOnlyList[TItem, ICountableBuffer[TItem]], CountableCollectionBase, IReadOnlyCountableBuffer[TItem], IGenericConstraintImplementation[ICountableBuffer[TItem]]):
-        def __init__(self, items: ICountableBuffer[TItem]):
+        def __init__(self, items: ICountableBuffer[TItem]) -> None:
             super().__init__(items)
         
         @final
@@ -1322,7 +1322,7 @@ class _CountableBufferBase[TItem, TList](_CountableCollection[TItem, TList], Buf
         def Move(self) -> bool|None:
             return self._GetContainer().Move()
     
-    def __init__(self, *values: TItem):
+    def __init__(self, *values: TItem) -> None:
         super().__init__(self._CreateBuffer(*values))
     
     @abstractmethod
@@ -1342,11 +1342,11 @@ class _CountableBufferBase[TItem, TList](_CountableCollection[TItem, TList], Buf
 
 class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], AbstractBufferedQueue[T], ICountableBufferedQueue[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedQueueList[T]]):
     class _ReadOnlyBuffer(_CountableBufferBase[T, IBufferedQueueList[T]].ReadOnlyBuffer, IReadOnlyCountableBufferedQueue[T]):
-        def __init__(self, items: ICountableBuffer[T]):
+        def __init__(self, items: ICountableBuffer[T]) -> None:
             super().__init__(items)
     
     class Buffer(_BufferedQueue[T], _IBufferedQueue[T]):
-        def __init__(self, *values: T):
+        def __init__(self, *values: T) -> None:
             def update(func: IFunction[IBufferCookie[T]]) -> None:
                 self.__cookie = func
             def updateQueueCookie(func: IFunction[IBufferedQueueCookie[T]]) -> None:
@@ -1366,13 +1366,13 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], 
     
     @final
     class __Updater(SelectionUpdater[ICountableBufferedQueue[T], IReadOnlyCountableBufferedQueue[T]]):
-        def __init__(self, items: ICountableBufferedQueue[T], updater: Method[IFunction[IReadOnlyCountableBufferedQueue[T]]]):
+        def __init__(self, items: ICountableBufferedQueue[T], updater: Method[IFunction[IReadOnlyCountableBufferedQueue[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: ICountableBufferedQueue[T]) -> IReadOnlyCountableBufferedQueue[T]:
             return CountableBufferedQueue[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableBufferedQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -1399,11 +1399,11 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], 
         return self.__readOnly.GetValue()
 class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedList[T]], AbstractBufferedStack[T], ICountableBufferedStack[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedList[T]]):
     class _ReadOnlyBuffer(_CountableBufferBase[T, IBufferedList[T]].ReadOnlyBuffer, IReadOnlyCountableBufferedStack[T]):
-        def __init__(self, items: ICountableBuffer[T]):
+        def __init__(self, items: ICountableBuffer[T]) -> None:
             super().__init__(items)
     
     class Buffer(BufferedStack[T], _BufferedList[T], _IBufferedStack[T]):
-        def __init__(self, *values: T):
+        def __init__(self, *values: T) -> None:
             def update(func: IFunction[IBufferCookie[T]]) -> None:
                 self.__cookie = func
             
@@ -1417,13 +1417,13 @@ class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedList[T]], Abstr
     
     @final
     class __Updater(SelectionUpdater[ICountableBufferedStack[T], IReadOnlyCountableBufferedStack[T]]):
-        def __init__(self, items: ICountableBufferedStack[T], updater: Method[IFunction[IReadOnlyCountableBufferedStack[T]]]):
+        def __init__(self, items: ICountableBufferedStack[T], updater: Method[IFunction[IReadOnlyCountableBufferedStack[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: ICountableBufferedStack[T]) -> IReadOnlyCountableBufferedStack[T]:
             return CountableBufferedStack[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyCountableBufferedStack[T]]) -> None:
             self.__readOnly = func
         
@@ -1440,7 +1440,7 @@ class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedList[T]], Abstr
 
 class EnumerableBuffer[T](Enumerable[T], BufferBase[T], IEnumerableBuffer[T]):
     class ReadOnlyBuffer(ReadOnlyList[T, IEnumerableBuffer[T]], EnumerableCollectionBase[T], IReadOnlyEnumerableBuffer[T], IGenericConstraintImplementation[IEnumerableBuffer[T]]):
-        def __init__(self, items: IEnumerableBuffer[T]):
+        def __init__(self, items: IEnumerableBuffer[T]) -> None:
             super().__init__(items)
         
         @final
@@ -1451,23 +1451,23 @@ class EnumerableBuffer[T](Enumerable[T], BufferBase[T], IEnumerableBuffer[T]):
         def TryGetEnumerator(self) -> IEnumerator[T]|None:
             return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBuffer[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T]):
     class _ReadOnlyBuffer(EnumerableBuffer[T].ReadOnlyBuffer, IReadOnlyEnumerableBufferedQueue[T]):
-        def __init__(self, items: IEnumerableBufferedQueue[T]):
+        def __init__(self, items: IEnumerableBufferedQueue[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IEnumerableBufferedQueue[T], IReadOnlyEnumerableBufferedQueue[T]]):
-        def __init__(self, items: IEnumerableBufferedQueue[T], updater: Method[IFunction[IReadOnlyEnumerableBufferedQueue[T]]]):
+        def __init__(self, items: IEnumerableBufferedQueue[T], updater: Method[IFunction[IReadOnlyEnumerableBufferedQueue[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: IEnumerableBufferedQueue[T]) -> IReadOnlyEnumerableBufferedQueue[T]:
             return EnumerableBufferedQueue[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None:
             self.__readOnly = func
         
@@ -1480,18 +1480,18 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBuffer[T], Ab
         return self.__readOnly.GetValue()
 class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBuffer[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T]):
     class _ReadOnlyBuffer(EnumerableBuffer[T].ReadOnlyBuffer, IReadOnlyEnumerableBufferedStack[T]):
-        def __init__(self, items: IEnumerableBufferedStack[T]):
+        def __init__(self, items: IEnumerableBufferedStack[T]) -> None:
             super().__init__(items)
     
     @final
     class __Updater(SelectionUpdater[IEnumerableBufferedStack[T], IReadOnlyEnumerableBufferedStack[T]]):
-        def __init__(self, items: IEnumerableBufferedStack[T], updater: Method[IFunction[IReadOnlyEnumerableBufferedStack[T]]]):
+        def __init__(self, items: IEnumerableBufferedStack[T], updater: Method[IFunction[IReadOnlyEnumerableBufferedStack[T]]]) -> None:
             super().__init__(items, updater)
         
         def _AsContainer(self, container: IEnumerableBufferedStack[T]) -> IReadOnlyEnumerableBufferedStack[T]:
             return EnumerableBufferedStack[T]._ReadOnlyBuffer(container)
     
-    def __init__(self, *values: T):
+    def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None:
             self.__readOnly = func
         

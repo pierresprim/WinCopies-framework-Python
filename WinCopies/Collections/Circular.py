@@ -9,7 +9,7 @@ from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
 
 class ICircularTuple[T](ITuple[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -24,17 +24,17 @@ class ICircularTuple[T](ITuple[T]):
     def GetIndex(self, index: int) -> int:
         return GetIndex(index, self.GetCount(), self.GetStart())[0]
 class ICircularEquatableTuple[T: IEquatableItem](ICircularTuple[T], IEquatableTuple[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICircularArray[T](ICircularTuple[T], IArray[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class ICircularList[T](ICircularArray[T], IList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
-    def __init__(self, items: TList, start: int):
+    def __init__(self, items: TList, start: int) -> None:
         super().__init__()
         
         self.__list: TList = items
@@ -86,14 +86,14 @@ class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTup
         return GetItems(self, index)
 
 class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintImplementation[ITuple[T]]):
-    def __init__(self, items: ITuple[T], start: int):
+    def __init__(self, items: ITuple[T], start: int) -> None:
         super().__init__(items, start)
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetInnerContainer().SliceAt(self._GetKey(key))
 class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T], start: int):
+    def __init__(self, items: IEquatableTuple[T], start: int) -> None:
         super().__init__(items, start)
     
     @final
@@ -107,21 +107,21 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, IEquatableTuple[
         return self is item
 
 class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], ArrayBase[TItem, TList], ICircularArray[TItem]):
-    def __init__(self, items: TList, start: int):
+    def __init__(self, items: TList, start: int) -> None:
         super().__init__(items, start)
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer().SetAt(self.GetIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
-    def __init__(self, items: IArray[T], start: int):
+    def __init__(self, items: IArray[T], start: int) -> None:
         super().__init__(items, start)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]:
         return self._GetContainer().SliceAt(self._GetKey(key))
 class CircularList[T](CircularBase[T, IList[T]], List[T], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
-    def __init__(self, items: IList[T], start: int):
+    def __init__(self, items: IList[T], start: int) -> None:
         super().__init__(items, start)
     
     @final

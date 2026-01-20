@@ -9,7 +9,7 @@ from WinCopies.Typing.Delegate.Event import IEvent, INotifyableEvent, IEventMana
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
 class ILevelChangedEventArgs[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -17,7 +17,7 @@ class ILevelChangedEventArgs[T](IInterface):
         pass
 
 class LevelChangedEventArgs[T](Abstract, ILevelChangedEventArgs[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__()
 
         self.__item: T = item
@@ -26,7 +26,7 @@ class LevelChangedEventArgs[T](Abstract, ILevelChangedEventArgs[T]):
     def GetItem(self) -> T:
         return self.__item
 class NotifyableLevelChangedEventArgs[T](NotifyableEventArgs, ILevelChangedEventArgs[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__()
 
         self.__item: T = item
@@ -36,21 +36,21 @@ class NotifyableLevelChangedEventArgs[T](NotifyableEventArgs, ILevelChangedEvent
         return self.__item
 
 class EnteringLevelEventArgs[T](LevelChangedEventArgs[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__(item)
 class NotifyableEnteringLevelEventArgs[T](NotifyableLevelChangedEventArgs[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__(item)
 
 class _IEventManagerAbstract[TSender, TArgs](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
         pass
 class _EventManagerAbstract[TSender, TArgs](Abstract, _IEventManagerAbstract[TSender, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         
         self.__eventManager: IEventManager[TSender, TArgs] = self._GetEventManager()
@@ -68,14 +68,14 @@ class _EventManagerAbstract[TSender, TArgs](Abstract, _IEventManagerAbstract[TSe
         return self.__eventManager.Invoke(sender, args)
 
 class _EventManagerBase[TSender, TArgs](_EventManagerAbstract[TSender, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def _GetEventManager(self) -> IEventManager[TSender, TArgs]:
         return EventManager[TSender, TArgs]()
 class _NotifyableEventManagerBase[TSender, TArgs: INotifyableEvent](_EventManagerAbstract[TSender, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -83,14 +83,14 @@ class _NotifyableEventManagerBase[TSender, TArgs: INotifyableEvent](_EventManage
         return CancellableEventManager[TSender, TArgs]()
 
 class _StartingEventManager[T](_EventManagerBase[T, CancellableEventArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
     def InvokeWithDefaultArgs(self, sender: T) -> bool|None:
         return self.Invoke(sender, CancellableEventArgs())
 class _EventManager[T](_EventManagerBase[T, None]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -98,7 +98,7 @@ class _EventManager[T](_EventManagerBase[T, None]):
         return self.Invoke(sender, None)
 
 class _ILevelEventManagerAbstract[TSender, TCookie, TArgs](_IEventManagerAbstract[TSender, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -112,22 +112,22 @@ class _ILevelEventManagerAbstract[TSender, TCookie, TArgs](_IEventManagerAbstrac
         return DualValueNullableBool[TArgs](args, self.Invoke(sender, args))
 
 class _LevelEventManagerBase[TSender, TCookie, TArgs](_EventManagerBase[TSender, TArgs], _ILevelEventManagerAbstract[TSender, TCookie, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class _NotifyableLevelEventManagerBase[TSender, TCookie, TArgs: INotifyableEvent](_NotifyableEventManagerBase[TSender, TArgs], _ILevelEventManagerAbstract[TSender, TCookie, TArgs]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 @final
 class _LevelEventManager[TSender, TCookie](_LevelEventManagerBase[TSender, TCookie, LevelChangedEventArgs[TCookie]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _GetEventArgs(self, item: TCookie) -> LevelChangedEventArgs[TCookie]:
         return LevelChangedEventArgs[TCookie](item)
 @final
 class _EnteringLevelEventManager[TSender, TItem](_LevelEventManagerBase[TSender, TItem, EnteringLevelEventArgs[TItem]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _GetEventArgs(self, item: TItem) -> EnteringLevelEventArgs[TItem]:
@@ -135,21 +135,21 @@ class _EnteringLevelEventManager[TSender, TItem](_LevelEventManagerBase[TSender,
 
 @final
 class _NotifyableLevelEventManager[TSender, TCookie](_NotifyableLevelEventManagerBase[TSender, TCookie, NotifyableLevelChangedEventArgs[TCookie]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _GetEventArgs(self, item: TCookie) -> NotifyableLevelChangedEventArgs[TCookie]:
         return NotifyableLevelChangedEventArgs[TCookie](item)
 @final
 class _NotifyableEnteringLevelEventManager[TSender, TItem](_NotifyableLevelEventManagerBase[TSender, TItem, NotifyableEnteringLevelEventArgs[TItem]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _GetEventArgs(self, item: TItem) -> NotifyableEnteringLevelEventArgs[TItem]:
         return NotifyableEnteringLevelEventArgs[TItem](item)
 
 class IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, TCookie](IRecursiveEnumerationHandlerBase[TItem, TCookie]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -180,14 +180,14 @@ class IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, TCookie](IRecursi
     def OnExitingSublevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
         pass
 class IDelegateRecursiveEnumerationHandler[TSender, TItem](IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, None], IRecursiveEnumerationHandler[TItem]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IDelegateRecursiveStackedEnumerationHandler[TSender, TItem](IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, TItem], IRecursiveStackedEnumerationHandler[TItem]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class RecursiveEnumerationHandlerBase[TSender, TItem, TCookie](Abstract, IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, TCookie]):
-    def __init__(self, sender: TSender):
+    def __init__(self, sender: TSender) -> None:
         def getEntranceLevelEventManager() -> _NotifyableEnteringLevelEventManager[TSender, TItem]:
             return _NotifyableEnteringLevelEventManager[TSender, TItem]()
         def getExitLevelEventManager() -> _NotifyableLevelEventManager[TSender, TCookie]:
@@ -295,8 +295,8 @@ class RecursiveEnumerationHandlerBase[TSender, TItem, TCookie](Abstract, IDelega
         self.__stopped.InvokeEvents(self._GetSender())
 
 class RecursiveEnumerationHandler[TSender, TItem](RecursiveEnumerationHandlerBase[TSender, TItem, None], IDelegateRecursiveEnumerationHandler[TSender, TItem]):
-    def __init__(self, sender: TSender):
+    def __init__(self, sender: TSender) -> None:
         super().__init__(sender)
 class RecursiveStackedEnumerationHandler[TSender, TItem](RecursiveEnumerationHandlerBase[TSender, TItem, TItem], IDelegateRecursiveStackedEnumerationHandler[TSender, TItem]):
-    def __init__(self, sender: TSender):
+    def __init__(self, sender: TSender) -> None:
         super().__init__(sender)

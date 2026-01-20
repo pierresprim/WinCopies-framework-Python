@@ -13,7 +13,7 @@ from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
-    def __init__(self, items: TSequence):
+    def __init__(self, items: TSequence) -> None:
         super().__init__()
 
         self.__items: TSequence = items
@@ -44,7 +44,7 @@ class TupleBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleBa
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
-    def __init__(self, items: tuple[T]|Iterable[T]):
+    def __init__(self, items: tuple[T]|Iterable[T]) -> None:
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
@@ -54,7 +54,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
     def ToString(self) -> str:
         return str(self._GetContainer())
 class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
-    def __init__(self, items: tuple[T]|Iterable[T]):
+    def __init__(self, items: tuple[T]|Iterable[T]) -> None:
         super().__init__(items if isinstance(items, tuple) else tuple(items))
     
     @final
@@ -71,7 +71,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
         return str(self._GetContainer())
 
 class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
-    def __init__(self, items: TSequence):
+    def __init__(self, items: TSequence) -> None:
         super().__init__(items)
     
     @final
@@ -79,7 +79,7 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], Extensions.ArrayB
         self._GetSpecializedContainer()[key] = value
 
 class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
-    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]):
+    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
         super().__init__(items if isinstance(items, MutableSequenceBase) else list(items))
     
     @final
@@ -98,7 +98,7 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
         return str(self._GetContainer())
 
 class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
-    def __init__(self, items: MutableSequenceBase[T]|None = None):
+    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
         super().__init__(list[T]() if items is None else items)
     
     @final
@@ -165,7 +165,7 @@ class List[T](ArrayBase[T, MutableSequenceBase[T]], MutableSequence[T], Extensio
 # TODO: Should inherit from MutableMapping
 class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValue]):
     class __Enumerable[T](CountableEnumerable[T]):
-        def __init__(self, dic: Dictionary[TKey, TValue]):
+        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
             super().__init__()
 
             self.__dic: Dictionary[TKey, TValue] = dic
@@ -183,14 +183,14 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
             return TryAsEnumerator(self._TryGetIterator())
     @final
     class __KeyEnumerable(__Enumerable[TKey]):
-        def __init__(self, dic: Dictionary[TKey, TValue]):
+        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[TKey]|None:
             return iter(self._GetDictionary().keys())
     @final
     class __ValueEnumerable(__Enumerable[TValue]):
-        def __init__(self, dic: Dictionary[TKey, TValue]):
+        def __init__(self, dic: Dictionary[TKey, TValue]) -> None:
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[TValue]|None:
@@ -199,7 +199,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     class Enumerator(EnumeratorBase[IKeyValuePair[TKey, TValue]]):
         @final
         class KeyValuePair(Abstract, IKeyValuePair[TKey, TValue]):
-            def __init__(self, item: tuple[TKey, TValue]):
+            def __init__(self, item: tuple[TKey, TValue]) -> None:
                 super().__init__()
                 
                 self.__item: tuple[TKey, TValue] = item
@@ -219,7 +219,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
             def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
                 return isinstance(item, Dictionary.Enumerator.KeyValuePair)
         
-        def __init__(self, dictionary: MutableMapping[TKey, TValue]):
+        def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
             super().__init__()
 
             self.__dictionary: MutableMapping[TKey, TValue] = dictionary
@@ -270,7 +270,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     
     @final
     class __None(Singleton):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
 
     __getInstance: Function[Dictionary.__None] = GetSingletonInstanceProvider(__None)
@@ -279,7 +279,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     def __GetNoneInstance() -> Dictionary.__None:
         return Dictionary[TKey, TValue].__getInstance() # type: ignore
     
-    def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None):
+    def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None) -> None:
         super().__init__()
 
         self.__dictionary: MutableMapping[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
@@ -368,7 +368,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return str(self._GetDictionary())
 
 class Set[T: IEquatableItem](Extensions.Set[T]):
-    def __init__(self, items: set[T]|None = None):
+    def __init__(self, items: set[T]|None = None) -> None:
         super().__init__()
 
         self.__set: set[T] = set[T]() if items is None else items

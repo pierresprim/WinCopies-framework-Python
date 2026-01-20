@@ -8,7 +8,7 @@ from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import Converter
 
 class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
-    def __init__(self, items: ITuple[TIn], converter: Converter[TIn, TOut]):
+    def __init__(self, items: ITuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -20,7 +20,7 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
     def _Convert(self, item: TIn) -> TOut:
         return self.__converter(item)
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.EquatableTuple[TIn, TOut]):
-    def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]):
+    def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -33,7 +33,7 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Equat
         return self.__converter(item)
 
 class Array[TIn, TOut](Collection.Array[TIn, TOut]):
-    def __init__(self, items: IArray[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]):
+    def __init__(self, items: IArray[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -50,7 +50,7 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
         return self.__backConverter(item)
 
 class List[TIn, TOut](Collection.List[TIn, TOut]):
-    def __init__(self, items: IList[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]):
+    def __init__(self, items: IList[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -67,7 +67,7 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
         return self.__backConverter(item)
 
 class Set[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Set[TIn, TOut]):
-    def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]):
+    def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -81,7 +81,7 @@ class Set[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Set[TIn, TOut]):
         return self.__backConverter(item)
 
 class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Collection.Dictionary[TKey, TValueIn, TValueOut]):
-    def __init__(self, items: IDictionary[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]):
+    def __init__(self, items: IDictionary[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> None:
         super().__init__(items)
 
         self.__converter: Converter[TValueIn, TValueOut] = converter

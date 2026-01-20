@@ -16,7 +16,7 @@ from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 
 class IFieldFactory(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -38,7 +38,7 @@ class IFieldFactory(IInterface):
         pass
 
 class IQueryFactory(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -57,7 +57,7 @@ class IQueryFactory(IInterface):
         pass
 
 class ITableQueryFactory(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -76,7 +76,7 @@ class ITableQueryFactory(IInterface):
         pass
 
 class IIndexFactory(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod

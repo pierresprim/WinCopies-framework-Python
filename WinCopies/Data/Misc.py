@@ -5,7 +5,7 @@ from typing import final
 from WinCopies import IInterface
 
 class ITableNameFormater(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -13,7 +13,7 @@ class ITableNameFormater(IInterface):
         pass
 
 class IQueryBase[T](ITableNameFormater):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod

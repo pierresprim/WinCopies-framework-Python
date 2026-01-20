@@ -4,7 +4,7 @@ from typing import final, Self
 from WinCopies import IInterface, Abstract
 
 class ILinkedNode[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -19,7 +19,7 @@ class ILinkedNode[T](IInterface):
         pass
 
 class LinkedNodeBase[T](Abstract):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__()
         
         self.__value: T = value
@@ -32,7 +32,7 @@ class LinkedNodeBase[T](Abstract):
         self.__value = value
 
 class LinkedNode[TNode: 'LinkedNode', TItems](LinkedNodeBase[TItems], ILinkedNode[TItems]):
-    def __init__(self, value: TItems, nextNode: TNode|None):
+    def __init__(self, value: TItems, nextNode: TNode|None) -> None:
         super().__init__(value)
 
         self.__next: TNode|None = nextNode

@@ -13,7 +13,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair
 from WinCopies.Data.Misc import ITableNameFormater
 
 class IColumn(IEquatableObject['IColumn']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -33,7 +33,7 @@ class IColumn(IEquatableObject['IColumn']):
     def ToString(self, selector: Selector[str]) -> str:
         pass
 class ITableColumn(IColumn):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -50,7 +50,7 @@ class ITableColumn(IColumn):
         return hash((self.GetTableName(), self.GetColumnName()))
 
 class Column(Abstract, IColumn):
-    def __init__(self, columnName: str):
+    def __init__(self, columnName: str) -> None:
         super().__init__()
 
         self.__columnName: str = columnName
@@ -62,7 +62,7 @@ class Column(Abstract, IColumn):
     def ToString(self, selector: Selector[str]) -> str:
         return selector(self.GetColumnName())
 class TableColumn(Column, ITableColumn):
-    def __init__(self, tableName: str, columnName: str):
+    def __init__(self, tableName: str, columnName: str) -> None:
         super().__init__(columnName)
 
         self.__tableName: str = tableName
@@ -128,7 +128,7 @@ class ConditionalOperator(Enum):
                 return ''
 
 class IParameterProvider(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -145,7 +145,7 @@ class IParameterProvider(IInterface):
         pass
 
 class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -169,7 +169,7 @@ class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
         pass
 
 class IOperandValue(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -177,19 +177,19 @@ class IOperandValue(IInterface):
         pass
 
 class __IOperandValue[T](IOperandValue, IKeyValuePair[T, Operator]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IOperand[T](__IOperandValue[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IColumnOperand(__IOperandValue[IColumn]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class __Operand[T](Abstract):
-    def __init__(self, operator: Operator, value: T):
+    def __init__(self, operator: Operator, value: T) -> None:
         super().__init__()
 
         self.__operator: Operator = operator
@@ -208,7 +208,7 @@ class __Operand[T](Abstract):
         return self.__operator
 
 class __NullityOperand(Abstract, IOperand[None]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def IsKeyValuePair(self) -> bool:
@@ -222,14 +222,14 @@ class __NullityOperand(Abstract, IOperand[None]):
 
 @final
 class __NullOperand(__NullityOperand):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> Operator:
         return Operator.IsValue
 @final
 class __NotNullOperand(__NullityOperand):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> Operator:
@@ -244,7 +244,7 @@ def GetNotNullOperand() -> IOperand[None]:
     return __notNullOperand
 
 class Operand[T](__Operand[T], IOperand[T]):
-    def __init__(self, operator: Operator, value: T):
+    def __init__(self, operator: Operator, value: T) -> None:
         if operator == Operator.Null:
             raise ValueError(f"No operator specified.")
         if value is None:
@@ -257,7 +257,7 @@ class Operand[T](__Operand[T], IOperand[T]):
         return builder.GetParameter(self.GetKey())
 
 class ColumnOperand(__Operand[IColumn], IColumnOperand):
-    def __init__(self, operator: Operator, column: IColumn):
+    def __init__(self, operator: Operator, column: IColumn) -> None:
         if operator == Operator.Null:
             raise ValueError(f"The operator of a {type(self).__name__} cannot be {Operator.Null.name}")
         

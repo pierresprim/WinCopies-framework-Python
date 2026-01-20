@@ -39,7 +39,7 @@ class FileMode(Enum):
                 return ''
     
     @staticmethod
-    def GetMode(fileMode: str):
+    def GetMode(fileMode: str) -> FileMode:
         match fileMode:
             case 'r':
                 return FileMode.Read
@@ -67,7 +67,7 @@ class FileType(Enum):
                 return ''
     
     @staticmethod
-    def GetType(fileType: str):
+    def GetType(fileType: str) -> FileType:
         match fileType:
             case 't':
                 return FileType.Text
@@ -77,7 +77,7 @@ class FileType(Enum):
                 return FileType.Null
 
 class IStream(IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -92,7 +92,7 @@ class IStream(IDisposable):
         self.Close()
 
 class IDataStream[T](IStream):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -110,7 +110,7 @@ class IDataStream[T](IStream):
         pass
 
 class ITextStream(IDataStream[str]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
@@ -119,11 +119,11 @@ class ITextStream(IDataStream[str]):
         if not self.TryWriteLine(text):
             raise IOError()
 class IBinaryStream(IDataStream[bytes]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IFile(IStream):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -146,7 +146,7 @@ class IFile(IStream):
         pass
 
 class IFileStream[T](IDataStream[T], IFile):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class File[T](Abstract, IFileStream[T]):
@@ -158,7 +158,7 @@ class File[T](Abstract, IFileStream[T]):
     
     CONSTS = __Consts()
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__()
         
         self.__path: str = path
@@ -335,7 +335,7 @@ class File[T](Abstract, IFileStream[T]):
         return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
 
 class FileStream[TStream: IOBase, TData](File[TData]):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
 
         self.__stream: TStream|None = None
@@ -369,7 +369,7 @@ class FileStream[TStream: IOBase, TData](File[TData]):
         return False
 
 class TextFile(FileStream[TextIOWrapper, str], ITextStream):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
     
     @final
@@ -389,7 +389,7 @@ class TextFile(FileStream[TextIOWrapper, str], ITextStream):
             stream.write(value)
 
 class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryStream):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__(path)
     
     @final
@@ -409,7 +409,7 @@ class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryStream):
             stream.write(value)
 
 class IMemoryTextStream(ITextStream, IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -420,7 +420,7 @@ class IMemoryTextStream(ITextStream, IStringable):
     def TryToString(self) -> str|None:
         pass
 class MemoryTextStream(Abstract, IMemoryTextStream):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__stream: StringIO|None = None

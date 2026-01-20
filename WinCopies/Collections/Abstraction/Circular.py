@@ -8,7 +8,7 @@ from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IG
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 
 class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], GenericConstraint[TList, ICircularTuple[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
         
         self.__list: TList = items
@@ -46,14 +46,14 @@ class CircularBase[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTup
         return GetItems(self, index)
 
 class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], IGenericConstraintImplementation[ICircularTuple[T]]):
-    def __init__(self, items: ICircularTuple[T]):
+    def __init__(self, items: ICircularTuple[T]) -> None:
         super().__init__(items)
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetInnerContainer().SliceAt(key)
 class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, ICircularEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[ICircularEquatableTuple[T]]):
-    def __init__(self, items: ICircularEquatableTuple[T]):
+    def __init__(self, items: ICircularEquatableTuple[T]) -> None:
         super().__init__(items)
     
     @final
@@ -67,7 +67,7 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, ICircularEquatab
         return self is item
 
 class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], ArrayBase[TItem, TList], ICircularArray[TItem], GenericSpecializedConstraint[TList, ICircularTuple[TItem], ICircularArray[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__(items)
     
     @final
@@ -76,7 +76,7 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], ArrayBase[TIte
 class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularArray[T]]):
     @final
     class __Reversed(ArrayBase[T, ICircularArray[T]].Reversed, ICircularArray[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularArray[T]]):
-        def __init__(self, items: ICircularArray[T]):
+        def __init__(self, items: ICircularArray[T]) -> None:
             super().__init__(items)
         
         def GetStart(self) -> int:
@@ -84,7 +84,7 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
     
     @final
     class __Updater(ValueFunctionUpdater[ICircularArray[T]]):
-        def __init__(self, array: ICircularArray[T], updater: Method[IFunction[ICircularArray[T]]]):
+        def __init__(self, array: ICircularArray[T], updater: Method[IFunction[ICircularArray[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: ICircularArray[T] = array
@@ -92,7 +92,7 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
         def _GetValue(self) -> ICircularArray[T]:
             return CircularArray[T].__Reversed(self.__array)
     
-    def __init__(self, items: ICircularArray[T]):
+    def __init__(self, items: ICircularArray[T]) -> None:
         super().__init__(items)
     
     @final
@@ -109,7 +109,7 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
 class CircularList[T](CircularArrayBase[T, ICircularList[T]], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularList[T]]):
     @final
     class __Reversed(ReversedListBase[T, ICircularList[T]], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularList[T]]):
-        def __init__(self, items: ICircularList[T]):
+        def __init__(self, items: ICircularList[T]) -> None:
             super().__init__(items)
         
         def GetStart(self) -> int:
@@ -120,7 +120,7 @@ class CircularList[T](CircularArrayBase[T, ICircularList[T]], MutableSequence[T]
     
     @final
     class __Updater(ValueFunctionUpdater[ICircularList[T]]):
-        def __init__(self, array: ICircularList[T], updater: Method[IFunction[ICircularList[T]]]):
+        def __init__(self, array: ICircularList[T], updater: Method[IFunction[ICircularList[T]]]) -> None:
             super().__init__(updater)
 
             self.__array: ICircularList[T] = array
@@ -128,7 +128,7 @@ class CircularList[T](CircularArrayBase[T, ICircularList[T]], MutableSequence[T]
         def _GetValue(self) -> ICircularList[T]:
             return CircularList[T].__Reversed(self.__array)
     
-    def __init__(self, items: ICircularList[T]):
+    def __init__(self, items: ICircularList[T]) -> None:
         super().__init__(items)
     
     @final

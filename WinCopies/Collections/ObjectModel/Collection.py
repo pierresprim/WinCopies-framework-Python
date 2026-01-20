@@ -12,7 +12,7 @@ from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
 
 class __CollectionAbstractor[T](Sequence[T], KeyableBase[int, T], IList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @overload
@@ -24,11 +24,11 @@ class __CollectionAbstractor[T](Sequence[T], KeyableBase[int, T], IList[T]):
     def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
         return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 class CollectionAbstractor[T](__CollectionAbstractor[T], MutableSequence[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstraint[TList, IList[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__items: TList = items
@@ -150,14 +150,14 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def __delitem__(self, index: int|slice):
         RemoveItems(self, index)
 class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, items: IList[T]):
+    def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
     
     def Duplicate(self, items: IList[T]) -> CollectionAbstractor[T]:
         return Collection[T](items)
 
 class ObservableCollection[T](Collection[T]):
-    def __init__(self, items: IList[T]):
+    def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
 
         self.__itemAddedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
@@ -261,7 +261,7 @@ class CollectionChangedAction(Enum):
     Remove = 5
 
 class CollectionChangedEventArgs(Abstract):
-    def __init__(self, action: CollectionChangedAction):
+    def __init__(self, action: CollectionChangedAction) -> None:
         super().__init__()
 
         self.__action: CollectionChangedAction = action

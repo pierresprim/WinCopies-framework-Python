@@ -16,7 +16,7 @@ from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, Va
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class INode[T](ILinkedNode[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -38,14 +38,14 @@ class INode[T](ILinkedNode[T]):
     def Remove(self) -> T:
         pass
 class IDoublyLinkedNode[T](INode[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetList(self) -> IList[T]|None:
         pass
 class IDoublyLinkedNodeBase[TItem, TNode](INode[TItem]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -60,7 +60,7 @@ class IDoublyLinkedNodeBase[TItem, TNode](INode[TItem]):
         return self.SetNext(value)._AsNode()
 
 class NodeBase[TItem, TNode: NodeBase](LinkedNode[TNode, TItem], IDoublyLinkedNodeBase[TItem, TNode]):
-    def __init__(self, value: TItem, previousNode: TNode|None, nextNode: TNode|None):
+    def __init__(self, value: TItem, previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, nextNode)
 
         self.__previous: TNode|None = previousNode
@@ -73,7 +73,7 @@ class NodeBase[TItem, TNode: NodeBase](LinkedNode[TNode, TItem], IDoublyLinkedNo
         self.__previous = previous
 
 class IReadOnlyList[T](IReadOnlyCollection):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -102,14 +102,14 @@ class IReadOnlyList[T](IReadOnlyCollection):
         return self.TryGetLastValue(None)
 
 class __IAbstractList[TItem, TNode](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def _GetNodeAsInterface(self, node: TNode) -> IDoublyLinkedNodeBase[TItem, TNode]:
         pass
 class IAbstractNode[TNode, TNodeInterface](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -117,7 +117,7 @@ class IAbstractNode[TNode, TNodeInterface](IInterface):
         pass
 
 class IReadWriteList[T](IReadOnlyList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -215,7 +215,7 @@ class IReadWriteList[T](IReadOnlyList[T]):
         return self.__AsGenerator(self.TryRemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
@@ -251,14 +251,14 @@ class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, I
         return self._AsContainer(self.AddLast(value))
 
 class IReadOnlyEnumerableList[T](IReadOnlyList[T], IEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IReadWriteEnumerableList[T](IReadWriteList[T], IReadOnlyEnumerableList[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class IEnumerableList[TItem, TNode](IListBase[TItem, TNode], IReadWriteEnumerableList[TItem]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -274,11 +274,11 @@ class IEnumerableList[TItem, TNode](IListBase[TItem, TNode], IReadWriteEnumerabl
         pass
 
 class IList[T](IEnumerableList[T, IDoublyLinkedNode[T]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class _INodeBase[TItem, TNode, TNodeInterface, TList](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -293,7 +293,7 @@ class _INodeBase[TItem, TNode, TNodeInterface, TList](IInterface):
         pass
 
 class DoublyLinkedNodeBase[TItem, TNode: DoublyLinkedNodeBase, TList, TListInterface](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
-    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
+    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
         EnsureDirectModuleCall()
 
         super().__init__(value, previousNode, nextNode)
@@ -490,7 +490,7 @@ class DoublyLinkedNodeBase[TItem, TNode: DoublyLinkedNodeBase, TList, TListInter
         EnsureTrue(self.Check(l))
 
 class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericConstraint[TList, IReadOnlyList[TItem]]):
-    def __init__(self, items: TList):
+    def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__items: TList = items
@@ -516,7 +516,7 @@ class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericCon
 
 class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEnumerableList[TItem, TNodeInterface], __IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
     class NodeBase(_INodeBase[TItem, TNode, TNodeInterface, TList]):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         @final
@@ -527,7 +527,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
             self._GetListAsSpecialized(l)._SetLast(node)
     @final
     class __Enumerable(Enumerable[TNodeInterface]):
-        def __init__(self, l: EnumerableList[TItem, TNode, TNodeInterface, TList]):
+        def __init__(self, l: EnumerableList[TItem, TNode, TNodeInterface, TList]) -> None:
             super().__init__()
 
             self.__list: EnumerableList[TItem, TNode, TNodeInterface, TList] = l
@@ -536,10 +536,10 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
             return self.__list.TryGetNodeEnumerator()
     
     class _ReadOnlyList(_ReadOnlyListBase[TItem, IReadOnlyList[TItem]], IGenericConstraintImplementation[IReadOnlyList[TItem]]):
-        def __init__(self, items: IReadOnlyList[TItem]):
+        def __init__(self, items: IReadOnlyList[TItem]) -> None:
             super().__init__(items)
     class _ReadOnlyEnumerableList(_ReadOnlyListBase[TItem, IReadOnlyEnumerableList[TItem]], Enumerable[TItem], IReadOnlyEnumerableList[TItem], IGenericConstraintImplementation[IReadOnlyEnumerableList[TItem]]):
-        def __init__(self, items: IReadOnlyEnumerableList[TItem]):
+        def __init__(self, items: IReadOnlyEnumerableList[TItem]) -> None:
             super().__init__(items)
         
         @final
@@ -548,7 +548,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     
     @final
     class __EnumerableUpdater(ValueFunctionUpdater[IEnumerable[TNodeInterface]]):
-        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IEnumerable[TNodeInterface]]]):
+        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IEnumerable[TNodeInterface]]]) -> None:
             super().__init__(updater)
 
             self.__items: EnumerableList[TItem, TNode, TNodeInterface, TList] = items
@@ -558,7 +558,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     
     @final
     class __ReadOnlyUpdater(ValueFunctionUpdater[IReadOnlyList[TItem]]):
-        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IReadOnlyList[TItem]]]):
+        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IReadOnlyList[TItem]]]) -> None:
             super().__init__(updater)
 
             self.__items: EnumerableList[TItem, TNode, TNodeInterface, TList] = items
@@ -567,7 +567,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
             return self.__items._AsReadOnly()
     @final
     class __ReadOnlyEnumerableUpdater(ValueFunctionUpdater[IReadOnlyEnumerableList[TItem]]):
-        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IReadOnlyEnumerableList[TItem]]]):
+        def __init__(self, items: EnumerableList[TItem, TNode, TNodeInterface, TList], updater: Method[IFunction[IReadOnlyEnumerableList[TItem]]]) -> None:
             super().__init__(updater)
 
             self.__items: EnumerableList[TItem, TNode, TNodeInterface, TList] = items
@@ -575,7 +575,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
         def _GetValue(self) -> IReadOnlyEnumerableList[TItem]:
             return self.__items._AsReadOnlyEnumerable()
     
-    def __init__(self):
+    def __init__(self) -> None:
         def updateNodeEnumerable(func: IFunction[IEnumerable[TNodeInterface]]) -> None:
             self.__nodeEnumerable = func
         def updateReadOnly(func: IFunction[IReadOnlyList[TItem]]) -> None:
@@ -705,7 +705,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
         return self.__nodeEnumerable.GetValue()
 
 class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], "ListBase"], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -717,7 +717,7 @@ class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TIte
         return DoublyLinkedNodeEnumerator[TItem](node)
 
 class _DoublyLinkedNode[TItem, TNode: _DoublyLinkedNode, TNodeInterface, TList, TListInterface](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TItem, TNode, TNodeInterface, TListInterface], IAbstractNode[TNode, TNodeInterface]):
-    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
+    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
     @final
@@ -742,7 +742,7 @@ class _DoublyLinkedNode[TItem, TNode: _DoublyLinkedNode, TNodeInterface, TList, 
         self._SetLast(l, None)
 
 class DoublyLinkedNode[TItem, TNode: DoublyLinkedNode, TNodeInterface, TList, TListInterface](_DoublyLinkedNode[TItem, TNode, TNodeInterface, TList, TListInterface]):
-    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None):
+    def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
     @final
@@ -759,7 +759,7 @@ class DoublyLinkedNode[TItem, TNode: DoublyLinkedNode, TNodeInterface, TList, TL
 
 @final
 class _Node[T](DoublyLinkedNode[T, "_Node", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node"]], EnumerableList[T, "_Node", IDoublyLinkedNode[T], ListBase[T, "_Node"]].NodeBase, IDoublyLinkedNode[T], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, previousNode: SelfType|None, nextNode: SelfType|None):
+    def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, previousNode: SelfType|None, nextNode: SelfType|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
     @final
@@ -786,7 +786,7 @@ class _Node[T](DoublyLinkedNode[T, "_Node", IDoublyLinkedNode[T], IList[T], List
         return self._GetList()
 
 class List[T](ListBase[T, _Node[T]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -801,7 +801,7 @@ class List[T](ListBase[T, _Node[T]]):
         return _Node[T](value, self, None, None)
 
 class ICountableLinkedListNode[T](INode[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -809,7 +809,7 @@ class ICountableLinkedListNode[T](INode[T]):
         pass
 
 class CountableListProvider[T](Abstract):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -832,11 +832,11 @@ class CountableListProvider[T](Abstract):
         pass
 
 class ICountableList[T](IEnumerableList[T, ICountableLinkedListNode[T]], ICountable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class CountableListBase[TItem, TNode](EnumerableList[TItem, TNode, ICountableLinkedListNode[TItem], CountableListProvider[TItem]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -845,7 +845,7 @@ class CountableListBase[TItem, TNode](EnumerableList[TItem, TNode, ICountableLin
 
 @final
 class _CountableListNode[T](_DoublyLinkedNode[T, "_CountableListNode", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], EnumerableList[T, "_CountableListNode", ICountableLinkedListNode[T], CountableListProvider[T]].NodeBase, ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
-    def __init__(self, value: T, l: CountableListProvider[T]|None, previousNode: SelfType|None, nextNode: SelfType|None):
+    def __init__(self, value: T, l: CountableListProvider[T]|None, previousNode: SelfType|None, nextNode: SelfType|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
     @final
@@ -909,7 +909,7 @@ class _CountableListNode[T](_DoublyLinkedNode[T, "_CountableListNode", ICountabl
 
 @final
 class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
-    def __init__(self, l: CountableListProvider[T]):
+    def __init__(self, l: CountableListProvider[T]) -> None:
         super().__init__()
 
         self.__items: CountableListProvider[T] = l
@@ -945,7 +945,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
 class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     @final
     class __CountableListProvider(CountableListProvider[T]):
-        def __init__(self, l: CountableList[T]):
+        def __init__(self, l: CountableList[T]) -> None:
             super().__init__()
 
             self.__items: CountableList[T] = l
@@ -964,7 +964,7 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         def OnRemoved(self, value: T) -> None:
             self.__items._OnRemoved(value)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__items: _CountableInnerList[T] = _CountableInnerList[T](CountableList[T].__CountableListProvider(self))
@@ -1034,17 +1034,17 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         self._GetItems().Clear()
 
 class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
-    def __init__(self, node: TNode):
+    def __init__(self, node: TNode) -> None:
         super().__init__(node)
 
 class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
-    def __init__(self, node: IDoublyLinkedNode[T]):
+    def __init__(self, node: IDoublyLinkedNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None:
         return self._AsContainer(node).GetNext()
 class CountableLinkedListNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, node: ICountableLinkedListNode[T]):
+    def __init__(self, node: ICountableLinkedListNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None:

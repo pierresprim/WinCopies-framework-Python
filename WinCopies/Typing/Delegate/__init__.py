@@ -14,7 +14,7 @@ type IndexedValueComparison[T] = Callable[[int, T], bool]
 type Selector[T] = Converter[T, T]
 
 class IFunction[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -27,7 +27,7 @@ class IFunction[T](IInterface):
 
 @final
 class ValueFunction[T](Abstract, IFunction[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__()
 
         self.__value: T = value
@@ -36,7 +36,7 @@ class ValueFunction[T](Abstract, IFunction[T]):
         return self.__value
 
 class FunctionUpdater[T](Abstract, IFunction[T]):
-    def __init__(self, updater: Method[IFunction[T]]):
+    def __init__(self, updater: Method[IFunction[T]]) -> None:
         super().__init__()
 
         self.__updater: Method[IFunction[T]] = updater
@@ -53,7 +53,7 @@ class FunctionUpdater[T](Abstract, IFunction[T]):
         
         return function.GetValue()
 class ValueFunctionUpdater[T](FunctionUpdater[T]):
-    def __init__(self, updater: Method[IFunction[T]]):
+    def __init__(self, updater: Method[IFunction[T]]) -> None:
         super().__init__(updater)
     
     @abstractmethod
@@ -65,7 +65,7 @@ class ValueFunctionUpdater[T](FunctionUpdater[T]):
         return ValueFunction[T](self._GetValue())
 
 class SelectionUpdater[TClass, TInterface](ValueFunctionUpdater[TInterface], GenericConstraint[TClass, TInterface]):
-    def __init__(self, value: TClass, updater: Method[IFunction[TInterface]]):
+    def __init__(self, value: TClass, updater: Method[IFunction[TInterface]]) -> None:
         super().__init__(updater)
 
         self.__value: TClass = value
@@ -79,7 +79,7 @@ class SelectionUpdater[TClass, TInterface](ValueFunctionUpdater[TInterface], Gen
 
 @final
 class __DefaultFunction(Abstract, IFunction[None]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> None:

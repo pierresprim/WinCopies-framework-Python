@@ -4,7 +4,7 @@ from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class Countable(CountableBase):
-    def __init__(self, collection: ICountable):
+    def __init__(self, collection: ICountable) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()

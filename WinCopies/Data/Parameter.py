@@ -19,7 +19,7 @@ from WinCopies.Typing.Delegate import IFunction, ValueFunction
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 class IArgument(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -27,7 +27,7 @@ class IArgument(IInterface):
         pass
 
 class IParameter[T](IEnumerable[T], IArgument):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -35,7 +35,7 @@ class IParameter[T](IEnumerable[T], IArgument):
         pass
 
 class __IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOperand, IKeyValuePair[TKey, Operator]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -47,18 +47,18 @@ class __IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOpe
         return self.GetOperand()
 
 class __IColumnParameterBase[TKey, TOperand: IOperandValue](IParameter[TOperand], __IColumnParameterGenericConstraint[TKey, TOperand]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IColumnParameter(__IColumnParameterBase[IColumn, IColumnOperand]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class IFieldParameter[T](__IColumnParameterBase[T, IOperand[T]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 @final
 class Parameter(Enumerable[None], IParameter[None]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def Format(self, key: str, values: str|None) -> str:
@@ -71,7 +71,7 @@ class Parameter(Enumerable[None], IParameter[None]):
         return None
 
 class __ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand], __IColumnParameterBase[TKey, TOperand]):
-    def __init__(self, operand: TOperand):
+    def __init__(self, operand: TOperand) -> None:
         super().__init__()
 
         self.__operand: TOperand = operand
@@ -92,7 +92,7 @@ class __ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand
     def _TryGetIterator(self) -> Generator[TOperand]:
         yield self._GetContainer()
 class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnParameter, IGenericConstraintImplementation[IColumnOperand]):
-    def __init__(self, operand: IColumnOperand):
+    def __init__(self, operand: IColumnOperand) -> None:
         super().__init__(operand)
     
     @staticmethod
@@ -106,7 +106,7 @@ class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnPar
     def CreateForTableColumn(operator: Operator, tableName: str, columnName: str) -> ColumnParameter:
         return ColumnParameter.Create(operator, TableColumn(tableName, columnName))
 class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T], IGenericConstraintImplementation[IOperand[T]]):
-    def __init__(self, operand: IOperand[T]):
+    def __init__(self, operand: IOperand[T]) -> None:
         super().__init__(operand)
     
     @staticmethod
@@ -117,7 +117,7 @@ __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]
 
 class __NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -126,7 +126,7 @@ class __NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"])
         
         return __nullProvider()
 class __NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -146,7 +146,7 @@ def GetNotNullFieldParameter() -> FieldParameter[None]:
     return __notNullProvider.GetValue()
 
 class RoutineParameter[T](Enumerable[T], IParameter[T]):
-    def __init__(self, args: IEnumerable[T]):
+    def __init__(self, args: IEnumerable[T]) -> None:
         super().__init__()
 
         self.__args: IEnumerable[T] = args
@@ -160,7 +160,7 @@ class RoutineParameter[T](Enumerable[T], IParameter[T]):
         return self.__args.TryGetEnumerator()
 
 class ITableArgument[T](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -171,7 +171,7 @@ class ITableArgument[T](IInterface):
     def Render(self, builder: IQueryBuilder) -> str:
         pass
 class TableArgument[T](Abstract, ITableArgument[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__()
 
         self.__value: T = value
@@ -181,14 +181,14 @@ class TableArgument[T](Abstract, ITableArgument[T]):
         return self.__value
 
 class TableValueArgument[T](TableArgument[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__(value)
     
     @final
     def Render(self, builder: IQueryBuilder) -> str:
         return builder.GetParameter(self.GetValue())
 class TableColumnArgument(TableArgument[IColumn]):
-    def __init__(self, column: IColumn):
+    def __init__(self, column: IColumn) -> None:
         super().__init__(column)
     
     @final
@@ -201,14 +201,14 @@ def MakeTableColumnIterable(*columns: IColumn) -> Iterable[ITableArgument[IColum
     return Select(columns, lambda column: TableColumnArgument(column))
 
 class ITableParameter[T](IEnumerable[ITableArgument[T]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetAlias(self) -> str|None:
         pass
 class TableParameter[T](Enumerable[ITableArgument[T]], ITableParameter[T]):
-    def __init__(self, alias: str|None, arguments: Iterable[ITableArgument[T]]|None):
+    def __init__(self, alias: str|None, arguments: Iterable[ITableArgument[T]]|None) -> None:
         super().__init__()
 
         self.__alias: str|None = alias

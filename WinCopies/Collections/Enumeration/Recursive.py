@@ -48,7 +48,7 @@ class IRecursivelyEnumerable[T](IEnumerable[T]):
         return self.AsRecursivelyEnumerable().AsIterable()
 
 class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
@@ -81,19 +81,19 @@ class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
         pass
 
 class IRecursiveEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, None]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[T]:
         pass
 class IRecursiveStackedEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 @final
 class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
-    def __init__(self, handler: IRecursiveEnumerationHandler[T]):
+    def __init__(self, handler: IRecursiveEnumerationHandler[T]) -> None:
         super().__init__()
 
         self.__handler: IRecursiveEnumerationHandler[T] = handler
@@ -120,7 +120,7 @@ class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
         self.__handler.OnStoppedEnumeration()
 
 class RecursiveEnumerationHandlerBase[TItem, TCookie](Abstract, IRecursiveEnumerationHandlerBase[TItem, TCookie]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def OnStartingEnumeration(self) -> bool:
@@ -142,7 +142,7 @@ class RecursiveEnumerationHandlerBase[TItem, TCookie](Abstract, IRecursiveEnumer
 class RecursiveEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, None], IRecursiveEnumerationHandler[T]):
     @final
     class __Updater(ValueFunctionUpdater[IRecursiveStackedEnumerationHandler[T]]):
-        def __init__(self, handler: IRecursiveEnumerationHandler[T], updater: Method[IFunction[IRecursiveStackedEnumerationHandler[T]]]):
+        def __init__(self, handler: IRecursiveEnumerationHandler[T], updater: Method[IFunction[IRecursiveStackedEnumerationHandler[T]]]) -> None:
             super().__init__(updater)
 
             self.__handler: IRecursiveEnumerationHandler[T] = handler
@@ -150,7 +150,7 @@ class RecursiveEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, None], I
         def _GetValue(self) -> IRecursiveStackedEnumerationHandler[T]:
             return _Handler[T](self.__handler)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IRecursiveStackedEnumerationHandler[T]]) -> None:
             self.__handler = func
         
@@ -162,11 +162,11 @@ class RecursiveEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, None], I
     def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[T]:
         return self.__handler.GetValue()
 class RecursiveStackedEnumerationHandler[T](RecursiveEnumerationHandlerBase[T, T], IRecursiveStackedEnumerationHandler[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TCookieIn, TCookieOut](Abstract, IRecursiveEnumerationHandlerBase[TIn, TCookieIn]):
-    def __init__(self, handler: IRecursiveEnumerationHandlerBase[TOut, TCookieOut]):
+    def __init__(self, handler: IRecursiveEnumerationHandlerBase[TOut, TCookieOut]) -> None:
         super().__init__()
 
         self.__handler: IRecursiveEnumerationHandlerBase[TOut, TCookieOut] = handler
@@ -202,7 +202,7 @@ class RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TCookieIn, TCookieOut
 class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, None, None], IRecursiveEnumerationHandler[TIn]):
     @final
     class __Updater(ValueFunctionUpdater[IRecursiveStackedEnumerationHandler[TOut]]):
-        def __init__(self, handler: IRecursiveEnumerationHandler[TOut], updater: Method[IFunction[IRecursiveStackedEnumerationHandler[TOut]]]):
+        def __init__(self, handler: IRecursiveEnumerationHandler[TOut], updater: Method[IFunction[IRecursiveStackedEnumerationHandler[TOut]]]) -> None:
             super().__init__(updater)
 
             self.__handler: IRecursiveEnumerationHandler[TOut] = handler
@@ -210,7 +210,7 @@ class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandl
         def _GetValue(self) -> IRecursiveStackedEnumerationHandler[TOut]:
             return _Handler[TOut](self.__handler)
     
-    def __init__(self, handler: IRecursiveEnumerationHandler[TOut]):
+    def __init__(self, handler: IRecursiveEnumerationHandler[TOut]) -> None:
         def update(func: IFunction[IRecursiveStackedEnumerationHandler[TOut]]) -> None:
             self.__handler = func
 
@@ -234,7 +234,7 @@ class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandl
     def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[TOut]:
         return self.__handler.GetValue()
 class RecursiveStackedEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TIn, TOut], IRecursiveStackedEnumerationHandler[TIn]):
-    def __init__(self, handler: IRecursiveStackedEnumerationHandler[TOut]):
+    def __init__(self, handler: IRecursiveStackedEnumerationHandler[TOut]) -> None:
         super().__init__(handler)
     
     @final
@@ -250,7 +250,7 @@ class RecursiveStackedEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerati
         self._GetHandler().OnExitingSubenumerationLevel(self._Convert(cookie))
 
 class RecursiveEnumerationHandlerConverter[TIn, TOut](RecursiveEnumerationHandlerAbstractor[TIn, TOut]):
-    def __init__(self, handler: IRecursiveEnumerationHandler[TOut], converter: Converter[TIn, TOut]):
+    def __init__(self, handler: IRecursiveEnumerationHandler[TOut], converter: Converter[TIn, TOut]) -> None:
         super().__init__(handler)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -259,7 +259,7 @@ class RecursiveEnumerationHandlerConverter[TIn, TOut](RecursiveEnumerationHandle
     def _Convert(self, item: TIn) -> TOut:
         return self.__converter(item)
 class RecursiveStackedEnumerationHandlerConverter[TIn, TOut](RecursiveStackedEnumerationHandlerAbstractor[TIn, TOut]):
-    def __init__(self, handler: IRecursiveStackedEnumerationHandler[TOut], converter: Converter[TIn, TOut]):
+    def __init__(self, handler: IRecursiveStackedEnumerationHandler[TOut], converter: Converter[TIn, TOut]) -> None:
         super().__init__(handler)
 
         self.__converter: Converter[TIn, TOut] = converter
@@ -270,7 +270,7 @@ class RecursiveStackedEnumerationHandlerConverter[TIn, TOut](RecursiveStackedEnu
 
 @final
 class _NullRecursiveEnumerationHandler[TItem, TCookie](Abstract, IRecursiveEnumerationHandlerBase[TItem, TCookie]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def OnStartingEnumeration(self) -> bool:
@@ -295,7 +295,7 @@ class _NullRecursiveEnumerationHandler[TItem, TCookie](Abstract, IRecursiveEnume
         pass
 
 class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -347,7 +347,7 @@ class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisp
         pass
 
 class IRecursiveEnumerationDelegate[T](IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -364,7 +364,7 @@ class IRecursiveEnumerationDelegate[T](IDisposable):
 
 @final
 class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelegate[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def Initialize(self) -> None:
@@ -382,7 +382,7 @@ class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelega
     def Dispose(self) -> None:
         pass
 class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abstract, IRecursiveEnumerationDelegate[TEnumerationItems]):
-    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]):
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]) -> None:
         super().__init__()
 
         self.__moveNext: Function[bool]|None = None
@@ -512,7 +512,7 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
 
 @final
 class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems]):
-    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]):
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]) -> None:
         super().__init__(cookieProvider)
         
         self.__first: TStackItems|None = None
@@ -590,7 +590,7 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
         self.__first = None
 @final
 class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]]):
-    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]):
+    def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]) -> None:
         super().__init__(cookieProvider)
         
         self.__first: DualResult[T, IEnumerator[T]]|None = None
@@ -696,7 +696,7 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
         self.__first = None
 
 class _IRecursiveEnumeratorBase[T](IEnumerator[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -704,7 +704,7 @@ class _IRecursiveEnumeratorBase[T](IEnumerator[T]):
         pass
 class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractEnumerator[TEnumerationItems], _IRecursiveEnumeratorBase[TEnumerationItems]):
     class _IDelegate(IInterface):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         @abstractmethod
@@ -720,7 +720,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
             pass
     @final
     class __Delegate(Abstract, _IDelegate):
-        def __init__(self, enumeratorProvider: Function[IEnumerator[TEnumerationItems]], enumerationItemsProvider: Converter[TEnumerationItems, IEnumerable[TEnumerationItems]], moveNextAction: Function[bool]):
+        def __init__(self, enumeratorProvider: Function[IEnumerator[TEnumerationItems]], enumerationItemsProvider: Converter[TEnumerationItems, IEnumerable[TEnumerationItems]], moveNextAction: Function[bool]) -> None:
             super().__init__()
 
             self.__enumeratorProvider: Function[IEnumerator[TEnumerationItems]] = enumeratorProvider
@@ -737,7 +737,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
             return self.__moveNextAction()
     @final
     class __Cookie(Abstract, IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]):
-        def __init__(self, enumerator: RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems], delegate: RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems]._IDelegate):
+        def __init__(self, enumerator: RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems], delegate: RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems]._IDelegate) -> None:
             super().__init__()
 
             self.__enumerator: RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems] = enumerator
@@ -818,7 +818,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
                 self.__enumerators.Clear()
                 self.__enumerators = None
     
-    def __init__(self, enumerator: IEnumerator[TEnumerationItems], delegate: IRecursiveEnumerationDelegate[TEnumerationItems]|None, handler: IRecursiveEnumerationHandlerBase[TEnumerationItems, TCookie]|None):
+    def __init__(self, enumerator: IEnumerator[TEnumerationItems], delegate: IRecursiveEnumerationDelegate[TEnumerationItems]|None, handler: IRecursiveEnumerationHandlerBase[TEnumerationItems, TCookie]|None) -> None:
         super().__init__(enumerator)
         
         self.__cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems].__Cookie(self, RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems].__Delegate(self._GetEnumerator, self._GetEnumerationItems, super()._MoveNextOverride))
@@ -877,7 +877,7 @@ class RecursiveEnumeratorBase[TEnumerationItems, TCookie, TStackItems](AbstractE
     def _OnStopped(self) -> None:
         self.__handler.OnStoppedEnumeration()
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
-    def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None):
+    def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
         super().__init__(enumerator, _FIFO[T, None, IEnumerator[T]](self._GetCookie), handler)
     
     @final
@@ -890,7 +890,7 @@ class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
     def _GetStackItemAsCookie(self, item: IEnumerator[T]) -> None:
         return None
 class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, IEnumerator[T]]]):
-    def __init__(self, enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[T]|None = None):
+    def __init__(self, enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> None:
         def getDelegate(enumerationOrder: EnumerationOrder, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]) -> IRecursiveEnumerationDelegate[T]|None:
             match enumerationOrder:
                 case EnumerationOrder.Null:
@@ -920,7 +920,7 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
 
 class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
     class __IEnumerator(_IRecursiveEnumeratorBase[T]):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         @abstractmethod
@@ -932,7 +932,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
             return self._GetEnumerable()._AsRecursivelyEnumerable(enumerationItems)
 
     class Enumerator(RecursiveEnumerator[T], __IEnumerator[T]):
-        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None):
+        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
             super().__init__(enumerator, handler)
 
             self.__enumerable: RecursivelyEnumerable[T] = enumerable
@@ -941,7 +941,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
         def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
             return self.__enumerable
     class StackedEnumerator(StackedRecursiveEnumerator[T], __IEnumerator[T]):
-        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None):
+        def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> None:
             super().__init__(enumerator, enumerationOrder, handler)
 
             self.__enumerable: RecursivelyEnumerable[T] = enumerable
@@ -952,7 +952,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
 
     @final
     class __Updater(ValueFunctionUpdater[IEnumerable[T]]):
-        def __init__(self, enumerable: IRecursivelyEnumerable[T], updater: Method[IFunction[IEnumerable[T]]]):
+        def __init__(self, enumerable: IRecursivelyEnumerable[T], updater: Method[IFunction[IEnumerable[T]]]) -> None:
             super().__init__(updater)
 
             self.__enumerable: IRecursivelyEnumerable[T] = enumerable
@@ -960,7 +960,7 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
         def _GetValue(self) -> IEnumerable[T]:
             return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
     
-    def __init__(self):
+    def __init__(self) -> None:
         def update(func: IFunction[IEnumerable[T]]) -> None:
             self.__recursive = func
         

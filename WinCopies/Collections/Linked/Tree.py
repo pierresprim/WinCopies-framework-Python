@@ -11,7 +11,7 @@ from WinCopies.Typing import IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 
 class ITreeNode[T](INode[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -19,7 +19,7 @@ class ITreeNode[T](INode[T]):
         pass
 
 class ITree[T](IEnumerableList[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -29,7 +29,7 @@ class ITree[T](IEnumerableList[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
 class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "TreeBase"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     @final
     class __RecursivelyEnumerable(RecursivelyEnumerable[ITreeNode[TItem]]):
-        def __init__(self, tree: ITree[TItem]):
+        def __init__(self, tree: ITree[TItem]) -> None:
             super().__init__()
 
             self.__tree: ITree[TItem] = tree
@@ -42,7 +42,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
     
     @final
     class __RecursiveUpdater(ValueFunctionUpdater[IEnumerable[TItem]]):
-        def __init__(self, tree: ITree[TItem], updater: Method[IFunction[IEnumerable[TItem]]]):
+        def __init__(self, tree: ITree[TItem], updater: Method[IFunction[IEnumerable[TItem]]]) -> None:
             super().__init__(updater)
 
             self.__tree: ITree[TItem] = tree
@@ -51,7 +51,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
             return EnumeratorProvider[TItem](lambda: self.__tree.TryGetRecursiveEnumerator())
     @final
     class __NodeRecursiveUpdater(ValueFunctionUpdater[IRecursivelyEnumerable[ITreeNode[TItem]]]):
-        def __init__(self, tree: ITree[TItem], updater: Method[IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]]):
+        def __init__(self, tree: ITree[TItem], updater: Method[IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]]) -> None:
             super().__init__(updater)
 
             self.__tree: ITree[TItem] = tree
@@ -59,7 +59,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
         def _GetValue(self) -> IRecursivelyEnumerable[ITreeNode[TItem]]:
             return TreeBase[TItem, TNode].__RecursivelyEnumerable(self.__tree)
     
-    def __init__(self):
+    def __init__(self) -> None:
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None:
             self.__recursive = func
         def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None:
@@ -94,7 +94,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
 
 @final
 class __TreeNode[T](DoublyLinkedNode[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"], TreeBase[T, "__TreeNode"]], EnumerableList[T, "__TreeNode", ITreeNode[T], TreeBase[T, "__TreeNode"]].NodeBase, ITreeNode[T], IGenericConstraintImplementation[IEnumerableList[T, ITreeNode[T]]]):
-    def __init__(self, value: T, l: TreeBase[T, __TreeNode[T]]|None, previousNode: __TreeNode[T]|None, nextNode: __TreeNode[T]|None):
+    def __init__(self, value: T, l: TreeBase[T, __TreeNode[T]]|None, previousNode: __TreeNode[T]|None, nextNode: __TreeNode[T]|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
 
         self.__items: ITree[T] = Tree[T]()
@@ -126,7 +126,7 @@ class __TreeNode[T](DoublyLinkedNode[T, "__TreeNode", ITreeNode[T], TreeBase[T, 
         return self._GetList()
 
 class Tree[T](TreeBase[T, __TreeNode[T]]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -141,7 +141,7 @@ class Tree[T](TreeBase[T, __TreeNode[T]]):
         return __TreeNode[T](value, self, None, None)
 
 class TreeNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ITreeNode[T]], IGenericConstraintImplementation[ITreeNode[T]]):
-    def __init__(self, node: ITreeNode[T]):
+    def __init__(self, node: ITreeNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:

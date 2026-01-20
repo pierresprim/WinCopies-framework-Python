@@ -11,7 +11,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 class IPoint(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -24,7 +24,7 @@ class IPoint(IInterface):
     def __str__(self):
         return f"{self.GetX()};{self.GetY()}"
 class IPoint3D(IPoint):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -42,7 +42,7 @@ class IPoint3D(IPoint):
 class Point(Abstract, IPoint):
     @final
     class __Point(Abstract, IPoint):
-        def __init__(self, value: int):
+        def __init__(self, value: int) -> None:
             super().__init__()
 
             self.__value: int = value
@@ -52,7 +52,7 @@ class Point(Abstract, IPoint):
         def GetY(self) -> int:
             return self.__value
     
-    def __init__(self, x: int, y: int):
+    def __init__(self, x: int, y: int) -> None:
         super().__init__()
 
         self.__x: int = x
@@ -69,7 +69,7 @@ class Point(Abstract, IPoint):
 
 @final
 class Point3D(Abstract, IPoint3D):
-    def __init__(self, point: IPoint, z: int):
+    def __init__(self, point: IPoint, z: int) -> None:
         super().__init__()
 
         self.__point: IPoint = point
@@ -90,7 +90,7 @@ class Point3D(Abstract, IPoint3D):
         return self.__z
 
 class IRectangle(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -115,7 +115,7 @@ class IRectangle(IInterface):
 
 @final
 class Rectangle(Abstract, IRectangle):
-    def __init__(self, topLeft: Point, bottomRight: Point):
+    def __init__(self, topLeft: Point, bottomRight: Point) -> None:
         super().__init__()
         
         self.__topLeft: Point = topLeft

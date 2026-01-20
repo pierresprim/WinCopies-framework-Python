@@ -24,7 +24,7 @@ from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
 
 class ITable(IEquatable['ITable'], IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -67,7 +67,7 @@ class ITable(IEquatable['ITable'], IDisposable):
 
 class Table(Abstract, ITable):
     class _QueryFactory(Abstract, ITableQueryFactory):
-        def __init__(self, table: Table):
+        def __init__(self, table: Table) -> None:
             super().__init__()
 
             self.__table: Table = table
@@ -95,7 +95,7 @@ class Table(Abstract, ITable):
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
             return self._GetFactory().GetUpdateQuery(self._GetTable().GetName(), values, conditions)
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__queryFactory: ITableQueryFactory|None = None
@@ -115,7 +115,7 @@ class Table(Abstract, ITable):
         return item is self
 
 class IConnection(IDisposable):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def Initialize(self) -> None:
@@ -172,7 +172,7 @@ class IConnection(IDisposable):
 class Connection(Abstract, IConnection):
     @final
     class __Factories(Abstract):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
 
             self.Field: IFieldFactory|None = None
@@ -180,7 +180,7 @@ class Connection(Abstract, IConnection):
             self.Index: IIndexFactory|None = None
     @final
     class __NullTable(Abstract, ITable):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         def Equals(self, item: ITable|object) -> bool:
@@ -207,7 +207,7 @@ class Connection(Abstract, IConnection):
             pass
     @final
     class _Table(Abstract, ITable):
-        def __init__(self, tableList: IList[Connection._Table], table: ITable):
+        def __init__(self, tableList: IList[Connection._Table], table: ITable) -> None:
             EnsureDirectModuleCall()
 
             super().__init__()
@@ -252,7 +252,7 @@ class Connection(Abstract, IConnection):
     def _GetNullTable() -> ITable:
         return Connection.__table
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__tables: List[Connection._Table] = List[Connection._Table]()

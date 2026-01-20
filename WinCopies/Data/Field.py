@@ -35,7 +35,7 @@ class FieldAttributes(Flag):
     Nullable = auto()
 
 class IField(IStringable):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -51,7 +51,7 @@ class IField(IStringable):
         pass
 
 class IModularField[T: Enum](IField):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -59,7 +59,7 @@ class IModularField[T: Enum](IField):
         pass
 
 class Field(Abstract, IField):
-    def __init__(self, name: str, attribute: FieldAttributes):
+    def __init__(self, name: str, attribute: FieldAttributes) -> None:
         super().__init__()
 
         EnsureFieldOf(FieldAttributes, attribute)
@@ -76,7 +76,7 @@ class Field(Abstract, IField):
         return self.__attribute
 
 class ModularField[T: Enum](Field):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: T):
+    def __init__(self, name: str, attribute: FieldAttributes, mode: T) -> None:
         super().__init__(name, attribute)
 
         self.__mode: T = mode
@@ -86,7 +86,7 @@ class ModularField[T: Enum](Field):
         return self.__mode
 
 class GenericField(Field):
-    def __init__(self, name: str, attribute: FieldAttributes):
+    def __init__(self, name: str, attribute: FieldAttributes) -> None:
         super().__init__(name, attribute)
     
     @final
@@ -94,7 +94,7 @@ class GenericField(Field):
         return FieldType.Null
 
 class BooleanField(Field):
-    def __init__(self, name: str, attribute: FieldAttributes):
+    def __init__(self, name: str, attribute: FieldAttributes) -> None:
         super().__init__(name, attribute)
     
     @final
@@ -102,7 +102,7 @@ class BooleanField(Field):
         return FieldType.Boolean
 
 class IntegerField(ModularField[IntegerMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode):
+    def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> None:
         super().__init__(name, attribute, mode)
     
     @final
@@ -110,7 +110,7 @@ class IntegerField(ModularField[IntegerMode]):
         return FieldType.Integer
 
 class RealField(ModularField[RealMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode):
+    def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode) -> None:
         super().__init__(name, attribute, mode)
     
     @final
@@ -118,7 +118,7 @@ class RealField(ModularField[RealMode]):
         return FieldType.Real
 
 class TextField(ModularField[TextMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode):
+    def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode) -> None:
         super().__init__(name, attribute, mode)
 
     @final

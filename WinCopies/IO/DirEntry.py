@@ -19,7 +19,7 @@ from WinCopies.IO import IDirEntry
 from WinCopies.String import StringifyIfNone
 
 class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -35,7 +35,7 @@ class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
         return AsEnumerator(Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry))) if self.IsDirectory() else None
 
 class SystemDirEntry(IterableDirEntry):
-    def __init__(self, dirEntry: os.DirEntry[str]):
+    def __init__(self, dirEntry: os.DirEntry[str]) -> None:
         super().__init__()
 
         self.__dirEntry: os.DirEntry[str] = dirEntry
@@ -61,7 +61,7 @@ class SystemDirEntry(IterableDirEntry):
         return self.__dirEntry.name
 
 class DirEntry(IterableDirEntry):
-    def __init__(self, directory: str|None, name: str|None, extension: str|None):
+    def __init__(self, directory: str|None, name: str|None, extension: str|None) -> None:
         super().__init__()
         
         self.__directory: str = StringifyIfNone(directory)
