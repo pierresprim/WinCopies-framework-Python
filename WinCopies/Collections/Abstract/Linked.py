@@ -47,7 +47,7 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
     
     @final
     def Clear(self) -> None:
-        return self._GetInnerContainer().Clear()
+        self._GetInnerContainer().Clear()
 
 class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, Singly.IList[TIn]], Singly.IList[TOut], IGenericConstraintImplementation[Singly.IList[TIn]]):
     def __init__(self, items: Singly.IList[TIn]) -> None:
