@@ -27,7 +27,7 @@ def EnumerateSubmodules(package: ModuleType|str, includePrivate: bool = False) -
     return enumerateSubmodules(ImportModule(package))
 
 def TryEnumerateImports(module: ModuleType) -> Generator[str]|None:
-    try:
+    def enumerate() -> Generator[str]:
         source: str = getsource(module)
         tree: Module = parse(source)
         
@@ -41,6 +41,9 @@ def TryEnumerateImports(module: ModuleType) -> Generator[str]|None:
 
                 for alias in node.names:
                     yield f"{moduleName}.{alias.name}"
+    
+    try:
+        return enumerate()
     
     except (OSError, TypeError):
         return None
