@@ -139,7 +139,7 @@ def TryIsModuleInPackage(module: ModuleType, package: ModuleType) -> bool|None:
         True if the module file is under the package directory, False otherwise, None if built-in module.
     """
     try:
-        IsModuleInPackage(module, package)
+        return IsModuleInPackage(module, package)
     except TypeError:
         return None
 
