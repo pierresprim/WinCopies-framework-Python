@@ -138,10 +138,8 @@ class __NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]
 __nullProvider = __NullProviderFunctionUpdater()
 __notNullProvider = __NotNullProviderFunctionUpdater()
 
-@staticmethod
 def GetNullFieldParameter() -> FieldParameter[None]:
     return __nullProvider.GetValue()
-@staticmethod
 def GetNotNullFieldParameter() -> FieldParameter[None]:
     return __notNullProvider.GetValue()
 
