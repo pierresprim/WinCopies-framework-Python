@@ -45,13 +45,9 @@ class INotifyableEventArgs(INotifyableEventArgsBase[bool|None], INotifyableEvent
     def __init__(self) -> None:
         super().__init__()
 
-class IEvent[T](IInterface):
+class IEvent(IInterface):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def GetArgs(self) -> T:
-        pass
     
     @abstractmethod
     def Remove(self) -> None:
@@ -79,7 +75,7 @@ class IEventManagerBase[TSender, TArgs, TEvent](IReadOnlyEventManager[TSender, T
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         pass
-class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent[TSender]]):
+class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -152,7 +148,7 @@ class NotifyableEventArgs(NotifyableEventArgsBase[bool|None], INotifyableEventAr
         return value is None
 
 class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
-    class __Event(IEvent[TSender]):
+    class __Event(IEvent):
         def __init__(self, node: INode[EventHandler[TSender, TArgs]]) -> None:
             super().__init__()
 
@@ -179,7 +175,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         return True
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent[TSender]:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
         return EventManager[TSender, TArgs].__Event(self.__cookies.AddLast(handler))
     
     @final

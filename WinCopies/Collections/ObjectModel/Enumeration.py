@@ -60,7 +60,7 @@ class _EventManagerAbstract[TSender, TArgs](Abstract, _IEventManagerAbstract[TSe
         pass
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent[TSender]:
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
         return self.__eventManager.Add(handler)
     
     @final
@@ -153,31 +153,31 @@ class IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, TCookie](IRecursi
         super().__init__()
     
     @abstractmethod
-    def OnStarting(self, handler: EventHandler[TSender, CancellableEventArgs]) -> IEvent[TSender]:
+    def OnStarting(self, handler: EventHandler[TSender, CancellableEventArgs]) -> IEvent:
         pass
     @abstractmethod
-    def OnStopped(self, handler: EventHandler[TSender, None]) -> IEvent[TSender]:
-        pass
-    
-    @abstractmethod
-    def OnEnteringLevel(self, handler: EventHandler[TSender, EnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
-        pass
-    @abstractmethod
-    def OnExitingLevel(self, handler: EventHandler[TSender, LevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnStopped(self, handler: EventHandler[TSender, None]) -> IEvent:
         pass
     
     @abstractmethod
-    def OnEnteringMainLevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
+    def OnEnteringLevel(self, handler: EventHandler[TSender, EnteringLevelEventArgs[TItem]]) -> IEvent:
         pass
     @abstractmethod
-    def OnExitingMainLevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnExitingLevel(self, handler: EventHandler[TSender, LevelChangedEventArgs[TCookie]]) -> IEvent:
         pass
     
     @abstractmethod
-    def OnEnteringSublevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
+    def OnEnteringMainLevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent:
         pass
     @abstractmethod
-    def OnExitingSublevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnExitingMainLevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent:
+        pass
+    
+    @abstractmethod
+    def OnEnteringSublevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent:
+        pass
+    @abstractmethod
+    def OnExitingSublevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent:
         pass
 class IDelegateRecursiveEnumerationHandler[TSender, TItem](IDelegateRecursiveEnumerationHandlerBase[TSender, TItem, None], IRecursiveEnumerationHandler[TItem]):
     def __init__(self) -> None:
@@ -222,7 +222,7 @@ class RecursiveEnumerationHandlerBase[TSender, TItem, TCookie](Abstract, IDelega
         return self.__monitor
     
     @final
-    def __OnEvent[TArgs](self, eventManager: _EventManagerAbstract[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent[TSender]:
+    def __OnEvent[TArgs](self, eventManager: _EventManagerAbstract[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent:
         with self.__BlockReentrancy():
             return eventManager.Add(handler)
         
@@ -242,31 +242,31 @@ class RecursiveEnumerationHandlerBase[TSender, TItem, TCookie](Abstract, IDelega
         return self.__sender
     
     @final
-    def OnStarting(self, handler: EventHandler[TSender, CancellableEventArgs]) -> IEvent[TSender]:
+    def OnStarting(self, handler: EventHandler[TSender, CancellableEventArgs]) -> IEvent:
         return self.__OnEvent(self.__starting, handler)
     @final
-    def OnStopped(self, handler: EventHandler[TSender, None]) -> IEvent[TSender]:
+    def OnStopped(self, handler: EventHandler[TSender, None]) -> IEvent:
         return self.__OnEvent(self.__stopped, handler)
     
     @final
-    def OnEnteringLevel(self, handler: EventHandler[TSender, EnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
+    def OnEnteringLevel(self, handler: EventHandler[TSender, EnteringLevelEventArgs[TItem]]) -> IEvent:
         return self.__OnEvent(self.__enteringLevel, handler)
     @final
-    def OnExitingLevel(self, handler: EventHandler[TSender, LevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnExitingLevel(self, handler: EventHandler[TSender, LevelChangedEventArgs[TCookie]]) -> IEvent:
         return self.__OnEvent(self.__exitingLevel, handler)
     
     @final
-    def OnEnteringMainLevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
+    def OnEnteringMainLevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent:
         return self.__OnEvent(self.__enteringMainLevel, handler)
     @final
-    def OnExitingMainLevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnExitingMainLevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent:
         return self.__OnEvent(self.__exitingMainLevel, handler)
     
     @final
-    def OnEnteringSublevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent[TSender]:
+    def OnEnteringSublevel(self, handler: EventHandler[TSender, NotifyableEnteringLevelEventArgs[TItem]]) -> IEvent:
         return self.__OnEvent(self.__enteringSublevel, handler)
     @final
-    def OnExitingSublevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent[TSender]:
+    def OnExitingSublevel(self, handler: EventHandler[TSender, NotifyableLevelChangedEventArgs[TCookie]]) -> IEvent:
         return self.__OnEvent(self.__exitingSublevel, handler)
 
     def OnStartingEnumeration(self) -> bool:

@@ -179,26 +179,26 @@ class ObservableCollection[T](Collection[T]):
         return self.__monitor
     
     @final
-    def OnCollectionChanged(self, eventManager: IEventManager[ObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnCollectionChanged(self, eventManager: IEventManager[ObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         with self.__BlockReentrancy():
             return eventManager.Add(handler)
         
         raise
 
     @final
-    def OnItemAdded(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnItemAdded(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemAddedEvents, handler)
     @final
-    def OnItemUpdated(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnItemUpdated(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemUpdatedEvents, handler)
     @final
-    def OnItemsSwapped(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnItemsSwapped(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemsSwappedEvents, handler)
     @final
-    def OnItemMoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnItemMoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemMovedEvents, handler)
     @final
-    def OnItemRemoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent[ObservableCollection[T]]:
+    def OnItemRemoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemRemovedEvents, handler)
     
     def _InsertItem(self, index: int|None, item: T) -> bool:
