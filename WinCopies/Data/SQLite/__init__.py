@@ -44,7 +44,7 @@ from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFacto
 
 @final
 class _Connection(Abstract):
-    def __init__(self, connection: Connection, innerCollection: sqlite3.Connection):
+    def __init__(self, connection: Connection, innerCollection: sqlite3.Connection) -> None:
         super().__init__()
 
         self.__connection: IConnection = connection
@@ -92,7 +92,7 @@ class Table(TableBase):
         Unique = auto()
         Nullable = auto()
     
-    def __init__(self, connection: _Connection, name: str):
+    def __init__(self, connection: _Connection, name: str) -> None:
         EnsureDirectModuleCall()
         
         super().__init__()
@@ -430,7 +430,7 @@ class Connection(ConnectionBase):
 
         return self.__GetTable(self.__connection, name)
     
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         super().__init__()
 
         self.__path: str = path

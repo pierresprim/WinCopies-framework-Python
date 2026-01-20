@@ -21,7 +21,7 @@ from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
 class QueryResultBase(Abstract):
-    def __init__(self, connection: sqlite3.Connection, query: QueryResult):
+    def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
         self.__cursor: sqlite3.Cursor = self.__ExecuteQuery(connection, query)
     
     @final
@@ -54,7 +54,7 @@ class QueryResultBase(Abstract):
         self._GetCursor().close()
 
 class __IQuery(ITableNameFormater):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -67,7 +67,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
     class ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
         @final
         class Enumerator(Enumeration.Iterator[Sequence[object]]):
-            def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action):
+            def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action) -> None:
                 EnsureDirectModuleCall()
 
                 super().__init__(cursor)
@@ -79,7 +79,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
         
         @final
         class FunctionUpdater(ValueFunctionUpdater[IEnumerator[Sequence[object]]|None]):
-            def __init__(self, cursor: sqlite3.Cursor, updater: Method[IFunction[IEnumerator[Sequence[object]]|None]], enumeratorUpdater: Action):
+            def __init__(self, cursor: sqlite3.Cursor, updater: Method[IFunction[IEnumerator[Sequence[object]]|None]], enumeratorUpdater: Action) -> None:
                 super().__init__(updater)
 
                 self.__cursor: sqlite3.Cursor = cursor
@@ -88,7 +88,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
             def _GetValue(self) -> IEnumerator[Sequence[object]]:
                 return SelectionQuery.ExecutionResult.Enumerator(self.__cursor, self.__enumeratorUpdater)
         
-        def __init__(self, connection: sqlite3.Connection, query: QueryResult):
+        def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
             EnsureDirectModuleCall()
 
             super().__init__(connection, query)
@@ -105,7 +105,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
         def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
             return self.__function.GetValue()
     
-    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None):
+    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
         self.__connection: sqlite3.Connection = connection
@@ -120,7 +120,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
 
 @final
 class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionResult):
-    def __init__(self, cursor: sqlite3.Connection, query: QueryResult):
+    def __init__(self, cursor: sqlite3.Connection, query: QueryResult) -> None:
         EnsureDirectModuleCall()
 
         super().__init__(cursor, query)
@@ -129,7 +129,7 @@ class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionRe
         return self._GetCursor().lastrowid # type: ignore
 
 class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -138,7 +138,7 @@ class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
 
 @final
 class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, items, ignoreExisting)
 
         self.__connection = connection
@@ -150,7 +150,7 @@ class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, columns, items, ignoreExisting)
 
         self.__connection = connection
@@ -162,7 +162,7 @@ class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class UpdateQuery(Query.UpdateQuery, __IQuery):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None):
+    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tableName, values, conditions)
 
         self.__connection = connection

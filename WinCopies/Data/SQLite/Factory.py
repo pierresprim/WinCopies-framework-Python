@@ -37,7 +37,7 @@ from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiIns
 @final
 class FieldFactory(Abstract, IFieldFactory):
     class _FieldBase(Abstract, IField):
-        def __init__(self):
+        def __init__(self) -> None:
             EnsureCallerPackage(WinCopies.Data)
             
             super().__init__()
@@ -85,7 +85,7 @@ class FieldFactory(Abstract, IFieldFactory):
     
     @final
     class __GenericField(Field.GenericField, _FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
+        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection) -> None:
             super().__init__(name, attribute)
 
             self.__connection: IConnection = connection
@@ -95,7 +95,7 @@ class FieldFactory(Abstract, IFieldFactory):
     
     @final
     class __BooleanField(Field.BooleanField, _FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection):
+        def __init__(self, name: str, attribute: FieldAttributes, connection: IConnection) -> None:
             super().__init__(name, attribute)
 
             self.__connection: IConnection = connection
@@ -105,7 +105,7 @@ class FieldFactory(Abstract, IFieldFactory):
     
     @final
     class __IntegerField(Field.IntegerField, _FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode, connection: IConnection):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode, connection: IConnection) -> None:
             super().__init__(name, attribute, mode)
 
             self.__connection: IConnection = connection
@@ -114,7 +114,7 @@ class FieldFactory(Abstract, IFieldFactory):
             return self.__connection
     @final
     class __RealField(Field.RealField, _FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode, connection: IConnection):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode, connection: IConnection) -> None:
             super().__init__(name, attribute, mode)
 
             self.__connection: IConnection = connection
@@ -123,7 +123,7 @@ class FieldFactory(Abstract, IFieldFactory):
             return self.__connection
     @final
     class __TextField(Field.TextField, _FieldBase):
-        def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode, connection: IConnection):
+        def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode, connection: IConnection) -> None:
             super().__init__(name, attribute, mode)
 
             self.__connection: IConnection = connection
@@ -131,7 +131,7 @@ class FieldFactory(Abstract, IFieldFactory):
         def _GetConnection(self) -> IConnection:
             return self.__connection
     
-    def __init__(self, connection: IConnection):
+    def __init__(self, connection: IConnection) -> None:
         EnsureDirectPackageCall()
         
         super().__init__()
@@ -153,7 +153,7 @@ class FieldFactory(Abstract, IFieldFactory):
 
 @final
 class QueryFactory(Abstract, IQueryFactory):
-    def __init__(self, connection: sqlite3.Connection):
+    def __init__(self, connection: sqlite3.Connection) -> None:
         EnsureDirectPackageCall()
 
         super().__init__()
@@ -177,7 +177,7 @@ class QueryFactory(Abstract, IQueryFactory):
 @final
 class IndexFactory(Abstract, IIndexFactory):
     class _Index(Abstract, IIndex):
-        def __init__(self):
+        def __init__(self) -> None:
             EnsureCallerPackage(WinCopies.Data)
 
             super().__init__()
@@ -198,7 +198,7 @@ class IndexFactory(Abstract, IIndexFactory):
         def _GetHeader(self) -> str:
             return f"CONSTRAINT {self._FormatTableName(self.GetName())} {self._GetStringType()}"
     class _MultiColumnIndex(_Index, IMultiColumnIndex):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         @final
@@ -209,7 +209,7 @@ class IndexFactory(Abstract, IIndexFactory):
             return f"{self._GetHeader()} {self._GetStringColumns()}"
     @final
     class __UnicityIndex(UnicityIndex, _MultiColumnIndex):
-        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection):
+        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -220,14 +220,14 @@ class IndexFactory(Abstract, IIndexFactory):
         def _GetStringType(self) -> str:
             return IndexType.Unique.name.upper()
     class _Key(_Index, IKey):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         def _GetStringType(self) -> str:
             return f"{self.GetKeyType().name.upper()} {IndexType.Key.name.upper()}"
     @final
     class __PrimaryKey(PrimaryKey, _MultiColumnIndex, _Key):
-        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection):
+        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -236,7 +236,7 @@ class IndexFactory(Abstract, IIndexFactory):
             return self.__connection
     @final
     class __ForeignKey(ForeignKey, _Key):
-        def __init__(self, name: str, column: str, foreignKey: DualResult[str, str], connection: IConnection):
+        def __init__(self, name: str, column: str, foreignKey: DualResult[str, str], connection: IConnection) -> None:
             super().__init__(name, column, foreignKey)
 
             self.__connection: IConnection = connection
@@ -249,7 +249,7 @@ class IndexFactory(Abstract, IIndexFactory):
 
             return f"{super().ToString()} REFERENCES {self._FormatTableName(foreignKey.GetKey())} ({self._FormatTableName(foreignKey.GetValue())})"
     
-    def __init__(self, connection: IConnection):
+    def __init__(self, connection: IConnection) -> None:
         EnsureDirectPackageCall()
         
         super().__init__()
