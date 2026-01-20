@@ -421,7 +421,7 @@ class CompositeExpressionValueEnumerator[TValue, TConnector](AbstractionEnumerat
 
         self.__current = None
     def _OnStopped(self) -> None:
-        super()._OnStopped()
+        pass
     
     def _ResetOverride(self) -> bool:
         return True
