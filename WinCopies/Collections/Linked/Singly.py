@@ -15,7 +15,7 @@ from WinCopies.Collections.Linked.Node import LinkedNode
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 
-class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode', T]):
+class SinglyLinkedNode[T](LinkedNode['SinglyLinkedNode[T]', T]):
     def __init__(self, value: T, nextNode: Self|None) -> None:
         super().__init__(value, nextNode)
 

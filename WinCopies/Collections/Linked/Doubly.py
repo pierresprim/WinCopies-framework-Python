@@ -704,7 +704,7 @@ class EnumerableList[TItem, TNode, TNodeInterface, TList](Enumerable[TItem], IEn
     def AsNodeEnumerable(self) -> IEnumerable[TNodeInterface]:
         return self.__nodeEnumerable.GetValue()
 
-class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], "ListBase"], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
+class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], "ListBase[TItem, TNode]"], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -758,7 +758,7 @@ class DoublyLinkedNode[TItem, TNode: DoublyLinkedNode, TNodeInterface, TList, TL
         return super().Remove()
 
 @final
-class _Node[T](DoublyLinkedNode[T, "_Node", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node"]], EnumerableList[T, "_Node", IDoublyLinkedNode[T], ListBase[T, "_Node"]].NodeBase, IDoublyLinkedNode[T], IGenericConstraintImplementation[IList[T]]):
+class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node[T]"]], EnumerableList[T, "_Node[T]", IDoublyLinkedNode[T], ListBase[T, "_Node[T]"]].NodeBase, IDoublyLinkedNode[T], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, previousNode: SelfType|None, nextNode: SelfType|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
@@ -844,7 +844,7 @@ class CountableListBase[TItem, TNode](EnumerableList[TItem, TNode, ICountableLin
         return CountableLinkedListNodeEnumerator[TItem](node)
 
 @final
-class _CountableListNode[T](_DoublyLinkedNode[T, "_CountableListNode", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], EnumerableList[T, "_CountableListNode", ICountableLinkedListNode[T], CountableListProvider[T]].NodeBase, ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
+class _CountableListNode[T](_DoublyLinkedNode[T, "_CountableListNode[T]", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], EnumerableList[T, "_CountableListNode[T]", ICountableLinkedListNode[T], CountableListProvider[T]].NodeBase, ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
     def __init__(self, value: T, l: CountableListProvider[T]|None, previousNode: SelfType|None, nextNode: SelfType|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
     
