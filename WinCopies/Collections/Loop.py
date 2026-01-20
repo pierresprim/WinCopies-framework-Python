@@ -354,11 +354,11 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
     result: bool|None = None
     func: Method[T]|None = None
     
-    def scan(entry: T):
+    def scan(entry: T) -> None:
         if predicate(entry):
             action(entry)
     
-    def tryScan(entry: T):
+    def tryScan(entry: T) -> None:
         nonlocal func
         nonlocal result
 
@@ -370,7 +370,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
 
             result = False
 
-    def init(entry: T):
+    def init(entry: T) -> None:
         nonlocal result
         nonlocal func
 
@@ -475,7 +475,7 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
     """
     _action: Method[T]
     
-    def __action(_: T):
+    def __action(_: T) -> None:
         nonlocal _action
 
         _action = action
@@ -496,7 +496,7 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
     """
     _action: Method[T]
     
-    def __action(item: T):
+    def __action(item: T) -> None:
         nonlocal _action
 
         firstAction(item)
