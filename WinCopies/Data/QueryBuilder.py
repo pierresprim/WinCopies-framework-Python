@@ -208,7 +208,7 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         return self._GetBuilder().ProcessCondition(condition)
     
     @final
-    def ProcessColumns(self, items: IDictionary[IColumn, IArgument|None]) -> Generator[str]:
+    def ProcessColumns[U: IArgument](self, items: IDictionary[IColumn, U|None]) -> Generator[str]:
         return self._GetBuilder().ProcessColumns(items)
     
     def Dispose(self) -> None:
