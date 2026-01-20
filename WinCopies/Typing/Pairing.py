@@ -8,7 +8,7 @@ from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
 class IKeyValuePair[TKey, TValue](IEquatable[Self]): # type: ignore
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -31,7 +31,7 @@ class IKeyValuePair[TKey, TValue](IEquatable[Self]): # type: ignore
         return self._Equals(item) and item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue() # type: ignore
 
 class KeyValuePairBase[TKey, TValue](Abstract, IKeyValuePair[TKey, TValue]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @final
@@ -41,7 +41,7 @@ class KeyValuePairBase[TKey, TValue](Abstract, IKeyValuePair[TKey, TValue]):
     def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
         return isinstance(item, KeyValuePairBase)
 class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
-    def __init__(self, key: TKey, value: TValue):
+    def __init__(self, key: TKey, value: TValue) -> None:
         super().__init__()
 
         self.__key = key
@@ -60,7 +60,7 @@ class KeyValuePair[TKey, TValue](KeyValuePairBase[TKey, TValue]):
         return isinstance(item, KeyValuePair)
 
 class DualResult[TValue, TInfo](Abstract, IKeyValuePair[TValue, TInfo]):
-    def __init__(self, value: TValue, info: TInfo):
+    def __init__(self, value: TValue, info: TInfo) -> None:
         super().__init__()
         
         self.__value: TValue = value
@@ -83,24 +83,24 @@ class DualResult[TValue, TInfo](Abstract, IKeyValuePair[TValue, TInfo]):
         return isinstance(item, DualResult)
 
 class DualNullableValueInfo[TValue, TInfo](DualResult[TValue|None, TInfo]):
-    def __init__(self, value: TValue|None, info: TInfo):
+    def __init__(self, value: TValue|None, info: TInfo) -> None:
         super().__init__(value, info)
 class DualValueNullableInfo[TValue, TInfo](DualResult[TValue, TInfo|None]):
-    def __init__(self, value: TValue, info: TInfo|None):
+    def __init__(self, value: TValue, info: TInfo|None) -> None:
         super().__init__(value, info)
 class DualNullableValueNullableInfo[TValue, TInfo](DualResult[TValue|None, TInfo|None]):
-    def __init__(self, value: TValue|None, info: TInfo|None):
+    def __init__(self, value: TValue|None, info: TInfo|None) -> None:
         super().__init__(value, info)
 
 class DualValueBool[T](DualResult[T, bool], IBoolProvider):
-    def __init__(self, value: T, info: bool):
+    def __init__(self, value: T, info: bool) -> None:
         super().__init__(value, info)
     
     @final
     def AsBool(self) -> bool:
         return self.GetValue()
 class DualValueNullableBool[T](DualValueNullableInfo[T, bool], INullableBoolProvider):
-    def __init__(self, value: T, info: bool|None):
+    def __init__(self, value: T, info: bool|None) -> None:
         super().__init__(value, info)
     
     @final
@@ -113,7 +113,7 @@ def GetNullDualValueBool[T]() -> DualNullableValueBool[T]: # type: ignore
     return __null # type: ignore
 
 class DualNullableValueBool[T](DualNullableValueInfo[T, bool], IBoolProvider):
-    def __init__(self, value: T|None, info: bool):
+    def __init__(self, value: T|None, info: bool) -> None:
         super().__init__(value, info)
     
     def __new__(cls, value: T|None, info: bool) -> Self:
@@ -123,7 +123,7 @@ class DualNullableValueBool[T](DualNullableValueInfo[T, bool], IBoolProvider):
     def AsBool(self) -> bool:
         return self.GetValue()
 class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], INullableBoolProvider):
-    def __init__(self, value: T|None, info: bool|None):
+    def __init__(self, value: T|None, info: bool|None) -> None:
         super().__init__(value, info)
     
     @final

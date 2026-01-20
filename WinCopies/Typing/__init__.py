@@ -16,7 +16,7 @@ class IStruct[T](IInterface):
     def SetValue(self, value: T) -> None:
         pass
 class Struct[T](Abstract, IStruct[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__()
 
         self.__value: T = value
@@ -28,7 +28,7 @@ class Struct[T](Abstract, IStruct[T]):
         self.__value = value
 
 class InvalidOperationError(Exception):
-    def __init__(self, *args: object):
+    def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
 class IEquatableValue(IInterface):
@@ -179,7 +179,7 @@ class INullable[T](IInterface):
 
 @final
 class __Nullable[T](Abstract, INullable[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__()
         
         self.__value: T = value
@@ -241,7 +241,7 @@ __disposedItem = __DisposedItem() # type: ignore
 
 @final
 class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__()
 
         self.__item: T = item
@@ -275,7 +275,7 @@ class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
     def TryGetItem(self) -> INullable[T]:
         return GetNullValue() if self.IsDisposed() else GetNullable(self._GetItem())
 class DisposableProvider[T: IDisposableInfo](Abstract, IDisposableProvider[T]):
-    def __init__(self, item: T):
+    def __init__(self, item: T) -> None:
         super().__init__()
 
         self.__item: __IDisposableProviderItem[T] = __DisposableProviderItem[T](item)

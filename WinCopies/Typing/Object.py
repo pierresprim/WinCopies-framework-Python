@@ -43,7 +43,7 @@ class IValueObject[TValue, TObject](IObject[TObject], IValueItem):
     def GetValue(self) -> TValue:
         pass
 class ValueObjectBase[TValue, TUnderlying, TObject](Object[TObject], IValueObject[TValue, TObject]):
-    def __init__(self, value: TValue):
+    def __init__(self, value: TValue) -> None:
         super().__init__()
 
         self.__value: TValue = value
@@ -56,7 +56,7 @@ class ValueObjectBase[TValue, TUnderlying, TObject](Object[TObject], IValueObjec
     def GetUnderlyingValue(self) -> TUnderlying:
         pass
 class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
-    def __init__(self, value: TValue):
+    def __init__(self, value: TValue) -> None:
         super().__init__(value)
     
     @final
@@ -64,10 +64,10 @@ class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
         return self.GetValue()
 
 class IBoolean(IValueObject[bool, 'IBoolean']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class __Boolean(Abstract, IBoolean):
-    def __init__(self):
+    def __init__(self) -> None:
         EnsureDirectModuleCall()
 
         super().__init__()
@@ -89,14 +89,14 @@ class __Boolean(Abstract, IBoolean):
 
 @final
 class __True(__Boolean):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> bool:
         return True
 @final
 class __False(__Boolean):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> bool:
@@ -111,10 +111,10 @@ def GetFalseObject() -> IBoolean:
     return __false
 
 class IInteger(IValueObject[int, 'IInteger']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class Integer(ValueObject[int, IInteger], IInteger):
-    def __init__(self, value: int):
+    def __init__(self, value: int) -> None:
         super().__init__(value)
     
     @staticmethod
@@ -134,10 +134,10 @@ class Integer(ValueObject[int, IInteger], IInteger):
         return str(self.GetValue())
 
 class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         super().__init__(value)
     
     @final
@@ -157,10 +157,10 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
         return str(self.GetValue().name)
 
 class IString(IValueObject[str, 'IString']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class String(ValueObject[str, IString], IString):
-    def __init__(self, value: str):
+    def __init__(self, value: str) -> None:
         super().__init__(value)
     
     def Equals(self, item: IString|object) -> bool:
@@ -176,10 +176,10 @@ class String(ValueObject[str, IString], IString):
         return self.GetValue()
 
 class IType[T](IValueObject[type[T], 'IType']):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 class Type[T](ValueObject[type[T], IType[T]], IType[T]):
-    def __init__(self, t: type[T]):
+    def __init__(self, t: type[T]) -> None:
         super().__init__(t)
     
     def Equals(self, item: IType[T]|object) -> bool:
@@ -199,5 +199,5 @@ class Type[T](ValueObject[type[T], IType[T]], IType[T]):
         return Type[T](type(value))
 
 class IDisposableObject[T](IDisposable, IObject[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()

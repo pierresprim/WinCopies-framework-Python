@@ -6,7 +6,7 @@ from WinCopies.Assertion import Throw
 from WinCopies.Typing.Delegate import Function
 
 class SingletonMeta(type):
-    def __init__(cls, *args: object, **kwargs: object):
+    def __init__(cls, *args: object, **kwargs: object) -> None:
         cls.__instance: object|None = None
 
         super().__init__(*args, **kwargs)
@@ -28,7 +28,7 @@ class MultiInitializationSingletonMeta(SingletonMeta):
         cls._GetInstance().__init__(*args, **kwargs)
 
 class Singleton(metaclass=SingletonMeta):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
     
     @classmethod
@@ -46,7 +46,7 @@ def GetSingletonInstanceProvider[T: Singleton](t: type[T], *args: object, **kwar
 
 class Static:
     @staticmethod
-    def Throw():
+    def Throw() -> None:
         raise TypeError('Static class cannot be instantiated.')
     
     @final

@@ -54,7 +54,7 @@ def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
     return any(imp.startswith(packageName) for imp in imports)
 
 class PackageInspector(Abstract):
-    def __init__(self, package: ModuleType|str):
+    def __init__(self, package: ModuleType|str) -> None:
         super().__init__()
 
         self.__package: ModuleType = ImportModule(package)
@@ -65,7 +65,7 @@ class PackageInspector(Abstract):
     def ContainsModule(self, module: ModuleType) -> bool:
         return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module), self.GetName())
     
-    def EnumerateSubmodules(self, includePrivate: bool = False):
+    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfo]:
         return EnumerateSubmodules(self.__package, includePrivate)
     
     def TryFindModule(self, name: str) -> ModuleType|None:
@@ -77,7 +77,7 @@ class PackageInspector(Abstract):
             return None
 
 class IFrameInspector(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -133,11 +133,11 @@ class IFrameInspector(IInterface):
     def TryIsBuiltin(self) -> INullable[bool]|None:
         pass
 class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class __IFrameInfo(IInterface):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
@@ -155,7 +155,7 @@ class __IFrameInfo(IInterface):
 
 @final
 class __FrameInfo(Abstract, __IFrameInfo):
-    def __init__(self, frameInfo: FrameInfo):
+    def __init__(self, frameInfo: FrameInfo) -> None:
         super().__init__()
 
         self.__frameInfo: FrameInfo = frameInfo
@@ -171,7 +171,7 @@ class __FrameInfo(Abstract, __IFrameInfo):
 @final
 class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
     class _IHandle(__IFrameInfo):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         @abstractmethod
@@ -184,7 +184,7 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
     
     @final
     class _NullHandle(Abstract, _IHandle):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
         
         def IsDisposed(self) -> bool:
@@ -203,7 +203,7 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
             return self
     @final
     class _Handle(Abstract, _IHandle):
-        def __init__(self, frame: FrameType, traceback: Traceback):
+        def __init__(self, frame: FrameType, traceback: Traceback) -> None:
             super().__init__()
 
             self.__frame: FrameType = frame
@@ -226,7 +226,7 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
 
             return __Traceback._NullHandle()
     
-    def __init__(self, frame: FrameType, traceback: Traceback):
+    def __init__(self, frame: FrameType, traceback: Traceback) -> None:
         super().__init__()
 
         self.__handle: __Traceback._IHandle = __Traceback._Handle(frame, traceback)
@@ -248,7 +248,7 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
 
 @final
 class __FrameInspector(Abstract, IFrameInspector):
-    def __init__(self, frameInfo: __IFrameInfo):
+    def __init__(self, frameInfo: __IFrameInfo) -> None:
         super().__init__()
 
         self.__frameInfo: __IFrameInfo = frameInfo
@@ -327,7 +327,7 @@ def CreateFrameInspectorFromFrame(frame: FrameType) -> IFrameInspector:
 
 @final
 class __DisposableFrameInspector(Abstract, IDisposableInfo):
-    def __init__(self, frame: FrameType):
+    def __init__(self, frame: FrameType) -> None:
         super().__init__()
 
         self.__frame: FrameType = frame
@@ -348,7 +348,7 @@ class __DisposableFrameInspector(Abstract, IDisposableInfo):
         del self.__frame
 
 class DisposableFrameInspector(Abstract, IDisposableFrameInspector):
-    def __init__(self, frame: FrameType):
+    def __init__(self, frame: FrameType) -> None:
         super().__init__()
 
         self.__frameInspector: IDisposableProvider[__DisposableFrameInspector] = DisposableProvider(__DisposableFrameInspector(frame))
@@ -399,7 +399,7 @@ class DisposableFrameInspector(Abstract, IDisposableFrameInspector):
         self.__frameInspector.Dispose()
 
 class FrameHierarchy(Abstract):
-    def __init__(self, inspector: IFrameInspector):
+    def __init__(self, inspector: IFrameInspector) -> None:
         super().__init__()
 
         self.__inspector: IFrameInspector = inspector
