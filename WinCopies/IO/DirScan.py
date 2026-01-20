@@ -220,16 +220,16 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]
             return predicate
 
         case FileKind.Folder:
-            return Delegates.GetAndAlsoPredicate(os.DirEntry[str].is_dir, predicate)
+            return Delegates.GetAndAlsoPredicate(lambda value: value.is_dir(), predicate)
 
         case FileKind.File:
-            return Delegates.GetAndAlsoPredicate(os.DirEntry[str].is_file, predicate)
+            return Delegates.GetAndAlsoPredicate(lambda value: value.is_file(), predicate)
 
         case FileKind.Link:
-            return Delegates.GetAndAlsoPredicate(os.DirEntry[str].is_symlink, predicate)
+            return Delegates.GetAndAlsoPredicate(lambda value: value.is_symlink(), predicate)
 
         case FileKind.Junction:
-            return Delegates.GetAndAlsoPredicate(os.DirEntry[str].is_junction, predicate)
+            return Delegates.GetAndAlsoPredicate(lambda value: value.is_junction(), predicate)
 
         case _:
             raise ValueError("FileKind not supported.", fileKind)
