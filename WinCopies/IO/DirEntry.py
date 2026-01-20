@@ -27,7 +27,7 @@ class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
         return container
     
     @final
-    def IsDirectory(self):
+    def IsDirectory(self) -> bool:
         return os.path.isdir(self.GetPath())
     
     @final
@@ -69,19 +69,19 @@ class DirEntry(IterableDirEntry):
         self.__extension: str = StringifyIfNone(extension)
     
     @classmethod
-    def FromFileName(cls, directory: str, fileName: str):
+    def FromFileName(cls, directory: str, fileName: str) -> DirEntry:
         entry = os.path.splitext(fileName)
         
         return cls(directory, entry[0], IO.GetExtensionFromArray(entry))
     
     @classmethod
-    def FromPath(cls, path: str):
+    def FromPath(cls, path: str) -> DirEntry:
         entry = os.path.split(path)
         
         return cls.FromFileName(entry[0], entry[1])
     
     @classmethod
-    def FromSystemDirEntry(cls, dirEntry: os.DirEntry[str]):
+    def FromSystemDirEntry(cls, dirEntry: os.DirEntry[str]) -> DirEntry:
         entry: SystemDirEntry = SystemDirEntry(dirEntry)
         array = os.path.splitext(entry.GetFullName())
         
