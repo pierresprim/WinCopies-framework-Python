@@ -61,6 +61,9 @@ class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
             self._GetInnerContainer().Insert(0, value)
     @final
     def TryPushItems(self, items: Iterable[TItems]|None) -> bool:
+        adder: Callable[[int, TItems], None]|None = None
+        i: int = 0
+
         def insert(index: int, item: TItems) -> None:
             self._GetInnerContainer().TryInsert(index, item)
         def add(index: int, item: TItems) -> None:
@@ -84,8 +87,7 @@ class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
         if items is None:
             return False
         
-        adder: Callable[[int, TItems], None] = add
-        i: int = 0
+        adder = add
 
         for item in items:
             adder(i, item)
