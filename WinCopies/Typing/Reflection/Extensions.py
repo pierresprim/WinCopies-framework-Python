@@ -9,11 +9,11 @@ from sys import modules
 from types import ModuleType, FrameType
 from typing import Sequence, final
 
-from WinCopies import Abstract
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction.Collection import Array
-from WinCopies.Typing import Reflection, IInterface, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
+from WinCopies.Typing import Reflection, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
