@@ -179,7 +179,7 @@ class IndexFactory(Abstract, IIndexFactory):
     class _Index(Abstract, IIndex):
         def __init__(self) -> None:
             EnsureCallerPackage(WinCopies.Data)
-
+            
             super().__init__()
 
         @abstractmethod

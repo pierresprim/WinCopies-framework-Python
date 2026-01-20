@@ -148,13 +148,13 @@ class NotifyableEventArgs(NotifyableEventArgsBase[bool|None], INotifyableEventAr
         return value is None
 
 class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
-    class __Event(IEvent):
+    @final
+    class __Event(Abstract, IEvent):
         def __init__(self, node: INode[EventHandler[TSender, TArgs]]) -> None:
             super().__init__()
 
             self.__node: INode[EventHandler[TSender, TArgs]] = node
         
-        @final
         def Remove(self) -> None:
             self.__node.Remove()
     
