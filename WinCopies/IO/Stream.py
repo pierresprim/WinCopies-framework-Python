@@ -238,7 +238,7 @@ class File[T](Abstract, IFileStream[T]):
 
             case _:
                 # Invalid arguments; no initializer could be created.
-                raise ValueError(f"Wrong {type(FileType).name}.", fileType)
+                raise ValueError(f"Wrong {FileType.__name__}.", fileType)
     
     @staticmethod
     def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
