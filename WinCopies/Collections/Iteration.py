@@ -445,6 +445,19 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     """
     return __Exclude(items, lambda enumerator: ExcluerUntilEnumerator(enumerator, predicate))
 
+def GetFirst[T](items: Iterable[T]) -> INullable[T]:
+    """Tries to get the first item from an iterable.
+
+    Args:
+        items: The items to process.
+
+    Returns:
+        INullable with first item if found or null value if empty.
+    """
+    for item in items:
+        return GetNullable(item)
+
+    return GetNullValue()
 def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
     """Tries to get the first item from an iterable.
 
@@ -454,13 +467,7 @@ def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
     Returns:
         None if items is None; INullable with first item if found, or null value if empty.
     """
-    if items is None:
-        return None
-
-    for item in items:
-        return GetNullable(item)
-
-    return GetNullValue()
+    return None if items is None else GetFirst(items)
 
 def Any[T](items: Iterable[T]|None) -> bool|None:
     """Checks if an iterable contains any items.
