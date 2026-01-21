@@ -469,6 +469,14 @@ def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
     """
     return None if items is None else GetFirst(items)
 
+def GetFirstItem[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]:
+    for item in Include(items, predicate):
+        return GetNullable(item)
+    
+    return GetNullValue()
+def TryGetFirstItem[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
+    return None if items is None else GetFirstItem(items, predicate)
+
 def Any[T](items: Iterable[T]|None) -> bool|None:
     """Checks if an iterable contains any items.
 
