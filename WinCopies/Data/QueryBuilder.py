@@ -81,10 +81,6 @@ class ISelectionQueryWriter(IConditionalQueryWriter):
     @abstractmethod
     def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
         pass
-    
-    @abstractmethod
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
-        pass
 
 class ISelectionQueryBuilder(IConditionalQueryBuilder, ISelectionQueryWriter):
     def __init__(self) -> None:
