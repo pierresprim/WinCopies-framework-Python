@@ -45,8 +45,11 @@ class IConditionalQueryWriter(IQueryBuilder):
         pass
 
     @abstractmethod
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+    def ProcessConditionValue(self, conditionKey: IColumn, conditionValue: IArgument|None) -> str:
         pass
+    @final
+    def ProcessCondition[T: IArgument](self, condition: IKeyValuePair[IColumn, T|None]) -> str:
+        return self.ProcessConditionValue(condition.GetKey(), condition.GetValue())
     
     @abstractmethod
     def ProcessColumns[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:
@@ -200,8 +203,8 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
         return self._GetBuilder().AddConditions(conditions)
     
     @final
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
-        return self._GetBuilder().ProcessCondition(condition)
+    def ProcessConditionValue(self, conditionKey: IColumn, conditionValue: IArgument|None) -> str:
+        return self._GetBuilder().ProcessConditionValue(conditionKey, conditionValue)
     
     @final
     def ProcessColumns[U: IArgument](self, items: IDictionary[IColumn, U|None]) -> Generator[str]:
@@ -315,11 +318,11 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
         self._RenderConditions(" WHERE ", conditions, GetPrefixedConditionalQueryWriter)
     
     @final
-    def ProcessCondition(self, condition: IKeyValuePair[IColumn, IArgument|None]) -> str:
+    def ProcessConditionValue(self, conditionKey: IColumn, conditionValue: IArgument|None) -> str:
         def process(column: str, parameter: IArgument|None) -> str:
             return column if parameter is None else parameter.Join(self, column)
         
-        return process(condition.GetKey().ToString(self.FormatTableName), condition.GetValue())
+        return process(conditionKey.ToString(self.FormatTableName), conditionValue)
     
     @final
     def ProcessColumns[T: IArgument](self, items: IDictionary[IColumn, T|None]) -> Generator[str]:            

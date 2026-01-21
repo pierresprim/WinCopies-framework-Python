@@ -218,10 +218,13 @@ class ConditionParameterSet(IConditionParameterSet):
 
             action = _action
         def process(condition: ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+            def write(value: IKeyValuePair[IColumn, IParameter[IOperandValue]]) -> None:
+                writer.Write(writer.ProcessConditionValue(value.GetKey(), value.GetValue()))
+
             nonlocal value
 
             if (value := condition.TryGetValue()).HasValue():
-                writer.Write(writer.ProcessCondition(value.GetValue()))
+                write(value.GetValue())
 
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)

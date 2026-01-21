@@ -339,11 +339,15 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 if subqueries is None:
                     return False # No subquery; continue query building.
                 
+                column: IKeyValuePair[IColumn, IParameter[object]]|None = None
+                
                 for query in SelectionQuery.__Enumerable(subqueries, queryBuilder).AsIterable():
                     if not self._PrevalidateQuery(query):
                         return True # A subquery failed to validate; cancel query building.
                     
-                    queryBuilder.Write(f"SELECT {queryBuilder.ProcessCondition(query.GetColumn())} FROM {getTables(query)}")
+                    column = query.GetColumn()
+                    
+                    queryBuilder.Write(f"SELECT {queryBuilder.ProcessConditionValue(column.GetKey(), column.GetValue())} FROM {getTables(query)}")
                 
                 return False # Process succeeded; continue query building.
             
