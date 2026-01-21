@@ -4,16 +4,21 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
+
+
 from WinCopies import IDisposable, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
+from WinCopies.Collections.Iteration import GetFirstItem
 
 from WinCopies.Typing import IEquatable, GetDisposedError
 from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+
+
 
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
 from WinCopies.Data.Field import IField
@@ -294,11 +299,7 @@ class Connection(Abstract, IConnection):
 
     @final
     def __TryGetTable(self, tableName: str) -> ITable|None:
-        for table in self.__tables:
-            if table.GetName() == tableName:
-                return table
-        
-        return None
+        return GetFirstItem(self.__tables, lambda table: table.GetName() == tableName).TryGetValue()
     
     @final
     def __AddNewTable(self, table: ITable) -> ITable:
