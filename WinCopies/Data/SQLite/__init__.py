@@ -234,6 +234,8 @@ class Table(TableBase):
     def GetIndices(self) -> IArray[IIndex]:
         def getIndices(connection: IConnection) -> Iterable[IIndex]:
             def getIndices(connection: IConnection) -> Generator[IIndex]:
+                func: Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]|None = None
+
                 def checkIndexKind(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str) -> IIndex|None:
                     return factory.GetNormalIndex(name, columnName) if kind == IndexKind.Normal else None
                 
@@ -351,7 +353,7 @@ class Table(TableBase):
                 indexKind: IndexKind = IndexKind.Null
                 result: Generator[IIndex]|None = None
                 columns: IList[str] = Queue[str]()
-                func: Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None] = getParser()
+                func = getParser()
 
                 for row in indices.AsIterable():
                     if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
