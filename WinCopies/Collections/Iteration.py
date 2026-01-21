@@ -477,7 +477,7 @@ def GetFirstItem[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]
 def TryGetFirstItem[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
     return None if items is None else GetFirstItem(items, predicate)
 
-def Any[T](items: Iterable[T]|None) -> bool|None:
+def Any[T](items: Iterable[T]) -> bool:
     """Checks if an iterable contains any items.
 
     Args:
@@ -486,13 +486,20 @@ def Any[T](items: Iterable[T]|None) -> bool|None:
     Returns:
         None if items is None, True if any items exist, False otherwise.
     """
-    if items is None:
-        return None
-
     for _ in items:
         return True
 
     return False
+def CheckIfAny[T](items: Iterable[T]|None) -> bool|None:
+    """Checks if an iterable contains any items.
+
+    Args:
+        items: The items to check.
+
+    Returns:
+        True if any items exist, False otherwise.
+    """
+    return None if items is None else Any(items)
 
 def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> IterationResult:
     """Validates that exactly one or no item matches a predicate.
