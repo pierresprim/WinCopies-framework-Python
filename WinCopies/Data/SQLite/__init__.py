@@ -14,7 +14,6 @@ from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
-from WinCopies.Collections.Linked import Singly
 from WinCopies.Collections.Linked.Singly import Queue
 from WinCopies.Collections.Linked.Singly.Base import IList
 
@@ -352,7 +351,7 @@ class Table(TableBase):
                 indexKind: IndexKind = IndexKind.Null
                 result: Generator[IIndex]|None = None
                 columns: IList[str] = Queue[str]()
-                func: Callable[[IIndexFactory, str, str, IndexKind, str, Singly.IList[str]], Generator[IIndex]|None] = getParser()
+                func: Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None] = getParser()
 
                 for row in indices.AsIterable():
                     if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
