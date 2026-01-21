@@ -1,7 +1,10 @@
 from WinCopies.Collections.Expression import ICompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
+
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import IKeyValuePair
+
+
 
 from WinCopies.Data import ConditionalOperator, IColumn, IOperandValue
 from WinCopies.Data.Parameter import IParameter, ITableParameter

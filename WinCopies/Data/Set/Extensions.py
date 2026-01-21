@@ -103,10 +103,10 @@ class ExistenceQuery(IExistenceQuery):
     def GetTableParameter(self) -> ITableParameter[object]|None:
         return self.__tableParameter
 
-    @abstractmethod
+    @final
     def GetJoins(self) -> Iterable[IJoin]|None:
         return self.__joins
-    @abstractmethod
+    @final
     def SetJoins(self, joins: Iterable[IJoin]|None) -> None:
         self.__joins = joins
     
