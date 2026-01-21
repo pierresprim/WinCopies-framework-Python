@@ -14,7 +14,7 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 from WinCopies.Collections.Iteration import GetFirstItem
 
-from WinCopies.Typing import IEquatable, GetDisposedError
+from WinCopies.Typing import IEquatable, INullable, GetDisposedError
 from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -313,7 +313,7 @@ class Connection(Abstract, IConnection):
         return self.__AddNewTable(self._GetTable(name))
     
     @abstractmethod
-    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable|None:
+    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
         pass
     @abstractmethod
     def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
@@ -321,9 +321,19 @@ class Connection(Abstract, IConnection):
 
     @final
     def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
-        table: ITable|None = self._TryCreateTableOverride(name, fields, indices)
+        def addTable() -> ITable:
+            return self.__AddTable(name)
         
-        return self.__AddTable(name) if table is None else self.__AddNewTable(table)
+        def getTable(table: ITable|None) -> ITable:
+            return addTable() if table is None else self.__AddNewTable(table)
+        def tryGetTable() -> ITable:
+            table: ITable|None = self.__TryGetTable(name)
+
+            return addTable() if table is None else table
+        
+        table: INullable[ITable]|None = self._TryCreateTableOverride(name, fields, indices)
+        
+        return tryGetTable() if table is None else getTable(table.TryGetValue())
     @final
     def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
