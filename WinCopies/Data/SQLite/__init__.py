@@ -21,7 +21,7 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import InvalidOperationError, GetDisposedError
+from WinCopies.Typing import InvalidOperationError, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, EnumValue, String
 from WinCopies.Typing.Pairing import DualResult
@@ -466,10 +466,12 @@ class Connection(ConnectionBase):
     def __EnsureFields(fields: Iterable[IField]) -> None:
         EnsureOnlyOne(fields, lambda field: field.GetAttributes() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
     
-    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable|None:
+    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
         Connection.__EnsureFields(fields)
 
-        return self.__TryCreateTable(name, fields, indices)
+        self.__TryCreateTable(name, fields, indices)
+
+        return None
     def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
         Connection.__EnsureFields(fields)
         
