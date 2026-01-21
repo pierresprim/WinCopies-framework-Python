@@ -457,7 +457,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
         
         result: DualResult[str, str] = getValues()
         
-        return DualResult[str, ICountableEnumerable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableEnumerable[object].Create(args))
+        return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CountableEnumerable[object].Create(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
     def __init__(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, items, ignoreExisting)
@@ -502,7 +502,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             return result
         
-        return DualResult[str, ICountableEnumerable[object]](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableEnumerable[object].Create(globalArgs))
+        return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.GetIgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CountableEnumerable[object].Create(globalArgs))
 
 class UpdateQuery(WriteQuery, IUpdateQuery):
     def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:

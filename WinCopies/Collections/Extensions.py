@@ -418,7 +418,7 @@ class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
     
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        return DualValueBool[TValue](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TDefault](defaultValue, False)
+        return DualValueBool[TValue|TDefault](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TValue|TDefault](defaultValue, False)
 class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()

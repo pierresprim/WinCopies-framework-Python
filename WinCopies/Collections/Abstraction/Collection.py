@@ -332,7 +332,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         result: TValue|_None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
 
-        return DualValueBool[TDefault](defaultValue, False) if isinstance(result, _None) else DualValueBool[TValue](result, True)
+        return DualValueBool[TValue|TDefault](defaultValue, False) if isinstance(result, _None) else DualValueBool[TValue|TDefault](result, True)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
