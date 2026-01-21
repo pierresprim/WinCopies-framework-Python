@@ -247,7 +247,7 @@ class IndexFactory(Abstract, IIndexFactory):
         def ToString(self) -> str:
             foreignKey: DualResult[str, str] = self.GetForeignKey()
 
-            return f"{super().ToString()} REFERENCES {self._FormatTableName(foreignKey.GetKey())} ({self._FormatTableName(foreignKey.GetValue())})"
+            return f"{self._GetHeader()} REFERENCES {self._FormatTableName(foreignKey.GetKey())} ({self._FormatTableName(foreignKey.GetValue())})"
     
     def __init__(self, connection: IConnection) -> None:
         EnsureDirectPackageCall()
