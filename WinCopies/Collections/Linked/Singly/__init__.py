@@ -303,18 +303,13 @@ class ListBase[T](AbstractList[T], IList[T]):
 
         return result
     
-    @abstractmethod
-    def _OnClearedItems(self) -> None:
-        pass
-    
     @final
     def Clear(self) -> None:
         result: INullable[T] = self.TryPop()
 
+        # TODO: Should be improved.
         while result.HasValue(): # Needed in case of a running enumeration.
             result = self.TryPop()
-
-        self._OnClearedItems()
 
         self.__OnRemoved()
 
@@ -344,10 +339,6 @@ class List[T](ListBase[T]):
     
     @final
     def _UnsetFirst(self) -> None:
-        self.__first = None
-    
-    @final
-    def _OnClearedItems(self) -> None:
         self.__first = None
 
 class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]):
@@ -537,11 +528,6 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
     @final
     def _UnsetLast(self) -> None:
         self.__last = None
-    
-    @final
-    def _OnClearedItems(self) -> None:
-        self.__first = None
-        self.__last = None
 class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
     def __init__(self, *values: T) -> None:
         super().__init__()
@@ -559,10 +545,6 @@ class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
     
     @final
     def _UnsetFirst(self) -> None:
-        self.__first = None
-    
-    @final
-    def _OnClearedItems(self) -> None:
         self.__first = None
 
 @final

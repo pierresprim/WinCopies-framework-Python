@@ -286,11 +286,6 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
     def _UnsetLast(self) -> None:
         self.__last = None
     
-    @final
-    def _OnClearedItems(self) -> None:
-        self.__first = None
-        self.__last = None
-    
     def AsReadOnly(self) -> IReadOnlyBufferedQueue[T]:
         return self.__readOnly.GetValue()
 class BufferedStack[T](StackBase[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T]):
@@ -314,10 +309,6 @@ class BufferedStack[T](StackBase[T], Buffer[T], AbstractBufferedStack[T], IBuffe
     
     @final
     def _UnsetFirst(self) -> None:
-        self.__first = None
-    
-    @final
-    def _OnClearedItems(self) -> None:
         self.__first = None
 
     @final
