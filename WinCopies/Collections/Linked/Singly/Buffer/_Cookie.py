@@ -1,7 +1,7 @@
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Linked.Singly import SinglyLinkedNode
+from WinCopies.Collections.Linked.Singly import SinglyLinkedNode, INodeCookie
 from WinCopies.Collections.Linked.Singly.Buffer.Base import IBufferedList, IBufferedQueueList, IBufferCookie, IBufferedQueueCookie, Buffer, BufferedQueue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 
@@ -13,9 +13,9 @@ class BufferedList[T](Buffer[T], IBufferedList[T]):
 
             self.__buffer: BufferedList[_T] = buffer
 
-        def GetFirst(self) -> SinglyLinkedNode[_T]|None:
+        def GetFirst(self) -> INodeCookie[_T]|None:
             return self.__buffer._GetFirstNode()
-        def SetFirst(self, node: SinglyLinkedNode[_T]) -> None:
+        def SetFirst(self, node: INodeCookie[_T]) -> None:
             self.__buffer._SetFirstNode(node)
     
     @final
@@ -36,10 +36,10 @@ class BufferedList[T](Buffer[T], IBufferedList[T]):
         return BufferedList[T].__Updater(self, updater)
     
     @final
-    def _GetFirstNode(self) -> SinglyLinkedNode[T]|None:
-        return self._GetFirst()
+    def _GetFirstNode(self) -> INodeCookie[T]|None:
+        return self._GetFirstCookie()
     @final
-    def _SetFirstNode(self, node: SinglyLinkedNode[T]) -> None:
+    def _SetFirstNode(self, node: INodeCookie[T]) -> None:
         self._SetFirst(node)
 
 class CookieBufferedQueue[T](BufferedQueue[T], BufferedList[T], IBufferedQueueList[T]):
