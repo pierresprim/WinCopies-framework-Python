@@ -31,24 +31,38 @@ class LinkedNodeBase[T](Abstract):
     def SetValue(self, value: T) -> None:
         self.__value = value
 
-class LinkedNode[TItem, TNode](LinkedNodeBase[TItem], ILinkedNode[TItem]):
+class LinkedNodeAbstract[TItem, TNode](LinkedNodeBase[TItem], ILinkedNode[TItem]):
+    def __init__(self, value: TItem) -> None:
+        super().__init__(value)
+
+    @abstractmethod
+    def _AsLinkedNode(self, node: TNode) -> LinkedNodeAbstract[TItem, TNode]:
+        pass
+    def _TryAsLinkedNode(self, node: TNode|None) -> LinkedNodeAbstract[TItem, TNode]|None:
+        return None if node is None else self._AsLinkedNode(node)
+    
+    @abstractmethod
+    def GetNextNode(self) -> TNode|None:
+        pass
+    def GetNext(self) -> ILinkedNode[TItem]|None:
+        return self._TryAsLinkedNode(self.GetNextNode())
+
+class LinkedNode[TItem, TNode](LinkedNodeAbstract[TItem, TNode]):
     def __init__(self, value: TItem, nextNode: TNode|None) -> None:
         super().__init__(value)
 
         self.__next: TNode|None = nextNode
+
+    @final
+    def GetNextNode(self) -> TNode|None:
+        return self.__next
+    
+    @final
+    def _SetNext(self, nextNode: TNode|None) -> None:
+        self.__next = nextNode
 
     @abstractmethod
     def _AsLinkedNode(self, node: TNode) -> LinkedNode[TItem, TNode]:
         pass
     def _TryAsLinkedNode(self, node: TNode|None) -> LinkedNode[TItem, TNode]|None:
         return None if node is None else self._AsLinkedNode(node)
-    
-    @final
-    def GetNextNode(self) -> TNode|None:
-        return self.__next
-    def GetNext(self) -> ILinkedNode[TItem]|None:
-        return self._TryAsLinkedNode(self.GetNextNode())
-    
-    @final
-    def _SetNext(self, nextNode: TNode|None) -> None:
-        self.__next = nextNode
