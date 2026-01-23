@@ -177,10 +177,11 @@ class BufferBase[T](AbstractBuffer[T], IBufferBase):
 
     @final
     def _IsFirstAlsoLast(self) -> tuple[SinglyLinkedNode[T], SinglyLinkedNode[T]|None]|None:
-        if self.IsEmpty():
+        first: SinglyLinkedNode[T]|None = self._GetFirst()
+
+        if first is None:
             return None
         
-        first: SinglyLinkedNode[T] = self._GetFirst()
         next: SinglyLinkedNode[T]|None = first.GetNext()
 
         return (first, next)
