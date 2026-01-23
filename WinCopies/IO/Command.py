@@ -4,22 +4,10 @@ import subprocess
 from collections.abc import Iterable, Sequence
 
 from WinCopies.Collections import Iteration, MakeSequence
-from WinCopies.Typing import Reflection
 from WinCopies.Typing.Pairing import DualResult, KeyValuePair
 
 def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
-    args: str|list[str]|None = None
-    
-    if Reflection.IsOf(command, str, list):
-        args = command # type: ignore
-    
-    elif Reflection.IsOf(command, Iterable):
-        args = list(command)
-
-    else:
-        raise ValueError(f"command must be a string, Iterable[str] or list[str]. Command is {type(command)}", command)
-    
-    result: subprocess.CompletedProcess[str] = subprocess.run(args, stdout = (None if captureOutput else sys.__stdout__), shell = shell, capture_output = captureOutput, check = throwOnError, text = captureOutput)
+    result: subprocess.CompletedProcess[str] = subprocess.run(command if isinstance(command, str) or isinstance(command, list) else list(command), stdout = (None if captureOutput else sys.__stdout__), shell = shell, capture_output = captureOutput, check = throwOnError, text = captureOutput)
     
     return DualResult(result.stdout, result.returncode)
 
