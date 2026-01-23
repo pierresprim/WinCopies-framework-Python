@@ -199,8 +199,14 @@ class AbstractList[T](Abstract, IReadOnlyList[T]):
         super().__init__()
     
     @abstractmethod
-    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+    def _GetFirstCookie(self) -> INodeCookie[T]|None:
         pass
+    
+    @final
+    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
+        cookie: INodeCookie[T]|None = self._GetFirstCookie()
+
+        return None if cookie is None else cookie.GetNode()
     @abstractmethod
     def _SetFirst(self, node: INodeCookie[T]) -> None:
         pass
@@ -225,19 +231,6 @@ class ListBase[T](AbstractList[T], IList[T]):
     @final
     def HasItems(self) -> bool:
         return super().HasItems()
-    
-    @abstractmethod
-    def _GetFirstCookie(self) -> INodeCookie[T]|None:
-        pass
-    
-    @final
-    def _GetFirst(self) -> SinglyLinkedNode[T]|None:
-        cookie: INodeCookie[T]|None = self._GetFirstCookie()
-
-        return None if cookie is None else cookie.GetNode()
-    @abstractmethod
-    def _SetFirst(self, node: INodeCookie[T]) -> None:
-        pass
     
     @abstractmethod
     def _UnsetFirst(self) -> None:
@@ -321,7 +314,7 @@ class ListBase[T](AbstractList[T], IList[T]):
         while result.HasValue(): # Needed in case of a running enumeration.
             result = self.TryPop()
 
-        self._OnCleared()
+        self._OnClearedItems()
 
         self.__OnRemoved()
 
