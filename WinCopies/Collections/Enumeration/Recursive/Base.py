@@ -208,12 +208,12 @@ class RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TCookieIn, TCookieOut
 
 class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, None, None], IRecursiveEnumerationHandler[TIn]):
     def __init__(self, handler: IRecursiveEnumerationHandler[TOut]) -> None:
-        def update(func: IFunction[IRecursiveStackedEnumerationHandler[TOut]]) -> None:
+        def update(func: IFunction[IRecursiveStackedEnumerationHandler[TIn]]) -> None:
             self.__handler = func
 
         super().__init__(handler)
 
-        self.__handler: IFunction[IRecursiveStackedEnumerationHandler[TOut]] = _RecursiveEnumerationHandlerAbstractorUpdater[TOut](self, update)
+        self.__handler: IFunction[IRecursiveStackedEnumerationHandler[TIn]] = _RecursiveEnumerationHandlerAbstractorUpdater[TIn](self, update)
     
     @final
     def OnExitingEnumerationLevel(self, cookie: None) -> None:
@@ -228,7 +228,7 @@ class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandl
         return self._GetHandler().OnExitingSubenumerationLevel(cookie)
     
     @final
-    def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[TOut]:
+    def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[TIn]:
         return self.__handler.GetValue()
 class RecursiveStackedEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandlerAbstractorBase[TIn, TOut, TIn, TOut], IRecursiveStackedEnumerationHandler[TIn]):
     def __init__(self, handler: IRecursiveStackedEnumerationHandler[TOut]) -> None:
