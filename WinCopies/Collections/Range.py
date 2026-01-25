@@ -15,12 +15,7 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
         return ReverseIndex(index, lst.GetCount())
     def replace(i: int, l: int, s: int) -> None:
         def getItems() -> ICountableEnumerable[T]:
-            if isinstance(values, ICountableEnumerable):
-                return values
-            elif isinstance(values, Sequence):
-                return Tuple[T](values)
-            
-            return CountableQueue[T](*values).AsCountableGenerator()
+            return values if isinstance(values, ICountableEnumerable) else (Tuple[T](values) if isinstance(values, Sequence) else CountableQueue[T](*values).AsCountableGenerator())
         
         def getRangeCount(start: int, stop: int, step: int) -> int:
             count: int = 0

@@ -100,6 +100,10 @@ class ICountableListBase[T](IListBase[T], IReadOnlyCountableListBase[T]):
         super().__init__()
     
     @abstractmethod
+    def AsCountableGenerator(self) -> ICountableEnumerable[T]:
+        pass
+    
+    @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableList[T]:
         pass
 class ICountableList[T](ICountableListBase[T], IList[T], IReadOnlyCountableList[T]):

@@ -728,6 +728,10 @@ class CountableList[TItem, TList](ICountableList[TItem], GenericConstraint[TList
         return self._GetInnerContainer().Clear()
     
     @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[TItem]:
+        return self._GetInnerContainer().AsCountableGenerator()
+    
+    @final
     def AsSized(self) -> Sized:
         return self._GetInnerContainer().AsSized()
 
