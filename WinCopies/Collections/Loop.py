@@ -1,5 +1,5 @@
-from typing import Callable
 from collections.abc import Iterable
+from typing import Callable
 
 import WinCopies
 

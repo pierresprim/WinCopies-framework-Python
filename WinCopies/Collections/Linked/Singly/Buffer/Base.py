@@ -26,6 +26,17 @@ class IBuffer[T](IList[T], IBufferBase):
     def AsReadOnly(self) -> IReadOnlyBuffer[T]:
         pass
 
+class IBufferCookie[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def GetFirst(self) -> INodeCookie[T]|None:
+        pass
+    @abstractmethod
+    def SetFirst(self, node: INodeCookie[T]) -> None:
+        pass
+
 class IBufferedList[T](IBuffer[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -314,17 +325,6 @@ class BufferedStack[T](StackBase[T], Buffer[T], AbstractBufferedStack[T], IBuffe
     @final
     def AsReadOnly(self) -> IReadOnlyBufferedStack[T]:
         return self.__readOnly.GetValue()
-
-class IBufferCookie[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def GetFirst(self) -> INodeCookie[T]|None:
-        pass
-    @abstractmethod
-    def SetFirst(self, node: INodeCookie[T]) -> None:
-        pass
 
 class IBufferedQueueCookie[T](IInterface):
     def __init__(self) -> None:

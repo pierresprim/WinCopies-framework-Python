@@ -5,6 +5,8 @@ Created on Fri Jan 17 02:12:00 2025
 @author: Pierre Sprimont
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from enum import Enum
