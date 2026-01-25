@@ -375,16 +375,13 @@ class LIFO[T](RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]])
 
         self.__first = None
 
-class IRecursiveEnumeratorAbstract[T](IEnumerator[T]):
+class IRecursiveEnumeratorBase[T, TCookie, TStackItems](IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
         pass
-class IRecursiveEnumeratorBase[T, TCookie, TStackItems](IRecursiveEnumeratorAbstract[T]):
-    def __init__(self) -> None:
-        super().__init__()
     
     @abstractmethod
     def _GetCookie(self) -> IRecursiveEnumerationCookie[T, TCookie, TStackItems]:

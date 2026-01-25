@@ -20,6 +20,7 @@ from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, Countable
 from WinCopies.Collections.Linked.Singly.Base import IList, ICountableEnumerableList
 
 from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IValueItem, IString
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
@@ -247,8 +248,8 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         
         @final
         class __Enumerator(DefaultRecursiveStackedEnumerator[ISubselectionQuery]):
-            def __init__(self, enumerable: RecursivelyEnumerable[ISubselectionQuery], enumerator: IEnumerator[ISubselectionQuery], queryBuilder: ISelectionQueryBuilder) -> None:
-                super().__init__(enumerable, enumerator)
+            def __init__(self, enumerable: RecursivelyEnumerable[ISubselectionQuery], enumerator: IEnumerator[ISubselectionQuery], converter: Converter[ISubselectionQuery, IEnumerable[ISubselectionQuery]], queryBuilder: ISelectionQueryBuilder) -> None:
+                super().__init__(enumerable, enumerator, converter)
 
                 self.__queryBuilder: ISelectionQueryBuilder = queryBuilder
             
@@ -277,7 +278,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             return SelectionQuery.__Enumerable.__EnumerableSelectionQuery(container)
         
         def _TryGetRecursiveStackedEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None:
-            return SelectionQuery.__Enumerable.__Enumerator(self, enumerator, self.__queryBuilder)
+            return SelectionQuery.__Enumerable.__Enumerator(self, enumerator, self._AsRecursivelyEnumerable, self.__queryBuilder)
         def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], handler: IRecursiveEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None:
             return self._TryGetRecursiveStackedEnumerator(enumerator)
         

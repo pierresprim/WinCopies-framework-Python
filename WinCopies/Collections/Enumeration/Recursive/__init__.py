@@ -8,11 +8,11 @@ from typing import final
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive.Base import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, IRecursiveEnumerationDelegate, IRecursiveEnumerationCookie, IRecursivelyEnumerable
-from WinCopies.Collections.Enumeration.Recursive._Base import IRecursiveEnumeratorAbstract, FIFO, LIFO
+from WinCopies.Collections.Enumeration.Recursive._Base import FIFO, LIFO
 from WinCopies.Collections.Enumeration.Recursive.Generic import RecursiveEnumeratorBase
 from WinCopies.Collections.Linked.Singly import Stack
 
-from WinCopies.Typing.Delegate import Function, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import DualResult
 
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
@@ -57,36 +57,42 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
     def _GetStackItemAsCookie(self, item: DualResult[T, IEnumerator[T]]) -> T:
         return item.GetKey()
 
-class _IEnumerator[T](IRecursiveEnumeratorAbstract[T]):
+class _IEnumerator[T](IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
         pass
-    
-    @final
-    def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
-        return self._GetEnumerable()._AsRecursivelyEnumerable(enumerationItems)
 
 class DefaultRecursiveEnumerator[T](RecursiveEnumerator[T], _IEnumerator[T]):
-    def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
+    def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], converter: Converter[T, IEnumerable[T]], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
         super().__init__(enumerator, handler)
 
         self.__enumerable: RecursivelyEnumerable[T] = enumerable
+        self.__converter: Converter[T, IEnumerable[T]] = converter
     
     @final
     def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
         return self.__enumerable
+    
+    @final
+    def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
+        return self.__converter(enumerationItems)
 class DefaultRecursiveStackedEnumerator[T](StackedRecursiveEnumerator[T], _IEnumerator[T]):
-    def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> None:
+    def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], converter: Converter[T, IEnumerable[T]], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> None:
         super().__init__(enumerator, enumerationOrder, handler)
 
         self.__enumerable: RecursivelyEnumerable[T] = enumerable
+        self.__converter: Converter[T, IEnumerable[T]] = converter
     
     @final
     def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
         return self.__enumerable
+    
+    @final
+    def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
+        return self.__converter(enumerationItems)
 
 @final
 class _RecursivelyEnumerableUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
@@ -116,9 +122,9 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
         return self.__recursive.GetValue()
     
     def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None) -> IEnumerator[T]|None:
-        return DefaultRecursiveEnumerator[T](self, enumerator, handler)
+        return DefaultRecursiveEnumerator[T](self, enumerator, self._AsRecursivelyEnumerable, handler)
     def _TryGetRecursiveStackedEnumerator(self, enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[T]|None) -> IEnumerator[T]|None:
-        return None if enumerationOrder == EnumerationOrder.Null else DefaultRecursiveStackedEnumerator[T](self, enumerator, enumerationOrder, handler)
+        return None if enumerationOrder == EnumerationOrder.Null else DefaultRecursiveStackedEnumerator[T](self, enumerator, self._AsRecursivelyEnumerable, enumerationOrder, handler)
 
     def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[T]|None = None) -> IEnumerator[T]|None:
         if enumerationOrder == EnumerationOrder.Null:
