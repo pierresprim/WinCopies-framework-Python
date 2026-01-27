@@ -12,12 +12,10 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
-from WinCopies.Collections.Enumeration.Recursive import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
-from WinCopies.Collections.Enumeration.Recursive.Base import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import Queue, CountableQueue, CountableEnumerableQueue
-from WinCopies.Collections.Linked.Singly.Base import IList, ICountableEnumerableList
+from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
 
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter

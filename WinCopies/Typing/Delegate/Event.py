@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Linked.Singly.Base import IEnumerableList
+from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly import INode, IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableQueue
 

@@ -6,7 +6,7 @@ from WinCopies.Collections.Abstract import TwoWayConverterBase
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly.Base import IList, IEnumerableList, ICountableList, ICountableEnumerableList
+from WinCopies.Collections.Linked.Singly import IList, IEnumerableList, ICountableList, ICountableEnumerableList
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 

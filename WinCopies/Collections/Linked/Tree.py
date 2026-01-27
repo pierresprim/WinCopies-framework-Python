@@ -5,8 +5,7 @@ from typing import final, Self
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumerator, EnumeratorProvider
-from WinCopies.Collections.Enumeration.Recursive import RecursivelyEnumerable
-from WinCopies.Collections.Enumeration.Recursive.Base import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
+from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter, RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableList, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableList, DoublyLinkedNodeEnumeratorBase
 from WinCopies.Typing import IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater

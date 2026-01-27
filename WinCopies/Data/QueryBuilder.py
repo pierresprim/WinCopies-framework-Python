@@ -14,8 +14,7 @@ from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import CountableEnumerableQueue
-from WinCopies.Collections.Linked.Singly.Base import ICountableEnumerableList
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 

@@ -14,8 +14,7 @@ from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
-from WinCopies.Collections.Linked.Singly import Queue
-from WinCopies.Collections.Linked.Singly.Base import IList
+from WinCopies.Collections.Linked.Singly import IList, Queue
 
 from WinCopies.Enum import HasFlag
 

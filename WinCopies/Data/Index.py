@@ -10,8 +10,7 @@ from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
-from WinCopies.Collections.Linked.Singly import CountableEnumerableQueue
-from WinCopies.Collections.Linked.Singly.Base import ICountableEnumerableList
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Typing.Object import  IEquatableObject, IString
 from WinCopies.Typing.Pairing import DualResult
 

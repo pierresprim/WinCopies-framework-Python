@@ -4,7 +4,7 @@ from typing import final, Callable
 from WinCopies import Abstract
 from WinCopies.Collections import IList
 from WinCopies.Collections.Abstraction.Collection import List
-from WinCopies.Collections.Linked.Singly.Base import IList as ISinglyLinkedList
+from WinCopies.Collections.Linked.Singly import IList as ISinglyLinkedList
 
 from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
 
