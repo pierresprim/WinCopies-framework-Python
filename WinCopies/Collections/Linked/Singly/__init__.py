@@ -235,7 +235,7 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
 
         self.__count = 0
 
-class _CountableCollectionAbstract[TItem, TList](_CountableCollectionAbstractBase[TItem, TList]):
+class CountableCollectionAbstract[TItem, TList](_CountableCollectionAbstractBase[TItem, TList]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
 
@@ -822,7 +822,7 @@ class _ReadOnlyCountableCollection[T](ReadOnlyListBase[T, ICountableList[T]], Co
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 
-class _CountableCollection[TItem, TList](_CountableCollectionAbstract[TItem, TList]):
+class _CountableCollection[TItem, TList](CountableCollectionAbstract[TItem, TList]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
 class _CountableAbstractBase[T](_CountableCollection[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
@@ -985,7 +985,7 @@ class ReadOnlyCountableEnumerable[T](ReadOnlyListBase[T, ICountableEnumerableLis
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
 
-class CountableEnumerableBase[TItems, TList](_CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, Enumerable[TItems]]):
+class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, Enumerable[TItems]]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
