@@ -431,7 +431,7 @@ class _IBufferedStack[T](IBufferedStack[T], IBufferedList[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class _ReadOnlyCountableBufferBase[TItem, TList](ReadOnlyListBase[TItem, TList], IReadOnlyCountableBuffer[TItem], GenericSpecializedConstraint[TList, ICountableList[TItem], ICountableBuffer[TItem]]):
+class ReadOnlyCountableBufferBase[TItem, TList](ReadOnlyListBase[TItem, TList], IReadOnlyCountableBuffer[TItem], GenericSpecializedConstraint[TList, ICountableList[TItem], ICountableBuffer[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
     
@@ -442,14 +442,14 @@ class _ReadOnlyCountableBufferBase[TItem, TList](ReadOnlyListBase[TItem, TList],
     @final
     def Move(self) -> bool|None:
         return self._GetSpecializedContainer().Move()
-class _ReadOnlyCountableBuffer[T](_ReadOnlyCountableBufferBase[T, ICountableBuffer[T]], CountableCollection, IGenericConstraintImplementation[ICountableBuffer[T]]):
+class ReadOnlyCountableBuffer[T](ReadOnlyCountableBufferBase[T, ICountableBuffer[T]], CountableCollection, IGenericConstraintImplementation[ICountableBuffer[T]]):
     def __init__(self, items: ICountableBuffer[T]) -> None:
         super().__init__(items)
     
     @final
     def _AsSpecialized(self, container: ICountableBuffer[T]) -> ICountableBuffer[T]:
         return container
-class _ReadOnlyCountableEnumerableBuffer[T](_ReadOnlyCountableBufferBase[T, ICountableEnumerableBuffer[T]], CountableEnumerableCollectionBase[T], IReadOnlyCountableEnumerableBuffer[T], IGenericConstraintImplementation[ICountableEnumerableBuffer[T]]):
+class ReadOnlyCountableEnumerableBuffer[T](ReadOnlyCountableBufferBase[T, ICountableEnumerableBuffer[T]], CountableEnumerableCollectionBase[T], IReadOnlyCountableEnumerableBuffer[T], IGenericConstraintImplementation[ICountableEnumerableBuffer[T]]):
     def __init__(self, items: ICountableEnumerableBuffer[T]) -> None:
         super().__init__(items)
     
@@ -485,7 +485,7 @@ class _CountableBufferBase[TItem, TList](CountableCollectionAbstract[TItem, TLis
         pass
 
 @final
-class _ReadOnlyCountableBufferedQueue[T](_ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedQueue[T]):
+class _ReadOnlyCountableBufferedQueue[T](ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedQueue[T]):
     def __init__(self, items: ICountableBuffer[T]) -> None:
         super().__init__(items)
 @final
@@ -516,7 +516,7 @@ class _ReadOnlyCountableBufferedQueueUpdater[T](SelectionUpdater[ICountableBuffe
         return _ReadOnlyCountableBufferedQueue[T](container)
 
 @final
-class _ReadOnlyCountableBufferedStack[T](_ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedStack[T]):
+class _ReadOnlyCountableBufferedStack[T](ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedStack[T]):
     def __init__(self, items: ICountableBuffer[T]) -> None:
         super().__init__(items)
 @final
@@ -665,7 +665,7 @@ class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBuffer[T], Ab
         return self.__readOnly.GetValue()
 
 @final
-class _ReadOnlyCountableEnumerableBufferedQueue[T](_ReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableEnumerableBufferedQueue[T]):
+class _ReadOnlyCountableEnumerableBufferedQueue[T](ReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableEnumerableBufferedQueue[T]):
     def __init__(self, l: ICountableEnumerableBufferedQueue[T]) -> None:
         super().__init__(l)
 @final
@@ -677,7 +677,7 @@ class _ReadOnlyCountableEnumerableBufferedQueueUpdater[T](SelectionUpdater[ICoun
         return _ReadOnlyCountableEnumerableBufferedQueue[T](container)
 
 @final
-class _ReadOnlyCountableEnumerableBufferedStack[T](_ReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableEnumerableBufferedStack[T]):
+class _ReadOnlyCountableEnumerableBufferedStack[T](ReadOnlyCountableEnumerableBuffer[T], IReadOnlyCountableEnumerableBufferedStack[T]):
     def __init__(self, l: ICountableEnumerableBufferedStack[T]) -> None:
         super().__init__(l)
 @final
