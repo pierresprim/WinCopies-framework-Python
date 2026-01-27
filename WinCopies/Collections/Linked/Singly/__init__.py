@@ -983,11 +983,11 @@ class ReadOnlyCountableEnumerable[T](ReadOnlyListBase[T, ICountableEnumerableLis
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
 
-class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, Enumerable[TItems]]):
+class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, IEnumerableList[TItems]]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
-class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
-    def __init__(self, l: Enumerable[T]) -> None:
+class CountableEnumerable[T](CountableEnumerableBase[T, IEnumerableList[T]], IGenericConstraintImplementation[IEnumerableList[T]]):
+    def __init__(self, l: IEnumerableList[T]) -> None:
         super().__init__(l)
     
     @final
@@ -1058,7 +1058,7 @@ class _CountableEnumerableStack[T](CountableEnumerableStackAbstract[T]):
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
         return self.__readOnly.GetValue()
 
-class CountableEnumerableList[TItem, TList](CountableList[TItem, TList], ICountableEnumerable[TItem], GenericSpecializedConstraint[TList, ICountableListBase[TItem], CountableEnumerable[TItem]]):
+class CountableEnumerableList[TItem, TList](CountableList[TItem, TList], ICountableEnumerable[TItem], GenericSpecializedConstraint[TList, ICountableListBase[TItem], ICountableEnumerable[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
     
