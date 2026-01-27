@@ -8,6 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Countable as CountableCollection
 from WinCopies.Collections.Abstraction.Enumeration import Enumerable, Enumerator
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
+from WinCopies.Collections.Linked.Enumeration import TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase, SinglyLinkedNode
 from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
@@ -639,7 +640,15 @@ class _ReadOnlyEnumerableBufferedStackUpdater[T](SelectionUpdater[IEnumerableBuf
     def _AsContainer(self, container: IEnumerableBufferedStack[T]) -> IReadOnlyEnumerableBufferedStack[T]:
         return _ReadOnlyEnumerableBufferedStack[T](container)
 
-class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBuffer[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T]):
+class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TryGetValueEnumeratorFromNode(self._GetFirst())
+
+class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T]):
     def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None:
             self.__readOnly = func
@@ -651,7 +660,7 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBuffer[T], Ab
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableBufferedQueue[T]:
         return self.__readOnly.GetValue()
-class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBuffer[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T]):
+class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T]):
     def __init__(self, *values: T) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None:
             self.__readOnly = func
