@@ -143,8 +143,6 @@ class CollectionAbstract[TItems, TList](Abstract, IListBase[TItems], GenericCons
     
     def _GetContainer(self) -> TList:
         return self.__list
-    def _GetCollection(self) -> TList:
-        return self._GetContainer()
 
     @final
     def IsEmpty(self) -> bool:
@@ -994,7 +992,7 @@ class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGeneric
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetCollection().TryGetEnumerator()
+        return self._GetContainer().TryGetEnumerator()
 
 @final
 class _ReadOnlyCountableEnumerableQueue[T](ReadOnlyCountableEnumerable[T], IReadOnlyCountableEnumerableQueue[T]):
