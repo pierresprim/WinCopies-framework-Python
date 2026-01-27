@@ -1,20 +1,243 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sized
+from collections.abc import Iterable, Iterator, Sized
 from typing import final, Callable, Self
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import EnumerationOrder, Countable as CountableCollectionBase
+from WinCopies.Collections import Generator, EnumerationOrder, ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNodeAbstract
-from WinCopies.Collections.Linked.Singly.Base import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableListBase, ICountableList, IEnumerableList, ICountableEnumerableListBase, ICountableEnumerableList, CollectionBase
-from WinCopies.Collections.Linked.Singly._Base import CountableCollectionAbstract
 
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Method, IFunction, SelectionUpdater
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
+
+class IReadOnlyListBase[T](IReadOnlyCollection):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryPeek(self) -> INullable[T]:
+        pass
+class IReadOnlyList[T](IReadOnlyListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetOrder(self) -> EnumerationOrder:
+        pass
+
+class IListBase[T](IReadOnlyListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def Push(self, value: T) -> None:
+        pass
+    
+    @abstractmethod
+    def PushItems(self, items: Iterable[T]) -> None:
+        pass
+    @final
+    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+        if items is None:
+            return False
+        
+        self.PushItems(items)
+
+        return True
+    
+    @final
+    def PushValues(self, *values: T) -> None:
+        self.PushItems(values)
+    
+    @abstractmethod
+    def TryPop(self) -> INullable[T]:
+        pass
+    
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+    
+    @final
+    def AsGenerator(self) -> Generator[T]:
+        result: INullable[T] = self.TryPop()
+
+        while result.HasValue():
+            yield result.GetValue()
+            
+            result = self.TryPop()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        pass
+class IList[T](IListBase[T], IReadOnlyList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IReadOnlyEnumerableListBase[T](IReadOnlyListBase[T], IEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReadOnlyList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IEnumerableListBase[T](IListBase[T], IReadOnlyEnumerableListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IEnumerableList[T](IEnumerableListBase[T], IList[T], IReadOnlyEnumerableList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
+        pass
+
+class IReadOnlyCountableListBase[T](IReadOnlyListBase[T], ICountable):
+    def __init__(self) -> None:
+        super().__init__()
+class IReadOnlyCountableList[T](IReadOnlyCountableListBase[T], IReadOnlyList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ICountableListBase[T](IListBase[T], IReadOnlyCountableListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsCountableGenerator(self) -> ICountableEnumerable[T]:
+        pass
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableList[T]:
+        pass
+class ICountableList[T](ICountableListBase[T], IList[T], IReadOnlyCountableList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IReadOnlyCountableEnumerableListBase[T](IReadOnlyEnumerableListBase[T], IReadOnlyCountableListBase[T], ICountableEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IReadOnlyCountableEnumerableList[T](IReadOnlyCountableEnumerableListBase[T], IReadOnlyEnumerableList[T], IReadOnlyCountableList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ICountableEnumerableListBase[T](IEnumerableListBase[T], ICountableListBase[T], IReadOnlyCountableEnumerableListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class ICountableEnumerableList[T](ICountableEnumerableListBase[T], IEnumerableList[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
+        pass
+
+class CollectionAbstract[TItems, TList](Abstract, IListBase[TItems], GenericConstraint[TList, IList[TItems]]):
+    def __init__(self, l: TList) -> None:
+        super().__init__()
+        
+        self.__list: TList = l
+    
+    def _GetContainer(self) -> TList:
+        return self.__list
+    def _GetCollection(self) -> TList:
+        return self._GetContainer()
+
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetInnerContainer().IsEmpty()
+    @final
+    def HasItems(self) -> bool:
+        return self._GetInnerContainer().HasItems()
+class CollectionBase[TItems, TList](CollectionAbstract[TItems, TList], IList[TItems]):
+    def __init__(self, l: TList) -> None:
+        super().__init__(l)
+
+@final
+class _EnumerableUpdaterEnumerable[T](IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
+    def __init__(self, items: ICountableListBase[T]) -> None:
+        super().__init__()
+
+        self.__items: ICountableListBase[T] = items
+    
+    def _TryGetIterator(self) -> Iterator[T]|None:
+        return self.__items.AsGenerator()
+    
+    def GetCount(self) -> int:
+        return self.__items.GetCount()
+@final
+class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
+    def __init__(self, items: ICountableListBase[T], updater: Method[IFunction[ICountableEnumerable[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: ICountableListBase[T] = items
+    
+    def _GetValue(self) -> ICountableEnumerable[T]:
+        return _EnumerableUpdaterEnumerable[T](self.__items)
+
+class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems, TList], CountableCollectionBase, ICountableListBase[TItems], GenericConstraint[TList, IList[TItems]]):
+    def __init__(self, l: TList) -> None:
+        def update(func: IFunction[ICountableEnumerable[TItems]]) -> None:
+            self.__generator = func
+        
+        super().__init__(l)
+
+        self.__count: int = 0
+        self.__generator: IFunction[ICountableEnumerable[TItems]] = _EnumerableUpdater[TItems](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[TItems]:
+        return self.__generator.GetValue()
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__count
+    
+    @final
+    def __Increment(self) -> None:
+        self.__count += 1
+    
+    @final
+    def Push(self, value: TItems) -> None:
+        self._GetInnerContainer().Push(value)
+
+        self.__Increment()
+    
+    @final
+    def PushItems(self, items: Iterable[TItems]) -> None:
+        def loop() -> Generator[TItems]:
+            for item in items:
+                yield item
+                
+                self.__Increment()
+        
+        self._GetInnerContainer().PushItems(loop())
+    
+    @final
+    def TryPeek(self) -> INullable[TItems]:
+        return self._GetInnerContainer().TryPeek()
+    
+    @final
+    def TryPop(self) ->  INullable[TItems]:
+        result: INullable[TItems] = self._GetInnerContainer().TryPop()
+
+        if result.HasValue():
+            self.__count -= 1
+        
+        return result
+    
+    @final
+    def Clear(self) -> None:
+        self._GetInnerContainer().Clear()
+
+        self.__count = 0
+
+class _CountableCollectionAbstract[TItem, TList](_CountableCollectionAbstractBase[TItem, TList]):
+    def __init__(self, l: TList) -> None:
+        super().__init__(l)
 
 class INodeCookie[T](IInterface):
     def __init__(self) -> None:
@@ -599,7 +822,7 @@ class _ReadOnlyCountableCollection[T](ReadOnlyListBase[T, ICountableList[T]], Co
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 
-class _CountableCollection[TItem, TList](CountableCollectionAbstract[TItem, TList]):
+class _CountableCollection[TItem, TList](_CountableCollectionAbstract[TItem, TList]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
 class _CountableAbstractBase[T](_CountableCollection[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
@@ -762,7 +985,7 @@ class ReadOnlyCountableEnumerable[T](ReadOnlyListBase[T, ICountableEnumerableLis
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
 
-class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, Enumerable[TItems]]):
+class CountableEnumerableBase[TItems, TList](_CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, Enumerable[TItems]]):
     def __init__(self, l: TList) -> None:
         super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, Enumerable[T]], IGenericConstraintImplementation[Enumerable[T]]):
