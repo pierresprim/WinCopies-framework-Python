@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNodeAbstract
 
 from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, GetNullable, GetNullValue
@@ -568,12 +568,7 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        if self.IsEmpty():
-            return None
-        
-        first: SinglyLinkedNode[T]|None = self._GetFirst() # Should never be None here.
-        
-        return None if first is None else GetValueEnumeratorFromNode(first)
+        return TryGetValueEnumeratorFromNode(self._GetFirst())
 
 class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
     def __init__(self) -> None:

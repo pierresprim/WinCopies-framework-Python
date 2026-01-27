@@ -86,3 +86,5 @@ def GetValueEnumerator[T](nodeEnumerator: NodeEnumerator[T]) -> IEnumerator[T]:
     return Iterator[T].Create(GetValueIterator(nodeEnumerator))
 def GetValueEnumeratorFromNode[T](node: ILinkedNode[T]) -> IEnumerator[T]:
     return Iterator[T].Create(GetValueIteratorFromNode(node))
+def TryGetValueEnumeratorFromNode[T](node: ILinkedNode[T]|None) -> IEnumerator[T]|None:
+    return None if node is None else GetValueEnumeratorFromNode(node)
