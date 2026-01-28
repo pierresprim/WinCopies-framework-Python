@@ -423,13 +423,17 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
         super().__init__()
     
     @abstractmethod
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        pass
-    @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        result: DualValueBool[TValue|None] = self.TryGetAt(key, None)
+        pass
+    
+    @final
+    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        def getResult(value: TValue|TDefault, info: bool) -> DualValueBool[TValue|TDefault]:
+            return DualValueBool[TValue|TDefault](value, info)
+        
+        result: INullable[TValue] = self.TryGetValue(key)
 
-        return GetNullable(result.GetKey()) if result.GetValue() else GetNullValue() # type: ignore
+        return getResult(result.GetValue(), True) if result.HasValue() else getResult(defaultValue, False)
     @final
     def GetAt(self, key: TKey) -> TValue:
         result: INullable[TValue] = self.TryGetValue(key)

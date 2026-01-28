@@ -8,9 +8,9 @@ from WinCopies import Collections, Abstract, IStringable
 from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, IndexOf
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Typing import INullable, IEquatableItem, IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
@@ -263,8 +263,8 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
         return self.GetCount()
     
     @final
-    def TryGetAt[TDefault](self, key: int, defaultValue: TDefault) -> DualValueBool[TItem|TDefault]:
-        return self._GetInnerContainer().TryGetAt(self._GetIndex(key), defaultValue)
+    def TryGetValue(self, key: int) -> INullable[TItem]:
+        return self._GetInnerContainer().TryGetValue(self._GetIndex(key))
     
     @final
     def Contains(self, value: TItem|object) -> bool:
@@ -363,8 +363,8 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
         return self._GetItems().GetCount()
     
     @final
-    def TryGetAt[TDefault](self, key: int, defaultValue: TDefault) -> DualValueBool[T|TDefault]:
-        return self._GetItems().TryGetAt(key, defaultValue)
+    def TryGetValue(self, key: int) -> INullable[T]:
+        return self._GetItems().TryGetValue(key)
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetItems().SliceAt(key)
@@ -424,8 +424,8 @@ class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
         pass
     
     @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        return DualValueBool[TValue|TDefault](self._GetAt(key), True) if self.ContainsKey(key) else DualValueBool[TValue|TDefault](defaultValue, False)
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
+        return GetNullable(self._GetAt(key)) if self.ContainsKey(key) else GetNullValue()
 class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
@@ -852,8 +852,8 @@ class _ReadOnlyDictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKey
         return self._GetDictionary().ContainsKey(key)
     
     @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        return self._GetDictionary().TryGetAt(key, defaultValue)
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
+        return self._GetDictionary().TryGetValue(key)
     
     @final
     def GetKeys(self) -> ICountableEnumerable[TKey]:

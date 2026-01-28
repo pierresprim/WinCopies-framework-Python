@@ -7,7 +7,7 @@ from WinCopies import IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
-from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
+from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
@@ -329,10 +329,10 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return key in self._GetDictionary()
     
     @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
         result: TValue|_None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
 
-        return DualValueBool[TValue|TDefault](defaultValue, False) if isinstance(result, _None) else DualValueBool[TValue|TDefault](result, True)
+        return GetNullValue() if isinstance(result, _None) else GetNullable(result)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:

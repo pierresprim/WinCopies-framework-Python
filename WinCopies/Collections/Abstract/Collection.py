@@ -10,7 +10,7 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerato
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet, TupleAbstract, TupleCollection, EquatableTupleCollection, ArrayCollection, Collection, Set as SetBase, Dictionary as DictionaryBase, Sequence, MutableSequence
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
+from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
@@ -239,10 +239,10 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
         return self._GetItems().ContainsKey(key)
     
     @final
-    def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
-        result: DualValueBool[TValueIn|TDefault] = self._GetItems().TryGetAt(key, defaultValue)
+    def TryGetValue(self, key: TKey) -> INullable[TValueOut]:
+        result: INullable[TValueIn] = self._GetItems().TryGetValue(key)
 
-        return DualValueBool[TValueOut](self._Convert(result.GetKey()), True) if result.GetValue() else DualValueBool[TDefault](defaultValue, False) # type: ignore
+        return GetNullable(self._Convert(result.GetValue())) if result.HasValue() else GetNullValue()
     
     @final
     def TrySetAt(self, key: TKey, value: TValueOut) -> bool:
