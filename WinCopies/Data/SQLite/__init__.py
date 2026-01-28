@@ -8,7 +8,7 @@ import sqlite3
 
 
 
-from WinCopies import IDisposable, Abstract
+from WinCopies import IDisposable, Abstract, TryConvertToInt
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
@@ -160,7 +160,9 @@ class Table(TableBase):
                 return result
             
             def checkAttributeValue(row: Sequence[object], index: int) -> bool:
-                return int(row[index]) > 0 # type: ignore
+                value: int|None = TryConvertToInt(row[index])
+
+                return value is None or value <= 0
             
             def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
                 query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
