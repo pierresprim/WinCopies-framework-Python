@@ -9,7 +9,7 @@ from typing import final
 from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Abstraction.Collection import List
+from WinCopies.Collections.Abstraction.Collection import List, Dictionary
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
@@ -24,7 +24,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 
 
-from WinCopies.Data import IColumn
+from WinCopies.Data import Ordering, IColumn
 from WinCopies.Data.Misc import IQueryBase
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.QueryBuilder import IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
@@ -155,6 +155,9 @@ class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecuti
         pass
     @abstractmethod
     def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
+        pass
+    @abstractmethod
+    def GetOrdering(self) -> IDictionary[IColumn, Ordering]:
         pass
 class ISubselectionQuery(ISelectionQueryBase):
     def __init__(self) -> None:
@@ -288,6 +291,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
 
         self.__cases: ICollection[IBranchSet[IValueItem]] = List[IBranchSet[IValueItem]]()
         self.__joins: ICollection[IJoin] = List[IJoin]()
+        self.__ordering: IDictionary[IColumn, Ordering] = Dictionary[IColumn, Ordering]()
         self.__columns: IColumnParameterSet[IParameter[object]] = columns
     
     @final
@@ -300,6 +304,9 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     @final
     def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
         return self.__cases
+    @final
+    def GetOrdering(self) -> IDictionary[IColumn, Ordering]:
+        return self.__ordering
     
     @final
     def _GetQueryOverride(self) -> QueryResult|None:

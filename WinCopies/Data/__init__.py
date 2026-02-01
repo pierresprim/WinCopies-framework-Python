@@ -101,12 +101,12 @@ class Operator(Enum):
                 return "LIKE"
             
             case Operator.LessThan:
-                return "<"
+                return '<'
             case Operator.LessThanOrEquals:
                 return "<="
             
             case Operator.GreaterThan:
-                return ">"
+                return '>'
             case Operator.GreaterThanOrEquals:
                 return ">="
             
@@ -124,6 +124,21 @@ class ConditionalOperator(Enum):
             case ConditionalOperator.And | ConditionalOperator.Or:
                 return self.name.upper()
             
+            case _:
+                return ''
+
+class Ordering(Enum):
+    Null = 0,
+    Ascending = 1,
+    Descending = 2
+
+    @final
+    def __str__(self) -> str:
+        match self:
+            case Ordering.Ascending:
+                return "ASC"
+            case Ordering.Descending:
+                return "DESC"
             case _:
                 return ''
 

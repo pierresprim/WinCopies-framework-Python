@@ -15,6 +15,7 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
+from WinCopies.Collections.Loop import DoForEachAndPrependAction
 
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 
@@ -23,7 +24,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 
 
-from WinCopies.Data import IOperandValue, IColumn, IQueryBuilder
+from WinCopies.Data import Ordering, IOperandValue, IColumn, IQueryBuilder
 from WinCopies.Data.Misc import JoinType, IQueryBase
 from WinCopies.Data.Parameter import IArgument, ITableParameter
 
@@ -82,6 +83,9 @@ class ISelectionQueryWriter(IConditionalQueryWriter):
 
     @abstractmethod
     def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
+        pass
+    @abstractmethod
+    def AddOrdering(self, ordering: IDictionary[IColumn, Ordering]) -> None:
         pass
 
 class ISelectionQueryBuilder(IConditionalQueryBuilder, ISelectionQueryWriter):
@@ -225,6 +229,9 @@ class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], IS
 
     def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
         return self._GetBuilder().AddJoins(joins)
+    
+    def AddOrdering(self, ordering: IDictionary[IColumn, Ordering]) -> None:
+        return self._GetBuilder().AddOrdering(ordering)
 
 def GetPrefixedConditionalQueryWriter(prefix: str, writer: IConditionalQueryWriter) -> IConditionalQueryWriter:
     return __ConditionalQueryWriter(prefix, writer)
@@ -357,3 +364,13 @@ class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
             self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formating: can be routines.
 
             self._RenderConditions(" ON ", join.GetConditions(), GetPrefixedSelectionQueryWriter)
+    
+    @final
+    def AddOrdering(self, ordering: IDictionary[IColumn, Ordering]|None) -> None:
+        def write(text: str) -> None:
+            self.Write(text)
+        
+        if ordering is None or ordering.GetCount() < 1:
+            return
+        
+        DoForEachAndPrependAction(ordering.AsIterable(), lambda: write(" ORDER BY"), lambda item: write(f" {self.FormatTableName(item.GetKey().GetColumnName())} {str(item.GetValue())}"))
