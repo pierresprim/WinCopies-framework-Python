@@ -506,3 +506,33 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
     _action = __action
 
     return DoForEachItem(items, lambda item: _action(item))
+
+def ForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Predicate[T]) -> bool|None:
+    return ForEachAndFirst(items, lambda item: firstAction() and action(item), action)
+
+def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool:
+    _action: Method[T]
+    
+    def __action(item: T) -> None:
+        nonlocal _action
+
+        firstAction()
+        action(item)
+
+        _action = action
+    
+    _action = __action
+
+    return DoForEachItem(items, lambda item: _action(item))
+def DoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastAction: Action) -> bool:
+    if DoForEachItem(items, action):
+        lastAction()
+
+        return True
+    
+    return False
+
+def TryDoForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Method[T]) -> bool|None:
+    return DoForEachItem(items, action) if firstAction() else None
+def TryDoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastAction: Function[bool]) -> bool|None:
+    return (True if lastAction() else None) if DoForEachItem(items, action) else False
