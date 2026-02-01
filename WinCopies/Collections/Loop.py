@@ -210,7 +210,7 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
         action(entry)
     
     return enumerator.HasProcessedItems()
-def DoForEachArg[T](action: Callable[[T], None], *values: T) -> bool|None:
+def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
     """Executes the given action for each variadic value.
 
     Args:
