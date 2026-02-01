@@ -126,6 +126,17 @@ class ConditionalOperator(Enum):
             
             case _:
                 return ''
+    
+    @staticmethod
+    def TryParse(value: str) -> ConditionalOperator|None:
+        def getValue(*values: ConditionalOperator) -> ConditionalOperator|None:
+            for _value in values:
+                if value == _value.name.upper():
+                    return _value
+            
+            return None
+        
+        return getValue(ConditionalOperator.And, ConditionalOperator.Or)
 
 class Ordering(Enum):
     Null = 0,
@@ -141,6 +152,18 @@ class Ordering(Enum):
                 return "DESC"
             case _:
                 return ''
+    
+    @staticmethod
+    def TryParse(value: str) -> Ordering|None:
+        match value:
+            case "ASC":
+                return Ordering.Ascending
+            
+            case "DESC":
+                return Ordering.Descending
+            
+            case _:
+                return None
 
 class IParameterProvider(IInterface):
     def __init__(self) -> None:
