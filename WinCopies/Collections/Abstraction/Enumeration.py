@@ -18,7 +18,7 @@ def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[
 class Enumerable[T](EnumerableBase[T]):
     def __init__(self, enumerable: IEnumerable[T]) -> None:
         EnsureDirectModuleCall()
-
+        
         super().__init__()
 
         self.__enumerable: IEnumerable[T] = enumerable
@@ -40,7 +40,7 @@ class Enumerable[T](EnumerableBase[T]):
 class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
         EnsureDirectModuleCall()
-
+        
         super().__init__()
 
         self.__enumerable: IEquatableEnumerable[T] = enumerable
@@ -70,7 +70,7 @@ class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
 class CountableEnumerable[T](CountableEnumerableBase[T]):
     def __init__(self, enumerable: ICountableEnumerable[T]) -> None:
         EnsureDirectModuleCall()
-
+        
         super().__init__()
 
         self.__enumerable: ICountableEnumerable[T] = enumerable

@@ -162,7 +162,7 @@ class Table(TableBase):
             def checkAttributeValue(row: Sequence[object], index: int) -> bool:
                 value: int|None = TryConvertToInt(row[index])
 
-                return value is None or value <= 0
+                return not (value is None or value <= 0)
             
             def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
                 query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(

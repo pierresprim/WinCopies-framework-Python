@@ -344,7 +344,7 @@ class _INodeBase[TItem, TNode, TNodeInterface, TList](IInterface):
 class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
         EnsureDirectModuleCall()
-
+        
         super().__init__(value, previousNode, nextNode)
 
         self.__list: TListInterface|None = l
