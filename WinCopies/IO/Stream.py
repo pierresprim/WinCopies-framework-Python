@@ -176,6 +176,10 @@ class IStream(IDisposable):
         pass
 
     @abstractmethod
+    def Flush(self) -> bool:
+        pass
+
+    @abstractmethod
     def Close(self) -> bool:
         pass
 
@@ -552,6 +556,17 @@ class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData
     def OpenFile(self, fileMode: FileMode) -> bool:
         if not self.IsOpen():
             self.__stream = self._Open(self.GetPath(), fileMode.ToString(self.GetOpenType()))
+
+        return True
+    
+    @final
+    def Flush(self) -> bool:
+        stream: TStream|None = self._GetStream()
+
+        if stream is None:
+            return False
+        
+        stream.flush()
         
         return True
     
@@ -718,6 +733,10 @@ class AbstractStream[T](Abstract, IStream):
     @final
     def TryOpen(self) -> bool|None:
         return self._GetStream().TryOpen()
+    
+    @final
+    def Flush(self) -> bool:
+        return self._GetStream().Flush()
 
     @final
     def Close(self) -> bool:
