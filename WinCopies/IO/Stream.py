@@ -793,6 +793,17 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return StringifyIfNone(self.TryToString())
     
     @final
+    def Flush(self) -> bool:
+        stream: StringIO|None = self._GetStream()
+
+        if stream is None:
+            return False
+        
+        stream.flush()
+
+        return True
+    
+    @final
     def Close(self) -> bool:
         stream: StringIO|None = self._GetStream()
         
