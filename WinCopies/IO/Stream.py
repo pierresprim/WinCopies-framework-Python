@@ -327,14 +327,12 @@ class IBinaryFile(IFileStream[bytes], IBinaryStream):
         super().__init__()
 
 class StreamBase[T: ISeekable](IOBase, IDisposableObject):
-    def __init__(self, stream: T) -> None:
+    def __init__(self) -> None:
         super().__init__()
-
-        self.__stream: T = stream
     
-    @final
+    @abstractmethod
     def _GetStream(self) -> T:
-        return self.__stream
+        pass
     
     @final
     def CheckProperty(self, property: StreamProperties) -> bool:
