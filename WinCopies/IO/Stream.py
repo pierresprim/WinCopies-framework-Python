@@ -553,16 +553,15 @@ class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData
     
     @final
     def Close(self) -> bool:
-        if self.IsOpen():
-            stream: TStream|None = self._GetStream()
+        stream: TStream|None = self._GetStream()
 
-            if stream is not None:
-                stream.close()
-                self.__stream = None
-
-            return True
+        if stream is None:
+            return False
         
-        return False
+        stream.close()
+        self.__stream = None
+
+        return True
 
 class TextFile(FileStream[TextIOWrapper, str], ITextFile):
     def __init__(self, path: str) -> None:
