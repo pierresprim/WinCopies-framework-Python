@@ -404,18 +404,22 @@ class Iterable[T](IterableBase[T]):
         return None if iterable is None else Iterable[T].Create(iterable)
 
 class IteratorProvider[T](Enumerable[T]):
-    def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]|None) -> None:
+    def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]) -> None:
         super().__init__()
         
-        self.__iteratorProvider: Function[SystemIterator[T]|None]|None = iteratorProvider
+        self.__iteratorProvider: Function[SystemIterator[T]|None] = iteratorProvider
     
     @final
     def _TryGetIterator(self) -> SystemIterator[T]|None:
-        return None if self.__iteratorProvider is None else GetIterator(self.__iteratorProvider())
+        return GetIterator(self.__iteratorProvider())
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return TryAsEnumerator(self._TryGetIterator())
+    
+    @staticmethod
+    def TryCreate(iteratorProvider: Function[SystemIterator[T]|None]|None) -> IteratorProvider[T]|None:
+        return None if iteratorProvider is None else IteratorProvider[T](iteratorProvider)
 class EnumeratorProvider[T](Enumerable[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None) -> None:
         super().__init__()
