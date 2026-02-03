@@ -395,7 +395,7 @@ class FileStream[TStream: IOBase, TData](File[TData]):
     @final
     def Open(self, fileMode: FileMode) -> bool:
         if not self.IsOpen():
-            self.__stream = cast(TStream, open(self.GetPath(), str(fileMode) + str(self.GetOpenType())))
+            self.__stream = cast(TStream, open(self.GetPath(), fileMode.ToString(self.GetOpenType())))
 
         return True
     
@@ -485,7 +485,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream):
     def TryRead(self, size: int) -> str|None:
         stream: StringIO|None = self._GetStream()
 
-        return stream.read(size) if self.IsOpen() and stream is not None else None
+        return stream.read(size) if stream is not None else None
     def Read(self, size: int) -> str:
         result: str|None = self.TryRead(size)
 
@@ -498,7 +498,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream):
     def TryWrite(self, value: str) -> bool:
         stream: StringIO|None = self._GetStream()
 
-        if self.IsOpen() and stream is not None:
+        if stream is not None:
             stream.write(value)
 
             return True
