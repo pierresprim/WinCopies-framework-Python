@@ -178,6 +178,10 @@ class IStreamWriter[T](IStream):
 class IDataStream[T](IStreamReader[T], IStreamWriter[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def GetProperties(self) -> StreamProperties:
+        pass
 
 class ITextReader(IStreamReader[str]):
     def __init__(self) -> None:
