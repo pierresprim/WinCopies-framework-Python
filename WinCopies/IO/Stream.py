@@ -9,11 +9,12 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import Enum, Flag, auto
-from io import IOBase, TextIOWrapper, BufferedIOBase, StringIO
+from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOWrapper, BufferedIOBase, StringIO
 from os import remove, path
 from typing import cast, final
 
 from WinCopies import IDisposable, IStringable, Abstract
+from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Function, Predicate
 
@@ -126,6 +127,33 @@ class FileType(Enum):
             case _:
                 return FileType.Null
 
+class StreamPosition(Enum):
+    Null = 0
+    Start = 1
+    Current = 2
+    End = 3
+
+    def TryToInt(self) -> int|None:
+        match self:
+            case StreamPosition.Start:
+                return SEEK_SET
+            case StreamPosition.Current:
+                return SEEK_CUR
+            case StreamPosition.End:
+                return SEEK_END
+            case _:
+                return None
+    def ForceToInt(self) -> int:
+        value: int|None = self.TryToInt()
+
+        return SEEK_SET if value is None else value
+    
+    @staticmethod
+    def TryFromInt(offset: int) -> StreamPosition:
+        value: StreamPosition|None = TryGetFieldFromValue(StreamPosition, offset + 1)
+
+        return StreamPosition.Null if value is None else value
+
 class StreamProperties(Flag):
     Null = 0
     Readable = auto()
@@ -154,6 +182,28 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         self.Close()
 
+class IStreamObject(IStream):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetProperties(self) -> StreamProperties:
+        pass
+
+    @final
+    def CheckProperty(self, property: StreamProperties) -> bool:
+        return property in self.GetProperties()
+class ISeekable(IStreamObject):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryGetPosition(self) -> int|None:
+        pass
+    @abstractmethod
+    def TrySetPosition(self, offset: int, whence: StreamPosition = StreamPosition.Start) -> bool:
+        pass
+
 class IStreamReader[T](IStream):
     def __init__(self) -> None:
         super().__init__()
@@ -175,13 +225,13 @@ class IStreamWriter[T](IStream):
     def Write(self, value: T) -> None:
         pass
 
-class IDataStream[T](IStreamReader[T], IStreamWriter[T]):
+class IDataStream[T](IStreamReader[T], IStreamWriter[T], IStreamObject):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def GetProperties(self) -> StreamProperties:
-        pass
+
+class ISeekableStream[T](IDataStream[T], ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
 
 class ITextReader(IStreamReader[str]):
     def __init__(self) -> None:
@@ -207,6 +257,33 @@ class ITextStream(IDataStream[str], ITextReader, ITextWriter):
     def __init__(self) -> None:
         super().__init__()
 class IBinaryStream(IDataStream[bytes], IBinaryReader, IBinaryWriter):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ISeekableTextReader(ITextReader, ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
+class ISeekableTextWriter(ITextWriter, ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
+        return self.TryWrite(text + eol)
+    def WriteLine(self, text: str) -> None:
+        if not self.TryWriteLine(text):
+            raise IOError()
+
+class ISeekableBinaryReader(IBinaryReader, ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
+class ISeekableBinaryWriter(IBinaryWriter, ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ISeekableTextStream(ISeekableStream[str], ITextStream):
+    def __init__(self) -> None:
+        super().__init__()
+class ISeekableBinaryStream(ISeekableStream[bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
@@ -471,7 +548,7 @@ class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData
     def OpenFile(self, fileMode: FileMode) -> bool:
         if not self.IsOpen():
             self.__stream = cast(TStream, open(self.GetPath(), fileMode.ToString(self.GetOpenType())))
-
+        
         return True
     
     @final
