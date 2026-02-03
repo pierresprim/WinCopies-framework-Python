@@ -11,9 +11,10 @@ from abc import abstractmethod
 from enum import Enum, Flag, auto
 from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOWrapper, BufferedIOBase, StringIO
 from os import remove, path
+from types import TracebackType
 from typing import cast, final
 
-from WinCopies import IDisposable, IStringable, Abstract
+from WinCopies import IDisposableObject, IDisposable, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Function, Predicate
@@ -324,6 +325,65 @@ class ITextFile(IFileStream[str], ITextStream):
 class IBinaryFile(IFileStream[bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
+
+class StreamBase[T: ISeekable](IOBase, IDisposableObject):
+    def __init__(self, stream: T) -> None:
+        super().__init__()
+
+        self.__stream: T = stream
+    
+    @final
+    def _GetStream(self) -> T:
+        return self.__stream
+    
+    @final
+    def CheckProperty(self, property: StreamProperties) -> bool:
+        return property in self._GetStream().GetProperties()
+    
+    @final
+    def fileno(self) -> int:
+        raise OSError("Invalid operation.")
+    
+    @final
+    def isatty(self) -> bool:
+        return False
+    
+    @final
+    def seekable(self) -> bool:
+        return self.CheckProperty(StreamProperties.Seekable)
+    
+    @final
+    def readable(self) -> bool:
+        return self.CheckProperty(StreamProperties.Readable)
+    @final
+    def writable(self) -> bool:
+        return self.CheckProperty(StreamProperties.Writable)
+    
+    @final
+    def tell(self) -> int:
+        offset: int|None = self._GetStream().TryGetPosition()
+
+        return 0 if offset is None else offset
+    @final
+    def seek(self, offset: int, whence: int = 0) -> int:
+        return self._GetStream().TrySetPosition(offset, StreamPosition.TryFromInt(whence))
+    
+    @final
+    def flush(self) -> None:
+        self._GetStream().Flush()
+    
+    @final
+    def close(self) -> None:
+        self._GetStream().Close()
+    @final
+    def Dispose(self) -> None:
+        self._GetStream().Dispose()
+    
+    @final
+    def __exit__(self, exc_type: type[BaseException]|None, exc_val: BaseException|None, exc_tb: TracebackType|None) -> None:
+        super().__exit__(exc_type, exc_val, exc_tb)
+
+        self.Dispose()
 
 class File[T](Abstract, IFileStream[T]):
     __ASK_PATH_MESSAGE: str = "Enter a path: "
