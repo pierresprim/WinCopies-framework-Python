@@ -8,7 +8,7 @@ Created on Thu May 25 10:31:11 2023
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import Enum
+from enum import Enum, Flag, auto
 from io import IOBase, TextIOWrapper, BufferedIOBase, StringIO
 from os import remove, path
 from typing import cast, final
@@ -125,6 +125,12 @@ class FileType(Enum):
                 return FileType.Binary
             case _:
                 return FileType.Null
+
+class StreamProperties(Flag):
+    Null = 0
+    Readable = auto()
+    Writable = auto()
+    Seekable = auto()
 
 class IStream(IDisposable):
     def __init__(self) -> None:
@@ -420,7 +426,30 @@ class File[T](Abstract, IFileStream[T]):
     def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
         return lambda: File.Create(fileMode, fileType, validator, onError, message)
 
-class FileStream[TStream: IOBase, TData](File[TData]):
+class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetStream(self) -> TStream|None:
+        pass
+    
+    @final
+    def GetProperties(self) -> StreamProperties:
+        stream: TStream|None = self._GetStream()
+        properties: StreamProperties = StreamProperties.Null
+
+        if stream is not None:
+            if stream.readable():
+                properties |= StreamProperties.Readable
+            if stream.writable():
+                properties |= StreamProperties.Writable
+            if stream.seekable():
+                properties |= StreamProperties.Seekable
+
+        return properties
+
+class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData]):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
@@ -501,7 +530,7 @@ class IMemoryTextStream(ITextStream, IStringable):
     @abstractmethod
     def TryToString(self) -> str|None:
         pass
-class MemoryTextStream(Abstract, IMemoryTextStream):
+class MemoryTextStream(Abstract, IMemoryTextStream, IStreamBase[StringIO, str]):
     def __init__(self) -> None:
         super().__init__()
 
