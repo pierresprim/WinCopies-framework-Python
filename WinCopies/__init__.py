@@ -106,7 +106,7 @@ class BitDepthLevel(Enum):
     Three = 32
     Four = 64
 
-class IDisposable(IInterface):
+class IDisposableObject(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -116,6 +116,9 @@ class IDisposable(IInterface):
     @abstractmethod
     def Dispose(self) -> None:
         pass
+class IDisposable(IDisposableObject):
+    def __init__(self) -> None:
+        super().__init__()
 
     @final
     def __enter__(self) -> Self:
