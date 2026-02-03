@@ -20,20 +20,63 @@ from WinCopies.Typing.Delegate import Function, Predicate
 class FileMode(Enum):
     Null = 0
     Read = 1
-    Append = 2
-    Write = 3
-    Create = 4
+    """Open the file for reading. Error if not existing."""
+    Write = 2
+    """Open the file for writing. Truncate if existing, create otherwise."""
+    ReadWrite = 3
+    """Open the file. Error if not existing."""
+    Truncate = 4
+    """Open the file. Truncate if existing, create otherwise."""
+    Append = 5
+    """Open the file for writing. Seek to EOF if existing, create otherwise."""
+    AppendExtended = 6
+    """Open the file. Seek to EOF if existing, create otherwise."""
+    Create = 7
+    """Open the file for writing. Error if existing."""
+    CreateExtended = 7
+    """Open the file. Error if existing."""
     
     def __str__(self) -> str:
         match self:
             case FileMode.Read:
                 return 'r'
-            case FileMode.Append:
-                return 'a'
             case FileMode.Write:
                 return 'w'
+            case FileMode.Append:
+                return 'a'
             case FileMode.Create:
                 return 'x'
+            case _:
+                return ''
+    
+    def ToString(self, fileType: FileType) -> str:
+        def getMode() -> str:
+            return str(self)
+        
+        def _getValue(mode: str, extension: str) -> str:
+            return f"{mode}{fileType}{extension}"
+        def getValue(mode: str) -> str:
+            return _getValue(mode, '')
+        def getValueExtended(mode: str) -> str:
+            return _getValue(mode, '+')
+        
+        match self:
+            case FileMode.Read:
+                return getValue(getMode())
+            case FileMode.Write:
+                return getValue(getMode())
+            case FileMode.ReadWrite:
+                return getValueExtended(str(FileMode.Read))
+            case FileMode.Truncate:
+                return getValueExtended(str(FileMode.Write))
+            case FileMode.Append:
+                return getValue(getMode())
+            case FileMode.AppendExtended:
+                return getValueExtended(str(FileMode.Append))
+            case FileMode.Create:
+                return getValue(getMode())
+            case FileMode.CreateExtended:
+                return getValueExtended(str(FileMode.Create))
             case _:
                 return ''
     
@@ -48,6 +91,14 @@ class FileMode(Enum):
                 return FileMode.Write
             case 'x':
                 return FileMode.Create
+            case 'r+':
+                return FileMode.ReadWrite
+            case 'w+':
+                return FileMode.Truncate
+            case 'a+':
+                return FileMode.AppendExtended
+            case 'x+':
+                return FileMode.CreateExtended
             case _:
                 return FileMode.Null
 
