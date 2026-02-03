@@ -370,7 +370,5 @@ class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
         def write(text: str) -> None:
             self.Write(text)
         
-        if ordering is None or ordering.GetCount() < 1:
-            return
-        
-        DoForEachAndPrependAction(ordering.AsIterable(), lambda: write(" ORDER BY"), lambda item: write(f" {self.FormatTableName(item.GetKey().GetColumnName())} {str(item.GetValue())}"))
+        if ordering is not None and ordering.GetCount() >= 1:
+            DoForEachAndPrependAction(ordering.AsIterable(), lambda: write(" ORDER BY"), lambda item: write(f" {self.FormatTableName(item.GetKey().GetColumnName())} {str(item.GetValue())}"))
