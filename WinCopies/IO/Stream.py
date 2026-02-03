@@ -135,6 +135,13 @@ class IStream(IDisposable):
         pass
 
     @abstractmethod
+    def Open(self) -> bool:
+        pass
+    @abstractmethod
+    def TryOpen(self) -> bool|None:
+        pass
+
+    @abstractmethod
     def Close(self) -> bool:
         pass
 
@@ -181,10 +188,10 @@ class IFile(IStream):
         pass
     
     @abstractmethod
-    def Open(self, fileMode: FileMode) -> bool:
+    def OpenFile(self, fileMode: FileMode) -> bool:
         pass
     @abstractmethod
-    def TryOpen(self, fileMode: FileMode) -> bool|None:
+    def TryOpenFile(self, fileMode: FileMode) -> bool|None:
         pass
 
     @abstractmethod
@@ -207,9 +214,16 @@ class File[T](Abstract, IFileStream[T]):
         
         self.__path: str = path
     
-    def TryOpen(self, fileMode: FileMode) -> bool|None:
+    @final
+    def TryOpen(self) -> bool|None:
+        return self.TryOpenFile(FileMode.ReadWrite)
+    @final
+    def Open(self) -> bool:
+        return self.OpenFile(FileMode.ReadWrite)
+    
+    def TryOpenFile(self, fileMode: FileMode) -> bool|None:
         try:
-            return self.Open(fileMode)
+            return self.OpenFile(fileMode)
         except IOError:
             return None
 
@@ -266,7 +280,7 @@ class File[T](Abstract, IFileStream[T]):
         if stream is None:
             return None
         
-        stream.Open(fileMode)
+        stream.OpenFile(fileMode)
 
         return stream
     
@@ -313,11 +327,11 @@ class File[T](Abstract, IFileStream[T]):
         return File.__GetDelegate(fileType, input(message))()
     
     @staticmethod
-    def TryOpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
+    def TryCreate(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
         def open() -> TextFile|BinaryFile:
             file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
 
-            file.Open(fileMode)
+            file.OpenFile(fileMode)
 
             return file
         
@@ -341,11 +355,11 @@ class File[T](Abstract, IFileStream[T]):
                 return None
     
     @staticmethod
-    def OpenFile(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    def Create(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
         def open() -> TextFile|BinaryFile:
             file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
 
-            file.Open(fileMode)
+            file.OpenFile(fileMode)
 
             return file
         
@@ -373,10 +387,10 @@ class File[T](Abstract, IFileStream[T]):
     
     @staticmethod
     def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
-        return lambda: File.TryOpenFile(fileMode, fileType, validator, onError, message)
+        return lambda: File.TryCreate(fileMode, fileType, validator, onError, message)
     @staticmethod
     def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
-        return lambda: File.OpenFile(fileMode, fileType, validator, onError, message)
+        return lambda: File.Create(fileMode, fileType, validator, onError, message)
 
 class FileStream[TStream: IOBase, TData](File[TData]):
     def __init__(self, path: str) -> None:
@@ -393,7 +407,7 @@ class FileStream[TStream: IOBase, TData](File[TData]):
         return self._GetStream() is not None
     
     @final
-    def Open(self, fileMode: FileMode) -> bool:
+    def OpenFile(self, fileMode: FileMode) -> bool:
         if not self.IsOpen():
             self.__stream = cast(TStream, open(self.GetPath(), fileMode.ToString(self.GetOpenType())))
 
@@ -455,10 +469,6 @@ class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryStream):
 class IMemoryTextStream(ITextStream, IStringable):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def Open(self) -> None:
-        pass
 
     @abstractmethod
     def TryToString(self) -> str|None:
@@ -478,8 +488,13 @@ class MemoryTextStream(Abstract, IMemoryTextStream):
         return self._GetStream() is not None
     
     @final
-    def Open(self) -> None:
-        self.__stream = StringIO()
+    def Open(self) -> bool:
+        self.__stream = StringIO(newline='')
+
+        return True
+    @final
+    def TryOpen(self) -> bool|None:
+        return self.Open()
     
     @final
     def TryRead(self, size: int) -> str|None:
