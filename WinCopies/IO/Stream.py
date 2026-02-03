@@ -148,7 +148,7 @@ class IStream(IDisposable):
     def Dispose(self) -> None:
         self.Close()
 
-class IDataStream[T](IStream):
+class IStreamReader[T](IStream):
     def __init__(self) -> None:
         super().__init__()
 
@@ -158,6 +158,9 @@ class IDataStream[T](IStream):
     @abstractmethod
     def Read(self, size: int) -> T:
         pass
+class IStreamWriter[T](IStream):
+    def __init__(self) -> None:
+        super().__init__()
     
     @abstractmethod
     def TryWrite(self, value: T) -> bool:
@@ -166,7 +169,14 @@ class IDataStream[T](IStream):
     def Write(self, value: T) -> None:
         pass
 
-class ITextStream(IDataStream[str]):
+class IDataStream[T](IStreamReader[T], IStreamWriter[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ITextReader(IStreamReader[str]):
+    def __init__(self) -> None:
+        super().__init__()
+class ITextWriter(IStreamWriter[str]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -175,7 +185,18 @@ class ITextStream(IDataStream[str]):
     def WriteLine(self, text: str) -> None:
         if not self.TryWriteLine(text):
             raise IOError()
-class IBinaryStream(IDataStream[bytes]):
+
+class IBinaryReader(IStreamReader[bytes]):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryWriter(IStreamWriter[bytes]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ITextStream(IDataStream[str], ITextReader, ITextWriter):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryStream(IDataStream[bytes], IBinaryReader, IBinaryWriter):
     def __init__(self) -> None:
         super().__init__()
 
@@ -203,6 +224,13 @@ class IFile(IStream):
         pass
 
 class IFileStream[T](IDataStream[T], IFile):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ITextFile(IFileStream[str], ITextStream):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryFile(IFileStream[bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
@@ -426,7 +454,7 @@ class FileStream[TStream: IOBase, TData](File[TData]):
         
         return False
 
-class TextFile(FileStream[TextIOWrapper, str], ITextStream):
+class TextFile(FileStream[TextIOWrapper, str], ITextFile):
     def __init__(self, path: str) -> None:
         super().__init__(path)
     
@@ -446,7 +474,7 @@ class TextFile(FileStream[TextIOWrapper, str], ITextStream):
         if stream is not None:
             stream.write(value)
 
-class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryStream):
+class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
         super().__init__(path)
     
