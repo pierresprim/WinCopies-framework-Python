@@ -609,3 +609,96 @@ class MemoryTextStream(Abstract, IMemoryTextStream, IStreamBase[StringIO, str]):
             return True
         
         return False
+
+class AbstractStream[T](Abstract, IStream):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__()
+
+        self.__stream: IDataStream[T] = stream
+    
+    @final
+    def _GetStream(self) -> IDataStream[T]:
+        return self.__stream
+
+    @final
+    def IsOpen(self) -> bool:
+        return self._GetStream().IsOpen()
+
+    @final
+    def Open(self) -> bool:
+        return self._GetStream().Open()
+    @final
+    def TryOpen(self) -> bool|None:
+        return self._GetStream().TryOpen()
+
+    @final
+    def Close(self) -> bool:
+        return self._GetStream().Close()
+
+    def Dispose(self) -> None:
+        self._GetStream().Dispose()
+
+class StreamReader[T](AbstractStream[T], IStreamReader[T]):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__(stream)
+
+    @final
+    def TryRead(self, size: int) -> T|None:
+        return self._GetStream().TryRead(size)
+    @final
+    def Read(self, size: int) -> T:
+        result: T|None = self.TryRead(size)
+
+        if result is None:
+            raise IOError()
+        
+        return result
+    
+    @staticmethod
+    def TryCreate(stream: IDataStream[T]) -> IStreamReader[T]|None:
+        return StreamReader[T](stream) if StreamProperties.Readable in stream.GetProperties() else None
+class StreamWriter[T](AbstractStream[T], IStreamWriter[T]):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__(stream)
+
+    @final
+    def TryWrite(self, value: T) -> bool:
+        return self._GetStream().TryWrite(value)
+    @final
+    def Write(self, value: T) -> None:
+        if not self.TryWrite(value):
+            raise IOError()
+    
+    @staticmethod
+    def TryCreate(stream: IDataStream[T]) -> IStreamWriter[T]|None:
+        return StreamWriter[T](stream) if StreamProperties.Writable in stream.GetProperties() else None
+
+class TextReader(StreamReader[str], ITextReader):
+    def __init__(self, stream: IDataStream[str]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateTextReader(stream: ITextStream) -> ITextReader|None:
+        return TextReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
+class TextWriter(StreamWriter[str], ITextWriter):
+    def __init__(self, stream: IDataStream[str]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateTextWriter(stream: ITextStream) -> ITextWriter|None:
+        return TextWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
+
+class BinaryReader(StreamReader[bytes], IBinaryReader):
+    def __init__(self, stream: IDataStream[bytes]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateBinaryReader(stream: IBinaryStream) -> IBinaryReader|None:
+        return BinaryReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
+class BinaryWriter(StreamWriter[bytes], IBinaryWriter):
+    def __init__(self, stream: IDataStream[bytes]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateBinaryWriter(stream: IBinaryStream) -> IBinaryWriter|None:
+        return BinaryWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
