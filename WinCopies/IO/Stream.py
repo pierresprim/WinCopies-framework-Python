@@ -785,28 +785,24 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
     
     @final
     def TryToString(self) -> str|None:
-        if self.IsOpen():
-            stream: StringIO|None = self._GetStream()
+        stream: StringIO|None = self._GetStream()
 
-            return None if stream is None else stream.getvalue()
-
-        return None
+        return None if stream is None else stream.getvalue()
     @final
     def ToString(self) -> str:
         return StringifyIfNone(self.TryToString())
     
     @final
     def Close(self) -> bool:
-        if self.IsOpen():
-            stream: StringIO|None = self._GetStream()
-            
-            if stream is not None:
-                stream.close()
-                self.__stream = None
-
-            return True
+        stream: StringIO|None = self._GetStream()
         
-        return False
+        if stream is None:
+            return False
+        
+        stream.close()
+        self.__stream = None
+
+        return True
 
 class AbstractStream[T](Abstract, IStream):
     def __init__(self, stream: IDataStream[T]) -> None:
