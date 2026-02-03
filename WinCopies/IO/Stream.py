@@ -518,6 +518,10 @@ class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
     @abstractmethod
     def _GetStream(self) -> TStream|None:
         pass
+
+    @abstractmethod
+    def _GetExtraProperties(self) -> StreamProperties:
+        pass
     
     @final
     def GetProperties(self) -> StreamProperties:
@@ -529,12 +533,43 @@ class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
                 properties |= StreamProperties.Readable
             if stream.writable():
                 properties |= StreamProperties.Writable
-            if stream.seekable():
-                properties |= StreamProperties.Seekable
 
-        return properties
+        return properties | self._GetExtraProperties()
 
-class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData]):
+class ISeekableStreamBase[TStream: IOBase, TData](IStreamBase[TStream, TData], ISeekableStream[TData]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def _GetExtraProperties(self) -> StreamProperties:
+        stream: IOBase|None = self._GetStream()
+
+        if stream is None:
+            return StreamProperties.Null
+        
+        properties: StreamProperties = self.GetProperties()
+
+        return properties | StreamProperties.Seekable if stream.seekable() else properties
+    
+    @final
+    def TryGetPosition(self) -> int|None:
+        stream: TStream|None = self._GetStream()
+
+        return None if stream is None else stream.tell()
+    @final
+    def TrySetPosition(self, offset: int, whence: StreamPosition = StreamPosition.Start) -> bool:
+        stream: TStream|None = self._GetStream()
+
+        if stream is None:
+            return False
+        
+        if stream.seekable():
+            stream.seek(offset, whence.ForceToInt())
+
+            return True
+        
+        return False
+
+class FileStream[TStream: IOBase, TData](File[TData], ISeekableStreamBase[TStream, TData]):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
@@ -637,7 +672,7 @@ class IMemoryTextStream(ITextStream, IStringable):
     @abstractmethod
     def TryToString(self) -> str|None:
         pass
-class MemoryTextStream(Abstract, IMemoryTextStream, IStreamBase[StringIO, str]):
+class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO, str]):
     def __init__(self) -> None:
         super().__init__()
 
