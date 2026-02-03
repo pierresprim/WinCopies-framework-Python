@@ -536,6 +536,10 @@ class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData
 
         self.__stream: TStream|None = None
     
+    @abstractmethod
+    def _Open(self, path: str, fileMode: str) -> TStream:
+        pass
+    
     @final
     def _GetStream(self) -> TStream|None:
         return self.__stream
@@ -547,7 +551,7 @@ class FileStream[TStream: IOBase, TData](File[TData], IStreamBase[TStream, TData
     @final
     def OpenFile(self, fileMode: FileMode) -> bool:
         if not self.IsOpen():
-            self.__stream = cast(TStream, open(self.GetPath(), fileMode.ToString(self.GetOpenType())))
+            self.__stream = self._Open(self.GetPath(), fileMode.ToString(self.GetOpenType()))
         
         return True
     
@@ -568,6 +572,10 @@ class TextFile(FileStream[TextIOWrapper, str], ITextFile):
         super().__init__(path)
     
     @final
+    def _Open(self, path: str, fileMode: str) -> TextIOWrapper:
+        return cast(TextIOWrapper, open(path, fileMode))
+    
+    @final
     def GetOpenType(self) -> FileType:
         return FileType.Text
     
@@ -586,6 +594,10 @@ class TextFile(FileStream[TextIOWrapper, str], ITextFile):
 class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
         super().__init__(path)
+    
+    @final
+    def _Open(self, path: str, fileMode: str) -> BufferedIOBase:
+        return cast(BufferedIOBase, open(path, fileMode))
     
     @final
     def GetOpenType(self) -> FileType:
