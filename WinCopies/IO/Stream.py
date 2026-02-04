@@ -435,8 +435,6 @@ class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
         return result
 
 class File[T](Abstract, IFileStream[T]):
-    __ASK_PATH_MESSAGE: str = "Enter a path: "
-    
     def __init__(self, path: str) -> None:
         super().__init__()
         
@@ -481,28 +479,6 @@ class File[T](Abstract, IFileStream[T]):
         if self.TryWrite(value) is None:
             raise IOError()
     
-    @staticmethod
-    def TryInitializeAs(path: str, fileType: FileType) -> TextFile|BinaryFile|None:
-        match fileType:
-            case FileType.Text:
-                return TextFile(path)
-            
-            case FileType.Binary:
-                return BinaryFile(path)
-            
-            case _:
-                return None
-    @staticmethod
-    def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType) -> TextFile|BinaryFile|None:
-        stream: TextFile|BinaryFile|None = File.TryInitializeAs(path, fileType)
-
-        if stream is None:
-            return None
-        
-        stream.OpenFile(fileMode)
-
-        return stream
-    
     @final
     def Delete(self) -> None:
         if self.IsOpen():
@@ -511,105 +487,118 @@ class File[T](Abstract, IFileStream[T]):
         if path.isfile(self.__path):            
             remove(self.__path)
 
-    @staticmethod
-    def __GetDelegate(fileType: FileType, path: str) -> Function[TextFile]|Function[BinaryFile]:
-        match fileType:
-            case FileType.Text:
-                return lambda: TextFile(path)
-            case FileType.Binary:
-                return lambda: BinaryFile(path)
+__ASK_PATH_MESSAGE: str = "Enter a path: "
 
-            case _:
-                # Invalid arguments; no initializer could be created.
-                raise ValueError(f"Wrong {FileType.__name__}.", fileType)
+def TryInitializeAs(path: str, fileType: FileType) -> TextFile|BinaryFile|None:
+    match fileType:
+        case FileType.Text:
+            return TextFile(path)
+        
+        case FileType.Binary:
+            return BinaryFile(path)
+        
+        case _:
+            return None
+def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType) -> TextFile|BinaryFile|None:
+    stream: TextFile|BinaryFile|None = TryInitializeAs(path, fileType)
+
+    if stream is None:
+        return None
     
-    @staticmethod
-    def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
-        if validator is None:
-            # No path validator callback provided. Directly create file.
-            return File.GetFile(fileType, message)
+    stream.OpenFile(fileMode)
 
-        def askPath() -> str|None:
-            path: str = input(message)
+    return stream
 
-            return path if validator(path) else None
-        
-        path: str|None = askPath()
-        
-        while path is None:
-            path = askPath()
-        
-        return File.__GetDelegate(fileType, path)()
+def __GetDelegate(fileType: FileType, path: str) -> Function[TextFile]|Function[BinaryFile]:
+    match fileType:
+        case FileType.Text:
+            return lambda: TextFile(path)
+        case FileType.Binary:
+            return lambda: BinaryFile(path)
+
+        case _:
+            # Invalid arguments; no initializer could be created.
+            raise ValueError(f"Wrong {FileType.__name__}.", fileType)
+
+def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    if validator is None:
+        # No path validator callback provided. Directly create file.
+        return GetFile(fileType, message)
+
+    def askPath() -> str|None:
+        path: str = input(message)
+
+        return path if validator(path) else None
     
-    @staticmethod
-    def GetFile(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
-        return File.__GetDelegate(fileType, input(message))()
+    path: str|None = askPath()
     
-    @staticmethod
-    def TryCreate(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
-        def open() -> TextFile|BinaryFile:
-            file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
-
-            file.OpenFile(fileMode)
-
-            return file
-        
-        if onError is None:
-            # No IO error callback provided. Try only one time.
-            try:
-                return open()
-            
-            except IOError:
-                return None
-        
-        # IO error callback provided. Try until initializer validated or IO error callback invalidated.
-        while True:
-            try:
-                return open()
-            
-            except IOError as e:
-                if onError(e):
-                    continue
-
-                return None
+    while path is None:
+        path = askPath()
     
-    @staticmethod
-    def Create(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
-        def open() -> TextFile|BinaryFile:
-            file: TextFile|BinaryFile = File.TryGetFile(fileType, validator, message)
+    return __GetDelegate(fileType, path)()
 
-            file.OpenFile(fileMode)
+def GetFile(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    return __GetDelegate(fileType, input(message))()
 
-            return file
-        
-        if onError is None:
-            # No IO error callback provided. Try only one time.
+def TryCreate(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile|None:
+    def open() -> TextFile|BinaryFile:
+        file: TextFile|BinaryFile = TryGetFile(fileType, validator, message)
+
+        file.OpenFile(fileMode)
+
+        return file
+    
+    if onError is None:
+        # No IO error callback provided. Try only one time.
+        try:
             return open()
-
-        # IO error callback provided. Try until initializer validated or IO error callback invalidated.
-        while True:
-            try:
-                return open()
-            
-            except IOError as e:
-                if onError(e):
-                    continue
-
-                raise e
+        
+        except IOError:
+            return None
     
-    @staticmethod
-    def TryGetFileCreator(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
-        return lambda: File.TryGetFile(fileType, validator, message)
-    @staticmethod
-    def GetFileCreator(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
-        return lambda: File.GetFile(fileType, message)
+    # IO error callback provided. Try until initializer validated or IO error callback invalidated.
+    while True:
+        try:
+            return open()
+        
+        except IOError as e:
+            if onError(e):
+                continue
+
+            return None
+
+def Create(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
+    def open() -> TextFile|BinaryFile:
+        file: TextFile|BinaryFile = TryGetFile(fileType, validator, message)
+
+        file.OpenFile(fileMode)
+
+        return file
     
-    @staticmethod
-    def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
-        return lambda: File.TryCreate(fileMode, fileType, validator, onError, message)
-    @staticmethod
-    def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
-        return lambda: File.Create(fileMode, fileType, validator, onError, message)
+    if onError is None:
+        # No IO error callback provided. Try only one time.
+        return open()
+
+    # IO error callback provided. Try until initializer validated or IO error callback invalidated.
+    while True:
+        try:
+            return open()
+        
+        except IOError as e:
+            if onError(e):
+                continue
+
+            raise e
+
+def TryGetFileCreator(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
+    return lambda: TryGetFile(fileType, validator, message)
+def GetFileCreator(fileType: FileType, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile]:
+    return lambda: GetFile(fileType, message)
+
+def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
+    return lambda: TryCreate(fileMode, fileType, validator, onError, message)
+def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
+    return lambda: Create(fileMode, fileType, validator, onError, message)
 
 class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
     def __init__(self) -> None:
