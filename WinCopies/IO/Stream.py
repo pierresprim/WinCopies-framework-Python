@@ -224,7 +224,7 @@ class IStreamWriter[T](IStream):
         super().__init__()
     
     @abstractmethod
-    def TryWrite(self, value: T) -> bool:
+    def TryWrite(self, value: T) -> int|None:
         pass
     @abstractmethod
     def Write(self, value: T) -> None:
@@ -245,7 +245,7 @@ class ITextWriter(IStreamWriter[str]):
     def __init__(self) -> None:
         super().__init__()
     
-    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
+    def TryWriteLine(self, text: str, eol: str = '\n') -> int|None:
         return self.TryWrite(text + eol)
     def WriteLine(self, text: str) -> None:
         if not self.TryWriteLine(text):
@@ -418,19 +418,10 @@ class File[T](Abstract, IFileStream[T]):
         return result
     
     @abstractmethod
-    def _Write(self, value: T) -> None:
+    def TryWrite(self, value: T) -> int|None:
         pass
-    
-    def TryWrite(self, value: T) -> bool:
-        if self.IsOpen():
-            self._Write(value)
-
-            return True
-        
-        else:
-            return False
     def Write(self, value: T) -> None:
-        if not self.TryWrite(value):
+        if self.TryWrite(value) is None:
             raise IOError()
     
     @staticmethod
@@ -646,6 +637,15 @@ class FileStream[TStream: IOBase, TData](File[TData], ISeekableStreamBase[TStrea
 
         return True
     
+    @abstractmethod
+    def _Write(self, stream: TStream, value: TData) -> int:
+        pass
+    @final
+    def TryWrite(self, value: TData) -> int|None:
+        stream: TStream|None = self._GetStream()
+
+        return None if stream is None else self._Write(stream, value)
+    
     @final
     def Flush(self) -> bool:
         stream: TStream|None = self._GetStream()
@@ -687,11 +687,8 @@ class TextFile(FileStream[TextIOWrapper, str], ITextFile):
 
         return '' if stream is None else stream.read(size)
     @final
-    def _Write(self, value: str) -> None:
-        stream: TextIOWrapper|None = self._GetStream()
-
-        if stream is not None:
-            stream.write(value)
+    def _Write(self, stream: TextIOWrapper, value: str) -> int:
+        return stream.write(value)
 
 class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
@@ -711,11 +708,8 @@ class BinaryFile(FileStream[BufferedIOBase, bytes], IBinaryFile):
 
         return bytes(0) if stream is None else stream.read(size)
     @final
-    def _Write(self, value: bytes) -> None:
-        stream: BufferedIOBase|None = self._GetStream()
-
-        if stream is not None:
-            stream.write(value)
+    def _Write(self, stream: BufferedIOBase, value: bytes) -> int:
+        return stream.write(value)
 
 class IMemoryTextStream(ITextStream, IStringable):
     def __init__(self) -> None:
@@ -761,18 +755,13 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return result
     
     @final
-    def TryWrite(self, value: str) -> bool:
+    def TryWrite(self, value: str) -> int|None:
         stream: StringIO|None = self._GetStream()
 
-        if stream is not None:
-            stream.write(value)
-
-            return True
-        
-        return False
+        return None if stream is None else stream.write(value)
     @final
     def Write(self, value: str) -> None:
-        if not self.TryWrite(value):
+        if self.TryWrite(value) is None:
             raise IOError()
     
     @final
@@ -863,11 +852,11 @@ class StreamWriter[T](AbstractStream[T], IStreamWriter[T]):
         super().__init__(stream)
 
     @final
-    def TryWrite(self, value: T) -> bool:
+    def TryWrite(self, value: T) -> int|None:
         return self._GetStream().TryWrite(value)
     @final
     def Write(self, value: T) -> None:
-        if not self.TryWrite(value):
+        if self.TryWrite(value) is None:
             raise IOError()
     
     @staticmethod
