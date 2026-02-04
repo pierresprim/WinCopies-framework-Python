@@ -271,12 +271,6 @@ class ISeekableTextReader(ITextReader, ISeekable):
 class ISeekableTextWriter(ITextWriter, ISeekable):
     def __init__(self) -> None:
         super().__init__()
-    
-    def TryWriteLine(self, text: str, eol: str = '\n') -> bool:
-        return self.TryWrite(text + eol)
-    def WriteLine(self, text: str) -> None:
-        if not self.TryWriteLine(text):
-            raise IOError()
 
 class ISeekableBinaryReader(IBinaryReader, ISeekable):
     def __init__(self) -> None:
