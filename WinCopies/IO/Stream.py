@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from enum import Enum, Flag, auto
-from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOWrapper, BufferedIOBase, StringIO
+from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOBase, TextIOWrapper, BufferedIOBase, StringIO
 from os import remove, path
 from types import TracebackType
 from typing import cast, final
@@ -286,6 +286,28 @@ class ISeekableBinaryStream(ISeekableStream[bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
+class IExtendedStream[T](IDataStream[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryReadToEnd(self) -> T|None:
+        pass
+class ISeekableExtendedStream[T](IExtendedStream[T], ISeekableStream[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IExtendedTextStream(IExtendedStream[str], ITextStream):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryReadLine(self, size: int|None) -> str|None:
+        pass
+class IExtendedSeekableTextStream(ISeekableExtendedStream[str], IExtendedTextStream, ISeekableTextStream):
+    def __init__(self) -> None:
+        super().__init__()
+
 class IFile(IStream):
     def __init__(self) -> None:
         super().__init__()
@@ -376,6 +398,33 @@ class StreamBase[T: ISeekable](IOBase, IDisposableObject):
         super().__exit__(exc_type, exc_val, exc_tb)
 
         self.Dispose()
+
+class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def read(self, size: int|None = -1) -> str:
+        stream: T = self._GetStream()
+
+        result = stream.TryReadToEnd() if size is None or size < 0 else stream.TryRead(size)
+        
+        return '' if result is None else result
+    
+    @final
+    def readline(self, size: int = -1) -> str: # type: ignore[override]
+        result = self._GetStream().TryReadLine(size if size >= 0 else None)
+
+        return '' if result is None else result
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def write(self, s: str) -> int:
+        result: int|None = self._GetStream().TryWrite(s)
+
+        if result is None:
+            raise IOError("Write operation failed.")
+        
+        return result
 
 class File[T](Abstract, IFileStream[T]):
     __ASK_PATH_MESSAGE: str = "Enter a path: "
