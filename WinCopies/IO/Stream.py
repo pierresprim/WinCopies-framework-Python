@@ -230,11 +230,17 @@ class IStreamWriter[T](IStream):
     def Write(self, value: T) -> None:
         pass
 
-class IDataStream[T](IStreamReader[T], IStreamWriter[T], IStreamObject):
+class IDataStreamAbstract[TIn, TOut](IStreamReader[TOut], IStreamWriter[TIn], IStreamObject):
+    def __init__(self) -> None:
+        super().__init__()
+class IDataStream[T](IDataStreamAbstract[T, T]):
     def __init__(self) -> None:
         super().__init__()
 
-class ISeekableStream[T](IDataStream[T], ISeekable):
+class ISeekableStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut], ISeekable):
+    def __init__(self) -> None:
+        super().__init__()
+class ISeekableStream[T](ISeekableStreamAbstract[T, T], IDataStream[T], ISeekable):
     def __init__(self) -> None:
         super().__init__()
 
@@ -286,14 +292,25 @@ class ISeekableBinaryStream(ISeekableStream[bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
-class IExtendedStream[T](IDataStream[T]):
+class IExtendedStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryReadToEnd(self) -> TOut|None:
+        pass
+class IExtendedStream[T](IExtendedStreamAbstract[T, T], IDataStream[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def TryReadToEnd(self) -> T|None:
         pass
-class ISeekableExtendedStream[T](IExtendedStream[T], ISeekableStream[T]):
+
+class ISeekableExtendedStreamAbstract[TIn, TOut](IExtendedStreamAbstract[TIn, TOut], ISeekableStreamAbstract[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+class ISeekableExtendedStream[T](ISeekableExtendedStreamAbstract[T, T], IExtendedStream[T], ISeekableStream[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -331,7 +348,10 @@ class IFile(IStream):
     def Delete(self) -> None:
         pass
 
-class IFileStream[T](IDataStream[T], IFile):
+class IFileStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut], IFile):
+    def __init__(self) -> None:
+        super().__init__()
+class IFileStream[T](IFileStreamAbstract[T, T], IDataStream[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -434,7 +454,7 @@ class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
         
         return result
 
-class File[T](Abstract, IFileStream[T]):
+class FileBase[TIn, TOut](Abstract, IFileStreamAbstract[TIn, TOut]):
     def __init__(self, path: str) -> None:
         super().__init__()
         
@@ -458,14 +478,14 @@ class File[T](Abstract, IFileStream[T]):
         return self.__path
     
     @abstractmethod
-    def _Read(self, size: int) -> T:
+    def _Read(self, size: int) -> TOut:
         pass
 
     @final
-    def TryRead(self, size: int) -> T|None:
+    def TryRead(self, size: int) -> TOut|None:
         return self._Read(size) if self.IsOpen() else None
-    def Read(self, size: int) -> T:
-        result: T|None = self.TryRead(size)
+    def Read(self, size: int) -> TOut:
+        result: TOut|None = self.TryRead(size)
 
         if result is None:
             raise IOError()
@@ -473,9 +493,9 @@ class File[T](Abstract, IFileStream[T]):
         return result
     
     @abstractmethod
-    def TryWrite(self, value: T) -> int|None:
+    def TryWrite(self, value: TIn) -> int|None:
         pass
-    def Write(self, value: T) -> None:
+    def Write(self, value: TIn) -> None:
         if self.TryWrite(value) is None:
             raise IOError()
     
@@ -486,6 +506,9 @@ class File[T](Abstract, IFileStream[T]):
             
         if path.isfile(self.__path):            
             remove(self.__path)
+class File[T](FileBase[T, T], IFileStream[T]):
+    def __init__(self, path: str) -> None:
+        super().__init__(path)
 
 __ASK_PATH_MESSAGE: str = "Enter a path: "
 
@@ -600,7 +623,7 @@ def TryGetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Pre
 def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|None = None, onError: Predicate[IOError]|None = None, message: str = __ASK_PATH_MESSAGE) -> Function[TextFile|BinaryFile|None]:
     return lambda: Create(fileMode, fileType, validator, onError, message)
 
-class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
+class IStreamBaseAbstract[TStream: IOBase, TIn, TOut](IDataStreamAbstract[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -624,8 +647,11 @@ class IStreamBase[TStream: IOBase, TData](IDataStream[TData]):
                 properties |= StreamProperties.Writable
 
         return properties | self._GetExtraProperties()
+class IStreamBase[TStream: IOBase, TData](IStreamBaseAbstract[TStream, TData, TData], IDataStream[TData]):
+    def __init__(self) -> None:
+        super().__init__()
 
-class ISeekableStreamBase[TStream: IOBase, TData](IStreamBase[TStream, TData], ISeekableStream[TData]):
+class ISeekableStreamBaseAbstract[TStream: IOBase, TIn, TOut](IStreamBaseAbstract[TStream, TIn, TOut], ISeekableStreamAbstract[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -657,8 +683,11 @@ class ISeekableStreamBase[TStream: IOBase, TData](IStreamBase[TStream, TData], I
             return True
         
         return False
+class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TStream, TData, TData], IStreamBase[TStream, TData], ISeekableStream[TData]):
+    def __init__(self) -> None:
+        super().__init__()
 
-class FileStream[TStream: IOBase, TData](File[TData], ISeekableStreamBase[TStream, TData]):
+class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableStreamBaseAbstract[TStream, TIn, TOut]):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
@@ -684,10 +713,10 @@ class FileStream[TStream: IOBase, TData](File[TData], ISeekableStreamBase[TStrea
         return True
     
     @abstractmethod
-    def _Write(self, stream: TStream, value: TData) -> int:
+    def _Write(self, stream: TStream, value: TIn) -> int:
         pass
     @final
-    def TryWrite(self, value: TData) -> int|None:
+    def TryWrite(self, value: TIn) -> int|None:
         stream: TStream|None = self._GetStream()
 
         return None if stream is None else self._Write(stream, value)
@@ -714,6 +743,9 @@ class FileStream[TStream: IOBase, TData](File[TData], ISeekableStreamBase[TStrea
         self.__stream = None
 
         return True
+class FileStream[TStream: IOBase, TData](FileStreamBase[TStream, TData, TData], ISeekableStreamBase[TStream, TData]):
+    def __init__(self, path: str) -> None:
+        super().__init__(path)
 
 class TextFile(FileStream[TextIOWrapper, str], ITextFile):
     def __init__(self, path: str) -> None:
