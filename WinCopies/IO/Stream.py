@@ -451,13 +451,13 @@ class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
     def read(self, size: int|None = -1) -> str:
         stream: T = self._GetStream()
 
-        result = stream.TryReadToEnd() if size is None or size < 0 else stream.TryRead(size)
+        result: str|None = stream.TryReadToEnd() if size is None or size < 0 else stream.TryRead(size)
         
         return '' if result is None else result
     
     @final
     def readline(self, size: int = -1) -> str: # type: ignore[override]
-        result = self._GetStream().TryReadLine(size if size >= 0 else None)
+        result: str|None = self._GetStream().TryReadLine(size if size >= 0 else None)
 
         return '' if result is None else result
     
