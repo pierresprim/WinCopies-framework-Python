@@ -350,6 +350,11 @@ class StreamBase[T: ISeekable](IOBase, IDisposableObject):
     def _GetStream(self) -> T:
         pass
     
+    @property
+    @final
+    def closed(self) -> bool:
+        return not self._GetStream().IsOpen()
+    
     @final
     def CheckProperty(self, property: StreamProperties) -> bool:
         return property in self._GetStream().GetProperties()
