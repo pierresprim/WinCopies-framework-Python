@@ -10,7 +10,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Buffer
 from enum import Enum, Flag, auto
-from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOBase, TextIOWrapper, BufferedIOBase, StringIO
+from io import SEEK_SET, SEEK_CUR, SEEK_END, IOBase, TextIOBase, BufferedIOBase, StringIO
 from os import remove, path
 from types import TracebackType
 from typing import cast, final
@@ -775,13 +775,13 @@ class FileStream[TStream: IOBase, TData](FileStreamBase[TStream, TData, TData], 
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
-class TextFile(FileStream[TextIOWrapper, str], ITextFile):
+class TextFile(FileStream[TextIOBase, str], ITextFile):
     def __init__(self, path: str) -> None:
         super().__init__(path)
     
     @final
-    def _Open(self, path: str, fileMode: str) -> TextIOWrapper:
-        return cast(TextIOWrapper, open(path, fileMode))
+    def _Open(self, path: str, fileMode: str) -> TextIOBase:
+        return cast(TextIOBase, open(path, fileMode))
     
     @final
     def GetOpenType(self) -> FileType:
@@ -789,11 +789,11 @@ class TextFile(FileStream[TextIOWrapper, str], ITextFile):
     
     @final
     def _Read(self, size: int) -> str:
-        stream: TextIOWrapper|None = self._GetStream()
+        stream: TextIOBase|None = self._GetStream()
 
         return '' if stream is None else stream.read(size)
     @final
-    def _Write(self, stream: TextIOWrapper, value: str) -> int:
+    def _Write(self, stream: TextIOBase, value: str) -> int:
         return stream.write(value)
 
 class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
