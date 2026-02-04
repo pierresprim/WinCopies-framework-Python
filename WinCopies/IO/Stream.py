@@ -867,11 +867,22 @@ class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TS
     def __init__(self) -> None:
         super().__init__()
 
-class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableStreamBaseAbstract[TStream, TIn, TOut]):
+class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableStreamBaseAbstract[TStream, TIn, TOut], IAsStream[TStream]):
+    @final
+    class __Cookie[_TStream: IOBase, _TIn, _TOut](Abstract, IStreamCookie[_TStream]):
+        def __init__(self, stream: FileStreamBase[_TStream, _TIn, _TOut]) -> None:
+            super().__init__()
+
+            self.__stream: FileStreamBase[_TStream, _TIn, _TOut] = stream
+        
+        def GetStream(self) -> _TStream|None:
+            return self.__stream._GetStream()
+    
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
         self.__stream: TStream|None = None
+        self.__cookie: IStreamCookie[TStream] = FileStreamBase[TStream, TIn, TOut].__Cookie(self)
     
     @abstractmethod
     def _Open(self, path: str, fileMode: str) -> TStream:
@@ -880,6 +891,9 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
     @final
     def _GetStream(self) -> TStream|None:
         return self.__stream
+    @final
+    def _GetCookie(self) -> IStreamCookie[TStream]:
+        return self.__cookie
     
     @final
     def IsOpen(self) -> bool:
@@ -954,7 +968,12 @@ class BinaryStreamUpdater(StreamUpdater[BufferedIOBase]):
 
 class TextFile(FileStream[TextIOBase, str], ITextFile):
     def __init__(self, path: str) -> None:
+        def update(func: IFunction[TextIOBase]) -> None:
+            self.__stream = func
+        
         super().__init__(path)
+        
+        self.__stream: IFunction[TextIOBase] = TextStreamUpdater(self._GetCookie(), update)
     
     @final
     def _Open(self, path: str, fileMode: str) -> TextIOBase:
@@ -972,10 +991,19 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
     @final
     def _Write(self, stream: TextIOBase, value: str) -> int:
         return stream.write(value)
+    
+    @final
+    def AsStream(self) -> TextIOBase:
+        return self.__stream.GetValue()
 
 class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
+        def update(func: IFunction[BufferedIOBase]) -> None:
+            self.__stream = func
+        
         super().__init__(path)
+        
+        self.__stream: IFunction[BufferedIOBase] = BinaryStreamUpdater(self._GetCookie(), update)
     
     @final
     def _Open(self, path: str, fileMode: str) -> BufferedIOBase:
@@ -993,6 +1021,10 @@ class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
     @final
     def _Write(self, stream: BufferedIOBase, value: Buffer) -> int:
         return stream.write(value)
+    
+    @final
+    def AsStream(self) -> BufferedIOBase:
+        return self.__stream.GetValue()
 
 class IMemoryTextStream(ITextStream, IStringable):
     def __init__(self) -> None:
@@ -1001,11 +1033,25 @@ class IMemoryTextStream(ITextStream, IStringable):
     @abstractmethod
     def TryToString(self) -> str|None:
         pass
-class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO, str]):
+class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO, str], IAsStream[TextIOBase]):
+    @final
+    class __Cookie(Abstract, IStreamCookie[TextIOBase]):
+        def __init__(self, stream: MemoryTextStream) -> None:
+            super().__init__()
+
+            self.__stream: MemoryTextStream = stream
+        
+        def GetStream(self) -> TextIOBase|None:
+            return self.__stream._GetStream()
+    
     def __init__(self) -> None:
+        def update(func: IFunction[TextIOBase]) -> None:
+            self.__streamUpdater = func
+        
         super().__init__()
 
         self.__stream: StringIO|None = None
+        self.__streamUpdater: IFunction[TextIOBase] = TextStreamUpdater(MemoryTextStream.__Cookie(self), update) # type: ignore[no-redef]
     
     @final
     def _GetStream(self) -> StringIO|None:
@@ -1078,6 +1124,10 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         self.__stream = None
 
         return True
+    
+    @final
+    def AsStream(self) -> TextIOBase:
+        return self.__streamUpdater.GetValue()
 
 class AbstractStreamBase[TIn, TOut](Abstract, IStream):
     def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
