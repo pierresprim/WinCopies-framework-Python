@@ -385,7 +385,10 @@ class StreamBase[T: ISeekable](IOBase, IDisposableObject):
         return 0 if offset is None else offset
     @final
     def seek(self, offset: int, whence: int = 0) -> int:
-        return self._GetStream().TrySetPosition(offset, StreamPosition.TryFromInt(whence))
+        if self._GetStream().TrySetPosition(offset, StreamPosition.TryFromInt(whence)):
+            return self.tell()
+        
+        raise OSError("Seek failed.")
     
     @final
     def flush(self) -> None:
