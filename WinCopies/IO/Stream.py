@@ -322,7 +322,14 @@ class IExtendedTextStream(IExtendedStream[str], ITextStream):
     @abstractmethod
     def TryReadLine(self, size: int|None) -> str|None:
         pass
+class IExtendedBinaryStream(IExtendedStreamAbstract[Buffer, bytes], IBinaryStream):
+    def __init__(self) -> None:
+        super().__init__()
+
 class IExtendedSeekableTextStream(ISeekableExtendedStream[str], IExtendedTextStream, ISeekableTextStream):
+    def __init__(self) -> None:
+        super().__init__()
+class IExtendedSeekableBinaryStream(ISeekableExtendedStreamAbstract[Buffer, bytes], IExtendedBinaryStream, ISeekableBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
@@ -450,6 +457,26 @@ class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
     def write(self, s: str) -> int:
         result: int|None = self._GetStream().TryWrite(s)
 
+        if result is None:
+            raise IOError("Write operation failed.")
+        
+        return result
+class BinaryStreamBase[T: IExtendedSeekableBinaryStream](StreamBase[T], BufferedIOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def read(self, size: int|None = -1) -> bytes:
+        stream: T = self._GetStream()
+        
+        result: bytes|None = stream.TryReadToEnd() if size is None or size < 0 else stream.TryRead(size)
+        
+        return b'' if result is None else result
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def write(self, b: Buffer) -> int:
+        result: int|None = self._GetStream().TryWrite(b)
+        
         if result is None:
             raise IOError("Write operation failed.")
         
