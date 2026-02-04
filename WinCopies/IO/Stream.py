@@ -15,10 +15,10 @@ from os import remove, path
 from types import TracebackType
 from typing import cast, final
 
-from WinCopies import IDisposableObject, IDisposable, IStringable, Abstract
+from WinCopies import IInterface, IDisposableObject, IDisposable, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Delegate import Function, Predicate, Method, IFunction, ValueFunctionUpdater
 
 class FileMode(Enum):
     Null = 0
@@ -161,6 +161,14 @@ class StreamProperties(Flag):
     Readable = auto()
     Writable = auto()
     Seekable = auto()
+
+class IAsStream[T: IOBase](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsStream(self) -> T:
+        pass
 
 class IStream(IDisposable):
     def __init__(self) -> None:
@@ -482,6 +490,150 @@ class BinaryStreamBase[T: IExtendedSeekableBinaryStream](StreamBase[T], Buffered
         
         return result
 
+class IStreamCookie[T: IOBase](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetStream(self) -> T|None:
+        pass
+
+class Stream[T: IOBase](IOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetStream(self) -> IStreamCookie[T]:
+        pass
+    @final
+    def _GetInnerStream(self) -> T|None:
+        return self._GetStream().GetStream()
+    
+    @property
+    @final
+    def closed(self) -> bool:
+        return self._GetInnerStream() is None
+    
+    @final
+    def fileno(self) -> int:
+        raise OSError("Invalid operation.")
+    
+    @final
+    def isatty(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.isatty()
+    
+    @final
+    def seekable(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.seekable()
+    
+    @final
+    def readable(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.readable()
+    @final
+    def writable(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.writable()
+    
+    @final
+    def tell(self) -> int:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is None:
+            raise OSError("Invalid operation.")
+
+        return stream.tell()
+    @final
+    def seek(self, offset: int, whence: int = 0) -> int:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is None:
+            raise OSError("Invalid operation.")
+
+        return stream.seek(offset, whence)
+    
+    @final
+    def flush(self) -> None:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is not None:
+            stream.flush()
+    
+    @final
+    def close(self) -> None:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is not None:
+            stream.close()
+
+class TextStreamAbstract[T: TextIOBase](Stream[T], TextIOBase):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def read(self, size: int|None = -1) -> str:
+        stream: T|None = self._GetInnerStream()
+
+        return '' if stream is None else stream.read(size)
+    
+    @final
+    def readline(self, size: int = -1) -> str: # type: ignore[override]
+        stream: T|None = self._GetInnerStream()
+
+        return '' if stream is None else stream.readline(size)
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def write(self, s: str) -> int:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is None:
+            raise IOError("Write operation failed.")
+        
+        return stream.write(s)
+class TextStream(TextStreamAbstract[TextIOBase]):
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
+        super().__init__(cookie)
+
+class BinaryStreamAbstract[T: BufferedIOBase](Stream[T], BufferedIOBase):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def read(self, size: int|None = -1) -> bytes:
+        stream: T|None = self._GetInnerStream()
+        
+        return b'' if stream is None else stream.read(size)
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def write(self, b: Buffer) -> int:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is None:
+            raise IOError("Write operation failed.")
+        
+        return stream.write(b)
+class BinaryStream(BinaryStreamAbstract[BufferedIOBase]):
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
+        super().__init__(cookie)
+
 class FileBase[TIn, TOut](Abstract, IFileStreamAbstract[TIn, TOut]):
     def __init__(self, path: str) -> None:
         super().__init__()
@@ -774,6 +926,31 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
 class FileStream[TStream: IOBase, TData](FileStreamBase[TStream, TData, TData], ISeekableStreamBase[TStream, TData]):
     def __init__(self, path: str) -> None:
         super().__init__(path)
+
+class StreamUpdater[T: IOBase](ValueFunctionUpdater[T]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None:
+        super().__init__(updater)
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetCookie(self) -> IStreamCookie[T]:
+        return self.__cookie
+
+@final
+class TextStreamUpdater(StreamUpdater[TextIOBase]):
+    def __init__(self, cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[TextIOBase]]) -> None:
+        super().__init__(cookie, updater)
+    
+    def _GetValue(self) -> TextIOBase:
+        return TextStream(self._GetCookie())
+@final
+class BinaryStreamUpdater(StreamUpdater[BufferedIOBase]):
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase], updater: Method[IFunction[BufferedIOBase]]) -> None:
+        super().__init__(cookie, updater)
+    
+    def _GetValue(self) -> BufferedIOBase:
+        return BinaryStream(self._GetCookie())
 
 class TextFile(FileStream[TextIOBase, str], ITextFile):
     def __init__(self, path: str) -> None:
