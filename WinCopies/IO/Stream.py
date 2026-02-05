@@ -713,7 +713,7 @@ class TextStreamWriter(TextStreamWriterBase[TextIOBase]):
         super().__init__(cookie)
     
     @staticmethod
-    def TryCreateWriter(cookie: IStreamCookie[TextIOBase]) -> TextStreamWriterBase[TextIOBase]|None:
+    def TryCreateWriter(cookie: IStreamCookie[TextIOBase]) -> TextStreamWriter|None:
         stream: IOBase|None = cookie.GetStream()
 
         return TextStreamWriter(cookie) if stream is not None and stream.writable() else None
