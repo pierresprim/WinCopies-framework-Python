@@ -1234,11 +1234,16 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         super().__init__()
 
         self.__stream: StringIO|None = None
-        self.__streamUpdater: IFunction[TextIOBase] = TextStreamUpdater(MemoryTextStream.__Cookie(self), update) # type: ignore[no-redef]
+        self.__cookie: IStreamCookie[TextIOBase] = MemoryTextStream.__Cookie(self)
+
+        self.__streamUpdater: IFunction[TextIOBase] = TextStreamUpdater(self._GetCookie(), update) # type: ignore[no-redef]
     
     @final
     def _GetStream(self) -> StringIO|None:
         return self.__stream
+    @final
+    def _GetCookie(self) -> IStreamCookie[TextIOBase]:
+        return self.__cookie
     
     @final
     def IsOpen(self) -> bool:
