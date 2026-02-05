@@ -591,6 +591,21 @@ class Stream[T: IOBase](StreamAbstract[T], ReaderAbstract[T], WriterAbstract[T])
     def __init__(self) -> None:
         super().__init__()
 
+class Reader[T: IOBase](StreamAbstract[T], ReaderAbstract[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def writable(self) -> bool:
+        return False
+class Writer[T: IOBase](StreamAbstract[T], WriterAbstract[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def readable(self) -> bool:
+        return False
+
 class TextReaderAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
     def __init__(self) -> None:
         super().__init__()
@@ -640,6 +655,126 @@ class BinaryWriterAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOB
             raise IOError("Write operation failed.")
         
         return stream.write(b)
+
+class TextStreamReaderBase[T: TextIOBase](Reader[T], TextReaderAbstract[T]):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def write(self, s: str) -> int:
+        raise OSError("Invalid operation.")
+    
+    @staticmethod
+    def TryCreateReader(cookie: IStreamCookie[T]) -> TextStreamReaderBase[T]|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return TextStreamReaderBase[T](cookie) if stream is not None and stream.readable() else None
+class TextStreamReader(TextStreamReaderBase[TextIOBase]):
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
+        super().__init__(cookie)
+    
+    @staticmethod
+    def TryCreateReader(cookie: IStreamCookie[TextIOBase]) -> TextStreamReader|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return TextStreamReader(cookie) if stream is not None and stream.readable() else None
+
+class TextStreamWriterBase[T: TextIOBase](Writer[T], TextWriterAbstract[T]):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
+    def read(self, size: int|None = -1) -> str:
+        raise OSError("Invalid operation.")
+    
+    @final
+    def readline(self, size: int = -1) -> str: # type: ignore[override]
+        raise OSError("Invalid operation.")
+    
+    @staticmethod
+    def TryCreateWriter(cookie: IStreamCookie[T]) -> TextStreamWriterBase[T]|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return TextStreamWriterBase[T](cookie) if stream is not None and stream.writable() else None
+class TextStreamWriter(TextStreamWriterBase[TextIOBase]):
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
+        super().__init__(cookie)
+    
+    @staticmethod
+    def TryCreateWriter(cookie: IStreamCookie[TextIOBase]) -> TextStreamWriterBase[TextIOBase]|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return TextStreamWriter(cookie) if stream is not None and stream.writable() else None
+
+class BinaryStreamReaderBase[T: BufferedIOBase](Reader[T], BinaryReaderAbstract[T]):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def write(self, b: Buffer) -> int:
+        raise OSError("Invalid operation.")
+    
+    @staticmethod
+    def TryCreateReader(cookie: IStreamCookie[T]) -> BinaryStreamReaderBase[T]|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return BinaryStreamReaderBase[T](cookie) if stream is not None and stream.readable() else None
+class BinaryStreamReader(BinaryStreamReaderBase[BufferedIOBase]):
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
+        super().__init__(cookie)
+    
+    @staticmethod
+    def TryCreateReader(cookie: IStreamCookie[BufferedIOBase]) -> BinaryStreamReader|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return BinaryStreamReader(cookie) if stream is not None and stream.readable() else None
+
+class BinaryStreamWriterBase[T: BufferedIOBase](Writer[T], BinaryWriterAbstract[T]):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def read(self, size: int|None = -1) -> bytes:
+        raise OSError("Invalid operation.")
+    
+    @staticmethod
+    def TryCreateWriter(cookie: IStreamCookie[T]) -> BinaryStreamWriterBase[T]|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return BinaryStreamWriterBase[T](cookie) if stream is not None and stream.writable() else None
+class BinaryStreamWriter(BinaryStreamWriterBase[BufferedIOBase]):
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
+        super().__init__(cookie)
+    
+    @staticmethod
+    def TryCreateWriter(cookie: IStreamCookie[BufferedIOBase]) -> BinaryStreamWriter|None:
+        stream: IOBase|None = cookie.GetStream()
+
+        return BinaryStreamWriter(cookie) if stream is not None and stream.writable() else None
 
 class TextStreamAbstract[T: TextIOBase](Stream[T], TextReaderAbstract[T], TextWriterAbstract[T]):
     def __init__(self, cookie: IStreamCookie[T]) -> None:
