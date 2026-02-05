@@ -1050,6 +1050,75 @@ class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TS
     def __init__(self) -> None:
         super().__init__()
 
+class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
+    def __init__(self, cookie: IStreamCookie[TIn], updater: Method[IFunction[TOut]]) -> None:
+        super().__init__(updater)
+
+        self.__cookie: IStreamCookie[TIn] = cookie
+    
+    @final
+    def _GetCookie(self) -> IStreamCookie[TIn]:
+        return self.__cookie
+class StreamUpdater[T: IOBase](StreamUpdaterBase[T, T]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None:
+        super().__init__(cookie, updater)
+
+class ReadOnlyUpdaterBase[TIn, TOut](ValueFunctionUpdater[IStreamReader[TOut]|None]):
+    def __init__(self, stream: IDataStreamAbstract[TIn, TOut], updater: Method[IFunction[IStreamReader[TOut]|None]]) -> None:
+        super().__init__(updater)
+
+        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
+    
+    @final
+    def _GetValue(self) -> IStreamReader[TOut]|None:
+        return StreamReaderBase[TIn, TOut].TryCreate(self.__stream)
+class ReadOnlyUpdater[T](ReadOnlyUpdaterBase[T, T]):
+    def __init__(self, stream: IDataStreamAbstract[T, T], updater: Method[IFunction[IStreamReader[T]|None]]) -> None:
+        super().__init__(stream, updater)
+
+class WriteOnlyUpdaterBase[TIn, TOut](ValueFunctionUpdater[IStreamWriter[TIn]|None]):
+    def __init__(self, stream: IDataStreamAbstract[TIn, TOut], updater: Method[IFunction[IStreamWriter[TIn]|None]]) -> None:
+        super().__init__(updater)
+
+        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
+    
+    @final
+    def _GetValue(self) -> IStreamWriter[TIn]|None:
+        return StreamWriterBase[TIn, TOut].TryCreate(self.__stream)
+class WriteOnlyUpdater[T](WriteOnlyUpdaterBase[T, T]):
+    def __init__(self, stream: IDataStreamAbstract[T, T], updater: Method[IFunction[IStreamWriter[T]|None]]) -> None:
+        super().__init__(stream, updater)
+
+class ReadOnlyTextStreamUpdater[T: TextIOBase](StreamUpdaterBase[T, TextStreamReader|None]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[TextStreamReader|None]]) -> None:
+        super().__init__(cookie, updater)
+    
+    @final
+    def _GetValue(self) -> TextStreamReader|None:
+        return TextStreamReader.TryCreateReader(self._GetCookie())
+class WriteOnlyTextStreamUpdater[T: TextIOBase](StreamUpdaterBase[T, TextStreamWriter|None]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[TextStreamWriter|None]]) -> None:
+        super().__init__(cookie, updater)
+    
+    @final
+    def _GetValue(self) -> TextStreamWriter|None:
+        return TextStreamWriter.TryCreateWriter(self._GetCookie())
+
+class ReadOnlyBinaryStreamUpdater[T: BufferedIOBase](StreamUpdaterBase[T, BinaryStreamReader|None]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[BinaryStreamReader|None]]) -> None:
+        super().__init__(cookie, updater)
+    
+    @final
+    def _GetValue(self) -> BinaryStreamReader|None:
+        return BinaryStreamReader.TryCreateReader(self._GetCookie())
+class WriteOnlyBinaryStreamUpdater[T: BufferedIOBase](StreamUpdaterBase[T, BinaryStreamWriter|None]):
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[BinaryStreamWriter|None]]) -> None:
+        super().__init__(cookie, updater)
+    
+    @final
+    def _GetValue(self) -> BinaryStreamWriter|None:
+        return BinaryStreamWriter.TryCreateWriter(self._GetCookie())
+
 class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableStreamBaseAbstract[TStream, TIn, TOut], IAsStream[TStream]):
     @final
     class __Cookie[_TStream: IOBase, _TIn, _TOut](Abstract, IStreamCookie[_TStream]):
@@ -1123,16 +1192,6 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
 class FileStream[TStream: IOBase, TData](FileStreamBase[TStream, TData, TData], ISeekableStreamBase[TStream, TData]):
     def __init__(self, path: str) -> None:
         super().__init__(path)
-
-class StreamUpdater[T: IOBase](ValueFunctionUpdater[T]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None:
-        super().__init__(updater)
-
-        self.__cookie: IStreamCookie[T] = cookie
-    
-    @final
-    def _GetCookie(self) -> IStreamCookie[T]:
-        return self.__cookie
 
 @final
 class TextStreamUpdater(StreamUpdater[TextIOBase]):
