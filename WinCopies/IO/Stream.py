@@ -498,7 +498,14 @@ class IStreamCookie[T: IOBase](IInterface):
     def GetStream(self) -> T|None:
         pass
 
-class Stream[T: IOBase](IOBase):
+class StreamAbstractBase[T: IOBase](IOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetInnerStream(self) -> T|None:
+        pass
+class StreamAbstract[T: IOBase](IOBase):
     def __init__(self) -> None:
         super().__init__()
     
@@ -572,15 +579,32 @@ class Stream[T: IOBase](IOBase):
         if stream is not None:
             stream.close()
 
-class TextStreamAbstract[T: TextIOBase](Stream[T], TextIOBase):
-    def __init__(self, cookie: IStreamCookie[T]) -> None:
+class ReaderAbstract[T: IOBase](StreamAbstractBase[T]):
+    def __init__(self) -> None:
         super().__init__()
-
-        self.__cookie: IStreamCookie[T] = cookie
     
     @final
-    def _GetStream(self) -> IStreamCookie[T]:
-        return self.__cookie
+    def readable(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.readable()
+class WriterAbstract[T: IOBase](StreamAbstractBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def writable(self) -> bool:
+        stream: T|None = self._GetInnerStream()
+
+        return stream is not None and stream.writable()
+
+class Stream[T: IOBase](StreamAbstract[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class TextReaderAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
+    def __init__(self) -> None:
+        super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
     def read(self, size: int|None = -1) -> str:
@@ -593,6 +617,9 @@ class TextStreamAbstract[T: TextIOBase](Stream[T], TextIOBase):
         stream: T|None = self._GetInnerStream()
 
         return '' if stream is None else stream.readline(size)
+class TextWriterAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
+    def __init__(self) -> None:
+        super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
     def write(self, s: str) -> int:
@@ -602,6 +629,38 @@ class TextStreamAbstract[T: TextIOBase](Stream[T], TextIOBase):
             raise IOError("Write operation failed.")
         
         return stream.write(s)
+
+class BinaryReaderAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def read(self, size: int|None = -1) -> bytes:
+        stream: T|None = self._GetInnerStream()
+        
+        return b'' if stream is None else stream.read(size)
+class BinaryWriterAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
+    def write(self, b: Buffer) -> int:
+        stream: T|None = self._GetInnerStream()
+
+        if stream is None:
+            raise IOError("Write operation failed.")
+        
+        return stream.write(b)
+
+class TextStreamAbstract[T: TextIOBase](Stream[T], TextReaderAbstract[T], TextWriterAbstract[T]):
+    def __init__(self, cookie: IStreamCookie[T]) -> None:
+        super().__init__()
+
+        self.__cookie: IStreamCookie[T] = cookie
+    
+    @final
+    def _GetStream(self) -> IStreamCookie[T]:
+        return self.__cookie
 class TextStream(TextStreamAbstract[TextIOBase]):
     def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
         super().__init__(cookie)
