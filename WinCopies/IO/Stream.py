@@ -538,17 +538,6 @@ class StreamAbstract[T: IOBase](IOBase):
         return stream is not None and stream.seekable()
     
     @final
-    def readable(self) -> bool:
-        stream: T|None = self._GetInnerStream()
-
-        return stream is not None and stream.readable()
-    @final
-    def writable(self) -> bool:
-        stream: T|None = self._GetInnerStream()
-
-        return stream is not None and stream.writable()
-    
-    @final
     def tell(self) -> int:
         stream: T|None = self._GetInnerStream()
 
@@ -598,7 +587,7 @@ class WriterAbstract[T: IOBase](StreamAbstractBase[T]):
 
         return stream is not None and stream.writable()
 
-class Stream[T: IOBase](StreamAbstract[T]):
+class Stream[T: IOBase](StreamAbstract[T], ReaderAbstract[T], WriterAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
 
