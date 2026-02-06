@@ -290,9 +290,23 @@ class IBinaryWriter(IStreamWriter[Buffer]):
 class ITextStream(IDataStream[str], ITextReader, ITextWriter):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def TryAsReader(self) -> TextIOBase|None:
+        pass
+    @abstractmethod
+    def TryAsWriter(self) -> TextIOBase|None:
+        pass
 class IBinaryStream(IDataStreamAbstract[Buffer, bytes], IBinaryReader, IBinaryWriter):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def TryAsReader(self) -> BufferedIOBase|None:
+        pass
+    @abstractmethod
+    def TryAsWriter(self) -> BufferedIOBase|None:
+        pass
 
 class ISeekableTextReader(ITextReader, ISeekable):
     def __init__(self) -> None:
