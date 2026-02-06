@@ -239,6 +239,21 @@ class IWriter[T](IStream):
     def Write(self, value: T) -> None:
         pass
 
+class IStreamReader[T](IReader[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReader(self) -> IOBase:
+        pass
+class IStreamWriter[T](IWriter[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsWriter(self) -> IOBase:
+        pass
+
 class IDataStreamAbstract[TIn, TOut](IReader[TOut], IWriter[TIn], IStreamObject):
     def __init__(self) -> None:
         super().__init__()
@@ -280,12 +295,42 @@ class ITextWriter(IWriter[str]):
         if not self.TryWriteLine(text):
             raise IOError()
 
+class ITextStreamReader(ITextReader, IStreamReader[str]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReader(self) -> TextIOBase:
+        pass
+class ITextStreamWriter(ITextWriter, IStreamWriter[str]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsWriter(self) -> TextIOBase:
+        pass
+
 class IBinaryReader(IReader[bytes]):
     def __init__(self) -> None:
         super().__init__()
 class IBinaryWriter(IWriter[Buffer]):
     def __init__(self) -> None:
         super().__init__()
+
+class IBinaryStreamReader(IBinaryReader, IStreamReader[bytes]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReader(self) -> BufferedIOBase:
+        pass
+class IBinaryStreamWriter(IBinaryWriter, IStreamWriter[Buffer]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsWriter(self) -> BufferedIOBase:
+        pass
 
 class ITextStream(IDataStream[str], ITextReader, ITextWriter):
     def __init__(self) -> None:
@@ -1078,6 +1123,59 @@ class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TS
     def __init__(self) -> None:
         super().__init__()
 
+class IStreamProviderCookieBase[TStream: IOBase, TIn, TOut](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetStream(self) -> IDataStreamAbstract[TIn, TOut]:
+        pass
+    @abstractmethod
+    def GetHandle(self) -> TStream:
+        pass
+class IStreamProviderCookie[TStream: IOBase, TData](IStreamProviderCookieBase[TStream, TData, TData]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetStream(self) -> IDataStream[TData]:
+        pass
+
+class ITextStreamProviderCookie(IStreamProviderCookie[TextIOBase, str]):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryStreamProviderCookie(IStreamProviderCookieBase[BufferedIOBase, Buffer, bytes]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class TextStreamProviderCookie(Abstract, ITextStreamProviderCookie):
+    def __init__(self, stream: IDataStream[str], handle: TextIOBase) -> None:
+        super().__init__()
+
+        self.__stream: IDataStream[str] = stream
+        self.__handle: TextIOBase = handle
+    
+    @final
+    def GetStream(self) -> IDataStream[str]:
+        return self.__stream
+    @final
+    def GetHandle(self) -> TextIOBase:
+        return self.__handle
+
+class BinaryStreamProviderCookie(Abstract, IBinaryStreamProviderCookie):
+    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes], handle: BufferedIOBase) -> None:
+        super().__init__()
+
+        self.__stream: IDataStreamAbstract[Buffer, bytes] = stream
+        self.__handle: BufferedIOBase = handle
+    
+    @final
+    def GetStream(self) -> IDataStreamAbstract[Buffer, bytes]:
+        return self.__stream
+    @final
+    def GetHandle(self) -> BufferedIOBase:
+        return self.__handle
+
 class AbstractStreamBase[TIn, TOut](Abstract, IStream):
     def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
         super().__init__()
@@ -1205,6 +1303,67 @@ class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
 class StreamUpdater[T: IOBase](StreamUpdaterBase[T, T]):
     def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None:
         super().__init__(cookie, updater)
+
+class IStreamProvider[TStream: IStream, THandle: IOBase](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetStream(self) -> TStream:
+        pass
+    @abstractmethod
+    def GetHandle(self) -> THandle:
+        pass
+
+class ITextReaderProvider(IStreamProvider[ITextStreamReader, TextIOBase]):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryReaderProvider(IStreamProvider[IBinaryStreamReader, BufferedIOBase]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ITextWriterProvider(IStreamProvider[ITextStreamWriter, TextIOBase]):
+    def __init__(self) -> None:
+        super().__init__()
+class IBinaryWriterProvider(IStreamProvider[IBinaryStreamWriter, BufferedIOBase]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class StreamProvider[TStream: IStream, THandle: IOBase](Abstract, IStreamProvider[TStream, THandle]):
+    def __init__(self, stream: TStream) -> None:
+        super().__init__()
+
+        self.__stream: TStream = stream
+    
+    @final
+    def GetStream(self) -> TStream:
+        return self.__stream
+
+class TextReaderProvider(StreamProvider[ITextStreamReader, TextIOBase], ITextReaderProvider):
+    def __init__(self, stream: ITextStreamReader) -> None:
+        super().__init__(stream)
+    @final
+    def GetHandle(self) -> TextIOBase:
+        return self.GetStream().AsReader()
+class TextWriterProvider(StreamProvider[ITextStreamWriter, TextIOBase], ITextWriterProvider):
+    def __init__(self, stream: ITextStreamWriter) -> None:
+        super().__init__(stream)
+    @final
+    def GetHandle(self) -> TextIOBase:
+        return self.GetStream().AsWriter()
+
+class BinaryReaderProvider(StreamProvider[IBinaryStreamReader, BufferedIOBase], IBinaryReaderProvider):
+    def __init__(self, stream: IBinaryStreamReader) -> None:
+        super().__init__(stream)
+    @final
+    def GetHandle(self) -> BufferedIOBase:
+        return self.GetStream().AsReader()
+class BinaryWriterProvider(StreamProvider[IBinaryStreamWriter, BufferedIOBase], IBinaryWriterProvider):
+    def __init__(self, stream: IBinaryStreamWriter) -> None:
+        super().__init__(stream)
+    @final
+    def GetHandle(self) -> BufferedIOBase:
+        return self.GetStream().AsWriter()
 
 class ReadOnlyUpdaterBase[TIn, TOut](ValueFunctionUpdater[IReader[TOut]|None]):
     def __init__(self, stream: IDataStreamAbstract[TIn, TOut], updater: Method[IFunction[IReader[TOut]|None]]) -> None:
