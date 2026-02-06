@@ -1078,6 +1078,121 @@ class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TS
     def __init__(self) -> None:
         super().__init__()
 
+class AbstractStreamBase[TIn, TOut](Abstract, IStream):
+    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
+    
+    @final
+    def _GetStream(self) -> IDataStreamAbstract[TIn, TOut]:
+        return self.__stream
+
+    @final
+    def IsOpen(self) -> bool:
+        return self._GetStream().IsOpen()
+
+    @final
+    def Open(self) -> bool:
+        return self._GetStream().Open()
+    @final
+    def TryOpen(self) -> bool|None:
+        return self._GetStream().TryOpen()
+    
+    @final
+    def Flush(self) -> bool:
+        return self._GetStream().Flush()
+
+    @final
+    def Close(self) -> bool:
+        return self._GetStream().Close()
+
+    def Dispose(self) -> None:
+        self._GetStream().Dispose()
+class AbstractStream[T](AbstractStreamBase[T, T]):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__(stream)
+
+class StreamReaderBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IStreamReader[TOut]):
+    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+        super().__init__(stream)
+
+    @final
+    def TryRead(self, size: int) -> TOut|None:
+        return self._GetStream().TryRead(size)
+    @final
+    def Read(self, size: int) -> TOut:
+        result: TOut|None = self.TryRead(size)
+
+        if result is None:
+            raise IOError()
+        
+        return result
+    
+    @staticmethod
+    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IStreamReader[TOut]|None:
+        return StreamReaderBase[TIn, TOut](stream) if StreamProperties.Readable in stream.GetProperties() else None
+class StreamReader[T](StreamReaderBase[T, T]):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateStream(stream: IDataStream[T]) -> IStreamReader[T]|None:
+        return StreamReader[T](stream) if StreamProperties.Readable in stream.GetProperties() else None
+
+class StreamWriterBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IStreamWriter[TIn]):
+    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+        super().__init__(stream)
+
+    @final
+    def TryWrite(self, value: TIn) -> int|None:
+        return self._GetStream().TryWrite(value)
+    @final
+    def Write(self, value: TIn) -> None:
+        if self.TryWrite(value) is None:
+            raise IOError()
+    
+    @staticmethod
+    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IStreamWriter[TIn]|None:
+        return StreamWriterBase[TIn, TOut](stream) if StreamProperties.Writable in stream.GetProperties() else None
+class StreamWriter[T](StreamWriterBase[T, T]):
+    def __init__(self, stream: IDataStream[T]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateStream(stream: IDataStream[T]) -> IStreamWriter[T]|None:
+        return StreamWriter[T](stream) if StreamProperties.Writable in stream.GetProperties() else None
+
+class TextReader(StreamReader[str], ITextReader):
+    def __init__(self, stream: IDataStream[str]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateTextReader(stream: ITextStream) -> ITextReader|None:
+        return TextReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
+class TextWriter(StreamWriter[str], ITextWriter):
+    def __init__(self, stream: IDataStream[str]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateTextWriter(stream: ITextStream) -> ITextWriter|None:
+        return TextWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
+
+class BinaryReader(StreamReaderBase[Buffer, bytes], IBinaryReader):
+    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateBinaryReader(stream: IBinaryStream) -> IBinaryReader|None:
+        return BinaryReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
+class BinaryWriter(StreamWriterBase[Buffer, bytes], IBinaryWriter):
+    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
+        super().__init__(stream)
+    
+    @staticmethod
+    def TryCreateBinaryWriter(stream: IBinaryStream) -> IBinaryWriter|None:
+        return BinaryWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
+
 class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
     def __init__(self, cookie: IStreamCookie[TIn], updater: Method[IFunction[TOut]]) -> None:
         super().__init__(updater)
@@ -1486,118 +1601,3 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
     @final
     def TryAsWriter(self) -> TextIOBase|None:
         return self.__writeOnly.GetValue()
-
-class AbstractStreamBase[TIn, TOut](Abstract, IStream):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
-        super().__init__()
-
-        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
-    
-    @final
-    def _GetStream(self) -> IDataStreamAbstract[TIn, TOut]:
-        return self.__stream
-
-    @final
-    def IsOpen(self) -> bool:
-        return self._GetStream().IsOpen()
-
-    @final
-    def Open(self) -> bool:
-        return self._GetStream().Open()
-    @final
-    def TryOpen(self) -> bool|None:
-        return self._GetStream().TryOpen()
-    
-    @final
-    def Flush(self) -> bool:
-        return self._GetStream().Flush()
-
-    @final
-    def Close(self) -> bool:
-        return self._GetStream().Close()
-
-    def Dispose(self) -> None:
-        self._GetStream().Dispose()
-class AbstractStream[T](AbstractStreamBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
-        super().__init__(stream)
-
-class StreamReaderBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IStreamReader[TOut]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
-        super().__init__(stream)
-
-    @final
-    def TryRead(self, size: int) -> TOut|None:
-        return self._GetStream().TryRead(size)
-    @final
-    def Read(self, size: int) -> TOut:
-        result: TOut|None = self.TryRead(size)
-
-        if result is None:
-            raise IOError()
-        
-        return result
-    
-    @staticmethod
-    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IStreamReader[TOut]|None:
-        return StreamReaderBase[TIn, TOut](stream) if StreamProperties.Readable in stream.GetProperties() else None
-class StreamReader[T](StreamReaderBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateStream(stream: IDataStream[T]) -> IStreamReader[T]|None:
-        return StreamReader[T](stream) if StreamProperties.Readable in stream.GetProperties() else None
-
-class StreamWriterBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IStreamWriter[TIn]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
-        super().__init__(stream)
-
-    @final
-    def TryWrite(self, value: TIn) -> int|None:
-        return self._GetStream().TryWrite(value)
-    @final
-    def Write(self, value: TIn) -> None:
-        if self.TryWrite(value) is None:
-            raise IOError()
-    
-    @staticmethod
-    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IStreamWriter[TIn]|None:
-        return StreamWriterBase[TIn, TOut](stream) if StreamProperties.Writable in stream.GetProperties() else None
-class StreamWriter[T](StreamWriterBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateStream(stream: IDataStream[T]) -> IStreamWriter[T]|None:
-        return StreamWriter[T](stream) if StreamProperties.Writable in stream.GetProperties() else None
-
-class TextReader(StreamReader[str], ITextReader):
-    def __init__(self, stream: IDataStream[str]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateTextReader(stream: ITextStream) -> ITextReader|None:
-        return TextReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
-class TextWriter(StreamWriter[str], ITextWriter):
-    def __init__(self, stream: IDataStream[str]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateTextWriter(stream: ITextStream) -> ITextWriter|None:
-        return TextWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
-
-class BinaryReader(StreamReaderBase[Buffer, bytes], IBinaryReader):
-    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateBinaryReader(stream: IBinaryStream) -> IBinaryReader|None:
-        return BinaryReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
-class BinaryWriter(StreamWriterBase[Buffer, bytes], IBinaryWriter):
-    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
-        super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateBinaryWriter(stream: IBinaryStream) -> IBinaryWriter|None:
-        return BinaryWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
