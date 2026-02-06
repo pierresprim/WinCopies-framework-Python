@@ -18,6 +18,7 @@ from typing import cast, final
 from WinCopies import IInterface, IDisposableObject, IDisposable, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
+from WinCopies.Typing import IGenericConstraint
 from WinCopies.Typing.Delegate import Function, Predicate, Method, IFunction, ValueFunctionUpdater
 
 class FileMode(Enum):
@@ -259,10 +260,10 @@ class IDataStreamAbstract[TIn, TOut](IReader[TOut], IWriter[TIn], IStreamObject)
         super().__init__()
     
     @abstractmethod
-    def TryAsStreamReader(self) -> IReader[TOut]|None:
+    def TryAsStreamReader(self) -> IStreamReader[TOut]|None:
         pass
     @abstractmethod
-    def TryAsStreamWriter(self) -> IWriter[TIn]|None:
+    def TryAsStreamWriter(self) -> IStreamWriter[TIn]|None:
         pass
     
     @abstractmethod
@@ -337,6 +338,13 @@ class ITextStream(IDataStream[str], ITextReader, ITextWriter):
         super().__init__()
     
     @abstractmethod
+    def TryAsStreamReader(self) -> ITextStreamReader|None:
+        pass
+    @abstractmethod
+    def TryAsStreamWriter(self) -> ITextStreamWriter|None:
+        pass
+    
+    @abstractmethod
     def TryAsReader(self) -> TextIOBase|None:
         pass
     @abstractmethod
@@ -345,6 +353,13 @@ class ITextStream(IDataStream[str], ITextReader, ITextWriter):
 class IBinaryStream(IDataStreamAbstract[Buffer, bytes], IBinaryReader, IBinaryWriter):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def TryAsStreamReader(self) -> IBinaryStreamReader|None:
+        pass
+    @abstractmethod
+    def TryAsStreamWriter(self) -> IBinaryStreamWriter|None:
+        pass
     
     @abstractmethod
     def TryAsReader(self) -> BufferedIOBase|None:
@@ -1176,15 +1191,22 @@ class BinaryStreamProviderCookie(Abstract, IBinaryStreamProviderCookie):
     def GetHandle(self) -> BufferedIOBase:
         return self.__handle
 
-class AbstractStreamBase[TIn, TOut](Abstract, IStream):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+class AbstractStreamBase[TStream: IOBase, TIn, TOut](Abstract, IStream):
+    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
         super().__init__()
 
-        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
+        self.__stream: IStreamProviderCookieBase[TStream, TIn, TOut] = stream
+    
+    @final
+    def _GetCookie(self) -> IStreamProviderCookieBase[TStream, TIn, TOut]:
+        return self.__stream
     
     @final
     def _GetStream(self) -> IDataStreamAbstract[TIn, TOut]:
-        return self.__stream
+        return self._GetCookie().GetStream()
+    @final
+    def _GetHandle(self) -> TStream:
+        return self._GetCookie().GetHandle()
 
     @final
     def IsOpen(self) -> bool:
@@ -1207,12 +1229,12 @@ class AbstractStreamBase[TIn, TOut](Abstract, IStream):
 
     def Dispose(self) -> None:
         self._GetStream().Dispose()
-class AbstractStream[T](AbstractStreamBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
+class AbstractStream[TStream: IOBase, TData](AbstractStreamBase[TStream, TData, TData]):
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
         super().__init__(stream)
 
-class StreamReaderBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IReader[TOut]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+class StreamReaderBase[TStream: IOBase, TIn, TOut](AbstractStreamBase[TStream, TIn, TOut], IStreamReader[TOut]):
+    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
         super().__init__(stream)
     
     @final
@@ -1226,20 +1248,12 @@ class StreamReaderBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IReader[TOut]):
             raise IOError()
         
         return result
-    
-    @staticmethod
-    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IReader[TOut]|None:
-        return StreamReaderBase[TIn, TOut](stream) if StreamProperties.Readable in stream.GetProperties() else None
-class StreamReader[T](StreamReaderBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
+class StreamReader[TStream: IOBase, TData](StreamReaderBase[TStream, TData, TData]):
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
         super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateStream(stream: IDataStream[T]) -> IReader[T]|None:
-        return StreamReader[T](stream) if StreamProperties.Readable in stream.GetProperties() else None
 
-class StreamWriterBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IWriter[TIn]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut]) -> None:
+class StreamWriterBase[TStream: IOBase, TIn, TOut](AbstractStreamBase[TStream, TIn, TOut], IStreamWriter[TIn]):
+    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
         super().__init__(stream)
 
     @final
@@ -1249,47 +1263,39 @@ class StreamWriterBase[TIn, TOut](AbstractStreamBase[TIn, TOut], IWriter[TIn]):
     def Write(self, value: TIn) -> None:
         if self.TryWrite(value) is None:
             raise IOError()
-    
-    @staticmethod
-    def TryCreate(stream: IDataStreamAbstract[TIn, TOut]) -> IWriter[TIn]|None:
-        return StreamWriterBase[TIn, TOut](stream) if StreamProperties.Writable in stream.GetProperties() else None
-class StreamWriter[T](StreamWriterBase[T, T]):
-    def __init__(self, stream: IDataStream[T]) -> None:
+class StreamWriter[TStream: IOBase, TData](StreamWriterBase[TStream, TData, TData]):
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
         super().__init__(stream)
-    
-    @staticmethod
-    def TryCreateStream(stream: IDataStream[T]) -> IWriter[T]|None:
-        return StreamWriter[T](stream) if StreamProperties.Writable in stream.GetProperties() else None
 
-class TextReader(StreamReader[str], ITextReader):
-    def __init__(self, stream: IDataStream[str]) -> None:
+class TextReader(StreamReader[TextIOBase, str], ITextStreamReader):
+    def __init__(self, stream: ITextStreamProviderCookie) -> None:
         super().__init__(stream)
     
-    @staticmethod
-    def TryCreateTextReader(stream: ITextStream) -> ITextReader|None:
-        return TextReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
-class TextWriter(StreamWriter[str], ITextWriter):
-    def __init__(self, stream: IDataStream[str]) -> None:
+    @final
+    def AsReader(self) -> TextIOBase:
+        return self._GetHandle()
+class TextWriter(StreamWriter[TextIOBase, str], ITextStreamWriter):
+    def __init__(self, stream: ITextStreamProviderCookie) -> None:
         super().__init__(stream)
     
-    @staticmethod
-    def TryCreateTextWriter(stream: ITextStream) -> ITextWriter|None:
-        return TextWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
+    @final
+    def AsWriter(self) -> TextIOBase:
+        return self._GetHandle()
 
-class BinaryReader(StreamReaderBase[Buffer, bytes], IBinaryReader):
-    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
+class BinaryReader(StreamReaderBase[BufferedIOBase, Buffer, bytes], IBinaryStreamReader):
+    def __init__(self, stream: IBinaryStreamProviderCookie) -> None:
         super().__init__(stream)
     
-    @staticmethod
-    def TryCreateBinaryReader(stream: IBinaryStream) -> IBinaryReader|None:
-        return BinaryReader(stream) if StreamProperties.Readable in stream.GetProperties() else None
-class BinaryWriter(StreamWriterBase[Buffer, bytes], IBinaryWriter):
-    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes]) -> None:
+    @final
+    def AsReader(self) -> BufferedIOBase:
+        return self._GetHandle()
+class BinaryWriter(StreamWriterBase[BufferedIOBase, Buffer, bytes], IBinaryStreamWriter):
+    def __init__(self, stream: IBinaryStreamProviderCookie) -> None:
         super().__init__(stream)
     
-    @staticmethod
-    def TryCreateBinaryWriter(stream: IBinaryStream) -> IBinaryWriter|None:
-        return BinaryWriter(stream) if StreamProperties.Writable in stream.GetProperties() else None
+    @final
+    def AsWriter(self) -> BufferedIOBase:
+        return self._GetHandle()
 
 class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
     def __init__(self, cookie: IStreamCookie[TIn], updater: Method[IFunction[TOut]]) -> None:
@@ -1365,61 +1371,79 @@ class BinaryWriterProvider(StreamProvider[IBinaryStreamWriter, BufferedIOBase], 
     def GetHandle(self) -> BufferedIOBase:
         return self.GetStream().AsWriter()
 
-class ReadOnlyUpdaterBase[TIn, TOut](ValueFunctionUpdater[IReader[TOut]|None]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut], updater: Method[IFunction[IReader[TOut]|None]]) -> None:
+class ReadOnlyUpdater[TStream: IStream, THandle: IOBase, TData](ValueFunctionUpdater[IStreamProvider[TStream, THandle]|None], IGenericConstraint[TStream, IStreamReader[TData]]):
+    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None:
         super().__init__(updater)
 
-        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
-    
-    @final
-    def _GetValue(self) -> IReader[TOut]|None:
-        return StreamReaderBase[TIn, TOut].TryCreate(self.__stream)
-class ReadOnlyUpdater[T](ReadOnlyUpdaterBase[T, T]):
-    def __init__(self, stream: IDataStreamAbstract[T, T], updater: Method[IFunction[IReader[T]|None]]) -> None:
-        super().__init__(stream, updater)
-
-class WriteOnlyUpdaterBase[TIn, TOut](ValueFunctionUpdater[IWriter[TIn]|None]):
-    def __init__(self, stream: IDataStreamAbstract[TIn, TOut], updater: Method[IFunction[IWriter[TIn]|None]]) -> None:
+class ReadOnlyTextUpdater(ReadOnlyUpdater[ITextStreamReader, TextIOBase, str]):
+    def __init__(self, stream: IDataStream[str], cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]]) -> None:
         super().__init__(updater)
 
-        self.__stream: IDataStreamAbstract[TIn, TOut] = stream
+        self.__stream: IDataStream[str] = stream
+        self.__cookie: IStreamCookie[TextIOBase] = cookie
     
     @final
-    def _GetValue(self) -> IWriter[TIn]|None:
-        return StreamWriterBase[TIn, TOut].TryCreate(self.__stream)
-class WriteOnlyUpdater[T](WriteOnlyUpdaterBase[T, T]):
-    def __init__(self, stream: IDataStreamAbstract[T, T], updater: Method[IFunction[IWriter[T]|None]]) -> None:
-        super().__init__(stream, updater)
+    def _AsContainer(self, container: ITextStreamReader) -> IStreamReader[str]:
+        return container
+    
+    @final
+    def _GetValue(self) -> IStreamProvider[ITextStreamReader, TextIOBase]|None:
+        reader: TextStreamReader|None = TextStreamReader.TryCreateReader(self.__cookie)
 
-class ReadOnlyTextStreamUpdater[T: TextIOBase](StreamUpdaterBase[T, TextStreamReader|None]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[TextStreamReader|None]]) -> None:
-        super().__init__(cookie, updater)
-    
-    @final
-    def _GetValue(self) -> TextStreamReader|None:
-        return TextStreamReader.TryCreateReader(self._GetCookie())
-class WriteOnlyTextStreamUpdater[T: TextIOBase](StreamUpdaterBase[T, TextStreamWriter|None]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[TextStreamWriter|None]]) -> None:
-        super().__init__(cookie, updater)
-    
-    @final
-    def _GetValue(self) -> TextStreamWriter|None:
-        return TextStreamWriter.TryCreateWriter(self._GetCookie())
+        return None if reader is None else TextReaderProvider(TextReader(TextStreamProviderCookie(self.__stream, reader)))
+class ReadOnlyBinaryUpdater(ReadOnlyUpdater[IBinaryStreamReader, BufferedIOBase, bytes]):
+    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes], cookie: IStreamCookie[BufferedIOBase], updater: Method[IFunction[IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None]]) -> None:
+        super().__init__(updater)
 
-class ReadOnlyBinaryStreamUpdater[T: BufferedIOBase](StreamUpdaterBase[T, BinaryStreamReader|None]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[BinaryStreamReader|None]]) -> None:
-        super().__init__(cookie, updater)
+        self.__stream: IDataStreamAbstract[Buffer, bytes] = stream
+        self.__cookie: IStreamCookie[BufferedIOBase] = cookie
     
     @final
-    def _GetValue(self) -> BinaryStreamReader|None:
-        return BinaryStreamReader.TryCreateReader(self._GetCookie())
-class WriteOnlyBinaryStreamUpdater[T: BufferedIOBase](StreamUpdaterBase[T, BinaryStreamWriter|None]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[BinaryStreamWriter|None]]) -> None:
-        super().__init__(cookie, updater)
+    def _AsContainer(self, container: IBinaryStreamReader) -> IStreamReader[bytes]:
+        return container
     
     @final
-    def _GetValue(self) -> BinaryStreamWriter|None:
-        return BinaryStreamWriter.TryCreateWriter(self._GetCookie())
+    def _GetValue(self) -> IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None:
+        reader: BinaryStreamReader|None = BinaryStreamReader.TryCreateReader(self.__cookie)
+
+        return None if reader is None else BinaryReaderProvider(BinaryReader(BinaryStreamProviderCookie(self.__stream, reader)))
+
+class WriteOnlyUpdater[TStream: IStream, THandle: IOBase, TData](ValueFunctionUpdater[IStreamProvider[TStream, THandle]|None], IGenericConstraint[TStream, IStreamWriter[TData]]):
+    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None:
+        super().__init__(updater)
+
+class WriteOnlyTextUpdater(WriteOnlyUpdater[ITextStreamWriter, TextIOBase, str]):
+    def __init__(self, stream: IDataStream[str], cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]]) -> None:
+        super().__init__(updater)
+
+        self.__stream: IDataStream[str] = stream
+        self.__cookie: IStreamCookie[TextIOBase] = cookie
+    
+    @final
+    def _AsContainer(self, container: ITextStreamWriter) -> IStreamWriter[str]:
+        return container
+    
+    @final
+    def _GetValue(self) -> IStreamProvider[ITextStreamWriter, TextIOBase]|None:
+        writer: TextStreamWriter|None = TextStreamWriter.TryCreateWriter(self.__cookie)
+
+        return None if writer is None else TextWriterProvider(TextWriter(TextStreamProviderCookie(self.__stream, writer)))
+class WriteOnlyBinaryUpdater(WriteOnlyUpdater[IBinaryStreamWriter, BufferedIOBase, Buffer]):
+    def __init__(self, stream: IDataStreamAbstract[Buffer, bytes], cookie: IStreamCookie[BufferedIOBase], updater: Method[IFunction[IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None]]) -> None:
+        super().__init__(updater)
+
+        self.__stream: IDataStreamAbstract[Buffer, bytes] = stream
+        self.__cookie: IStreamCookie[BufferedIOBase] = cookie
+    
+    @final
+    def _AsContainer(self, container: IBinaryStreamWriter) -> IStreamWriter[Buffer]:
+        return container
+    
+    @final
+    def _GetValue(self) -> IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None:
+        writer: BinaryStreamWriter|None = BinaryStreamWriter.TryCreateWriter(self.__cookie)
+
+        return None if writer is None else BinaryWriterProvider(BinaryWriter(BinaryStreamProviderCookie(self.__stream, writer)))
 
 class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableStreamBaseAbstract[TStream, TIn, TOut], IAsStream[TStream]):
     @final
@@ -1433,18 +1457,10 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
             return self.__stream._GetStream()
     
     def __init__(self, path: str) -> None:
-        def updateReadOnly(func: IFunction[IReader[TOut]|None]) -> None:
-            self.__readOnly = func
-        def updateWriteOnly(func: IFunction[IWriter[TIn]|None]) -> None:
-            self.__writeOnly = func
-        
         super().__init__(path)
 
         self.__stream: TStream|None = None
         self.__cookie: IStreamCookie[TStream] = FileStreamBase[TStream, TIn, TOut].__Cookie(self)
-
-        self.__readOnly: IFunction[IReader[TOut]|None] = ReadOnlyUpdaterBase[TIn, TOut](self, updateReadOnly) # type: ignore[no-redef]
-        self.__writeOnly: IFunction[IWriter[TIn]|None] = WriteOnlyUpdaterBase[TIn, TOut](self, updateWriteOnly) # type: ignore[no-redef]
     
     @abstractmethod
     def _Open(self, path: str, fileMode: str) -> TStream:
@@ -1500,13 +1516,6 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
 
         return True
     
-    @final
-    def TryAsStreamReader(self) -> IReader[TOut]|None:
-        return self.__readOnly.GetValue()
-    @final
-    def TryAsStreamWriter(self) -> IWriter[TIn]|None:
-        return self.__writeOnly.GetValue()
-    
     @abstractmethod
     def TryAsReader(self) -> TStream|None:
         pass
@@ -1537,17 +1546,17 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
         def update(func: IFunction[TextIOBase]) -> None:
             self.__stream = func
         
-        def updateReadOnly(func: IFunction[TextStreamReader|None]) -> None:
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None:
             self.__readOnly = func
-        def updateWriteOnly(func: IFunction[TextStreamWriter|None]) -> None:
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None:
             self.__writeOnly = func
         
         super().__init__(path)
         
         self.__stream: IFunction[TextIOBase] = TextStreamUpdater(self._GetCookie(), update)
         
-        self.__readOnly: IFunction[TextStreamReader|None] = ReadOnlyTextStreamUpdater[TextIOBase](self._GetCookie(), updateReadOnly)
-        self.__writeOnly: IFunction[TextStreamWriter|None] = WriteOnlyTextStreamUpdater[TextIOBase](self._GetCookie(), updateWriteOnly)
+        self.__readOnly: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None] = ReadOnlyTextUpdater(self, self._GetCookie(), updateReadOnlyStream) # type: ignore[no-redef]
+        self.__writeOnly: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None] = WriteOnlyTextUpdater(self, self._GetCookie(), updateWriteOnlyStream) # type: ignore[no-redef]
     
     @final
     def _Open(self, path: str, fileMode: str) -> TextIOBase:
@@ -1571,29 +1580,43 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
         return self.__stream.GetValue()
     
     @final
+    def TryAsStreamReader(self) -> ITextStreamReader|None:
+        cookie: IStreamProvider[ITextStreamReader, TextIOBase]|None = self.__readOnly.GetValue()
+
+        return None if cookie is None else cookie.GetStream()
+    @final
+    def TryAsStreamWriter(self) -> ITextStreamWriter|None:
+        cookie: IStreamProvider[ITextStreamWriter, TextIOBase]|None = self.__writeOnly.GetValue()
+
+        return None if cookie is None else cookie.GetStream()
+    
+    @final
     def TryAsReader(self) -> TextIOBase|None:
-        return self.__readOnly.GetValue()
+        cookie: IStreamProvider[ITextStreamReader, TextIOBase]|None = self.__readOnly.GetValue()
         
+        return None if cookie is None else cookie.GetHandle()
     @final
     def TryAsWriter(self) -> TextIOBase|None:
-        return self.__writeOnly.GetValue()
+        cookie: IStreamProvider[ITextStreamWriter, TextIOBase]|None = self.__writeOnly.GetValue()
+        
+        return None if cookie is None else cookie.GetHandle()
 
 class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
         def update(func: IFunction[BufferedIOBase]) -> None:
             self.__stream = func
         
-        def updateReadOnly(func: IFunction[BinaryStreamReader|None]) -> None:
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None]) -> None:
             self.__readOnly = func
-        def updateWriteOnly(func: IFunction[BinaryStreamWriter|None]) -> None:
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None]) -> None:
             self.__writeOnly = func
         
         super().__init__(path)
         
         self.__stream: IFunction[BufferedIOBase] = BinaryStreamUpdater(self._GetCookie(), update)
         
-        self.__readOnly: IFunction[BinaryStreamReader|None] = ReadOnlyBinaryStreamUpdater[BufferedIOBase](self._GetCookie(), updateReadOnly)
-        self.__writeOnly: IFunction[BinaryStreamWriter|None] = WriteOnlyBinaryStreamUpdater[BufferedIOBase](self._GetCookie(), updateWriteOnly)
+        self.__readOnly: IFunction[IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None] = ReadOnlyBinaryUpdater(self, self._GetCookie(), updateReadOnlyStream) # type: ignore[no-redef]
+        self.__writeOnly: IFunction[IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None] = WriteOnlyBinaryUpdater(self, self._GetCookie(), updateWriteOnlyStream) # type: ignore[no-redef]
     
     @final
     def _Open(self, path: str, fileMode: str) -> BufferedIOBase:
@@ -1617,11 +1640,26 @@ class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
         return self.__stream.GetValue()
     
     @final
+    def TryAsStreamReader(self) -> IBinaryStreamReader|None:
+        cookie: IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None = self.__readOnly.GetValue()
+
+        return None if cookie is None else cookie.GetStream()
+    @final
+    def TryAsStreamWriter(self) -> IBinaryStreamWriter|None:
+        cookie: IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None = self.__writeOnly.GetValue()
+
+        return None if cookie is None else cookie.GetStream()
+    
+    @final
     def TryAsReader(self) -> BufferedIOBase|None:
-        return self.__readOnly.GetValue()
+        cookie: IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None = self.__readOnly.GetValue()
+
+        return None if cookie is None else cookie.GetHandle()
     @final
     def TryAsWriter(self) -> BufferedIOBase|None:
-        return self.__writeOnly.GetValue()
+        cookie: IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None = self.__writeOnly.GetValue()
+
+        return None if cookie is None else cookie.GetHandle()
 
 class IMemoryTextStream(ITextStream, IStringable):
     def __init__(self) -> None:
@@ -1645,14 +1683,9 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         def update(func: IFunction[TextIOBase]) -> None:
             self.__streamUpdater = func
         
-        def updateReadOnlyStream(func: IFunction[IReader[str]|None]) -> None:
-            self.__readOnlyStream = func
-        def updateWriteOnlyStream(func: IFunction[IWriter[str]|None]) -> None:
-            self.__writeOnlyStream = func
-        
-        def updateReadOnly(func: IFunction[TextStreamReader|None]) -> None:
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None:
             self.__readOnly = func
-        def updateWriteOnly(func: IFunction[TextStreamWriter|None]) -> None:
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None:
             self.__writeOnly = func
         
         super().__init__()
@@ -1662,11 +1695,8 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
 
         self.__streamUpdater: IFunction[TextIOBase] = TextStreamUpdater(self._GetCookie(), update) # type: ignore[no-redef]
 
-        self.__readOnlyStream: IFunction[IReader[str]|None] = ReadOnlyUpdater[str](self, updateReadOnlyStream) # type: ignore[no-redef]
-        self.__writeOnlyStream: IFunction[IWriter[str]|None] = WriteOnlyUpdater[str](self, updateWriteOnlyStream) # type: ignore[no-redef]
-        
-        self.__readOnly: IFunction[TextStreamReader|None] = ReadOnlyTextStreamUpdater[TextIOBase](self._GetCookie(), updateReadOnly) # type: ignore[no-redef]
-        self.__writeOnly: IFunction[TextStreamWriter|None] = WriteOnlyTextStreamUpdater[TextIOBase](self._GetCookie(), updateWriteOnly) # type: ignore[no-redef]
+        self.__readOnly: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None] = ReadOnlyTextUpdater(self, self._GetCookie(), updateReadOnlyStream) # type: ignore[no-redef]
+        self.__writeOnly: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None] = WriteOnlyTextUpdater(self, self._GetCookie(), updateWriteOnlyStream) # type: ignore[no-redef]
     
     @final
     def _GetStream(self) -> StringIO|None:
@@ -1748,15 +1778,23 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return self.__streamUpdater.GetValue()
     
     @final
-    def TryAsStreamReader(self) -> IReader[str]|None:
-        return self.__readOnlyStream.GetValue()
+    def TryAsStreamReader(self) -> ITextStreamReader|None:
+        cookie: IStreamProvider[ITextStreamReader, TextIOBase]|None = self.__readOnly.GetValue()
+        
+        return None if cookie is None else cookie.GetStream()
     @final
-    def TryAsStreamWriter(self) -> IWriter[str]|None:
-        return self.__writeOnlyStream.GetValue()
+    def TryAsStreamWriter(self) -> ITextStreamWriter|None:
+        cookie: IStreamProvider[ITextStreamWriter, TextIOBase]|None = self.__writeOnly.GetValue()
+        
+        return None if cookie is None else cookie.GetStream()
     
     @final
     def TryAsReader(self) -> TextIOBase|None:
-        return self.__readOnly.GetValue()
+        cookie: IStreamProvider[ITextStreamReader, TextIOBase]|None = self.__readOnly.GetValue()
+        
+        return None if cookie is None else cookie.GetHandle()
     @final
     def TryAsWriter(self) -> TextIOBase|None:
-        return self.__writeOnly.GetValue()
+        cookie: IStreamProvider[ITextStreamWriter, TextIOBase]|None = self.__writeOnly.GetValue()
+        
+        return None if cookie is None else cookie.GetHandle()
