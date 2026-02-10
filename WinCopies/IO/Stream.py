@@ -15,7 +15,7 @@ from os import remove, path
 from types import TracebackType
 from typing import cast, final
 
-from WinCopies import IInterface, IDisposableObject, IDisposable, IStringable, Abstract
+from WinCopies import IInterface, IDisposableBase, IDisposable, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import IGenericConstraint
@@ -466,7 +466,7 @@ class IBinaryFile(IFileStreamAbstract[Buffer, bytes], IBinaryStream):
     def __init__(self) -> None:
         super().__init__()
 
-class StreamBase[T: ISeekable](IOBase, IDisposableObject):
+class StreamBase[T: ISeekable](IOBase, IDisposableBase):
     def __init__(self) -> None:
         super().__init__()
     

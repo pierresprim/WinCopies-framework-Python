@@ -853,7 +853,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
     def __init__(self, enumerator: IEnumerator[TItem], delegate: IRecursiveEnumerationDelegate[TItem]|None, handler: IRecursiveEnumerationHandlerBase[TItem, TCookie]|None) -> None:
         super().__init__(enumerator)
         
-        self.__cookie: IRecursiveEnumerationCookie[TItem, TCookie, TStackItems] = RecursiveEnumeratorBase[TItem, TCookie, TStackItems].__Cookie(self, _Delegate[TItem](self._GetEnumerator, self._GetEnumerationItems, super()._MoveNextOverride))
+        self.__cookie: IRecursiveEnumerationCookie[TItem, TCookie, TStackItems] = RecursiveEnumeratorBase[TItem, TCookie, TStackItems].__Cookie(self, _Delegate[TItem](self._GetContainer, self._GetEnumerationItems, super()._MoveNextOverride))
         self.__moveNext: IRecursiveEnumerationDelegate[TItem] = _NullRecursiveEnumerationDelegate[TItem]() if delegate is None else delegate
         self.__handler: IRecursiveEnumerationHandlerBase[TItem, TCookie] = _NullRecursiveEnumerationHandler[TItem, TCookie]() if handler is None else handler
     

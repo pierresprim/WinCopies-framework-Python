@@ -18,7 +18,7 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
     
     @final
     def __GetCurrent(self) -> Function[TOut|None]:
-        current: TIn|None = self._GetEnumerator().GetCurrent()
+        current: TIn|None = self._GetContainer().GetCurrent()
 
         return FuncNone if current is None else ValueFunction(self._Convert(current))
     

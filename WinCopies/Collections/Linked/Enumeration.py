@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, Iterator
+from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import ILinkedNode
 
@@ -83,8 +83,8 @@ def GetValueIteratorFromNode[T](node: ILinkedNode[T]) -> Generator[T]:
     return GetValueIterator(NodeEnumerator[T](node))
 
 def GetValueEnumerator[T](nodeEnumerator: NodeEnumerator[T]) -> IEnumerator[T]:
-    return Iterator[T].Create(GetValueIterator(nodeEnumerator))
+    return AsEnumerator(GetValueIterator(nodeEnumerator))
 def GetValueEnumeratorFromNode[T](node: ILinkedNode[T]) -> IEnumerator[T]:
-    return Iterator[T].Create(GetValueIteratorFromNode(node))
+    return AsEnumerator(GetValueIteratorFromNode(node))
 def TryGetValueEnumeratorFromNode[T](node: ILinkedNode[T]|None) -> IEnumerator[T]|None:
     return None if node is None else GetValueEnumeratorFromNode(node)
