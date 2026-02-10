@@ -438,11 +438,8 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
         self.__enumerator: TEnumerator = enumerator
     
     @final
-    def _GetEnumerator(self) -> TEnumerator:
-        return self.__enumerator
-    @final
     def _GetContainer(self) -> TEnumerator:
-        return self._GetEnumerator()
+        return self.__enumerator
     
     @final
     def IsResetSupported(self) -> bool:
