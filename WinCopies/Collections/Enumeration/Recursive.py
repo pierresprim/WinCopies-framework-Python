@@ -70,7 +70,7 @@ class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
     def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
         pass
     @abstractmethod
-    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
         pass
     
     @abstractmethod
@@ -112,7 +112,7 @@ class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
     
     def OnEnteringMainEnumerationLevel(self, item: T) -> bool|None:
         return self.__handler.OnEnteringMainEnumerationLevel(item)
-    def OnExitingMainEnumerationLevel(self, cookie: T) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: T) -> bool:
         return self.__handler.OnExitingMainEnumerationLevel(None)
     
     def OnEnteringSubenumerationLevel(self, item: T) -> bool|None:
@@ -132,7 +132,7 @@ class RecursiveEnumerationHandlerBase[TItem, TCookie](Abstract, IRecursiveEnumer
     
     def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
         return True
-    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
         return True
     
     def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
@@ -226,7 +226,7 @@ class RecursiveEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerationHandl
         self._GetHandler().OnExitingEnumerationLevel(cookie)
     
     @final
-    def OnExitingMainEnumerationLevel(self, cookie: None) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: None) -> bool:
         return self._GetHandler().OnExitingMainEnumerationLevel(cookie)
     
     @final
@@ -245,7 +245,7 @@ class RecursiveStackedEnumerationHandlerAbstractor[TIn, TOut](RecursiveEnumerati
         self._GetHandler().OnExitingEnumerationLevel(self._Convert(cookie))
     
     @final
-    def OnExitingMainEnumerationLevel(self, cookie: TIn) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: TIn) -> bool:
         return self._GetHandler().OnExitingMainEnumerationLevel(self._Convert(cookie))
     
     @final
@@ -320,7 +320,7 @@ class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisp
     def OnEnteringMainLevel(self, item: TEnumerationItems) -> bool|None:
         pass
     @abstractmethod
-    def OnExitingMainLevel(self, cookie: TCookie) -> bool|None:
+    def OnExitingMainLevel(self, cookie: TCookie) -> bool:
         pass
 
 class IRecursiveEnumerationDelegate[T](IDisposable):
@@ -759,7 +759,7 @@ class _NullRecursiveEnumerationHandler[TItem, TCookie](Abstract, IRecursiveEnume
     
     def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
         return True
-    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool|None:
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
         return True
     
     def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
@@ -841,7 +841,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
                 return True
             
             return False
-        def OnExitingMainLevel(self, cookie: _TCookie) -> bool|None:
+        def OnExitingMainLevel(self, cookie: _TCookie) -> bool:
             if self.__enumerator._OnExitingMainLevel(cookie):
                 self.__enumerator._OnExitingLevel(cookie)
 
@@ -895,7 +895,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
     
     def _OnEnteringMainLevel(self, item: TItem) -> bool|None:
         return self.__handler.OnEnteringMainEnumerationLevel(item)
-    def _OnExitingMainLevel(self, cookie: TCookie) -> bool|None:
+    def _OnExitingMainLevel(self, cookie: TCookie) -> bool:
         return self.__handler.OnExitingMainEnumerationLevel(cookie)
     
     @final
