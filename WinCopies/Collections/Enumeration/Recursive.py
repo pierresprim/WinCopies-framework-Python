@@ -99,6 +99,9 @@ class IRecursiveStackedEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T,
     def __init__(self) -> None:
         super().__init__()
 
+def TryAsStackHandler[T](delegate: IRecursiveEnumerationHandler[T]|None) -> IRecursiveStackedEnumerationHandler[T]|None:
+    return None if delegate is None else delegate.AsStackHandler()
+
 @final
 class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
     def __init__(self, handler: IRecursiveEnumerationHandler[T]) -> None:
