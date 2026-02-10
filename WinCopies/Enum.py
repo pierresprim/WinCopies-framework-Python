@@ -3,7 +3,9 @@ from enum import Enum, Flag
 
 from WinCopies.Assertion import EnsureSubclass, EnsureEnum
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Iteration import SelectWhereNotNone
 from WinCopies.Delegates import Self
+from WinCopies.String import CommaJoin
 from WinCopies.Typing.Delegate import Predicate, Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
@@ -331,3 +333,19 @@ def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
     """
     if not HasFlag(e, v):
         raise ValueError(f"{v} is not in {e}.")
+
+def EnumerateNames(t: Type[Enum]) -> Generator[str]:
+    for item in t:
+        yield item.name
+def EnumerateValues(t: Type[Enum]) -> Generator[int]:
+    for item in t:
+        yield item.value
+
+def EnumerateFieldNames(value: Flag) -> Generator[str]:
+    return SelectWhereNotNone(value, lambda value: value.name)
+def EnumerateFieldValues(value: Flag) -> Generator[int]:
+    for item in value:
+        yield item.value
+
+def Print(value: Flag) -> str:
+    return CommaJoin(EnumerateFieldNames(value))
