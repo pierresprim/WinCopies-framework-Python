@@ -820,34 +820,28 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
             return self.__enumerators.TryPeek()
     
         def OnEnteringSublevel(self, item: _TItem) -> bool|None:
-            if self.__enumerator._OnEnteringSublevel(item):
+            result: bool|None = self.__enumerator._OnEnteringSublevel(item)
+
+            if result is True:
                 self.__enumerator._OnEnteringLevel(item)
 
-                return True
-            
-            return False
+            return result
         def OnExitingSublevel(self, cookie: _TCookie) -> bool|None:
-            if self.__enumerator._OnExitingSublevel(cookie):
-                self.__enumerator._OnExitingLevel(cookie)
+            self.__enumerator._OnExitingLevel(cookie)
 
-                return True
-            
-            return False
+            return self.__enumerator._OnExitingSublevel(cookie)
         
         def OnEnteringMainLevel(self, item: _TItem) -> bool|None:
-            if self.__enumerator._OnEnteringMainLevel(item):
+            result: bool|None = self.__enumerator._OnEnteringMainLevel(item)
+            
+            if result is True:
                 self.__enumerator._OnEnteringLevel(item)
 
-                return True
-            
-            return False
+            return result
         def OnExitingMainLevel(self, cookie: _TCookie) -> bool:
-            if self.__enumerator._OnExitingMainLevel(cookie):
-                self.__enumerator._OnExitingLevel(cookie)
+            self.__enumerator._OnExitingLevel(cookie)
 
-                return True
-            
-            return False
+            return self.__enumerator._OnExitingMainLevel(cookie)
         
         def Dispose(self) -> None:
             if self.__enumerators is not None:
