@@ -426,6 +426,10 @@ class EnumeratorProvider[T](Enumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
+    
+    @staticmethod
+    def TryCreate(enumeratorProvider: Function[IEnumerator[T]|None]|None) -> EnumeratorProvider[T]|None:
+        return None if enumeratorProvider is None else EnumeratorProvider[T](enumeratorProvider)
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -460,7 +464,7 @@ class AbstractEnumerator[T](Selector[T, T]):
         super().__init__(enumerator)
     
     def GetCurrent(self) -> T|None:
-        return self._GetEnumerator().GetCurrent()
+        return self._GetContainer().GetCurrent()
 
 class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self) -> None:
