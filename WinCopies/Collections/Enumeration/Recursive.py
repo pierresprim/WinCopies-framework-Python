@@ -419,7 +419,9 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
         def loop(cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> bool|None:
             nonlocal result
 
-            if (loopResult := cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))) is None:
+            loopResult: bool|None = cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))
+
+            if loopResult is None:
                 return False
             
             while (result := tryPop(cookie)).HasValue():
