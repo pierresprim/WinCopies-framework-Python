@@ -829,9 +829,11 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
 
             return result
         def OnExitingSublevel(self, cookie: _TCookie) -> bool|None:
-            self.__enumerator._OnExitingLevel(cookie)
+            result: bool|None = self.__enumerator._OnExitingSublevel(cookie)
 
-            return self.__enumerator._OnExitingSublevel(cookie)
+            self.__enumerator._OnExitingLevel(cookie)
+            
+            return result
         
         def OnEnteringMainLevel(self, item: _TItem) -> bool|None:
             result: bool|None = self.__enumerator._OnEnteringMainLevel(item)
@@ -841,9 +843,11 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
 
             return result
         def OnExitingMainLevel(self, cookie: _TCookie) -> bool:
+            result: bool = self.__enumerator._OnExitingMainLevel(cookie)
+
             self.__enumerator._OnExitingLevel(cookie)
 
-            return self.__enumerator._OnExitingMainLevel(cookie)
+            return result
         
         def Dispose(self) -> None:
             if self.__enumerators is not None:
