@@ -5,6 +5,8 @@ Created on Sun Feb 6 20:37:51 2022
 @author: Pierre Sprimont
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
 from typing import final
