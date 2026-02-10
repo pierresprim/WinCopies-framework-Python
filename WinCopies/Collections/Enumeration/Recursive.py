@@ -42,14 +42,18 @@ class IRecursivelyScannable[T](IInterface):
         return EnumeratorProvider[T](lambda: self.TryGetRecursiveStackedEnumerator(enumerationOrder, handler))
     
     @abstractmethod
-    def AsRecursivelyEnumerable(self) -> IEnumerable[T]:
-        pass
     def AsRecursivelyIterable(self) -> Iterable[T]:
-        return self.AsRecursivelyEnumerable().AsIterable()
+        pass
 
 class IRecursivelyEnumerable[T](IRecursivelyScannable[T], IEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsRecursivelyEnumerable(self) -> IEnumerable[T]:
+        pass
+    def AsRecursivelyIterable(self) -> Iterable[T]:
+        return self.AsRecursivelyEnumerable().AsIterable()
 
 class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
     def __init__(self) -> None:
