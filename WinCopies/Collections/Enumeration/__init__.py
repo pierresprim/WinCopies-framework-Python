@@ -443,16 +443,16 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     
     @final
     def IsResetSupported(self) -> bool:
-        return self.__enumerator.IsResetSupported()
+        return self._GetContainer().IsResetSupported()
     
     def _MoveNextOverride(self) -> bool:
-        return self.__enumerator.MoveNext()
+        return self._GetContainer().MoveNext()
     
     def _OnStopped(self) -> None:
-        self.__enumerator.Stop()
+        self._GetContainer().Stop()
     
     def _ResetOverride(self) -> bool:
-        return self.__enumerator.TryReset() is True
+        return self._GetContainer().TryReset() is True
 class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
