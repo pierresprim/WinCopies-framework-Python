@@ -6,7 +6,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Converter, Predicate, Selector
+from WinCopies.Typing.Delegate import Converter, NullableConverter, Predicate, Selector
 
 def TryEnumerate[T](iterable: Iterable[T]|None) -> Iterable[T]:
     """Returns the given iterable, or an empty generator if None is given.
@@ -327,6 +327,13 @@ def SelectWhere[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, 
     for item in TryEnumerate(items):
         if predicate(result := converter(item)):
             yield result
+
+def WhereNotNone[T](items: Iterable[T|None]|None) -> Generator[T]:
+    return (item for item in TryEnumerate(items) if item is not None)
+def SelectWhereNotNone[TIn, TOut](items: Iterable[TIn]|None, converter: NullableConverter[TIn, TOut]) -> Generator[TOut]:
+    return (item for item in Select(items, converter) if item is not None)
+def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
+    return (converter(item) for item in TryEnumerate(items) if item is not None)
 
 def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes only items that match a given predicate.
