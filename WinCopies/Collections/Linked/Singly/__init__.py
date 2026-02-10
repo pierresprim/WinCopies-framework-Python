@@ -485,7 +485,7 @@ class ListBase[T](AbstractList[T], IList[T]):
     @final
     def Push(self, value: T) -> None:
         first: INodeCookie[T]|None = self._GetFirstCookie()
-
+        
         if first is None:
             self._SetFirst(SinglyLinkedNode[T].CreateCookie(value, None))
         
@@ -500,28 +500,27 @@ class ListBase[T](AbstractList[T], IList[T]):
     @final
     def TryPeek(self) -> INullable[T]:
         first: SinglyLinkedNode[T]|None = self._GetFirst()
-
-        return GetNullValue() if self.IsEmpty() else (GetNullValue() if first is None else GetNullable(first.GetValue())) # self.__first should never be None if self.IsEmpty().
+        
+        return GetNullValue() if first is None else GetNullable(first.GetValue())
     
     @final
     def TryPop(self) -> INullable[T]:
         result: INullable[T] = self.TryPeek()
-
+        
         if result.HasValue():
             first: INodeCookie[T]|None = self._GetFirstCookie()
-
+            
             if first is None: # Should never be None here.
                 return result
-
+            
             next: INodeCookie[T]|None = first.GetNext()
-
+            
             self._UpdateFirst(next)
-
-            # Needed in case of a running enumeration.
-            first.SetNext(None)
-
+            
+            first.SetNext(None) # Needed in case of a running enumeration.
+            
             self.__OnRemoved()
-
+        
         return result
     
     @final
