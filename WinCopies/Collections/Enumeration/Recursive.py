@@ -16,7 +16,7 @@ from WinCopies.Typing import InvalidOperationError, INullable, IDisposable
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import DualResult
 
-class IRecursivelyEnumerable[T](IEnumerable[T]):
+class IRecursivelyScannable[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
 
@@ -46,6 +46,10 @@ class IRecursivelyEnumerable[T](IEnumerable[T]):
         pass
     def AsRecursivelyIterable(self) -> Iterable[T]:
         return self.AsRecursivelyEnumerable().AsIterable()
+
+class IRecursivelyEnumerable[T](IRecursivelyScannable[T], IEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
     def __init__(self) -> None:
