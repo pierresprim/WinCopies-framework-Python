@@ -537,8 +537,8 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
             
                 first: TStackItems|None = self.__first
 
-                if first is not None:
-                    cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))
+                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))):
+                    return False
 
                 self._UpdateMoveNext(self._MoveNext)
 
@@ -638,8 +638,8 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
 
                 first: DualResult[T, IEnumerator[T]]|None = self.__first
 
-                if first is not None:
-                    cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))
+                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))):
+                    return False
 
                 self._UpdateMoveNext(self._MoveNext)
 
