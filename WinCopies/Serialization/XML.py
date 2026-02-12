@@ -189,8 +189,12 @@ class Reader(DataReader[Element]):
                             case _LoopResult.SkipChildren:
                                 updateMoveNext(1)
 
+                                return True
+
                             case _LoopResult.ExitLevel:
                                 updateMoveNext(2)
+
+                                return True
 
                             case _:
                                 return result != _LoopResult.Completed
