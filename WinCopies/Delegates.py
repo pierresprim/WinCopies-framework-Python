@@ -12,6 +12,9 @@ def BoolFalse() -> bool:
 def FuncNone() -> None:
     return None
 
+def DoNothing(value: object) -> None:
+    pass
+
 def CompareEquality[T](x: T, y: T) -> bool:
     return x == y
 
