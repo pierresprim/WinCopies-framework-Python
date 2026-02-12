@@ -6,7 +6,7 @@ from xml.etree.ElementTree import Element, iterparse
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
-from WinCopies.Collections.Enumeration.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
+from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
 from WinCopies.Enum import EnumerateFieldNames
 from WinCopies.IO.Stream import ITextStreamReader
 from WinCopies.Serialization import DataReader

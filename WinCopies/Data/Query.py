@@ -12,7 +12,8 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List, Dictionary
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
-from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
+from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
