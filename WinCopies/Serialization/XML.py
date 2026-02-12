@@ -32,7 +32,7 @@ class Events(Flag):
 def GetGenerator(stream: ITextStreamReader, events: Events) -> Generator[IKeyValuePair[Element, Events]]:
     event: Events|None = None
 
-    for item in iterparse(stream.AsReader(), events=tuple(EnumerateFieldNames(events))):
+    for item in iterparse(stream.AsReader(), events=tuple(event.lower() for event in EnumerateFieldNames(events))):
         if (event := Events.TryConvertFromString(item[0])) is not None:
             yield DualResult[Element, Events](item[1], event)
 def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKeyValuePair[Element, Events]]:
@@ -106,12 +106,17 @@ class _EnumerationHandler(_EnumerationDelegate):
             
             return False
         
-        def OnExitingLevel(self, item: Element) -> bool:
-            if item is self.__root:
-                self.__onEnteringLevel = self.__GetLevelEntranceDelegate()
-                self.__root = None
+        def OnExitingLevel(self, item: Element) -> bool|None:
+            def getResult() -> bool|None:
+                if item is self.__root:
+                    self.__onEnteringLevel = self.__GetLevelEntranceDelegate()
+                    self.__root = None
+
+                    return self.__handler.OnExitingMainEnumerationLevel(item)
+                
+                return self.__handler.OnExitingSubenumerationLevel(item)
             
-            result: bool = self.__handler.OnExitingMainEnumerationLevel(item)
+            result: bool|None = getResult()
             self.__handler.OnExitingEnumerationLevel(item)
 
             return result
@@ -122,15 +127,16 @@ class _EnumerationHandler(_EnumerationDelegate):
         self.__cookie: _EnumerationHandler._EnumerationCookie = _EnumerationHandler._EnumerationCookie(handler)
     
     def SetCurrent(self, value: IKeyValuePair[Element, Events]) -> _LoopResult:
+        def getResult(result: bool|None, default: _LoopResult) -> _LoopResult:
+            return _LoopResult.Continue if result is True else (_LoopResult.Completed if result is None else default)
+
         super().SetCurrent(value)
         
         match value.GetValue():
             case Events.Start:
-                result: bool|None = self.__cookie.OnEnteringLevel(value.GetKey())
-
-                return _LoopResult.Continue if result is True else (_LoopResult.Completed if result is None else _LoopResult.SkipChildren)
+                return getResult(self.__cookie.OnEnteringLevel(value.GetKey()), _LoopResult.SkipChildren)
             case Events.End:
-                return _LoopResult.Continue if self.__cookie.OnExitingLevel(value.GetKey()) is True else _LoopResult.ExitLevel
+                return getResult(self.__cookie.OnExitingLevel(value.GetKey()), _LoopResult.ExitLevel)
             case _:
                 return _LoopResult.Continue
 
@@ -159,11 +165,10 @@ class Reader(DataReader[Element]):
                     return isEvent(currentEvent, Events.End)
                 
                 def loop() -> bool:
-                    while moveNext():
+                    if moveNext():
                         self.__continue = self.__delegate.TrySetCurrent(getCurrent())
 
-                        if self.__continue == _LoopResult.Completed:
-                            return False
+                        return self.__continue != _LoopResult.Completed
                     
                     return False
                 
