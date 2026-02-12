@@ -291,7 +291,7 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
     def DisposeItem(self, item: T) -> None:
         pass
     
-    def GetGenerator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
+    def GetIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
 
         for item in iterator:
@@ -300,7 +300,7 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
             if item.GetValue() == Events.End:
                 self.DisposeItem(element)
     
-    def GetFIFOEnumerator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
+    def GetFIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
         value: Events|None = None
 
@@ -312,7 +312,7 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
             
             elif value == Events.End:
                 self.DisposeItem(element)
-    def GetLIFOEnumerator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
+    def GetLIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
 
         for item in iterator:
