@@ -20,7 +20,7 @@ class Events(Flag):
     @staticmethod
     def TryConvertFromString(value: str, predicate: Callable[[str|None, str], bool]|None = None) -> Events|None:
         def _predicate(name: str|None) -> bool:
-            return (name := event.name) is not None and name == value
+            return name is not None and name == value
         
         if predicate is None:
             for event in Events:
