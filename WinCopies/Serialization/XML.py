@@ -9,10 +9,11 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
+from WinCopies.Delegates import BoolFalse
 from WinCopies.Enum import EnumerateFieldNames
 from WinCopies.IO.Stream import ITextStreamReader
 from WinCopies.Serialization import DataReader
-from WinCopies.Typing.Delegate import NullablePredicate
+from WinCopies.Typing.Delegate import Function, NullablePredicate
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 class Events(Flag):
@@ -147,13 +148,26 @@ class Reader(DataReader[Element]):
                 super().__init__(enumerator)
 
                 self.__delegate: _EnumerationDelegate = _EnumerationDelegate() if handler is None else _EnumerationHandler(handler)
-                self.__continue: _LoopResult = _LoopResult.Continue
+                self.__moveNext: Function[bool] = BoolFalse
             
             @final
             def GetCurrent(self) -> IKeyValuePair[Element, Events]|None:
                 return self.__delegate.GetCurrent()
             
-            def _MoveNextOverride(self) -> bool:
+            @final
+            def __ResetMoveNext(self) -> None:
+                self.__moveNext = self.__MoveNext
+            
+            def _OnStarting(self) -> bool:
+                if super()._OnStarting():
+                    self.__ResetMoveNext()
+
+                    return True
+                
+                return False
+            
+            @final
+            def __MoveNext(self) -> bool:
                 def moveNext() -> bool:
                     return enumerator.MoveNext()
                 def getCurrent() -> IKeyValuePair[Element, Events]|None:
@@ -164,11 +178,22 @@ class Reader(DataReader[Element]):
                 def isEndEvent(currentEvent: Events) -> bool:
                     return isEvent(currentEvent, Events.End)
                 
+                def updateMoveNext(value: int) -> None:
+                    self.__moveNext = lambda: skip(value)
+                
                 def loop() -> bool:
                     if moveNext():
-                        self.__continue = self.__delegate.TrySetCurrent(getCurrent())
+                        result: _LoopResult = self.__delegate.TrySetCurrent(getCurrent())
 
-                        return self.__continue != _LoopResult.Completed
+                        match result:
+                            case _LoopResult.SkipChildren:
+                                updateMoveNext(1)
+
+                            case _LoopResult.ExitLevel:
+                                updateMoveNext(2)
+
+                            case _:
+                                return result != _LoopResult.Completed
                     
                     return False
                 
@@ -179,7 +204,7 @@ class Reader(DataReader[Element]):
                         if current is None:
                             return False
                         
-                        self.__continue = _LoopResult.Continue
+                        self.__ResetMoveNext()
                         currentEvent: Events = current.GetValue()
                         
                         if isEndEvent(currentEvent):
@@ -202,20 +227,17 @@ class Reader(DataReader[Element]):
                     
                     return False
                 
-                if self.__continue == _LoopResult.Completed:
-                    return False
-                
                 enumerator: IEnumerator[IKeyValuePair[Element, Events]] = self._GetContainer()
 
-                match self.__continue:
-                    case _LoopResult.SkipChildren:
-                        return skip(1)
+                return loop()
+            
+            def _MoveNextOverride(self) -> bool:
+                return self.__moveNext()
+            
+            def _OnStopped(self) -> None:
+                super()._OnStopped()
 
-                    case _LoopResult.ExitLevel:
-                        return skip(2)
-                    
-                    case _:
-                        return loop()
+                self.__moveNext = BoolFalse
         
         def __init__(self, stream: ITextStreamReader) -> None:
             super().__init__()
