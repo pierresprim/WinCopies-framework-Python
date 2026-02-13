@@ -8,11 +8,11 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Iterator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
 from WinCopies.Enum import EnumerateFieldNames
-from WinCopies.IO.Stream import ITextStreamReader
+from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
 from WinCopies.Serialization import DataReader
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
-def GetGenerator(stream: ITextStreamReader, events: Events) -> Generator[IKeyValuePair[Element, Events]]:
+def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyValuePair[Element, Events]]:
     event: Events|None = None
 
     for item in iterparse(stream.AsReader(), events=tuple(event.lower() for event in EnumerateFieldNames(events))):
@@ -23,7 +23,7 @@ def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKey
 def GetEnumerable(stream: ITextStreamReader, events: Events) -> IEnumerable[IKeyValuePair[Element, Events]]:
     return IteratorProvider[IKeyValuePair[Element, Events]](lambda: GetGenerator(stream, events))
 
-class Reader(DataReader[Element]):
+class Reader(DataReader[Element, str]):
     class _Enumerable(RecursivelyIteratorProvider[Element]):
         class _GeneratorProvider(ManagedGeneratorProvider[Element]):
             def __init__(self) -> None:
@@ -32,13 +32,13 @@ class Reader(DataReader[Element]):
             def DisposeItem(self, item: Element) -> None:
                 item.clear()
         
-        def __init__(self, stream: ITextStreamReader) -> None:
+        def __init__(self, stream: IStreamReader[str]) -> None:
             super().__init__()
 
-            self.__stream: ITextStreamReader = stream
+            self.__stream: IStreamReader[str] = stream
         
         @final
-        def _GetStream(self) -> ITextStreamReader:
+        def _GetStream(self) -> IStreamReader[str]:
             return self.__stream
         
         @final
@@ -53,5 +53,5 @@ class Reader(DataReader[Element]):
         super().__init__(stream)
     
     @final
-    def _Parse(self, stream: ITextStreamReader) -> IRecursivelyScannable[Element]:
+    def _Parse(self, stream: IStreamReader[str]) -> IRecursivelyScannable[Element]:
         return Reader._Enumerable(stream)
