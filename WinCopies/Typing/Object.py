@@ -3,7 +3,8 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem
+from WinCopies.Math import CompareTo
+from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparable as IComparableBase
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
     def __init__(self) -> None:
@@ -17,6 +18,16 @@ class IObject[T](IEquatableObject[T], IItem):
     def __init__(self) -> None:
         super().__init__()
 class Object[T](Abstract, IObject[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IComparable[T: IEquatableItem](IEquatableObject[T], IComparableBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def CompareTo(self, item: T|IEquatableItem) -> bool|None:
+        return CompareTo(self.Hash(), item.Hash())
+class IComparableObject[T: IEquatableItem](IObject[T], IComparable[T]):
     def __init__(self) -> None:
         super().__init__()
 
