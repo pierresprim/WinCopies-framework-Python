@@ -139,31 +139,31 @@ def assertRemoveAll(test: unittest.TestCase, l: IList[int], method: Converter[IR
 class TestList(unittest.TestCase):
     """Tests for the List[T] class - common doubly linked list."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Initializes an empty list before each test"""
         self.__list: IList[int] = List[int]()
 
     # Basic tests - Add and retrieve
 
-    def test_empty_list_is_empty(self):
+    def test_empty_list_is_empty(self) -> None:
         """A new list should be empty"""
         assertEmpty(self, self.__list)
 
-    def test_add_first_single_item(self):
+    def test_add_first_single_item(self) -> None:
         """Add new item at the beginning of an empty list"""
         def addNode(value: int) -> None:
             assertNodeValue(self, self.__list, self.__list.AddFirst(value), value)
         
         addNode(42)
 
-    def test_add_last_single_item(self):
+    def test_add_last_single_item(self) -> None:
         """Add new item at the end of an empty list"""
         def addNode(value: int) -> None:
             assertNodeValue(self, self.__list, self.__list.AddLast(value), value)
         
         addNode(42)
 
-    def test_add_first_multiple_items(self):
+    def test_add_first_multiple_items(self) -> None:
         """Add multiple items at the beginning (reversed order)"""
         populateListR(self.__list)
 
@@ -174,7 +174,7 @@ class TestList(unittest.TestCase):
         self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
         self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
 
-    def test_add_last_multiple_items(self):
+    def test_add_last_multiple_items(self) -> None:
         """Add multiple items at the end (preserved order)"""
         populateList(self.__list)
 
@@ -185,7 +185,7 @@ class TestList(unittest.TestCase):
         self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
         self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
 
-    def test_add_mixed_first_and_last(self):
+    def test_add_mixed_first_and_last(self) -> None:
         """Add to both beginning and end"""
         def addFirst(value: int) -> None:
             self.__list.AddFirst(value)
@@ -202,48 +202,48 @@ class TestList(unittest.TestCase):
 
     # TryGetFirst and TryGetLast tests
 
-    def test_try_get_first_empty_list(self):
+    def test_try_get_first_empty_list(self) -> None:
         """TryGetFirst on empty list should return a null (empty) value"""
         assertNullValue(self, self.__list, self.__list.TryGetFirst())
 
-    def test_try_get_last_empty_list(self):
+    def test_try_get_last_empty_list(self) -> None:
         """TryGetLast on empty list should return a null (empty) value"""
         assertNullValue(self, self.__list, self.__list.TryGetLast())
 
-    def test_try_get_first_with_items(self):
+    def test_try_get_first_with_items(self) -> None:
         """TryGetFirst with items must return the first one"""
         populateList(self.__list, 2)
 
         assertNullableValue(self, self.__list, 1, self.__list.TryGetFirst())
 
-    def test_try_get_last_with_items(self):
+    def test_try_get_last_with_items(self) -> None:
         """TryGetFirst with items must return the last one"""
         populateList(self.__list, 2)
 
         assertNullableValue(self, self.__list, 2, self.__list.TryGetLast())
 
-    def test_try_get_first_value_or_none(self):
+    def test_try_get_first_value_or_none(self) -> None:
         """TryGetFirstValueOrNone must return None when the list is empty"""
         self.assertIsNone(self.__list.TryGetFirstValueOrNone())
 
         self.__list.AddLast(42)
         assertValue(self, self.__list, 42, self.__list.TryGetFirstValueOrNone())
 
-    def test_try_get_last_value_or_none(self):
+    def test_try_get_last_value_or_none(self) -> None:
         """TryGetLastValueOrNone must return None when the list is empty"""
         self.assertIsNone(self.__list.TryGetLastValueOrNone())
 
         self.__list.AddLast(42)
         assertValue(self, self.__list, 42, self.__list.TryGetLastValueOrNone())
 
-    def test_try_get_first_value_with_default(self):
+    def test_try_get_first_value_with_default(self) -> None:
         """TryGetFirstValue with default value"""
         self.assertEqual(self.__list.TryGetFirstValue(-1), -1)
 
         self.__list.AddLast(42)
         assertValue(self, self.__list, 42, self.__list.TryGetFirstValue(-1))
 
-    def test_try_get_last_value_with_default(self):
+    def test_try_get_last_value_with_default(self) -> None:
         """TryGetLastValue with default value"""
         self.assertEqual(self.__list.TryGetLastValue(-1), -1)
 
@@ -252,27 +252,27 @@ class TestList(unittest.TestCase):
 
     # Remove tests
 
-    def test_remove_first_empty_list(self):
+    def test_remove_first_empty_list(self) -> None:
         """RemoveFirst on an empty list must return a null (empty) value"""
         self.assertFalse(self.__list.RemoveFirst().HasValue())
 
-    def test_remove_last_empty_list(self):
+    def test_remove_last_empty_list(self) -> None:
         """RemoveLast on an empty list must return a null (empty) value"""
         self.assertFalse(self.__list.RemoveLast().HasValue())
 
-    def test_remove_first_single_item(self):
+    def test_remove_first_single_item(self) -> None:
         """Remove first item on a list with only one item"""
         self.__list.AddLast(42)
 
         assertValueAndEmpty(self, self.__list, 42, self.__list.RemoveFirst())
 
-    def test_remove_last_single_item(self):
+    def test_remove_last_single_item(self) -> None:
         """Remove last item on a list with only one item"""
         self.__list.AddLast(42)
 
         assertValueAndEmpty(self, self.__list, 42, self.__list.RemoveLast())
 
-    def test_remove_first_multiple_items(self):
+    def test_remove_first_multiple_items(self) -> None:
         """Remove first item when multiple items"""
         populateList(self.__list)
 
@@ -281,7 +281,7 @@ class TestList(unittest.TestCase):
         # Check that the new first is 2
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 2)
 
-    def test_remove_last_multiple_items(self):
+    def test_remove_last_multiple_items(self) -> None:
         """Remove last item when multiple items"""
         populateList(self.__list)
 
@@ -290,23 +290,23 @@ class TestList(unittest.TestCase):
         # Check that the new last is 2
         assertNodeValue(self, self.__list, self.__list.GetLast(), 2)
 
-    def test_remove_all_items_from_start(self):
+    def test_remove_all_items_from_start(self) -> None:
         """Remove all items from the beginning"""
         assertRemoveAll(self, self.__list, lambda l: l.RemoveFirst())
 
-    def test_remove_all_items_from_end(self):
+    def test_remove_all_items_from_end(self) -> None:
         """Remove all items from the end"""
         assertRemoveAll(self, self.__list, lambda l: l.RemoveLast())
 
     # Clear tests
 
-    def test_clear_empty_list(self):
+    def test_clear_empty_list(self) -> None:
         """Clear on an empty list should not raise any error"""
         self.__list.Clear()
 
         assertEmpty(self, self.__list)
 
-    def test_clear_list_with_items(self):
+    def test_clear_list_with_items(self) -> None:
         """Clear must remove all items from the list"""
         populateList(self.__list)
 
@@ -319,7 +319,7 @@ class TestList(unittest.TestCase):
 
     # Tests AddFirstItems / AddLastItems
 
-    def test_add_first_items_from_list(self):
+    def test_add_first_items_from_list(self) -> None:
         """Add multiple items at the beginning from an iterable"""
         populateList(self.__list)
 
@@ -328,7 +328,7 @@ class TestList(unittest.TestCase):
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 4)
         assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
 
-    def test_add_last_items_from_list(self):
+    def test_add_last_items_from_list(self) -> None:
         """Add multiple items at the end from an iterable"""
         populateList(self.__list)
 
@@ -337,15 +337,15 @@ class TestList(unittest.TestCase):
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
         assertNodeValue(self, self.__list, self.__list.GetLast(), 6)
 
-    def test_add_first_items_none(self):
+    def test_add_first_items_none(self) -> None:
         """AddFirstItems with None must return False"""
         self.assertFalse(self.__list.AddFirstItems(None))
 
-    def test_add_last_items_none(self):
+    def test_add_last_items_none(self) -> None:
         """AddLastItems with None must return False"""
         self.assertFalse(self.__list.AddLastItems(None))
 
-    def test_add_first_values_varargs(self):
+    def test_add_first_values_varargs(self) -> None:
         """Add values via *args at the beginning"""
         populateList(self.__list)
 
@@ -354,7 +354,7 @@ class TestList(unittest.TestCase):
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 4)
         assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
 
-    def test_add_last_values_varargs(self):
+    def test_add_last_values_varargs(self) -> None:
         """Add values via *args at the end"""
         populateList(self.__list)
 
@@ -365,19 +365,19 @@ class TestList(unittest.TestCase):
 
     # Tests des énumérateurs
 
-    def test_enumerate_empty_list(self):
+    def test_enumerate_empty_list(self) -> None:
         """Enumerate from an empty list"""
         self.assertIsNone(self.__list.TryGetEnumerator())
 
-    def test_enumerate_list_with_items(self):
+    def test_enumerate_list_with_items(self) -> None:
         """Enumerate from a list with items"""
         assertEnumeration(self, self.__list, lambda l: l.TryGetEnumerator(), Self)
 
-    def test_enumerate_nodes(self):
+    def test_enumerate_nodes(self) -> None:
         """Enumerate nodes"""
         assertEnumeration(self, self.__list, lambda l: l.TryGetNodeEnumerator(), lambda node: node.GetValue())
 
-    def test_as_queued_enumerator(self):
+    def test_as_queued_enumerator(self) -> None:
         """FIFO enumerator - remove items"""
         populateList(self.__list)
 
@@ -393,7 +393,7 @@ class TestList(unittest.TestCase):
         # The list should be empty after enumeration
         assertEmpty(self, self.__list)
 
-    def test_as_stacked_enumerator(self):
+    def test_as_stacked_enumerator(self) -> None:
         """LIFO enumerator - remove items"""
         populateList(self.__list)
 
@@ -410,7 +410,7 @@ class TestList(unittest.TestCase):
 
     # Tests AsReadOnly
 
-    def test_as_read_only(self):
+    def test_as_read_only(self) -> None:
         """Create a read-only view of the list"""
         populateList(self.__list, 2)
 
@@ -427,29 +427,29 @@ class TestList(unittest.TestCase):
 class TestListNode(unittest.TestCase):
     """Tests for node operations on List[T]"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Initialize a list with some items"""
         self.__list: IList[int] = List[int]()
         
         populateList(self.__list)
 
-    def test_node_get_value(self):
+    def test_node_get_value(self) -> None:
         """Retrieve value from a node"""
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
 
-    def test_node_get_next(self):
+    def test_node_get_next(self) -> None:
         """Navigate to the next node"""
         first: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
 
         assertNodeValue(self, self.__list, first.GetNext(), 2)
 
-    def test_node_get_previous(self):
+    def test_node_get_previous(self) -> None:
         """Navigate to the previous node"""
         last: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetLast())
 
         assertNodeValue(self, self.__list, last.GetPrevious(), 2)
 
-    def test_node_get_list(self):
+    def test_node_get_list(self) -> None:
         """Retrieve the list from a node"""
         node: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
 
@@ -457,15 +457,15 @@ class TestListNode(unittest.TestCase):
         
         self.assertIs(l, self.__list)
 
-    def test_node_set_previous(self):
+    def test_node_set_previous(self) -> None:
         """Insert a value before an existing node"""
         assertNext(self, self.__list, 15, lambda node, value: node.SetPrevious(value), (15, 2))
 
-    def test_node_set_next(self):
+    def test_node_set_next(self) -> None:
         """Insert a value after an existing node"""
         assertNext(self, self.__list, 25, lambda node, value: node.SetNext(value), (2, 25))
 
-    def test_node_set_previous_at_first(self):
+    def test_node_set_previous_at_first(self) -> None:
         """Inserting before the first node must create a new first"""
         assertNotNone(self, assertNotNone(self, self.__list.GetFirst()).SetPrevious(0))
 
@@ -475,7 +475,7 @@ class TestListNode(unittest.TestCase):
         self.assertEqual(node.GetValue(), 0)
         self.assertEqual(assertNotNone(self, node.GetNext()).GetValue(), 1)
 
-    def test_node_set_next_at_last(self):
+    def test_node_set_next_at_last(self) -> None:
         """Inserting after the last node must create a new last"""
         assertNotNone(self, assertNotNone(self, self.__list.GetLast()).SetNext(4))
 
@@ -485,15 +485,15 @@ class TestListNode(unittest.TestCase):
         self.assertEqual(node.GetValue(), 4)
         self.assertEqual(assertNotNone(self, node.GetPrevious()).GetValue(), 3)
 
-    def test_node_remove_first(self):
+    def test_node_remove_first(self) -> None:
         """Remove the first node via Remove()"""
         assertRemoveNode(self, self.__list, 1, lambda l: l.GetFirst())
 
-    def test_node_remove_last(self):
+    def test_node_remove_last(self) -> None:
         """Remove the last node via Remove()"""
         assertRemoveNode(self, self.__list, 3, lambda l: l.GetLast())
 
-    def test_node_remove_middle(self):
+    def test_node_remove_middle(self) -> None:
         """Remove a node at middle"""
         middle: IDoublyLinkedNode[int] = assertNotNone(self, assertNotNone(self, self.__list.GetFirst()).GetNext())
 
@@ -505,7 +505,7 @@ class TestListNode(unittest.TestCase):
         self.assertEqual(first.GetValue(), 1)
         self.assertEqual(assertNotNone(self, first.GetNext()).GetValue(), 3)
 
-    def test_node_remove_only_item(self):
+    def test_node_remove_only_item(self) -> None:
         """Remove the only node"""
         l: IList[int] = List[int]()
 
@@ -517,16 +517,16 @@ class TestListNode(unittest.TestCase):
 class TestCountableList(unittest.TestCase):
     """Tests for the CountableList[T] class - list with counter"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Initialize an empty list before each test"""
         self.__list: ICountableList[int] = CountableList[int]()
 
-    def test_empty_list_count_is_zero(self):
+    def test_empty_list_count_is_zero(self) -> None:
         """An empty list must have a counter set to 0"""
         assertCount(self, self.__list, 0)
         assertEmpty(self, self.__list)
 
-    def test_count_after_add_first(self):
+    def test_count_after_add_first(self) -> None:
         """The counter must increment after a call to AddFirst"""
         def add(value: int) -> None:
             self.__list.AddFirst(value)
@@ -537,7 +537,7 @@ class TestCountableList(unittest.TestCase):
         add(2)
         add(3)
 
-    def test_count_after_add_last(self):
+    def test_count_after_add_last(self) -> None:
         """The counter must increment after a call to AddLast"""
         def add(value: int) -> None:
             self.__list.AddLast(value)
@@ -548,15 +548,15 @@ class TestCountableList(unittest.TestCase):
         add(2)
         add(3)
 
-    def test_count_after_remove_first(self):
+    def test_count_after_remove_first(self) -> None:
         """The counter must decrement after a call to RemoveFirst"""
         assertRemove(self, self.__list, lambda l: l.RemoveFirst())
 
-    def test_count_after_remove_last(self):
+    def test_count_after_remove_last(self) -> None:
         """The counter must decrement after a call to RemoveLast"""
         assertRemove(self, self.__list, lambda l: l.RemoveLast())
 
-    def test_count_after_clear(self):
+    def test_count_after_clear(self) -> None:
         """The counter must be 0 after a call to Clear"""
         populateList(self.__list)
 
@@ -567,7 +567,7 @@ class TestCountableList(unittest.TestCase):
         assertCount(self, self.__list, 0)
         assertEmpty(self, self.__list)
 
-    def test_count_with_node_operations(self):
+    def test_count_with_node_operations(self) -> None:
         """The counter must correspond to the operations on the nodes"""
         nodeOne: ICountableLinkedListNode[int] = self.__list.AddLast(1)
         assertCount(self, self.__list, 1)
@@ -584,7 +584,7 @@ class TestCountableList(unittest.TestCase):
         nodeOne.Remove()
         assertCount(self, self.__list, 2)
 
-    def test_enumerate_countable_list(self):
+    def test_enumerate_countable_list(self) -> None:
         """Enumerate a CountableList"""
         populateList(self.__list)
 
@@ -593,13 +593,13 @@ class TestCountableList(unittest.TestCase):
         values: tuple[int, ...] = tuple(enumerator.AsIterator())
         self.assertEqual(values, (1, 2, 3))
 
-    def test_countable_node_get_list(self):
+    def test_countable_node_get_list(self) -> None:
         """The node must be able to retrieve the countable list"""
         l: ICountableList[int] = assertNotNone(self, self.__list.AddLast(42).GetList())
 
         self.assertIs(l, self.__list)
 
-    def test_as_sized(self):
+    def test_as_sized(self) -> None:
         """The list must be compatible with the Sized class"""
         populateList(self.__list, 2)
 
@@ -608,7 +608,7 @@ class TestCountableList(unittest.TestCase):
 class TestListWithStrings(unittest.TestCase):
     """Tests with other data types than int"""
 
-    def test_string_list(self):
+    def test_string_list(self) -> None:
         """Test with strings"""
         l: IList[str] = List[str]()
 
@@ -618,7 +618,7 @@ class TestListWithStrings(unittest.TestCase):
         assertNodeValue(self, l, l.GetFirst(), "hello")
         assertNodeValue(self, l, l.GetLast(), "world")
 
-    def test_float_list(self):
+    def test_float_list(self) -> None:
         """Test with floating point numbers"""
         l: IList[float] = List[float]()
 
@@ -630,7 +630,7 @@ class TestListWithStrings(unittest.TestCase):
 class TestEdgeCases(unittest.TestCase):
     """Tests for edge cases"""
 
-    def test_add_and_remove_alternating(self):
+    def test_add_and_remove_alternating(self) -> None:
         """Alternate addition and deletion"""
         l: IList[int] = List[int]()
 
@@ -642,7 +642,7 @@ class TestEdgeCases(unittest.TestCase):
         l.RemoveLast()
         assertEmpty(self, l)
 
-    def test_large_list(self):
+    def test_large_list(self) -> None:
         """Test with a large list"""
         l: IList[int] = List[int]()
 
@@ -663,7 +663,7 @@ class TestEdgeCases(unittest.TestCase):
         self.assertEqual(values[0], 0)
         self.assertEqual(values[999], 999)
 
-    def test_multiple_clears(self):
+    def test_multiple_clears(self) -> None:
         """Multiple successive Clear()"""
         def addAndClear(l: IList[int], value: int) -> None:
             l.AddLast(value)
@@ -678,7 +678,7 @@ class TestEdgeCases(unittest.TestCase):
         addAndClear(l, 1)
         addAndClear(l, 2)
 
-    def test_node_chain_navigation(self):
+    def test_node_chain_navigation(self) -> None:
         """Full navigation through nodes"""
         def navigate(converter: Converter[IList[int], IDoublyLinkedNode[int]|None], selector: Converter[IDoublyLinkedNode[int], IDoublyLinkedNode[int]|None], values: list[int]) -> None:
             current: IDoublyLinkedNode[int]|None = converter(l)
