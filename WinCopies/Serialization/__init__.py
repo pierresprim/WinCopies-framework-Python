@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
-from WinCopies.IO.Stream import IStreamReader
+from WinCopies.IO.Stream import IStreamReader, ITextStreamReader, IBinaryStreamReader
 
 class IDataReader[T](IInterface):
     def __init__(self) -> None:
@@ -32,3 +32,10 @@ class DataReader[TItem, TData](Abstract, IDataReader[TItem]):
         stream: IStreamReader[TData] = self._GetStream()
 
         return self._Parse(stream) if stream.IsOpen() or stream.TryOpen() else None
+
+class TextDataReader[T](DataReader[T, str]):
+    def __init__(self, stream: ITextStreamReader) -> None:
+        super().__init__(stream)
+class BinaryDataReader[T](DataReader[T, bytes]):
+    def __init__(self, stream: IBinaryStreamReader) -> None:
+        super().__init__(stream)
