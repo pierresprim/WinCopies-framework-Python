@@ -12,3 +12,8 @@ def Between(x: int, value: int, y: int, bx: bool = True, by: bool = True) -> boo
     return __Check(x, value, bx) and __Check(value, y, by)
 def Outside(x: int, value: int, y: int, bx: bool = True, by: bool = True) -> bool:
     return __Check(value, x, bx) or __Check(y, value, by)
+
+def CompareFrom(x: int, y: int) -> bool|None:
+    return None if x == y else x < y
+def CompareTo(x: int, y: int) -> bool|None:
+    return None if x == y else x > y
