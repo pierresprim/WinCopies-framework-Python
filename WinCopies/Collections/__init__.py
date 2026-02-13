@@ -501,6 +501,20 @@ class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableB
     def __init__(self) -> None:
         super().__init__()
     
+    @final
+    def TryGetFirst[TDefault](self, defaultValue: TDefault) -> DualValueBool[T|TDefault]:
+        return self.TryGetAt(0, defaultValue)
+    @final
+    def TryGetFirstItem(self) -> INullable[T]:
+        return self.TryGetValue(0)
+    
+    @final
+    def TryGetLast[TDefault](self, defaultValue: TDefault) -> DualValueBool[T|TDefault]:
+        return self.TryGetAt(self.GetLastIndex(), defaultValue)
+    @final
+    def TryGetLastItem(self) -> INullable[T]:
+        return self.TryGetValue(self.GetLastIndex())
+    
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyCountableIndexable[T]:
         pass
