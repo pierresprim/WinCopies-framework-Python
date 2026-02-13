@@ -5,6 +5,7 @@ Tests unitaires pour les listes doublement chaînées (WinCopies.Collections.Lin
 import unittest
 from typing import Callable, List as PyList
 
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Linked.Doubly import (
     IReadOnlyList,
@@ -86,14 +87,14 @@ def assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConve
     test.assertEqual(values, [1, 2, 3])
 
 def assertNext(test: unittest.TestCase, l: IList[int], value: int, action: Callable[[IDoublyLinkedNode[int], int], IDoublyLinkedNode[int]], values: tuple[int, int]) -> None:
+    node: IDoublyLinkedNode[int] = assertNotNone(test, l.GetFirst())
+
     def assertNext(expected: int) -> None:
         nonlocal node
 
         test.assertEqual((node := assertNotNone(test, node.GetNext())).GetValue(), expected)
     
     test.assertIsNotNone(action(assertNotNone(test, assertNotNone(test, l.GetFirst()).GetNext()), value))
-
-    node: IDoublyLinkedNode[int] = assertNotNone(test, l.GetFirst())
 
     test.assertEqual(node.GetValue(), 1)
     assertNext(values[0])
@@ -254,29 +255,29 @@ class TestList(unittest.TestCase):
 
     def test_remove_first_empty_list(self) -> None:
         """RemoveFirst on an empty list must return a null (empty) value"""
-        self.assertFalse(self.__list.RemoveFirst().HasValue())
+        self.assertFalse(self.__list.TryRemoveFirst().HasValue())
 
     def test_remove_last_empty_list(self) -> None:
         """RemoveLast on an empty list must return a null (empty) value"""
-        self.assertFalse(self.__list.RemoveLast().HasValue())
+        self.assertFalse(self.__list.TryRemoveLast().HasValue())
 
     def test_remove_first_single_item(self) -> None:
         """Remove first item on a list with only one item"""
         self.__list.AddLast(42)
 
-        assertValueAndEmpty(self, self.__list, 42, self.__list.RemoveFirst())
+        assertValueAndEmpty(self, self.__list, 42, self.__list.TryRemoveFirst())
 
     def test_remove_last_single_item(self) -> None:
         """Remove last item on a list with only one item"""
         self.__list.AddLast(42)
 
-        assertValueAndEmpty(self, self.__list, 42, self.__list.RemoveLast())
+        assertValueAndEmpty(self, self.__list, 42, self.__list.TryRemoveLast())
 
     def test_remove_first_multiple_items(self) -> None:
         """Remove first item when multiple items"""
         populateList(self.__list)
 
-        assertNullableValue(self, self.__list, 1, self.__list.RemoveFirst())
+        assertNullableValue(self, self.__list, 1, self.__list.TryRemoveFirst())
 
         # Check that the new first is 2
         assertNodeValue(self, self.__list, self.__list.GetFirst(), 2)
@@ -285,18 +286,18 @@ class TestList(unittest.TestCase):
         """Remove last item when multiple items"""
         populateList(self.__list)
 
-        assertNullableValue(self, self.__list, 3, self.__list.RemoveLast())
+        assertNullableValue(self, self.__list, 3, self.__list.TryRemoveLast())
 
         # Check that the new last is 2
         assertNodeValue(self, self.__list, self.__list.GetLast(), 2)
 
     def test_remove_all_items_from_start(self) -> None:
         """Remove all items from the beginning"""
-        assertRemoveAll(self, self.__list, lambda l: l.RemoveFirst())
+        assertRemoveAll(self, self.__list, lambda l: l.TryRemoveFirst())
 
     def test_remove_all_items_from_end(self) -> None:
         """Remove all items from the end"""
-        assertRemoveAll(self, self.__list, lambda l: l.RemoveLast())
+        assertRemoveAll(self, self.__list, lambda l: l.TryRemoveLast())
 
     # Clear tests
 
@@ -381,10 +382,10 @@ class TestList(unittest.TestCase):
         """FIFO enumerator - remove items"""
         populateList(self.__list)
 
-        enumerator: IEnumerator[int] = self.__list.AsQueuedEnumerator()
+        iterator: Generator[int] = self.__list.AsQueuedGenerator()
         values: PyList[int] = []
 
-        for value in enumerator.AsIterator():
+        for value in iterator:
             values.append(value)
 
         # Values should be: 1, 2, 3
@@ -397,10 +398,10 @@ class TestList(unittest.TestCase):
         """LIFO enumerator - remove items"""
         populateList(self.__list)
 
-        enumerator: IEnumerator[int] = self.__list.AsStackedEnumerator()
+        iterator: Generator[int] = self.__list.AsStackedGenerator()
         values: PyList[int] = []
 
-        for value in enumerator.AsIterator():
+        for value in iterator:
             values.append(value)
 
         # Values should be: 3, 2, 1 (reversed order)
@@ -550,11 +551,11 @@ class TestCountableList(unittest.TestCase):
 
     def test_count_after_remove_first(self) -> None:
         """The counter must decrement after a call to RemoveFirst"""
-        assertRemove(self, self.__list, lambda l: l.RemoveFirst())
+        assertRemove(self, self.__list, lambda l: l.TryRemoveFirst())
 
     def test_count_after_remove_last(self) -> None:
         """The counter must decrement after a call to RemoveLast"""
-        assertRemove(self, self.__list, lambda l: l.RemoveLast())
+        assertRemove(self, self.__list, lambda l: l.TryRemoveLast())
 
     def test_count_after_clear(self) -> None:
         """The counter must be 0 after a call to Clear"""
@@ -635,11 +636,11 @@ class TestEdgeCases(unittest.TestCase):
         l: IList[int] = List[int]()
 
         l.AddLast(1)
-        l.RemoveFirst()
+        l.TryRemoveFirst()
         assertEmpty(self, l)
 
         l.AddFirst(2)
-        l.RemoveLast()
+        l.TryRemoveLast()
         assertEmpty(self, l)
 
     def test_large_list(self) -> None:
