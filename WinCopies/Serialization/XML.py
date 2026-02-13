@@ -9,7 +9,7 @@ from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
 from WinCopies.Enum import EnumerateFieldNames
 from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
-from WinCopies.Serialization import DataReader
+from WinCopies.Serialization import TextDataReader
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyValuePair[Element, Events]]:
@@ -23,7 +23,7 @@ def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKey
 def GetEnumerable(stream: ITextStreamReader, events: Events) -> IEnumerable[IKeyValuePair[Element, Events]]:
     return IteratorProvider[IKeyValuePair[Element, Events]](lambda: GetGenerator(stream, events))
 
-class Reader(DataReader[Element, str]):
+class Reader(TextDataReader[Element]):
     class _Enumerable(RecursivelyIteratorProvider[Element]):
         class _GeneratorProvider(ManagedGeneratorProvider[Element]):
             def __init__(self) -> None:
