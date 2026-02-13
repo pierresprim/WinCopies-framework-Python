@@ -37,9 +37,9 @@ class IListBase[T](IReadOnlyListBase[T]):
     def Push(self, value: T) -> None:
         pass
     
-    @abstractmethod
     def PushItems(self, items: Iterable[T]) -> None:
-        pass
+        for value in items:
+            self.Push(value)
     @final
     def TryPushItems(self, items: Iterable[T]|None) -> bool:
         if items is None:
@@ -203,7 +203,6 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
         self._GetInnerContainer().Push(value)
 
         self.__Increment()
-    
     @final
     def PushItems(self, items: Iterable[TItems]) -> None:
         def loop() -> Generator[TItems]:
@@ -491,11 +490,6 @@ class ListBase[T](AbstractList[T], IList[T]):
         
         else:
             self._Push(value, first)
-    
-    @final
-    def PushItems(self, items: Iterable[T]) -> None:
-        for value in items:
-            self.Push(value)
     
     @final
     def TryPeek(self) -> INullable[T]:

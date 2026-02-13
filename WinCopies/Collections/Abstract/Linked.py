@@ -23,7 +23,6 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
     @final
     def Push(self, value: TOut) -> None:
         self._GetInnerContainer().Push(self._ConvertBack(value))
-    
     @final
     def PushItems(self, items: Iterable[TOut]) -> None:
         self._GetInnerContainer().PushItems(Select(items, self._ConvertBack))
