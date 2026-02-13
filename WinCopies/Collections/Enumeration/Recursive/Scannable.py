@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from enum import Enum, Flag, auto
 from typing import final, Callable
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
@@ -320,6 +320,12 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
                 yield (element := item.GetKey())
                 
                 self.DisposeItem(element)
+class ObjectGeneratorProvider[T: IDisposable](ManagedGeneratorProvider[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def DisposeItem(self, item: T) -> None:
+        return item.Dispose()
 
 class RecursivelyScannable[T](Abstract, IRecursivelyScannable[T]):
     def __init__(self) -> None:
