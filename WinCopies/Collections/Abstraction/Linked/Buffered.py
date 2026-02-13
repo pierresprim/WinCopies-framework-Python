@@ -46,6 +46,9 @@ class BufferedQueueBase[TItems, TList](BufferedList[TItems, TList]):
     @final
     def Push(self, value: TItems) -> None:
         self._GetInnerContainer().Add(value)
+    @final
+    def PushItems(self, items: Iterable[TItems]) -> None:
+        return self._GetInnerContainer().AddItems(items)
 class BufferedStackBase[TItems, TList](BufferedList[TItems, TList]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
