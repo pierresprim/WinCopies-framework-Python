@@ -54,14 +54,14 @@ class IEquatableItem(IEquatableValue):
     def __hash__(self) -> int:
         return self.Hash()
 
-class IEquatableObject[T](IInterface):
+class IEquatable[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def Equals(self, item: T) -> bool:
         pass
-class IEquatable[T](IEquatableObject[T|object], IEquatableValue):
+class IEquatableObject[T](IEquatable[T|object], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 

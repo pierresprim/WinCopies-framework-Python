@@ -3,9 +3,9 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Typing import IDisposable, IEquatable, IEquatableItem
+from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem
 
-class IEquatableObject[T](IEquatable[T], IEquatableItem):
+class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
     def __init__(self) -> None:
         super().__init__()
 
