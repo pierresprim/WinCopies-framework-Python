@@ -102,6 +102,55 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
     
     def ToString(self) -> str:
         return str(self._GetContainer())
+class SizedArray[T](Extensions.Sequence[T], Extensions.Array[T], IArray[T]):
+    def __init__(self, length: int) -> None:
+        super().__init__()
+
+        self.__items: MutableSequenceBase[T] = list[T]()
+        self.__length: int = length
+    
+    @final
+    def _GetItems(self) -> MutableSequenceBase[T]:
+        return self.__items
+    
+    @final
+    def GetCount(self) -> int:
+        return self.__length
+    
+    @final
+    def Contains(self, value: T|object) -> bool:
+        return value in self._GetItems()
+    
+    @final
+    def _GetAt(self, key: int) -> T:
+        return self._GetItems()[key]
+    @final
+    def _SetAt(self, key: int, value: T) -> None:
+        self._GetItems()[key] = value
+    
+    @final
+    def Move(self, x: int, y: int) -> None:
+        Move(self._GetItems(), x, y)
+    
+    @final
+    def SliceAt(self, key: slice) -> IArray[T]:
+        return Array[T](self._GetItems()[slice(*key.indices(self.GetCount()))])
+    
+    def ToString(self) -> str:
+        return str(self._GetItems())
+    
+    @final
+    def AsSequence(self) -> Sequence[T]:
+        return self
+    
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
+        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class List[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
