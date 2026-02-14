@@ -4,10 +4,10 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import Abstract
-from WinCopies.Typing import IEquatableObject
+from WinCopies.Typing import IEquatable
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
-class IKeyValuePair[TKey, TValue](IEquatableObject["IKeyValuePair[TKey, TValue]"]):
+class IKeyValuePair[TKey, TValue](IEquatable["IKeyValuePair[TKey, TValue]"]):
     def __init__(self) -> None:
         super().__init__()
     
