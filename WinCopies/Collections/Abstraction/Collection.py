@@ -4,11 +4,11 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator, Sequence, MutableSequence as MutableSequenceBase, MutableMapping
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IStringable, Abstract
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
-from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
@@ -111,8 +111,8 @@ class SizedArray[T](Array[T]):
     def _GetDefaultValue(self) -> T:
         pass
 
-class List[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
-    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
+class ListBase[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+    def __init__(self, items: MutableSequenceBase[T]|None) -> None:
         super().__init__()
 
         self.__items: MutableSequenceBase[T] = list[T]() if items is None else items
@@ -132,19 +132,6 @@ class List[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Exte
     @final
     def SliceAt(self, key: slice) -> IList[T]:
         return List[T](self._GetContainer()[key])
-    
-    @final
-    def Add(self, item: T) -> None:
-        self._GetContainer().append(item)
-    
-    @final
-    def TryInsert(self, index: int, value: T) -> bool:
-        if self.ValidateIndex(index):
-            self._GetContainer().insert(index, value)
-            
-            return True
-        
-        return False
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -190,6 +177,134 @@ class List[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Exte
     @final
     def __delitem__(self, index: int|slice) -> None:
         del self._GetContainer()[index]
+class List[T](ListBase[T]):
+    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
+        super().__init__(items)
+    
+    @final
+    def Add(self, item: T) -> None:
+        self._GetContainer().append(item)
+    
+    @final
+    def TryInsert(self, index: int, value: T) -> bool:
+        if self.ValidateIndex(index):
+            self._GetContainer().insert(index, value)
+            
+            return True
+        
+        return False
+
+class _ISizedListInitializer[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetMaxLength(self) -> int:
+        pass
+    
+    @abstractmethod
+    def GetItems(self) -> MutableSequenceBase[T]|None:
+        pass
+
+class _SizedListSequenceInitializer[T](Abstract, _ISizedListInitializer[T]):
+    def __init__(self, items: MutableSequenceBase[T]) -> None:
+        super().__init__()
+
+        self.__items: MutableSequenceBase[T] = items
+    
+    @final
+    def GetItems(self) -> MutableSequenceBase[T]:
+        return self.__items
+    
+    @final
+    def GetMaxLength(self) -> int:
+        return len(self.GetItems())
+class _SizedListLengthInitializer[T](Abstract, _ISizedListInitializer[T]):
+    def __init__(self, length: int) -> None:
+        super().__init__()
+
+        self.__length: int = length
+    
+    @final
+    def GetItems(self) -> None:
+        return None
+    
+    @final
+    def GetMaxLength(self) -> int:
+        return self.__length
+
+class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
+    def __init__(self, length: int, items: MutableSequenceBase[T]) -> None:
+        super().__init__()
+
+        self.__length: int = length
+        self.__items: MutableSequenceBase[T] = items
+    
+    @final
+    def GetMaxLength(self) -> int:
+        return self.__length
+    
+    @final
+    def GetItems(self) -> MutableSequenceBase[T]:
+        return self.__items
+
+class ISizedList[T](IList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetMaxLength(self) -> int:
+        pass
+    
+    @abstractmethod
+    def ValidateLength(self) -> bool:
+        pass
+
+class SizedList[T](ListBase[T], ISizedList[T]):
+    def __init__(self, initializer: _ISizedListInitializer[T]) -> None:
+        super().__init__(initializer.GetItems())
+
+        self.__maxLength: int = initializer.GetMaxLength()
+    
+    @final
+    def GetMaxLength(self) -> int:
+        return self.__maxLength
+    
+    @final
+    def ValidateLength(self) -> bool:
+        return self.GetCount() < self.GetMaxLength()
+    
+    @final
+    def Add(self, item: T) -> None:
+        if self.ValidateLength():
+            self._GetContainer().append(item)
+        
+        else:
+            raise InvalidOperationError()
+    
+    @final
+    def TryInsertAt(self, index: int, value: T) -> bool|None:
+        if self.ValidateLength():
+            if self.ValidateIndex(index):
+                self._GetContainer().insert(index, value)
+                
+                return True
+            
+            return False
+        
+        return None
+    @final
+    def TryInsert(self, index: int, value: T) -> bool:
+        return self.TryInsertAt(index, value) is True
+    
+    @staticmethod
+    def CreateSizedList(length: int) -> ISizedList[T]:
+        return SizedList[T](_SizedListLengthInitializer[T](length))
+
+def CreateSizedList[T](items: MutableSequenceBase[T]) -> ISizedList[T]:
+    return SizedList[T](_SizedListSequenceInitializer[T](items))
+def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> ISizedList[T]|None:
+    return SizedList[T].CreateSizedList(length) if items is None else (None if length < len(items) else SizedList[T](_SizedListInitializer[T](length, items)))
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
