@@ -1,0 +1,408 @@
+from abc import abstractmethod
+from bisect import insort_left
+from enum import Enum
+from typing import Iterable, final
+
+from WinCopies import IInterface, Abstract
+from WinCopies.Collections import IArray
+from WinCopies.Collections.Abstraction.Collection import List as IndexableList
+from WinCopies.Collections.Extensions import IList as IIndexableList
+from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
+from WinCopies.Typing import INullable, GetNullValue
+from WinCopies.Typing.Delegate import IFunction
+from WinCopies.Typing.Generic import GenericConstraint
+from WinCopies.Typing.Object import IEnumValue, EnumValue
+
+class PriorityLevel(Enum):
+    Lowest = -4
+    VeryLow = -3
+    Lower = -2
+    Low = -1
+    Normal = 0
+    High = 1
+    Higher = 2
+    VeryHigh = 3
+    Highest = 4
+
+class IPriorityListDictionary[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def IsEmpty(self) -> bool:
+        pass
+
+    @abstractmethod
+    def TryGetItems(self, index: int) -> IList[T]|None:
+        pass
+
+    @abstractmethod
+    def TryAppend(self, index: int, items: IList[T]) -> bool:
+        pass
+    
+    @abstractmethod
+    def TryPeek(self) -> INullable[T]:
+        pass
+
+    @abstractmethod
+    def TryPop(self) -> INullable[T]:
+        pass
+
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__indices: IIndexableList[int] = IndexableList[int]()
+    
+    @abstractmethod
+    def _ClearArray(self) -> None:
+        pass
+
+    @abstractmethod
+    def _GetItems(self) -> IArray[IList[T]]:
+        pass
+    @final
+    def _GetIndices(self) -> IIndexableList[int]:
+        return self.__indices
+    
+    @final
+    def __TryPeek(self) -> int|None:
+        return self._GetIndices().TryGetLastItem().TryGetValue()
+    
+    @final
+    def __GetAt(self, index: int) -> IList[T]:
+        return self._GetItems().GetAt(index)
+
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetIndices().IsEmpty()
+    
+    @final
+    def TryGetItems(self, index: int) -> IList[T]|None:
+        return None if self.IsEmpty() or (index := self._GetIndices().FindFirstIndex(index)) < 0 else self._GetItems().GetAt(index)
+
+    @final
+    def TryAppend(self, index: int, items: IList[T]) -> bool:
+        if self._GetItems().TrySetAt(index, items):
+            insort_left(self._GetIndices().AsMutableSequence(), index)
+
+            return True
+        
+        return False
+    
+    @final
+    def TryPeek(self) -> INullable[T]:
+        def tryPeek(index: int) -> INullable[T]:
+            return self.__GetAt(index).TryPeek()
+        
+        def removeAt(index: int) -> None:
+            self._GetIndices().RemoveAt(index)
+        
+        index: int|None = self.__TryPeek()
+        
+        if index is None:
+            return GetNullValue()
+        
+        result: INullable[T] = tryPeek(index)
+
+        if result.HasValue():
+            return result
+        
+        removeAt(index)
+
+        while (index := self.__TryPeek()) is not None:
+            if (result := tryPeek(index)).HasValue():
+                return result
+            
+            removeAt(index)
+        
+        return GetNullValue()
+    
+    @final
+    def TryPop(self) -> INullable[T]:
+        def tryPop(index: int) -> INullable[T]:
+            return self.__GetAt(index).TryPop()
+        
+        def removeAt(index: int) -> None:
+            self._GetIndices().RemoveAt(index)
+        
+        index: int|None = self.__TryPeek()
+        
+        if index is None:
+            return GetNullValue()
+        
+        result: INullable[T] = tryPop(index)
+
+        if result.HasValue():
+            return result
+        
+        removeAt(index)
+
+        while (index := self.__TryPeek()) is not None:
+            if (result := tryPop(index)).HasValue():
+                return result
+            
+            removeAt(index)
+        
+        return GetNullValue()
+    
+    @final
+    def Clear(self) -> None:
+        self._GetIndices().Clear()
+        self._ClearArray()
+class PriorityListDictionaryBase[TItem, TArray](PriorityListDictionaryAbstract[TItem], GenericConstraint[TArray, IArray[IList[TItem]]]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: TArray = self._CreateArray()
+    
+    @abstractmethod
+    def _CreateArray(self) -> TArray:
+        pass
+
+    @final
+    def _GetContainer(self) -> TArray:
+        return self.__items
+
+    @final
+    def _GetItems(self) -> IArray[IList[TItem]]:
+        return self._GetInnerContainer()
+class PriorityListDictionary[T](PriorityListDictionaryBase[T, IIndexableList[IList[T]]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _CreateArray(self) -> IIndexableList[IList[T]]:
+        return IndexableList[IList[T]]()
+    
+    @final
+    def _AsContainer(self, container: IIndexableList[IList[T]]) -> IArray[IList[T]]:
+        return container
+    
+    @final
+    def _ClearArray(self) -> None:
+        return self._GetContainer().Clear()
+
+class IPriorityItemList[TItem, TLevel](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def IsEmpty(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def TryAppend(self, level: TLevel) -> IList[TItem]:
+        pass
+
+    @abstractmethod
+    def TryPeek(self) -> INullable[TItem]:
+        pass
+    @abstractmethod
+    def TryPop(self) -> INullable[TItem]:
+        pass
+    
+    @abstractmethod
+    def Clear(self) -> None:
+        pass
+class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLevel]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: IPriorityListDictionary[TItem] = self._CreateDictionary()
+    
+    @abstractmethod
+    def _CreateDictionary(self) -> IPriorityListDictionary[TItem]:
+        pass
+    @abstractmethod
+    def _CreateList(self) -> IList[TItem]:
+        pass
+    
+    @final
+    def _GetItems(self) -> IPriorityListDictionary[TItem]:
+        return self.__items
+    
+    @abstractmethod
+    def _Convert(self, level: TLevel) -> int:
+        pass
+    @abstractmethod
+    def _ConvertBack(self, index: int) -> TLevel:
+        pass
+
+    @final
+    def _TryGetItemsAt(self, index: int) -> IList[TItem]|None:
+        return self._GetItems().TryGetItems(index)
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetItems().IsEmpty()
+
+    @final
+    def TryAppend(self, level: TLevel) -> IList[TItem]:
+        index: int = self._Convert(level)
+
+        items: IList[TItem]|None = self._TryGetItemsAt(index)
+
+        if items is None:
+            self._GetItems().TryAppend(index, items := self._CreateList())
+
+        return items
+    
+    @final
+    def TryPeek(self) -> INullable[TItem]:
+        return self._GetItems().TryPeek()
+    
+    @final
+    def TryPop(self) -> INullable[TItem]:
+        return self._GetItems().TryPop()
+    
+    @final
+    def Clear(self) -> None:
+        self._GetItems().Clear()
+class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _CreateDictionary(self) -> IPriorityListDictionary[T]:
+        return PriorityListDictionary[T]()
+    
+    @final
+    def _Convert(self, level: IEnumValue[PriorityLevel]) -> int:
+        return level.GetUnderlyingValue()
+    @final
+    def _ConvertBack(self, index: int) -> IEnumValue[PriorityLevel]:
+        result: IEnumValue[PriorityLevel]|None = EnumValue[PriorityLevel].TryCreate(PriorityLevel, index)
+
+        return EnumValue[PriorityLevel](PriorityLevel.Normal) if result is None else result
+
+class PriorityItemQueue[T](PriorityItemList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _CreateList(self) -> IList[T]:
+        return Queue[T]()
+class PriorityItemStack[T](PriorityItemList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _CreateList(self) -> IList[T]:
+        return Stack[T]()
+
+class IPriorityList[TItem, TLevel](IList[TItem]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetNormalLevel(self) -> TLevel:
+        pass
+    
+    @abstractmethod
+    def PushAt(self, level: TLevel, value: TItem) -> None:
+        pass
+
+    @final
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None:
+        for item in items:
+            self.PushAt(level, item)
+    @final
+    def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
+        if items is None:
+            return False
+        
+        self.PushItemsAt(level, items)
+        
+        return True
+    
+    @final
+    def PushValuesAt(self, level: TLevel, *values: TItem) -> None:
+        self.PushItemsAt(level, values)
+class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: IPriorityItemList[TItem, TLevel] = self._CreateDictionary()
+
+    @abstractmethod
+    def _CreateDictionary(self) -> IPriorityItemList[TItem, TLevel]:
+        pass
+
+    @final
+    def _GetItems(self) -> IPriorityItemList[TItem, TLevel]:
+        return self.__items
+    
+    @final
+    def _GetAt(self, level: TLevel) -> IList[TItem]:
+        return self._GetItems().TryAppend(level)
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetItems().IsEmpty()
+    
+    @final
+    def TryPeek(self) -> INullable[TItem]:
+        return self._GetItems().TryPeek()
+    
+    @final
+    def PushAt(self, level: TLevel, value: TItem) -> None:
+        self._GetAt(level).Push(value)
+    @final
+    def Push(self, value: TItem) -> None:
+        self.PushAt(self.GetNormalLevel(), value)
+    
+    @final
+    def TryPop(self) -> INullable[TItem]:
+        return self._GetItems().TryPop()
+    
+    @final
+    def Clear(self) -> None:
+        self._GetItems().Clear()
+class PriorityList[T](PriorityListBase[T, IEnumValue[PriorityLevel]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _Compare(self, x: IEnumValue[PriorityLevel], y: IEnumValue[PriorityLevel]) -> bool|None:
+        return x.CompareTo(y)
+    
+    @final
+    def GetNormalLevel(self) -> IEnumValue[PriorityLevel]:
+        return EnumValue[PriorityLevel](PriorityLevel.Normal)
+
+class PriorityQueue[T](PriorityList[T], IQueue[T]):
+    def __init__(self) -> None:
+        def update(func: IFunction[IReadOnlyQueue[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__()
+
+        self.__readOnly: IFunction[IReadOnlyQueue[T]] = ReadOnlyQueueUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def _CreateDictionary(self) -> IPriorityItemList[T, IEnumValue[PriorityLevel]]:
+        return PriorityItemQueue[T]()
+    
+    @final
+    def AsReadOnly(self) -> IReadOnlyQueue[T]:
+        return self.__readOnly.GetValue()
+class PriorityStack[T](PriorityList[T], IStack[T]):
+    def __init__(self) -> None:
+        def update(func: IFunction[IReadOnlyStack[T]]) -> None:
+            self.__readOnly = func
+        
+        super().__init__()
+
+        self.__readOnly: IFunction[IReadOnlyStack[T]] = ReadOnlyStackUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def _CreateDictionary(self) -> IPriorityItemList[T, IEnumValue[PriorityLevel]]:
+        return PriorityItemStack[T]()
+    
+    @final
+    def AsReadOnly(self) -> IReadOnlyStack[T]:
+        return self.__readOnly.GetValue()
