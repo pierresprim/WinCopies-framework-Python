@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Callable, Type as SystemType
+from typing import final, Type as SystemType
 
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
+from WinCopies.Typing.Delegate import Converter
 
 class IStruct[T](IInterface):
     def __init__(self) -> None:
@@ -130,17 +131,17 @@ class INullable[T](IInterface):
         return self.TryGetValueOrDefault(None)
     
     @final
-    def Convert[TOut](self, converter: Callable[[T], TOut]) -> TOut:
+    def Convert[TOut](self, converter: Converter[T, TOut]) -> TOut:
         return converter(self.GetValue())
     @final
-    def TryConvert[U, TOut](self, converter: Callable[[T], TOut], default: U|None = None) -> TOut|U|None:
+    def TryConvert[U, TOut](self, converter: Converter[T, TOut], default: U|None = None) -> TOut|U|None:
         return self.Convert(converter) if self.HasValue() else default
     
     @final
-    def ConvertToNullable[TOut](self, converter: Callable[[T], TOut]) -> INullable[TOut]:
+    def ConvertToNullable[TOut](self, converter: Converter[T, TOut]) -> INullable[TOut]:
         return GetNullable(converter(self.GetValue()))
     @final
-    def TryConvertToNullable[TOut](self, converter: Callable[[T], TOut]) -> INullable[TOut]:
+    def TryConvertToNullable[TOut](self, converter: Converter[T, TOut]) -> INullable[TOut]:
         return self.ConvertToNullable(converter) if self.HasValue() else GetNullValue()
 
 @final
