@@ -7,10 +7,10 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import IFunctionBase, IFunction, IStruct, Function, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
@@ -306,6 +306,83 @@ def CreateSizedList[T](items: MutableSequenceBase[T]) -> ISizedList[T]:
     return SizedList[T](_SizedListSequenceInitializer[T](items))
 def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> ISizedList[T]|None:
     return SizedList[T].CreateSizedList(length) if items is None else (None if length < len(items) else SizedList[T](_SizedListInitializer[T](length, items)))
+
+class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], IArray[T]):
+    def __init__(self, array: IArray[IStruct[T]]) -> None:
+        super().__init__()
+
+        self.__array: IArray[IStruct[T]] = array
+    
+    @final
+    def _GetItems(self) -> IArray[IStruct[T]]:
+        return self.__array
+    
+    @final
+    def _GetStructAt(self, index: int) -> IStruct[T]:
+        return self._GetItems().GetAt(index)
+
+    @final
+    def _GetAt(self, key: int) -> T:
+        return self._GetStructAt(key).GetValue()
+    @final
+    def _SetAt(self, key: int, value: T) -> None:
+        self._GetStructAt(key).SetValue(value)
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetItems().IsEmpty()
+    
+    @final
+    def GetCount(self) -> int:
+        return self._GetItems().GetCount()
+    
+    @final
+    def Contains(self, value: T|object) -> bool:
+        return self._GetItems().Contains(value)
+    
+    @final
+    def Move(self, x: int, y: int) -> None:
+        return self._GetItems().Move(x, y)
+    
+    @final
+    def SliceAt(self, key: slice) -> IArray[T]:
+        return ArrayCollection[T](self._GetItems().SliceAt(key))
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return TupleEnumerator[T](self)
+    
+    @final
+    def ToString(self) -> str:
+        return self._GetItems().ToString()
+    
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
+        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
+
+class ArrayListBase[T](ArrayCollection[T]):
+    def __init__(self, length: int) -> None:
+        valueProvider: IFunctionBase[T] = self._GetValueProvider()
+
+        super().__init__(Array[IStruct[T]]((Handle[T](valueProvider) for _ in range(length))))
+    
+    @abstractmethod
+    def _GetValueProvider(self) -> IFunctionBase[T]:
+        pass
+class ArrayList[T](ArrayListBase[T]):
+    def __init__(self, length: int, func: IFunction[T]) -> None:
+        super().__init__(length)
+
+        self.__func: IFunction[T] = func
+    
+    @final
+    def _GetValueProvider(self) -> IFunctionBase[T]:
+        return self.__func
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
