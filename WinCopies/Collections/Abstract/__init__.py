@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Typing import GenericConstraint
+from WinCopies.Typing.Generic import GenericConstraint
 
 class ConverterBase[TIn, TOut](IInterface):
     def __init__(self) -> None:

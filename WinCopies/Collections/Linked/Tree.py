@@ -8,8 +8,8 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Converte
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableList, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableList, DoublyLinkedNodeEnumeratorBase
-from WinCopies.Typing import IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
+from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ITreeNode[T](INode[T]):
     def __init__(self) -> None:

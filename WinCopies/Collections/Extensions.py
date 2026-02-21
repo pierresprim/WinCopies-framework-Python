@@ -8,8 +8,9 @@ from WinCopies import Collections, Abstract, IStringable
 from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Typing import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):

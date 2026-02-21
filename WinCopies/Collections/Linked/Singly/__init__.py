@@ -11,8 +11,9 @@ from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable,
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNodeAbstract
 
-from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IReadOnlyListBase[T](IReadOnlyCollection):
     def __init__(self) -> None:

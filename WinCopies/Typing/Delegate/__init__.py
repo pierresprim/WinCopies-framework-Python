@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final, Callable
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Typing import GenericConstraint
+from WinCopies.Typing.Generic import GenericConstraint
 
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]

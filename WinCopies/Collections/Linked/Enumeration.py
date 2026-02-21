@@ -6,8 +6,8 @@ from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumera
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import ILinkedNode
 
-from WinCopies.Typing import IGenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
 class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TNode, ILinkedNode[TItems]]):
     def __init__(self, node: TNode) -> None:

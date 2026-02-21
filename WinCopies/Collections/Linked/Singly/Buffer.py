@@ -10,8 +10,8 @@ from WinCopies.Collections.Abstraction.Enumeration import Enumerable, Enumerator
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase, SinglyLinkedNode
-from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IBufferBase(IInterface):
     def __init__(self) -> None:

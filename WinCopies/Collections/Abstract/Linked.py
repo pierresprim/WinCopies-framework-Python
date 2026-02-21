@@ -8,7 +8,8 @@ from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, IEnumerableList, ICountableList, ICountableEnumerableList
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
+from WinCopies.Typing import INullable
+from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, TOut], IList[TOut], GenericConstraint[TList, IList[TIn]]):
     def __init__(self, items: TList) -> None:

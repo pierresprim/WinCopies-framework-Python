@@ -8,9 +8,10 @@ from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, MutableSequence
-from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleAbstract[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstract[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):

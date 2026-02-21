@@ -18,8 +18,8 @@ from typing import cast, final
 from WinCopies import IInterface, IDisposableBase, IDisposable, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import IGenericConstraint
 from WinCopies.Typing.Delegate import Function, Predicate, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Generic import IGenericConstraint
 
 class FileMode(Enum):
     Null = 0

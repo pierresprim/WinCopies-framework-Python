@@ -4,8 +4,9 @@ from typing import overload, final, SupportsIndex
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayAbstract, Sequence, MutableSequence, Tuple, EquatableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
+from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
+from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class CircularAbstract[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], GenericConstraint[TList, ICircularTuple[TItem]]):
     def __init__(self, items: TList) -> None:

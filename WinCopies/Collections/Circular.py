@@ -6,7 +6,8 @@ from WinCopies import IStringable
 from WinCopies.Collections import GetIndex
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Typing import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, IEquatableItem
+from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class ICircularTuple[T](ITuple[T]):
     def __init__(self) -> None:

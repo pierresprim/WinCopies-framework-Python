@@ -14,8 +14,9 @@ from typing import final
 from WinCopies import IInterface, Delegates
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, IEquatableItem
+from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None:

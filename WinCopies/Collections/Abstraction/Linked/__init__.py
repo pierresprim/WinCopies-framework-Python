@@ -10,8 +10,9 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator,
 from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList as ISinglyLinkedList, ICountableList as ICountableSinglyLinkedList, ICountableEnumerableList, IEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, ReadOnlyListBase
 from WinCopies.Collections.Linked.Doubly import IReadWriteList, IReadWriteEnumerableList, IReadWriteCountableEnumerableList, IList as IDoublyLinkedList, ICountableList as ICountableDoublyLinkedList, List, CountableList
 
-from WinCopies.Typing import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class _ReadOnlyListUpdaterBase[TIn, TOut](ValueFunctionUpdater[TOut], IGenericConstraint[TIn, TOut]):
     def __init__(self, items: TIn, updater: Method[IFunction[TOut]]) -> None:

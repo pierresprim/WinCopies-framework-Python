@@ -9,9 +9,10 @@ from WinCopies import IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence
 from WinCopies.Collections.Range import SetItems, RemoveItems
-from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError, IGenericConstraintImplementation, GenericConstraint
+from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
+from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
 class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
     def __init__(self) -> None:

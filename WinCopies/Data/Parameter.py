@@ -14,8 +14,8 @@ from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand
 
 from WinCopies.String import StringifyIfNone
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Delegate import IFunction, ValueFunction
+from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 class IArgument(IInterface):

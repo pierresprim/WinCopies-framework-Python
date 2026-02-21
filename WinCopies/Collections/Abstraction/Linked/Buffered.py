@@ -6,7 +6,8 @@ from WinCopies.Collections import IList
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Linked.Singly import IList as ISinglyLinkedList
 
-from WinCopies.Typing import GenericConstraint, IGenericConstraintImplementation, INullable
+from WinCopies.Typing import INullable
+from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class BufferedList[TItems, TList](Abstract, ISinglyLinkedList[TItems], GenericConstraint[TList, IList[TItems]]):
     def __init__(self, items: TList) -> None:

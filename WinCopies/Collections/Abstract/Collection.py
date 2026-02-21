@@ -10,8 +10,9 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerato
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet, TupleAbstract, TupleCollection, EquatableTupleCollection, ArrayCollection, Collection, Set as SetBase, Dictionary as DictionaryBase, Sequence, MutableSequence
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
+from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], EnumerableBase[TIn, TOut]):
