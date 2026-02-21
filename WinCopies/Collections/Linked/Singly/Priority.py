@@ -5,7 +5,7 @@ from typing import Iterable, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import IArray
-from WinCopies.Collections.Abstraction.Collection import List as IndexableList
+from WinCopies.Collections.Abstraction.Collection import ArrayList, List as IndexableList
 from WinCopies.Collections.Extensions import IList as IIndexableList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue
@@ -37,7 +37,7 @@ class IPriorityListDictionary[T](IInterface):
         pass
 
     @abstractmethod
-    def TryAppend(self, index: int, items: IList[T]) -> bool:
+    def TryAppend(self, index: int) -> IList[T]|None:
         pass
     
     @abstractmethod
@@ -85,13 +85,18 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
         return None if self.IsEmpty() or (index := self._GetIndices().FindFirstIndex(index)) < 0 else self._GetItems().GetAt(index)
 
     @final
-    def TryAppend(self, index: int, items: IList[T]) -> bool:
-        if self._GetItems().TrySetAt(index, items):
-            insort_left(self._GetIndices().AsMutableSequence(), index)
+    def TryAppend(self, index: int) -> IList[T]|None:
+        items: IArray[IList[T]] = self._GetItems()
 
-            return True
+        if items.ValidateIndex(index):
+            indices: IIndexableList[int] = self._GetIndices()
+
+            if not indices.Contains(index):
+                insort_left(indices.AsMutableSequence(), index)
+
+            return self._GetItems().GetAt(index)
         
-        return False
+        return None
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -162,6 +167,9 @@ class PriorityListDictionaryBase[TItem, TArray](PriorityListDictionaryAbstract[T
     @abstractmethod
     def _CreateArray(self) -> TArray:
         pass
+    @final
+    def _ClearArray(self) -> None:
+        self.__items = self._CreateArray()
 
     @final
     def _GetContainer(self) -> TArray:
@@ -170,21 +178,23 @@ class PriorityListDictionaryBase[TItem, TArray](PriorityListDictionaryAbstract[T
     @final
     def _GetItems(self) -> IArray[IList[TItem]]:
         return self._GetInnerContainer()
-class PriorityListDictionary[T](PriorityListDictionaryBase[T, IIndexableList[IList[T]]]):
+class PriorityListDictionary[T](PriorityListDictionaryBase[T, IArray[IList[T]]]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
-    def _CreateArray(self) -> IIndexableList[IList[T]]:
-        return IndexableList[IList[T]]()
-    
-    @final
-    def _AsContainer(self, container: IIndexableList[IList[T]]) -> IArray[IList[T]]:
+    def _AsContainer(self, container: IArray[IList[T]]) -> IArray[IList[T]]:
         return container
+
+class _PriorityListDictionary[T](PriorityListDictionary[T]):
+    def __init__(self, func: IFunction[IList[T]]) -> None:
+        super().__init__()
+
+        self.__func: IFunction[IList[T]] = func
     
     @final
-    def _ClearArray(self) -> None:
-        return self._GetContainer().Clear()
+    def _CreateArray(self) -> IArray[IList[T]]:
+        return ArrayList[IList[T]](len(PriorityLevel), self.__func)
 
 class IPriorityItemList[TItem, TLevel](IInterface):
     def __init__(self) -> None:
@@ -195,7 +205,7 @@ class IPriorityItemList[TItem, TLevel](IInterface):
         pass
     
     @abstractmethod
-    def TryAppend(self, level: TLevel) -> IList[TItem]:
+    def TryAppend(self, level: TLevel) -> IList[TItem]|None:
         pass
 
     @abstractmethod
@@ -216,9 +226,6 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
     
     @abstractmethod
     def _CreateDictionary(self) -> IPriorityListDictionary[TItem]:
-        pass
-    @abstractmethod
-    def _CreateList(self) -> IList[TItem]:
         pass
     
     @final
@@ -241,13 +248,13 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
         return self._GetItems().IsEmpty()
 
     @final
-    def TryAppend(self, level: TLevel) -> IList[TItem]:
+    def TryAppend(self, level: TLevel) -> IList[TItem]|None:
         index: int = self._Convert(level)
 
         items: IList[TItem]|None = self._TryGetItemsAt(index)
 
         if items is None:
-            self._GetItems().TryAppend(index, items := self._CreateList())
+            items = self._GetItems().TryAppend(index)
 
         return items
     
@@ -263,12 +270,25 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
     def Clear(self) -> None:
         self._GetItems().Clear()
 class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
+    @final
+    class _Function[_T](Abstract, IFunction[IList[_T]]):
+        def __init__(self, items: PriorityItemList[_T]) -> None:
+            super().__init__()
+
+            self.__items: PriorityItemList[_T] = items
+        
+        def GetValue(self) -> IList[_T]:
+            return self.__items._CreateList()
+    
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def _CreateDictionary(self) -> IPriorityListDictionary[T]:
-        return PriorityListDictionary[T]()
+        return _PriorityListDictionary[T](PriorityItemList[T]._Function(self))
+    @abstractmethod
+    def _CreateList(self) -> IList[T]:
+        pass
     
     @final
     def _Convert(self, level: IEnumValue[PriorityLevel]) -> int:
@@ -303,21 +323,22 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
         pass
     
     @abstractmethod
-    def PushAt(self, level: TLevel, value: TItem) -> None:
+    def TryPushAt(self, level: TLevel, value: TItem) -> bool:
         pass
 
     @final
-    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None:
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> bool:
         for item in items:
-            self.PushAt(level, item)
+            if not self.TryPushAt(level, item):
+                return False
+        
+        return True
     @final
     def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
         if items is None:
             return False
         
-        self.PushItemsAt(level, items)
-        
-        return True
+        return self.PushItemsAt(level, items)
     
     @final
     def PushValuesAt(self, level: TLevel, *values: TItem) -> None:
@@ -337,7 +358,7 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
         return self.__items
     
     @final
-    def _GetAt(self, level: TLevel) -> IList[TItem]:
+    def _TryGetAt(self, level: TLevel) -> IList[TItem]|None:
         return self._GetItems().TryAppend(level)
     
     @final
@@ -349,11 +370,18 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
         return self._GetItems().TryPeek()
     
     @final
-    def PushAt(self, level: TLevel, value: TItem) -> None:
-        self._GetAt(level).Push(value)
+    def TryPushAt(self, level: TLevel, value: TItem) -> bool:
+        items: IList[TItem]|None = self._TryGetAt(level)
+        
+        if items is None:
+            return False
+        
+        items.Push(value)
+
+        return True
     @final
     def Push(self, value: TItem) -> None:
-        self.PushAt(self.GetNormalLevel(), value)
+        self.TryPushAt(self.GetNormalLevel(), value)
     
     @final
     def TryPop(self) -> INullable[TItem]:
