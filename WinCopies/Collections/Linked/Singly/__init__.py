@@ -617,7 +617,7 @@ class _ReadOnlyQueue[T](ReadOnlyList[T], IReadOnlyQueue[T]):
     def __init__(self, items: IQueue[T]) -> None:
         super().__init__(items)
 @final
-class _ReadOnlyQueueUpdater[T](SelectionUpdater[IQueue[T], IReadOnlyQueue[T]]):
+class ReadOnlyQueueUpdater[T](SelectionUpdater[IQueue[T], IReadOnlyQueue[T]]):
     def __init__(self, value: IQueue[T], updater: Method[IFunction[IReadOnlyQueue[T]]]) -> None:
         super().__init__(value, updater)
     
@@ -629,7 +629,7 @@ class _ReadOnlyStack[T](ReadOnlyList[T], IReadOnlyStack[T]):
     def __init__(self, items: IStack[T]) -> None:
         super().__init__(items)
 @final
-class _ReadOnlyStackUpdater[T](SelectionUpdater[IStack[T], IReadOnlyStack[T]]):
+class ReadOnlyStackUpdater[T](SelectionUpdater[IStack[T], IReadOnlyStack[T]]):
     def __init__(self, value: IStack[T], updater: Method[IFunction[IReadOnlyStack[T]]]) -> None:
         super().__init__(value, updater)
     
@@ -644,7 +644,7 @@ class Queue[T](List[T], QueueBase[T]):
         super().__init__()
 
         self.__last: SinglyLinkedNode[T]|None = None
-        self.__readOnly: IFunction[IReadOnlyQueue[T]] = _ReadOnlyQueueUpdater[T](self, update) # type: ignore[no-redef]
+        self.__readOnly: IFunction[IReadOnlyQueue[T]] = ReadOnlyQueueUpdater[T](self, update) # type: ignore[no-redef]
         self.__updater: Callable[[INodeCookie[T], INodeCookie[T]], None] = self._CreateUpdater()
 
         self.PushItems(values)
@@ -677,7 +677,7 @@ class Stack[T](List[T], StackBase[T]):
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlyStack[T]] = _ReadOnlyStackUpdater[T](self, update) # type: ignore[no-redef]
+        self.__readOnly: IFunction[IReadOnlyStack[T]] = ReadOnlyStackUpdater[T](self, update) # type: ignore[no-redef]
 
         self.PushItems(values)
     
