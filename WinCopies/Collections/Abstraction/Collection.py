@@ -367,7 +367,9 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
 
 class ArrayListBase[T](ArrayCollection[T]):
     def __init__(self, length: int) -> None:
-        super().__init__(Array[IStruct[T]]((Handle[T](self._GetValueProvider()) for _ in range(length))))
+        valueProvider: IFunctionBase[T] = self._GetValueProvider()
+
+        super().__init__(Array[IStruct[T]]((Handle[T](valueProvider) for _ in range(length))))
     
     @abstractmethod
     def _GetValueProvider(self) -> IFunctionBase[T]:
