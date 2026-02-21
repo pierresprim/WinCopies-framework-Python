@@ -79,7 +79,7 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     @final
     def __TryGet(self, converter: Converter[int, INullable[T]]) -> INullable[T]:
         def removeAt(index: int) -> None:
-            self._GetIndices().RemoveAt(index)
+            self._GetIndices().Remove(index)
         
         index: int|None = self.__TryPeek()
         
@@ -107,7 +107,7 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     
     @final
     def TryGetItems(self, index: int) -> IList[T]|None:
-        return None if self.IsEmpty() or (index := self._GetIndices().FindFirstIndex(index)) < 0 else self._GetItems().GetAt(index)
+        return self._GetItems().TryGetValue(index).TryGetValue() if self._GetIndices().Contains(index) else None
 
     @final
     def TryAppend(self, index: int) -> IList[T]|None:
@@ -266,7 +266,7 @@ class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
     
     @final
     def _Convert(self, level: IEnumValue[PriorityLevel]) -> int:
-        return level.GetUnderlyingValue()
+        return level.GetUnderlyingValue() - PriorityLevel.Lowest.value
 
 class PriorityItemQueue[T](PriorityItemList[T]):
     def __init__(self) -> None:
