@@ -268,7 +268,7 @@ def PredicateNot[T](obj: T, predicate: Predicate[T]) -> bool:
 def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
     return lambda obj: not predicate(obj)
 
-def __GetFunction(f1: Function[bool], f2: Function[bool], converter: Callable[[Function[bool], Function[bool]], bool]) -> Function[bool]:
+def __GetFunction(f1: Function[bool], f2: Function[bool], converter: EqualityComparison[Function[bool]]) -> Function[bool]:
     return lambda: converter(f1, f2)
 
 def FuncAndAlso(f1: Function[bool], f2: Function[bool]) -> bool:
