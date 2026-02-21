@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import final
+from typing import final, Type as TypeBase
 
 from WinCopies import IInterface, IStringable, Abstract
+from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.Math import CompareTo
 from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparable as IComparableBase
 
@@ -192,6 +193,12 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
     
     def ToString(self) -> str:
         return str(self.GetValue().name)
+    
+    @staticmethod
+    def TryCreate(e: TypeBase[T], v: int) -> EnumValue[T]|None:
+        result: T|None = TryGetFieldFromValue(e, v)
+
+        return None if result is None else EnumValue[T](result)
 
 class IString(IValueObject[str, 'IString']):
     def __init__(self) -> None:
