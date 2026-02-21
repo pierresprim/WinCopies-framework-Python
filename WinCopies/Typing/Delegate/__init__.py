@@ -105,13 +105,13 @@ class IStruct[T](IInterface):
     @abstractmethod
     def SetValue(self, value: T) -> None:
         pass
+@final
 class Struct[T](Abstract, IStruct[T]):
     def __init__(self, value: T) -> None:
         super().__init__()
 
         self.__value: T = value
     
-    @final
     def GetValue(self) -> T:
         return self.__value
     def SetValue(self, value: T) -> None:
