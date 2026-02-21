@@ -187,9 +187,8 @@ class _StructMethodUpdater[T](ValueFunctionUpdater[IMethod[T]]):
     def _GetValue(self) -> IMethod[T]:
         return _StructMethod[T](self.__struct)
 
-@final
-class Struct[T](Abstract, IStruct[T]):
-    def __init__(self, value: T) -> None:
+class StructBase[T](Abstract, IStruct[T]):
+    def __init__(self) -> None:
         def updateFunction(func: IFunction[IFunction[T]]) -> None:
             self.__function = func
         def updateMethod(func: IFunction[IMethod[T]]) -> None:
@@ -197,17 +196,81 @@ class Struct[T](Abstract, IStruct[T]):
         
         super().__init__()
 
-        self.__value: T = value
-
         self.__function: IFunction[IFunction[T]] = _StructFunctionUpdater[T](self, updateFunction) # type: ignore[no-redef]
         self.__method: IFunction[IMethod[T]] = _StructMethodUpdater[T](self, updateMethod) # type: ignore[no-redef]
-    
-    def GetValue(self) -> T:
-        return self.__value
-    def SetValue(self, value: T) -> None:
-        self.__value = value
     
     def AsFunction(self) -> IFunction[T]:
         return self.__function.GetValue()
     def AsMethod(self) -> IMethod[T]:
         return self.__method.GetValue()
+@final
+class Struct[T](StructBase[T]):
+    def __init__(self, value: T) -> None:
+        super().__init__()
+
+        self.__value: T = value
+    
+    def GetValue(self) -> T:
+        return self.__value
+    def SetValue(self, value: T) -> None:
+        self.__value = value
+
+class StructUpdater[T](Abstract, IStructBase[T]):
+    def __init__(self, updater: Method[IStruct[T]]) -> None:
+        super().__init__()
+
+        self.__updater: Method[IStruct[T]] = updater
+    
+    @abstractmethod
+    def _GetStruct(self, value: T) -> IStruct[T]:
+        pass
+    @abstractmethod
+    def _GetValue(self) -> T:
+        pass
+    
+    @final
+    def GetValue(self) -> T:
+        struct: IStruct[T] = self._GetStruct(self._GetValue())
+
+        self.__updater(struct)
+        
+        return struct.GetValue()
+    @final
+    def SetValue(self, value: T) -> None:
+        struct: IStruct[T] = self._GetStruct(value)
+
+        self.__updater(struct)
+        
+        return struct.SetValue(value)
+class ValueStructUpdater[T](StructUpdater[T]):
+    def __init__(self, updater: Method[IStruct[T]]) -> None:
+        super().__init__(updater)
+    
+    @final
+    def _GetStruct(self, value: T) -> IStruct[T]:
+        return Struct[T](value)
+
+@final
+class _HandleUpdater[T](ValueStructUpdater[T]):
+    def __init__(self, valueProvider: IFunctionBase[T], updater: Method[IStruct[T]]) -> None:
+        super().__init__(updater)
+
+        self.__valueProvider: IFunctionBase[T] = valueProvider
+    
+    def _GetValue(self) -> T:
+        return self.__valueProvider.GetValue()
+
+@final
+class Handle[T](StructBase[T]):
+    def __init__(self, valueProvider: IFunctionBase[T]) -> None:
+        def update(struct: IStructBase[T]) -> None:
+            self.__struct = struct
+        
+        super().__init__()
+
+        self.__struct: IStructBase[T] = _HandleUpdater[T](valueProvider, update) # type: ignore[no-redef]
+    
+    def GetValue(self) -> T:
+        return self.__struct.GetValue()
+    def SetValue(self, value: T) -> None:
+        self.__struct.SetValue(value)
