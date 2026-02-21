@@ -5,7 +5,7 @@ from collections.abc import Sized, Container, Iterable, Iterator, Collection as 
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, IndexOf
+from WinCopies.Collections import Enumeration, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Typing import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, INullable, IEquatableItem, GetNullable, GetNullValue
@@ -484,17 +484,11 @@ class TupleAbstract[T](Collections.Tuple[T], GetterBase[int, T], ITuple[T]):
         super().__init__()
     
     @final
-    def __FindIndex(self, sequence: SequenceBase[T], item: T, predicate: EqualityComparison[T]|None) -> int:
-        result: int|None = IndexOf(sequence, item, predicate)
-
-        return -1 if result is None else result
-    
-    @final
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__FindIndex(self.AsSequence(), item, predicate)
+        return FindIndex(self.AsSequence(), item, predicate)
     @final
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__FindIndex(self.AsReversed().AsSequence(), item, predicate)
+        return FindIndex(self.AsReversed().AsSequence(), item, predicate)
 class TupleBase[T](TupleAbstract[T]):
     # Not final to allow customization of the enumerator.
     def TryGetEnumerator(self) -> IEnumerator[T]:
