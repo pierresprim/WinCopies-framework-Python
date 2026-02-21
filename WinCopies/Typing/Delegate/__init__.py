@@ -13,7 +13,9 @@ type NullableConverter[TIn, TOut] = Converter[TIn, TOut|None]
 type Predicate[T] = Converter[T, bool]
 type NullablePredicate[T] = Converter[T, bool|None]
 type EqualityComparison[T] = Callable[[T, T], bool]
-type IndexedValueComparison[T] = Callable[[int, T], bool]
+type IndexedValueFunction[TIn, TOut] = Callable[[int, TIn], TOut]
+type IndexedValueAction[T] = IndexedValueFunction[T, None]
+type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
 type Selector[T] = Converter[T, T]
 
 class IFunction[T](IInterface):

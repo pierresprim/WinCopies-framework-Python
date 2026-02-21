@@ -5,7 +5,7 @@ import WinCopies
 
 from WinCopies import Delegates
 from WinCopies.Collections import Enumeration
-from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
+from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Pairing import DualValueBool
 
 def While(func: Function[bool], action: Action) -> bool:
@@ -72,7 +72,7 @@ def DoUntil(action: Action, func: Function[bool]) -> bool:
     """
     return __Do(action, func, Until)
 
-def ForEachUntilTrue[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
+def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
     """Iterates over items with index, executing the given action until it returns True.
 
     Args:
@@ -112,7 +112,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
     
     return False if enumerator.HasProcessedItems() else None
 
-def ForEach[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValueBool[int]|None:
+def ForEach[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
     """Iterates over items with index, executing the given action while it returns True.
 
     Args:
@@ -124,7 +124,7 @@ def ForEach[T](items: Iterable[T], action: Callable[[int, T], bool]) -> DualValu
         - DualValueBool with last index and False if stopped early, or DualValueBool with last index and True if completed all items.
     """
     return ForEachUntilTrue(items, lambda index, item: not action(index, item))
-def ForEachValue[T](action: Callable[[int, T], bool], *values: T) -> DualValueBool[int]|None:
+def ForEachValue[T](action: IndexedValueComparison[T], *values: T) -> DualValueBool[int]|None:
     """Iterates over variadic values with index, executing the given action while it returns True.
 
     Args:
@@ -137,7 +137,7 @@ def ForEachValue[T](action: Callable[[int, T], bool], *values: T) -> DualValueBo
     """
     return ForEach(values, action)
 
-def DoForEach[T](items: Iterable[T], action: Callable[[int, T], None]) -> int:
+def DoForEach[T](items: Iterable[T], action: IndexedValueAction[T]) -> int:
     """Executes the given action for each item with its index.
 
     Args:
@@ -155,7 +155,7 @@ def DoForEach[T](items: Iterable[T], action: Callable[[int, T], None]) -> int:
         action(i, item)
     
     return i
-def DoForEachValue[T](action: Callable[[int, T], None], *values: T) -> int:
+def DoForEachValue[T](action: IndexedValueAction[T], *values: T) -> int:
     """Executes the given action for each variadic value with its index.
 
     Args:
@@ -222,7 +222,7 @@ def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
     """
     return DoForEachItem(values, action)
 
-def ForEachWhile[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T], None]) -> DualValueBool[int]|None:
+def ForEachWhile[T](items: Iterable[T], predicate: IndexedValueComparison[T], action: IndexedValueAction[T]) -> DualValueBool[int]|None:
     """Executes the given action for items while the given predicate is False.
 
     Args:
@@ -243,7 +243,7 @@ def ForEachWhile[T](items: Iterable[T], predicate: Callable[[int, T], bool], act
 
     return ForEachUntilTrue(items, _action)
 
-def ForEachWhileIndex[T](items: Iterable[T], action: Callable[[int, T], None], index: int) -> DualValueBool[int]|None:
+def ForEachWhileIndex[T](items: Iterable[T], action: IndexedValueAction[T], index: int) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index.
 
     Args:
@@ -255,7 +255,7 @@ def ForEachWhileIndex[T](items: Iterable[T], action: Callable[[int, T], None], i
         None if no items, DualValueBool with last index and status otherwise.
     """
     return ForEachWhile(items, Delegates.GetIndexedValueIndexComparison(index), action)
-def ForEachWhileValue[T](items: Iterable[T], action: Callable[[int, T], None], value: T) -> DualValueBool[int]|None:
+def ForEachWhileValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until finding a specific value.
 
     Args:
@@ -267,7 +267,7 @@ def ForEachWhileValue[T](items: Iterable[T], action: Callable[[int, T], None], v
         None if no items, DualValueBool with last index and status otherwise.
     """
     return ForEachWhile(items, Delegates.GetIndexedValueValueComparison(value), action)
-def ForEachWhileIndexAndValue[T](items: Iterable[T], action: Callable[[int, T], None], index: int, value: T) -> DualValueBool[int]|None:
+def ForEachWhileIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index and value.
 
     Args:
@@ -281,7 +281,7 @@ def ForEachWhileIndexAndValue[T](items: Iterable[T], action: Callable[[int, T], 
     """
     return ForEachWhile(items, Delegates.GetIndexedValueComparison(index, value), action)
 
-def ForEachUntil[T](items: Iterable[T], predicate: Callable[[int, T], bool], action: Callable[[int, T], None]) -> DualValueBool[int]|None:
+def ForEachUntil[T](items: Iterable[T], predicate: IndexedValueComparison[T], action: IndexedValueAction[T]) -> DualValueBool[int]|None:
     """Executes the given action for items until the given predicate is True.
 
     Args:
@@ -302,7 +302,7 @@ def ForEachUntil[T](items: Iterable[T], predicate: Callable[[int, T], bool], act
 
     return ForEachUntilTrue(items, _action)
 
-def ForEachUntilIndex[T](items: Iterable[T], action: Callable[[int, T], None], index: int) -> DualValueBool[int]|None:
+def ForEachUntilIndex[T](items: Iterable[T], action: IndexedValueAction[T], index: int) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index.
 
     Args:
@@ -314,7 +314,7 @@ def ForEachUntilIndex[T](items: Iterable[T], action: Callable[[int, T], None], i
         None if no items, DualValueBool with last index and status otherwise.
     """
     return ForEachUntil(items, Delegates.GetIndexedValueIndexComparison(index), action)
-def ForEachUntilValue[T](items: Iterable[T], action: Callable[[int, T], None], value: T) -> DualValueBool[int]|None:
+def ForEachUntilValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until finding a specific value.
 
     Args:
@@ -326,7 +326,7 @@ def ForEachUntilValue[T](items: Iterable[T], action: Callable[[int, T], None], v
         None if no items, DualValueBool with last index and status otherwise.
     """
     return ForEachUntil(items, Delegates.GetIndexedValueValueComparison(value), action)
-def ForEachUntilIndexAndValue[T](items: Iterable[T], action: Callable[[int, T], None], index: int, value: T) -> DualValueBool[int]|None:
+def ForEachUntilIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index and value.
 
     Args:
