@@ -10,7 +10,7 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator,
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import IFunctionBase, IFunction, IStruct, Function, Handle
+from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
@@ -365,24 +365,9 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
     def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
         return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
-class ArrayListBase[T](ArrayCollection[T]):
-    def __init__(self, length: int) -> None:
-        valueProvider: IFunctionBase[T] = self._GetValueProvider()
-
-        super().__init__(Array[IStruct[T]]((Handle[T](valueProvider) for _ in range(length))))
-    
-    @abstractmethod
-    def _GetValueProvider(self) -> IFunctionBase[T]:
-        pass
-class ArrayList[T](ArrayListBase[T]):
+class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
-        self.__func: IFunction[T] = func
-
-        super().__init__(length)
-    
-    @final
-    def _GetValueProvider(self) -> IFunctionBase[T]:
-        return self.__func
+        super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
