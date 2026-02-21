@@ -338,11 +338,11 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
     
     @final
     def Contains(self, value: T|object) -> bool:
-        return self._GetItems().Contains(value)
+        return value in self._GetItems().AsSequence()
     
     @final
     def Move(self, x: int, y: int) -> None:
-        return self._GetItems().Move(x, y)
+        self._GetItems().Move(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]:
@@ -367,18 +367,16 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
 
 class ArrayListBase[T](ArrayCollection[T]):
     def __init__(self, length: int) -> None:
-        valueProvider: IFunctionBase[T] = self._GetValueProvider()
-
-        super().__init__(Array[IStruct[T]]((Handle[T](valueProvider) for _ in range(length))))
+        super().__init__(Array[IStruct[T]]((Handle[T](self._GetValueProvider()) for _ in range(length))))
     
     @abstractmethod
     def _GetValueProvider(self) -> IFunctionBase[T]:
         pass
 class ArrayList[T](ArrayListBase[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
-        super().__init__(length)
-
         self.__func: IFunction[T] = func
+
+        super().__init__(length)
     
     @final
     def _GetValueProvider(self) -> IFunctionBase[T]:
