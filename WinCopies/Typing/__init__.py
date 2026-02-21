@@ -66,30 +66,12 @@ class IEquatableObject[T](IEquatable[T|object], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 
-class ISortableItem(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def CompareTo(self, item: IEquatableItem) -> bool|None:
-        pass
-class ISortable[T](IInterface):
+class IComparable[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def CompareTo(self, item: T) -> bool|None:
-        pass
-
-class IComparableItem(IEquatableItem, ISortableItem):
-    def __init__(self) -> None:
-        super().__init__()
-class IComparable[T: IEquatableItem](ISortable[T], ISortableItem):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def CompareTo(self, item: T|IEquatableItem) -> bool|None:
         pass
 
 def GetDisposedError() -> InvalidOperationError:
