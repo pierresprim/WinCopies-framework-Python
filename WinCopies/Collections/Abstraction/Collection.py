@@ -299,13 +299,13 @@ class SizedList[T](ListBase[T], ISizedList[T]):
         return self.TryInsertAt(index, value) is True
     
     @staticmethod
-    def CreateSizedList(length: int) -> ISizedList[T]:
+    def Create(length: int) -> ISizedList[T]:
         return SizedList[T](_SizedListLengthInitializer[T](length))
 
 def CreateSizedList[T](items: MutableSequenceBase[T]) -> ISizedList[T]:
     return SizedList[T](_SizedListSequenceInitializer[T](items))
 def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> ISizedList[T]|None:
-    return SizedList[T].CreateSizedList(length) if items is None else (None if length < len(items) else SizedList[T](_SizedListInitializer[T](length, items)))
+    return SizedList[T].Create(length) if items is None else (None if length < len(items) else SizedList[T](_SizedListInitializer[T](length, items)))
 
 class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], IArray[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
