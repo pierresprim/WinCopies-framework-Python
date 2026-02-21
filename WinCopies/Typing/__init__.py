@@ -6,28 +6,6 @@ from typing import final, Type as SystemType
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 from WinCopies.Typing.Delegate import Converter
 
-class IStruct[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def GetValue(self) -> T:
-        pass
-    @abstractmethod
-    def SetValue(self, value: T) -> None:
-        pass
-class Struct[T](Abstract, IStruct[T]):
-    def __init__(self, value: T) -> None:
-        super().__init__()
-
-        self.__value: T = value
-    
-    @final
-    def GetValue(self) -> T:
-        return self.__value
-    def SetValue(self, value: T) -> None:
-        self.__value = value
-
 class InvalidOperationError(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
