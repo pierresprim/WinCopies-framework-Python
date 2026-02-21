@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Collection import ArrayList, List as Inde
 from WinCopies.Collections.Extensions import IList as IIndexableList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue
-from WinCopies.Typing.Delegate import IFunction
+from WinCopies.Typing.Delegate import IFunction, Converter
 from WinCopies.Typing.Generic import GenericConstraint
 from WinCopies.Typing.Object import IEnumValue, EnumValue
 
@@ -75,6 +75,31 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     @final
     def __GetAt(self, index: int) -> IList[T]:
         return self._GetItems().GetAt(index)
+    
+    @final
+    def __TryGet(self, converter: Converter[int, INullable[T]]) -> INullable[T]:
+        def removeAt(index: int) -> None:
+            self._GetIndices().RemoveAt(index)
+        
+        index: int|None = self.__TryPeek()
+        
+        if index is None:
+            return GetNullValue()
+        
+        result: INullable[T] = converter(index)
+
+        if result.HasValue():
+            return result
+        
+        removeAt(index)
+
+        while (index := self.__TryPeek()) is not None:
+            if (result := converter(index)).HasValue():
+                return result
+            
+            removeAt(index)
+        
+        return GetNullValue()
 
     @final
     def IsEmpty(self) -> bool:
@@ -100,59 +125,11 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     
     @final
     def TryPeek(self) -> INullable[T]:
-        def tryPeek(index: int) -> INullable[T]:
-            return self.__GetAt(index).TryPeek()
-        
-        def removeAt(index: int) -> None:
-            self._GetIndices().RemoveAt(index)
-        
-        index: int|None = self.__TryPeek()
-        
-        if index is None:
-            return GetNullValue()
-        
-        result: INullable[T] = tryPeek(index)
-
-        if result.HasValue():
-            return result
-        
-        removeAt(index)
-
-        while (index := self.__TryPeek()) is not None:
-            if (result := tryPeek(index)).HasValue():
-                return result
-            
-            removeAt(index)
-        
-        return GetNullValue()
+        return self.__TryGet(lambda index: self.__GetAt(index).TryPeek())
     
     @final
     def TryPop(self) -> INullable[T]:
-        def tryPop(index: int) -> INullable[T]:
-            return self.__GetAt(index).TryPop()
-        
-        def removeAt(index: int) -> None:
-            self._GetIndices().RemoveAt(index)
-        
-        index: int|None = self.__TryPeek()
-        
-        if index is None:
-            return GetNullValue()
-        
-        result: INullable[T] = tryPop(index)
-
-        if result.HasValue():
-            return result
-        
-        removeAt(index)
-
-        while (index := self.__TryPeek()) is not None:
-            if (result := tryPop(index)).HasValue():
-                return result
-            
-            removeAt(index)
-        
-        return GetNullValue()
+        return self.__TryGet(lambda index: self.__GetAt(index).TryPop())
     
     @final
     def Clear(self) -> None:
