@@ -338,7 +338,7 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
     
     @final
     def Contains(self, value: T|object) -> bool:
-        return value in self._GetItems().AsSequence()
+        return value in self.AsSequence()
     
     @final
     def Move(self, x: int, y: int) -> None:
