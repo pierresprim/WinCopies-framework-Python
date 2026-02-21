@@ -3,6 +3,7 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
+from WinCopies.Math import CompareTo
 from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparable as IComparableBase
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
@@ -92,7 +93,7 @@ class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
     def GetUnderlyingValue(self) -> TValue:
         return self.GetValue()
 
-class IBoolean(IValueObject[bool, 'IBoolean']):
+class IBoolean(IComparableValueObject[bool, 'IBoolean']):
     def __init__(self) -> None:
         super().__init__()
 class __Boolean(Abstract, IBoolean):
@@ -107,6 +108,9 @@ class __Boolean(Abstract, IBoolean):
             return self.GetValue() == item
         
         return (isinstance(item, IBoolean) and equals(item.GetValue())) or (isinstance(item, bool) and equals(item))
+    
+    def CompareTo(self, item: IBoolean) -> bool|None:
+        return CompareTo(self.GetValue(), item.GetValue())
     
     def Hash(self) -> int:
         return hash(self.GetValue())
@@ -137,7 +141,7 @@ def GetTrueObject() -> IBoolean:
 def GetFalseObject() -> IBoolean:
     return __false
 
-class IInteger(IValueObject[int, 'IInteger']):
+class IInteger(IComparableValueObject[int, 'IInteger']):
     def __init__(self) -> None:
         super().__init__()
 class Integer(ValueObject[int, IInteger], IInteger):
@@ -154,13 +158,16 @@ class Integer(ValueObject[int, IInteger], IInteger):
         
         return (isinstance(item, IInteger) and equals(item.GetValue())) or (isinstance(item, int) and equals(item))
     
+    def CompareTo(self, item: IInteger) -> bool|None:
+        return CompareTo(self.GetValue(), item.GetValue())
+    
     def Hash(self) -> int:
         return hash(self.GetValue())
     
     def ToString(self) -> str:
         return str(self.GetValue())
 
-class IEnumValue[T: Enum](IValueObject[T, 'IEnumValue[T]']):
+class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, 'IEnumValue[T]']):
     def __init__(self) -> None:
         super().__init__()
 class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
@@ -176,6 +183,9 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
             return self.GetValue() == item
         
         return (isinstance(item, IEnumValue) and equals(item.GetValue())) or (isinstance(item, Enum) and equals(item)) # pyright: ignore[reportUnknownArgumentType]
+    
+    def CompareTo(self, item: IEnumValue[T]) -> bool|None:
+        return CompareTo(self.GetUnderlyingValue(), item.GetUnderlyingValue())
     
     def Hash(self) -> int:
         return hash(self.GetValue().value)
