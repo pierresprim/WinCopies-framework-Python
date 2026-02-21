@@ -235,9 +235,6 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
     @abstractmethod
     def _Convert(self, level: TLevel) -> int:
         pass
-    @abstractmethod
-    def _ConvertBack(self, index: int) -> TLevel:
-        pass
 
     @final
     def _TryGetItemsAt(self, index: int) -> IList[TItem]|None:
@@ -293,11 +290,6 @@ class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
     @final
     def _Convert(self, level: IEnumValue[PriorityLevel]) -> int:
         return level.GetUnderlyingValue()
-    @final
-    def _ConvertBack(self, index: int) -> IEnumValue[PriorityLevel]:
-        result: IEnumValue[PriorityLevel]|None = EnumValue[PriorityLevel].TryCreate(PriorityLevel, index)
-
-        return EnumValue[PriorityLevel](PriorityLevel.Normal) if result is None else result
 
 class PriorityItemQueue[T](PriorityItemList[T]):
     def __init__(self) -> None:
@@ -393,10 +385,6 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
 class PriorityList[T](PriorityListBase[T, IEnumValue[PriorityLevel]]):
     def __init__(self) -> None:
         super().__init__()
-    
-    @final
-    def _Compare(self, x: IEnumValue[PriorityLevel], y: IEnumValue[PriorityLevel]) -> bool|None:
-        return x.CompareTo(y)
     
     @final
     def GetNormalLevel(self) -> IEnumValue[PriorityLevel]:
