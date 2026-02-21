@@ -18,17 +18,34 @@ type IndexedValueAction[T] = IndexedValueFunction[T, None]
 type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
 type Selector[T] = Converter[T, T]
 
-class IFunction[T](IInterface):
+class IFunctionBase[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def GetValue(self) -> T:
         pass
+class IFunction[T](IFunctionBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
     @final
     def __call__(self) -> T:
         return self.GetValue()
+class IMethodBase[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def SetValue(self, value: T) -> None:
+        pass
+class IMethod[T](IMethodBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @final
+    def __call__(self, value: T) -> None:
+        self.SetValue(value)
 
 @final
 class ValueFunction[T](Abstract, IFunction[T]):
@@ -94,6 +111,29 @@ __getDefaultFunction: IFunction[None] = __DefaultFunction()
 
 def GetDefaultFunction() -> IFunction[None]:
     return __getDefaultFunction
+
+@final
+class _ValueProviderUpdater[T](ValueFunctionUpdater[T]):
+    def __init__(self, valueProvider: IFunction[T], updater: Method[IFunction[T]]) -> None:
+        super().__init__(updater)
+
+        self.__valueProvider: IFunction[T] = valueProvider
+    
+    def _GetValue(self) -> T:
+        return self.__valueProvider.GetValue()
+
+@final
+class ValueProvider[T](Abstract, IFunction[T]):
+    def __init__(self, valueProvider: IFunction[T]) -> None:
+        def update(func: IFunction[T]) -> None:
+            self.__valueProvider = func
+        
+        super().__init__()
+
+        self.__valueProvider: IFunction[T] = _ValueProviderUpdater[T](valueProvider, update) # type: ignore[no-redef]
+    
+    def GetValue(self) -> T:
+        return self.__valueProvider.GetValue()
 
 class IStruct[T](IInterface):
     def __init__(self) -> None:
