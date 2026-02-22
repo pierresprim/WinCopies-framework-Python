@@ -11,6 +11,53 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerat
 
 from WinCopies.Typing.Delegate import Converter, Method, IFunction, ValueFunctionUpdater
 
+class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def OnStartingEnumeration(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def OnEnteringEnumerationLevel(self, item: TItem) -> None:
+        pass
+    @abstractmethod
+    def OnExitingEnumerationLevel(self, cookie: TCookie) -> None:
+        pass
+    
+    @abstractmethod
+    def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
+        pass
+    @abstractmethod
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
+        pass
+    
+    @abstractmethod
+    def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
+        pass
+    @abstractmethod
+    def OnExitingSubenumerationLevel(self, cookie: TCookie) -> bool|None:
+        pass
+    
+    @abstractmethod
+    def OnStoppedEnumeration(self) -> None:
+        pass
+
+class IRecursiveStackedEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IRecursiveEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, None]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[T]:
+        pass
+
+def TryAsStackHandler[T](delegate: IRecursiveEnumerationHandler[T]|None) -> IRecursiveStackedEnumerationHandler[T]|None:
+    return None if delegate is None else delegate.AsStackHandler()
+
 class IRecursivelyScannable[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -49,53 +96,6 @@ class IRecursivelyEnumerable[T](IRecursivelyScannable[T], IEnumerable[T]):
         pass
     def AsRecursivelyIterable(self) -> Iterable[T]:
         return self.AsRecursivelyEnumerable().AsIterable()
-
-class IRecursiveEnumerationHandlerBase[TItem, TCookie](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def OnStartingEnumeration(self) -> bool:
-        pass
-    
-    @abstractmethod
-    def OnEnteringEnumerationLevel(self, item: TItem) -> None:
-        pass
-    @abstractmethod
-    def OnExitingEnumerationLevel(self, cookie: TCookie) -> None:
-        pass
-    
-    @abstractmethod
-    def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
-        pass
-    @abstractmethod
-    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
-        pass
-    
-    @abstractmethod
-    def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
-        pass
-    @abstractmethod
-    def OnExitingSubenumerationLevel(self, cookie: TCookie) -> bool|None:
-        pass
-    
-    @abstractmethod
-    def OnStoppedEnumeration(self) -> None:
-        pass
-
-class IRecursiveEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, None]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def AsStackHandler(self) -> IRecursiveStackedEnumerationHandler[T]:
-        pass
-class IRecursiveStackedEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, T]):
-    def __init__(self) -> None:
-        super().__init__()
-
-def TryAsStackHandler[T](delegate: IRecursiveEnumerationHandler[T]|None) -> IRecursiveStackedEnumerationHandler[T]|None:
-    return None if delegate is None else delegate.AsStackHandler()
 
 @final
 class _Handler[T](Abstract, IRecursiveStackedEnumerationHandler[T]):
