@@ -1,5 +1,5 @@
 """
-Tests unitaires pour les listes doublement chaînées (WinCopies.Collections.Linked.Doubly)
+Unit tests for doubly linked lists (WinCopies.Collections.Linked.Doubly)
 """
 
 import unittest
