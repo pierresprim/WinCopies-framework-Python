@@ -480,49 +480,49 @@ class _GeneratorAbstract(Abstract):
 
 class _GeneratorInitializer(_GeneratorAbstract):
     def __init__(self) -> None:
-        def moveNext(nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None:
-            def getMoveNext(value: object) -> Callable[[Function[Item|None], Method[_GeneratorAbstract]], INullable[DualResult[INode|None, Event]]|None]:
-                def moveNext(key: str, value: object, event: Event, generator: _GeneratorBase) -> INullable[DualResult[INode|None, Event]]|None:
-                    self._SetResult(key, value, event, generator.GetHandler())
-
-                    updater(generator)
-
-                    return GetNullValue()
-                
-                return lambda nextItemProvider, updater: moveNext(key, value, event, generator)
-            
-            def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]:
-                return self._GetResult(generator, event, updater)
-            
-            item: Item|None = nextItemProvider()
-
-            if item is None:
-                return None
-            
-            key: str = item.GetKey()
-            event: Event = item.GetEvent()
-            
-            match event:
-                case Event.StartMap:
-                    return getResult(self.Start(key), event)
-                case Event.StartArray:
-                    return getResult(self.StartArray(key), event)
-                
-                case Event.EndMap | Event.EndArray:
-                    return GetNullable(DualResult[INode|None, Event](None, event))
-                
-                case _:
-                    generator: _GeneratorBase = self.StartArray(key)
-
-                    self.__moveNext = getMoveNext(item.GetValue())
-
-                    return GetNullable(DualResult[INode|None, Event](generator.TryGetNode(), Event.StartArray))
-            
-            return None
-
         super().__init__()
 
-        self.__moveNext: Callable[[Function[Item|None], Method[_GeneratorAbstract]], INullable[DualResult[INode|None, Event]]|None] = moveNext # type: ignore[no-redef]
+        self.__moveNext: Callable[[Function[Item|None], Method[_GeneratorAbstract]], INullable[DualResult[INode|None, Event]]|None] = self.__MoveNext
+    
+    @final
+    def __MoveNext(self, nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None:
+        def moveNext(key: str, value: object, event: Event, generator: _GeneratorBase) -> INullable[DualResult[INode|None, Event]]|None:
+            self._SetResult(key, value, event, generator.GetHandler())
+
+            updater(generator)
+            
+            self.__moveNext = self.__MoveNext
+
+            return GetNullValue()
+        
+        def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]:
+            return self._GetResult(generator, event, updater)
+        
+        item: Item|None = nextItemProvider()
+
+        if item is None:
+            return None
+        
+        key: str = item.GetKey()
+        event: Event = item.GetEvent()
+        
+        match event:
+            case Event.StartMap:
+                return getResult(self.Start(key), event)
+            case Event.StartArray:
+                return getResult(self.StartArray(key), event)
+            
+            case Event.EndMap | Event.EndArray:
+                return GetNullable(DualResult[INode|None, Event](None, event))
+            
+            case _:
+                generator: _GeneratorBase = self.StartArray(key)
+
+                self.__moveNext = lambda nextItemProvider, updater: moveNext(key, item.GetValue(), event, generator)
+
+                return GetNullable(DualResult[INode|None, Event](generator.TryGetNode(), Event.StartArray))
+        
+        return None
     
     @final
     def TryGetNode(self) -> INode|None:
