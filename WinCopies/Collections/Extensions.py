@@ -753,7 +753,6 @@ class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T]
     
     def _GetInnerContainerAsList(self, container: IList[T]) -> IList[T]:
         return container
-    @final
     def _GetSpecializedContainerAsList(self, container: IList[T]) -> IList[T]:
         return container
     
