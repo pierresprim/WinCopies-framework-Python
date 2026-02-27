@@ -102,6 +102,10 @@ strict = true
 module = "Tests.*"
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = "ijson.*"
+ignore_missing_imports = true
+
 
 # ============================================================================
 # PYTEST CONFIGURATION - Tests
