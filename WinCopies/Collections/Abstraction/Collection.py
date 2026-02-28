@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from bisect import bisect_left, bisect_right, insort_left, insort_right
 from collections.abc import Iterable, Iterator, Sequence, MutableSequence as MutableSequenceBase, MutableMapping
+from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Enumeration, Extensions, Move
+from WinCopies.Collections import Enumeration, Extensions, FindIndex, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleEnumerator, MutableSequence
-from WinCopies.Typing import INullable, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, TupleEnumerator, MutableSequence
+from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Handle
+from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleAbstract[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstract[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -29,6 +31,9 @@ class TupleAbstract[TItem, TSequence](Extensions.Sequence[TItem], Extensions.Tup
     @final
     def Contains(self, value: TItem|object) -> bool:
         return value in self._GetInnerContainer()
+class TupleAbstract[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Extensions.TupleAbstract[TItem]):
+    def __init__(self) -> None:
+        super().__init__()
 class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.TupleBase[TItem]):
     def __init__(self, items: TSequence) -> None:
         super().__init__()
@@ -75,7 +80,10 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class ArrayAbstract[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.ArrayAbstract[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Extensions.ArrayAbstractBase[TItem, IArrayBase[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+    def __init__(self) -> None:
+        super().__init__()
+class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Extensions.ArrayAbstract[TItem, IArray[TItem]]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -112,7 +120,7 @@ class SizedArray[T](Array[T]):
     def _GetDefaultValue(self) -> T:
         pass
 
-class ListBase[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|None) -> None:
         super().__init__()
 
@@ -121,18 +129,6 @@ class ListBase[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], 
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]:
         return self.__items
-    
-    @final
-    def Move(self, x: int, y: int) -> None:
-        Move(self._GetContainer(), x, y)
-    
-    @final
-    def Swap(self, x: int, y: int) -> None:
-        super().Swap(x, y)
-    
-    @final
-    def SliceAt(self, key: slice) -> IList[T]:
-        return List[T](self._GetContainer()[key])
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -152,6 +148,21 @@ class ListBase[T](ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], 
     
     def ToString(self) -> str:
         return str(self._GetContainer())
+class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T]):
+    def __init__(self, items: MutableSequenceBase[T]|None) -> None:
+        super().__init__(items)
+    
+    @final
+    def Move(self, x: int, y: int) -> None:
+        Move(self._GetContainer(), x, y)
+    
+    @final
+    def Swap(self, x: int, y: int) -> None:
+        super().Swap(x, y)
+    
+    @final
+    def SliceAt(self, key: slice) -> IList[T]:
+        return List[T](self._GetContainer()[key])
     
     @final
     def insert(self, index: int, value: T) -> None:
@@ -368,6 +379,40 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
+
+class SortedList[T: IComparableValue](ListAbstract[T], Sequence[T], Extensions.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
+        super().__init__(items)
+    
+    @final
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return bisect_left(self.AsSequence(), item) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
+    @final
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return bisect_right(self.AsSequence(), item) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
+    
+    @final
+    def AddLeft(self, item: T) -> None:
+        return insort_left(self._GetContainer(), item)
+    @final
+    def Add(self, item: T) -> None:
+        return insort_right(self._GetContainer(), item)
+    @final
+    def AddItems(self, items: Iterable[T]) -> None:
+        self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
+    
+    @final
+    def SliceAt(self, key: slice) -> ISortedList[T]:
+        return SortedList[T](self._GetContainer()[key])
+    
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
+        return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
