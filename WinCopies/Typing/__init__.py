@@ -136,6 +136,9 @@ class IComparable[T](IInterface):
     def IsGreaterThanOrEqual(self, other: T) -> bool:
         """Greater than or equal comparison."""
         return self.CompareTo(other) is not False
+class IComparableObject[T](IComparable[T|object], IComparableValue, IEquatableObject[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
