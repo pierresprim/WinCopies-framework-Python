@@ -553,13 +553,24 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
 
-class IArray[T](ITuple[T], ICountableIndexable[T]):
+class IArrayBase[T](ITuple[T], ICountableIndexableBase):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> ITuple[T]:
         pass
+
+    @abstractmethod
+    def AsReversed(self) -> IArrayBase[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IArrayBase[T]:
+        pass
+class IArray[T](IArrayBase[T], ICountableIndexable[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def AsReversed(self) -> IArray[T]:
@@ -569,7 +580,23 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 
-class IList[T](IArray[T], ICountableList[T]):
+class IListBase[T](IArrayBase[T], ICountableList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def AsReversed(self) -> IListBase[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IListBase[T]:
+        pass
+    
+    @final
+    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
+        return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
+
+class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -588,10 +615,21 @@ class IList[T](IArray[T], ICountableList[T]):
     def Insert(self, index: int, value: T) -> None:
         if not self.TryInsert(index, value):
             raise IndexError(index)
+class ISortedList[T](IListBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
-    @final
-    def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
-        return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
+    @abstractmethod
+    def AddLeft(self, item: T) -> None:
+        pass
+
+    @abstractmethod
+    def AsReversed(self) -> ISortedList[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> ISortedList[T]:
+        pass
 
 class IReadOnlySet(ICountable, IReadOnlyCollection):
     def __init__(self) -> None:
@@ -668,11 +706,17 @@ class Tuple[T](Abstract, ITuple[T]):
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
 
-class Array[T](Tuple[T], IArray[T]):
+class ArrayBase[T](Tuple[T], IArrayBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class Array[T](ArrayBase[T], IArray[T]):
     def __init__(self) -> None:
         super().__init__()
 
 class List[T](Array[T], IList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class SortedList[T](ArrayBase[T], ISortedList[T]):
     def __init__(self) -> None:
         super().__init__()
 
