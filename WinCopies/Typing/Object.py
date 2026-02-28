@@ -5,7 +5,8 @@ from typing import final, Type as TypeBase
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.Math import CompareTo
-from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparable as IComparableBase
+from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
+from WinCopies.Typing.Reflection import IsOf
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
     def __init__(self) -> None:
@@ -22,10 +23,10 @@ class Object[T](Abstract, IObject[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IComparable[T](IEquatableObject[T], IComparableBase[T]):
+class IComparableObject[T](IEquatableObject[T], IComparableObjectBase[T]):
     def __init__(self) -> None:
         super().__init__()
-class IComparableObject[T: IEquatableItem](IObject[T], IComparable[T]):
+class IComparableItem[T: IEquatableItem](IObject[T], IComparableObject[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -52,7 +53,7 @@ class IComplexValueProvider[T](IValueProvider):
     def GetUnderlyingValue(self) -> T:
         pass
 
-class IComparableValue[T](IComparable[T], IValueItem):
+class IComparableValue[T](IComparableObject[T], IValueItem):
     def __init__(self) -> None:
         super().__init__()
 class IValueObject[TValue, TObject](IObject[TObject], IValueItem):
@@ -94,7 +95,7 @@ class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
     def GetUnderlyingValue(self) -> TValue:
         return self.GetValue()
 
-class IBoolean(IComparableValueObject[bool, 'IBoolean']):
+class IBoolean(IComparableValueObject[bool, 'IBoolean|bool']):
     def __init__(self) -> None:
         super().__init__()
 class __Boolean(Abstract, IBoolean):
@@ -104,14 +105,17 @@ class __Boolean(Abstract, IBoolean):
     def GetUnderlyingValue(self) -> bool:
         return self.GetValue()
     
-    def Equals(self, item: IBoolean|object) -> bool:
-        def equals(item: int) -> bool:
+    def Equals(self, item: IBoolean|bool|object) -> bool:
+        def equals(item: bool) -> bool:
             return self.GetValue() == item
         
         return (isinstance(item, IBoolean) and equals(item.GetValue())) or (isinstance(item, bool) and equals(item))
     
-    def CompareTo(self, item: IBoolean) -> bool|None:
-        return CompareTo(self.GetValue(), item.GetValue())
+    def CompareTo(self, item: IBoolean|bool|object) -> bool|None:
+        def compareTo(item: bool) -> bool|None:
+            return CompareTo(self.GetValue(), item)
+        
+        return (isinstance(item, IBoolean) and compareTo(item.GetValue())) or (isinstance(item, bool) and compareTo(item))
     
     def Hash(self) -> int:
         return hash(self.GetValue())
@@ -142,10 +146,10 @@ def GetTrueObject() -> IBoolean:
 def GetFalseObject() -> IBoolean:
     return __false
 
-class IInteger(IComparableValueObject[int, 'IInteger']):
+class IInteger(IComparableValueObject[int, 'IInteger|int']):
     def __init__(self) -> None:
         super().__init__()
-class Integer(ValueObject[int, IInteger], IInteger):
+class Integer(ValueObject[int, IInteger|int], IInteger):
     def __init__(self, value: int) -> None:
         super().__init__(value)
     
@@ -153,14 +157,17 @@ class Integer(ValueObject[int, IInteger], IInteger):
     def FromEnum(value: Enum) -> IInteger:
         return Integer(value.value)
     
-    def Equals(self, item: IInteger|object) -> bool:
+    def Equals(self, item: IInteger|int|object) -> bool:
         def equals(item: int) -> bool:
             return self.GetValue() == item
         
         return (isinstance(item, IInteger) and equals(item.GetValue())) or (isinstance(item, int) and equals(item))
     
-    def CompareTo(self, item: IInteger) -> bool|None:
-        return CompareTo(self.GetValue(), item.GetValue())
+    def CompareTo(self, item: IInteger|int|object) -> bool|None:
+        def compareTo(item: int) -> bool|None:
+            return CompareTo(self.GetValue(), item)
+        
+        return (isinstance(item, IBoolean) and compareTo(item.GetValue())) or (isinstance(item, int) and compareTo(item))
     
     def Hash(self) -> int:
         return hash(self.GetValue())
@@ -168,25 +175,42 @@ class Integer(ValueObject[int, IInteger], IInteger):
     def ToString(self) -> str:
         return str(self.GetValue())
 
-class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, 'IEnumValue[T]']):
+class IEnum(IInterface):
     def __init__(self) -> None:
         super().__init__()
-class EnumValue[T: Enum](ValueObjectBase[T, int, IEnumValue[T]], IEnumValue[T]):
+    
+    @abstractmethod
+    def GetEnumValue(self) -> Enum:
+        pass
+class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, IEnum|Enum], IEnum):
+    def __init__(self) -> None:
+        super().__init__()
+class EnumValue[T: Enum](ValueObjectBase[T, int, IEnum|Enum], IEnumValue[T]):
     def __init__(self, value: T) -> None:
         super().__init__(value)
     
     @final
+    def GetEnumValue(self) -> Enum:
+        return self.GetValue()
+    @final
     def GetUnderlyingValue(self) -> int:
         return int(self.GetValue().value)
     
-    def Equals(self, item: IEnumValue[T]|object) -> bool:
+    @final
+    def IsSameAs(self, value: Enum) -> bool:
+        return IsOf(self.GetValue(), type(value))
+    
+    def Equals(self, item: IEnum|object) -> bool:
         def equals(item: Enum) -> bool:
             return self.GetValue() == item
         
-        return (isinstance(item, IEnumValue) and equals(item.GetValue())) or (isinstance(item, Enum) and equals(item)) # pyright: ignore[reportUnknownArgumentType]
+        return (isinstance(item, IEnum) and equals(item.GetEnumValue())) or (isinstance(item, Enum) and equals(item))
     
-    def CompareTo(self, item: IEnumValue[T]) -> bool|None:
-        return CompareTo(self.GetUnderlyingValue(), item.GetUnderlyingValue())
+    def CompareTo(self, item: IEnumValue[T]|object) -> bool|None:
+        def compareTo(item: Enum) -> bool|None:
+            return self.IsSameAs(item) and CompareTo(self.GetUnderlyingValue(), item.value)
+        
+        return (isinstance(item, IEnum) and compareTo(item.GetEnumValue())) or (isinstance(item, Enum) and compareTo(item))
     
     def Hash(self) -> int:
         return hash(self.GetValue().value)
