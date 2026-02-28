@@ -116,6 +116,26 @@ class IComparable[T](IInterface):
     @abstractmethod
     def CompareTo(self, item: T) -> bool|None:
         pass
+    
+    @final
+    def IsLessThan(self, other: T) -> bool:
+        """Less than comparison."""
+        return self.CompareTo(other) is False
+    
+    @final
+    def IsLessThanOrEqual(self, other: T) -> bool:
+        """Less than or equal comparison."""
+        return self.CompareTo(other) is not True
+    
+    @final
+    def IsGreaterThan(self, other: T) -> bool:
+        """Greater than comparison."""
+        return self.CompareTo(other) is True
+    
+    @final
+    def IsGreaterThanOrEqual(self, other: T) -> bool:
+        """Greater than or equal comparison."""
+        return self.CompareTo(other) is not False
 
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
