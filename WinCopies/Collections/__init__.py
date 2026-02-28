@@ -454,13 +454,6 @@ class ISetter[TKey, TValue](IKeyableBase[TKey]):
         if not self.TrySetAt(key, value):
             raise KeyError(f"Key {key} does not exist.")
 
-class IReadOnlyKeyable[TKey, TValue](IGetter[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
-class IWriteOnlyKeyable[TKey, TValue](ISetter[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
-
 class IReadOnlyIndexable[T](IGetter[int, T]):
     def __init__(self) -> None:
         super().__init__()
@@ -468,11 +461,11 @@ class IReadOnlyIndexable[T](IGetter[int, T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyIndexable[T]:
         pass
-class IWriteOnlyIndexable[T](IWriteOnlyKeyable[int, T]):
+class IWriteOnlyIndexable[T](ISetter[int, T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyable[TKey, TValue]):
+class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -485,9 +478,6 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], IWriteOnlyKeyabl
 
         self.SetAt(x, self.GetAt(y))
         self.SetAt(y, value)
-class IKeyable[TKey, TValue](IReadWriteCollection[TKey, TValue], IReadOnlyKeyable[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
 
 class ICountableIndexableBase(IKeyableBase[int], ICountable):
     def __init__(self) -> None:
@@ -632,10 +622,10 @@ class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
     def TryRemove(self, item: T) -> bool:
         pass
 
-class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IReadOnlyKeyable[TKey, TValue], ICountable):
+class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IGetter[TKey, TValue], ICountable):
     def __init__(self) -> None:
         super().__init__()
-class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IKeyable[TKey, TValue], IClearable):
+class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
