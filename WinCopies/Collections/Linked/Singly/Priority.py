@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from bisect import insort_left
 from enum import Enum
 from typing import Iterable, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import IArray
-from WinCopies.Collections.Abstraction.Collection import ArrayList, List as IndexableList
-from WinCopies.Collections.Extensions import IList as IIndexableList
+from WinCopies.Collections.Abstraction.Collection import ArrayList, SortedList
+from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue
 from WinCopies.Typing.Delegate import IFunction, Converter
 from WinCopies.Typing.Generic import GenericConstraint
-from WinCopies.Typing.Object import IEnumValue, EnumValue
+from WinCopies.Typing.Object import IInteger, IEnumValue, Integer, EnumValue
 
 class PriorityLevel(Enum):
     Lowest = -4
@@ -57,7 +56,7 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__indices: IIndexableList[int] = IndexableList[int]()
+        self.__indices: ISortedList[IInteger] = SortedList[IInteger]()
     
     @abstractmethod
     def _ClearArray(self) -> None:
@@ -67,12 +66,14 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     def _GetItems(self) -> IArray[IList[T]]:
         pass
     @final
-    def _GetIndices(self) -> IIndexableList[int]:
+    def _GetIndices(self) -> ISortedList[IInteger]:
         return self.__indices
     
     @final
     def __TryPeek(self) -> int|None:
-        return self._GetIndices().TryGetLastItem().TryGetValue()
+        result: IInteger|None = self._GetIndices().TryGetLastItem().TryGetValue()
+
+        return None if result is None else result.GetValue()
     
     @final
     def __GetAt(self, index: int) -> IList[T]:
@@ -81,7 +82,7 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
     @final
     def __TryGet(self, converter: Converter[int, INullable[T]]) -> INullable[T]:
         def removeAt(index: int) -> None:
-            self._GetIndices().Remove(index)
+            self._GetIndices().Remove(Integer(index))
         
         index: int|None = self.__TryPeek()
         
@@ -116,10 +117,10 @@ class PriorityListDictionaryAbstract[T](Abstract, IPriorityListDictionary[T]):
         items: IArray[IList[T]] = self._GetItems()
 
         if items.ValidateIndex(index):
-            indices: IIndexableList[int] = self._GetIndices()
+            indices: ISortedList[IInteger] = self._GetIndices()
 
             if not indices.Contains(index):
-                insort_left(indices.AsMutableSequence(), index)
+                indices.Add(Integer(index))
 
             return self._GetItems().GetAt(index)
         
