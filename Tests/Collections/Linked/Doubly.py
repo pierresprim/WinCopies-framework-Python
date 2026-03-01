@@ -20,7 +20,7 @@ from WinCopies.Collections.Linked.Doubly import (
 )
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Delegate import Method, Converter
 
 def __populateList(l: IReadWriteList[int], action: Callable[[IReadWriteList[int], int], INode[int]], value: int = 3) -> None:
     for i in range(0, value):
@@ -38,19 +38,18 @@ def assertNotEmpty[T](test: unittest.TestCase, l: IReadOnlyList[T]) -> None:
     test.assertFalse(l.IsEmpty())
     test.assertTrue(l.HasItems())
 
-def assertNotNone[T](test: unittest.TestCase, value: T|None) -> T:
+def assertNotNone[T](test: unittest.TestCase, value: T|None, action: Method[T]) -> None:
     if value is None:
         test.assertIsNotNone(value)
 
         raise SystemError()
     
-    return value
+    action(value)
 
 def assertNodeValue[T](test: unittest.TestCase, l: IList[T], node: IDoublyLinkedNode[T]|None, value: T) -> None:
     assertNotEmpty(test, l)
 
-    test.assertIsNotNone(node)
-    test.assertEqual(assertNotNone(test, node).GetValue(), value)
+    assertNotNone(test, node, lambda node: test.assertEqual(node.GetValue(), value))
 
 def assertNullValue[T](test: unittest.TestCase, l: IList[T], value: INullable[T]) -> None:
     assertEmpty(test, l)
@@ -76,39 +75,48 @@ def assertValueAndEmpty[T](test: unittest.TestCase, l: IList[T], expected: T, ac
     assertEmpty(test, l)
 
 def assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConverter: Converter[IList[int], IEnumerator[T]|None], valueConverter: Converter[T, int]) -> None:
+    def enumerate(enumerator: IEnumerator[T]) -> None:
+        values: PyList[int] = []
+        
+        for value in enumerator.AsIterator():
+            values.append(valueConverter(value))
+
+        test.assertEqual(values, [1, 2, 3])
+
     populateList(l)
-
-    enumerator: IEnumerator[T] = assertNotNone(test, enumeratorConverter(l))
-    values: PyList[int] = []
-    
-    for value in enumerator.AsIterator():
-        values.append(valueConverter(value))
-
-    test.assertEqual(values, [1, 2, 3])
+    assertNotNone(test, enumeratorConverter(l), enumerate)
 
 def assertNext(test: unittest.TestCase, l: IList[int], value: int, action: Callable[[IDoublyLinkedNode[int], int], IDoublyLinkedNode[int]], values: tuple[int, int]) -> None:
-    node: IDoublyLinkedNode[int] = assertNotNone(test, l.GetFirst())
-
-    def assertNext(expected: int) -> None:
-        nonlocal node
-
-        test.assertEqual((node := assertNotNone(test, node.GetNext())).GetValue(), expected)
+    def _assertNotNone[T](value: T|None, action: Method[T]) -> None:
+        assertNotNone(test, value, action)
     
-    test.assertIsNotNone(action(assertNotNone(test, assertNotNone(test, l.GetFirst()).GetNext()), value))
+    def assertNext(node: IDoublyLinkedNode[int]) -> None:
+        def assertNext(expected: int) -> None:
+            def assertNext(_node: IDoublyLinkedNode[int]) -> None:
+                nonlocal node
 
-    test.assertEqual(node.GetValue(), 1)
-    assertNext(values[0])
-    assertNext(values[1])
-    assertNext(3)
+                test.assertEqual((node := _node).GetValue(), expected)
+
+            _assertNotNone(node.GetNext(), assertNext)
+        
+        _assertNotNone(l.GetFirst(), lambda _node: _assertNotNone(_node.GetNext(), lambda __node: test.assertIsNotNone(action(__node, value))))
+
+        test.assertEqual(node.GetValue(), 1)
+        assertNext(values[0])
+        assertNext(values[1])
+        assertNext(3)
+
+    _assertNotNone(l.GetFirst(), assertNext)
 
 def assertRemoveNode(test: unittest.TestCase, l: IList[int], value: int, converter: Converter[IList[int], IDoublyLinkedNode[int]|None]) -> None:
-    node: IDoublyLinkedNode[int] = assertNotNone(test, converter(l))
+    def remove(node: IDoublyLinkedNode[int]) -> None:
+        removedValue = node.Remove()
 
-    removedValue = node.Remove()
+        test.assertEqual(removedValue, value)
+        # The new node must be 2
+        assertNotNone(test, converter(l), lambda _node: test.assertEqual(_node.GetValue(), 2))
 
-    test.assertEqual(removedValue, value)
-    # The new node must be 2
-    test.assertEqual(assertNotNone(test, converter(l)).GetValue(), 2)
+    assertNotNone(test, converter(l), remove)
 
 def assertCount[T](test: unittest.TestCase, l: ICountableList[T], value: int) -> None:
     test.assertEqual(l.GetCount(), value)
@@ -136,6 +144,25 @@ def assertRemoveAll(test: unittest.TestCase, l: IList[int], method: Converter[IR
         method(l)
     
     assertEmpty(test, l)
+
+def assertAddMultipleTimes(test: unittest.TestCase, l: IList[int], first: int, last: int) -> None:
+    def _assertNotNone[T](value: T|None, action: Converter[T, T|None]) -> None:
+        assertNotNone(test, value, lambda _value: test.assertIsNone(action(_value)))
+    def _assertNodeValue(node: IDoublyLinkedNode[int]|None, value: int) -> None:
+        assertNodeValue(test, l, node, value)
+    
+    def getFirst() -> IDoublyLinkedNode[int]|None:
+        return l.GetFirst()
+    def getLast() -> IDoublyLinkedNode[int]|None:
+        return l.GetLast()
+
+    populateListR(l)
+
+    _assertNodeValue(getFirst(), first)
+    _assertNodeValue(getLast(), last)
+
+    _assertNotNone(getFirst(), lambda node: node.GetPrevious())
+    _assertNotNone(getLast(), lambda node: node.GetNext())
 
 class TestList(unittest.TestCase):
     """Tests for the List[T] class - common doubly linked list."""
@@ -166,25 +193,11 @@ class TestList(unittest.TestCase):
 
     def test_add_first_multiple_items(self) -> None:
         """Add multiple items at the beginning (reversed order)"""
-        populateListR(self.__list)
-
-        # Item order should be: 3, 2, 1
-        assertNodeValue(self, self.__list, self.__list.GetFirst(), 3)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 1)
-
-        self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
-        self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
+        assertAddMultipleTimes(self, self.__list, 3, 1)
 
     def test_add_last_multiple_items(self) -> None:
         """Add multiple items at the end (preserved order)"""
-        populateList(self.__list)
-
-        # Item order should be: 1, 2, 3
-        assertNodeValue(self, self.__list, self.__list.GetFirst(), 1)
-        assertNodeValue(self, self.__list, self.__list.GetLast(), 3)
-
-        self.assertIsNone(assertNotNone(self, self.__list.GetFirst()).GetPrevious())
-        self.assertIsNone(assertNotNone(self, self.__list.GetLast()).GetNext())
+        assertAddMultipleTimes(self, self.__list, 1, 3)
 
     def test_add_mixed_first_and_last(self) -> None:
         """Add to both beginning and end"""
@@ -440,23 +453,18 @@ class TestListNode(unittest.TestCase):
 
     def test_node_get_next(self) -> None:
         """Navigate to the next node"""
-        first: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
-
-        assertNodeValue(self, self.__list, first.GetNext(), 2)
+        assertNotNone(self, self.__list.GetFirst(), lambda first: assertNodeValue(self, self.__list, first.GetNext(), 2))
 
     def test_node_get_previous(self) -> None:
         """Navigate to the previous node"""
-        last: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetLast())
-
-        assertNodeValue(self, self.__list, last.GetPrevious(), 2)
+        assertNotNone(self, self.__list.GetLast(), lambda last: assertNodeValue(self, self.__list, last.GetPrevious(), 2))
 
     def test_node_get_list(self) -> None:
         """Retrieve the list from a node"""
-        node: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
-
-        l: IList[int] = assertNotNone(self, node.GetList())
+        def assertGetList(node: IDoublyLinkedNode[int]) -> None:
+            assertNotNone(self, node.GetList(), lambda l: self.assertIs(l, self.__list))
         
-        self.assertIs(l, self.__list)
+        assertNotNone(self, self.__list.GetFirst(), assertGetList)
 
     def test_node_set_previous(self) -> None:
         """Insert a value before an existing node"""
@@ -468,23 +476,23 @@ class TestListNode(unittest.TestCase):
 
     def test_node_set_previous_at_first(self) -> None:
         """Inserting before the first node must create a new first"""
-        assertNotNone(self, assertNotNone(self, self.__list.GetFirst()).SetPrevious(0))
-
-        node: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
-
-        # Check that 0 has become the first value
-        self.assertEqual(node.GetValue(), 0)
-        self.assertEqual(assertNotNone(self, node.GetNext()).GetValue(), 1)
+        def assertEqual(node: IDoublyLinkedNode[int]) -> None:
+            # Check that 0 has become the first value
+            self.assertEqual(node.GetValue(), 0)
+            assertNotNone(self, node.GetNext(), lambda node: self.assertEqual(node.GetValue(), 1))
+        
+        assertNotNone(self, self.__list.GetFirst(), lambda first: self.assertIsNotNone(self, first.SetPrevious(0)))
+        assertNotNone(self, self.__list.GetFirst(), assertEqual)
 
     def test_node_set_next_at_last(self) -> None:
         """Inserting after the last node must create a new last"""
-        assertNotNone(self, assertNotNone(self, self.__list.GetLast()).SetNext(4))
-
-        node: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetLast())
-
-        # Check that 0 has become the last value
-        self.assertEqual(node.GetValue(), 4)
-        self.assertEqual(assertNotNone(self, node.GetPrevious()).GetValue(), 3)
+        def assertEqual(node: IDoublyLinkedNode[int]) -> None:
+            # Check that 0 has become the last value
+            self.assertEqual(node.GetValue(), 4)
+            assertNotNone(self, node.GetPrevious(), lambda node: self.assertEqual(node.GetValue(), 3))
+        
+        assertNotNone(self, self.__list.GetLast(), lambda last: self.assertIsNotNone(self, last.SetNext(4)))
+        assertNotNone(self, self.__list.GetLast(), assertEqual)
 
     def test_node_remove_first(self) -> None:
         """Remove the first node via Remove()"""
@@ -496,15 +504,14 @@ class TestListNode(unittest.TestCase):
 
     def test_node_remove_middle(self) -> None:
         """Remove a node at middle"""
-        middle: IDoublyLinkedNode[int] = assertNotNone(self, assertNotNone(self, self.__list.GetFirst()).GetNext())
+        def assertEqual(first: IDoublyLinkedNode[int]) -> None:
+            self.assertEqual(first.GetValue(), 1)
+            assertNotNone(self, first.GetNext(), lambda node: self.assertEqual(node.GetValue(), 3))
 
-        self.assertEqual(middle.Remove(), 2)
+        assertNotNone(self, self.__list.GetFirst(), lambda first: assertNotNone(self, first.GetNext(), lambda middle: self.assertEqual(middle.Remove(), 2)))
 
         # Structure should be: 1 -> 3
-        first: IDoublyLinkedNode[int] = assertNotNone(self, self.__list.GetFirst())
-
-        self.assertEqual(first.GetValue(), 1)
-        self.assertEqual(assertNotNone(self, first.GetNext()).GetValue(), 3)
+        assertNotNone(self, self.__list.GetFirst(), assertEqual)
 
     def test_node_remove_only_item(self) -> None:
         """Remove the only node"""
@@ -589,16 +596,11 @@ class TestCountableList(unittest.TestCase):
         """Enumerate a CountableList"""
         populateList(self.__list)
 
-        enumerator: IEnumerator[int] = assertNotNone(self, self.__list.TryGetEnumerator())
-
-        values: tuple[int, ...] = tuple(enumerator.AsIterator())
-        self.assertEqual(values, (1, 2, 3))
+        assertNotNone(self, self.__list.TryGetEnumerator(), lambda enumerator: self.assertEqual(tuple(enumerator.AsIterator()), (1, 2, 3)))
 
     def test_countable_node_get_list(self) -> None:
         """The node must be able to retrieve the countable list"""
-        l: ICountableList[int] = assertNotNone(self, self.__list.AddLast(42).GetList())
-
-        self.assertIs(l, self.__list)
+        assertNotNone(self, self.__list.AddLast(42).GetList(), lambda l: self.assertIs(l, self.__list))
 
     def test_as_sized(self) -> None:
         """The list must be compatible with the Sized class"""
@@ -626,7 +628,7 @@ class TestListWithStrings(unittest.TestCase):
         l.AddLast(3.14)
         l.AddLast(2.71)
         
-        self.assertEqual(tuple(assertNotNone(self, l.TryGetEnumerator()).AsIterator()), (3.14, 2.71))
+        assertNotNone(self, l.TryGetEnumerator(), lambda enumerator: self.assertEqual(tuple(enumerator.AsIterator()), (3.14, 2.71)))
 
 class TestEdgeCases(unittest.TestCase):
     """Tests for edge cases"""
@@ -645,6 +647,13 @@ class TestEdgeCases(unittest.TestCase):
 
     def test_large_list(self) -> None:
         """Test with a large list"""
+        def assertEqual(enumerator: IEnumerator[int]) -> None:
+            values: PyList[int] = list(enumerator.AsIterator())
+            
+            self.assertEqual(len(values), 1000)
+            self.assertEqual(values[0], 0)
+            self.assertEqual(values[999], 999)
+
         l: IList[int] = List[int]()
 
         # Add 1000 items
@@ -656,13 +665,7 @@ class TestEdgeCases(unittest.TestCase):
         assertNodeValue(self, l, l.GetLast(), 999)
 
         # Enumerate all items
-        enumerator: IEnumerator[int] = assertNotNone(self, l.TryGetEnumerator())
-
-        values: PyList[int] = list(enumerator.AsIterator())
-        
-        self.assertEqual(len(values), 1000)
-        self.assertEqual(values[0], 0)
-        self.assertEqual(values[999], 999)
+        assertNotNone(self, l.TryGetEnumerator(), assertEqual)
 
     def test_multiple_clears(self) -> None:
         """Multiple successive Clear()"""
