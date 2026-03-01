@@ -910,10 +910,10 @@ class DoublyLinkedNode[TItem, TNode, TNodeInterface, TList, TListInterface](Doub
     
     @final
     def SetPrevious(self, value: TItem) -> SelfType:
-        return self._AsLinkedNode(super().SetPreviousNode(value))
+        return self._AsLinkedNode(super()._SetPreviousNode(value))
     @final
     def SetNext(self, value: TItem) -> SelfType:
-        return self._AsLinkedNode(super().SetNextNode(value))
+        return self._AsLinkedNode(super()._SetNextNode(value))
     
     @final
     def Remove(self) -> TItem:
