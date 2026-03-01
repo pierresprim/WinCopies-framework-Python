@@ -242,7 +242,7 @@ class Table(TableBase):
                 
                 def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]:
                     return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
-                    
+                
                 def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: IList[str]) -> IIndex:
                     match kind:
                         case IndexKind.Unique:
