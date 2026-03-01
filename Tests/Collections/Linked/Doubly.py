@@ -145,7 +145,7 @@ def assertRemoveAll(test: unittest.TestCase, l: IList[int], method: Converter[IR
     
     assertEmpty(test, l)
 
-def assertAddMultipleTimes(test: unittest.TestCase, l: IList[int], first: int, last: int) -> None:
+def assertAddMultipleTimes(test: unittest.TestCase, l: IList[int], first: int, last: int, initializer: Method[IList[int]]) -> None:
     def _assertNotNone[T](value: T|None, action: Converter[T, T|None]) -> None:
         assertNotNone(test, value, lambda _value: test.assertIsNone(action(_value)))
     def _assertNodeValue(node: IDoublyLinkedNode[int]|None, value: int) -> None:
@@ -156,7 +156,7 @@ def assertAddMultipleTimes(test: unittest.TestCase, l: IList[int], first: int, l
     def getLast() -> IDoublyLinkedNode[int]|None:
         return l.GetLast()
 
-    populateListR(l)
+    initializer(l)
 
     _assertNodeValue(getFirst(), first)
     _assertNodeValue(getLast(), last)
@@ -193,11 +193,11 @@ class TestList(unittest.TestCase):
 
     def test_add_first_multiple_items(self) -> None:
         """Add multiple items at the beginning (reversed order)"""
-        assertAddMultipleTimes(self, self.__list, 3, 1)
+        assertAddMultipleTimes(self, self.__list, 3, 1, populateListR)
 
     def test_add_last_multiple_items(self) -> None:
         """Add multiple items at the end (preserved order)"""
-        assertAddMultipleTimes(self, self.__list, 1, 3)
+        assertAddMultipleTimes(self, self.__list, 1, 3, populateList)
 
     def test_add_mixed_first_and_last(self) -> None:
         """Add to both beginning and end"""
