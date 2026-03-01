@@ -79,11 +79,13 @@ dev = [
 # SETUPTOOLS CONFIGURATION
 # ============================================================================
 [tool.setuptools]
-# Package discovery automatique
+# Automatic package discovery
 packages = ["WinCopies"]
 
 [tool.setuptools.dynamic]
 version = {attr = "WinCopies.__version__"}
+[tool.setuptools.package-data]
+WinCopies = ["py.typed"]
 
 
 # ============================================================================
