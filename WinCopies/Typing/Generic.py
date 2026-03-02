@@ -3,14 +3,14 @@ from typing import final
 
 from WinCopies import IInterface
 
-class __IGenericConstraint[TContainer, TInterface](IInterface):
+class _IGenericConstraint[TContainer, TInterface](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _AsContainer(self, container: TContainer) -> TInterface:
         pass
-class __IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpecialized](__IGenericConstraint[TContainer, TInterface]):
+class _IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpecialized](_IGenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -18,14 +18,14 @@ class __IGenericSpecializedConstraint[TContainer, TOverridden, TInterface, TSpec
     def _AsSpecialized(self, container: TOverridden) -> TSpecialized:
         pass
 
-class IGenericConstraint[TContainer, TInterface](__IGenericConstraint[TContainer, TInterface]):
+class IGenericConstraint[TContainer, TInterface](_IGenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def _TryAsContainer(self, container: TContainer|None) -> TInterface|None:
         return None if container is None else self._AsContainer(container)
-class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGenericConstraint[TContainer, TInterface], __IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
+class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGenericConstraint[TContainer, TInterface], _IGenericSpecializedConstraint[TContainer, TContainer, TInterface, TSpecialized]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -51,14 +51,14 @@ class GenericSpecializedConstraint[TContainer, TInterface, TSpecialized](Generic
     def _GetSpecializedContainer(self) -> TSpecialized:
         return self._AsSpecialized(self._GetContainer())
 
-class IGenericConstraintImplementation[T](__IGenericConstraint[T, T]):
+class IGenericConstraintImplementation[T](_IGenericConstraint[T, T]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def _AsContainer(self, container: T) -> T:
         return container
-class IGenericSpecializedConstraintImplementation[TInterface, TSpecialized](IGenericConstraintImplementation[TInterface], __IGenericSpecializedConstraint[TInterface, TSpecialized, TInterface, TSpecialized]):
+class IGenericSpecializedConstraintImplementation[TInterface, TSpecialized](IGenericConstraintImplementation[TInterface], _IGenericSpecializedConstraint[TInterface, TSpecialized, TInterface, TSpecialized]):
     def __init__(self) -> None:
         super().__init__()
     
