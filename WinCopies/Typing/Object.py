@@ -224,7 +224,7 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnum|Enum], IEnumValue[T]):
 
         return None if result is None else EnumValue[T](result)
 
-class IString(IValueObject[str, 'IString']):
+class IString(IComparableValueObject[str, 'IString']):
     def __init__(self) -> None:
         super().__init__()
 class String(ValueObject[str, IString], IString):
@@ -233,15 +233,39 @@ class String(ValueObject[str, IString], IString):
     
     def Equals(self, item: IString|object) -> bool:
         def equals(item: str) -> bool:
-            return self.GetValue() == item
+            return String.AreEqual(self.GetValue(), item)
         
         return (isinstance(item, IString) and equals(item.GetValue())) or (isinstance(item, str) and equals(item))
+    
+    def CompareTo(self, item: IString|object) -> bool|None:
+        def compareTo(item: str) -> bool|None:
+            return String.Compare(self.GetValue(), item)
+        
+        return (isinstance(item, IString) and compareTo(item.GetValue())) or (isinstance(item, str) and compareTo(item))
     
     def Hash(self) -> int:
         return hash(self.GetValue())
     
     def ToString(self) -> str:
         return self.GetValue()
+    
+    @staticmethod
+    def AsValue(item: IString|str) -> str:
+        return item.GetValue() if isinstance(item, IString) else item
+    
+    @staticmethod
+    def AreEqual(x: IString|str, y: IString|str) -> bool:
+        return String.AsValue(x) == String.AsValue(y)
+    @staticmethod
+    def TryAreEqual(x: IString|str|None, y: IString|str|None) -> bool:
+        return False if x is None or y is None else String.AreEqual(x, y)
+    
+    @staticmethod
+    def Compare(x: IString|str, y: IString|str) -> bool|None:
+        return None if x == y else y > x
+    @staticmethod
+    def TryCompare(x: IString|str|None, y: IString|str|None) -> bool|None:
+        return False if x is None or y is None else String.Compare(x, y)
 
 class IType[T](IValueObject[type[T], 'IType[T]']):
     def __init__(self) -> None:
