@@ -239,7 +239,7 @@ class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
     def Dispose(self) -> _IDisposableProviderItem[T]:
         pass
 @final
-class __DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
+class _DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -252,7 +252,7 @@ class __DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     def Dispose(self) -> _IDisposableProviderItem[T]:
         return self
 
-__disposedItem = __DisposedItem() # type: ignore
+__disposedItem = _DisposedItem() # type: ignore
 
 @final
 class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):

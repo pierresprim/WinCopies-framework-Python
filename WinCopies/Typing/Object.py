@@ -167,7 +167,7 @@ class Integer(ValueObject[int, IInteger|int], IInteger):
         def compareTo(item: int) -> bool|None:
             return CompareTo(self.GetValue(), item)
         
-        return (isinstance(item, IBoolean) and compareTo(item.GetValue())) or (isinstance(item, int) and compareTo(item))
+        return (isinstance(item, IInteger) and compareTo(item.GetValue())) or (isinstance(item, int) and compareTo(item))
     
     def Hash(self) -> int:
         return hash(self.GetValue())
