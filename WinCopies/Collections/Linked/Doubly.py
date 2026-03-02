@@ -151,7 +151,7 @@ class IReadOnlyList[T](IReadOnlyCollection):
     def TryGetLastValueOrNone(self) -> T|None:
         return self.TryGetLastValue(None)
 
-class __IAbstractList[TItem, TNode](IInterface):
+class _IAbstractList[TItem, TNode](IInterface):
     def __init__(self) -> None:
         super().__init__()
 
@@ -714,7 +714,7 @@ class _EnumerableList[TItem, TNode](Enumerable[TItem], _IListCookie[TNode]):
     def _GetCookie(self) -> INodeCookie[TNode]:
         return self.__updater.GetValue()
 
-class EnumerableListBase[TItem, TNode, TNodeInterface, TList](_EnumerableList[TItem, TNode], IEnumerableList[TItem, TNodeInterface], __IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
+class EnumerableListBase[TItem, TNode, TNodeInterface, TList](_EnumerableList[TItem, TNode], IEnumerableList[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self) -> None:
         def updateNodeEnumerable(func: IFunction[IEnumerable[TNodeInterface]]) -> None:
             self.__nodeEnumerable = func
