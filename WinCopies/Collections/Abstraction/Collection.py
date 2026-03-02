@@ -381,8 +381,8 @@ class ArrayList[T](ArrayCollection[T]):
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
 class SortedList[T: IComparableValue](ListAbstract[T], Sequence[T], Extensions.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
-    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[T]|None = None) -> None:
+        super().__init__(None if items is None else sorted(items))
     
     @final
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
