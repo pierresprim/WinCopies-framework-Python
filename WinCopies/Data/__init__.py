@@ -214,19 +214,19 @@ class IOperandValue(IInterface):
     def Format(self, builder: IQueryBuilder) -> str:
         pass
 
-class __IOperandValue[T](IOperandValue, IKeyValuePair[T, Operator]):
+class _IOperandValue[T](IOperandValue, IKeyValuePair[T, Operator]):
     def __init__(self) -> None:
         super().__init__()
 
-class IOperand[T](__IOperandValue[T]):
+class IOperand[T](_IOperandValue[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IColumnOperand(__IOperandValue[IColumn]):
+class IColumnOperand(_IOperandValue[IColumn]):
     def __init__(self) -> None:
         super().__init__()
 
-class __Operand[T](Abstract):
+class _Operand[T](Abstract):
     def __init__(self, operator: Operator, value: T) -> None:
         super().__init__()
 
@@ -245,7 +245,7 @@ class __Operand[T](Abstract):
     def GetValue(self) -> Operator:
         return self.__operator
 
-class __NullityOperand(Abstract, IOperand[None]):
+class _NullityOperand(Abstract, IOperand[None]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -259,29 +259,29 @@ class __NullityOperand(Abstract, IOperand[None]):
         return builder.GetParameter(None)
 
 @final
-class __NullOperand(__NullityOperand):
+class _NullOperand(_NullityOperand):
     def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> Operator:
         return Operator.IsValue
 @final
-class __NotNullOperand(__NullityOperand):
+class _NotNullOperand(_NullityOperand):
     def __init__(self) -> None:
         super().__init__()
     
     def GetValue(self) -> Operator:
         return Operator.IsNot
 
-__nullOperand: IOperand[None] = __NullOperand()
-__notNullOperand: IOperand[None] = __NotNullOperand()
+__nullOperand: IOperand[None] = _NullOperand()
+__notNullOperand: IOperand[None] = _NotNullOperand()
 
 def GetNullOperand() -> IOperand[None]:
     return __nullOperand
 def GetNotNullOperand() -> IOperand[None]:
     return __notNullOperand
 
-class Operand[T](__Operand[T], IOperand[T]):
+class Operand[T](_Operand[T], IOperand[T]):
     def __init__(self, operator: Operator, value: T) -> None:
         if operator == Operator.Null:
             raise ValueError(f"No operator specified.")
@@ -294,7 +294,7 @@ class Operand[T](__Operand[T], IOperand[T]):
     def Format(self, builder: IQueryBuilder) -> str:
         return builder.GetParameter(self.GetKey())
 
-class ColumnOperand(__Operand[IColumn], IColumnOperand):
+class ColumnOperand(_Operand[IColumn], IColumnOperand):
     def __init__(self, operator: Operator, column: IColumn) -> None:
         if operator == Operator.Null:
             raise ValueError(f"The operator of a {type(self).__name__} cannot be {Operator.Null.name}")
