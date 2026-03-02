@@ -193,7 +193,7 @@ class INullable[T](IInterface):
         return self.ConvertToNullable(converter) if self.HasValue() else GetNullValue()
 
 @final
-class __Nullable[T](Abstract, INullable[T]):
+class _Nullable[T](Abstract, INullable[T]):
     def __init__(self, value: T) -> None:
         super().__init__()
         
@@ -204,7 +204,7 @@ class __Nullable[T](Abstract, INullable[T]):
     def GetValue(self) -> T:
         return self.__value
 @final
-class __NullValue[T](Abstract, INullable[T]):
+class _NullValue[T](Abstract, INullable[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -213,17 +213,17 @@ class __NullValue[T](Abstract, INullable[T]):
     def GetValue(self) -> T:
         raise InvalidOperationError()
 
-__nullValue: __NullValue = __NullValue() # type: ignore
+__nullValue: _NullValue = _NullValue() # type: ignore
 
 def GetNullable[T](value: T) -> INullable[T]:
-    return __Nullable[T](value)
+    return _Nullable[T](value)
 def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __nullValue # pyright: ignore[reportUnknownVariableType]
 
 def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
 
-class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
+class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -236,10 +236,10 @@ class __IDisposableProviderItem[T: IDisposableInfo](IInterface):
         pass
 
     @abstractmethod
-    def Dispose(self) -> __IDisposableProviderItem[T]:
+    def Dispose(self) -> _IDisposableProviderItem[T]:
         pass
 @final
-class __DisposedItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
+class __DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -249,13 +249,13 @@ class __DisposedItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T])
     def IsDisposed(self) -> bool:
         return True
 
-    def Dispose(self) -> __IDisposableProviderItem[T]:
+    def Dispose(self) -> _IDisposableProviderItem[T]:
         return self
 
 __disposedItem = __DisposedItem() # type: ignore
 
 @final
-class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProviderItem[T]):
+class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     def __init__(self, item: T) -> None:
         super().__init__()
 
@@ -267,7 +267,7 @@ class __DisposableProviderItem[T: IDisposableInfo](Abstract, __IDisposableProvid
     def IsDisposed(self) -> bool:
         return self.__item.IsDisposed()
     
-    def Dispose(self) -> __IDisposableProviderItem[T]:
+    def Dispose(self) -> _IDisposableProviderItem[T]:
         self.__item.Dispose()
         
         return __disposedItem # pyright: ignore[reportUnknownVariableType]
@@ -293,7 +293,7 @@ class DisposableProvider[T: IDisposableInfo](Abstract, IDisposableProvider[T]):
     def __init__(self, item: T) -> None:
         super().__init__()
 
-        self.__item: __IDisposableProviderItem[T] = __DisposableProviderItem[T](item)
+        self.__item: _IDisposableProviderItem[T] = _DisposableProviderItem[T](item)
     
     @final
     def _GetItem(self) -> T:
