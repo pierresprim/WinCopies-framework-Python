@@ -150,7 +150,7 @@ class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
         return self.__countable.GetValue()
 
 @final
-class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
+class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -169,7 +169,7 @@ class __EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def HasProcessedItems(self) -> bool:
         return False
 @final
-class __EmptyEnumerable[T](_SystemIterable[T]):
+class _EmptyEnumerable[T](_SystemIterable[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -180,8 +180,8 @@ class __EmptyEnumerable[T](_SystemIterable[T]):
     def __iter__(self) -> SystemIterator[T]:
         return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
-__emptyEnumerator = __EmptyEnumerator[None]()
-__emptyEnumerable = __EmptyEnumerable[None]()
+__emptyEnumerator = _EmptyEnumerator[None]()
+__emptyEnumerable = _EmptyEnumerable[None]()
 
 def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyEnumerator # type: ignore
@@ -466,7 +466,7 @@ class AbstractEnumerator[T](Selector[T, T]):
     def GetCurrent(self) -> T|None:
         return self._GetContainer().GetCurrent()
 
-class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -562,7 +562,7 @@ class __AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Itera
     def HasProcessedItems(self) -> bool:
         return self._GetEnumerator().HasProcessedItems()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](__AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
 
