@@ -54,7 +54,7 @@ class IDirEntry(IRecursivelyEnumerable['IDirEntry']):
         return self.GetPath()
 
 def TryGetFileNameFromArray(entry: Sequence[str]|None) -> str|None:
-    return None if entry is None or len(entry) < 2 else entry[0]
+    return None if entry is None or len(entry) < 1 else entry[0]
 def TryGetFileName(name: str) -> str|None:
     return TryGetFileNameFromArray(os.path.splitext(name))
 
