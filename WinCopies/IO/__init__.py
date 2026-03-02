@@ -14,6 +14,7 @@ from typing import Sequence, AnyStr
 
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable
 from WinCopies.Collections.Loop import ForEachItemUntil
+from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Predicate
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
@@ -53,25 +54,26 @@ class IDirEntry(IRecursivelyEnumerable['IDirEntry']):
     def __str__(self) -> str:
         return self.GetPath()
 
+def _TryGetFromArray(entry: Sequence[str]|None, index: int) -> str|None:
+    return None if entry is None or len(entry) <= index else entry[index]
+
 def TryGetFileNameFromArray(entry: Sequence[str]|None) -> str|None:
-    return None if entry is None or len(entry) < 1 else entry[0]
+    return _TryGetFromArray(entry, 0)
 def TryGetFileName(name: str) -> str|None:
     return TryGetFileNameFromArray(os.path.splitext(name))
 
 def GetFileNameFromArray(entry: Sequence[str]|None) -> str:
-    return '' if entry is None or len(entry) < 1 else entry[0]
+    return StringifyIfNone(TryGetFileNameFromArray(entry))
 def GetFileName(name: str) -> str:
-    return GetFileNameFromArray(os.path.splitext(name))
+    return StringifyIfNone(TryGetFileName(name))
 
 def TryGetFullExtensionFromArray(entry: Sequence[str]|None) -> str|None:
-    return None if entry is None or len(entry) < 2 else entry[1]
+    return _TryGetFromArray(entry, 1)
 def TryGetFullExtension(name: str) -> str|None:
     return TryGetFullExtensionFromArray(os.path.splitext(name))
 
 def GetFullExtensionFromArray(entry: Sequence[str]|None) -> str:
-    result: str|None = TryGetFullExtensionFromArray(entry)
-
-    return '' if result is None else result
+    return StringifyIfNone(TryGetFullExtensionFromArray(entry))
 def GetFullExtension(name: str) -> str:
     return GetFullExtensionFromArray(os.path.splitext(name))
 
@@ -83,9 +85,7 @@ def TryGetExtension(name: str) -> str|None:
     return TryGetExtensionFromArray(os.path.splitext(name))
 
 def GetExtensionFromArray(entry: Sequence[str]) -> str:
-    result: str|None = TryGetExtensionFromArray(entry)
-    
-    return '' if result is None else result
+    return StringifyIfNone(TryGetExtensionFromArray(entry))
 def GetExtension(name: str) -> str:
     return GetExtensionFromArray(os.path.splitext(name))
 
