@@ -10,7 +10,7 @@ from WinCopies import IDisposable, Abstract
 
 from WinCopies.Collections import Generator, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import List
-from WinCopies.Collections.Enumeration import ICountableEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 from WinCopies.Collections.Iteration import GetFirstItem
 
@@ -160,7 +160,10 @@ class IConnection(IDisposable):
         pass
     
     @abstractmethod
-    def GetTables(self) -> Generator[ITable]:
+    def EnumerateTables(self) -> Generator[ITable]:
+        pass
+    @abstractmethod
+    def GetTables(self) -> IEnumerable[ITable]:
         pass
     
     @abstractmethod
@@ -345,7 +348,7 @@ class Connection(Abstract, IConnection):
         return self.__AddTable(name) if table is None and name in self.GetTableNames() else table
     
     @final
-    def GetTables(self) -> Generator[ITable]:
+    def EnumerateTables(self) -> Generator[ITable]:
         table: ITable|None = None
         
         for name in self.GetTableNames():
@@ -353,6 +356,9 @@ class Connection(Abstract, IConnection):
                 table = self.__AddTable(name)
             
             yield table
+    @final
+    def GetTables(self) -> IEnumerable[ITable]:
+        return IteratorProvider[ITable](self.EnumerateTables)
     
     @abstractmethod
     def _CloseOverride(self) -> None:
