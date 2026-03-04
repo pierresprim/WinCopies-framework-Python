@@ -1,7 +1,13 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "WinCopies"
+		},
+		{
+			"path": "Scripts"
+		},
+		{
+			"path": "Tests"
 		}
 	],
 	"settings": {}
