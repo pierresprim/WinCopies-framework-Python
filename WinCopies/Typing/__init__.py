@@ -64,7 +64,7 @@ class SupportsRichComparison(Protocol):
         """Greater than or equal comparison."""
         ...
 
-class IComparableValue(IEquatableValue, SupportsRichComparison):
+class IComparableValue(IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
     
@@ -90,6 +90,7 @@ class IComparableValue(IEquatableValue, SupportsRichComparison):
     
     @final
     def __lt__(self, other: Any, /) -> bool:
+        """Less than comparison."""
         return self.IsLessThan(other)
     
     @final
