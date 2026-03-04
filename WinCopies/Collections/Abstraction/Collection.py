@@ -10,7 +10,7 @@ from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, FindIndex, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, TupleEnumerator, MutableSequence
-from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -380,7 +380,7 @@ class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-class SortedList[T: IComparableValue](ListAbstract[T], Sequence[T], Extensions.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Sequence[T], Extensions.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__(None if items is None else sorted(items))
     
@@ -413,6 +413,10 @@ class SortedList[T: IComparableValue](ListAbstract[T], Sequence[T], Extensions.S
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
+    
+    @staticmethod
+    def Create(*items: T) -> ISortedList[T]:
+        return SortedList[T](items)
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
