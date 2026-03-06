@@ -9,7 +9,6 @@ from enum import Enum, Flag
 from WinCopies.Enum import (
     IsMemberOf, EnsureMemberOf,
     IsValueOf, EnsureValueOf,
-    IsFieldOf, EnsureFieldOf,
     ToKeyValuePair, ToKeyValuePairs,
     ToTuple, ToTuples,
     IsIn, EnsureIn,
@@ -87,28 +86,6 @@ class TestIsValueOf(unittest.TestCase):
         """EnsureValueOf raises ValueError for an absent value."""
         with self.assertRaises(ValueError):
             EnsureValueOf(Color, 99)
-
-class TestIsFieldOf(unittest.TestCase):
-    """Tests for IsFieldOf and EnsureFieldOf."""
-
-    def test_field_belongs_to_its_own_enum(self) -> None:
-        """IsFieldOf returns True when e is the same enum type as the field."""
-        self.assertTrue(IsFieldOf(Color, Color.Red))
-        self.assertTrue(IsFieldOf(Color, Color.Blue))
-
-    def test_field_wrong_enum_type_raises_assertion(self) -> None:
-        """IsFieldOf raises AssertionError when e is not a subclass of type(f)."""
-        with self.assertRaises(AssertionError):
-            IsFieldOf(Permission, Color.Red)
-
-    def test_ensure_field_belongs(self) -> None:
-        """EnsureFieldOf does not raise when the field belongs to the enum."""
-        EnsureFieldOf(Color, Color.Green)
-
-    def test_ensure_field_wrong_type_raises_assertion(self) -> None:
-        """EnsureFieldOf propagates the AssertionError from IsFieldOf on type mismatch."""
-        with self.assertRaises(AssertionError):
-            EnsureFieldOf(Permission, Color.Red)
 
 class TestConversion(unittest.TestCase):
     """Tests for ToKeyValuePair, ToKeyValuePairs, ToTuple, ToTuples."""

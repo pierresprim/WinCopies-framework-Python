@@ -1,7 +1,7 @@
 from typing import Type
 from enum import Enum, Flag
 
-from WinCopies.Assertion import EnsureSubclass, EnsureEnum
+from WinCopies.Assertion import EnsureEnum
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Iteration import SelectWhereNotNone
 from WinCopies.Delegates import Self
@@ -71,45 +71,6 @@ def EnsureValueOf(e: Type[Enum], v: int) -> None:
     """
     if not IsValueOf(e, v):
         raise ValueError()
-
-def IsFieldOf(e: Type[Enum], f: Enum) -> bool:
-    """Checks if an enum field belongs to a specific enum type.
-
-    Args:
-        e: The enum type to check against.
-        f: The enum field to verify.
-
-    Returns:
-        True if the field belongs to the enum type, False otherwise.
-
-    Raises:
-        AssertionError: If type(f) is not an enum type or if e is not a subclass of type(f).
-    """
-    def ensureTypes() -> None:
-        nonlocal e
-        nonlocal f
-
-        t: type = type(f)
-
-        EnsureEnum(t)
-        EnsureSubclass(e, t)
-
-    ensureTypes()
-
-    return f in e
-def EnsureFieldOf(e: Type[Enum], f: Enum) -> None:
-    """Ensures an enum field belongs to a specific enum type.
-
-    Args:
-        e: The enum type to check against.
-        f: The enum field to verify.
-
-    Raises:
-        AssertionError: If type(f) is not an enum type or if e is not a subclass of type(f).
-        ValueError: If the field does not belong to the enum type.
-    """
-    if not IsFieldOf(e, f):
-        raise ValueError
 
 def ToKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
     """Converts an enum member to a key-value pair.
