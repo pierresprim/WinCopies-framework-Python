@@ -72,7 +72,7 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     
     def ToString(self) -> str:
         return self._GetInnerContainer().ToString()
-class CircularBase[TItem, TList](TupleBase[TItem], CircularAbstract[TItem, TList], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
+class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None:
         super().__init__(items, start)
     
