@@ -66,10 +66,10 @@ def __RepeatAndAlso(n: int, func: Function[bool]) -> bool:
     i: int = 1
 
     while i < n:
-        if func():
-            i += 1
-
-        return False
+        if not func():
+            return False
+        
+        i += 1
 
     return func()
 def RepeatAndAlso(n: int, func: Function[bool]) -> bool:
