@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularArray, ICircularList
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayAbstract, Sequence, MutableSequence, Tuple, EquatableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
@@ -71,7 +71,7 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, ICircularEquatab
         return self is item
 
 @final
-class _ReversedArray[T](ReversedArrayAbstract[T, ICircularArray[T], IArray[T]], SequenceAbstract[T], ICircularArray[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularArray[T]]):
+class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], SequenceAbstract[T], ICircularArray[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularArray[T]]):
     def __init__(self, items: ICircularArray[T]) -> None:
         super().__init__(items)
     
@@ -113,6 +113,9 @@ class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], Muta
     
     def _SliceAt(self, key: slice) -> IList[T]:
         return self._GetContainer().SliceAt(key)
+    @final
+    def SliceAt(self, key: slice) -> IList[T]:
+        return self.ToSlicedAt(key)
 
 @final
 class _ListUpdater[T](ValueFunctionUpdater[ICircularList[T]]):

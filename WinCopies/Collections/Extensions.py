@@ -638,8 +638,8 @@ class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedArray
     @final
     def _GetUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
         return _ReadOnlyReversedArrayUpdater[TItem](self, func)
-class ReversedArray[TItem, TCollection](ReversedArrayAbstract[TItem, TCollection, TCollection], IArray[TItem], GenericSpecializedConstraint[TCollection, ITuple[TItem], IArray[TItem]]):
-    def __init__(self, items: TCollection) -> None:
+class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
+    def __init__(self, items: TCollectionIn) -> None:
         super().__init__(items)
     
     @final
@@ -649,6 +649,9 @@ class ReversedArray[TItem, TCollection](ReversedArrayAbstract[TItem, TCollection
     @final
     def Move(self, x: int, y: int) -> None:
         self._GetSpecializedContainer().Move(self._GetIndex(x), self._GetIndex(y))
+class ReversedArray[TItem, TCollection](ReversedArrayBase[TItem, TCollection, TCollection]):
+    def __init__(self, items: TCollection) -> None:
+        super().__init__(items)
 
 @final
 class _ReversedArrayReadOnlyUpdater[T](ValueFunctionUpdater[ITuple[T]]):
@@ -767,8 +770,8 @@ class ReversedCollectionAbstract[TItem, TList](ReversedArrayAbstract[TItem, TLis
 
     def AsReversed(self) -> IListBase[TItem]:
         return self._GetContainerAsList()
-class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCollectionAbstract[TItem]):
-    def __init__(self, items: TList) -> None:
+class ReversedCollectionBase[TItem, TListIn, TListOut](ReversedArrayBase[TItem, TListIn, TListOut], _IReversedCollectionAbstract[TItem]):
+    def __init__(self, items: TListIn) -> None:
         super().__init__(items)
 
     @abstractmethod
@@ -781,22 +784,21 @@ class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCo
 
     def AsReversed(self) -> IList[TItem]:
         return self._GetContainerAsList()
-
-class ReversedListAbstract[TItem, TList](ReversedCollection[TItem, TList], MutableSequence[TItem], IList[TItem]):
+class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCollectionAbstract[TItem]):
     def __init__(self, items: TList) -> None:
+        super().__init__(items)
+
+class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableSequence[TItem], IList[TItem]):
+    def __init__(self, items: TListIn) -> None:
         super().__init__(items)
     
     @abstractmethod
-    def _GetInnerContainerAsList(self, container: TList) -> IList[TItem]:
+    def _GetInnerContainerAsList(self, container: TListIn) -> IList[TItem]:
         pass
 
     @final
     def _GetContainerAsList(self) -> IList[TItem]:
         return self._GetInnerContainerAsList(self._GetContainer())
-    
-    @final
-    def SliceAt(self, key: slice) -> IList[TItem]:
-        return self._GetInnerContainerAsList(self.ToSlicedAt(key))
 
     def AsReversed(self) -> IList[TItem]:
         return self._GetContainerAsList()
@@ -829,6 +831,14 @@ class ReversedListAbstract[TItem, TList](ReversedCollection[TItem, TList], Mutab
     @final
     def __delitem__(self, index: int|slice) -> None:
         del self._GetContainerAsList().AsMutableSequence()[self._GetIndex(index) if isinstance(index, int) else self._GetKey(index)]
+class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
+    def __init__(self, items: TList) -> None:
+        super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> IList[TItem]:
+        return self._GetInnerContainerAsList(self.ToSlicedAt(key))
+
 class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem, TList], Sequence[TItem], ISortedList[TItem]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
@@ -857,7 +867,7 @@ class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem,
         return self._GetContainerAsList()
 
 @final
-class _ReversedList[T](ReversedListAbstract[T, IList[T]], MutableSequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
+class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
     
