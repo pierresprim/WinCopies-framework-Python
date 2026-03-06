@@ -3,7 +3,6 @@ from enum import auto, Enum, Flag
 from typing import final
 
 from WinCopies import IStringable, Abstract
-from WinCopies.Enum import EnsureFieldOf
 
 class FieldType(Enum):
     Null = 0
@@ -61,8 +60,6 @@ class IModularField[T: Enum](IField):
 class Field(Abstract, IField):
     def __init__(self, name: str, attribute: FieldAttributes) -> None:
         super().__init__()
-
-        EnsureFieldOf(FieldAttributes, attribute)
 
         self.__name: str = name
         self.__attribute: FieldAttributes = attribute
