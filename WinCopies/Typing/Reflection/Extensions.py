@@ -2,18 +2,20 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
+from enum import Enum
 from importlib import import_module
 from inspect import FrameInfo, Traceback, getframeinfo, getsource
 from pkgutil import ModuleInfo, walk_packages
 from sys import modules
-from types import ModuleType, FrameType
-from typing import Sequence, final
+from types import ModuleType, FrameType, FunctionType
+from typing import Sequence, Type, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Typing import Reflection, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -449,3 +451,113 @@ class FrameHierarchy(Abstract):
 
 def GetFrameHierarchy(frameInfo: FrameInfo) -> FrameHierarchy:
     return FrameHierarchy.CreateFromFrameInfo(frameInfo)
+
+class MemberKind(Enum):
+    Null = 0
+    Field = 1
+    Function = 2
+    Method = 3
+
+class ITypeInfo(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetType(self) -> type:
+        pass
+
+    @abstractmethod
+    def GetFunctions(self) -> IArray[IFunctionInfo]:
+        pass
+
+class IMemberInfo(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetName(self) -> str:
+        pass
+    
+    @abstractmethod
+    def GetKind(self) -> MemberKind:
+        pass
+
+    @abstractmethod
+    def GetType(self) -> ITypeInfo:
+        pass
+
+class IFunctionInfo(IMemberInfo):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def GetKind(self) -> MemberKind:
+        return MemberKind.Function
+    
+    @abstractmethod
+    def Call(self, obj: object, *args: object, **kwargs: object) -> object:
+        pass
+class IMethodInfo(IMemberInfo):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def GetKind(self) -> MemberKind:
+        return MemberKind.Method
+    
+    @abstractmethod
+    def Call(self, *args: object, **kwargs: object) -> object:
+        pass
+
+@final
+class _TypeUpdater[T](ValueFunctionUpdater[IArray[IFunctionInfo]]):
+    def __init__(self, t: TypeInfo[T], updater: Method[IFunction[IArray[IFunctionInfo]]]) -> None:
+        super().__init__(updater)
+
+        self.__type: TypeInfo[T] = t
+    
+    def _GetValue(self) -> IArray[IFunctionInfo]:
+        return Array[IFunctionInfo](_Function(func.GetValue(), self.__type) for func in Reflection.EnumerateFunctions(self.__type.GetType()))
+
+class TypeInfo[T](Abstract, ITypeInfo):
+    def __init__(self, type: Type[T]) -> None:
+        def update(func: IFunction[IArray[IFunctionInfo]]) -> None:
+            self.__functions = func
+        
+        super().__init__()
+
+        self.__type: Type[T] = type
+        self.__functions: IFunction[IArray[IFunctionInfo]] = _TypeUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def GetType(self) -> Type[T]:
+        return self.__type
+    
+    @final
+    def GetFunctions(self) -> IArray[IFunctionInfo]:
+        return self.__functions.GetValue()
+
+class _Member[T](Abstract, IMemberInfo):
+    def __init__(self, member: T, t: ITypeInfo) -> None:
+        super().__init__()
+
+        self.__member: T = member
+        self.__type: ITypeInfo = t
+    
+    @final
+    def _GetMember(self) -> T:
+        return self.__member
+    
+    def GetType(self) -> ITypeInfo:
+        return self.__type
+
+@final
+class _Function(_Member[FunctionType], IFunctionInfo):
+    def __init__(self, member: FunctionType, t: ITypeInfo) -> None:
+        super().__init__(member, t)
+    
+    def GetName(self) -> str:
+        return self._GetMember().__name__
+    
+    def Call(self, obj: object, *args: object, **kwargs: object) -> object:
+        return self._GetMember()(obj, *args, **kwargs)
