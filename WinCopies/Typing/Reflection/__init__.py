@@ -1,9 +1,9 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from importlib import import_module
-from inspect import FrameInfo, stack, getfile, getmembers, ismethod
+from inspect import FrameInfo, stack, getfile, getmembers, isfunction, ismethod
 from os import path, sep
 from sys import modules, builtin_module_names
-from types import ModuleType, FrameType, MethodType
+from types import ModuleType, FrameType, FunctionType, MethodType
 from typing import List, Type
 
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
@@ -465,5 +465,15 @@ def AreInstances(type: type, *values: object) -> bool:
 
     return True
 
-def GetMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
-    return (KeyValuePair(method_name, method) for (method_name, method) in getmembers(obj.__class__, ismethod))
+def GetFunctions(t: type) -> Sequence[tuple[str, FunctionType]]:
+    return getmembers(t, isfunction)
+def GetMethods(obj: object) -> Sequence[tuple[str, MethodType]]:
+    return getmembers(obj, ismethod)
+
+def _EnumerateMembers[T](members: Iterable[tuple[str, T]]) -> Generator[KeyValuePair[str, T]]:
+    return (KeyValuePair(member_name, member) for (member_name, member) in members)
+
+def EnumerateFunctions(t: type) -> Generator[KeyValuePair[str, FunctionType]]:
+    return _EnumerateMembers(GetFunctions(t))
+def EnumerateMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
+    return _EnumerateMembers(GetMethods(obj))
