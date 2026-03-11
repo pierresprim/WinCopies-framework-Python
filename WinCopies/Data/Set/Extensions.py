@@ -176,9 +176,9 @@ class FieldConditionSet[T: IColumn](FieldParameterSet[T, IParameter[IOperandValu
 def __MakeFieldParameterSet[T: IColumn](conditionalOperator: ConditionalOperator, *conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
     return MakeCompositeExpressionRoot(lambda condition: FieldConditionSet[T](condition), Self, conditionalOperator, *conditions)
 
-def MakeFieldParameterConjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
+def MakeFieldParameterConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
     return __MakeFieldParameterSet(ConditionalOperator.And, *conditions)
-def MakeFieldParameterDisjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
+def MakeFieldParameterDisjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
     return __MakeFieldParameterSet(ConditionalOperator.Or, *conditions)
 
 class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITableParameterSet):
@@ -247,12 +247,12 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
 
-def MakeConjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
-    set: IFieldConditionSet[T]|None = MakeFieldParameterConjonctionSet(*conditions)
+def MakeConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
+    set: IFieldConditionSet[T]|None = MakeFieldParameterConjunctionSet(*conditions)
 
     return None if set is None else ConditionParameterSet(set)
-def MakeDisjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
-    set: IFieldConditionSet[T]|None = MakeFieldParameterDisjonctionSet(*conditions)
+def MakeDisjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
+    set: IFieldConditionSet[T]|None = MakeFieldParameterDisjunctionSet(*conditions)
 
     return None if set is None else ConditionParameterSet(set)
 
