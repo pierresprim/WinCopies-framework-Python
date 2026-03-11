@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from enum import Enum, Flag
 from typing import Callable, final
