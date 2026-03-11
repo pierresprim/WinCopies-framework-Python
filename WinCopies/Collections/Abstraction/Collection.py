@@ -677,3 +677,18 @@ class Set[T: IEquatableItem](Extensions.Set[T]):
     
     def ToString(self) -> str:
         return str(self._GetItems())
+
+def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
+    return Tuple[T](items)
+def CreateTupleFromValues[T](*items: T) -> ITuple[T]:
+    return CreateTuple(items)
+
+def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
+    return Array[T](items)
+def CreateArrayFromValues[T](*items: T) -> IArray[T]:
+    return CreateArray(items)
+
+def CreateList[T](items: MutableSequenceBase[T]|Iterable[T]) -> IList[T]:
+    return List[T](items)
+def CreateListFromValues[T](*items: T) -> IList[T]:
+    return CreateList(items)
