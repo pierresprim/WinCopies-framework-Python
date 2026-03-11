@@ -217,12 +217,11 @@ class EnumValue[T: Enum](ValueObjectBase[T, int, IEnum|Enum], IEnumValue[T]):
     
     def ToString(self) -> str:
         return str(self.GetValue().name)
-    
-    @staticmethod
-    def TryCreate(e: TypeBase[T], v: int) -> IEnumValue[T]|None:
-        result: T|None = TryGetFieldFromValue(e, v)
 
-        return None if result is None else EnumValue[T](result)
+def TryCreateEnum[T: Enum](e: TypeBase[T], v: int) -> IEnumValue[T]|None:
+    result: T|None = TryGetFieldFromValue(e, v)
+
+    return None if result is None else EnumValue[T](result)
 
 class IString(IComparableValueObject[str, 'IString']):
     def __init__(self) -> None:
