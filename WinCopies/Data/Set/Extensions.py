@@ -142,14 +142,12 @@ class ParameterSet[T](Dictionary[IColumn, T], IParameterSet[T]):
 class ColumnParameterSet[T: IParameter[object]](ParameterSet[T|None], IColumnParameterSet[T]):
     def __init__(self, dictionary: dict[IColumn, T|None]|None = None) -> None:
         super().__init__(dictionary)
-    
-    @staticmethod
-    def Create(columns: Iterable[IColumn]) -> IColumnParameterSet[T]:
-        return ColumnParameterSet(dict.fromkeys(columns))
-    
-    @staticmethod
-    def CreateFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[T]:
-        return ColumnParameterSet[T].Create(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
+
+def CreateColumnParameterSet(columns: Iterable[IColumn]) -> IColumnParameterSet[IParameter[object]]:
+    return ColumnParameterSet[IParameter[object]](dict.fromkeys(columns))
+
+def CreateColumnParameterSetFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[IParameter[object]]:
+    return CreateColumnParameterSet(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
 
 class FieldParameterNodeSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionRoot[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
     def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]) -> None:
