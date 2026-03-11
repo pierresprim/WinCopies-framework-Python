@@ -23,12 +23,12 @@ from WinCopies.String import DoubleQuoteSurround
 from WinCopies.Typing import InvalidOperationError, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
-from WinCopies.Typing.Pairing import DualResult
+from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
-from WinCopies.Data import IOperandValue, IOperand, IColumn, Column, TableColumn, Operator
+from WinCopies.Data import IOperand, IColumn, Column, TableColumn, Operator
 from WinCopies.Data.Abstract import IConnection, ITable, Connection as ConnectionBase, Table as TableBase
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
@@ -118,7 +118,7 @@ class Table(TableBase):
         def getFields(connection: IConnection) -> Generator[IField]:
             def getFieldType(fieldType: str) -> DualResult[FieldType, Enum|None]:
                 def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualResult[FieldType, Enum|None]:
-                    return DualResult[FieldType, Enum|None](fieldType, fieldMode)
+                    return CreateDualResult(fieldType, fieldMode)
                 
                 match fieldType.upper():
                     case "INTEGER" | "INT":
@@ -182,7 +182,7 @@ class Table(TableBase):
                         'i',
                         MakeTableValueIterable(self.GetName())),
                     MakeConjonctionSet(
-                        DualResult[IColumn, IParameter[IOperandValue]](TableColumn('i', "unique"), FieldParameter[int].Create(Operator.Equals, 1))))
+                        CreateDualResult(TableColumn('i', "unique"), FieldParameter[int].Create(Operator.Equals, 1))))
                 uniqueFlagQuery.SetJoins(
                     MakeSequence(
                         Join(
@@ -193,7 +193,7 @@ class Table(TableBase):
                                 MakeTableColumnIterable(
                                     TableColumn('i', "name"))),
                             MakeConjonctionSet(
-                                DualResult[IColumn, IParameter[IOperandValue]](TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid"))))))
+                                CreateDualResult(TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid"))))))
 
                 query.GetCases().Add(ExistenceSet("isUnique", uniqueFlagQuery))
 
@@ -317,7 +317,7 @@ class Table(TableBase):
                             TableColumn("ii", "coll"): None,
                             TableColumn("il", "partial"): None}),
                         MakeConjonctionSet(
-                            DualResult[IColumn, IParameter[IOperandValue]](TableColumn("il", "name"), GetNotNullFieldParameter())))
+                            CreateDualResult(TableColumn("il", "name"), GetNotNullFieldParameter())))
                     
                     query.GetCases().Add(
                         ConditionSet[IEnumValue[IndexKind], str](
@@ -337,7 +337,7 @@ class Table(TableBase):
                                 MakeTableColumnIterable(
                                     TableColumn("il", "name"))),
                             MakeConjonctionSet(
-                                DualResult[IColumn, IParameter[IOperandValue]](TableColumn("ii", "key"), FieldParameter[int].Create(Operator.Equals, 1)))))
+                                CreateDualResult(TableColumn("ii", "key"), FieldParameter[int].Create(Operator.Equals, 1)))))
 
                     # TODO: ORDER BY il.name, ii.seqno
                     
@@ -395,7 +395,7 @@ class Table(TableBase):
                 factory: IIndexFactory = connection.GetIndexFactory()
 
                 for row in foreignKeys.AsIterable():
-                    yield factory.GetForeignKey(str(row[0]), str(row[2]), DualResult[str, str](str(row[3]), str(row[4])))
+                    yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
 
             return Append(getIndices(connection), getForeignKeys(connection))
 
@@ -455,7 +455,7 @@ class Connection(ConnectionBase):
             ColumnParameterSet(
                 {Column("name"): None}),
             MakeConjonctionSet(
-                DualResult[IColumn, IParameter[IOperandValue]](Column("type"), FieldParameter[str].Create(Operator.Equals, "table")))).Execute()
+                CreateDualResult(Column("type"), FieldParameter[str].Create(Operator.Equals, "table")))).Execute()
 
         if queryExecutionResult is None:
             return

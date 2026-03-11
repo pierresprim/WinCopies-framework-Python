@@ -11,7 +11,7 @@ from typing import Callable, Iterable, AnyStr
 
 from WinCopies import Delegates, Collections, IO
 from WinCopies.Typing.Delegate import Converter, Method, Predicate
-from WinCopies.Typing.Pairing import DualResult
+from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 from WinCopies.Collections import Loop, IterableScanResult
 from WinCopies.IO import FileKind
 
@@ -44,7 +44,7 @@ def __ParseDir(path: str, func: Callable[[str, Predicate[os.DirEntry[AnyStr]]], 
     
     dirScanResult: IterableScanResult = func(path, converter(predicate))
 
-    return DualResult[os.DirEntry[AnyStr]|None, IterableScanResult](predicate.GetResult().TryGetValue(), dirScanResult)
+    return CreateDualResult(predicate.GetResult().TryGetValue(), dirScanResult)
 
 def FindDirEntry(path: str, predicate: Predicate[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
     """Finds the first directory entry matching the given predicate.

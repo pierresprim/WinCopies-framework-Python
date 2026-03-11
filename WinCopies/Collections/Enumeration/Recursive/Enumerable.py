@@ -14,7 +14,7 @@ from WinCopies.Collections.Linked.Singly import Stack
 
 from WinCopies.Typing import InvalidOperationError, INullable, IDisposable
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Pairing import DualResult
+from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 
 class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisposable):
     def __init__(self) -> None:
@@ -147,7 +147,7 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
             
             item: TEnumerationItems|None = enumerator.GetCurrent()
 
-            return None if item is None else DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]](item, cookie.GetEnumerationItems(item).GetEnumerator())
+            return None if item is None else CreateDualResult(item, cookie.GetEnumerationItems(item).GetEnumerator())
         
         cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = self._GetCookie()
         result: DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]]|None = getEnumerator(cookie)
@@ -692,7 +692,7 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
     
     @final
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> DualResult[T, IEnumerator[T]]:
-        return DualResult[T, IEnumerator[T]](item, enumerator)
+        return CreateDualResult(item, enumerator)
     @final
     def _GetStackItemAsEnumerator(self, item: DualResult[T, IEnumerator[T]]) -> IEnumerator[T]:
         return item.GetValue()

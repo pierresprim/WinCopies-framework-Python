@@ -20,7 +20,7 @@ from WinCopies.Collections.Loop import DoForEachAndPrependAction
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 
 from WinCopies.Typing.Delegate import Converter, Method
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 
 
@@ -336,7 +336,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     
     @final
     def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
-        return DualResult[str, ICountableEnumerable[object]|None](self._GetStream().ToString(), CountableEnumerable[object].Create(self._GetArgs()))
+        return CreateDualResult(self._GetStream().ToString(), CountableEnumerable[object].Create(self._GetArgs()))
     
     def Dispose(self) -> None:
         self._GetStream().Dispose()

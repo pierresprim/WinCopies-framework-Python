@@ -10,14 +10,14 @@ from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGener
 from WinCopies.Enum import EnumerateFieldNames
 from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
 from WinCopies.Serialization import TextDataReader
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
+from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
 def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyValuePair[Element, Events]]:
     event: Events|None = None
 
     for item in iterparse(stream.AsReader(), events=tuple(event.lower() for event in EnumerateFieldNames(events))):
         if (event := Events.TryConvertFromString(item[0], lambda name, value: name is not None and name.lower() == value.lower())) is not None:
-            yield DualResult[Element, Events](item[1], event)
+            yield CreateDualResult(item[1], event)
 def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKeyValuePair[Element, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
 def GetEnumerable(stream: ITextStreamReader, events: Events) -> IEnumerable[IKeyValuePair[Element, Events]]:

@@ -117,3 +117,25 @@ class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], I
         return self.GetValue()
 
 __null: DualNullableValueBool[None] = DualNullableValueBool[None](None, False) # type: ignore[no-redef]
+
+def CreateDualResult[TValue, TInfo](value: TValue, info: TInfo) -> DualResult[TValue, TInfo]:
+    return DualResult[TValue, TInfo](value, info)
+
+def CreateDualNullableValueInfo[TValue, TInfo](value: TValue|None, info: TInfo) -> DualNullableValueInfo[TValue, TInfo]:
+    return DualNullableValueInfo[TValue, TInfo](value, info)
+def CreateDualValueNullableInfo[TValue, TInfo](value: TValue, info: TInfo|None) -> DualValueNullableInfo[TValue, TInfo]:
+    return DualValueNullableInfo[TValue, TInfo](value, info)
+
+def CreateDualNullableValueNullableInfo[TValue, TInfo](value: TValue|None, info: TInfo|None) -> DualNullableValueNullableInfo[TValue, TInfo]:
+    return DualNullableValueNullableInfo[TValue, TInfo](value, info)
+
+def CreateDualValueBool[T](value: T, info: bool) -> DualValueBool[T]:
+    return DualValueBool[T](value, info)
+
+def CreateDualNullableValueBool[T](value: T|None, info: bool) -> DualNullableValueBool[T]:
+    return DualNullableValueBool[T](value, info)
+def CreateDualValueNullableBool[T](value: T, info: bool|None) -> DualValueNullableBool[T]:
+    return DualValueNullableBool[T](value, info)
+
+def CreateDualNullableValueNullableBool[T](value: T|None, info: bool|None) -> DualNullableValueNullableBool[T]:
+    return DualNullableValueNullableBool(value, info)

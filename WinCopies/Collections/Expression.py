@@ -12,7 +12,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnum
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
+from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
 class ICompositeExpressionNodeBase[TValue, TConnector](IInterface):
     def __init__(self) -> None:
@@ -468,7 +468,7 @@ class CompositeExpressionValueEnumerator[TValue, TConnector](AbstractionEnumerat
             if value.HasValue():
                 connector: IConnector[TValue, TConnector]|None = current.GetNext()
 
-                self.__current = DualResult[TValue, INullable[TConnector]](value.GetValue(), GetNullValue() if connector is None else GetNullable(connector.GetConnector()))
+                self.__current = CreateDualResult(value.GetValue(), GetNullValue() if connector is None else GetNullable(connector.GetConnector()))
 
                 return True
         

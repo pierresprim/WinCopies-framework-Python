@@ -16,7 +16,7 @@ from WinCopies.Serialization import BinaryDataReader
 from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Object import IString, String
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 from ijson import parse
 
@@ -451,11 +451,11 @@ class _GeneratorAbstract(Abstract):
             valueType: ValueType = getType()
 
             if valueType.value > ValueType.NotApplicable.value:
-                append(DualResult[object, ValueType](value, valueType))
+                append(CreateDualResult(value, valueType))
         
         match event:
             case Event.NullValue:
-                append(DualResult[object, ValueType](None, ValueType.Null))
+                append(CreateDualResult(None, ValueType.Null))
             case _:
                 handle(value)
 
@@ -513,14 +513,14 @@ class _GeneratorInitializer(_GeneratorAbstract):
                 return getResult(self.StartArray(key), event)
             
             case Event.EndMap | Event.EndArray:
-                return GetNullable(DualResult[INode|None, Event](None, event))
+                return GetNullable(CreateDualResult(None, event))
             
             case _:
                 generator: _GeneratorBase = self.StartArray(key)
 
                 self.__moveNext = lambda nextItemProvider, updater: moveNext(key, item.GetValue(), event, generator)
 
-                return GetNullable(DualResult[INode|None, Event](generator.TryGetNode(), Event.StartArray))
+                return GetNullable(CreateDualResult(generator.TryGetNode(), Event.StartArray))
         
         return None
     
@@ -757,7 +757,7 @@ def GetGenerator(stream: IStreamReader[bytes], events: Events) -> Generator[IKey
 
     for item in GetNodeEnumerator(stream).AsIterator():
         if (event := tryGetEvent(item.GetValue())) is not None and (node := item.GetKey()) is not None and event in events:
-            yield DualResult[INode, Events](node, event)
+            yield CreateDualResult(node, event)
 def GetEnumerator(stream: IStreamReader[bytes], events: Events) -> IEnumerator[IKeyValuePair[INode, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
 def GetEnumerable(stream: IStreamReader[bytes], events: Events) -> IEnumerable[IKeyValuePair[INode, Events]]:

@@ -4,12 +4,12 @@ import subprocess
 from collections.abc import Iterable, Sequence
 
 from WinCopies.Collections import Iteration, MakeSequence
-from WinCopies.Typing.Pairing import DualResult, KeyValuePair
+from WinCopies.Typing.Pairing import DualResult, KeyValuePair, CreateDualResult
 
 def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
     result: subprocess.CompletedProcess[str] = subprocess.run(command if isinstance(command, str) or isinstance(command, list) else list(command), stdout = (None if captureOutput else sys.__stdout__), shell = shell, capture_output = captureOutput, check = throwOnError, text = captureOutput)
     
-    return DualResult(result.stdout, result.returncode)
+    return CreateDualResult(result.stdout, result.returncode)
 
 def RunWithArgs(command: str, args: Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
     return Run(Iteration.PrependValues(args, command), captureOutput, shell, throwOnError)
