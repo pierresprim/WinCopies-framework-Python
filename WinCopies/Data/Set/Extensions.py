@@ -76,9 +76,13 @@ class IExistenceQuery(IInterface):
     @abstractmethod
     def GetJoins(self) -> Iterable[IJoin]|None:
         pass
+
     @abstractmethod
     def SetJoins(self, joins: Iterable[IJoin]|None) -> None:
         pass
+    @final
+    def SetJoinsFromValues(self, *joins: IJoin) -> None:
+        self.SetJoins(joins)
 
     @abstractmethod
     def GetConditions(self) -> IConditionParameterSet|None:
