@@ -31,7 +31,7 @@ from WinCopies.Data import ConditionalOperator, IColumn, Column, TableColumn, IO
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
-from WinCopies.Data.Set import IParameterSet, IColumnParameterSet, IFieldParameterSet, ITableParameterSet
+from WinCopies.Data.Set import IParameterSet, IColumnParameterSet, IFieldParameterSet, IFieldConditionSet, ITableParameterSet
 
 class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter]):
     def __init__(self) -> None:
@@ -156,6 +156,13 @@ class FieldParameterNodeSet[TColumn: IColumn, TParameter: IParameter[IOperandVal
         super().__init__(initialNode)
 class FieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionValueRoot[IKeyValuePair[TColumn, TParameter], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
     def __init__(self, initialValue: IKeyValuePair[TColumn, TParameter]) -> None:
+        super().__init__(initialValue)
+
+class FieldConditionNodeSet[T: IColumn](FieldParameterNodeSet[T, IParameter[IOperandValue]], IFieldConditionSet[T]):
+    def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[T, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+        super().__init__(initialNode)
+class FieldConditionSet[T: IColumn](FieldParameterSet[T, IParameter[IOperandValue]], IFieldConditionSet[T]):
+    def __init__(self, initialValue: IKeyValuePair[T, IParameter[IOperandValue]]) -> None:
         super().__init__(initialValue)
 
 def __MakeFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](conditionalOperator: ConditionalOperator, *conditions: IKeyValuePair[TColumn, TParameter]) -> IFieldParameterSet[TColumn, TParameter]|None:

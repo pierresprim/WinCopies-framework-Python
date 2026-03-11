@@ -20,6 +20,10 @@ class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]
     def __init__(self) -> None:
         super().__init__()
 
+class IFieldConditionSet[T: IColumn](IFieldParameterSet[T, IParameter[IOperandValue]]):
+    def __init__(self) -> None:
+        super().__init__()
+
 class ITableParameterSet(IDictionary[IString, ITableParameter[object]|None]):
     def __init__(self) -> None:
         super().__init__()
