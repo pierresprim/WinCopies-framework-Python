@@ -37,7 +37,7 @@ from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
-from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeConjonctionSet
+from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeConjunctionSet
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
@@ -181,7 +181,7 @@ class Table(TableBase):
                     TableParameter[str](
                         'i',
                         MakeTableValueIterable(self.GetName())),
-                    MakeConjonctionSet(
+                    MakeConjunctionSet(
                         CreateDualResult(TableColumn('i', "unique"), CreateFieldParameterFromValue(Operator.Equals, 1))))
                 uniqueFlagQuery.SetJoins(
                     MakeSequence(
@@ -192,7 +192,7 @@ class Table(TableBase):
                                 "info",
                                 MakeTableColumnIterable(
                                     TableColumn('i', "name"))),
-                            MakeConjonctionSet(
+                            MakeConjunctionSet(
                                 CreateDualResult(TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid"))))))
 
                 query.GetCases().Add(ExistenceSet("isUnique", uniqueFlagQuery))
@@ -316,7 +316,7 @@ class Table(TableBase):
                             TableColumn("ii", "desc"): None,
                             TableColumn("ii", "coll"): None,
                             TableColumn("il", "partial"): None}),
-                        MakeConjonctionSet(
+                        MakeConjunctionSet(
                             CreateDualResult(TableColumn("il", "name"), GetNotNullFieldParameter())))
                     
                     query.GetCases().Add(
@@ -336,7 +336,7 @@ class Table(TableBase):
                                 "ii",
                                 MakeTableColumnIterable(
                                     TableColumn("il", "name"))),
-                            MakeConjonctionSet(
+                            MakeConjunctionSet(
                                 CreateDualResult(TableColumn("ii", "key"), CreateFieldParameterFromValue(Operator.Equals, 1)))))
 
                     # TODO: ORDER BY il.name, ii.seqno
@@ -453,7 +453,7 @@ class Connection(ConnectionBase):
                 String("sqlite_master")),
             ColumnParameterSet(
                 {Column("name"): None}),
-            MakeConjonctionSet(
+            MakeConjunctionSet(
                 CreateDualResult(Column("type"), CreateFieldParameterFromValue(Operator.Equals, "table")))).Execute()
 
         if queryExecutionResult is None:
