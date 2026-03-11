@@ -12,7 +12,7 @@ from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnly
 from WinCopies.Typing import INullable, GetNullValue
 from WinCopies.Typing.Delegate import IFunction, Converter
 from WinCopies.Typing.Generic import GenericConstraint
-from WinCopies.Typing.Object import IEnumValue, EnumValue
+from WinCopies.Typing.Object import IEnumValue, CreateEnum
 
 class PriorityLevel(Enum):
     Lowest = -4
@@ -366,7 +366,7 @@ class PriorityList[T](PriorityListBase[T, IEnumValue[PriorityLevel]]):
     
     @final
     def GetNormalLevel(self) -> IEnumValue[PriorityLevel]:
-        return EnumValue[PriorityLevel](PriorityLevel.Normal)
+        return CreateEnum(PriorityLevel.Normal)
 
 class PriorityQueue[T](PriorityList[T], IQueue[T]):
     def __init__(self) -> None:

@@ -22,7 +22,7 @@ from WinCopies.String import DoubleQuoteSurround
 
 from WinCopies.Typing import InvalidOperationError, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
-from WinCopies.Typing.Object import IEnumValue, EnumValue, String
+from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -322,11 +322,11 @@ class Table(TableBase):
                     query.GetCases().Add(
                         ConditionSet[IEnumValue[IndexKind], str](
                             "index_type",
-                            EnumValue(IndexKind.Normal),
+                            CreateEnum(IndexKind.Normal),
                             TableColumn("il", "origin"),
                             Dictionary[IEnumValue[IndexKind], IParameter[IOperand[str]]]({
-                                EnumValue[IndexKind](IndexKind.PrimaryKey): FieldParameter[str].Create(Operator.Equals, "pk"),
-                                EnumValue[IndexKind](IndexKind.Unique): FieldParameter[str].Create(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
+                                CreateEnum(IndexKind.PrimaryKey): FieldParameter[str].Create(Operator.Equals, "pk"),
+                                CreateEnum(IndexKind.Unique): FieldParameter[str].Create(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
                     
                     query.GetJoins().Add(
                         Join(
