@@ -10,7 +10,7 @@ import sqlite3
 
 from WinCopies import IDisposable, Abstract, TryConvertToInt
 
-from WinCopies.Collections import Generator, MakeSequence
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
@@ -23,7 +23,7 @@ from WinCopies.String import DoubleQuoteSurround
 from WinCopies.Typing import InvalidOperationError, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
-from WinCopies.Typing.Pairing import DualResult, CreateDualResult
+from WinCopies.Typing.Pairing import DualValueNullableInfo, CreateDualResult, CreateDualValueNullableInfo
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
@@ -37,7 +37,7 @@ from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
-from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeConjunctionSet
+from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeColumnParameterSet, MakeConjunctionSet
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
@@ -116,9 +116,9 @@ class Table(TableBase):
     
     def GetFields(self) -> IArray[IField]:
         def getFields(connection: IConnection) -> Generator[IField]:
-            def getFieldType(fieldType: str) -> DualResult[FieldType, Enum|None]:
-                def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualResult[FieldType, Enum|None]:
-                    return CreateDualResult(fieldType, fieldMode)
+            def getFieldType(fieldType: str) -> DualValueNullableInfo[FieldType, Enum]:
+                def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualValueNullableInfo[FieldType, Enum]:
+                    return CreateDualValueNullableInfo(fieldType, fieldMode)
                 
                 match fieldType.upper():
                     case "INTEGER" | "INT":
@@ -183,17 +183,16 @@ class Table(TableBase):
                         MakeTableValueIterable(self.GetName())),
                     MakeConjunctionSet(
                         CreateDualResult(TableColumn('i', "unique"), CreateFieldParameterFromValue(Operator.Equals, 1))))
-                uniqueFlagQuery.SetJoins(
-                    MakeSequence(
-                        Join(
-                            JoinType.Inner,
-                            "PRAGMA_INDEX_INFO",
-                            TableParameter[IColumn](
-                                "info",
-                                MakeTableColumnIterable(
-                                    TableColumn('i', "name"))),
-                            MakeConjunctionSet(
-                                CreateDualResult(TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid"))))))
+                uniqueFlagQuery.SetJoinsFromValues(
+                    Join(
+                        JoinType.Inner,
+                        "PRAGMA_INDEX_INFO",
+                        TableParameter[IColumn](
+                            "info",
+                            MakeTableColumnIterable(
+                                TableColumn('i', "name"))),
+                        MakeConjunctionSet(
+                            CreateDualResult(TableColumn("info", "cid"), ColumnParameter.CreateForTableColumn(Operator.Equals, 't', "cid")))))
 
                 query.GetCases().Add(ExistenceSet("isUnique", uniqueFlagQuery))
 
@@ -206,7 +205,7 @@ class Table(TableBase):
             
             fieldFactory: IFieldFactory = connection.GetFieldFactory()
             attributes: Table.FieldAttributes|None = None
-            result: DualResult[FieldType, Enum|None]|None = None
+            result: DualValueNullableInfo[FieldType, Enum]|None = None
 
             for row in columns.AsIterable():
                 result = getFieldType(str(row[1]))
@@ -309,13 +308,13 @@ class Table(TableBase):
                         TableParameterSet({
                             String("PRAGMA_INDEX_LIST"): TableParameter(
                                 "il", MakeTableValueIterable(self.GetName()))}),
-                        ColumnParameterSet[IParameter[object]]({
-                            TableColumn("il", "name"): None,
-                            TableColumn("ii", "seqno"): None,
-                            TableColumn("ii", "name"): None,
-                            TableColumn("ii", "desc"): None,
-                            TableColumn("ii", "coll"): None,
-                            TableColumn("il", "partial"): None}),
+                        MakeColumnParameterSet(
+                            TableColumn("il", "name"),
+                            TableColumn("ii", "seqno"),
+                            TableColumn("ii", "name"),
+                            TableColumn("ii", "desc"),
+                            TableColumn("ii", "coll"),
+                            TableColumn("il", "partial")),
                         MakeConjunctionSet(
                             CreateDualResult(TableColumn("il", "name"), GetNotNullFieldParameter())))
                     
@@ -369,19 +368,22 @@ class Table(TableBase):
             
             def getForeignKeys(connection: IConnection) -> Generator[IIndex]:
                 def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
+                    def getColumn(name: str) -> TableColumn:
+                        return TableColumn("fk", name)
+                    
                     query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
                             String("PRAGMA_FOREIGN_KEY_LIST"): TableParameter(
                                 "fk", MakeTableValueIterable(self.GetName()))}),
-                        ColumnParameterSet[IParameter[object]]({
-                            TableColumn("fk", "id"): None,
-                            TableColumn("fk", "seq"): None,
-                            TableColumn("fk", "from"): None,
-                            TableColumn("fk", "table"): None,
-                            TableColumn("fk", "to"): None,
-                            TableColumn("fk", "on_update"): None,
-                            TableColumn("fk", "on_delete"): None,
-                            TableColumn("fk", "match"): None}))
+                        MakeColumnParameterSet(
+                            getColumn("id"),
+                            getColumn("seq"),
+                            getColumn("from"),
+                            getColumn("table"),
+                            getColumn("to"),
+                            getColumn("on_update"),
+                            getColumn("on_delete"),
+                            getColumn("match")))
 
                         # TODO: ORDER BY fk.id, fk.seq
                     
@@ -451,8 +453,8 @@ class Connection(ConnectionBase):
         queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(
                 String("sqlite_master")),
-            ColumnParameterSet(
-                {Column("name"): None}),
+            MakeColumnParameterSet(
+                Column("name")),
             MakeConjunctionSet(
                 CreateDualResult(Column("type"), CreateFieldParameterFromValue(Operator.Equals, "table")))).Execute()
 
