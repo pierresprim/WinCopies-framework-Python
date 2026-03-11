@@ -151,19 +151,19 @@ class ColumnParameterSet[T: IParameter[object]](ParameterSet[T|None], IColumnPar
     def CreateFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[T]:
         return ColumnParameterSet[T].Create(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
 
-class FieldParameterNodeSet[T: IParameter[IOperandValue]](CompositeExpressionRoot[IKeyValuePair[IColumn, T], ConditionalOperator], IFieldParameterSet[T]):
-    def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[IColumn, T], ConditionalOperator]) -> None:
+class FieldParameterNodeSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionRoot[IKeyValuePair[TColumn, TParameter], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
+    def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[TColumn, TParameter], ConditionalOperator]) -> None:
         super().__init__(initialNode)
-class FieldParameterSet[T: IParameter[IOperandValue]](CompositeExpressionValueRoot[IKeyValuePair[IColumn, T], ConditionalOperator], IFieldParameterSet[T]):
-    def __init__(self, initialValue: IKeyValuePair[IColumn, T]) -> None:
+class FieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionValueRoot[IKeyValuePair[TColumn, TParameter], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
+    def __init__(self, initialValue: IKeyValuePair[TColumn, TParameter]) -> None:
         super().__init__(initialValue)
 
-def __MakeFieldParameterSet[T: IParameter[IOperandValue]](conditionalOperator: ConditionalOperator, *conditions: IKeyValuePair[IColumn, T]) -> IFieldParameterSet[T]|None:
-    return MakeCompositeExpressionRoot(lambda condition: FieldParameterSet[T](condition), Self, conditionalOperator, *conditions)
+def __MakeFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](conditionalOperator: ConditionalOperator, *conditions: IKeyValuePair[TColumn, TParameter]) -> IFieldParameterSet[TColumn, TParameter]|None:
+    return MakeCompositeExpressionRoot(lambda condition: FieldParameterSet[TColumn, TParameter](condition), Self, conditionalOperator, *conditions)
 
-def MakeFieldParameterConjonctionSet[T: IParameter[IOperandValue]](*conditions: IKeyValuePair[IColumn, T]) -> IFieldParameterSet[T]|None:
+def MakeFieldParameterConjonctionSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](*conditions: IKeyValuePair[TColumn, TParameter]) -> IFieldParameterSet[TColumn, TParameter]|None:
     return __MakeFieldParameterSet(ConditionalOperator.And, *conditions)
-def MakeFieldParameterDisjonctionSet[T: IParameter[IOperandValue]](*conditions: IKeyValuePair[IColumn, T]) -> IFieldParameterSet[T]|None:
+def MakeFieldParameterDisjonctionSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](*conditions: IKeyValuePair[TColumn, TParameter]) -> IFieldParameterSet[TColumn, TParameter]|None:
     return __MakeFieldParameterSet(ConditionalOperator.Or, *conditions)
 
 class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITableParameterSet):
@@ -174,25 +174,25 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
     def Create(tableNames: Iterable[IString]) -> ITableParameterSet:
         return TableParameterSet(dict[IString, None].fromkeys(tableNames))
 
-class ConditionParameterSet(IConditionParameterSet):
+class ConditionParameterSet[T: IColumn](IConditionParameterSet):
     @final
-    class __Handler(RecursiveEnumerationHandler[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]):
-        def __init__(self, writer: IConditionalQueryWriter, action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]], connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]]) -> None:
+    class __Handler[_T](RecursiveEnumerationHandler[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]]):
+        def __init__(self, writer: IConditionalQueryWriter, action: Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]], connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]]]) -> None:
             super().__init__()
 
             self.__writer: IConditionalQueryWriter = writer
-            self.__action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = action
-            self.__connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]] = connectorHandlerUpdater
+            self.__action: Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]] = action
+            self.__connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]]] = connectorHandlerUpdater
         
-        def OnEnteringEnumerationLevel(self, item: ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]) -> None:
-            def _action(item: ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]) -> None:
-                connector: IConnector[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]|None = item.GetPrevious()
+        def OnEnteringEnumerationLevel(self, item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+            def _action(item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+                connector: IConnector[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]|None = item.GetPrevious()
 
                 if connector is not None:
                     self.__writer.Write(str(connector.GetConnector()))
                 
                 self.__action(item)
-            def action(item: ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+            def action(item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]], ConditionalOperator]) -> None:
                 self.__action(item)
 
                 self.__connectorHandlerUpdater(_action)
@@ -203,22 +203,22 @@ class ConditionParameterSet(IConditionParameterSet):
         def OnExitingEnumerationLevel(self, cookie: None) -> None:
             self.__writer.Write(')')
     
-    def __init__(self, set: IFieldParameterSet[IParameter[IOperandValue]]) -> None:
+    def __init__(self, set: IFieldParameterSet[T, IParameter[IOperandValue]]) -> None:
         super().__init__()
 
-        self.__set: IFieldParameterSet[IParameter[IOperandValue]] = set
+        self.__set: IFieldParameterSet[T, IParameter[IOperandValue]] = set
     
     @final
     def Render(self, writer: IConditionalQueryWriter) -> None:
-        value: INullable[IKeyValuePair[IColumn, IParameter[IOperandValue]]]|None = None
-        action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]] = lambda _: None
+        value: INullable[IKeyValuePair[T, IParameter[IOperandValue]]]|None = None
+        action: Method[ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]], ConditionalOperator]] = lambda _: None
 
-        def updateAction(_action: Method[ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]]) -> None:
+        def updateAction(_action: Method[ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]], ConditionalOperator]]) -> None:
             nonlocal action
 
             action = _action
-        def process(condition: ICompositeExpression[IKeyValuePair[IColumn, IParameter[IOperandValue]], ConditionalOperator]) -> None:
-            def write(value: IKeyValuePair[IColumn, IParameter[IOperandValue]]) -> None:
+        def process(condition: ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]], ConditionalOperator]) -> None:
+            def write(value: IKeyValuePair[T, IParameter[IOperandValue]]) -> None:
                 writer.Write(writer.ProcessConditionValue(value.GetKey(), value.GetValue()))
 
             nonlocal value
@@ -229,12 +229,12 @@ class ConditionParameterSet(IConditionParameterSet):
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
 
-def MakeConjonctionSet(*conditions: IKeyValuePair[IColumn, IParameter[IOperandValue]]) -> IConditionParameterSet|None:
-    set: IFieldParameterSet[IParameter[IOperandValue]]|None = MakeFieldParameterConjonctionSet(*conditions)
+def MakeConjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]]) -> IConditionParameterSet|None:
+    set: IFieldParameterSet[T, IParameter[IOperandValue]]|None = MakeFieldParameterConjonctionSet(*conditions)
 
     return None if set is None else ConditionParameterSet(set)
-def MakeDisjonctionSet(*conditions: IKeyValuePair[IColumn, IParameter[IOperandValue]]) -> IConditionParameterSet|None:
-    set: IFieldParameterSet[IParameter[IOperandValue]]|None = MakeFieldParameterDisjonctionSet(*conditions)
+def MakeDisjonctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]]) -> IConditionParameterSet|None:
+    set: IFieldParameterSet[T, IParameter[IOperandValue]]|None = MakeFieldParameterDisjonctionSet(*conditions)
 
     return None if set is None else ConditionParameterSet(set)
 
