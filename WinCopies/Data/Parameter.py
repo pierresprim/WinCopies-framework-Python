@@ -108,10 +108,11 @@ class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnPar
 class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T], IGenericConstraintImplementation[IOperand[T]]):
     def __init__(self, operand: IOperand[T]) -> None:
         super().__init__(operand)
-    
-    @staticmethod
-    def Create(operator: Operator, value: T) -> FieldParameter[T]:
-        return FieldParameter[T](Operand(operator, value))
+
+def CreateFieldParameter[T](operand: IOperand[T]) -> FieldParameter[T]:
+    return FieldParameter[T](operand)
+def CreateFieldParameterFromValue[T](operator: Operator, value: T) -> FieldParameter[T]:
+    return FieldParameter[T](Operand(operator, value))
 
 __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]

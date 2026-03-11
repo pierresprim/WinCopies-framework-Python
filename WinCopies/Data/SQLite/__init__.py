@@ -35,7 +35,7 @@ from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
-from WinCopies.Data.Parameter import IParameter, FieldParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter
+from WinCopies.Data.Parameter import IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeConjonctionSet
 
@@ -174,7 +174,7 @@ class Table(TableBase):
                         Column("type"): None,
                         Column("pk"): None,
                         Column("dflt_value"): GetNullFieldParameter(),
-                        Column("notnull"): FieldParameter[int].Create(Operator.LessThanOrEquals, 0)}))
+                        Column("notnull"): CreateFieldParameterFromValue(Operator.LessThanOrEquals, 0)}))
                 
                 uniqueFlagQuery: IExistenceQuery = ExistenceQuery(
                     "PRAGMA_INDEX_LIST",
@@ -182,7 +182,7 @@ class Table(TableBase):
                         'i',
                         MakeTableValueIterable(self.GetName())),
                     MakeConjonctionSet(
-                        CreateDualResult(TableColumn('i', "unique"), FieldParameter[int].Create(Operator.Equals, 1))))
+                        CreateDualResult(TableColumn('i', "unique"), CreateFieldParameterFromValue(Operator.Equals, 1))))
                 uniqueFlagQuery.SetJoins(
                     MakeSequence(
                         Join(
@@ -325,8 +325,8 @@ class Table(TableBase):
                             CreateEnum(IndexKind.Normal),
                             TableColumn("il", "origin"),
                             Dictionary[IEnumValue[IndexKind], IParameter[IOperand[str]]]({
-                                CreateEnum(IndexKind.PrimaryKey): FieldParameter[str].Create(Operator.Equals, "pk"),
-                                CreateEnum(IndexKind.Unique): FieldParameter[str].Create(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
+                                CreateEnum(IndexKind.PrimaryKey): CreateFieldParameterFromValue(Operator.Equals, "pk"),
+                                CreateEnum(IndexKind.Unique): CreateFieldParameterFromValue(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
                     
                     query.GetJoins().Add(
                         Join(
@@ -337,7 +337,7 @@ class Table(TableBase):
                                 MakeTableColumnIterable(
                                     TableColumn("il", "name"))),
                             MakeConjonctionSet(
-                                CreateDualResult(TableColumn("ii", "key"), FieldParameter[int].Create(Operator.Equals, 1)))))
+                                CreateDualResult(TableColumn("ii", "key"), CreateFieldParameterFromValue(Operator.Equals, 1)))))
 
                     # TODO: ORDER BY il.name, ii.seqno
                     
@@ -455,7 +455,7 @@ class Connection(ConnectionBase):
             ColumnParameterSet(
                 {Column("name"): None}),
             MakeConjonctionSet(
-                CreateDualResult(Column("type"), FieldParameter[str].Create(Operator.Equals, "table")))).Execute()
+                CreateDualResult(Column("type"), CreateFieldParameterFromValue(Operator.Equals, "table")))).Execute()
 
         if queryExecutionResult is None:
             return
