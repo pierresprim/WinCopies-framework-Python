@@ -769,3 +769,14 @@ def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T
     result: int|None = IndexOf(sequence, item, predicate)
 
     return -1 if result is None else result
+
+def MakeTuple[T](items: Sequence[T]|Iterable[T]) -> Sequence[T]:
+    return items if isinstance(items, Sequence) else tuple(items)
+
+def _MakeList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
+    return items if isinstance(items, MutableSequence) else list(items)
+
+def MakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]:
+    return list() if items is None else _MakeList(items)
+def TryMakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
+    return None if items is None else _MakeList(items)
