@@ -16,7 +16,7 @@ class IParameterSet[T](IDictionary[IColumn, T]):
 class IColumnParameterSet[T: IParameter[object]](IParameterSet[T|None]):
     def __init__(self) -> None:
         super().__init__()
-class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]|None](ICompositeExpressionRoot[IKeyValuePair[TColumn, TParameter], ConditionalOperator]):
+class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](ICompositeExpressionRoot[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]):
     def __init__(self) -> None:
         super().__init__()
 
