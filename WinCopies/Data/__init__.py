@@ -29,9 +29,8 @@ class IColumn(IEquatableObject['IColumn']):
     def Hash(self) -> int:
         return hash(self.GetColumnName())
     
-    @abstractmethod
     def ToString(self, selector: Selector[str]) -> str:
-        pass
+        return selector(self.GetColumnName())
 class ITableColumn(IColumn):
     def __init__(self) -> None:
         super().__init__()
@@ -48,6 +47,9 @@ class ITableColumn(IColumn):
     
     def Hash(self) -> int:
         return hash((self.GetTableName(), self.GetColumnName()))
+    
+    def ToString(self, selector: Selector[str]) -> str:
+        return f"{selector(self.GetTableName())}.{super().ToString(selector)}"
 
 class Column(Abstract, IColumn):
     def __init__(self, columnName: str) -> None:
@@ -58,9 +60,6 @@ class Column(Abstract, IColumn):
     @final
     def GetColumnName(self) -> str:
         return self.__columnName
-    
-    def ToString(self, selector: Selector[str]) -> str:
-        return selector(self.GetColumnName())
 class TableColumn(Column, ITableColumn):
     def __init__(self, tableName: str, columnName: str) -> None:
         super().__init__(columnName)
@@ -70,9 +69,6 @@ class TableColumn(Column, ITableColumn):
     @final
     def GetTableName(self) -> str:
         return self.__tableName
-    
-    def ToString(self, selector: Selector[str]) -> str:
-        return f"{selector(self.GetTableName())}.{selector(self.GetColumnName())}"
 
 class Operator(Enum):
     Null = 0
