@@ -449,9 +449,8 @@ class Connection(ConnectionBase):
     
     def GetTableNames(self) -> Generator[str]:
         queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(
-            TableParameterSet.Create(
-                MakeSequence(
-                    String("sqlite_master"))),
+            TableParameterSet.CreateFromNames(
+                String("sqlite_master")),
             ColumnParameterSet(
                 {Column("name"): None}),
             MakeConjonctionSet(

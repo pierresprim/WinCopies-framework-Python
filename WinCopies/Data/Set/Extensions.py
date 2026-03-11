@@ -184,6 +184,9 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
     @staticmethod
     def Create(tableNames: Iterable[IString]) -> ITableParameterSet:
         return TableParameterSet(dict[IString, None].fromkeys(tableNames))
+    @staticmethod
+    def CreateFromNames(*tableNames: IString) -> ITableParameterSet:
+        return TableParameterSet.Create(tableNames)
 
 class ConditionParameterSet[T: IColumn](IConditionParameterSet):
     @final

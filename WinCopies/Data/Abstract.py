@@ -8,7 +8,7 @@ from typing import final
 
 from WinCopies import IDisposable, Abstract
 
-from WinCopies.Collections import Generator, MakeSequence
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary
@@ -87,7 +87,7 @@ class Table(Abstract, ITable):
 
         @final
         def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-            return self._GetFactory().GetSelectionQuery(TableParameterSet.Create(MakeSequence(String(self._GetTable().GetName()))), columns, conditions)
+            return self._GetFactory().GetSelectionQuery(TableParameterSet.CreateFromNames(String(self._GetTable().GetName())), columns, conditions)
 
         @final
         def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
