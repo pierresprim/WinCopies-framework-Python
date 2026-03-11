@@ -7,7 +7,7 @@ from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Enumeration, Extensions, FindIndex, Move
+from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple, MakeList, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
@@ -54,8 +54,8 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.Tu
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
-    def __init__(self, items: tuple[T]|Iterable[T]) -> None:
-        super().__init__(items if isinstance(items, tuple) else tuple(items))
+    def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
+        super().__init__(MakeTuple(items))
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
@@ -63,9 +63,9 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class EquatableTuple[T: IEquatableItem](TupleBase[T, tuple[T, ...]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[tuple[T, ...]]):
-    def __init__(self, items: tuple[T]|Iterable[T]) -> None:
-        super().__init__(items if isinstance(items, tuple) else tuple(items))
+class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+    def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
+        super().__init__(MakeTuple(items))
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
@@ -96,7 +96,7 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TIt
 
 class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
-        super().__init__(items if isinstance(items, MutableSequenceBase) else list(items))
+        super().__init__(MakeList(items))
     
     @final
     def Move(self, x: int, y: int) -> None:
@@ -121,10 +121,10 @@ class SizedArray[T](Array[T]):
         pass
 
 class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
-    def __init__(self, items: MutableSequenceBase[T]|None) -> None:
+    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: MutableSequenceBase[T] = list[T]() if items is None else items
+        self.__items: MutableSequenceBase[T] = MakeList(items)
     
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]:
@@ -149,7 +149,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], IGenericSpec
     def ToString(self) -> str:
         return str(self._GetContainer())
 class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T]):
-    def __init__(self, items: MutableSequenceBase[T]|None) -> None:
+    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__(items)
     
     @final
@@ -190,7 +190,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def __delitem__(self, index: int|slice) -> None:
         del self._GetContainer()[index]
 class List[T](ListBase[T]):
-    def __init__(self, items: MutableSequenceBase[T]|None = None) -> None:
+    def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None = None) -> None:
         super().__init__(items)
     
     @final
