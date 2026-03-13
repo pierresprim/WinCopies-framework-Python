@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Iterator
+from typing import Type
 
 from WinCopies import NullableBoolean
 from WinCopies.Collections import Enumeration, Generator, IterationResult
@@ -334,6 +335,11 @@ def SelectWhereNotNone[TIn, TOut](items: Iterable[TIn]|None, converter: Nullable
     return (item for item in Select(items, converter) if item is not None)
 def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
     return (converter(item) for item in TryEnumerate(items) if item is not None)
+
+def WhereOfType[T](t: Type[T], items: Iterable[object]) -> Generator[T]:
+    for item in items:
+        if isinstance(item, t):
+            yield item
 
 def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes only items that match a given predicate.
