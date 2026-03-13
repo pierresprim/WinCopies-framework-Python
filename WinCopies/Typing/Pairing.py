@@ -118,6 +118,9 @@ class DualNullableValueNullableBool[T](DualNullableValueNullableInfo[T, bool], I
 
 __null: DualNullableValueBool[None] = DualNullableValueBool[None](None, False) # type: ignore[no-redef]
 
+def CreateKeyValuePair[TKey, TValue](key: TKey, value: TValue) -> IKeyValuePair[TKey, TValue]:
+    return KeyValuePair[TKey, TValue](key, value)
+
 def CreateDualResult[TValue, TInfo](value: TValue, info: TInfo) -> DualResult[TValue, TInfo]:
     return DualResult[TValue, TInfo](value, info)
 
