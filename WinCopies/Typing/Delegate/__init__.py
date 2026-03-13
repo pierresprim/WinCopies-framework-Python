@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final, Callable
 
@@ -47,6 +49,21 @@ class IMethod[T](IMethodBase[T]):
     def __call__(self, value: T) -> None:
         self.SetValue(value)
 
+class IConverter[TIn, TOut](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def Convert(self, value: TIn) -> TOut:
+        pass
+class IInitializableConverter[TIn, TOut](IConverter[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def Initialize(self, value: TIn) -> None:
+        pass
+
 @final
 class ValueFunction[T](Abstract, IFunction[T]):
     def __init__(self, value: T) -> None:
@@ -56,6 +73,83 @@ class ValueFunction[T](Abstract, IFunction[T]):
     
     def GetValue(self) -> T:
         return self.__value
+
+@final
+class _ValueConverter[TIn, TOut](Abstract, IInitializableConverter[TIn, TOut]):
+    def __init__(self, value: TOut) -> None:
+        super().__init__()
+
+        self.__value: TOut = value
+    
+    def Convert(self, value: TIn) -> TOut:
+        return self.__value
+    
+    def Initialize(self, value: TIn) -> None:
+        pass
+@final
+class _UpdatableValueConverter[TIn, TOut](Abstract, IInitializableConverter[TIn, TOut]):
+    def __init__(self, value: TIn, converter: IConverter[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__value: TOut = converter.Convert(value)
+        self.__converter: IConverter[TIn, TOut] = converter
+    
+    def Convert(self, value: TIn) -> TOut:
+        return self.__value
+    
+    def Initialize(self, value: TIn) -> None:
+        self.__value = self.__converter.Convert(value)
+
+@final
+class _ValueConverterInitializer[TIn, TOut](Abstract, IInitializableConverter[TIn, TOut]):
+    def __init__(self, converter: ValueConverterUpdater[TIn, TOut], updater: Method[IInitializableConverter[TIn, TOut]]) -> None:
+        super().__init__()
+
+        self.__converter: ValueConverterUpdater[TIn, TOut] = converter
+        self.__updater: Method[IInitializableConverter[TIn, TOut]] = updater
+    
+    def __Convert(self, value: TIn) -> TOut:
+        return self.__converter.ConvertValue(value)
+    
+    def __Update(self, value: TOut) -> None:
+        self.__updater(_ValueConverter[TIn, TOut](value))
+
+    @final
+    def Convert(self, value: TIn) -> TOut:
+        result: TOut = self.__Convert(value)
+
+        self.__Update(result)
+
+        return result
+    
+    @final
+    def Initialize(self, value: TIn) -> None:
+        self.__Update(self.__Convert(value))
+@final
+class _UpdatableValueConverterInitializer[TIn, TOut](Abstract, IInitializableConverter[TIn, TOut]):
+    def __init__(self, converter: UpdatableValueConverterUpdater[TIn, TOut], updater: Method[IInitializableConverter[TIn, TOut]]) -> None:
+        super().__init__()
+
+        self.__converter: UpdatableValueConverterUpdater[TIn, TOut] = converter
+        self.__updater: Method[IInitializableConverter[TIn, TOut]] = updater
+    
+    def __GetConverter(self) -> IConverter[TIn, TOut]:
+        return self.__converter.GetValueConverter()
+    
+    def __Update(self, value: TIn) -> IInitializableConverter[TIn, TOut]:
+        converter: IInitializableConverter[TIn, TOut] = _UpdatableValueConverter[TIn, TOut](value, self.__GetConverter())
+
+        self.__updater(converter)
+
+        return converter
+
+    @final
+    def Convert(self, value: TIn) -> TOut:
+        return self.__Update(value).Convert(value)
+    
+    @final
+    def Initialize(self, value: TIn) -> None:
+        self.__Update(value).Initialize(value)
 
 class FunctionUpdater[T](Abstract, IFunction[T]):
     def __init__(self, updater: Method[IFunction[T]]) -> None:
@@ -85,6 +179,51 @@ class ValueFunctionUpdater[T](FunctionUpdater[T]):
     @final
     def _GetFunction(self) -> IFunction[T]:
         return ValueFunction[T](self._GetValue())
+
+class ConverterUpdater[TIn, TOut](Abstract, IInitializableConverter[TIn, TOut]):
+    def __init__(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> None:
+        super().__init__()
+
+        self.__updater: Method[IInitializableConverter[TIn, TOut]] = updater
+    
+    @final
+    def __Initialize(self) -> IInitializableConverter[TIn, TOut]:
+        return self._GetConverter(self.__updater)
+    
+    @abstractmethod
+    def _GetConverter(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> IInitializableConverter[TIn, TOut]:
+        pass
+    
+    @final
+    def Convert(self, value: TIn) -> TOut:
+        return self.__Initialize().Convert(value)
+    
+    @final
+    def Initialize(self, value: TIn) -> None:
+        self.__Initialize().Initialize(value)
+
+class ValueConverterUpdater[TIn, TOut](ConverterUpdater[TIn, TOut]):
+    def __init__(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> None:
+        super().__init__(updater)
+    
+    @abstractmethod
+    def ConvertValue(self, value: TIn) -> TOut:
+        pass
+    
+    @final
+    def _GetConverter(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> IInitializableConverter[TIn, TOut]:
+        return _ValueConverterInitializer[TIn, TOut](self, updater)
+class UpdatableValueConverterUpdater[TIn, TOut](ConverterUpdater[TIn, TOut]):
+    def __init__(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> None:
+        super().__init__(updater)
+    
+    @abstractmethod
+    def GetValueConverter(self) -> IConverter[TIn, TOut]:
+        pass
+    
+    @final
+    def _GetConverter(self, updater: Method[IInitializableConverter[TIn, TOut]]) -> IInitializableConverter[TIn, TOut]:
+        return _UpdatableValueConverterInitializer[TIn, TOut](self, updater)
 
 class SelectionUpdater[TClass, TInterface](ValueFunctionUpdater[TInterface], GenericConstraint[TClass, TInterface]):
     def __init__(self, value: TClass, updater: Method[IFunction[TInterface]]) -> None:
