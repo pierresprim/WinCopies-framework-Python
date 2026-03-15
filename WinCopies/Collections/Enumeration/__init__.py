@@ -77,7 +77,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __iter__(self) -> SystemIterator[T]:
         return self
 
-class IEnumerable[T](IInterface):
+class IEnumerableBase[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -87,6 +87,9 @@ class IEnumerable[T](IInterface):
     @final
     def GetEnumerator(self) -> IEnumerator[T]:
         return GetEnumerator(self.TryGetEnumerator())
+class IEnumerable[T](IEnumerableBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @abstractmethod
     def AsIterable(self) -> SystemIterable[T]:

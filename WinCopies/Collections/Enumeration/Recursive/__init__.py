@@ -7,7 +7,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorProvider, GetEnumerator
+from WinCopies.Collections.Enumeration import IEnumerableBase, IEnumerable, IEnumerator, EnumeratorProvider, GetEnumerator
 
 from WinCopies.Typing.Delegate import Converter, Method, IFunction, ValueFunctionUpdater
 
@@ -58,7 +58,7 @@ class IRecursiveEnumerationHandler[T](IRecursiveEnumerationHandlerBase[T, None])
 def TryAsStackHandler[T](delegate: IRecursiveEnumerationHandler[T]|None) -> IRecursiveStackedEnumerationHandler[T]|None:
     return None if delegate is None else delegate.AsStackHandler()
 
-class IRecursivelyScannable[T](IInterface):
+class IRecursivelyScannableBase[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
 
@@ -68,6 +68,9 @@ class IRecursivelyScannable[T](IInterface):
     @final
     def GetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[T]|None = None) -> IEnumerator[T]:
         return GetEnumerator(self.TryGetRecursiveEnumerator(enumerationOrder, handler))
+class IRecursivelyScannable[T](IRecursivelyScannableBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> IEnumerator[T]|None:
@@ -87,7 +90,10 @@ class IRecursivelyScannable[T](IInterface):
     def AsRecursivelyIterable(self) -> Iterable[T]:
         pass
 
-class IRecursivelyEnumerable[T](IRecursivelyScannable[T], IEnumerable[T]):
+class IRecursivelyEnumerableBase[T](IRecursivelyScannableBase[T], IEnumerableBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IRecursivelyEnumerable[T](IRecursivelyEnumerableBase[T], IRecursivelyScannable[T], IEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
     
