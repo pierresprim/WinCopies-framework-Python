@@ -1,4 +1,5 @@
-from WinCopies.Collections.Expression import ICompositeExpressionRoot
+from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable
+from WinCopies.Collections.Expression import ICompositeExpression
 from WinCopies.Collections.Extensions import IDictionary
 
 from WinCopies.Typing.Object import IString
@@ -16,7 +17,7 @@ class IParameterSet[T](IDictionary[IColumn, T]):
 class IColumnParameterSet[T: IParameter[object]](IParameterSet[T|None]):
     def __init__(self) -> None:
         super().__init__()
-class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](ICompositeExpressionRoot[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]):
+class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IRecursivelyEnumerable[ICompositeExpression[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]]):
     def __init__(self) -> None:
         super().__init__()
 
