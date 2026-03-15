@@ -250,14 +250,13 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
 
+def TryCreateConditionSet[T: IColumn](set: IFieldConditionSet[T]|None) -> IConditionParameterSet|None:
+    return None if set is None else ConditionParameterSet(set)
+
 def CreateConjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IConditionParameterSet|None:
-    set: IFieldConditionSet[T]|None = CreateFieldParameterConjunctionSet(conditions)
-
-    return None if set is None else ConditionParameterSet(set)
+    return TryCreateConditionSet(CreateFieldParameterConjunctionSet(conditions))
 def CreateDisjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IConditionParameterSet|None:
-    set: IFieldConditionSet[T]|None = CreateFieldParameterDisjunctionSet(conditions)
-
-    return None if set is None else ConditionParameterSet(set)
+    return TryCreateConditionSet(CreateFieldParameterDisjunctionSet(conditions))
 
 def MakeConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
     return CreateConjunctionSet(conditions)
