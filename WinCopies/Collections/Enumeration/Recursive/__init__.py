@@ -278,3 +278,52 @@ class RecursiveStackedEnumerationHandlerConverter[TIn, TOut](RecursiveStackedEnu
     @final
     def _Convert(self, item: TIn) -> TOut:
         return self.__converter(item)
+
+@final
+class __RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
+    def __init__(self, enumerable: IRecursivelyScannableBase[T], updater: Method[IFunction[IEnumerable[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__enumerable: IRecursivelyScannableBase[T] = enumerable
+    
+    def _GetValue(self) -> IEnumerable[T]:
+        return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
+@final
+class __IterableUpdater[T](ValueFunctionUpdater[Iterable[T]]):
+    def __init__(self, enumerable: IRecursivelyEnumerableBase[T], updater: Method[IFunction[Iterable[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__enumerable: IRecursivelyEnumerableBase[T] = enumerable
+    
+    def _GetValue(self) -> Iterable[T]:
+        return EnumeratorProvider[T](lambda: self.__enumerable.TryGetEnumerator())
+
+class RecursivelyScannableProvider[T](Abstract):
+    def __init__(self, enumerable: IRecursivelyScannableBase[T]) -> None:
+        def updateRecursive(func: IFunction[IEnumerable[T]]) -> None:
+            self.__recursive = func
+        
+        super().__init__()
+
+        self.__recursive: IFunction[IEnumerable[T]] = __RecursiveUpdater[T](enumerable, updateRecursive) # type: ignore[no-redef]
+    
+    @final
+    def AsRecursivelyEnumerable(self) -> IEnumerable[T]:
+        return self.__recursive.GetValue()
+class RecursivelyIterableProvider[T](RecursivelyScannableProvider[T]):
+    def __init__(self, enumerable: IRecursivelyEnumerableBase[T]) -> None:
+        def updateIterable(func: IFunction[Iterable[T]]) -> None:
+            self.__iterable = func
+        
+        super().__init__(enumerable)
+
+        self.__iterable: IFunction[Iterable[T]] = __IterableUpdater[T](enumerable, updateIterable) # type: ignore[no-redef]
+    
+    @final
+    def AsIterable(self) -> Iterable[T]:
+        return self.__iterable.GetValue()
+
+def CreateRecursivelyScannableProvider[T](enumerable: IRecursivelyScannableBase[T]) -> RecursivelyScannableProvider[T]:
+    return RecursivelyScannableProvider[T](enumerable)
+def CreateRecursivelyIterableProvider[T](enumerable: IRecursivelyEnumerableBase[T]) -> RecursivelyIterableProvider[T]:
+    return RecursivelyIterableProvider[T](enumerable)
