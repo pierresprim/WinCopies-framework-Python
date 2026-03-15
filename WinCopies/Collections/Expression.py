@@ -503,6 +503,24 @@ class CompositeExpressionStackedRecursiveEnumerator[TValue, TConnector](StackedR
 
         return GetEmptyEnumerable() if items is None else items
 
+def TryGetRecursiveEnumerator[TValue, TConnector](enumerator: IEnumerator[ICompositeExpression[TValue, TConnector]]|None, handler: IRecursiveEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:
+    return None if enumerator is None else CompositeExpressionRecursiveEnumerator[TValue, TConnector](enumerator, handler)
+def TryGetRecursiveStackedEnumerator[TValue, TConnector](enumerator: IEnumerator[ICompositeExpression[TValue, TConnector]]|None, enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:
+    return None if enumerator is None or enumerationOrder == EnumerationOrder.Null else CompositeExpressionStackedRecursiveEnumerator(enumerator, enumerationOrder, handler)
+def TryGetRecursiveValueEnumerator[TValue, TConnector](enumerator: IEnumerator[ICompositeExpression[TValue, TConnector]]|None) -> IEnumerator[IKeyValuePair[TValue, INullable[TConnector]]]|None:
+    return None if enumerator is None else CompositeExpressionValueEnumerator[TValue, TConnector](enumerator)
+
+def TryGetEnumerator[TValue, TConnector](expressionRoot: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]], enumerationOrder: EnumerationOrder, handler: IRecursiveEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:
+    if enumerationOrder == EnumerationOrder.Null:
+        return None
+    
+    match enumerationOrder:
+        case EnumerationOrder.FIFO:
+            return TryGetRecursiveEnumerator(expressionRoot.TryGetEnumerator(), handler)
+        case EnumerationOrder.LIFO:
+            return expressionRoot.TryGetRecursiveStackedEnumerator(EnumerationOrder.LIFO, None if handler is None else handler.AsStackHandler())
+        case _:
+            raise ValueError(enumerationOrder)
 
 class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionRoot[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpression[TValue, TConnector]) -> None:
@@ -524,30 +542,17 @@ class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpress
     
     @final
     def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None = None) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:
-        if enumerationOrder == EnumerationOrder.Null:
-            return None
-        
-        match enumerationOrder:
-            case EnumerationOrder.FIFO:
-                return CompositeExpressionRecursiveEnumerator[TValue, TConnector](self.TryGetEnumerator(), handler)
-            case EnumerationOrder.LIFO:
-                return self.TryGetRecursiveStackedEnumerator(EnumerationOrder.LIFO, None if handler is None else handler.AsStackHandler())
-            case _:
-                raise ValueError(enumerationOrder)
+        return TryGetEnumerator(self, enumerationOrder, handler)
     @final
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None = None) -> IEnumerator[ICompositeExpression[TValue, TConnector]]|None:
-        return None if enumerationOrder == EnumerationOrder.Null else CompositeExpressionStackedRecursiveEnumerator(self.TryGetEnumerator(), enumerationOrder, handler)
+        return TryGetRecursiveStackedEnumerator(self.TryGetEnumerator(), enumerationOrder, handler)
     
     @final
     def TryGetRecursiveValueEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None = None) -> IEnumerator[IKeyValuePair[TValue, INullable[TConnector]]]|None:
-        enumerator: IEnumerator[ICompositeExpression[TValue, TConnector]]|None = self.TryGetRecursiveEnumerator(enumerationOrder, handler)
-
-        return None if enumerator is None else CompositeExpressionValueEnumerator[TValue, TConnector](enumerator)
+        return TryGetRecursiveValueEnumerator(self.TryGetRecursiveEnumerator(enumerationOrder, handler))
     @final
     def TryGetRecursiveStackedValueEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None = None) -> IEnumerator[IKeyValuePair[TValue, INullable[TConnector]]]|None:
-        enumerator: IEnumerator[ICompositeExpression[TValue, TConnector]]|None = self.TryGetRecursiveStackedEnumerator(enumerationOrder, handler)
-
-        return None if enumerator is None else CompositeExpressionValueEnumerator[TValue, TConnector](enumerator)
+        return TryGetRecursiveValueEnumerator(self.TryGetRecursiveStackedEnumerator(enumerationOrder, handler))
 
 class CompositeExpressionValueRoot[TValue, TConnector](_CompositeExpressionRootBase[TValue, TConnector]):
     def __init__(self, initial: TValue) -> None:
