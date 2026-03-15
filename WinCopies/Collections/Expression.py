@@ -7,7 +7,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorProvider, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
-from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
+from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -503,44 +503,20 @@ class CompositeExpressionStackedRecursiveEnumerator[TValue, TConnector](StackedR
 
         return GetEmptyEnumerable() if items is None else items
 
-@final
-class _RecursiveUpdater[TValue, TConnector](ValueFunctionUpdater[IEnumerable[ICompositeExpression[TValue, TConnector]]]):
-    def __init__(self, enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]], updater: Method[IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]]]) -> None:
-        super().__init__(updater)
-
-        self.__enumerable: IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]] = enumerable
-    
-    def _GetValue(self) -> IEnumerable[ICompositeExpression[TValue, TConnector]]:
-        return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__enumerable.TryGetRecursiveEnumerator())
-@final
-class __IterableUpdater[TValue, TConnector](ValueFunctionUpdater[Iterable[ICompositeExpression[TValue, TConnector]]]):
-    def __init__(self, root: ICompositeExpressionRoot[TValue, TConnector], updater: Method[IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]]) -> None:
-        super().__init__(updater)
-
-        self.__root: ICompositeExpressionRoot[TValue, TConnector] = root
-    
-    def _GetValue(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
-        return EnumeratorProvider[ICompositeExpression[TValue, TConnector]](lambda: self.__root.TryGetEnumerator())
 
 class _CompositeExpressionRootBase[TValue, TConnector](_AbstractCompositeExpressionNode[TValue, TConnector], ICompositeExpressionRoot[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpression[TValue, TConnector]) -> None:
-        def updateRecursive(func: IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]]) -> None:
-            self.__recursive = func
-        def updateIterable(func: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]]) -> None:
-            self.__iterable = func
-        
         super().__init__(initial)
     
-        self.__recursive: IFunction[IEnumerable[ICompositeExpression[TValue, TConnector]]] = _RecursiveUpdater[TValue, TConnector](self, updateRecursive) # type: ignore[no-redef]
-        self.__iterable: IFunction[Iterable[ICompositeExpression[TValue, TConnector]]] = __IterableUpdater[TValue, TConnector](self, updateIterable) # type: ignore[no-redef]
+        self.__iterable: RecursivelyIterableProvider[ICompositeExpression[TValue, TConnector]] = CreateRecursivelyIterableProvider(self)
     
     @final
     def AsRecursivelyEnumerable(self) -> IEnumerable[ICompositeExpression[TValue, TConnector]]:
-        return self.__recursive.GetValue()
+        return self.__iterable.AsRecursivelyEnumerable()
     
     @final
     def AsIterable(self) -> Iterable[ICompositeExpression[TValue, TConnector]]:
-        return self.__iterable.GetValue()
+        return self.__iterable.AsIterable()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[ICompositeExpression[TValue, TConnector]]:
