@@ -202,6 +202,10 @@ class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:
         pass
 
+class IOperandItem[T](IKeyValuePair[T, Operator]):
+    def __init__(self) -> None:
+        super().__init__()
+
 class IOperandValue(IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -210,19 +214,15 @@ class IOperandValue(IInterface):
     def Format(self, builder: IQueryBuilder) -> str:
         pass
 
-class _IOperandValue[T](IOperandValue, IKeyValuePair[T, Operator]):
+class IOperand[T](IOperandValue, IOperandItem[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IOperand[T](_IOperandValue[T]):
+class IColumnOperand(IOperand[IColumn]):
     def __init__(self) -> None:
         super().__init__()
 
-class IColumnOperand(_IOperandValue[IColumn]):
-    def __init__(self) -> None:
-        super().__init__()
-
-class _Operand[T](Abstract):
+class _Operand[T](Abstract, IOperand[T]):
     def __init__(self, operator: Operator, value: T) -> None:
         super().__init__()
 
@@ -277,10 +277,10 @@ def GetNullOperand() -> IOperand[None]:
 def GetNotNullOperand() -> IOperand[None]:
     return __notNullOperand
 
-class Operand[T](_Operand[T], IOperand[T]):
+class Operand[T](_Operand[T]):
     def __init__(self, operator: Operator, value: T) -> None:
         if operator == Operator.Null:
-            raise ValueError(f"No operator specified.")
+            raise ValueError("No operator specified.")
         if value is None:
             raise ValueError("No value given.")
 
