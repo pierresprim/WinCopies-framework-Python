@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import Abstract
-from WinCopies.Typing import IEquatable
+from WinCopies.Typing import INullable, IEquatable, GetNullable, GetNullValue
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
 
 class IKeyValuePair[TKey, TValue](IEquatable["IKeyValuePair[TKey, TValue]"]):
@@ -142,3 +142,13 @@ def CreateDualValueNullableBool[T](value: T, info: bool|None) -> DualValueNullab
 
 def CreateDualNullableValueNullableBool[T](value: T|None, info: bool|None) -> DualNullableValueNullableBool[T]:
     return DualNullableValueNullableBool(value, info)
+
+def TryGetKey[TKey, TValue](item: IKeyValuePair[TKey, TValue]|None) -> INullable[TKey]:
+    return GetNullValue() if item is None else GetNullable(item.GetKey())
+def TryGetValue[TKey, TValue](item: IKeyValuePair[TKey, TValue]|None) -> INullable[TValue]:
+    return GetNullValue() if item is None else GetNullable(item.GetValue())
+
+def TryGetKeyOrDefault[TKey, TValue, TDefault](item: IKeyValuePair[TKey, TValue]|None, default: TDefault) -> TKey|TDefault:
+    return default if item is None else item.GetKey()
+def TryGetValueOrDefault[TKey, TValue, TDefault](item: IKeyValuePair[TKey, TValue]|None, default: TDefault) -> TValue|TDefault:
+    return default if item is None else item.GetValue()
