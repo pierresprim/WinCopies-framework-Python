@@ -14,9 +14,10 @@ from WinCopies.Collections.Expression import IConnector, ICompositeExpression, I
 from WinCopies.Collections.Extensions import ITuple, IDictionary
 from WinCopies.Collections.Iteration import Select, WhereOfType
 from WinCopies.Typing import IDisposable
-from WinCopies.Typing.Delegate import IFunction, Method, Converter, Selector, IInitializableConverter, IStruct, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Delegate import IFunction, Method, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
+from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDecorator
 
 
 
@@ -26,36 +27,6 @@ from WinCopies.Data.Parameter import IParameter, FieldParameter
 from WinCopies.Data.Query import ISelectionQueryExecutionResult
 from WinCopies.Data.Set import IFieldConditionRecursivelyEnumerable, IFieldParameterSetItem
 from WinCopies.Data.Set.Extensions import TableParameterSet, CreateColumnParameterSet, TryCreateConditionSetFromConditions
-
-type Property[TEntity, TValue] = Converter[TEntity, IStruct[TValue]]
-
-class IFunctionDecorator[TEntity, TValue](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def __call__(self, obj: TEntity, *args: object, **kwargs: object) -> TValue:
-        pass
-
-class _FunctionDecorator[TEntity, TValue](Abstract, IFunctionDecorator[TEntity, TValue]):
-    def __init__(self, func: Property[TEntity, TValue]) -> None:
-        super().__init__()
-
-        self.__func: Property[TEntity, TValue] = func
-    
-    @final
-    def _GetFunc(self) -> Property[TEntity, TValue]:
-        return self.__func
-    
-    def _Invoke(self, obj: TEntity, *args: object, **kwargs: object) -> TValue:
-        return self.__func(obj, *args, **kwargs).GetValue()
-    
-    @final
-    def __call__(self, obj: TEntity, *args: object, **kwargs: object) -> TValue:
-        return self._Invoke(obj, *args, **kwargs)
-class FunctionDecorator[TEntity, TValue](_FunctionDecorator[TEntity, TValue]):
-    def __init__(self, func: Property[TEntity, TValue]) -> None:
-        super().__init__(func)
 
 @final
 class _TableColumn(Abstract, ITableColumn):

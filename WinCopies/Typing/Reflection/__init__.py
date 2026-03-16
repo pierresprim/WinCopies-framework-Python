@@ -1,17 +1,49 @@
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from importlib import import_module
 from inspect import FrameInfo, stack, getfile, getmembers, isfunction, ismethod
 from os import path, sep
 from sys import modules, builtin_module_names
 from types import ModuleType, FrameType, FunctionType, MethodType
-from typing import List, Type
+from typing import final, List, Type
 
+from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
 from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
 from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
-from WinCopies.Typing.Delegate import Converter, Selector
+from WinCopies.Typing.Delegate import Converter, Selector, IStruct
 from WinCopies.Typing.Pairing import KeyValuePair
+
+type Property[TClass, TValue] = Converter[TClass, IStruct[TValue]]
+
+class IFunctionDecorator[TClass, TValue](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def __call__(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
+        pass
+
+class _FunctionDecorator[TClass, TValue](Abstract, IFunctionDecorator[TClass, TValue]):
+    def __init__(self, func: Property[TClass, TValue]) -> None:
+        super().__init__()
+
+        self.__func: Property[TClass, TValue] = func
+    
+    @final
+    def _GetFunc(self) -> Property[TClass, TValue]:
+        return self.__func
+    
+    def _Invoke(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
+        return self.__func(obj, *args, **kwargs).GetValue()
+    
+    @final
+    def __call__(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
+        return self._Invoke(obj, *args, **kwargs)
+class FunctionDecorator[TClass, TValue](_FunctionDecorator[TClass, TValue]):
+    def __init__(self, func: Property[TClass, TValue]) -> None:
+        super().__init__(func)
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
     frames: List[FrameInfo] = stack()
