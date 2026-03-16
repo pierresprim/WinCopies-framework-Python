@@ -614,12 +614,15 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
 
         self.__moveNext = None
 
-class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
-    def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]) -> None:
+class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
-        self.__selector: Converter[TIn, TOut] = selector
         self.__current: TOut|None = None
+    
+    @abstractmethod
+    def _Convert(self, value: TIn) -> TOut:
+        pass
     
     def _MoveNextOverride(self) -> bool:
         if super()._MoveNextOverride():
@@ -630,7 +633,7 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
 
                 return False
 
-            self.__current = self.__selector(current)
+            self.__current = self._Convert(current)
 
             return True
         
@@ -650,3 +653,12 @@ class ConverterEnumerator[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     @final
     def GetCurrent(self) -> TOut|None:
         return self.__current
+class ConverterEnumerator[TIn, TOut](ConverterEnumeratorBase[TIn, TOut]):
+    def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]) -> None:
+        super().__init__(enumerator)
+
+        self.__selector: Converter[TIn, TOut] = selector
+    
+    @final
+    def _Convert(self, value: TIn) -> TOut:
+        return self.__selector(value)

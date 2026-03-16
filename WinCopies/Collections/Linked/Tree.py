@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumerator, EnumeratorProvider
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumeratorBase, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableList, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableList, DoublyLinkedNodeEnumeratorBase
@@ -59,6 +59,25 @@ class _NodeRecursiveUpdater[T](ValueFunctionUpdater[IRecursivelyEnumerable[ITree
     def _GetValue(self) -> IRecursivelyEnumerable[ITreeNode[T]]:
         return _RecursivelyEnumerable[T](self.__tree)
 
+class TreeValueEnumeratorBase[TItem, TNode](ConverterEnumeratorBase[TNode, TItem]):
+    def __init__(self, enumerator: IEnumerator[TNode]) -> None:
+        super().__init__(enumerator)
+    
+    @abstractmethod
+    def _AsNode(self, node: TNode) -> ITreeNode[TItem]:
+        pass
+
+    @final
+    def _Convert(self, value: TNode) -> TItem:
+        return self._AsNode(value).GetValue()
+class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
+    def __init__(self, enumerator: IEnumerator[ITreeNode[T]]) -> None:
+        super().__init__(enumerator)
+    
+    @final
+    def _AsNode(self, node: ITreeNode[T]) -> ITreeNode[T]:
+        return node
+
 class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "TreeBase[TItem, TNode]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     def __init__(self) -> None:
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None:
@@ -73,7 +92,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
     
     @final
     def __TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ITreeNode[TItem]]|None) -> IEnumerator[TItem]|None:
-        return None if enumerator is None else ConverterEnumerator[ITreeNode[TItem], TItem](enumerator, lambda node: node.GetValue())
+        return None if enumerator is None else TreeValueEnumerator[TItem](enumerator)
     
     @final
     def _GetNodeEnumerator(self, node: ITreeNode[TItem]) -> IEnumerator[ITreeNode[TItem]]:
