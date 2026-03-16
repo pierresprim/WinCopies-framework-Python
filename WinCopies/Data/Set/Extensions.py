@@ -8,9 +8,11 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Generator, MakeSequence
+from WinCopies.Collections import Generator, EnumerationOrder, MakeSequence
 from WinCopies.Collections.Abstraction.Collection import Dictionary
-from WinCopies.Collections.Enumeration.Recursive import RecursiveEnumerationHandler
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
+from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, MakeCompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -20,8 +22,8 @@ from WinCopies.Delegates import Self
 
 from WinCopies.String import StringifyIfNone
 
-from WinCopies.Typing import InvalidOperationError, INullable
-from WinCopies.Typing.Delegate import Method, Selector
+from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import Method, Selector, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Object import IValueProvider, IValueItem, IBoolean, IString, GetFalseObject
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -31,7 +33,7 @@ from WinCopies.Data import ConditionalOperator, IColumn, Column, TableColumn, IO
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
-from WinCopies.Data.Set import IParameterSet, IColumnParameterSet, IFieldParameterSet, IFieldConditionSet, ITableParameterSet
+from WinCopies.Data.Set import IFieldParameterSetItem, IFieldConditionSetItemAlias as IFieldConditionSetItem, IFieldParameterRecursivelyEnumerable, IFieldConditionRecursivelyEnumerableAlias as IFieldConditionRecursivelyEnumerable, IParameterSet, IColumnParameterSet, IFieldParameterSet, IFieldConditionSet, ITableParameterSet
 
 class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter]):
     def __init__(self) -> None:
@@ -157,12 +159,125 @@ def MakeColumnParameterSet(*columns: IColumn) -> IColumnParameterSet[IParameter[
 def MakeColumnParameterSetFromNames(tableName: str|None = None, *columnNames: str) -> IColumnParameterSet[IParameter[object]]:
     return CreateColumnParameterSetFromNames(columnNames, tableName)
 
+def _TryGetConnector[TColumn: IColumn, TParameter: IParameter[IOperandValue]](connector: IConnector[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]|None) -> ConditionalOperator|None:
+    return None if connector is None else connector.GetConnector()
+
+@final
+class _Expression[TColumn: IColumn, TParameter: IParameter[IOperandValue]](Abstract, IFieldParameterSetItem[TColumn, TParameter]):
+    def __init__(self, expression: ICompositeExpression[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]) -> None:
+        super().__init__()
+
+        self.__expression: ICompositeExpression[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator] = expression
+    
+    def TryGetFieldParameter(self) -> IKeyValuePair[TColumn, TParameter|None]|None:
+        return self.__expression.TryGetValue().TryGetValue()
+    
+    def TryGetPreviousOperator(self) -> ConditionalOperator|None:
+        return _TryGetConnector(self.__expression.GetPrevious())
+    def TryGetNextOperator(self) -> ConditionalOperator|None:
+        return _TryGetConnector(self.__expression.GetNext())
+    
+    def TryGetItems(self) -> IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]|None:
+        expression: ICompositeExpressionNode[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]|None = self.__expression.TryGetItems()
+
+        return None if expression is None else IteratorProvider[IFieldParameterSetItem[TColumn, TParameter]](lambda: Select(expression.AsIterable(), lambda expression: _Expression(expression)))
+
+def _GetEnumerable[TColumn: IColumn, TParameter: IParameter[IOperandValue]](enumerationItems: IFieldParameterSetItem[TColumn, TParameter]) -> IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]:
+    items: IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]|None = enumerationItems.TryGetItems()
+
+    return GetEmptyEnumerable() if items is None else items
+
+class _RecursiveEnumerator[TColumn: IColumn, TParameter: IParameter[IOperandValue]](RecursiveEnumerator[IFieldParameterSetItem[TColumn, TParameter]]):
+    def __init__(self, enumerator: IEnumerator[IFieldParameterSetItem[TColumn, TParameter]], handler: IRecursiveEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None = None) -> None:
+        super().__init__(enumerator, handler)
+    
+    @final
+    def _GetEnumerationItems(self, enumerationItems: IFieldParameterSetItem[TColumn, TParameter]) -> IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]:
+        return _GetEnumerable(enumerationItems)
+class _StackedRecursiveEnumerator[TColumn: IColumn, TParameter: IParameter[IOperandValue]](StackedRecursiveEnumerator[IFieldParameterSetItem[TColumn, TParameter]]):
+    def __init__(self, enumerator: IEnumerator[IFieldParameterSetItem[TColumn, TParameter]], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None = None) -> None:
+        super().__init__(enumerator, enumerationOrder, handler)
+    
+    @final
+    def _GetEnumerationItems(self, enumerationItems: IFieldParameterSetItem[TColumn, TParameter]) -> IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]:
+        return _GetEnumerable(enumerationItems)
+
+def _TryGetRecursiveEnumerator[TColumn: IColumn, TParameter: IParameter[IOperandValue]](enumerator: IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None, handler: IRecursiveEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+    return None if enumerator is None else _RecursiveEnumerator(enumerator, handler)
+def _TryGetRecursiveStackedEnumerator[TColumn: IColumn, TParameter: IParameter[IOperandValue]](enumerator: IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None, enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+    return None if enumerator is None or enumerationOrder == EnumerationOrder.Null else _StackedRecursiveEnumerator(enumerator, enumerationOrder, handler)
+
+def _TryGetEnumerator[TColumn: IColumn, TParameter: IParameter[IOperandValue]](expressionRoot: IFieldParameterRecursivelyEnumerable[TColumn, TParameter], enumerationOrder: EnumerationOrder, handler: IRecursiveEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+    if enumerationOrder == EnumerationOrder.Null:
+        return None
+    
+    match enumerationOrder:
+        case EnumerationOrder.FIFO:
+            return _TryGetRecursiveEnumerator(expressionRoot.TryGetEnumerator(), handler)
+        case EnumerationOrder.LIFO:
+            return expressionRoot.TryGetRecursiveStackedEnumerator(EnumerationOrder.LIFO, None if handler is None else handler.AsStackHandler())
+        case _:
+            raise ValueError(enumerationOrder)
+
+class FieldParameterRecursivelyEnumerable[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IFieldParameterRecursivelyEnumerable[TColumn, TParameter]):
+    def __init__(self, items: IFieldParameterSet[TColumn, TParameter]) -> None:
+        super().__init__()
+
+        self.__items: IFieldParameterSet[TColumn, TParameter] = items
+        self.__iterable: RecursivelyIterableProvider[IFieldParameterSetItem[TColumn, TParameter]] = CreateRecursivelyIterableProvider(self)
+    
+    @final
+    def AsRecursivelyEnumerable(self) -> IEnumerable[IFieldParameterSetItem[TColumn, TParameter]]:
+        return self.__iterable.AsRecursivelyEnumerable()
+    
+    @final
+    def AsIterable(self) -> Iterable[IFieldParameterSetItem[TColumn, TParameter]]:
+        return self.__iterable.AsIterable()
+    
+    def TryGetEnumerator(self) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+        return AsEnumerator(Select(self.__items.AsIterable(), lambda expression: _Expression[TColumn, TParameter](expression)))
+    
+    @final
+    def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None = None) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+        return _TryGetEnumerator(self, enumerationOrder, handler)
+    @final
+    def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[IFieldParameterSetItem[TColumn, TParameter]]|None = None) -> IEnumerator[IFieldParameterSetItem[TColumn, TParameter]]|None:
+        return _TryGetRecursiveStackedEnumerator(self.TryGetEnumerator(), enumerationOrder, handler)
+
+@final
+class RecursivelyParameterEnumerableUpdater[TColumn: IColumn, TParameter: IParameter[IOperandValue]](ValueFunctionUpdater[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]]):
+    def __init__(self, items: IFieldParameterSet[TColumn, TParameter], updater: Method[IFunction[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: IFieldParameterSet[TColumn, TParameter] = items
+    
+    def _GetValue(self) -> IFieldParameterRecursivelyEnumerable[TColumn, TParameter]:
+        return FieldParameterRecursivelyEnumerable[TColumn, TParameter](self.__items)
+
 class FieldParameterNodeSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionRoot[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
     def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]) -> None:
+        def update(func: IFunction[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]]) -> None:
+            self.__parameterEnumerable = func
+        
         super().__init__(initialNode)
+
+        self.__parameterEnumerable: IFunction[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]] = RecursivelyParameterEnumerableUpdater[TColumn, TParameter](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsRecursivelyParameterEnumerable(self) -> IFieldParameterRecursivelyEnumerable[TColumn, TParameter]:
+        return self.__parameterEnumerable.GetValue()
 class FieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](CompositeExpressionValueRoot[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator], IFieldParameterSet[TColumn, TParameter]):
     def __init__(self, initialValue: IKeyValuePair[TColumn, TParameter|None]) -> None:
+        def update(func: IFunction[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]]) -> None:
+            self.__parameterEnumerable = func
+        
         super().__init__(initialValue)
+
+        self.__parameterEnumerable: IFunction[IFieldParameterRecursivelyEnumerable[TColumn, TParameter]] = RecursivelyParameterEnumerableUpdater[TColumn, TParameter](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsRecursivelyParameterEnumerable(self) -> IFieldParameterRecursivelyEnumerable[TColumn, TParameter]:
+        return self.__parameterEnumerable.GetValue()
 
 class FieldConditionNodeSet[T: IColumn](FieldParameterNodeSet[T, IParameter[IOperandValue]], IFieldConditionSet[T]):
     def __init__(self, initialNode: ICompositeExpressionNode[IKeyValuePair[T, IParameter[IOperandValue]|None], ConditionalOperator]) -> None:
@@ -197,23 +312,23 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
 
 class ConditionParameterSet[T: IColumn](IConditionParameterSet):
     @final
-    class __Handler[_T](RecursiveEnumerationHandler[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]]):
-        def __init__(self, writer: IConditionalQueryWriter, action: Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]], connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]]]) -> None:
+    class __Handler[_T: IColumn](RecursiveEnumerationHandler[IFieldConditionSetItem[_T]]):
+        def __init__(self, writer: IConditionalQueryWriter, action: Method[IFieldConditionSetItem[_T]], connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[_T]]]) -> None:
             super().__init__()
 
             self.__writer: IConditionalQueryWriter = writer
-            self.__action: Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]] = action
-            self.__connectorHandlerUpdater: Method[Method[ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]]] = connectorHandlerUpdater
+            self.__action: Method[IFieldConditionSetItem[_T]] = action
+            self.__connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[_T]]] = connectorHandlerUpdater
         
-        def OnEnteringEnumerationLevel(self, item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]) -> None:
-            def _action(item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]) -> None:
-                connector: IConnector[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]|None = item.GetPrevious()
+        def OnEnteringEnumerationLevel(self, item: IFieldConditionSetItem[_T]) -> None:
+            def _action(item: IFieldConditionSetItem[_T]) -> None:
+                operator: ConditionalOperator|None = item.TryGetPreviousOperator()
 
-                if connector is not None:
-                    self.__writer.Write(str(connector.GetConnector()))
+                if operator is not None:
+                    self.__writer.Write(str(operator))
                 
                 self.__action(item)
-            def action(item: ICompositeExpression[IKeyValuePair[_T, IParameter[IOperandValue]|None], ConditionalOperator]) -> None:
+            def action(item: IFieldConditionSetItem[_T]) -> None:
                 self.__action(item)
 
                 self.__connectorHandlerUpdater(_action)
@@ -224,34 +339,36 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
         def OnExitingEnumerationLevel(self, cookie: None) -> None:
             self.__writer.Write(')')
     
-    def __init__(self, set: IFieldParameterSet[T, IParameter[IOperandValue]]) -> None:
+    def __init__(self, set: IFieldConditionRecursivelyEnumerable[T]) -> None:
         super().__init__()
 
-        self.__set: IFieldParameterSet[T, IParameter[IOperandValue]] = set
+        self.__set: IFieldConditionRecursivelyEnumerable[T] = set
     
     @final
     def Render(self, writer: IConditionalQueryWriter) -> None:
-        value: INullable[IKeyValuePair[T, IParameter[IOperandValue]|None]]|None = None
-        action: Method[ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]|None], ConditionalOperator]] = lambda _: None
+        value: IKeyValuePair[T, IParameter[IOperandValue]|None]|None = None
+        action: Method[IFieldConditionSetItem[T]] = lambda _: None
 
-        def updateAction(_action: Method[ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]|None], ConditionalOperator]]) -> None:
+        def updateAction(_action: Method[IFieldConditionSetItem[T]]) -> None:
             nonlocal action
 
             action = _action
-        def process(condition: ICompositeExpression[IKeyValuePair[T, IParameter[IOperandValue]|None], ConditionalOperator]) -> None:
+        def process(condition: IFieldConditionSetItem[T]) -> None:
             def write(value: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> None:
                 writer.Write(writer.ProcessConditionValue(value.GetKey(), value.GetValue()))
 
             nonlocal value
 
-            if (value := condition.TryGetValue()).HasValue():
-                write(value.GetValue())
+            if (value := condition.TryGetFieldParameter()) is not None:
+                write(value)
 
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
 
 def TryCreateConditionSet[T: IColumn](set: IFieldConditionSet[T]|None) -> IConditionParameterSet|None:
-    return None if set is None else ConditionParameterSet(set)
+    return None if set is None else ConditionParameterSet[T](set.AsRecursivelyParameterEnumerable())
+def TryCreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]|None) -> IConditionParameterSet|None:
+    return None if set is None else ConditionParameterSet[T](set)
 
 def CreateConjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IConditionParameterSet|None:
     return TryCreateConditionSet(CreateFieldParameterConjunctionSet(conditions))

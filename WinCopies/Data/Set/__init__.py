@@ -71,6 +71,10 @@ class IColumnParameterSet[T: IParameter[object]](IParameterSet[T|None]):
 class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IRecursivelyEnumerable[ICompositeExpression[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsRecursivelyParameterEnumerable(self) -> IFieldParameterRecursivelyEnumerableAlias[TColumn, TParameter]:
+        pass
 
 class IFieldConditionSet[T: IColumn](IFieldParameterSet[T, IParameter[IOperandValue]]):
     def __init__(self) -> None:
