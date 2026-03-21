@@ -291,6 +291,19 @@ class Type[T](ValueObject[type[T], IType[T]], IType[T]):
     def Create(value: T) -> IType[T]:
         return Type[T](type(value))
 
+class IReference[T](IValueObject[T, 'IReference[T]']):
+    def __init__(self) -> None:
+        super().__init__()
+class Reference[T](ValueObject[T, IReference[T]], IReference[T]):
+    def __init__(self, parameter: T) -> None:
+        super().__init__(parameter)
+    
+    def Equals(self, item: IReference[T]|object) -> bool:
+        return self.GetValue() is item
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self) -> None:
         super().__init__()
