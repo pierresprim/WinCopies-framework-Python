@@ -46,10 +46,10 @@ class _TableColumn(Abstract, ITableColumn):
 
 @final
 class _ColumnParameterUpdater(ValueConverterUpdater[str, ITableColumn]):
-    def __init__(self, parameter: IColumnParameterBase, updater: Method[IInitializableConverter[str, ITableColumn]]) -> None:
+    def __init__(self, parameter: IColumnParameterAbstract, updater: Method[IInitializableConverter[str, ITableColumn]]) -> None:
         super().__init__(updater)
 
-        self.__parameter: IColumnParameterBase = parameter
+        self.__parameter: IColumnParameterAbstract = parameter
     
     def ConvertValue(self, value: str) -> ITableColumn:
         return _TableColumn(self.__parameter.GetColumnName(), value)
@@ -413,7 +413,7 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
     @final
     def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
         if isinstance(value, Entity):
-            result: _Parameter[object]|_ValueNode = self.ToConditionParameter(operator, value)
+            result: _Parameter[object]|_ValueNode = self.ToConditionParameter(operator, cast(TValue, value))
 
             return result if isinstance(result, _ValueNode) else _ValueNode(result)
 
@@ -623,11 +623,11 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
     @final
     class _CookieProvider[_TEntity: Entity, _TValue: Entity](Abstract, IColumnParameterCookieProvider):
         @final
-        class _ColumnProvider(Abstract, IColumnParameterCookie):
-            def __init__(self, parameter: ForeignKeyParameter[_TEntity, _TValue], index: int) -> None:
+        class _ColumnProvider[__TEntity: Entity, __TValue: Entity](Abstract, IColumnParameterCookie):
+            def __init__(self, parameter: ForeignKeyParameter[__TEntity, __TValue], index: int) -> None:
                 super().__init__()
 
-                self.__parameter: ForeignKeyParameter[_TEntity, _TValue] = parameter
+                self.__parameter: ForeignKeyParameter[__TEntity, __TValue] = parameter
                 self.__index: int = index
             
             def _AsColumn(self, tableName: str) -> ITableColumn:
@@ -639,7 +639,7 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
             self.__parameter: ForeignKeyParameter[_TEntity, _TValue] = parameter
         
         def GetAt(self, index: int) -> IColumnParameterCookie:
-            return ForeignKeyParameter._CookieProvider[_TEntity, _TValue]._ColumnProvider(self.__parameter, index)
+            return ForeignKeyParameter._CookieProvider._ColumnProvider[_TEntity, _TValue](self.__parameter, index)
     
     def __init__(self, name: str, config: IForeignKeyConfig[TValue]) -> None:
         def getNames() -> Iterable[str]:
@@ -1120,7 +1120,10 @@ class EntityCollection[T: Entity](Abstract):
                 yield createEntity(iter(row))
         
         def getColumns(columns: Iterable[IColumnAbstract]) -> tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]]:
-            return (CreateTuple(WhereOfType(IDefaultColumn, columns)), CreateTuple(WhereOfType(IDefaultEntityColumn, columns)), CreateTuple(WhereOfType(IDefaultForeignKey, columns))) # type: ignore[type-abstract]
+            def createTuple[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> Iterable[TColumn]:
+                return CreateTuple(columns).AsIterable()
+            
+            return createTuple(WhereOfType(IDefaultColumn, columns)), createTuple(WhereOfType(IDefaultEntityColumn, columns)), createTuple(WhereOfType(IDefaultForeignKey, columns)) # type: ignore[type-abstract]
 
         columns, entityColumns, foreignKeys = getColumns(getColumnsFromType(self._GetType()).GetColumns().AsIterable())
 
