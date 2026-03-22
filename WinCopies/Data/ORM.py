@@ -26,7 +26,7 @@ from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDe
 from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, ITableColumn, Operand
 from WinCopies.Data.Abstract import IConnection
 from WinCopies.Data.Parameter import IParameter, FieldParameter
-from WinCopies.Data.Query import ISelectionQueryExecutionResult
+from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set import IFieldConditionRecursivelyEnumerable, IFieldParameterSetItem
 from WinCopies.Data.Set.Extensions import TableParameterSet, CreateColumnParameterSet, TryCreateConditionSetFromConditions
 
@@ -1044,6 +1044,31 @@ class Entity(Abstract, IDisposable):
 
         self.__cookie.Seal() # TODO: Should be called from protected variant
 
+class _SelectionQueryData(Abstract):
+    def __init__(self, columns: _Columns) -> None:
+        def getColumns(columns: Iterable[IColumnAbstract]) -> tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]]:
+            def createTuple[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> Iterable[TColumn]:
+                return CreateTuple(columns).AsIterable()
+            
+            return createTuple(WhereOfType(IDefaultColumn, columns)), createTuple(WhereOfType(IDefaultEntityColumn, columns)), createTuple(WhereOfType(IDefaultForeignKey, columns)) # type: ignore[type-abstract]
+        
+        super().__init__()
+        
+        _columns: tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]] = getColumns(columns.GetColumns().AsIterable())
+
+        self.__columns: Iterable[IDefaultColumn] = _columns[0]
+        self.__entityColumns: Iterable[IDefaultEntityColumn] = _columns[1]
+        self.__foreignKeys: Iterable[IDefaultForeignKey] = _columns[2]
+    
+    def GetColumns(self) -> Iterable[IDefaultColumn]:
+        return self.__columns
+    
+    def GetEntityColumns(self) -> Iterable[IDefaultEntityColumn]:
+        return self.__entityColumns
+    
+    def GetForeignKeys(self) -> Iterable[IDefaultForeignKey]:
+        return self.__foreignKeys
+
 class EntityCollection[T: Entity](Abstract):
     def __init__(self) -> None:
         super().__init__()
@@ -1053,20 +1078,16 @@ class EntityCollection[T: Entity](Abstract):
         pass
     
     @final
-    def Where(self, connection: IConnection, conditions: _IRoot) -> IEnumerable[T]:
-        def getDefaultTableName() -> str:
-            return self._GetType().__name__
-        
-        def getColumnsFromType(t: Type[Entity]) -> _Columns:
-            return t._GetColumns() # pyright: ignore[reportPrivateUsage]
+    def __GetColumnsFromType(self, t: Type[Entity]) -> _Columns:
+        return t._GetColumns() # pyright: ignore[reportPrivateUsage]
 
-        def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
-            return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
-        def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
-            return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
-
+    @final
+    def __Iterate(self, data: _SelectionQueryData, query: ISelectionQuery) -> IEnumerable[T]:
         def iterate(items: ISelectionQueryExecutionResult) -> Generator[T]:
             def createEntity(row: Iterator[object]) -> T:
+                def getColumnsFromType(t: Type[Entity]) -> _Columns:
+                    return self.__GetColumnsFromType(t)
+                
                 def initCookie(obj: Entity) -> None:
                     obj._InitCookie() # pyright: ignore[reportPrivateUsage]
                 
@@ -1098,10 +1119,10 @@ class EntityCollection[T: Entity](Abstract):
                 
                 initCookie(obj)
 
-                processColumns(columns, lambda args: args[1])
-                processColumns(entityColumns, processEntityColumn)
+                processColumns(data.GetColumns(), lambda args: args[1])
+                processColumns(data.GetEntityColumns(), processEntityColumn)
 
-                for fk in foreignKeys:
+                for fk in data.GetForeignKeys():
                     targetType: Type[Entity] = fk.GetColumnParameter().GetType()
                     
                     stub: Entity = object.__new__(targetType)
@@ -1118,23 +1139,45 @@ class EntityCollection[T: Entity](Abstract):
             
             for row in items.AsIterable():
                 yield createEntity(iter(row))
-        
-        def getColumns(columns: Iterable[IColumnAbstract]) -> tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]]:
-            def createTuple[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> Iterable[TColumn]:
-                return CreateTuple(columns).AsIterable()
-            
-            return createTuple(WhereOfType(IDefaultColumn, columns)), createTuple(WhereOfType(IDefaultEntityColumn, columns)), createTuple(WhereOfType(IDefaultForeignKey, columns)) # type: ignore[type-abstract]
 
-        columns, entityColumns, foreignKeys = getColumns(getColumnsFromType(self._GetType()).GetColumns().AsIterable())
+        items: ISelectionQueryExecutionResult|None = query.Execute()
 
-        items: ISelectionQueryExecutionResult|None = connection.GetQueryFactory().GetSelectionQuery(
+        return GetEmptyEnumerable() if items is None else IteratorProvider[T](lambda: iterate(items))
+    
+    @final
+    def __GetDefaultTableName(self) -> str:
+        return self._GetType().__name__
+    
+    @final
+    def __GetSelectionQuery(self, connection: IConnection) -> tuple[_SelectionQueryData, ISelectionQuery]:
+        def getDefaultTableName() -> str:
+            return self.__GetDefaultTableName()
+
+        def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
+            return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
+            return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
+
+        data: _SelectionQueryData = _SelectionQueryData(self.__GetColumnsFromType(self._GetType()))
+
+        return data, connection.GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(String(getDefaultTableName())),
             CreateColumnParameterSet(
                 ConcatenateValues(
-                    Select(columns, asColumn),
-                    Select(entityColumns, asColumn),
+                    Select(data.GetColumns(), asColumn),
+                    Select(data.GetEntityColumns(), asColumn),
                     ConcatenateIterables(
-                        Select(foreignKeys, asForeignKeys)))),
-            TryCreateConditionSetFromConditions(_Set(conditions, getDefaultTableName()))).Execute()
+                        Select(data.GetForeignKeys(), asForeignKeys)))))
+    
+    @final
+    def Select(self, connection: IConnection) -> IEnumerable[T]:
+        return self.__Iterate(*self.__GetSelectionQuery(connection))
+
+    @final
+    def Where(self, connection: IConnection, conditions: _IRoot) -> IEnumerable[T]:
+        data, query = self.__GetSelectionQuery(connection)
+
+        query.SetConditions(TryCreateConditionSetFromConditions(_Set(conditions, self.__GetDefaultTableName())))
         # Select(conditions, lambda condition: CreateKeyValuePair(asColumn(condition.GetKey()), condition.GetValue()))
-        return GetEmptyEnumerable() if items is None else IteratorProvider[T](lambda: iterate(items))
+        
+        return self.__Iterate(data, query)
