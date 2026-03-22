@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
-from typing import final, overload, Any, Type, cast
+from collections.abc import Iterable, Iterator
+from enum import Enum
+from typing import final, overload, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import Generator, EnumerationOrder
+from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
 from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
-from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
-from WinCopies.Collections.Extensions import ITuple, IDictionary
-from WinCopies.Collections.Iteration import Select, WhereOfType
-from WinCopies.Typing import IDisposable
+from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
+from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Include, Select, WhereOfType
+from WinCopies.Collections.Loop import DoForEachItem
+from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, Method, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IString, String
+from WinCopies.Typing.Object import IReference, Reference, IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDecorator
 
@@ -30,29 +32,38 @@ from WinCopies.Data.Set.Extensions import TableParameterSet, CreateColumnParamet
 
 @final
 class _TableColumn(Abstract, ITableColumn):
-    def __init__(self, parameter: ColumnParameterAbstract, tableName: str) -> None:
+    def __init__(self, columnName: str, tableName: str) -> None:
         super().__init__()
 
-        self.__parameter: ColumnParameterAbstract = parameter
+        self.__columnName: str = columnName
         self.__tableName: str = tableName
     
     def GetColumnName(self) -> str:
-        return self.__parameter.GetColumnName()
+        return self.__columnName
     
     def GetTableName(self) -> str:
         return self.__tableName
 
 @final
 class _ColumnParameterUpdater(ValueConverterUpdater[str, ITableColumn]):
-    def __init__(self, parameter: ColumnParameterAbstract, updater: Method[IInitializableConverter[str, ITableColumn]]) -> None:
+    def __init__(self, parameter: IColumnParameterBase, updater: Method[IInitializableConverter[str, ITableColumn]]) -> None:
         super().__init__(updater)
 
-        self.__parameter: ColumnParameterAbstract = parameter
+        self.__parameter: IColumnParameterBase = parameter
     
     def ConvertValue(self, value: str) -> ITableColumn:
-        return _TableColumn(self.__parameter, value)
+        return _TableColumn(self.__parameter.GetColumnName(), value)
+@final
+class _ForeignKeyParameterUpdater(ValueConverterUpdater[str, ITuple[ITableColumn]]):
+    def __init__(self, columnNames: Iterable[str], updater: Method[IInitializableConverter[str, ITuple[ITableColumn]]]) -> None:
+        super().__init__(updater)
 
-class _IColumnParameterCookie(IInterface):
+        self.__columnNames: Iterable[str] = columnNames
+    
+    def ConvertValue(self, value: str) -> ITuple[ITableColumn]:
+        return CreateTuple(Select(self.__columnNames, lambda columnName: _TableColumn(columnName, value)))
+
+class IColumnParameterCookie(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -61,17 +72,17 @@ class _IColumnParameterCookie(IInterface):
         pass
 
 @final
-class _Parameter[T](Abstract, IKeyValuePair[_IColumnParameterCookie, IParameter[IOperandValue]|None]):
-    def __init__(self, cookie: _IColumnParameterCookie, operator: Operator, value: T) -> None:
+class _Parameter[T](Abstract, IKeyValuePair[IColumnParameterCookie, IParameter[IOperandValue]|None]):
+    def __init__(self, cookie: IColumnParameterCookie, operator: Operator, value: T) -> None:
         super().__init__()
 
-        self.__columnParameter: _IColumnParameterCookie = cookie
+        self.__columnParameter: IColumnParameterCookie = cookie
         self.__parameter: IParameter[IOperandValue] = FieldParameter[T](Operand[T](operator, value))
     
     def IsKeyValuePair(self) -> bool:
         return False
     
-    def GetKey(self) -> _IColumnParameterCookie:
+    def GetKey(self) -> IColumnParameterCookie:
         return self.__columnParameter
     def GetValue(self) -> IParameter[IOperandValue]|None:
         return self.__parameter
@@ -235,9 +246,298 @@ class _Set(Abstract, IFieldConditionRecursivelyEnumerable[ITableColumn]):
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None = None) -> IEnumerator[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None:
         return _TryGetRecursiveStackedEnumerator(self.TryGetEnumerator(), enumerationOrder, handler)
 
-class ColumnParameterAbstract(Abstract):
+class Role(Enum):
+    Null = 0
+    PrimaryKey = 1
+    ForeignKey = 2
+
+class IColumnCondition[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def ToConditionParameter(self, operator: Operator, value: T) -> _Parameter[object]|_ValueNode:
+        pass
+    @abstractmethod
+    def ToConditionNode(self, operator: Operator, value: T) -> _ValueNode:
+        pass
+    @abstractmethod
+    def ToConditionRoot(self, operator: Operator, value: T) -> _ValueRoot:
+        pass
+
+class IColumnParameterAbstract(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetColumnRole(self) -> Role:
+        pass
+    
+    @abstractmethod
+    def GetColumnName(self) -> str:
+        pass
+    
+    @abstractmethod
+    def _SetTableName(self, tableName: str) -> None:
+        pass
+class IEntityColumnParameterAbstract(IColumnParameterAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetType(self) -> Type[Entity]:
+        pass
+
+class IColumnParameterBase(IColumnParameterAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _AsColumn(self, tableName: str) -> ITableColumn:
+        pass
+class IEntityColumnParameterBase(IColumnParameterBase, IEntityColumnParameterAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IColumnParameter[T](IColumnCondition[T], IColumnParameterBase):
+    def __init__(self) -> None:
+        super().__init__()
+class IEntityColumnParameter[T: Entity](IColumnCondition[T], IEntityColumnParameterBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetType(self) -> Type[T]:
+        pass
+
+class IForeignKeyParameterAbstract(IEntityColumnParameterAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
     @final
-    class _ColumnProvider(Abstract, _IColumnParameterCookie):
+    def GetColumnRole(self) -> Role:
+        return Role.ForeignKey
+class IForeignKeyParameterBase(IForeignKeyParameterAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _AsColumns(self, tableName: str) -> ITuple[ITableColumn]:
+        pass
+class IForeignKeyParameter[T: Entity](IForeignKeyParameterBase, IColumnCondition[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetType(self) -> Type[T]:
+        pass
+
+class IParameterKey(IReference[IColumnParameterAbstract]):
+    def __init__(self) -> None:
+        super().__init__()
+class ParameterKey(Reference[IColumnParameterAbstract], IParameterKey):
+    def __init__(self, parameter: IColumnParameterAbstract) -> None:
+        super().__init__(parameter)
+    
+    def ToString(self) -> str:
+        return self.GetValue().GetColumnName()
+
+class IColumnParameterDelegate[TValue](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+        pass
+    @abstractmethod
+    def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
+        pass
+    @abstractmethod
+    def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
+        pass
+class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetCookie(self, index: int) -> IColumnParameterCookie:
+        pass
+    
+    @abstractmethod
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+        pass
+    
+    @final
+    def _GetParameter(self, operator: Operator, entity: Entity, index: int, primaryKeys: IReadOnlyIndexable[IColumnAbstract]) -> _Parameter[object]:
+        return _Parameter[object](self._GetCookie(index), operator, primaryKeys.GetAt(index)._GetEntityValue(entity)) # pyright: ignore[reportPrivateUsage]
+
+    @final
+    def __ToCondition[TNode: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator]](self, operator: Operator, entity: Entity, selector: Callable[[_Parameter[object], ConditionalOperator, _Parameter[object]], TNode]) -> _Parameter[object]|TNode:
+        def getParameter(index: int) -> _Parameter[object]:
+            return self._GetParameter(operator, entity, index, primaryKeys)
+
+        primaryKeys: ITuple[IColumnAbstract] = type(entity)._GetColumns().GetPrimaryKeys() # pyright: ignore[reportPrivateUsage]
+        count: int = primaryKeys.GetCount()
+
+        if count < 1:
+            raise InvalidOperationError("No primary key found.")
+
+        parameter: _Parameter[object] = getParameter(0)
+
+        if count > 1:
+            node: TNode = selector(parameter, ConditionalOperator.And, getParameter(1))
+            
+            if count > 2:
+                self._ToForeignKeyCondition(operator, entity, primaryKeys, node, count)
+
+            return node
+
+        return parameter
+    
+    @final
+    def _ToConditionParameter(self, operator: Operator, entity: Entity) -> _Parameter[object]|_ValueNode:
+        return self.__ToCondition(operator, entity, Concatenate)
+    @final
+    def _ToConditionRoot(self, operator: Operator, entity: Entity) -> _ValueRoot:
+        result: _Parameter[object]|_ValueRoot = self.__ToCondition(operator, entity, ConcatenateAsRoot)
+
+        return result if isinstance(result, _ValueRoot) else _ValueRoot(result)
+    
+    @final
+    def __ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[TValue]:
+        return _Parameter[TValue](self._GetCookie(0), operator, value)
+    
+    @final
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+        return self._ToConditionParameter(operator, value) if isinstance(value, Entity) else self.__ToConditionParameter(operator, value)
+    @final
+    def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
+        if isinstance(value, Entity):
+            result: _Parameter[object]|_ValueNode = self.ToConditionParameter(operator, value)
+
+            return result if isinstance(result, _ValueNode) else _ValueNode(result)
+
+        return _ValueNode(self.__ToConditionParameter(operator, value))
+    @final
+    def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
+        return self._ToConditionRoot(operator, value) if isinstance(value, Entity) else _ValueRoot(self.__ToConditionParameter(operator, value))
+
+class ColumnParameterDelegate[TValue](ColumnParameterDelegateBase[TValue]):
+    def __init__(self, cookie: IColumnParameterCookie) -> None:
+        super().__init__()
+
+        self.__cookie: IColumnParameterCookie = cookie
+    
+    @final
+    def _GetCookie(self, index: int) -> IColumnParameterCookie:
+        return self.__cookie
+    
+    @final
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+        raise InvalidOperationError(f"Multiple primary keys found. The {foreignKeyConfig.__name__} decorator must be applied.")
+class ForeignKeyParameterDelegate[TValue: Entity](ColumnParameterDelegateBase[TValue]):
+    def __init__(self, cookieProvider: IColumnParameterCookieProvider) -> None:
+        super().__init__()
+
+        self.__cookieProvider: IColumnParameterCookieProvider = cookieProvider
+    
+    @final
+    def _GetCookie(self, index: int) -> IColumnParameterCookie:
+        return self.__cookieProvider.GetAt(index)
+    
+    @final
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+        def concatenate(node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], index: int) -> None:
+            node.GetFirst().SetNext(ConditionalOperator.And, self._GetParameter(operator, entity, index, primaryKeys))
+        
+        for i in range(2, count):
+            concatenate(node, i)
+
+class IEntityValueConfig[T: Entity](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetType(self) -> Type[T]:
+        pass
+
+class IColumnConfig(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetRole(self) -> Role:
+        pass
+    
+    @abstractmethod
+    def GetName(self) -> str|None:
+        pass
+class IEntityColumnConfig[T: Entity](IEntityValueConfig[T], IColumnConfig):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IForeignKeyConfig[T: Entity](IEntityValueConfig[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetNames(self) -> IReadOnlyDictionary[IParameterKey, str|None]:
+        pass
+
+class EntityValueConfig[T: Entity](Abstract, IEntityValueConfig[T]):
+    def __init__(self, t: Type[T]) -> None:
+        super().__init__()
+
+        self.__type: Type[T] = t
+    
+    @final
+    def GetType(self) -> Type[T]:
+        return self.__type
+
+class ColumnConfig(Abstract, IColumnConfig):
+    def __init__(self, role: Role, name: str|None) -> None:
+        super().__init__()
+
+        self.__role: Role = role
+        self.__name: str|None = name
+    
+    @final
+    def GetRole(self) -> Role:
+        return self.__role
+    @final
+    def GetName(self) -> str|None:
+        return self.__name
+class EntityColumnConfig[T: Entity](EntityValueConfig[T], IEntityColumnConfig[T]):
+    def __init__(self, t: Type[T], role: Role, name: str|None) -> None:
+        super().__init__(t)
+
+        self.__role: Role = role
+        self.__name: str|None = name
+    
+    @final
+    def GetRole(self) -> Role:
+        return self.__role
+    @final
+    def GetName(self) -> str|None:
+        return self.__name
+
+class ForeignKeyConfig[T: Entity](EntityValueConfig[T], IForeignKeyConfig[T]):
+    def __init__(self, t: Type[T], columns: IReadOnlyDictionary[IParameterKey, str|None]) -> None:
+        super().__init__(t)
+
+        self.__columns: IReadOnlyDictionary[IParameterKey, str|None] = columns
+    
+    @final
+    def GetRole(self) -> Role:
+        return Role.ForeignKey
+    
+    @final
+    def GetNames(self) -> IReadOnlyDictionary[IParameterKey, str|None]:
+        return self.__columns
+
+class ColumnParameterAbstract(Abstract, IColumnParameterAbstract):
+    @final
+    class _ColumnProvider(Abstract, IColumnParameterCookie):
         def __init__(self, parameter: ColumnParameterAbstract) -> None:
             super().__init__()
 
@@ -246,20 +546,24 @@ class ColumnParameterAbstract(Abstract):
         def _AsColumn(self, tableName: str) -> ITableColumn:
             return self.__parameter._AsColumn(tableName)
     
-    def __init__(self, name: str) -> None:
+    def __init__(self, role: Role, name: str) -> None:
         def update(converter: IInitializableConverter[str, ITableColumn]) -> None:
             self.__column = converter
 
         super().__init__()
         
+        self.__role: Role = role
         self.__name: str = name
         self.__column: IInitializableConverter[str, ITableColumn] = _ColumnParameterUpdater(self, update) # type: ignore[no-redef]
-        self.__cookie: _IColumnParameterCookie = ColumnParameterAbstract._ColumnProvider(self)
+        self.__cookie: IColumnParameterCookie = ColumnParameterAbstract._ColumnProvider(self)
     
     @final
-    def _GetCookie(self) -> _IColumnParameterCookie:
+    def _GetCookie(self) -> IColumnParameterCookie:
         return self.__cookie
     
+    @final
+    def GetColumnRole(self) -> Role:
+        return self.__role
     @final
     def GetColumnName(self) -> str:
         return self.__name
@@ -271,35 +575,138 @@ class ColumnParameterAbstract(Abstract):
     @final
     def _AsColumn(self, tableName: str) -> ITableColumn:
         return self.__column.Convert(tableName)
-class ColumnParameterBase[T: Entity](ColumnParameterAbstract):
+class ColumnParameterBase[T: Entity](ColumnParameterAbstract, IColumnParameterBase):
     def __init__(self, func: Converter[T, object], config: IColumnConfig) -> None:
         def getName(name: str|None) -> str:
             return func.__name__ if name is None else name
         
-        super().__init__(getName(config.GetName()))
-class ColumnParameter[TEntity: Entity, TValue](ColumnParameterBase[TEntity]):
-    def __init__(self, func: Converter[TEntity, object], config: IColumnConfig) -> None:
+        super().__init__(config.GetRole(), getName(config.GetName()))
+
+class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfig](ColumnParameterBase[TEntity], IColumnParameterBase):
+    def __init__(self, func: Converter[TEntity, object], config: TConfig) -> None:
         super().__init__(func, config)
+
+        self.__delegate: IColumnParameterDelegate[TValue] = ColumnParameterDelegate[TValue](self._GetCookie())
     
     @final
-    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[TValue]:
-        if isinstance(value, Entity):
-            pass
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+        return self.__delegate.ToConditionParameter(operator, value)
+    @final
+    def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
+        return self.__delegate.ToConditionNode(operator, value)
+    @final
+    def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
+        return self.__delegate.ToConditionRoot(operator, value)
 
-        return _Parameter(self._GetCookie(), operator, value)
+class ColumnParameter[TEntity: Entity, TValue](DefaultColumnParameter[TEntity, TValue, IColumnConfig], IColumnParameter[TValue]):
+    def __init__(self, func: Converter[TEntity, object], config: IColumnConfig) -> None:
+        super().__init__(func, config)
+class EntityColumnParameter[TEntity: Entity, TValue: Entity](DefaultColumnParameter[TEntity, TValue, IEntityColumnConfig[TValue]], IEntityColumnParameter[TValue]):
+    def __init__(self, func: Converter[TEntity, object], config: IEntityColumnConfig[TValue]) -> None:
+        super().__init__(func, config)
 
-class IColumnBase(IInterface):
+        self.__type: Type[TValue] = config.GetType()
+    
+    @final
+    def GetType(self) -> Type[TValue]:
+        return self.__type
+
+class IColumnParameterCookieProvider(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def GetColumnParameter(self) -> ColumnParameterBase[Entity]:
+    def GetAt(self, index: int) -> IColumnParameterCookie:
+        pass
+
+class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKeyParameter[TValue]):
+    @final
+    class _CookieProvider[_TEntity: Entity, _TValue: Entity](Abstract, IColumnParameterCookieProvider):
+        @final
+        class _ColumnProvider(Abstract, IColumnParameterCookie):
+            def __init__(self, parameter: ForeignKeyParameter[_TEntity, _TValue], index: int) -> None:
+                super().__init__()
+
+                self.__parameter: ForeignKeyParameter[_TEntity, _TValue] = parameter
+                self.__index: int = index
+            
+            def _AsColumn(self, tableName: str) -> ITableColumn:
+                return self.__parameter._AsColumns(tableName).GetAt(self.__index)
+        
+        def __init__(self, parameter: ForeignKeyParameter[_TEntity, _TValue]) -> None:
+            super().__init__()
+
+            self.__parameter: ForeignKeyParameter[_TEntity, _TValue] = parameter
+        
+        def GetAt(self, index: int) -> IColumnParameterCookie:
+            return ForeignKeyParameter._CookieProvider[_TEntity, _TValue]._ColumnProvider(self.__parameter, index)
+    
+    def __init__(self, name: str, config: IForeignKeyConfig[TValue]) -> None:
+        def getNames() -> Iterable[str]:
+            columnName: str|None = None
+
+            for column in config.GetNames().AsIterable():
+                yield column.GetKey().GetValue().GetColumnName() if (columnName := column.GetValue()) is None else columnName
+
+        def update(converter: IInitializableConverter[str, ITuple[ITableColumn]]) -> None:
+            self.__columns = converter
+        
+        super().__init__()
+
+        self.__name: str = name
+        self.__type: Type[TValue] = config.GetType()
+        self.__columns: IInitializableConverter[str, ITuple[ITableColumn]] = _ForeignKeyParameterUpdater(getNames(), update) # type: ignore[no-redef]
+        self.__delegate: IColumnParameterDelegate[TValue] = ForeignKeyParameterDelegate[TValue](ForeignKeyParameter._CookieProvider[TEntity, TValue](self))
+    
+    @final
+    def GetColumnName(self) -> str:
+        return self.__name
+    
+    @final
+    def GetType(self) -> Type[TValue]:
+        return self.__type
+    
+    @final
+    def _SetTableName(self, tableName: str) -> None:
+        self.__columns.Initialize(tableName)
+    
+    @final
+    def _AsColumns(self, tableName: str) -> ITuple[ITableColumn]:
+        return self.__columns.Convert(tableName)
+    
+    @final
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+        return self.__delegate.ToConditionParameter(operator, value)
+    @final
+    def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
+        return self.__delegate.ToConditionNode(operator, value)
+    @final
+    def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
+        return self.__delegate.ToConditionRoot(operator, value)
+
+class IColumnAbstract(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetColumnParameter(self) -> IColumnParameterAbstract:
         pass
     
     @abstractmethod
+    def _GetEntityValue(self, obj: Entity) -> object:
+        pass
+    @abstractmethod
     def _SetEntityValue(self, obj: Entity, value: object) -> None:
         pass
-class IColumn[TEntity: Entity, TValue](IFunctionDecorator[TEntity, TValue], IColumnBase):
+class IColumnBase[T: IColumnParameterAbstract](IColumnAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetColumnParameter(self) -> T:
+        pass
+
+class IDefaultColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IFunctionDecorator[TEntity, TValue], IColumnAbstract):
     def __init__(self) -> None:
         super().__init__()
     
@@ -307,41 +714,38 @@ class IColumn[TEntity: Entity, TValue](IFunctionDecorator[TEntity, TValue], ICol
     def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
         ...
     @overload
-    def __get__(self, obj: None, objtype: type|None = None) -> ColumnParameter[TEntity, TValue]:
+    def __get__(self, obj: None, objtype: type|None = None) -> TParameter:
         ...
     
     @abstractmethod
-    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|ColumnParameter[TEntity, TValue]:
+    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
         pass
     @abstractmethod
     def __set__(self, instance: TEntity, value: TValue) -> None:
         pass
 
-class IColumnConfig(IInterface):
+class IDefaultColumn(IColumnBase[IColumnParameterBase]):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def IsPrimaryKey(self) -> bool:
-        pass
-    @abstractmethod
-    def GetName(self) -> str|None:
-        pass
-class ColumnConfig(Abstract, IColumnConfig):
-    def __init__(self, primaryKey: bool = False, name: str|None = None) -> None:
+class IDefaultEntityColumn(IColumnBase[IEntityColumnParameterBase]):
+    def __init__(self) -> None:
         super().__init__()
 
-        self.__primaryKey: bool = primaryKey
-        self.__name: str|None = name
-    
-    @final
-    def IsPrimaryKey(self) -> bool:
-        return self.__primaryKey
-    @final
-    def GetName(self) -> str|None:
-        return self.__name
+class IColumn[TEntity: Entity, TValue](IDefaultColumnBase[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
+    def __init__(self) -> None:
+        super().__init__()
+class IEntityColumn[TEntity: Entity, TValue: Entity](IDefaultColumnBase[TEntity, TValue, IEntityColumnParameter[TValue]], IDefaultEntityColumn):
+    def __init__(self) -> None:
+        super().__init__()
 
-class ColumnConfigDecorator(Abstract):
+class IDefaultForeignKey(IColumnBase[IForeignKeyParameterBase]):
+    def __init__(self) -> None:
+        super().__init__()
+class IForeignKey[TEntity: Entity, TValue: Entity](IDefaultColumnBase[TEntity, TValue, IForeignKeyParameter[TValue]], IDefaultForeignKey):
+    def __init__(self) -> None:
+        super().__init__()
+
+class _ColumnConfigDecorator(Abstract):
     def __init__(self, config: IColumnConfig) -> None:
         super().__init__()
 
@@ -350,105 +754,260 @@ class ColumnConfigDecorator(Abstract):
     @final
     def __call__[TEntity: Entity, TValue](self, func: Property[TEntity, TValue]) -> IColumn[TEntity, TValue]:
         return _Column[TEntity, TValue](func, self.__config)
+class _EntityColumnConfigDecorator[TValue: Entity](Abstract):
+    def __init__(self, config: IEntityColumnConfig[TValue]) -> None:
+        super().__init__()
 
-def columnConfig(primaryKey: bool = False, name: str|None = None) -> ColumnConfigDecorator:
-    return ColumnConfigDecorator(ColumnConfig(primaryKey, name))
+        self.__config: IEntityColumnConfig[TValue] = config
+    
+    @final
+    def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IEntityColumn[TEntity, TValue]:
+        return _EntityColumn[TEntity, TValue](func, self.__config)
+
+class _ForeignKeyConfigDecorator[TValue: Entity](Abstract):
+    def __init__(self, config: IForeignKeyConfig[TValue]) -> None:
+        super().__init__()
+
+        self.__config: IForeignKeyConfig[TValue] = config
+    
+    @final
+    def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IForeignKey[TEntity, TValue]:
+        return _ForeignKey[TEntity, TValue](func, self.__config)
+
+def columnConfig(role: Role = Role.Null, name: str|None = None) -> _ColumnConfigDecorator:
+    return _ColumnConfigDecorator(ColumnConfig(role, name))
+def entityColumnConfig[T: Entity](t: Type[T], role: Role = Role.Null, name: str|None = None) -> _EntityColumnConfigDecorator[T]:
+    return _EntityColumnConfigDecorator[T](EntityColumnConfig[T](t, role, name))
+
+def foreignKeyConfiguration[T: Entity](t: Type[T], columns: IReadOnlyDictionary[IParameterKey, str|None]) -> _ForeignKeyConfigDecorator[T]:
+    return _ForeignKeyConfigDecorator[T](ForeignKeyConfig[T](t, columns))
+def foreignKeyConfig[T: Entity](t: Type[T], columns: Iterable[tuple[IColumnParameterAbstract, str|None]]) -> _ForeignKeyConfigDecorator[T]:
+    return foreignKeyConfiguration(t, Dictionary[IParameterKey, str|None](dict[IParameterKey, str|None](Select(columns, lambda column: (ParameterKey(column[0]), column[1])))).AsReadOnly())
 
 class ICookie(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def GetValue[TEntity: Entity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue]) -> TValue:
+    def IsReady(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def GetValue[TEntity: Entity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
         pass
     @abstractmethod
-    def SetValue[TEntity: Entity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
+    def SetValue[TEntity: Entity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
         pass
 
-class _Column[TEntity: Entity, TValue](FunctionDecorator[TEntity, TValue], IColumn[TEntity, TValue]):
-    def __init__(self, func: Property[TEntity, TValue], config: IColumnConfig) -> None:
-        super().__init__(func)
+@final
+class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](Abstract):
+    def __init__(self, parameter: TParameter, func: Property[TEntity, TValue]) -> None:
+        super().__init__()
 
-        self.__parameter: ColumnParameter[TEntity, TValue] = ColumnParameter[TEntity, TValue](func, config)
+        self.__parameter: TParameter = parameter
+        self.__func: Property[TEntity, TValue] = func
     
-    @final
-    def GetColumnParameter(self) -> ColumnParameter[TEntity, TValue]:
+    def __GetCookie(self, obj: Entity) -> ICookie:
+        return obj._GetCookie() # pyright: ignore[reportPrivateUsage]
+    
+    def GetColumnParameter(self) -> TParameter:
         return self.__parameter
     
+    def GetEntityValue(self, obj: Entity, name: str) -> object:
+        return self.__GetCookie(obj).GetValue(name, self.__func)
+    def SetEntityValue(self, obj: Entity, name: str, value: object) -> None:
+        self.__GetCookie(obj).SetValue(name, cast(Property[Entity, object], self.__func), value)
+    
+    def GetValue(self, obj: TEntity|None, name: str) -> TValue|TParameter:
+        if obj is None:
+            return self.GetColumnParameter()
+        
+        return obj._GetCookie().GetValue(name, self.__func) # pyright: ignore[reportPrivateUsage]
+    def SetValue(self, obj: TEntity, name: str, value: TValue) -> None:
+        obj._GetCookie().SetValue(name, self.__func, value) # pyright: ignore[reportPrivateUsage]
+
+class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfig, TParameter: IColumnParameterBase](FunctionDecorator[TEntity, TValue], IDefaultColumn):
+    def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
+        super().__init__(func)
+
+        self.__decorator: _ColumnDecorator[TEntity, TValue, TParameter] = _ColumnDecorator[TEntity, TValue, TParameter](self._CreateParameter(func, config), self._GetFunc())
+    
+    @abstractmethod
+    def _CreateParameter(self, func: Property[TEntity, TValue], config: TConfig) -> TParameter:
+        pass
+    
+    @final
+    def _GetDecorator(self) -> _ColumnDecorator[TEntity, TValue, TParameter]:
+        return self.__decorator
+    
+    @final
+    def __GetName(self) -> str:
+        return self._GetDecorator().GetColumnParameter().GetColumnName()
+    
+    @final
+    def GetColumnParameter(self) -> TParameter:
+        return self._GetDecorator().GetColumnParameter()
+    
+    @final
+    def _GetEntityValue(self, obj: Entity) -> object:
+        return self._GetDecorator().GetEntityValue(obj, self.__GetName())
     @final
     def _SetEntityValue(self, obj: Entity, value: object) -> None:
-        obj._GetCookie().SetValue(obj, self.__parameter.GetColumnName(), cast(Property[Entity, object], self._GetFunc()), value) # pyright: ignore[reportPrivateUsage]
+        self._GetDecorator().SetEntityValue(obj, self.__GetName(), value)
     
     @overload
     def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
         ...
     @overload
-    def __get__(self, obj: None, objtype: type|None = None) -> ColumnParameter[TEntity, TValue]:
+    def __get__(self, obj: None, objtype: type|None = None) -> TParameter:
         ...
     
     @final
-    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|ColumnParameter[TEntity, TValue]:
-        if obj is None:
-            return self.GetColumnParameter()
-        
-        return obj._GetCookie().GetValue(obj, self.__parameter.GetColumnName(), self._GetFunc()) # pyright: ignore[reportPrivateUsage]
+    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
+        return self._GetDecorator().GetValue(obj, self.__GetName())
     @final
     def __set__(self, obj: TEntity, value: TValue) -> None:
-        obj._GetCookie().SetValue(obj, self.__parameter.GetColumnName(), self._GetFunc(), value) # pyright: ignore[reportPrivateUsage]
+        self._GetDecorator().SetValue(obj, self.__GetName(), value)
+
+@final
+class _Column[TEntity: Entity, TValue](_ColumnBase[TEntity, TValue, IColumnConfig, IColumnParameter[TValue]], IColumn[TEntity, TValue]):
+    def __init__(self, func: Property[TEntity, TValue], config: IColumnConfig) -> None:
+        super().__init__(func, config)
+    
+    def _CreateParameter(self, func: Property[TEntity, TValue], config: IColumnConfig) -> IColumnParameter[TValue]:
+        return ColumnParameter[TEntity, TValue](func, config)
+@final
+class _EntityColumn[TEntity: Entity, TValue: Entity](_ColumnBase[TEntity, TValue, IEntityColumnConfig[TValue], IEntityColumnParameter[TValue]], IEntityColumn[TEntity, TValue]):
+    def __init__(self, func: Property[TEntity, TValue], config: IEntityColumnConfig[TValue]) -> None:
+        super().__init__(func, config)
+    
+    def _CreateParameter(self, func: Property[TEntity, TValue], config: IEntityColumnConfig[TValue]) -> IEntityColumnParameter[TValue]:
+        return EntityColumnParameter[TEntity, TValue](func, config)
+
+@final
+class _ForeignKey[TEntity: Entity, TValue: Entity](FunctionDecorator[TEntity, TValue], IForeignKey[TEntity, TValue]):
+    def __init__(self, func: Property[TEntity, TValue], config: IForeignKeyConfig[TValue]) -> None:
+        super().__init__(func)
+
+        self.__decorator: _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]] = _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]](ForeignKeyParameter[TEntity, TValue](func.__name__, config), self._GetFunc())
+    
+    def __GetName(self) -> str:
+        return self.__decorator.GetColumnParameter().GetColumnName()
+    
+    def GetColumnParameter(self) -> IForeignKeyParameter[TValue]:
+        return self.__decorator.GetColumnParameter()
+    
+    def _GetEntityValue(self, obj: Entity) -> object:
+        return self.__decorator.GetEntityValue(obj, self.__GetName())
+    def _SetEntityValue(self, obj: Entity, value: object) -> None:
+        self.__decorator.SetEntityValue(obj, self.__GetName(), value)
+    
+    @overload
+    def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
+        ...
+    @overload
+    def __get__(self, obj: None, objtype: type|None = None) -> IForeignKeyParameter[TValue]:
+        ...
+    
+    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|IForeignKeyParameter[TValue]:
+        return self.__decorator.GetValue(obj, self.__GetName())
+    def __set__(self, obj: TEntity, value: TValue) -> None:
+        self.__decorator.SetValue(obj, self.__GetName(), value)
 
 def tableConfig(name: str) -> Selector[Type[Entity]]:
     def decorator(cls: Type[Entity]) -> Type[Entity]:
-        def getColumns() -> Generator[IColumnBase]:
+        def getColumns() -> Generator[IColumnAbstract]:
             for member in cls.__dict__.values():
-                if isinstance(member, _Column):
+                if isinstance(member, IColumn):
                     member.GetColumnParameter()._SetTableName(name) # pyright: ignore[reportPrivateUsage]
                     
                     yield member
         
-        cls.__columns = ValueFunction[ITuple[IColumnBase]](CreateTuple(getColumns())) # pyright: ignore[reportPrivateUsage]
+        cls.__columns = ValueFunction[_Columns](_Columns(getColumns())) # pyright: ignore[reportPrivateUsage]
 
         return cls
     return decorator
 
-class _EntityUpdater(ValueFunctionUpdater[ITuple[IColumnBase]]):
-    def __init__(self, t: Type[Entity], updater: Method[IFunction[ITuple[IColumnBase]]]) -> None:
+@final
+class _Columns(Abstract):
+    def __init__(self, columns: Iterable[IColumnAbstract]) -> None:
+        super().__init__()
+
+        self.__columns: ITuple[IColumnAbstract] = CreateTuple(columns)
+        self.__primaryKeys: ITuple[IColumnAbstract] = CreateTuple(Include(self.__columns.AsIterable(), lambda column: column.GetColumnParameter().GetColumnRole() == Role.PrimaryKey))
+    
+    def GetColumns(self) -> ITuple[IColumnAbstract]:
+        return self.__columns
+    
+    def GetPrimaryKeys(self) -> ITuple[IColumnAbstract]:
+        return self.__primaryKeys
+
+class _EntityUpdater(ValueFunctionUpdater[_Columns]):
+    def __init__(self, t: Type[Entity], updater: Method[IFunction[_Columns]]) -> None:
         super().__init__(updater)
 
         self.__type: Type[Entity] = t
     
     @final
-    def _GetValue(self) -> ITuple[IColumnBase]:
-        return CreateTuple(WhereOfType(IColumnBase, self.__type.__dict__.values())) # type: ignore[type-abstract]
+    def _GetValue(self) -> _Columns:
+        return _Columns(WhereOfType(IColumnAbstract, self.__type.__dict__.values())) # type: ignore[type-abstract]
 
 class Entity(Abstract, IDisposable):
-    @final
-    class _AppCookie(Abstract, ICookie):
-        def __init__(self) -> None:
-            super().__init__()
-        
-        def GetValue[TEntity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue]) -> TValue:
-            return func(obj).GetValue()
-        def SetValue[TEntity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
-            return func(obj).SetValue(value)
-    @final
-    class _DBCookie(Abstract, ICookie):
-        def __init__(self) -> None:
+    class _Cookie(Abstract, ICookie):
+        def __init__(self, entity: Entity) -> None:
             super().__init__()
 
+            self.__entity: Entity = entity
+        
+        @abstractmethod
+        def Seal(self) -> None:
+            pass
+        
+        @final
+        def _GetEntity(self) -> Entity:
+            return self.__entity
+    @final
+    class _AppCookie(_Cookie):
+        def __init__(self, entity: Entity) -> None:
+            super().__init__(entity)
+
+        @final
+        def IsReady(self) -> bool:
+            return True
+        
+        def Seal(self) -> None:
+            pass
+        
+        def GetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
+            return func(cast(TEntity, self._GetEntity())).GetValue()
+        def SetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
+            return func(cast(TEntity, self._GetEntity())).SetValue(value)
+    @final
+    class _DBCookie(_Cookie):
+        def __init__(self, entity: Entity) -> None:
+            super().__init__(entity)
+
+            self.__isReady: bool = False
             self.__values: IDictionary[IString, Any] = Dictionary[IString, Any]()
         
-        def GetValue[TEntity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue]) -> TValue:
+        def IsReady(self) -> bool:
+            return self.__isReady
+        
+        def Seal(self) -> None:
+            self.__isReady = True
+        
+        def GetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
             return cast(TValue, self.__values.TryGetValue(String(name)).GetValue())
-        def SetValue[TEntity, TValue](self, obj: TEntity, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
+        def SetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
             _name: IString = String(name)
 
             if not self.__values.TrySetAt(_name, value):
                 self.__values.Add(_name, value)
     
-    __columns: IFunction[ITuple[IColumnBase]]
+    __columns: IFunction[_Columns]
 
     def __init_subclass__(cls, **kwargs: object) -> None:
-        def update(func: IFunction[ITuple[IColumnBase]]) -> None:
+        def update(func: IFunction[_Columns]) -> None:
             cls.__columns = func
         
         super().__init_subclass__(**kwargs)
@@ -456,19 +1015,34 @@ class Entity(Abstract, IDisposable):
         cls.__columns = _EntityUpdater(cls, update) 
 
     @classmethod
-    def _GetColumns(cls) -> ITuple[IColumnBase]:
+    def _GetColumns(cls) -> _Columns:
         return cls.__columns.GetValue()
     
     def __init__(self) -> None:
         super().__init__()
 
-        self.__cookie: ICookie = Entity._AppCookie()
+        self.__cookie: Entity._Cookie = Entity._AppCookie(self)
     
+    @final
     def _InitCookie(self) -> None:
-        self.__cookie = Entity._DBCookie()
+        self.__cookie = Entity._DBCookie(self)
     
+    @final
     def _GetCookie(self) -> ICookie:
         return self.__cookie
+    
+    def _InitializeOverride(self) -> None:
+        pass
+    
+    @final
+    def IsReady(self) -> bool:
+        return self._GetCookie().IsReady()
+    
+    @final
+    def Initialize(self) -> None:
+        self._InitializeOverride()
+
+        self.__cookie.Seal() # TODO: Should be called from protected variant
 
 class EntityCollection[T: Entity](Abstract):
     def __init__(self) -> None:
@@ -478,34 +1052,86 @@ class EntityCollection[T: Entity](Abstract):
     def _GetType(self) -> Type[T]:
         pass
     
+    @final
     def Where(self, connection: IConnection, conditions: _IRoot) -> IEnumerable[T]:
         def getDefaultTableName() -> str:
             return self._GetType().__name__
+        
+        def getColumnsFromType(t: Type[Entity]) -> _Columns:
+            return t._GetColumns() # pyright: ignore[reportPrivateUsage]
 
-        def asColumn(column: ColumnParameterAbstract) -> ITableColumn:
-            return column._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
+            return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
+            return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
 
         def iterate(items: ISelectionQueryExecutionResult) -> Generator[T]:
-            def createEntity(row: Sequence[object]) -> T:
-                obj: T = object.__new__(self._GetType())
-
-                obj._InitCookie() # pyright: ignore[reportPrivateUsage]
-
-                for column, value in zip(columns.AsIterable(), row):
+            def createEntity(row: Iterator[object]) -> T:
+                def initCookie(obj: Entity) -> None:
+                    obj._InitCookie() # pyright: ignore[reportPrivateUsage]
+                
+                def setEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
                     column._SetEntityValue(obj, value) # pyright: ignore[reportPrivateUsage]
+
+                def processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn], converter: Converter[tuple[TColumn, object], object]) -> None:
+                    def setValue(args: tuple[TColumn, object]) -> None:
+                        setEntityValue(obj, args[0], converter(args))
+
+                    DoForEachItem(zip(columns, row), setValue)
+                
+                def processEntityColumn(args: tuple[IDefaultEntityColumn, object]) -> Entity:
+                    def getStub() -> tuple[Entity, IColumnAbstract]:
+                        targetType: Type[Entity] = args[0].GetColumnParameter().GetType()
+
+                        stub: Entity = object.__new__(targetType)
+
+                        return stub, getColumnsFromType(targetType).GetPrimaryKeys().GetAt(0)
+
+                    stub, column = getStub()
+                    initCookie(stub)
+
+                    setEntityValue(stub, column, args[1])
+
+                    return stub
+
+                obj: T = object.__new__(self._GetType())
+                
+                initCookie(obj)
+
+                processColumns(columns, lambda args: args[1])
+                processColumns(entityColumns, processEntityColumn)
+
+                for fk in foreignKeys:
+                    targetType: Type[Entity] = fk.GetColumnParameter().GetType()
+                    
+                    stub: Entity = object.__new__(targetType)
+                    initCookie(stub)
+                    
+                    for pk in getColumnsFromType(targetType).GetPrimaryKeys().AsIterable():
+                        setEntityValue(stub, pk, next(row))
+                    
+                    setEntityValue(obj, fk, stub)
 
                 obj.Initialize()
 
                 return obj
             
             for row in items.AsIterable():
-                yield createEntity(row)
+                yield createEntity(iter(row))
+        
+        def getColumns(columns: Iterable[IColumnAbstract]) -> tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]]:
+            return (CreateTuple(WhereOfType(IDefaultColumn, columns)), CreateTuple(WhereOfType(IDefaultEntityColumn, columns)), CreateTuple(WhereOfType(IDefaultForeignKey, columns))) # type: ignore[type-abstract]
 
-        columns: ITuple[IColumnBase] = self._GetType()._GetColumns() # pyright: ignore[reportPrivateUsage]
+        columns, entityColumns, foreignKeys = getColumns(getColumnsFromType(self._GetType()).GetColumns().AsIterable())
 
         items: ISelectionQueryExecutionResult|None = connection.GetQueryFactory().GetSelectionQuery(
-            TableParameterSet.CreateFromNames(String(self._GetType().__name__)),
-            CreateColumnParameterSet(Select(columns.AsIterable(), lambda column: asColumn(column.GetColumnParameter()))),
+            TableParameterSet.CreateFromNames(String(getDefaultTableName())),
+            CreateColumnParameterSet(
+                ConcatenateValues(
+                    Select(columns, asColumn),
+                    Select(entityColumns, asColumn),
+                    ConcatenateIterables(
+                        Select(foreignKeys, asForeignKeys)))),
             TryCreateConditionSetFromConditions(_Set(conditions, getDefaultTableName()))).Execute()
         # Select(conditions, lambda condition: CreateKeyValuePair(asColumn(condition.GetKey()), condition.GetValue()))
         return GetEmptyEnumerable() if items is None else IteratorProvider[T](lambda: iterate(items))
