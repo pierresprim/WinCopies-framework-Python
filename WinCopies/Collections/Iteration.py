@@ -35,6 +35,8 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
     for iterable in TryEnumerate(collection):
         for item in TryEnumerate(iterable):
             yield item
+def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
+    return Concatenate(collection)
 
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
     """Appends values to the end of items.
