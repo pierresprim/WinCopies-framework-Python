@@ -826,7 +826,7 @@ class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbst
     def SetValue(self, obj: TEntity, name: str, value: TValue) -> None:
         obj._GetCookie().SetValue(name, self.__func, value) # pyright: ignore[reportPrivateUsage]
 
-class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfig, TParameter: IColumnParameterBase](FunctionDecorator[TEntity, TValue], IDefaultColumn):
+class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfig, TParameter: IColumnParameterBase](FunctionDecorator[TEntity, TValue], IColumnAbstract):
     def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func)
 
