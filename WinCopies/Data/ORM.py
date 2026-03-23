@@ -918,7 +918,7 @@ def tableConfig(name: str) -> Selector[Type[Entity]]:
     def decorator(cls: Type[Entity]) -> Type[Entity]:
         def getColumns() -> Generator[IColumnAbstract]:
             for member in cls.__dict__.values():
-                if isinstance(member, IColumn):
+                if isinstance(member, IColumnAbstract):
                     member.GetColumnParameter()._SetTableName(name) # pyright: ignore[reportPrivateUsage]
                     
                     yield member
