@@ -2,8 +2,8 @@ from collections.abc import Iterable, Iterator
 from typing import Type
 
 from WinCopies import NullableBoolean
-from WinCopies.Collections import Enumeration, Generator, IterationResult
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
+from WinCopies.Collections import Generator, IterationResult, MakeGenerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable, TryCreateIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -18,10 +18,8 @@ def TryEnumerate[T](iterable: Iterable[T]|None) -> Iterable[T]:
     Returns:
         The original iterable if not None, otherwise an empty generator.
     """
-    def getEmptyGenerator(*values: T) -> Generator[T]:
-        yield from values
 
-    return getEmptyGenerator() if iterable is None else iterable
+    return MakeGenerator() if iterable is None else iterable
 
 def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
     """Concatenates multiple iterables into a single generator.
@@ -440,7 +438,7 @@ def __Exclude[T](items: Iterable[T]|None, selector: Selector[IEnumerator[T]]) ->
         
         return None if enumerator is None else selector(enumerator).AsIterator()
     
-    for item in TryEnumerate(getIterator(Enumeration.Iterable[T].TryCreate(items))):
+    for item in TryEnumerate(getIterator(TryCreateIterable(items))):
         yield item
 
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
@@ -550,7 +548,7 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
 
     validator = validate
 
-    enumerator: IEnumerator[T]|None = Enumeration.Iterable[T].Create(items).TryGetEnumerator()
+    enumerator: IEnumerator[T]|None = CreateIterable(items).TryGetEnumerator()
 
     if enumerator is None:
         return IterationResult.Empty
