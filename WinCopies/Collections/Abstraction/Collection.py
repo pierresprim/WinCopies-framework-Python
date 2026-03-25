@@ -552,6 +552,10 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
         return count
     
     @final
+    def __SetAt(self, key: TKey, value: TValue) -> None:
+        self._GetDictionary()[key] = value
+    
+    @final
     def _GetDictionary(self) -> MutableMapping[TKey, TValue]:
         return self.__dictionary
     
@@ -572,7 +576,7 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
         if key in self.GetKeys().AsIterable():
-            self._GetDictionary()[key] = value
+            self.__SetAt(key, value)
 
             return True
         
@@ -599,6 +603,18 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
     @final
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
         self.Add(item.GetKey(), item.GetValue())
+    
+    @final
+    def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
+        if self.TryAdd(key, value):
+            return True
+        
+        self.__SetAt(key, value)
+
+        return False
+    @final
+    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.AddOrUpdate(item.GetKey(), item.GetValue())
 
     @final
     def Remove(self, key: TKey) -> None:

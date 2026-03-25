@@ -684,6 +684,13 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
     @abstractmethod
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
         pass
+
+    @abstractmethod
+    def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
+        pass
+    @abstractmethod
+    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        pass
     
     @abstractmethod
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
