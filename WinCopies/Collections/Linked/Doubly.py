@@ -795,7 +795,7 @@ class _EnumerableListBase[TItem, TNode](IEnumerableList[TItem, TNode]):
         return _EnumerableListBase[TItem, TNode]._Cookie(self)
 
 class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable, TList](_EnumerableList[TItem, TNode], _EnumerableListBase[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
-    def __init__(self) -> None:
+    def __init__(self, items: Iterable[TItem]|None) -> None:
         def updateNodeEnumerable(func: IFunction[IEnumerable[TNodeInterface]]) -> None:
             self.__nodeEnumerable = func
         def updateReadOnlyEnumerable(func: IFunction[IReadOnlyEnumerableList[TItem]]) -> None:
@@ -818,6 +818,8 @@ class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable, TList](_Enume
         
         self.__nodeGenerator: IFunction[IIterator[TNodeInterface]] = _NodeGeneratorUpdater[TItem, TNodeInterface](self, updateNodeGenerator) # type: ignore[no-redef]
         self.__generator: IFunction[IIterator[TItem]] = _GeneratorUpdater[TItem, TNodeInterface](self._GetValueCookie(), updateGenerator) # type: ignore[no-redef]
+
+        self.AddLastItems(items)
     
     @abstractmethod
     def _GetNode(self, value: TItem) -> TNode:
@@ -930,11 +932,11 @@ class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable, TList](_Enume
     def AsGenerator(self) -> IIterator[TItem]:
         return self.__generator.GetValue()
 class EnumerableList[TItem, TNode, TNodeInterface: IRemovable, TList](EnumerableListBase[TItem, TNode, TNodeInterface, TList]):
-    def __init__(self) -> None:
+    def __init__(self, items: Iterable[TItem]|None) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyList[TItem]]) -> None:
             self.__readOnly = func
         
-        super().__init__()
+        super().__init__(items)
 
         self.__readOnly: IFunction[IReadOnlyList[TItem]] = _ReadOnlyUpdater[TItem](self, updateReadOnly) # type: ignore[no-redef]
     
@@ -943,8 +945,8 @@ class EnumerableList[TItem, TNode, TNodeInterface: IRemovable, TList](Enumerable
         return self.__readOnly.GetValue()
 
 class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], "ListBase[TItem, TNode]"], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, items: Iterable[TItem]|None) -> None:
+        super().__init__(items)
     
     @final
     def _AddNode(self, value: TItem) -> TNode:
@@ -1046,8 +1048,8 @@ class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], L
         return self._GetList()
 
 class List[T](ListBase[T, _Node[T]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, items: Iterable[T]|None = None) -> None:
+        super().__init__(items)
     
     @final
     def _GetNodeAsClass(self, node: _Node[T]) -> IDoublyLinkedNode[T]:
@@ -1138,11 +1140,11 @@ class _ReadOnlyCountableUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumer
         return _ReadOnlyCountableEnumerableList[T](self.__items)
 
 class CountableListBase[TItem, TNode](EnumerableListBase[TItem, TNode, ICountableLinkedListNode[TItem], CountableListProvider[TItem]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
-    def __init__(self) -> None:
+    def __init__(self, items: Iterable[TItem]|None) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyCountableEnumerableList[TItem]]) -> None:
             self.__readOnly = func
         
-        super().__init__()
+        super().__init__(items)
 
         self.__readOnly: IFunction[IReadOnlyCountableEnumerableList[TItem]] = _ReadOnlyCountableUpdater[TItem](self, updateReadOnly) # type: ignore[no-redef]
     
@@ -1231,11 +1233,11 @@ class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]",
 
 @final
 class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
-    def __init__(self, l: CountableListProvider[T]) -> None:
-        super().__init__()
-
+    def __init__(self, l: CountableListProvider[T], items: Iterable[T]|None) -> None:
         self.__items: CountableListProvider[T] = l
         self.__count: int = 0
+
+        super().__init__(items)
     
     def _GetNodeAsClass(self, node: _CountableListNode[T]) -> ICountableLinkedListNode[T]:
         return node
@@ -1286,10 +1288,10 @@ class CountableList[T](CountableEnumerableBase[T], ICountableList[T], IGenericCo
         def OnRemoved(self, value: _T) -> None:
             self.__items._OnRemoved(value)
     
-    def __init__(self) -> None:
+    def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__()
 
-        self.__items: _CountableInnerList[T] = _CountableInnerList[T](CountableList[T]._CountableListProvider(self))
+        self.__items: _CountableInnerList[T] = _CountableInnerList[T](CountableList[T]._CountableListProvider(self), items)
     
     @final
     def _OnAdded(self, node: ICountableLinkedListNode[T]) -> None:
