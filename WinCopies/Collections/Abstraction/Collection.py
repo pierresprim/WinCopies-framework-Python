@@ -9,7 +9,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple, MakeList, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, TupleEnumerator, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, ISet, IDictionary, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
@@ -699,6 +699,11 @@ def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
 def CreateTupleFromValues[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
+def CreateEquatableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+    return EquatableTuple[T](items)
+def CreateEquatableTupleFromValues[T: IEquatableItem](*items: T) -> IEquatableTuple[T]:
+    return CreateEquatableTuple(items)
+
 def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
     return Array[T](items)
 def CreateArrayFromValues[T](*items: T) -> IArray[T]:
@@ -708,3 +713,8 @@ def CreateList[T](items: MutableSequenceBase[T]|Iterable[T]) -> IList[T]:
     return List[T](items)
 def CreateListFromValues[T](*items: T) -> IList[T]:
     return CreateList(items)
+
+def CreateSet[T: IEquatableItem](set: set[T]) -> ISet[T]:
+    return Set[T](set)
+def CreateDictionary[TKey: IEquatableItem, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:
+    return Dictionary[TKey, TValue](dictionary)
