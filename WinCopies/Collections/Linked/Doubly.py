@@ -39,8 +39,12 @@ class INode[T](ILinkedNode[T]):
         pass
     
     @abstractmethod
-    def Remove(self) -> T:
+    def RemoveNode(self) -> T:
         pass
+
+    @final
+    def Remove(self) -> None:
+        self.RemoveNode()
 class IDoublyLinkedNode[T](INode[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -513,7 +517,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
     def SetNextValues(self, *values: TItem) -> bool:
         return self.SetNextItems(values)
     
-    def Remove(self) -> TItem:
+    def RemoveNode(self) -> TItem:
         def removeFirst(node: TNode, previousNode: TNode|None) -> None:
             self._SetNext(None)
 
@@ -705,7 +709,7 @@ class _EnumerableList[TItem, TNode](Enumerable[TItem], _IListCookie[TNode]):
         
         super().__init__()
         
-        self.__updater: IFunction[INodeCookie[TNode]] = _EnumerableList._ListCookieUpdater(self, update) # type: ignore[no-redef]
+        self.__updater: IFunction[INodeCookie[TNode]] = _EnumerableList[TItem, TNode]._ListCookieUpdater(self, update) # type: ignore[no-redef]
     
     @final
     def _GetListCookie(self) -> INodeCookie[TNode]:
@@ -788,12 +792,12 @@ class EnumerableListBase[TItem, TNode, TNodeInterface, TList](_EnumerableList[TI
     def TryRemoveFirst(self) -> INullable[TItem]:
         node: TNode|None = self._GetFirst()
 
-        return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).Remove())
+        return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).RemoveNode())
     @final
     def TryRemoveLast(self) -> INullable[TItem]:
         node: TNode|None = self._GetLast()
 
-        return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).Remove())
+        return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).RemoveNode())
     
     @final
     def Clear(self) -> None:
@@ -916,8 +920,8 @@ class DoublyLinkedNode[TItem, TNode, TNodeInterface, TList, TListInterface](Doub
         return self._AsLinkedNode(super()._SetNextNode(value))
     
     @final
-    def Remove(self) -> TItem:
-        return super().Remove()
+    def RemoveNode(self) -> TItem:
+        return super().RemoveNode()
 
 @final
 class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node[T]"]], EnumerableListNodeBase[T, "_Node[T]", IDoublyLinkedNode[T], ListBase[T, "_Node[T]"]], IGenericConstraintImplementation[IList[T]]):
@@ -1119,10 +1123,10 @@ class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]",
         return node
     
     @final
-    def Remove(self) -> T:
+    def RemoveNode(self) -> T:
         l: CountableListProvider[T]|None = self._GetInnerList()
 
-        value: T = super().Remove()
+        value: T = super().RemoveNode()
 
         self._OnRemoved(l, value)
 
