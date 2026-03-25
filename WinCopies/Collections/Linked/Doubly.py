@@ -9,6 +9,7 @@ from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator, IReadOnlyCollection, ICountable
 from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerable, IEnumerator, CountableEnumerable as CountableEnumerableBase, Enumerable, GetEnumerator
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -16,7 +17,7 @@ from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, Va
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation, GenericConstraint
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
-class INode[T](ILinkedNode[T]):
+class INode[T](ILinkedNode[T], IRemovable):
     def __init__(self) -> None:
         super().__init__()
     
