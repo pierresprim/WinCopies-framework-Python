@@ -4,7 +4,7 @@ from typing import Callable
 import WinCopies
 
 from WinCopies import Delegates
-from WinCopies.Collections import Enumeration
+from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Pairing import DualValueBool
 
@@ -104,7 +104,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
         - True if predicate matched
         - False if completed without match.
     """
-    enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
+    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator():
         if predicate(entry):
@@ -204,7 +204,7 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     Returns:
         True if at least one item was processed, False otherwise.
     """
-    enumerator: Enumeration.IEnumerator[T] = Enumeration.Iterable[T].Create(items).GetEnumerator()
+    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator():
         action(entry)
