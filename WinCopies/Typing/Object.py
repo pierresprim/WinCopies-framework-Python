@@ -1,10 +1,11 @@
 from abc import abstractmethod
+from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, Type as TypeBase
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
-from WinCopies.Math import CompareTo
+from WinCopies.Math import NumericalValue, CompareTo
 from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
 from WinCopies.Typing.Reflection import IsOf
 
@@ -146,24 +147,72 @@ def GetTrueObject() -> IBoolean:
 def GetFalseObject() -> IBoolean:
     return __false
 
-class IInteger(IComparableValueObject[int, 'IInteger|int']):
+type NumericalObject = IInteger|IFloat|IDecimal
+type Numerical = NumericalValue|NumericalObject
+
+class INumericalItem(IValueItem):
     def __init__(self) -> None:
         super().__init__()
-class Integer(ValueObject[int, IInteger|int], IInteger):
-    def __init__(self, value: int) -> None:
+    
+    @abstractmethod
+    def GetValue(self) -> NumericalValue:
+        pass
+class INumericalValue[T: NumericalValue](IComparableValueObject[T, Numerical], INumericalItem):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IInteger(INumericalValue[int]):
+    def __init__(self) -> None:
+        super().__init__()
+class IFloat(INumericalValue[float]):
+    def __init__(self) -> None:
+        super().__init__()
+class IDecimal(INumericalValue[decimal]):
+    def __init__(self) -> None:
+        super().__init__()
+
+def TryMapNumericalValue(obj: object) -> NumericalValue|None:
+    match obj:
+        case int() | float() | decimal():
+            return obj
+        
+        case _:
+            return None
+def TryMapNumerical(obj: IValueItem) -> INumericalItem|None:
+    return obj if isinstance(obj, INumericalItem) else None
+
+def UnderlyingValueEquals(x: NumericalValue, y: object) -> bool:
+    value: NumericalValue|None = TryMapNumericalValue(y)
+
+    return value is not None and x == value
+def ValueEquals(x: INumericalItem, y: object) -> bool:
+    return UnderlyingValueEquals(x.GetValue(), y)
+
+def Equals(x: INumericalItem, y: INumericalItem) -> bool:
+    value: INumericalItem|None = TryMapNumerical(y)
+
+    return value is not None and x.GetValue() == value.GetValue()
+
+def CompareUnderlyingValue(x: NumericalValue, y: object) -> bool|None:
+    value: NumericalValue|None = TryMapNumericalValue(y)
+
+    return value is not None and CompareTo(x, value)
+def CompareValue(x: INumericalItem, y: object) -> bool|None:
+    return CompareUnderlyingValue(x.GetValue(), y)
+
+def Compare(x: INumericalItem, y: INumericalItem) -> bool|None:
+    value: INumericalItem|None = TryMapNumerical(y)
+
+    return value is not None and CompareTo(x.GetValue(), value.GetValue())
+
+class _NumericalValueBase[TValue: NumericalValue](ValueObject[TValue, Numerical], INumericalValue[TValue]):
+    def __init__(self, value: TValue) -> None:
         super().__init__(value)
     
-    @staticmethod
-    def FromEnum(value: Enum) -> IInteger:
-        return Integer(value.value)
+    def Equals(self, item: Numerical|object) -> bool:
+        return Equals(self, item) if isinstance(item, INumericalItem) else ValueEquals(self, item)
     
-    def Equals(self, item: IInteger|int|object) -> bool:
-        def equals(item: int) -> bool:
-            return self.GetValue() == item
-        
-        return (isinstance(item, IInteger) and equals(item.GetValue())) or (isinstance(item, int) and equals(item))
-    
-    def CompareTo(self, item: IInteger|int|object) -> bool|None:
+    def CompareTo(self, item: Numerical|object) -> bool|None:
         def compareTo(item: int) -> bool|None:
             return CompareTo(self.GetValue(), item)
         
@@ -174,6 +223,24 @@ class Integer(ValueObject[int, IInteger|int], IInteger):
     
     def ToString(self) -> str:
         return str(self.GetValue())
+
+class _NumericalValue[T: NumericalValue](_NumericalValueBase[T]):
+    def __init__(self, value: T) -> None:
+        super().__init__(value)
+
+class Integer(_NumericalValue[int], IInteger):
+    def __init__(self, value: int) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    def FromEnum(value: Enum) -> IInteger:
+        return Integer(value.value)
+class Float(_NumericalValue[float], IFloat):
+    def __init__(self, value: float) -> None:
+        super().__init__(value)
+class Decimal(_NumericalValue[decimal], IDecimal):
+    def __init__(self, value: decimal) -> None:
+        super().__init__(value)
 
 class IEnum(IInterface):
     def __init__(self) -> None:
