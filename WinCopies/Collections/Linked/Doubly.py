@@ -932,7 +932,7 @@ class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable, TList](_Enume
     def AsGenerator(self) -> IIterator[TItem]:
         return self.__generator.GetValue()
 class EnumerableList[TItem, TNode, TNodeInterface: IRemovable, TList](EnumerableListBase[TItem, TNode, TNodeInterface, TList]):
-    def __init__(self, items: Iterable[TItem]|None) -> None:
+    def __init__(self, items: Iterable[TItem]|None = None) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyList[TItem]]) -> None:
             self.__readOnly = func
         
