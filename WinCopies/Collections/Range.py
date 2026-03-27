@@ -5,7 +5,7 @@ from WinCopies.Collections import IList, ReverseIndex
 from WinCopies.Collections.Abstraction.Collection import Tuple
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple
-from WinCopies.Collections.Linked.Singly import CountableQueue, EnumerableStack
+from WinCopies.Collections.Linked.Singly import CreateCountableQueue, CreateEnumerableStack
 
 def GetItems[T](l: ITuple[T], index: SupportsIndex|slice) -> T|Sequence[T]:
     return l.GetAt(int(index)) if isinstance(index, SupportsIndex) else l.SliceAt(index).AsSequence()
@@ -15,7 +15,7 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
         return ReverseIndex(index, lst.GetCount())
     def replace(i: int, l: int, s: int) -> None:
         def getItems() -> ICountableEnumerable[T]:
-            return values if isinstance(values, ICountableEnumerable) else (Tuple[T](values) if isinstance(values, Sequence) else CountableQueue[T](*values).AsCountableGenerator())
+            return values if isinstance(values, ICountableEnumerable) else (Tuple[T](values) if isinstance(values, Sequence) else CreateCountableQueue(values).AsCountableGenerator())
         
         def getRangeCount(start: int, stop: int, step: int) -> int:
             count: int = 0
@@ -97,7 +97,7 @@ def RemoveValues[T](lst: IList[T], key: slice) -> None:
     if i >= l:
         raise IndexError()
     
-    for index in EnumerableStack[int](*range(i, l, s)):
+    for index in CreateEnumerableStack(range(i, l, s)):
         lst.RemoveAt(index)
 def RemoveItems[T](lst: IList[T], index: SupportsIndex|slice) -> None:
     if isinstance(index, SupportsIndex):
