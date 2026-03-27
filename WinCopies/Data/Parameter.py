@@ -6,8 +6,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Enumeration
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase, TryCreateIterable
 from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, GetNotNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
@@ -211,7 +210,7 @@ class TableParameter[T](Enumerable[ITableArgument[T]], ITableParameter[T]):
         super().__init__()
 
         self.__alias: str|None = alias
-        self.__arguments: IEnumerable[ITableArgument[T]]|None = Enumeration.Iterable[ITableArgument[T]].TryCreate(arguments)
+        self.__arguments: IEnumerable[ITableArgument[T]]|None = TryCreateIterable(arguments)
     
     @final
     def GetAlias(self) -> str|None:
