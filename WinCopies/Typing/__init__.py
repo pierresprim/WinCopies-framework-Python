@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from enum import Enum
 from typing import final, runtime_checkable, Any, Protocol, Type as SystemType
 
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
@@ -341,3 +342,11 @@ class Monitor(Abstract, IMonitor):
     @final
     def Dispose(self) -> None:
         self.__Reset()
+
+class IEnum(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetEnumValue(self) -> Enum:
+        pass

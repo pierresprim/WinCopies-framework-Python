@@ -6,7 +6,7 @@ from typing import final, Type as TypeBase
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.Math import NumericalValue, CompareTo
-from WinCopies.Typing import IDisposable, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
+from WinCopies.Typing import IDisposable, IEnum, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
 from WinCopies.Typing.Reflection import IsOf
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
@@ -242,13 +242,6 @@ class Decimal(_NumericalValue[decimal], IDecimal):
     def __init__(self, value: decimal) -> None:
         super().__init__(value)
 
-class IEnum(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def GetEnumValue(self) -> Enum:
-        pass
 class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, IEnum|Enum], IEnum):
     def __init__(self) -> None:
         super().__init__()
