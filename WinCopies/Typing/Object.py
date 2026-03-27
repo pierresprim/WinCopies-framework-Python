@@ -393,6 +393,45 @@ class String(ComparableValueObject[str, IString], IString):
     def AsValue(item: str|IString) -> str:
         return item.GetValue() if isinstance(item, IString) else item
 
+class IByteArray(IValueObject[bytes, 'IByteArray']):
+    def __init__(self) -> None:
+        super().__init__()
+class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
+    def __init__(self, value: bytes) -> None:
+        super().__init__(value)
+    
+    def Equals(self, item: IByteArray|object) -> bool:
+        def equals(item: bytes) -> bool:
+            return ByteArray.AreEqual(self.GetValue(), item)
+        
+        return (isinstance(item, IByteArray) and equals(item.GetValue())) or (isinstance(item, bytes) and equals(item))
+    
+    def CompareTo(self, item: IByteArray|object) -> bool|None:
+        def compareTo(item: bytes) -> bool|None:
+            return ByteArray.Compare(self.GetValue(), item)
+        
+        return (isinstance(item, IByteArray) and compareTo(item.GetValue())) or (isinstance(item, bytes) and compareTo(item))
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+    
+    def ToString(self) -> str:
+        return super(IInterface, self).__str__()
+    
+    @staticmethod
+    @final
+    def _AreValuesEqual(x: bytes, y: bytes) -> bool:
+        return x == y
+    @staticmethod
+    @final
+    def _CompareTo(x: bytes, y: bytes) -> bool:
+        return x > y
+    
+    @staticmethod
+    @final
+    def AsValue(item: bytes|IByteArray) -> bytes:
+        return item.GetValue() if isinstance(item, IByteArray) else item
+
 class IType[T](IValueObject[type[T], 'IType[T]']):
     def __init__(self) -> None:
         super().__init__()
