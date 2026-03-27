@@ -6,7 +6,7 @@ from typing import final, Type as TypeBase
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.Math import NumericalValue, CompareTo
-from WinCopies.Typing import IDisposable, IEnum, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
+from WinCopies.Typing import IDisposable, INullable, IEnum, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Typing.Reflection import IsOf
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
@@ -336,6 +336,16 @@ class EnumValue[T: Enum](ValueObjectAbstract[T, int, IEnum|Enum], IEnumValue[T])
     
     def ToString(self) -> str:
         return str(self.GetValue().name)
+
+def AreEnumsEqual[T: IEnum|Enum](x: T, y: T) -> bool:
+    return _AreEnumsEqual(x, y)
+def TryAreEnumsEqual[T: IEnum|Enum](x: T|None, y: T|None) -> bool:
+    return _TryAreEnumsEqual(x, y)
+
+def CompareEnums[T: IEnum|Enum](x: T, y: T) -> INullable[bool|None]:
+    return _CompareEnums(x, y)
+def TryCompare[T: IEnum|Enum](x: T|None, y: T|None) -> INullable[bool|None]:
+    return _TryCompare(x, y)
 
 def CreateEnum[T: Enum](value: T) -> IEnumValue[T]:
     return EnumValue[T](value)
