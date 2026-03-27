@@ -75,7 +75,7 @@ class IComparableComplexValueObject[TValue, TUnderlying, TObject](IComplexValueO
     def __init__(self) -> None:
         super().__init__()
 
-class ValueObjectBase[TValue, TUnderlying, TObject](Object[TObject], IValueObject[TValue, TObject]):
+class ValueObjectAbstract[TValue, TUnderlying, TObject](Object[TObject], IValueObject[TValue, TObject]):
     def __init__(self, value: TValue) -> None:
         super().__init__()
 
@@ -88,13 +88,62 @@ class ValueObjectBase[TValue, TUnderlying, TObject](Object[TObject], IValueObjec
     @abstractmethod
     def GetUnderlyingValue(self) -> TUnderlying:
         pass
-class ValueObject[TValue, TObject](ValueObjectBase[TValue, TValue, TObject]):
+class ValueObjectBase[TValue, TInterface](ValueObjectAbstract[TValue, TValue, TInterface]):
     def __init__(self, value: TValue) -> None:
         super().__init__(value)
     
     @final
     def GetUnderlyingValue(self) -> TValue:
         return self.GetValue()
+class ExtendedValueObjectBase[TValue, TObject, TInterface: IValueItem](ValueObjectBase[TValue, TObject|TInterface]):
+    def __init__(self, value: TValue) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @abstractmethod
+    def _AreValuesEqual(x: TObject, y: TObject) -> bool:
+        pass
+    
+    @staticmethod
+    @abstractmethod
+    def AsValue(item: TValue|TObject|TInterface) -> TObject:
+        pass
+    
+    @staticmethod
+    @final
+    def AreEqual(x: TValue|TObject|TInterface, y: TValue|TObject|TInterface) -> bool:
+        return ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(x) == ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(y)
+    @staticmethod
+    @final
+    def TryAreEqual(x: TValue|TObject|TInterface|None, y: TValue|TObject|TInterface|None) -> bool:
+        return False if x is None or y is None else ExtendedValueObjectBase[TValue, TObject, TInterface].AreEqual(x, y)
+class ComparableValueObjectBase[TValue, TObject, TInterface: IValueItem](ExtendedValueObjectBase[TValue, TObject, TInterface]):
+    def __init__(self, value: TValue) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @abstractmethod
+    def _CompareTo(x: TObject, y: TObject) -> bool:
+        pass
+    
+    @staticmethod
+    @final
+    def Compare(x: TValue|TObject|TInterface, y: TValue|TObject|TInterface) -> bool|None:
+        def compare(x: TObject, y: TObject) -> bool|None:
+            return None if ComparableValueObjectBase[TValue, TObject, TInterface]._AreValuesEqual(x, y) else ComparableValueObjectBase[TValue, TObject, TInterface]._CompareTo(y, x)
+
+        return compare(ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(x), ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(y))
+    @staticmethod
+    @final
+    def TryCompare(x: TValue|TObject|TInterface|None, y: TValue|TObject|TInterface|None) -> bool|None:
+        return y is None if x is None else (False if y is None else ComparableValueObjectBase[TValue, TObject, TInterface].Compare(x, y))
+
+class ValueObject[TValue, TInterface: IValueItem](ExtendedValueObjectBase[TValue, TValue, TInterface]):
+    def __init__(self, value: TValue) -> None:
+        super().__init__(value)
+class ComparableValueObject[TValue, TInterface: IValueItem](ComparableValueObjectBase[TValue, TValue, TInterface]):
+    def __init__(self, value: TValue) -> None:
+        super().__init__(value)
 
 class IBoolean(IComparableValueObject[bool, 'IBoolean|bool']):
     def __init__(self) -> None:
@@ -205,8 +254,8 @@ def Compare(x: INumericalItem, y: INumericalItem) -> bool|None:
 
     return value is not None and CompareTo(x.GetValue(), value.GetValue())
 
-class _NumericalValueBase[TValue: NumericalValue](ValueObject[TValue, Numerical], INumericalValue[TValue]):
-    def __init__(self, value: TValue) -> None:
+class _NumericalValue[T: NumericalValue](ComparableValueObjectBase[T, NumericalValue, NumericalObject], INumericalValue[T]):
+    def __init__(self, value: T) -> None:
         super().__init__(value)
     
     def Equals(self, item: Numerical|object) -> bool:
@@ -223,10 +272,20 @@ class _NumericalValueBase[TValue: NumericalValue](ValueObject[TValue, Numerical]
     
     def ToString(self) -> str:
         return str(self.GetValue())
-
-class _NumericalValue[T: NumericalValue](_NumericalValueBase[T]):
-    def __init__(self, value: T) -> None:
-        super().__init__(value)
+    
+    @staticmethod
+    @final
+    def _AreValuesEqual(x: NumericalValue, y: NumericalValue) -> bool:
+        return x == y
+    @staticmethod
+    @final
+    def _CompareTo(x: NumericalValue, y: NumericalValue) -> bool:
+        return x > y
+    
+    @staticmethod
+    @final
+    def AsValue(item: T|Numerical) -> NumericalValue:
+        return item.GetValue() if isinstance(item, (IInteger, IFloat, IDecimal)) else item
 
 class Integer(_NumericalValue[int], IInteger):
     def __init__(self, value: int) -> None:
@@ -245,7 +304,7 @@ class Decimal(_NumericalValue[decimal], IDecimal):
 class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, IEnum|Enum], IEnum):
     def __init__(self) -> None:
         super().__init__()
-class EnumValue[T: Enum](ValueObjectBase[T, int, IEnum|Enum], IEnumValue[T]):
+class EnumValue[T: Enum](ValueObjectAbstract[T, int, IEnum|Enum], IEnumValue[T]):
     def __init__(self, value: T) -> None:
         super().__init__(value)
     
@@ -288,7 +347,7 @@ def TryCreateEnum[T: Enum](e: TypeBase[T], v: int) -> IEnumValue[T]|None:
 class IString(IComparableValueObject[str, 'IString']):
     def __init__(self) -> None:
         super().__init__()
-class String(ValueObject[str, IString], IString):
+class String(ComparableValueObject[str, IString], IString):
     def __init__(self, value: str) -> None:
         super().__init__(value)
     
@@ -311,27 +370,23 @@ class String(ValueObject[str, IString], IString):
         return self.GetValue()
     
     @staticmethod
-    def AsValue(item: IString|str) -> str:
+    @final
+    def _AreValuesEqual(x: str, y: str) -> bool:
+        return x == y
+    @staticmethod
+    @final
+    def _CompareTo(x: str, y: str) -> bool:
+        return x > y
+    
+    @staticmethod
+    @final
+    def AsValue(item: str|IString) -> str:
         return item.GetValue() if isinstance(item, IString) else item
-    
-    @staticmethod
-    def AreEqual(x: IString|str, y: IString|str) -> bool:
-        return String.AsValue(x) == String.AsValue(y)
-    @staticmethod
-    def TryAreEqual(x: IString|str|None, y: IString|str|None) -> bool:
-        return False if x is None or y is None else String.AreEqual(x, y)
-    
-    @staticmethod
-    def Compare(x: IString|str, y: IString|str) -> bool|None:
-        return None if x == y else y > x
-    @staticmethod
-    def TryCompare(x: IString|str|None, y: IString|str|None) -> bool|None:
-        return False if x is None or y is None else String.Compare(x, y)
 
 class IType[T](IValueObject[type[T], 'IType[T]']):
     def __init__(self) -> None:
         super().__init__()
-class Type[T](ValueObject[type[T], IType[T]], IType[T]):
+class Type[T](ValueObjectBase[type[T], IType[T]], IType[T]):
     def __init__(self, t: type[T]) -> None:
         super().__init__(t)
     
@@ -354,7 +409,7 @@ class Type[T](ValueObject[type[T], IType[T]], IType[T]):
 class IReference[T](IValueObject[T, 'IReference[T]']):
     def __init__(self) -> None:
         super().__init__()
-class Reference[T](ValueObject[T, IReference[T]], IReference[T]):
+class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
     def __init__(self, parameter: T) -> None:
         super().__init__(parameter)
     
