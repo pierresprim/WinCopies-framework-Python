@@ -653,7 +653,7 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstrac
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None:
             self.__readOnly = func
         
-        super().__init__(*values)
+        super().__init__(values)
 
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedQueue[T]] = _ReadOnlyEnumerableBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
     
@@ -665,7 +665,7 @@ class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstrac
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None:
             self.__readOnly = func
         
-        super().__init__(*values)
+        super().__init__(values)
 
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedStack[T]] = _ReadOnlyEnumerableBufferedStackUpdater[T](self, update) # type: ignore[no-redef]
     
