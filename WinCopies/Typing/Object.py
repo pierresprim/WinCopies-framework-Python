@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from datetime import date, time, datetime, timedelta
 from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, Type as TypeBase
@@ -467,6 +468,166 @@ class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
     
     def Hash(self) -> int:
         return hash(self.GetValue())
+
+class IDate(IValueObject[date, "time|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["date|IDate|ITime|IDateTime|ITimeDelta"]):
+    def __init__(self) -> None:
+        super().__init__()
+class ITime(IValueObject[time, "date|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["time|IDate|ITime|IDateTime|ITimeDelta"]):
+    def __init__(self) -> None:
+        super().__init__()
+class IDateTime(IValueObject[datetime, "date|time|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["datetime|IDate|ITime|IDateTime|ITimeDelta"]):
+    def __init__(self) -> None:
+        super().__init__()
+class ITimeDelta(IValueObject[timedelta, "date|time|datetime|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["timedelta|IDate|ITime|IDateTime|ITimeDelta"]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class _DateTime[TValue: date|time|datetime|timedelta, TInterface: IDate|ITime|IDateTime|ITimeDelta](ExtendedValueObjectBase[TValue, date|time|datetime|timedelta, IDate|ITime|IDateTime|ITimeDelta]):
+    def __init__(self, value: TValue) -> None:
+        super().__init__(value)
+    
+    def Equals(self, item: TValue|TInterface|object) -> bool:
+        def equals(item: date|time|datetime|timedelta) -> bool:
+            return _DateTime[TValue, TInterface].AreEqual(self.GetValue(), item)
+        
+        return (isinstance(item, IDate|ITime|IDateTime|ITimeDelta) and equals(item.GetValue())) or (isinstance(item, date|time|datetime|timedelta) and equals(item))
+    
+    def CompareTo(self, item: TValue|TInterface|object) -> bool|None:
+        def compareTo(item: TValue|TInterface) -> bool|None:
+            return _DateTime[TValue, TInterface].Compare(self.GetValue(), item)
+        
+        return (isinstance(item, _DateTime[TValue, TInterface]._GetInterfaceType()) and compareTo(_DateTime[TValue, TInterface]._AsValue(item))) or (isinstance(item, _DateTime[TValue, TInterface]._GetValueType()) and compareTo(item))
+    
+    def Hash(self) -> int:
+        return hash(self.GetValue())
+    
+    def ToString(self) -> str:
+        return str(self.GetValue())
+    
+    @staticmethod
+    @abstractmethod
+    def _GetValueType() -> type[TValue]:
+        pass
+    @staticmethod
+    @abstractmethod
+    def _GetInterfaceType() -> type[TInterface]:
+        pass
+    
+    @staticmethod
+    @final
+    def _AreValuesEqual(x: date|time|datetime|timedelta, y: date|time|datetime|timedelta) -> bool:
+        return x == y
+    @staticmethod
+    @abstractmethod
+    def _CompareTo(x: TValue, y: TValue) -> bool:
+        pass
+    
+    @staticmethod
+    @abstractmethod
+    def _AsValue(item: TValue|TInterface) -> TValue:
+        pass
+    
+    @staticmethod
+    @final
+    def AsValue(item: date|time|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta) -> date|time|datetime|timedelta:
+        return item.GetValue() if isinstance(item, (IDate, ITime, IDateTime, ITimeDelta)) else item
+    
+    @staticmethod
+    @final
+    def Compare(x: TValue|TInterface, y: TValue|TInterface) -> bool|None:
+        def compare(x: TValue, y: TValue) -> bool|None:
+            return None if _DateTime[TValue, TInterface]._AreValuesEqual(x, y) else _DateTime[TValue, TInterface]._CompareTo(y, x)
+
+        return compare(_DateTime[TValue, TInterface]._AsValue(x), _DateTime[TValue, TInterface]._AsValue(y))
+    @staticmethod
+    @final
+    def TryCompare(x: TValue|TInterface|None, y: TValue|TInterface|None) -> bool|None:
+        return y is None if x is None else (False if y is None else _DateTime[TValue, TInterface].Compare(x, y))
+
+class Date(_DateTime[date, IDate], IDate):
+    def __init__(self, value: date) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @final
+    def _GetValueType() -> type[date]:
+        return date
+    @staticmethod
+    @final
+    def _GetInterfaceType() -> type[IDate]:
+        return IDate
+    
+    @staticmethod
+    @final
+    def _AsValue(item: date|IDate) -> date:
+        return item.GetValue() if isinstance(item, IDate) else item
+    @staticmethod
+    @final
+    def _CompareTo(x: date, y: date) -> bool:
+        return x > y
+class Time(_DateTime[time, ITime], ITime):
+    def __init__(self, value: time) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @final
+    def _GetValueType() -> type[time]:
+        return time
+    @staticmethod
+    @final
+    def _GetInterfaceType() -> type[ITime]:
+        return ITime
+    
+    @staticmethod
+    @final
+    def _AsValue(item: time|ITime) -> time:
+        return item.GetValue() if isinstance(item, ITime) else item
+    @staticmethod
+    @final
+    def _CompareTo(x: time, y: time) -> bool:
+        return x > y
+class DateTime(_DateTime[datetime, IDateTime], IDateTime):
+    def __init__(self, value: datetime) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @final
+    def _GetValueType() -> type[datetime]:
+        return datetime
+    @staticmethod
+    @final
+    def _GetInterfaceType() -> type[IDateTime]:
+        return IDateTime
+    
+    @staticmethod
+    @final
+    def _AsValue(item: datetime|IDateTime) -> datetime:
+        return item.GetValue() if isinstance(item, IDateTime) else item
+    @staticmethod
+    @final
+    def _CompareTo(x: datetime, y: datetime) -> bool:
+        return x > y
+class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
+    def __init__(self, value: timedelta) -> None:
+        super().__init__(value)
+    
+    @staticmethod
+    @final
+    def _GetValueType() -> type[timedelta]:
+        return timedelta
+    @staticmethod
+    @final
+    def _GetInterfaceType() -> type[TimeDelta]:
+        return TimeDelta
+    
+    @staticmethod
+    @final
+    def _AsValue(item: timedelta|ITimeDelta) -> timedelta:
+        return item.GetValue() if isinstance(item, ITimeDelta) else item
+    @staticmethod
+    @final
+    def _CompareTo(x: timedelta, y: timedelta) -> bool:
+        return x > y
 
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self) -> None:
