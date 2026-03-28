@@ -632,3 +632,29 @@ class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self) -> None:
         super().__init__()
+
+def TryMap(obj: object) -> IValueItem|None:
+    match obj:
+        case int():
+            return Integer(obj)
+        case float():
+            return Float(obj)
+        case decimal():
+            return Decimal(obj)
+        case str():
+            return String(obj)
+        case bytes():
+            return ByteArray(obj)
+        case bool():
+            return GetTrueObject() if obj else GetFalseObject()
+        case date():
+            return Date(obj)
+        case time():
+            return Time(obj)
+        case datetime():
+            return DateTime(obj)
+        case timedelta():
+            return TimeDelta(obj)
+        
+        case _:
+            return None
