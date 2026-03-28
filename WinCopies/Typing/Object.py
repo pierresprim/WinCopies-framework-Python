@@ -319,13 +319,13 @@ class EnumValue[T: Enum](ValueObjectAbstract[T, int, IEnum|Enum], IEnumValue[T])
     def IsSameAs(self, value: Enum) -> bool:
         return IsOf(self.GetValue(), type(value))
     
-    def Equals(self, item: IEnum|object) -> bool:
+    def Equals(self, item: IEnum|Enum|object) -> bool:
         def equals(item: Enum) -> bool:
             return self.GetValue() == item
         
         return (isinstance(item, IEnum) and equals(item.GetEnumValue())) or (isinstance(item, Enum) and equals(item))
     
-    def CompareTo(self, item: IEnumValue[T]|object) -> bool|None:
+    def CompareTo(self, item: IEnumValue[T]|Enum|object) -> bool|None:
         def compareTo(item: Enum) -> bool|None:
             return self.IsSameAs(item) and CompareTo(self.GetUnderlyingValue(), item.value)
         
@@ -361,13 +361,13 @@ class String(ComparableValueObject[str, IString], IString):
     def __init__(self, value: str) -> None:
         super().__init__(value)
     
-    def Equals(self, item: IString|object) -> bool:
+    def Equals(self, item: IString|str|object) -> bool:
         def equals(item: str) -> bool:
             return String.AreEqual(self.GetValue(), item)
         
         return (isinstance(item, IString) and equals(item.GetValue())) or (isinstance(item, str) and equals(item))
     
-    def CompareTo(self, item: IString|object) -> bool|None:
+    def CompareTo(self, item: IString|str|object) -> bool|None:
         def compareTo(item: str) -> bool|None:
             return String.Compare(self.GetValue(), item)
         
@@ -400,13 +400,13 @@ class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
     def __init__(self, value: bytes) -> None:
         super().__init__(value)
     
-    def Equals(self, item: IByteArray|object) -> bool:
+    def Equals(self, item: IByteArray|bytes|object) -> bool:
         def equals(item: bytes) -> bool:
             return ByteArray.AreEqual(self.GetValue(), item)
         
         return (isinstance(item, IByteArray) and equals(item.GetValue())) or (isinstance(item, bytes) and equals(item))
     
-    def CompareTo(self, item: IByteArray|object) -> bool|None:
+    def CompareTo(self, item: IByteArray|bytes|object) -> bool|None:
         def compareTo(item: bytes) -> bool|None:
             return ByteArray.Compare(self.GetValue(), item)
         
@@ -439,8 +439,8 @@ class Type[T](ValueObjectBase[type[T], IType[T]], IType[T]):
     def __init__(self, t: type[T]) -> None:
         super().__init__(t)
     
-    def Equals(self, item: IType[T]|object) -> bool:
-        def equals(item: type[T]) -> bool:
+    def Equals(self, item: IType[T]|type[T]|object) -> bool:
+        def equals(item: type) -> bool:
             return self.GetValue() == item
         
         return (isinstance(item, IType) and equals(item.GetValue())) or (isinstance(item, type) and equals(item)) # pyright: ignore[reportUnknownArgumentType]
