@@ -635,6 +635,8 @@ class IDisposableObject[T](IDisposable, IObject[T]):
 
 def TryMap(obj: object) -> IValueItem|None:
     match obj:
+        case bool():
+            return GetTrueObject() if obj else GetFalseObject()
         case int():
             return Integer(obj)
         case float():
@@ -645,14 +647,12 @@ def TryMap(obj: object) -> IValueItem|None:
             return String(obj)
         case bytes():
             return ByteArray(obj)
-        case bool():
-            return GetTrueObject() if obj else GetFalseObject()
+        case datetime():
+            return DateTime(obj)
         case date():
             return Date(obj)
         case time():
             return Time(obj)
-        case datetime():
-            return DateTime(obj)
         case timedelta():
             return TimeDelta(obj)
         
