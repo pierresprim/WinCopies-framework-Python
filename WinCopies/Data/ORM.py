@@ -1032,10 +1032,7 @@ class Entity(Abstract, IDisposable):
         def GetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
             return cast(TValue, self.__values.TryGetValue(String(name)).GetValue())
         def SetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
-            _name: IString = String(name)
-
-            if not self.__values.TrySetAt(_name, value):
-                self.__values.Add(_name, value)
+            self.__values.AddOrUpdate(String(name), value)
     
     __columns: IFunction[_Columns]
 
