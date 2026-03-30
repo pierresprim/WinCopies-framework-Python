@@ -7,19 +7,19 @@ from typing import final, overload, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
-from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, CreateDictionary
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
+from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, CreateTupleFromValues, CreateEquatableTuple, CreateDictionary
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
-from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IReadOnlyDictionary, IDictionary
 from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IReference, Reference, IString, String
+from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDecorator
 
@@ -985,6 +985,170 @@ class _EntityUpdater(ValueFunctionUpdater[_Columns]):
     def _GetValue(self) -> _Columns:
         return _Columns(WhereOfType(IColumnAbstract, self.__type.__dict__.values())) # type: ignore[type-abstract]
 
+class IEntityKey[T: IItem](IValueObject[T, 'IEntityKey[T]|T'], IEnumerable[IValueItem]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class EntityKeyBase[T: IItem](Abstract, IEntityKey[T]):
+    def __init__(self, key: T, enumerable: IEnumerable[IValueItem]) -> None:
+        super().__init__()
+
+        self.__key: T = key
+        self.__enumerable: IEnumerable[IValueItem] = enumerable
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[IValueItem]|None:
+        return self.__enumerable.TryGetEnumerator()
+    
+    @final
+    def AsIterable(self) -> Iterable[IValueItem]:
+        return self.__enumerable.AsIterable()
+    
+    @final
+    def GetValue(self) -> T:
+        return self.__key
+    @final
+    def GetUnderlyingValue(self) -> T:
+        return self.GetValue()
+    
+    def Equals(self, item: T|IEntityKey[T]|object) -> bool:
+        return self.GetValue().Equals(item.GetUnderlyingValue() if isinstance(item, IEntityKey) else item)
+    
+    def Hash(self) -> int:
+        return self.GetValue().Hash()
+    
+    def ToString(self) -> str:
+        return self.GetValue().ToString()
+class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
+    @final
+    class _Enumerable[_T: IValueItem](Enumerable[_T]):
+        @final
+        class _Enumerator[__T: IValueItem](EnumeratorBase[__T]):
+            def __init__(self, key: IEntityKey[__T]) -> None:
+                super().__init__()
+
+                self.__key: IEntityKey[__T] = key
+                self.__canMoveNext: bool|None = True
+            
+            def IsResetSupported(self) -> bool:
+                return True
+            
+            def GetCurrent(self) -> __T|None:
+                return self.__key.GetValue() if self.__canMoveNext is None else None
+            
+            def _MoveNextOverride(self) -> bool:
+                canMoveNext: bool|None = self.__canMoveNext
+
+                if canMoveNext is True:
+                    self.__canMoveNext = None
+
+                    return True
+                
+                if canMoveNext is None:
+                    self.__canMoveNext = False
+
+                return False
+            
+            def _ResetOverride(self) -> bool:
+                self.__canMoveNext = True
+                
+                return True
+            
+            def _OnStopped(self) -> None:
+                pass
+        
+        def __init__(self, key: EntityKey[_T]) -> None:
+            super().__init__()
+
+            self.__key: IEntityKey[_T] = key
+        
+        def TryGetEnumerator(self) -> IEnumerator[_T]|None:
+            return EntityKey[_T]._Enumerable._Enumerator(self.__key)
+    
+    def __init__(self, key: T) -> None:
+        super().__init__(key, EntityKey[T]._Enumerable(self))
+class CompositeEntityKey[T: IValueItem](EntityKeyBase[IEquatableTuple[T]], IEntityKey[IEquatableTuple[T]]):
+    def __init__(self, keys: IEquatableTuple[T]) -> None:
+        super().__init__(keys, self.GetValue())
+
+def _SetEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
+    column._SetEntityValue(obj, value) # pyright: ignore[reportPrivateUsage]
+
+def __ProcessColumns[TColumn: IColumnAbstract](obj: Entity, columns: Iterable[TColumn], row: Iterable[object], converter: Converter[tuple[TColumn, object], object]) -> None:
+    def setValue(args: tuple[TColumn, object]) -> None:
+        _SetEntityValue(obj, args[0], converter(args))
+
+    DoForEachItem(zip(columns, row), setValue)
+def _ProcessColumns[TColumn: IColumnAbstract](obj: Entity, row: Iterable[object], columns: Iterable[TColumn]) -> None:
+    __ProcessColumns(obj, columns, row, lambda args: args[1])
+
+class IEntityMapper[T: Entity](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsKey(self) -> IType[T]:
+        pass
+
+    @abstractmethod
+    def GetKey(self, keys: ITuple[object]) -> IEntityKey[IItem]:
+        pass
+    
+    @abstractmethod
+    def GetEntity(self, key: IEntityKey[IItem]) -> T:
+        pass
+    @final
+    def GetEntityFromKeys(self, keys: ITuple[object]) -> T:
+        return self.GetEntity(self.GetKey(keys))
+class EntityMapper[T: Entity](Abstract, IEntityMapper[T]):
+    def __init__(self, t: Type[T]) -> None:
+        super().__init__()
+
+        self.__type: IType[T] = TypeObject[T](t)
+        self.__items: IDictionary[IEntityKey[IItem], T] = Dictionary[IEntityKey[IItem], T]()
+    
+    @final
+    def _GetItems(self) -> IDictionary[IEntityKey[IItem], T]:
+        return self.__items
+    
+    @final
+    def AsKey(self) -> IType[T]:
+        return self.__type
+
+    @final
+    def GetKey(self, keys: ITuple[object]) -> IEntityKey[IItem]:
+        def getKey(key: object) -> IValueItem:
+            return Map(key)
+        
+        t: Type[T] = self.__type.GetValue()
+        count: int = _GetPrimaryKeys(t).GetCount()
+
+        if keys.GetCount() == count:
+            if count < 1:
+                raise InvalidOperationError("No primary key found.")
+            
+            if count > 1:
+                return CompositeEntityKey[IValueItem](CreateEquatableTuple(Select(keys.AsIterable(), getKey)))
+            
+            return EntityKey[IValueItem](getKey(keys.GetAt(0)))
+
+        raise ValueError(f"The given key collection's length does not match the primary keys length of {t}.")
+    
+    @final
+    def GetEntity(self, key: IEntityKey[IItem]) -> T:
+        entity: T|None = self._GetItems().TryGetValue(key).TryGetValue()
+
+        if entity is None:
+            t: Type[T] = self.AsKey().GetValue()
+
+            self._GetItems().Add(key, entity := object.__new__(t))
+            
+            entity._InitCookie() # pyright: ignore[reportPrivateUsage]
+
+            _ProcessColumns(entity, Select(key.AsIterable(), lambda key: key.GetValue()), _GetPrimaryKeys(t).AsIterable())
+
+        return entity
+
 class Entity(Abstract, IDisposable):
     class _Cookie(Abstract, ICookie):
         def __init__(self, entity: Entity) -> None:
@@ -1094,8 +1258,10 @@ class _SelectionQueryData(Abstract):
         return self.__columns.GetAllColumns()
 
 class EntityCollection[T: Entity](Abstract):
-    def __init__(self) -> None:
+    def __init__(self, context: DataContextBase) -> None:
         super().__init__()
+
+        self.__context: DataContextBase = context
     
     @abstractmethod
     def _GetType(self) -> Type[T]:
@@ -1105,54 +1271,26 @@ class EntityCollection[T: Entity](Abstract):
     def __Iterate(self, data: _SelectionQueryData, query: ISelectionQuery) -> IEnumerable[T]:
         def iterate(items: ISelectionQueryExecutionResult) -> Generator[T]:
             def createEntity(row: Iterator[object]) -> T:
-                def initCookie(obj: Entity) -> None:
-                    obj._InitCookie() # pyright: ignore[reportPrivateUsage]
-                
-                def setEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
-                    column._SetEntityValue(obj, value) # pyright: ignore[reportPrivateUsage]
-
-                def _processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn], converter: Converter[tuple[TColumn, object], object]) -> None:
-                    def setValue(args: tuple[TColumn, object]) -> None:
-                        setEntityValue(obj, args[0], converter(args))
-
-                    DoForEachItem(zip(columns, row), setValue)
-                def processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> None:
-                    _processColumns(columns, lambda args: args[1])
+                def __getEntity[_T: Entity](t: Type[_T], values: ITuple[object]) -> _T:
+                    return self.__context._GetMapper(t).GetEntityFromKeys(values) # pyright: ignore[reportPrivateUsage]
+                def _getEntity[_T: Entity](t: Type[_T], primaryKeys: Iterable[IDefaultColumn]) -> _T:
+                    return __getEntity(t, CreateTuple(Select(primaryKeys, lambda _: next(row)))) # pyright: ignore[reportPrivateUsage]
+                def getEntity[_T: Entity](t: Type[_T]) -> _T:
+                    return _getEntity(t, _GetPrimaryKeys(t).AsIterable())
                 
                 def processEntityColumn(args: tuple[IDefaultEntityColumn, object]) -> Entity:
-                    def getStub() -> tuple[Entity, IColumnAbstract]:
-                        targetType: Type[Entity] = args[0].GetColumnParameter().GetType()
+                    return __getEntity(args[0].GetColumnParameter().GetType(), CreateTupleFromValues(args[1]))
 
-                        stub: Entity = object.__new__(targetType)
+                obj: T = _getEntity(self._GetType(), data.GetPrimaryKeys())
 
-                        return stub, _GetPrimaryKeys(targetType).GetAt(0)
-
-                    stub, column = getStub()
-                    
-                    initCookie(stub)
-
-                    setEntityValue(stub, column, args[1])
-
-                    return stub
-
-                obj: T = object.__new__(self._GetType())
+                if obj.IsReady():
+                    return obj
                 
-                initCookie(obj)
-
-                processColumns(data.GetPrimaryKeys())
-                processColumns(data.GetColumns())
-                _processColumns(data.GetEntityColumns(), processEntityColumn)
+                _ProcessColumns(obj, row, data.GetColumns())
+                __ProcessColumns(obj, data.GetEntityColumns(), row, processEntityColumn)
 
                 for fk in data.GetForeignKeys():
-                    targetType: Type[Entity] = fk.GetColumnParameter().GetType()
-                    
-                    stub: Entity = object.__new__(targetType)
-                    initCookie(stub)
-                    
-                    for pk in _GetPrimaryKeys(targetType).AsIterable():
-                        setEntityValue(stub, pk, next(row))
-                    
-                    setEntityValue(obj, fk, stub)
+                    _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
 
                 obj.Initialize()
 
@@ -1170,7 +1308,7 @@ class EntityCollection[T: Entity](Abstract):
         return self._GetType().__name__
     
     @final
-    def __GetSelectionQuery(self, connection: IConnection) -> tuple[_SelectionQueryData, ISelectionQuery]:
+    def __GetSelectionQuery(self) -> tuple[_SelectionQueryData, ISelectionQuery]:
         def getDefaultTableName() -> str:
             return self.__GetDefaultTableName()
 
@@ -1187,7 +1325,7 @@ class EntityCollection[T: Entity](Abstract):
 
         data: _SelectionQueryData = _SelectionQueryData(_GetColumns(self._GetType()))
 
-        return data, connection.GetQueryFactory().GetSelectionQuery(
+        return data, self.__context._GetConnection().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
             TableParameterSet.CreateFromNames(String(getDefaultTableName())),
             CreateColumnParameterSet(
                 ConcatenateValues(
@@ -1195,14 +1333,43 @@ class EntityCollection[T: Entity](Abstract):
                     ConcatenateIterables(Select(data.GetForeignKeys(), asForeignKeys)))))
     
     @final
-    def Select(self, connection: IConnection) -> IEnumerable[T]:
-        return self.__Iterate(*self.__GetSelectionQuery(connection))
+    def Select(self) -> IEnumerable[T]:
+        return self.__Iterate(*self.__GetSelectionQuery())
 
     @final
-    def Where(self, connection: IConnection, conditions: _IRoot) -> IEnumerable[T]:
-        data, query = self.__GetSelectionQuery(connection)
+    def Where(self, conditions: _IRoot) -> IEnumerable[T]:
+        data, query = self.__GetSelectionQuery()
 
         query.SetConditions(TryCreateConditionSetFromConditions(_Set(conditions, self.__GetDefaultTableName())))
         # Select(conditions, lambda condition: CreateKeyValuePair(asColumn(condition.GetKey()), condition.GetValue()))
         
         return self.__Iterate(data, query)
+
+class DataContextBase(Abstract):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: IDictionary[IType[Entity], IEntityMapper[Entity]] = Dictionary[IType[Entity], IEntityMapper[Entity]]()
+
+    @abstractmethod
+    def _GetConnection(self) -> IConnection:
+        pass
+
+    @final
+    def _GetMapper[T: Entity](self, t: Type[T]) -> IEntityMapper[T]:
+        _t: IType[T] = TypeObject[T](t)
+        mapper: IEntityMapper[T]|None = cast(IEntityMapper[T]|None, self.__items.TryGetValue(_t).TryGetValue())
+
+        if mapper is None:
+            self.__items.Add(_t, mapper := EntityMapper[T](t))
+        
+        return mapper
+class DataContext(DataContextBase):
+    def __init__(self, connection: IConnection) -> None:
+        super().__init__()
+
+        self.__connection: IConnection = connection
+
+    @final
+    def _GetConnection(self) -> IConnection:
+        return self.__connection
