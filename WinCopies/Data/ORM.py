@@ -753,34 +753,44 @@ class IForeignKey[TEntity: Entity, TValue: Entity](IDefaultColumnBase[TEntity, T
     def __init__(self) -> None:
         super().__init__()
 
+@final
 class _ColumnConfigDecorator(Abstract):
     def __init__(self, config: IColumnConfig) -> None:
         super().__init__()
 
         self.__config: IColumnConfig = config
     
-    @final
     def __call__[TEntity: Entity, TValue](self, func: Property[TEntity, TValue]) -> IColumn[TEntity, TValue]:
         return _Column[TEntity, TValue](func, self.__config)
-class _EntityColumnConfigDecorator[TValue: Entity](Abstract):
+
+class _EntityColumnConfigDecoratorBase[TValue: Entity, TConfig, TColumn](Abstract):
+    def __init__(self, config: TConfig) -> None:
+        super().__init__()
+
+        self.__config: TConfig = config
+    
+    @final
+    def _GetConfig(self) -> TConfig:
+        return self.__config
+    
+    @abstractmethod
+    def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> TColumn:
+        pass
+
+@final
+class _EntityColumnConfigDecorator[TValue: Entity](_EntityColumnConfigDecoratorBase[TValue, IEntityColumnConfig[TValue], IDefaultEntityColumn]):
     def __init__(self, config: IEntityColumnConfig[TValue]) -> None:
-        super().__init__()
-
-        self.__config: IEntityColumnConfig[TValue] = config
+        super().__init__(config)
     
-    @final
     def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IEntityColumn[TEntity, TValue]:
-        return _EntityColumn[TEntity, TValue](func, self.__config)
-
-class _ForeignKeyConfigDecorator[TValue: Entity](Abstract):
+        return _EntityColumn[TEntity, TValue](func, self._GetConfig())
+@final
+class _ForeignKeyConfigDecorator[TValue: Entity](_EntityColumnConfigDecoratorBase[TValue, IForeignKeyConfig[TValue], IDefaultForeignKey]):
     def __init__(self, config: IForeignKeyConfig[TValue]) -> None:
-        super().__init__()
-
-        self.__config: IForeignKeyConfig[TValue] = config
+        super().__init__(config)
     
-    @final
     def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IForeignKey[TEntity, TValue]:
-        return _ForeignKey[TEntity, TValue](func, self.__config)
+        return _ForeignKey[TEntity, TValue](func, self._GetConfig())
 
 def columnConfig(role: Role = Role.Null, name: str|None = None) -> _ColumnConfigDecorator:
     return _ColumnConfigDecorator(ColumnConfig(role, name))
@@ -827,10 +837,7 @@ class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbst
         self.__GetCookie(obj).SetValue(name, cast(Property[Entity, object], self.__func), value)
     
     def GetValue(self, obj: TEntity|None, name: str) -> TValue|TParameter:
-        if obj is None:
-            return self.GetColumnParameter()
-        
-        return self.__GetCookie(obj).GetValue(name, self.__func)
+        return self.GetColumnParameter() if obj is None else self.__GetCookie(obj).GetValue(name, self.__func)
     def SetValue(self, obj: TEntity, name: str, value: TValue) -> None:
         self.__GetCookie(obj).SetValue(name, self.__func, value)
 
