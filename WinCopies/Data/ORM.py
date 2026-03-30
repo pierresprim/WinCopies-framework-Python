@@ -954,7 +954,7 @@ class _Columns(Abstract):
             return ConcatenateIterables(Select(columns, lambda items: items.AsIterable()))
         
         def createTuple[T](t: Type[T], role: Role, columns: IIterator[IColumnAbstract]) -> ITuple[T]:
-            return CreateTuple(WhereOfType(t, __columns.Include(getPredicate(role))))
+            return CreateTuple(WhereOfType(t, columns.Include(getPredicate(role))))
 
         super().__init__()
 
