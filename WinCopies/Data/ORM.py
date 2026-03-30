@@ -7,7 +7,7 @@ from typing import final, overload, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
-from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple
+from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, CreateDictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
@@ -342,6 +342,12 @@ class ParameterKey(Reference[IColumnParameterAbstract], IParameterKey):
     def ToString(self) -> str:
         return self.GetValue().GetColumnName()
 
+def _GetColumns(t: Type[Entity]) -> _Columns:
+    return t._GetColumns() # pyright: ignore[reportPrivateUsage]
+
+def _GetPrimaryKeys(t: Type[Entity]) -> ITuple[IColumnAbstract]:
+    return _GetColumns(t).GetPrimaryKeys()
+
 class IColumnParameterDelegate[TValue](IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -376,7 +382,7 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         def getParameter(index: int) -> _Parameter[object]:
             return self._GetParameter(operator, entity, index, primaryKeys)
 
-        primaryKeys: ITuple[IColumnAbstract] = type(entity)._GetColumns().GetPrimaryKeys() # pyright: ignore[reportPrivateUsage]
+        primaryKeys: ITuple[IColumnAbstract] = _GetPrimaryKeys(type(entity))
         count: int = primaryKeys.GetCount()
 
         if count < 1:
@@ -782,7 +788,7 @@ def entityColumnConfig[T: Entity](t: Type[T], role: Role = Role.Null, name: str|
 def foreignKeyConfiguration[T: Entity](t: Type[T], columns: IReadOnlyDictionary[IParameterKey, str|None]) -> _ForeignKeyConfigDecorator[T]:
     return _ForeignKeyConfigDecorator[T](ForeignKeyConfig[T](t, columns))
 def foreignKeyConfig[T: Entity](t: Type[T], columns: Iterable[tuple[IColumnParameterAbstract, str|None]]) -> _ForeignKeyConfigDecorator[T]:
-    return foreignKeyConfiguration(t, Dictionary[IParameterKey, str|None](dict[IParameterKey, str|None](Select(columns, lambda column: (ParameterKey(column[0]), column[1])))).AsReadOnly())
+    return foreignKeyConfiguration(t, CreateDictionary(dict[IParameterKey, str|None](Select(columns, lambda column: (ParameterKey(column[0]), column[1])))).AsReadOnly())
 
 class ICookie(IInterface):
     def __init__(self) -> None:
@@ -1012,7 +1018,7 @@ class Entity(Abstract, IDisposable):
         
         super().__init_subclass__(**kwargs)
         
-        cls.__columns = _EntityUpdater(cls, update) 
+        cls.__columns = _EntityUpdater(cls, update)
 
     @classmethod
     def _GetColumns(cls) -> _Columns:
@@ -1076,18 +1082,11 @@ class EntityCollection[T: Entity](Abstract):
     @abstractmethod
     def _GetType(self) -> Type[T]:
         pass
-    
-    @final
-    def __GetColumnsFromType(self, t: Type[Entity]) -> _Columns:
-        return t._GetColumns() # pyright: ignore[reportPrivateUsage]
 
     @final
     def __Iterate(self, data: _SelectionQueryData, query: ISelectionQuery) -> IEnumerable[T]:
         def iterate(items: ISelectionQueryExecutionResult) -> Generator[T]:
             def createEntity(row: Iterator[object]) -> T:
-                def getColumnsFromType(t: Type[Entity]) -> _Columns:
-                    return self.__GetColumnsFromType(t)
-                
                 def initCookie(obj: Entity) -> None:
                     obj._InitCookie() # pyright: ignore[reportPrivateUsage]
                 
@@ -1106,9 +1105,10 @@ class EntityCollection[T: Entity](Abstract):
 
                         stub: Entity = object.__new__(targetType)
 
-                        return stub, getColumnsFromType(targetType).GetPrimaryKeys().GetAt(0)
+                        return stub, _GetPrimaryKeys(targetType).GetAt(0)
 
                     stub, column = getStub()
+                    
                     initCookie(stub)
 
                     setEntityValue(stub, column, args[1])
@@ -1128,7 +1128,7 @@ class EntityCollection[T: Entity](Abstract):
                     stub: Entity = object.__new__(targetType)
                     initCookie(stub)
                     
-                    for pk in getColumnsFromType(targetType).GetPrimaryKeys().AsIterable():
+                    for pk in _GetPrimaryKeys(targetType).AsIterable():
                         setEntityValue(stub, pk, next(row))
                     
                     setEntityValue(obj, fk, stub)
@@ -1158,7 +1158,7 @@ class EntityCollection[T: Entity](Abstract):
         def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
             return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
 
-        data: _SelectionQueryData = _SelectionQueryData(self.__GetColumnsFromType(self._GetType()))
+        data: _SelectionQueryData = _SelectionQueryData(_GetColumns(self._GetType()))
 
         return data, connection.GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(String(getDefaultTableName())),
