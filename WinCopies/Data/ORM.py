@@ -13,10 +13,12 @@ from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHan
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
-from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Include, Select, WhereOfType
+from WinCopies.Collections.Generation import IIterator
+from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
+from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Typing import IDisposable, InvalidOperationError
-from WinCopies.Typing.Delegate import IFunction, Method, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Delegate import IFunction, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IReference, Reference, IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDecorator
@@ -345,7 +347,7 @@ class ParameterKey(Reference[IColumnParameterAbstract], IParameterKey):
 def _GetColumns(t: Type[Entity]) -> _Columns:
     return t._GetColumns() # pyright: ignore[reportPrivateUsage]
 
-def _GetPrimaryKeys(t: Type[Entity]) -> ITuple[IColumnAbstract]:
+def _GetPrimaryKeys(t: Type[Entity]) -> ITuple[IDefaultColumn]:
     return _GetColumns(t).GetPrimaryKeys()
 
 class IColumnParameterDelegate[TValue](IInterface):
@@ -370,11 +372,11 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         pass
     
     @abstractmethod
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
         pass
     
     @final
-    def _GetParameter(self, operator: Operator, entity: Entity, index: int, primaryKeys: IReadOnlyIndexable[IColumnAbstract]) -> _Parameter[object]:
+    def _GetParameter(self, operator: Operator, entity: Entity, index: int, primaryKeys: IReadOnlyIndexable[IDefaultColumn]) -> _Parameter[object]:
         return _Parameter[object](self._GetCookie(index), operator, primaryKeys.GetAt(index)._GetEntityValue(entity)) # pyright: ignore[reportPrivateUsage]
 
     @final
@@ -382,7 +384,7 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         def getParameter(index: int) -> _Parameter[object]:
             return self._GetParameter(operator, entity, index, primaryKeys)
 
-        primaryKeys: ITuple[IColumnAbstract] = _GetPrimaryKeys(type(entity))
+        primaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(type(entity))
         count: int = primaryKeys.GetCount()
 
         if count < 1:
@@ -439,7 +441,7 @@ class ColumnParameterDelegate[TValue](ColumnParameterDelegateBase[TValue]):
         return self.__cookie
     
     @final
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
         raise InvalidOperationError(f"Multiple primary keys found. The {foreignKeyConfig.__name__} decorator must be applied.")
 class ForeignKeyParameterDelegate[TValue: Entity](ColumnParameterDelegateBase[TValue]):
     def __init__(self, cookieProvider: IColumnParameterCookieProvider) -> None:
@@ -452,7 +454,7 @@ class ForeignKeyParameterDelegate[TValue: Entity](ColumnParameterDelegateBase[TV
         return self.__cookieProvider.GetAt(index)
     
     @final
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IColumnAbstract], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
         def concatenate(node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], index: int) -> None:
             node.GetFirst().SetNext(ConditionalOperator.And, self._GetParameter(operator, entity, index, primaryKeys))
         
@@ -937,16 +939,41 @@ def tableConfig(name: str) -> Selector[Type[Entity]]:
 @final
 class _Columns(Abstract):
     def __init__(self, columns: Iterable[IColumnAbstract]) -> None:
+        def checkRole(column: IColumnAbstract, role: Role) -> bool:
+            return column.GetColumnParameter().GetColumnRole() == role
+        def getPredicate(role: Role) -> Predicate[IColumnAbstract]:
+            return lambda column: checkRole(column, role)
+        def concatenate(*columns: IEnumerable[IColumnAbstract]) -> Iterable[IColumnAbstract]:
+            return ConcatenateIterables(Select(columns, lambda items: items.AsIterable()))
+        
+        def createTuple[T](t: Type[T], role: Role, columns: IIterator[IColumnAbstract]) -> ITuple[T]:
+            return CreateTuple(WhereOfType(t, __columns.Include(getPredicate(role))))
+
         super().__init__()
 
-        self.__columns: ITuple[IColumnAbstract] = CreateTuple(columns)
-        self.__primaryKeys: ITuple[IColumnAbstract] = CreateTuple(Include(self.__columns.AsIterable(), lambda column: column.GetColumnParameter().GetColumnRole() == Role.PrimaryKey))
+        _columns: IList[IColumnAbstract] = CreateList(columns)
+        __columns: IIterator[IColumnAbstract] = _columns.AsGenerator()
+
+        # The order of parsing is mandatory to get consistent set.
+
+        self.__primaryKeys: ITuple[IDefaultColumn] = createTuple(IDefaultColumn, Role.PrimaryKey, __columns) # type: ignore[type-abstract]
+        self.__foreignKeys: ITuple[IDefaultForeignKey] = CreateTuple(__columns.WhereOfType(IDefaultForeignKey)) # type: ignore[type-abstract]
+        self.__entityColumns: ITuple[IDefaultEntityColumn] = createTuple(IDefaultEntityColumn, Role.ForeignKey, __columns) # type: ignore[type-abstract]
+        self.__columns: ITuple[IDefaultColumn] = CreateTuple(WhereOfType(IDefaultColumn, _columns.AsQueuedGenerator())) # type: ignore[type-abstract]
+
+        self.__allColumns: Iterable[IColumnAbstract] = concatenate(self.__primaryKeys, self.__entityColumns, self.__foreignKeys, self.__columns)
     
-    def GetColumns(self) -> ITuple[IColumnAbstract]:
+    def GetPrimaryKeys(self) -> ITuple[IDefaultColumn]:
+        return self.__primaryKeys
+    def GetEntityColumns(self) -> ITuple[IDefaultEntityColumn]:
+        return self.__entityColumns
+    def GetForeignKeys(self) -> ITuple[IDefaultForeignKey]:
+        return self.__foreignKeys
+    def GetColumns(self) -> ITuple[IDefaultColumn]:
         return self.__columns
     
-    def GetPrimaryKeys(self) -> ITuple[IColumnAbstract]:
-        return self.__primaryKeys
+    def GetAllColumns(self) -> Iterable[IColumnAbstract]:
+        return self.__allColumns
 
 class _EntityUpdater(ValueFunctionUpdater[_Columns]):
     def __init__(self, t: Type[Entity], updater: Method[IFunction[_Columns]]) -> None:
@@ -1052,28 +1079,21 @@ class Entity(Abstract, IDisposable):
 
 class _SelectionQueryData(Abstract):
     def __init__(self, columns: _Columns) -> None:
-        def getColumns(columns: Iterable[IColumnAbstract]) -> tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]]:
-            def createTuple[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> Iterable[TColumn]:
-                return CreateTuple(columns).AsIterable()
-            
-            return createTuple(WhereOfType(IDefaultColumn, columns)), createTuple(WhereOfType(IDefaultEntityColumn, columns)), createTuple(WhereOfType(IDefaultForeignKey, columns)) # type: ignore[type-abstract]
-        
         super().__init__()
-        
-        _columns: tuple[Iterable[IDefaultColumn], Iterable[IDefaultEntityColumn], Iterable[IDefaultForeignKey]] = getColumns(columns.GetColumns().AsIterable())
 
-        self.__columns: Iterable[IDefaultColumn] = _columns[0]
-        self.__entityColumns: Iterable[IDefaultEntityColumn] = _columns[1]
-        self.__foreignKeys: Iterable[IDefaultForeignKey] = _columns[2]
+        self.__columns: _Columns = columns
     
+    def GetPrimaryKeys(self) -> Iterable[IDefaultColumn]:
+        return self.__columns.GetPrimaryKeys().AsIterable()
     def GetColumns(self) -> Iterable[IDefaultColumn]:
-        return self.__columns
-    
+        return self.__columns.GetColumns().AsIterable()
     def GetEntityColumns(self) -> Iterable[IDefaultEntityColumn]:
-        return self.__entityColumns
-    
+        return self.__columns.GetEntityColumns().AsIterable()
     def GetForeignKeys(self) -> Iterable[IDefaultForeignKey]:
-        return self.__foreignKeys
+        return self.__columns.GetForeignKeys().AsIterable()
+    
+    def GetAllColumns(self) -> Iterable[IColumnAbstract]:
+        return self.__columns.GetAllColumns()
 
 class EntityCollection[T: Entity](Abstract):
     def __init__(self) -> None:
@@ -1153,8 +1173,14 @@ class EntityCollection[T: Entity](Abstract):
         def getDefaultTableName() -> str:
             return self.__GetDefaultTableName()
 
-        def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
-            return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        def asColumns(*columns: Iterable[IDefaultColumn|IDefaultEntityColumn]) -> Iterable[ITableColumn]:
+            def asColumns(columns: Iterable[IDefaultColumn|IDefaultEntityColumn]) -> Iterable[ITableColumn]:
+                def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
+                    return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+                
+                return Select(columns, asColumn)
+            
+            return ConcatenateIterables(Select(columns, asColumns))
         def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
             return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
 
@@ -1164,10 +1190,8 @@ class EntityCollection[T: Entity](Abstract):
             TableParameterSet.CreateFromNames(String(getDefaultTableName())),
             CreateColumnParameterSet(
                 ConcatenateValues(
-                    Select(data.GetColumns(), asColumn),
-                    Select(data.GetEntityColumns(), asColumn),
-                    ConcatenateIterables(
-                        Select(data.GetForeignKeys(), asForeignKeys)))))
+                    asColumns(data.GetPrimaryKeys(), data.GetColumns(), data.GetEntityColumns()),
+                    ConcatenateIterables(Select(data.GetForeignKeys(), asForeignKeys)))))
     
     @final
     def Select(self, connection: IConnection) -> IEnumerable[T]:
