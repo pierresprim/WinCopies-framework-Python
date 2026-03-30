@@ -961,16 +961,16 @@ class _Columns(Abstract):
         self.__entityColumns: ITuple[IDefaultEntityColumn] = createTuple(IDefaultEntityColumn, Role.ForeignKey, __columns) # type: ignore[type-abstract]
         self.__columns: ITuple[IDefaultColumn] = CreateTuple(WhereOfType(IDefaultColumn, _columns.AsQueuedGenerator())) # type: ignore[type-abstract]
 
-        self.__allColumns: Iterable[IColumnAbstract] = concatenate(self.__primaryKeys, self.__entityColumns, self.__foreignKeys, self.__columns)
+        self.__allColumns: Iterable[IColumnAbstract] = concatenate(self.__primaryKeys, self.__columns, self.__entityColumns, self.__foreignKeys)
     
     def GetPrimaryKeys(self) -> ITuple[IDefaultColumn]:
         return self.__primaryKeys
+    def GetColumns(self) -> ITuple[IDefaultColumn]:
+        return self.__columns
     def GetEntityColumns(self) -> ITuple[IDefaultEntityColumn]:
         return self.__entityColumns
     def GetForeignKeys(self) -> ITuple[IDefaultForeignKey]:
         return self.__foreignKeys
-    def GetColumns(self) -> ITuple[IDefaultColumn]:
-        return self.__columns
     
     def GetAllColumns(self) -> Iterable[IColumnAbstract]:
         return self.__allColumns
@@ -1111,11 +1111,13 @@ class EntityCollection[T: Entity](Abstract):
                 def setEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
                     column._SetEntityValue(obj, value) # pyright: ignore[reportPrivateUsage]
 
-                def processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn], converter: Converter[tuple[TColumn, object], object]) -> None:
+                def _processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn], converter: Converter[tuple[TColumn, object], object]) -> None:
                     def setValue(args: tuple[TColumn, object]) -> None:
                         setEntityValue(obj, args[0], converter(args))
 
                     DoForEachItem(zip(columns, row), setValue)
+                def processColumns[TColumn: IColumnAbstract](columns: Iterable[TColumn]) -> None:
+                    _processColumns(columns, lambda args: args[1])
                 
                 def processEntityColumn(args: tuple[IDefaultEntityColumn, object]) -> Entity:
                     def getStub() -> tuple[Entity, IColumnAbstract]:
@@ -1137,8 +1139,9 @@ class EntityCollection[T: Entity](Abstract):
                 
                 initCookie(obj)
 
-                processColumns(data.GetColumns(), lambda args: args[1])
-                processColumns(data.GetEntityColumns(), processEntityColumn)
+                processColumns(data.GetPrimaryKeys())
+                processColumns(data.GetColumns())
+                _processColumns(data.GetEntityColumns(), processEntityColumn)
 
                 for fk in data.GetForeignKeys():
                     targetType: Type[Entity] = fk.GetColumnParameter().GetType()
