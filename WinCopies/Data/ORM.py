@@ -1048,6 +1048,7 @@ class Entity(Abstract, IDisposable):
         cls.__columns = _EntityUpdater(cls, update)
 
     @classmethod
+    @final
     def _GetColumns(cls) -> _Columns:
         return cls.__columns.GetValue()
     
