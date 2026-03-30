@@ -830,9 +830,9 @@ class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbst
         if obj is None:
             return self.GetColumnParameter()
         
-        return obj._GetCookie().GetValue(name, self.__func) # pyright: ignore[reportPrivateUsage]
+        return self.__GetCookie(obj).GetValue(name, self.__func)
     def SetValue(self, obj: TEntity, name: str, value: TValue) -> None:
-        obj._GetCookie().SetValue(name, self.__func, value) # pyright: ignore[reportPrivateUsage]
+        self.__GetCookie(obj).SetValue(name, self.__func, value)
 
 class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfig, TParameter: IColumnParameterBase](FunctionDecorator[TEntity, TValue], IColumnAbstract):
     def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
