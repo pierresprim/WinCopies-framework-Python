@@ -516,15 +516,15 @@ class ColumnConfig(Abstract, IColumnConfig):
     def GetName(self) -> str|None:
         return self.__name
 class EntityColumnConfig[T: Entity](EntityValueConfig[T], IEntityColumnConfig[T]):
-    def __init__(self, t: Type[T], role: Role, name: str|None) -> None:
+    def __init__(self, t: Type[T], name: str|None) -> None:
         super().__init__(t)
 
-        self.__role: Role = role
         self.__name: str|None = name
     
     @final
     def GetRole(self) -> Role:
-        return self.__role
+        return Role.ForeignKey
+    
     @final
     def GetName(self) -> str|None:
         return self.__name
@@ -794,8 +794,8 @@ class _ForeignKeyConfigDecorator[TValue: Entity](_EntityColumnConfigDecoratorBas
 
 def columnConfig(role: Role = Role.Null, name: str|None = None) -> _ColumnConfigDecorator:
     return _ColumnConfigDecorator(ColumnConfig(role, name))
-def entityColumnConfig[T: Entity](t: Type[T], role: Role = Role.Null, name: str|None = None) -> _EntityColumnConfigDecorator[T]:
-    return _EntityColumnConfigDecorator[T](EntityColumnConfig[T](t, role, name))
+def entityColumnConfig[T: Entity](t: Type[T], name: str|None = None) -> _EntityColumnConfigDecorator[T]:
+    return _EntityColumnConfigDecorator[T](EntityColumnConfig[T](t, name))
 
 def foreignKeyConfiguration[T: Entity](t: Type[T], columns: IReadOnlyDictionary[IParameterKey, str|None]) -> _ForeignKeyConfigDecorator[T]:
     return _ForeignKeyConfigDecorator[T](ForeignKeyConfig[T](t, columns))
