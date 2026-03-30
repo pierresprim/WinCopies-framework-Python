@@ -658,3 +658,10 @@ def TryMap(obj: object) -> IValueItem|None:
         
         case _:
             return None
+def Map(obj: object) -> IValueItem:
+    result: IValueItem|None = TryMap(obj)
+
+    if result is None:
+        raise ValueError(f"{type(obj)} is not supported or is not primitive.")
+
+    return result
