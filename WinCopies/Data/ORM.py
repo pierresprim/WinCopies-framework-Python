@@ -495,7 +495,7 @@ class IPrimaryKeyConfig(IColumnConfigBase):
     
     @final
     def GetRole(self) -> Role:
-        return Role.ForeignKey
+        return Role.PrimaryKey
 class IEntityColumnConfig[T: Entity](IEntityValueConfig[T], IColumnConfigBase):
     def __init__(self) -> None:
         super().__init__()
