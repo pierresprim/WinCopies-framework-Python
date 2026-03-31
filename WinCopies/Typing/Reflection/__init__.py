@@ -5,15 +5,21 @@ from inspect import FrameInfo, stack, getfile, getmembers, isfunction, ismethod
 from os import path, sep
 from sys import modules, builtin_module_names
 from types import ModuleType, FrameType, FunctionType, MethodType
-from typing import final, List, Type
+from typing import overload, final, List, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
 from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
 from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
-from WinCopies.Typing.Delegate import Converter, Selector, IStruct
+from WinCopies.Typing.Delegate import Converter, Selector, IFunctionBase, IFunction, IMethodBase, IMethod, IStruct
 from WinCopies.Typing.Pairing import KeyValuePair
+
+type GetterBase[TClass, TValue] = Converter[TClass, IFunctionBase[TValue]]
+type SetterBase[TClass, TValue] = Converter[TClass, IMethodBase[TValue]]
+
+type Getter[TClass, TValue] = Converter[TClass, IFunction[TValue]]
+type Setter[TClass, TValue] = Converter[TClass, IMethod[TValue]]
 
 type Property[TClass, TValue] = Converter[TClass, IStruct[TValue]]
 
@@ -24,24 +30,115 @@ class IFunctionDecorator[TClass, TValue](IInterface):
     @abstractmethod
     def __call__(self, obj: TClass) -> TValue:
         pass
+class IMethodDecorator[TClass, TValue](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def __call__(self, obj: TClass, value: TValue) -> None:
+        pass
 
-class _FunctionDecorator[TClass, TValue](Abstract, IFunctionDecorator[TClass, TValue]):
-    def __init__(self, func: Property[TClass, TValue]) -> None:
+class _FunctionDecoratorAbstract[T](Abstract):
+    def __init__(self, func: T) -> None:
         super().__init__()
 
-        self.__func: Property[TClass, TValue] = func
+        self.__func: T = func
     
     @final
-    def _GetFunc(self) -> Property[TClass, TValue]:
+    def _GetFunc(self) -> T:
         return self.__func
+
+class IFunctionProvider[TClass, TValue, TProperty](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _AsFunction(self, func: TProperty) -> GetterBase[TClass, TValue]:
+        pass
+
+class IGetterProvider[TClass, TValue](IFunctionProvider[TClass, TValue, GetterBase[TClass, TValue]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _AsFunction(self, func: GetterBase[TClass, TValue]) -> GetterBase[TClass, TValue]:
+        return func
+class IPropertyProvider[TClass, TValue](IFunctionProvider[TClass, TValue, Property[TClass, TValue]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _AsFunction(self, func: Property[TClass, TValue]) -> GetterBase[TClass, TValue]:
+        return func
+
+class _FunctionDecoratorBase[TClass, TValue, TProperty](_FunctionDecoratorAbstract[TProperty], IFunctionDecorator[TClass, TValue], IFunctionProvider[TClass, TValue, TProperty]):
+    def __init__(self, func: TProperty) -> None:
+        super().__init__(func)
     
     def _Invoke(self, obj: TClass) -> TValue:
-        return self.__func(obj).GetValue()
+        return self._AsFunction(self._GetFunc())(obj).GetValue()
     
     @final
     def __call__(self, obj: TClass) -> TValue:
         return self._Invoke(obj)
-class FunctionDecorator[TClass, TValue](_FunctionDecorator[TClass, TValue]):
+
+class FunctionDecorator[TClass, TValue](_FunctionDecoratorBase[TClass, TValue, Property[TClass, TValue]], IPropertyProvider[TClass, TValue]):
+    def __init__(self, func: Property[TClass, TValue]) -> None:
+        super().__init__(func)
+
+class GetterDecorator[TClass, TValue](_FunctionDecoratorBase[TClass, TValue, Getter[TClass, TValue]], IGetterProvider[TClass, TValue]):
+    def __init__(self, func: Getter[TClass, TValue]) -> None:
+        super().__init__(func)
+
+class SetterDecorator[TClass, TValue](_FunctionDecoratorAbstract[Setter[TClass, TValue]], IMethodDecorator[TClass, TValue]):
+    def __init__(self, func: Setter[TClass, TValue]) -> None:
+        super().__init__(func)
+    
+    def _Invoke(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None:
+        return self._GetFunc()(obj, *args, **kwargs).SetValue(value)
+    
+    @final
+    def __call__(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None:
+        self._Invoke(obj, value, *args, **kwargs)
+
+class IReadOnlyProperty[TClass, TValue, TAccessor](IFunctionDecorator[TClass, TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def Get(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor:
+        pass
+    
+    @overload
+    def __get__(self, obj: TClass, objtype: type|None = None) -> TValue:
+        ...
+    @overload
+    def __get__(self, obj: None, objtype: type|None = None) -> TAccessor:
+        ...
+    
+    @final
+    def __get__(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor:
+        return self.Get(obj)
+class IProperty[TClass, TValue, TAccessor](IReadOnlyProperty[TClass, TValue, TAccessor]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def Set(self, obj: TClass, value: TValue) -> None:
+        pass
+    
+    @final
+    def __set__(self, obj: TClass, value: TValue) -> None:
+        self.Set(obj, value)
+
+class _PropertyDecorator[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyProperty[TClass, TValue, TAccessor]):
+    def __init__(self, func: TProperty) -> None:
+        super().__init__(func)
+
+class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IGetterProvider[TClass, TValue]):
+    def __init__(self, func: GetterBase[TClass, TValue]) -> None:
+        super().__init__(func)
+class PropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, Property[TClass, TValue]], IProperty[TClass, TValue, TAccessor], IPropertyProvider[TClass, TValue]):
     def __init__(self, func: Property[TClass, TValue]) -> None:
         super().__init__(func)
 
