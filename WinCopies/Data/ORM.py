@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from enum import Enum
-from typing import final, overload, Callable, Any, Type, cast
+from typing import final, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
@@ -18,10 +18,10 @@ from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables,
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Typing import IDisposable, InvalidOperationError
-from WinCopies.Typing.Delegate import IFunction, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
-from WinCopies.Typing.Reflection import Property, IFunctionDecorator, FunctionDecorator
+from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
 
 
 
@@ -469,7 +469,7 @@ class IEntityValueConfig[T: Entity](IInterface):
     def GetType(self) -> Type[T]:
         pass
 
-class IColumnConfig(IInterface):
+class IColumnConfigBase(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -480,13 +480,37 @@ class IColumnConfig(IInterface):
     @abstractmethod
     def GetName(self) -> str|None:
         pass
-class IEntityColumnConfig[T: Entity](IEntityValueConfig[T], IColumnConfig):
+
+class IColumnConfig(IColumnConfigBase):
     def __init__(self) -> None:
         super().__init__()
+    
+    @final
+    def GetRole(self) -> Role:
+        return Role.Null
+
+class IPrimaryKeyConfig(IColumnConfigBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def GetRole(self) -> Role:
+        return Role.ForeignKey
+class IEntityColumnConfig[T: Entity](IEntityValueConfig[T], IColumnConfigBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def GetRole(self) -> Role:
+        return Role.ForeignKey
 
 class IForeignKeyConfig[T: Entity](IEntityValueConfig[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @final
+    def GetRole(self) -> Role:
+        return Role.ForeignKey
     
     @abstractmethod
     def GetNames(self) -> IReadOnlyDictionary[IParameterKey, str|None]:
@@ -502,28 +526,28 @@ class EntityValueConfig[T: Entity](Abstract, IEntityValueConfig[T]):
     def GetType(self) -> Type[T]:
         return self.__type
 
-class ColumnConfig(Abstract, IColumnConfig):
-    def __init__(self, role: Role, name: str|None) -> None:
+class ColumnConfigBase(Abstract, IColumnConfigBase):
+    def __init__(self, name: str|None) -> None:
         super().__init__()
 
-        self.__role: Role = role
         self.__name: str|None = name
     
     @final
-    def GetRole(self) -> Role:
-        return self.__role
-    @final
     def GetName(self) -> str|None:
         return self.__name
+
+class ColumnConfig(ColumnConfigBase, IColumnConfig):
+    def __init__(self, name: str|None) -> None:
+        super().__init__(name)
+
+class PrimaryKeyConfig(ColumnConfigBase, IPrimaryKeyConfig):
+    def __init__(self, name: str|None) -> None:
+        super().__init__(name)
 class EntityColumnConfig[T: Entity](EntityValueConfig[T], IEntityColumnConfig[T]):
     def __init__(self, t: Type[T], name: str|None) -> None:
         super().__init__(t)
 
         self.__name: str|None = name
-    
-    @final
-    def GetRole(self) -> Role:
-        return Role.ForeignKey
     
     @final
     def GetName(self) -> str|None:
@@ -534,10 +558,6 @@ class ForeignKeyConfig[T: Entity](EntityValueConfig[T], IForeignKeyConfig[T]):
         super().__init__(t)
 
         self.__columns: IReadOnlyDictionary[IParameterKey, str|None] = columns
-    
-    @final
-    def GetRole(self) -> Role:
-        return Role.ForeignKey
     
     @final
     def GetNames(self) -> IReadOnlyDictionary[IParameterKey, str|None]:
@@ -584,13 +604,13 @@ class ColumnParameterAbstract(Abstract, IColumnParameterAbstract):
     def _AsColumn(self, tableName: str) -> ITableColumn:
         return self.__column.Convert(tableName)
 class ColumnParameterBase[T: Entity](ColumnParameterAbstract, IColumnParameterBase):
-    def __init__(self, func: Converter[T, object], config: IColumnConfig) -> None:
+    def __init__(self, func: Converter[T, object], config: IColumnConfigBase) -> None:
         def getName(name: str|None) -> str:
             return func.__name__ if name is None else name
         
         super().__init__(config.GetRole(), getName(config.GetName()))
 
-class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfig](ColumnParameterBase[TEntity], IColumnParameterBase):
+class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfigBase](ColumnParameterBase[TEntity], IColumnParameterBase):
     def __init__(self, func: Converter[TEntity, object], config: TConfig) -> None:
         super().__init__(func, config)
 
@@ -606,8 +626,8 @@ class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfig](Co
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
         return self.__delegate.ToConditionRoot(operator, value)
 
-class ColumnParameter[TEntity: Entity, TValue](DefaultColumnParameter[TEntity, TValue, IColumnConfig], IColumnParameter[TValue]):
-    def __init__(self, func: Converter[TEntity, object], config: IColumnConfig) -> None:
+class ColumnParameter[TEntity: Entity, TValue](DefaultColumnParameter[TEntity, TValue, IColumnConfigBase], IColumnParameter[TValue]):
+    def __init__(self, func: Converter[TEntity, object], config: IColumnConfigBase) -> None:
         super().__init__(func, config)
 class EntityColumnParameter[TEntity: Entity, TValue: Entity](DefaultColumnParameter[TEntity, TValue, IEntityColumnConfig[TValue]], IEntityColumnParameter[TValue]):
     def __init__(self, func: Converter[TEntity, object], config: IEntityColumnConfig[TValue]) -> None:
@@ -714,23 +734,12 @@ class IColumnBase[T: IColumnParameterAbstract](IColumnAbstract):
     def GetColumnParameter(self) -> T:
         pass
 
-class IDefaultColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IFunctionDecorator[TEntity, TValue], IColumnAbstract):
+class IDefaultReadOnlyColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IReadOnlyProperty[TEntity, TValue, TParameter], IColumnAbstract):
     def __init__(self) -> None:
         super().__init__()
-    
-    @overload
-    def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
-        ...
-    @overload
-    def __get__(self, obj: None, objtype: type|None = None) -> TParameter:
-        ...
-    
-    @abstractmethod
-    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
-        pass
-    @abstractmethod
-    def __set__(self, instance: TEntity, value: TValue) -> None:
-        pass
+class IDefaultColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IDefaultReadOnlyColumnBase[TEntity, TValue, TParameter], IProperty[TEntity, TValue, TParameter]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class IDefaultColumn(IColumnBase[IColumnParameterBase]):
     def __init__(self) -> None:
@@ -739,9 +748,13 @@ class IDefaultEntityColumn(IColumnBase[IEntityColumnParameterBase]):
     def __init__(self) -> None:
         super().__init__()
 
-class IColumn[TEntity: Entity, TValue](IDefaultColumnBase[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
+class IReadOnlyColumn[TEntity: Entity, TValue](IDefaultReadOnlyColumnBase[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
     def __init__(self) -> None:
         super().__init__()
+class IColumn[TEntity: Entity, TValue](IReadOnlyColumn[TEntity, TValue], IDefaultColumnBase[TEntity, TValue, IColumnParameter[TValue]]):
+    def __init__(self) -> None:
+        super().__init__()
+
 class IEntityColumn[TEntity: Entity, TValue: Entity](IDefaultColumnBase[TEntity, TValue, IEntityColumnParameter[TValue]], IDefaultEntityColumn):
     def __init__(self) -> None:
         super().__init__()
@@ -763,6 +776,15 @@ class _ColumnConfigDecorator(Abstract):
     def __call__[TEntity: Entity, TValue](self, func: Property[TEntity, TValue]) -> IColumn[TEntity, TValue]:
         return _Column[TEntity, TValue](func, self.__config)
 
+@final
+class _PrimaryKeyConfigDecorator(Abstract):
+    def __init__(self, config: IPrimaryKeyConfig) -> None:
+        super().__init__()
+
+        self.__config: IPrimaryKeyConfig = config
+    
+    def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumn[TEntity, TValue]:
+        return _PrimaryKey[TEntity, TValue](func, self.__config)
 class _EntityColumnConfigDecoratorBase[TValue: Entity, TConfig, TColumn](Abstract):
     def __init__(self, config: TConfig) -> None:
         super().__init__()
@@ -792,8 +814,11 @@ class _ForeignKeyConfigDecorator[TValue: Entity](_EntityColumnConfigDecoratorBas
     def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IForeignKey[TEntity, TValue]:
         return _ForeignKey[TEntity, TValue](func, self._GetConfig())
 
-def columnConfig(role: Role = Role.Null, name: str|None = None) -> _ColumnConfigDecorator:
-    return _ColumnConfigDecorator(ColumnConfig(role, name))
+def columnConfig(name: str|None = None) -> _ColumnConfigDecorator:
+    return _ColumnConfigDecorator(ColumnConfig(name))
+
+def primaryKeyConfig(name: str|None = None) -> _PrimaryKeyConfigDecorator:
+    return _PrimaryKeyConfigDecorator(PrimaryKeyConfig(name))
 def entityColumnConfig[T: Entity](t: Type[T], name: str|None = None) -> _EntityColumnConfigDecorator[T]:
     return _EntityColumnConfigDecorator[T](EntityColumnConfig[T](t, name))
 
@@ -811,78 +836,129 @@ class ICookie(IInterface):
         pass
     
     @abstractmethod
-    def GetValue[TEntity: Entity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
+    def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T:
         pass
     @abstractmethod
-    def SetValue[TEntity: Entity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
+    def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
         pass
 
-@final
-class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](Abstract):
-    def __init__(self, parameter: TParameter, func: Property[TEntity, TValue]) -> None:
+def _GetCookie(obj: Entity) -> ICookie:
+    return obj._GetCookie() # pyright: ignore[reportPrivateUsage]
+
+class _ColumnDecoratorBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract, TProperty](Abstract, IFunctionProvider[TEntity, TValue, TProperty]):
+    def __init__(self, parameter: TParameter, func: TProperty, setter: SetterBase[Entity, object]) -> None:
         super().__init__()
+        
+        _func: GetterBase[TEntity, TValue] = self._AsFunction(func)
 
         self.__parameter: TParameter = parameter
-        self.__func: Property[TEntity, TValue] = func
+        self.__getter: GetterBase[Entity, object] = lambda entity: _func(cast(TEntity, entity))
+        self.__setter: SetterBase[Entity, object] = setter
     
-    def __GetCookie(self, obj: Entity) -> ICookie:
-        return obj._GetCookie() # pyright: ignore[reportPrivateUsage]
-    
+    @final
     def GetColumnParameter(self) -> TParameter:
         return self.__parameter
     
+    @final
     def GetEntityValue(self, obj: Entity, name: str) -> object:
-        return self.__GetCookie(obj).GetValue(name, self.__func)
-    def SetEntityValue(self, obj: Entity, name: str, value: object) -> None:
-        self.__GetCookie(obj).SetValue(name, cast(Property[Entity, object], self.__func), value)
-    
+        return _GetCookie(obj).GetValue(name, self.__getter)
+    @final
     def GetValue(self, obj: TEntity|None, name: str) -> TValue|TParameter:
-        return self.GetColumnParameter() if obj is None else self.__GetCookie(obj).GetValue(name, self.__func)
-    def SetValue(self, obj: TEntity, name: str, value: TValue) -> None:
-        self.__GetCookie(obj).SetValue(name, self.__func, value)
+        return self.GetColumnParameter() if obj is None else cast(TValue, _GetCookie(obj).GetValue(name, self.__getter))
+    
+    def SetValue(self, obj: Entity, name: str, value: object) -> None:
+        _GetCookie(obj).SetValue(name, self.__setter, value)
 
-class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfig, TParameter: IColumnParameterBase](FunctionDecorator[TEntity, TValue], IColumnAbstract):
+@final
+class _ReadOnlyColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](_ColumnDecoratorBase[TEntity, TValue, TParameter, GetterBase[TEntity, TValue]], IGetterProvider[TEntity, TValue]):
+    def __init__(self, parameter: TParameter, func: GetterBase[TEntity, TValue]) -> None:
+        def setValue(entity: Entity) -> IMethodBase[object]:
+            raise InvalidOperationError("Cannot update read-only column or primary key.")
+
+        super().__init__(parameter, func, setValue)
+@final
+class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](_ColumnDecoratorBase[TEntity, TValue, TParameter, Property[TEntity, TValue]], IPropertyProvider[TEntity, TValue]):
+    def __init__(self, parameter: TParameter, func: Property[TEntity, TValue]) -> None:
+        super().__init__(parameter, func, lambda entity: cast(IMethodBase[object], func(cast(TEntity, entity)).AsMethod()))
+    
+def _GetName[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](column: _IColumn[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]) -> str:
+    return column._GetDecoratorAsInterface().GetColumnParameter().GetColumnName() # pyright: ignore[reportPrivateUsage]
+
+class _IColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IReadOnlyProperty[TEntity, TValue, TParameter], IColumnAbstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _AsDecorator(self, decorator: TDecorator) -> _ColumnDecoratorBase[TEntity, TValue, TParameter, TProperty]:
+        pass
+    
+    @abstractmethod
+    def _CreateParameter(self, func: TProperty, config: TConfig) -> TParameter:
+        pass
+    
+    @abstractmethod
+    def _GetDecorator(self) -> TDecorator:
+        pass
+    @final
+    def _GetDecoratorAsInterface(self) -> _ColumnDecoratorBase[TEntity, TValue, TParameter, TProperty]:
+        return self._AsDecorator(self._GetDecorator())
+    
+    @final
+    def GetColumnParameter(self) -> TParameter:
+        return self._GetDecoratorAsInterface().GetColumnParameter()
+    
+    @final
+    def _GetValue(self, obj: TEntity|None) -> TValue|TParameter:
+        return self._GetDecoratorAsInterface().GetValue(obj, _GetName(self))
+    @final
+    def _GetEntityValue(self, obj: Entity) -> object:
+        return self._GetDecoratorAsInterface().GetEntityValue(obj, _GetName(self))
+
+class _ReadOnlyColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](ReadOnlyPropertyDecorator[TEntity, TValue, TParameter], _IColumn[TEntity, TValue, _ReadOnlyColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, GetterBase[TEntity, TValue]]):
+    def __init__(self, func: GetterBase[TEntity, TValue], config: TConfig) -> None:
+        super().__init__(func)
+
+        self.__decorator: _ReadOnlyColumnDecorator[TEntity, TValue, TParameter] = _ReadOnlyColumnDecorator[TEntity, TValue, TParameter](self._CreateParameter(func, config), func)
+    
+    @final
+    def _AsDecorator(self, decorator: _ReadOnlyColumnDecorator[TEntity, TValue, TParameter]) -> _ColumnDecoratorBase[TEntity, TValue, TParameter, GetterBase[TEntity, TValue]]:
+        return decorator
+    
+    @final
+    def _GetDecorator(self) -> _ReadOnlyColumnDecorator[TEntity, TValue, TParameter]:
+        return self.__decorator
+    
+    @final
+    def Get(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
+        return self._GetValue(obj)
+    
+    @final
+    def _SetEntityValue(self, obj: Entity, value: object) -> None:
+        self._GetDecorator().SetValue(obj, _GetName(self), value)
+class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](PropertyDecorator[TEntity, TValue, TParameter], _IColumn[TEntity, TValue, _ColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, Property[TEntity, TValue]]):
     def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func)
 
         self.__decorator: _ColumnDecorator[TEntity, TValue, TParameter] = _ColumnDecorator[TEntity, TValue, TParameter](self._CreateParameter(func, config), self._GetFunc())
     
-    @abstractmethod
-    def _CreateParameter(self, func: Property[TEntity, TValue], config: TConfig) -> TParameter:
-        pass
+    @final
+    def _AsDecorator(self, decorator: _ColumnDecorator[TEntity, TValue, TParameter]) -> _ColumnDecoratorBase[TEntity, TValue, TParameter, Property[TEntity, TValue]]:
+        return decorator
     
     @final
     def _GetDecorator(self) -> _ColumnDecorator[TEntity, TValue, TParameter]:
         return self.__decorator
     
     @final
-    def __GetName(self) -> str:
-        return self._GetDecorator().GetColumnParameter().GetColumnName()
+    def Get(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
+        return self._GetValue(obj)
     
     @final
-    def GetColumnParameter(self) -> TParameter:
-        return self._GetDecorator().GetColumnParameter()
-    
-    @final
-    def _GetEntityValue(self, obj: Entity) -> object:
-        return self._GetDecorator().GetEntityValue(obj, self.__GetName())
+    def Set(self, obj: TEntity, value: TValue, objtype: type|None = None) -> None:
+        self._GetDecorator().SetValue(obj, _GetName(self), value)
     @final
     def _SetEntityValue(self, obj: Entity, value: object) -> None:
-        self._GetDecorator().SetEntityValue(obj, self.__GetName(), value)
-    
-    @overload
-    def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
-        ...
-    @overload
-    def __get__(self, obj: None, objtype: type|None = None) -> TParameter:
-        ...
-    
-    @final
-    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|TParameter:
-        return self._GetDecorator().GetValue(obj, self.__GetName())
-    @final
-    def __set__(self, obj: TEntity, value: TValue) -> None:
-        self._GetDecorator().SetValue(obj, self.__GetName(), value)
+        self._GetDecorator().SetValue(obj, _GetName(self), value)
 
 @final
 class _Column[TEntity: Entity, TValue](_ColumnBase[TEntity, TValue, IColumnConfig, IColumnParameter[TValue]], IColumn[TEntity, TValue]):
@@ -890,6 +966,14 @@ class _Column[TEntity: Entity, TValue](_ColumnBase[TEntity, TValue, IColumnConfi
         super().__init__(func, config)
     
     def _CreateParameter(self, func: Property[TEntity, TValue], config: IColumnConfig) -> IColumnParameter[TValue]:
+        return ColumnParameter[TEntity, TValue](func, config)
+
+@final
+class _PrimaryKey[TEntity: Entity, TValue](_ReadOnlyColumnBase[TEntity, TValue, IPrimaryKeyConfig, IColumnParameter[TValue]], IReadOnlyColumn[TEntity, TValue]):
+    def __init__(self, func: GetterBase[TEntity, TValue], config: IPrimaryKeyConfig) -> None:
+        super().__init__(func, config)
+    
+    def _CreateParameter(self, func: GetterBase[TEntity, TValue], config: IPrimaryKeyConfig) -> IColumnParameter[TValue]:
         return ColumnParameter[TEntity, TValue](func, config)
 @final
 class _EntityColumn[TEntity: Entity, TValue: Entity](_ColumnBase[TEntity, TValue, IEntityColumnConfig[TValue], IEntityColumnParameter[TValue]], IEntityColumn[TEntity, TValue]):
@@ -900,11 +984,11 @@ class _EntityColumn[TEntity: Entity, TValue: Entity](_ColumnBase[TEntity, TValue
         return EntityColumnParameter[TEntity, TValue](func, config)
 
 @final
-class _ForeignKey[TEntity: Entity, TValue: Entity](FunctionDecorator[TEntity, TValue], IForeignKey[TEntity, TValue]):
+class _ForeignKey[TEntity: Entity, TValue: Entity](PropertyDecorator[TEntity, TValue, IForeignKeyParameter[TValue]], IForeignKey[TEntity, TValue]):
     def __init__(self, func: Property[TEntity, TValue], config: IForeignKeyConfig[TValue]) -> None:
         super().__init__(func)
 
-        self.__decorator: _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]] = _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]](ForeignKeyParameter[TEntity, TValue](func.__name__, config), self._GetFunc())
+        self.__decorator: _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]] = _ColumnDecorator[TEntity, TValue, IForeignKeyParameter[TValue]](ForeignKeyParameter[TEntity, TValue](func.__name__, config), func)
     
     def __GetName(self) -> str:
         return self.__decorator.GetColumnParameter().GetColumnName()
@@ -915,18 +999,11 @@ class _ForeignKey[TEntity: Entity, TValue: Entity](FunctionDecorator[TEntity, TV
     def _GetEntityValue(self, obj: Entity) -> object:
         return self.__decorator.GetEntityValue(obj, self.__GetName())
     def _SetEntityValue(self, obj: Entity, value: object) -> None:
-        self.__decorator.SetEntityValue(obj, self.__GetName(), value)
+        self.__decorator.SetValue(obj, self.__GetName(), value)
     
-    @overload
-    def __get__(self, obj: TEntity, objtype: type|None = None) -> TValue:
-        ...
-    @overload
-    def __get__(self, obj: None, objtype: type|None = None) -> IForeignKeyParameter[TValue]:
-        ...
-    
-    def __get__(self, obj: TEntity|None, objtype: type|None = None) -> TValue|IForeignKeyParameter[TValue]:
+    def Get(self, obj: TEntity|None, objtype: type|None = None) -> TValue|IForeignKeyParameter[TValue]:
         return self.__decorator.GetValue(obj, self.__GetName())
-    def __set__(self, obj: TEntity, value: TValue) -> None:
+    def Set(self, obj: TEntity, value: TValue) -> None:
         self.__decorator.SetValue(obj, self.__GetName(), value)
 
 def tableConfig(name: str) -> Selector[Type[Entity]]:
@@ -1170,6 +1247,7 @@ class Entity(Abstract, IDisposable):
         @final
         def _GetEntity(self) -> Entity:
             return self.__entity
+    
     @final
     class _AppCookie(_Cookie):
         def __init__(self, entity: Entity) -> None:
@@ -1182,10 +1260,10 @@ class Entity(Abstract, IDisposable):
         def Seal(self) -> None:
             pass
         
-        def GetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
-            return func(cast(TEntity, self._GetEntity())).GetValue()
-        def SetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
-            return func(cast(TEntity, self._GetEntity())).SetValue(value)
+        def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T:
+            return func(self._GetEntity()).GetValue()
+        def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
+            return func(self._GetEntity()).SetValue(value)
     @final
     class _DBCookie(_Cookie):
         def __init__(self, entity: Entity) -> None:
@@ -1200,9 +1278,9 @@ class Entity(Abstract, IDisposable):
         def Seal(self) -> None:
             self.__isReady = True
         
-        def GetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue]) -> TValue:
-            return cast(TValue, self.__values.TryGetValue(String(name)).GetValue())
-        def SetValue[TEntity, TValue](self, name: str, func: Property[TEntity, TValue], value: TValue) -> None:
+        def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T:
+            return cast(T, self.__values.TryGetValue(String(name)).GetValue())
+        def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
             self.__values.AddOrUpdate(String(name), value)
     
     __columns: IFunction[_Columns]
