@@ -22,7 +22,7 @@ class IFunctionDecorator[TClass, TValue](IInterface):
         super().__init__()
     
     @abstractmethod
-    def __call__(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
+    def __call__(self, obj: TClass) -> TValue:
         pass
 
 class _FunctionDecorator[TClass, TValue](Abstract, IFunctionDecorator[TClass, TValue]):
@@ -35,12 +35,12 @@ class _FunctionDecorator[TClass, TValue](Abstract, IFunctionDecorator[TClass, TV
     def _GetFunc(self) -> Property[TClass, TValue]:
         return self.__func
     
-    def _Invoke(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
-        return self.__func(obj, *args, **kwargs).GetValue()
+    def _Invoke(self, obj: TClass) -> TValue:
+        return self.__func(obj).GetValue()
     
     @final
-    def __call__(self, obj: TClass, *args: object, **kwargs: object) -> TValue:
-        return self._Invoke(obj, *args, **kwargs)
+    def __call__(self, obj: TClass) -> TValue:
+        return self._Invoke(obj)
 class FunctionDecorator[TClass, TValue](_FunctionDecorator[TClass, TValue]):
     def __init__(self, func: Property[TClass, TValue]) -> None:
         super().__init__(func)
