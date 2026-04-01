@@ -75,11 +75,12 @@ class Operator(Enum):
     Equals = 1
     IsValue = 2
     IsNot = 3
-    Likes = 4
-    LessThan = 5
-    LessThanOrEquals = 6
-    GreaterThan = 7
-    GreaterThanOrEquals = 8
+    IsLike = 4
+    IsIn = 5
+    LessThan = 6
+    LessThanOrEquals = 7
+    GreaterThan = 8
+    GreaterThanOrEquals = 9
 
     @final
     def __str__(self) -> str:
@@ -93,8 +94,11 @@ class Operator(Enum):
             case Operator.IsNot:
                 return "IS NOT"
             
-            case Operator.Likes:
+            case Operator.IsLike:
                 return "LIKE"
+            
+            case Operator.IsIn:
+                return "IN"
             
             case Operator.LessThan:
                 return '<'
