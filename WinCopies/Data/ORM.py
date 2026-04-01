@@ -19,7 +19,7 @@ from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
+from WinCopies.Typing.Object import IItem, IValueItem, IItemObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
 
@@ -1098,7 +1098,7 @@ class _EntityUpdater(ValueFunctionUpdater[_Columns]):
     def _GetValue(self) -> _Columns:
         return _Columns(WhereOfType(IColumnAbstract, self.__type.__dict__.values())) # type: ignore[type-abstract]
 
-class IEntityKey[T: IItem](IValueObject[T, 'IEntityKey[T]|T'], IEnumerable[IValueItem]):
+class IEntityKey[T: IItem](IItemObject[T, 'IEntityKey[T]|T'], IEnumerable[IValueItem]):
     def __init__(self) -> None:
         super().__init__()
 

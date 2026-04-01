@@ -58,25 +58,25 @@ class IComplexValueProvider[T](IValueProvider):
 class IComparableValue[T](IComparableObject[T], IValueItem):
     def __init__(self) -> None:
         super().__init__()
-class IValueObject[TValue, TObject](IObject[TValue|TObject], IValueItem):
+class IItemObject[TValue, TObject](IObject[TValue|TObject], IValueItem):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def GetValue(self) -> TValue:
         pass
-class IComplexValueObject[TValue, TUnderlying, TObject](IValueObject[TValue, TObject], IComplexValueProvider[TUnderlying]):
+class IComplexValueObject[TValue, TUnderlying, TObject](IItemObject[TValue, TObject], IComplexValueProvider[TUnderlying]):
     def __init__(self) -> None:
         super().__init__()
 
-class IComparableValueObject[TValue, TObject](IValueObject[TValue, TObject], IComparableValue[TValue|TObject]):
+class IComparableValueObject[TValue, TObject](IItemObject[TValue, TObject], IComparableValue[TValue|TObject]):
     def __init__(self) -> None:
         super().__init__()
 class IComparableComplexValueObject[TValue, TUnderlying, TObject](IComplexValueObject[TValue, TUnderlying, TObject], IComparableValueObject[TValue, TObject]):
     def __init__(self) -> None:
         super().__init__()
 
-class ValueObjectAbstract[TValue, TUnderlying, TObject](Object[TValue|TUnderlying|TObject], IValueObject[TValue, TObject]):
+class ValueObjectAbstract[TValue, TUnderlying, TObject](Object[TValue|TUnderlying|TObject], IItemObject[TValue, TObject]):
     def __init__(self, value: TValue) -> None:
         super().__init__()
 
@@ -394,7 +394,7 @@ class String(ComparableValueObject[str, IString], IString):
     def AsValue(item: str|IString) -> str:
         return item.GetValue() if isinstance(item, IString) else item
 
-class IByteArray(IValueObject[bytes, 'IByteArray']):
+class IByteArray(IItemObject[bytes, 'IByteArray']):
     def __init__(self) -> None:
         super().__init__()
 class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
@@ -433,7 +433,7 @@ class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
     def AsValue(item: bytes|IByteArray) -> bytes:
         return item.GetValue() if isinstance(item, IByteArray) else item
 
-class IType[T](IValueObject[type[T], 'IType[T]']):
+class IType[T](IItemObject[type[T], 'IType[T]']):
     def __init__(self) -> None:
         super().__init__()
 class Type[T](ValueObjectBase[type[T], IType[T]], IType[T]):
@@ -456,7 +456,7 @@ class Type[T](ValueObjectBase[type[T], IType[T]], IType[T]):
     def Create(value: T) -> IType[T]:
         return Type[T](type(value))
 
-class IReference[T](IValueObject[T, 'IReference[T]']):
+class IReference[T](IItemObject[T, 'IReference[T]']):
     def __init__(self) -> None:
         super().__init__()
 class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
@@ -481,16 +481,16 @@ type DateOrTime = DateOrTimeValue|DateOrTimeItem
 type DateAndTime = DateOrTime|DateAndTimeValue|DateAndTimeItem
 type DateTimeOrDelta = DateAndTime|DateTimeOrDeltaValue|DateTimeOrDeltaItem
 
-class IDate(IValueObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["date|DateTimeOrDeltaItem"]):
+class IDate(IItemObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["date|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITime(IValueObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["time|DateTimeOrDeltaItem"]):
+class ITime(IItemObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["time|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class IDateTime(IValueObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparableValue["datetime|DateTimeOrDeltaItem"]):
+class IDateTime(IItemObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparableValue["datetime|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITimeDelta(IValueObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparableValue["timedelta|DateTimeOrDeltaItem"]):
+class ITimeDelta(IItemObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparableValue["timedelta|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
 
