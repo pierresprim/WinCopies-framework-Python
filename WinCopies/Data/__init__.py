@@ -6,8 +6,10 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
-from WinCopies.Typing.Delegate import Selector
-from WinCopies.Typing.Object import IEquatableObject
+from WinCopies.Collections.Extensions import IReadOnlySet
+from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
+from WinCopies.Typing.Delegate import Method, Selector
+from WinCopies.Typing.Object import IValueItem, IEquatableObject
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater
@@ -222,15 +224,18 @@ class IOperand[T](IOperandValue, IOperandItem[T]):
     def __init__(self) -> None:
         super().__init__()
 
+class ISetOperand[T: IValueItem](IOperand[IReadOnlySet[T]]):
+    def __init__(self) -> None:
+        super().__init__()
+
 class IColumnOperand(IOperand[IColumn]):
     def __init__(self) -> None:
         super().__init__()
 
-class _Operand[T](Abstract, IOperand[T]):
-    def __init__(self, operator: Operator, value: T) -> None:
+class _OperandBase[T](Abstract, IOperand[T]):
+    def __init__(self, value: T) -> None:
         super().__init__()
 
-        self.__operator: Operator = operator
         self.__value: T = value
     
     @final
@@ -240,6 +245,15 @@ class _Operand[T](Abstract, IOperand[T]):
     @final
     def GetKey(self) -> T:
         return self.__value
+    
+    @abstractmethod
+    def GetValue(self) -> Operator:
+        pass
+class _Operand[T](_OperandBase[T]):
+    def __init__(self, operator: Operator, value: T) -> None:
+        super().__init__(value)
+
+        self.__operator: Operator = operator
     
     @final
     def GetValue(self) -> Operator:
@@ -293,6 +307,48 @@ class Operand[T](_Operand[T]):
     @final
     def Format(self, builder: IQueryBuilder) -> str:
         return builder.GetParameter(self.GetKey())
+
+class SetOperand[T: IValueItem](_OperandBase[IReadOnlySet[T]], ISetOperand[T]):
+    def __init__(self, value: IReadOnlySet[T]) -> None:
+        super().__init__(value)
+    
+    @final
+    def GetValue(self) -> Operator:
+        return Operator.IsIn
+    
+    @final
+    def Format(self, builder: IQueryBuilder) -> str:
+        action: Method[T]|None = None
+
+        def _process(arg: T) -> None:
+            builder.GetParameter(arg.GetUnderlyingValue())
+        
+        def process(arg: T) -> None:
+            def process(arg: T) -> None:
+                result.Write(',')
+                
+                _process(arg)
+
+            nonlocal action
+
+            _process(arg)
+
+            action = process
+
+        args: IReadOnlySet[T] = self.GetKey()
+
+        result: IMemoryTextStream = MemoryTextStream()
+
+        result.Write('(')
+
+        action = process
+
+        for arg in args.AsIterable():
+            action(arg)
+
+        result.Write(')')
+
+        return result.ToString()
 
 class ColumnOperand(_Operand[IColumn], IColumnOperand):
     def __init__(self, operator: Operator, column: IColumn) -> None:
