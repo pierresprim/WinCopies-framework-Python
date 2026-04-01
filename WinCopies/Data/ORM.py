@@ -278,6 +278,9 @@ class IColumnCondition[T](IInterface):
     @abstractmethod
     def ToConditionRoot(self, operator: Operator, value: T) -> _ValueRoot:
         pass
+class IColumnSetCondition[T](IColumnCondition[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @abstractmethod
     def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[T]]) -> _IDataParameter|_ValueNode:
@@ -323,7 +326,7 @@ class IEntityColumnParameterBase(IColumnParameterBase, IEntityColumnParameterAbs
     def __init__(self) -> None:
         super().__init__()
 
-class IColumnParameter[T](IColumnCondition[T], IColumnParameterBase):
+class IColumnParameter[T](IColumnSetCondition[T], IColumnParameterBase):
     def __init__(self) -> None:
         super().__init__()
 class IEntityColumnParameter[T: Entity](IColumnCondition[T], IEntityColumnParameterBase):
