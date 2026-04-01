@@ -776,15 +776,35 @@ class _ColumnConfigDecorator(Abstract):
     def __call__[TEntity: Entity, TValue](self, func: Property[TEntity, TValue]) -> IColumn[TEntity, TValue]:
         return _Column[TEntity, TValue](func, self.__config)
 
-@final
-class _PrimaryKeyConfigDecorator(Abstract):
-    def __init__(self, config: IPrimaryKeyConfig) -> None:
+class _ColumnConfigDecoratorBase[TConfig: IColumnConfigBase](Abstract):
+    def __init__(self, config: TConfig) -> None:
         super().__init__()
 
-        self.__config: IPrimaryKeyConfig = config
+        self.__config: TConfig = config
+    
+    @final
+    def _GetConfig(self) -> TConfig:
+        return self.__config
+    
+    @abstractmethod
+    def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumn[TEntity, TValue]:
+        pass
+
+@final
+class _ReadOnlyColumnConfigDecorator(_ColumnConfigDecoratorBase[IColumnConfig]):
+    def __init__(self, config: IColumnConfig) -> None:
+        super().__init__(config)
     
     def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumn[TEntity, TValue]:
-        return _PrimaryKey[TEntity, TValue](func, self.__config)
+        return _ReadOnlyColumn[TEntity, TValue](func, self._GetConfig())
+@final
+class _PrimaryKeyConfigDecorator(_ColumnConfigDecoratorBase[IPrimaryKeyConfig]):
+    def __init__(self, config: IPrimaryKeyConfig) -> None:
+        super().__init__(config)
+    
+    def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumn[TEntity, TValue]:
+        return _PrimaryKey[TEntity, TValue](func, self._GetConfig())
+
 class _EntityColumnConfigDecoratorBase[TValue: Entity, TConfig, TColumn](Abstract):
     def __init__(self, config: TConfig) -> None:
         super().__init__()
@@ -814,6 +834,8 @@ class _ForeignKeyConfigDecorator[TValue: Entity](_EntityColumnConfigDecoratorBas
     def __call__[TEntity: Entity](self, func: Property[TEntity, TValue]) -> IForeignKey[TEntity, TValue]:
         return _ForeignKey[TEntity, TValue](func, self._GetConfig())
 
+def readOnlyColumnConfig(name: str|None = None) -> _ReadOnlyColumnConfigDecorator:
+    return _ReadOnlyColumnConfigDecorator(ColumnConfig(name))
 def columnConfig(name: str|None = None) -> _ColumnConfigDecorator:
     return _ColumnConfigDecorator(ColumnConfig(name))
 
@@ -960,6 +982,13 @@ class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParamete
     def _SetEntityValue(self, obj: Entity, value: object) -> None:
         self._GetDecorator().SetValue(obj, _GetName(self), value)
 
+@final
+class _ReadOnlyColumn[TEntity: Entity, TValue](_ReadOnlyColumnBase[TEntity, TValue, IColumnConfig, IColumnParameter[TValue]], IReadOnlyColumn[TEntity, TValue]):
+    def __init__(self, func: GetterBase[TEntity, TValue], config: IColumnConfig) -> None:
+        super().__init__(func, config)
+    
+    def _CreateParameter(self, func: GetterBase[TEntity, TValue], config: IColumnConfig) -> IColumnParameter[TValue]:
+        return ColumnParameter[TEntity, TValue](func, config)
 @final
 class _Column[TEntity: Entity, TValue](_ColumnBase[TEntity, TValue, IColumnConfig, IColumnParameter[TValue]], IColumn[TEntity, TValue]):
     def __init__(self, func: Property[TEntity, TValue], config: IColumnConfig) -> None:
