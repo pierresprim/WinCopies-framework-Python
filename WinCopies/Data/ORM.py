@@ -776,16 +776,6 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
     @final
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
         return self.__delegate.ToConditionRoot(operator, value)
-    
-    @final
-    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter|_ValueNode:
-        return self.__delegate.ToSetConditionParameter(values)
-    @final
-    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueNode:
-        return self.__delegate.ToSetConditionNode(values)
-    @final
-    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueRoot:
-        return self.__delegate.ToSetConditionRoot(values)
 
 class IColumnAbstract(IInterface):
     def __init__(self) -> None:
