@@ -469,28 +469,40 @@ class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
     def Hash(self) -> int:
         return hash(self.GetValue())
 
-class IDate(IValueObject[date, "time|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["date|IDate|ITime|IDateTime|ITimeDelta"]):
+type DateOrTimeValue = date|time
+type DateAndTimeValue = DateOrTimeValue|datetime
+type DateTimeOrDeltaValue = DateAndTimeValue|timedelta
+
+type DateOrTimeItem = IDate|ITime
+type DateAndTimeItem = DateOrTimeItem|IDateTime
+type DateTimeOrDeltaItem = DateAndTimeItem|ITimeDelta
+
+type DateOrTime = DateOrTimeValue|DateOrTimeItem
+type DateAndTime = DateOrTime|DateAndTimeValue|DateAndTimeItem
+type DateTimeOrDelta = DateAndTime|DateTimeOrDeltaValue|DateTimeOrDeltaItem
+
+class IDate(IValueObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["date|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITime(IValueObject[time, "date|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["time|IDate|ITime|IDateTime|ITimeDelta"]):
+class ITime(IValueObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["time|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class IDateTime(IValueObject[datetime, "date|time|timedelta|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["datetime|IDate|ITime|IDateTime|ITimeDelta"]):
+class IDateTime(IValueObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparableValue["datetime|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITimeDelta(IValueObject[timedelta, "date|time|datetime|IDate|ITime|IDateTime|ITimeDelta"], IComparableValue["timedelta|IDate|ITime|IDateTime|ITimeDelta"]):
+class ITimeDelta(IValueObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparableValue["timedelta|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
 
-class _DateTime[TValue: date|time|datetime|timedelta, TInterface: IDate|ITime|IDateTime|ITimeDelta](ExtendedValueObjectBase[TValue, date|time|datetime|timedelta, IDate|ITime|IDateTime|ITimeDelta]):
+class _DateTime[TValue: DateTimeOrDeltaValue, TInterface: DateTimeOrDeltaItem](ExtendedValueObjectBase[TValue, DateTimeOrDeltaValue, DateTimeOrDeltaItem]):
     def __init__(self, value: TValue) -> None:
         super().__init__(value)
     
     def Equals(self, item: TValue|TInterface|object) -> bool:
-        def equals(item: date|time|datetime|timedelta) -> bool:
+        def equals(item: DateTimeOrDeltaValue) -> bool:
             return _DateTime[TValue, TInterface].AreEqual(self.GetValue(), item)
         
-        return (isinstance(item, IDate|ITime|IDateTime|ITimeDelta) and equals(item.GetValue())) or (isinstance(item, date|time|datetime|timedelta) and equals(item))
+        return (isinstance(item, (IDate, ITime, IDateTime, ITimeDelta)) and equals(item.GetValue())) or (isinstance(item, (date, time, datetime, timedelta)) and equals(item))
     
     def CompareTo(self, item: TValue|TInterface|object) -> bool|None:
         def compareTo(item: TValue|TInterface) -> bool|None:
@@ -515,7 +527,7 @@ class _DateTime[TValue: date|time|datetime|timedelta, TInterface: IDate|ITime|ID
     
     @staticmethod
     @final
-    def _AreValuesEqual(x: date|time|datetime|timedelta, y: date|time|datetime|timedelta) -> bool:
+    def _AreValuesEqual(x: DateTimeOrDeltaValue, y: DateTimeOrDeltaValue) -> bool:
         return x == y
     @staticmethod
     @abstractmethod
@@ -529,7 +541,7 @@ class _DateTime[TValue: date|time|datetime|timedelta, TInterface: IDate|ITime|ID
     
     @staticmethod
     @final
-    def AsValue(item: date|time|datetime|timedelta|IDate|ITime|IDateTime|ITimeDelta) -> date|time|datetime|timedelta:
+    def AsValue(item: DateTimeOrDeltaValue|DateTimeOrDeltaItem) -> DateTimeOrDeltaValue:
         return item.GetValue() if isinstance(item, (IDate, ITime, IDateTime, ITimeDelta)) else item
     
     @staticmethod
