@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from enum import Enum
-from typing import final, Callable, Any, Type, cast
+from typing import overload, final, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
@@ -12,20 +12,20 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerat
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IReadOnlySet, IReadOnlyDictionary, IDictionary
 from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IItem, IValueItem, IItemObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
+from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
 
 
 
-from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, ITableColumn, Operand
+from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, IOperand, ITableColumn, Operand, SetOperand
 from WinCopies.Data.Abstract import IConnection
 from WinCopies.Data.Parameter import IParameter, FieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
@@ -73,13 +73,16 @@ class IColumnParameterCookie(IInterface):
     def _AsColumn(self, tableName: str) -> ITableColumn:
         pass
 
-@final
-class _Parameter[T](Abstract, IKeyValuePair[IColumnParameterCookie, IParameter[IOperandValue]|None]):
-    def __init__(self, cookie: IColumnParameterCookie, operator: Operator, value: T) -> None:
+class _IDataParameter(IKeyValuePair[IColumnParameterCookie, IParameter[IOperandValue]|None]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class _ParameterBase[T](Abstract, _IDataParameter):
+    def __init__(self, cookie: IColumnParameterCookie, operand: IOperand[T]) -> None:
         super().__init__()
 
         self.__columnParameter: IColumnParameterCookie = cookie
-        self.__parameter: IParameter[IOperandValue] = FieldParameter[T](Operand[T](operator, value))
+        self.__parameter: IParameter[IOperandValue] = FieldParameter[T](operand)
     
     def IsKeyValuePair(self) -> bool:
         return False
@@ -89,28 +92,37 @@ class _Parameter[T](Abstract, IKeyValuePair[IColumnParameterCookie, IParameter[I
     def GetValue(self) -> IParameter[IOperandValue]|None:
         return self.__parameter
 
-class _INode(ICompositeExpressionNode[_Parameter[object], ConditionalOperator]):
+@final
+class _Parameter[T](_ParameterBase[T]):
+    def __init__(self, cookie: IColumnParameterCookie, operator: Operator, value: T) -> None:
+        super().__init__(cookie, Operand[T](operator, value))
+@final
+class _SetParameter[T: IValueItem](_ParameterBase[IReadOnlySet[T]]):
+    def __init__(self, cookie: IColumnParameterCookie, values: IReadOnlySet[T]) -> None:
+        super().__init__(cookie, SetOperand[T](values))
+
+class _INode(ICompositeExpressionNode[_IDataParameter, ConditionalOperator]):
     def __init__(self) -> None:
         super().__init__()
-class _IRoot(ICompositeExpressionRoot[_Parameter[object], ConditionalOperator]):
+class _IRoot(ICompositeExpressionRoot[_IDataParameter, ConditionalOperator]):
     def __init__(self) -> None:
         super().__init__()
 
 @final
-class _ValueNode(CompositeExpressionValueNode[_Parameter[object], ConditionalOperator], _INode):
-    def __init__(self, parameter: _Parameter[object]) -> None:
+class _ValueNode(CompositeExpressionValueNode[_IDataParameter, ConditionalOperator], _INode):
+    def __init__(self, parameter: _IDataParameter) -> None:
         super().__init__(parameter)
 @final
-class _Node(CompositeExpressionNode[_Parameter[object], ConditionalOperator], _INode):
+class _Node(CompositeExpressionNode[_IDataParameter, ConditionalOperator], _INode):
     def __init__(self, node: _INode) -> None:
         super().__init__(node)
 
 @final
-class _ValueRoot(CompositeExpressionValueRoot[_Parameter[object], ConditionalOperator], _IRoot):
-    def __init__(self, parameter: _Parameter[object]) -> None:
+class _ValueRoot(CompositeExpressionValueRoot[_IDataParameter, ConditionalOperator], _IRoot):
+    def __init__(self, parameter: _IDataParameter) -> None:
         super().__init__(parameter)
 @final
-class _Root(CompositeExpressionRoot[_Parameter[object], ConditionalOperator], _IRoot):
+class _Root(CompositeExpressionRoot[_IDataParameter, ConditionalOperator], _IRoot):
     def __init__(self, x: _INode) -> None:
         super().__init__(x)
 
@@ -120,13 +132,13 @@ type Node = _Node
 type ValueRoot = _ValueRoot
 type Root = _Root
 
-def Concatenate(x: _Parameter[object], operator: ConditionalOperator, y: _Parameter[object]) -> _ValueNode:
+def Concatenate(x: _IDataParameter, operator: ConditionalOperator, y: _IDataParameter) -> _ValueNode:
     node: _ValueNode = _ValueNode(x)
 
     node.GetFirst().SetNext(operator, y)
 
     return node
-def ConcatenateNode(x: _INode, operator: ConditionalOperator, y: _Parameter[object]) -> _Node:
+def ConcatenateNode(x: _INode, operator: ConditionalOperator, y: _IDataParameter) -> _Node:
     node: _Node = _Node(x)
 
     node.GetFirst().SetNext(operator, y)
@@ -139,13 +151,13 @@ def ConcatenateNodes(x: _INode, operator: ConditionalOperator, y: _INode) -> _No
 
     return node
 
-def ConcatenateAsRoot(x: _Parameter[object], operator: ConditionalOperator, y: _Parameter[object]) -> _ValueRoot:
+def ConcatenateAsRoot(x: _IDataParameter, operator: ConditionalOperator, y: _IDataParameter) -> _ValueRoot:
     root: _ValueRoot = _ValueRoot(x)
 
     root.GetFirst().SetNext(operator, y)
 
     return root
-def ConcatenateNodeAsRoot(x: _INode, operator: ConditionalOperator, y: _Parameter[object]) -> _Root:
+def ConcatenateNodeAsRoot(x: _INode, operator: ConditionalOperator, y: _IDataParameter) -> _Root:
     root: _Root = _Root(x)
 
     root.GetFirst().SetNext(operator, y)
@@ -158,19 +170,19 @@ def ConcatenateNodesAsRoot(x: _INode, operator: ConditionalOperator, y: _INode) 
 
     return root
 
-def _TryGetConnector(connector: IConnector[_Parameter[object], ConditionalOperator]|None) -> ConditionalOperator|None:
+def _TryGetConnector(connector: IConnector[_IDataParameter, ConditionalOperator]|None) -> ConditionalOperator|None:
     return None if connector is None else connector.GetConnector()
 
 @final
 class _Expression(Abstract, IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]):
-    def __init__(self, expression: ICompositeExpression[_Parameter[object], ConditionalOperator], tableName: str) -> None:
+    def __init__(self, expression: ICompositeExpression[_IDataParameter, ConditionalOperator], tableName: str) -> None:
         super().__init__()
 
-        self.__expression: ICompositeExpression[_Parameter[object], ConditionalOperator] = expression
+        self.__expression: ICompositeExpression[_IDataParameter, ConditionalOperator] = expression
         self.__tableName: str = tableName
     
     def TryGetFieldParameter(self) -> IKeyValuePair[ITableColumn, IParameter[IOperandValue]|None]|None:
-        parameter: _Parameter[object]|None = self.__expression.TryGetValue().TryGetValue()
+        parameter: _IDataParameter|None = self.__expression.TryGetValue().TryGetValue()
 
         return None if parameter is None else CreateKeyValuePair(parameter.GetKey()._AsColumn(self.__tableName), parameter.GetValue()) # pyright: ignore[reportPrivateUsage]
     
@@ -180,7 +192,7 @@ class _Expression(Abstract, IFieldParameterSetItem[ITableColumn, IParameter[IOpe
         return _TryGetConnector(self.__expression.GetNext())
     
     def TryGetItems(self) -> IEnumerable[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None:
-        expression: ICompositeExpressionNode[_Parameter[object], ConditionalOperator]|None = self.__expression.TryGetItems()
+        expression: ICompositeExpressionNode[_IDataParameter, ConditionalOperator]|None = self.__expression.TryGetItems()
 
         return None if expression is None else IteratorProvider[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]](lambda: Select(expression.AsIterable(), lambda expression: _Expression(expression, self.__tableName)))
 
@@ -258,13 +270,23 @@ class IColumnCondition[T](IInterface):
         super().__init__()
     
     @abstractmethod
-    def ToConditionParameter(self, operator: Operator, value: T) -> _Parameter[object]|_ValueNode:
+    def ToConditionParameter(self, operator: Operator, value: T) -> _IDataParameter|_ValueNode:
         pass
     @abstractmethod
     def ToConditionNode(self, operator: Operator, value: T) -> _ValueNode:
         pass
     @abstractmethod
     def ToConditionRoot(self, operator: Operator, value: T) -> _ValueRoot:
+        pass
+    
+    @abstractmethod
+    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[T]]) -> _IDataParameter|_ValueNode:
+        pass
+    @abstractmethod
+    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[T]]) -> _ValueNode:
+        pass
+    @abstractmethod
+    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[T]]) -> _ValueRoot:
         pass
 
 class IColumnParameterAbstract(IInterface):
@@ -355,13 +377,23 @@ class IColumnParameterDelegate[TValue](IInterface):
         super().__init__()
     
     @abstractmethod
-    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _IDataParameter|_ValueNode:
         pass
     @abstractmethod
     def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
         pass
     @abstractmethod
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
+        pass
+    
+    @abstractmethod
+    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter|_ValueNode:
+        pass
+    @abstractmethod
+    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueNode:
+        pass
+    @abstractmethod
+    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueRoot:
         pass
 class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TValue]):
     def __init__(self) -> None:
@@ -372,16 +404,16 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         pass
     
     @abstractmethod
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_IDataParameter, ConditionalOperator], count: int) -> None:
         pass
     
     @final
-    def _GetParameter(self, operator: Operator, entity: Entity, index: int, primaryKeys: IReadOnlyIndexable[IDefaultColumn]) -> _Parameter[object]:
+    def _GetParameter(self, operator: Operator, entity: Entity, index: int, primaryKeys: IReadOnlyIndexable[IDefaultColumn]) -> _IDataParameter:
         return _Parameter[object](self._GetCookie(index), operator, primaryKeys.GetAt(index)._GetEntityValue(entity)) # pyright: ignore[reportPrivateUsage]
 
     @final
-    def __ToCondition[TNode: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator]](self, operator: Operator, entity: Entity, selector: Callable[[_Parameter[object], ConditionalOperator, _Parameter[object]], TNode]) -> _Parameter[object]|TNode:
-        def getParameter(index: int) -> _Parameter[object]:
+    def __ToCondition[TNode: ICompositeExpressionNodeBase[_IDataParameter, ConditionalOperator]](self, operator: Operator, entity: Entity, selector: Callable[[_IDataParameter, ConditionalOperator, _IDataParameter], TNode]) -> _IDataParameter|TNode:
+        def getParameter(index: int) -> _IDataParameter:
             return self._GetParameter(operator, entity, index, primaryKeys)
 
         primaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(type(entity))
@@ -390,7 +422,7 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         if count < 1:
             raise InvalidOperationError("No primary key found.")
 
-        parameter: _Parameter[object] = getParameter(0)
+        parameter: _IDataParameter = getParameter(0)
 
         if count > 1:
             node: TNode = selector(parameter, ConditionalOperator.And, getParameter(1))
@@ -403,32 +435,52 @@ class ColumnParameterDelegateBase[TValue](Abstract, IColumnParameterDelegate[TVa
         return parameter
     
     @final
-    def _ToConditionParameter(self, operator: Operator, entity: Entity) -> _Parameter[object]|_ValueNode:
+    def _ToConditionParameter(self, operator: Operator, entity: Entity) -> _IDataParameter|_ValueNode:
         return self.__ToCondition(operator, entity, Concatenate)
     @final
     def _ToConditionRoot(self, operator: Operator, entity: Entity) -> _ValueRoot:
-        result: _Parameter[object]|_ValueRoot = self.__ToCondition(operator, entity, ConcatenateAsRoot)
+        result: _IDataParameter|_ValueRoot = self.__ToCondition(operator, entity, ConcatenateAsRoot)
 
         return result if isinstance(result, _ValueRoot) else _ValueRoot(result)
     
     @final
-    def __ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[TValue]:
+    def __ToConditionParameter(self, operator: Operator, value: TValue) -> _IDataParameter:
         return _Parameter[TValue](self._GetCookie(0), operator, value)
+    @final
+    def __ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter:
+        return _SetParameter[IValueObject[TValue]](self._GetCookie(0), values)
+    
+    @overload
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _IDataParameter:
+        ...
+    @overload
+    def ToConditionParameter(self, operator: Operator, value: Entity) -> _IDataParameter|_ValueNode:
+        ...
     
     @final
-    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+    def ToConditionParameter(self, operator: Operator, value: TValue|Entity) -> _IDataParameter|_ValueNode:
         return self._ToConditionParameter(operator, value) if isinstance(value, Entity) else self.__ToConditionParameter(operator, value)
     @final
     def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
-        if isinstance(value, Entity):
-            result: _Parameter[object]|_ValueNode = self.ToConditionParameter(operator, cast(TValue, value))
+        def toConditionNode(entity: Entity) -> _ValueNode:
+            result: _IDataParameter|_ValueNode = self.ToConditionParameter(operator, entity)
 
             return result if isinstance(result, _ValueNode) else _ValueNode(result)
-
-        return _ValueNode(self.__ToConditionParameter(operator, value))
+        
+        return toConditionNode(value) if isinstance(value, Entity) else _ValueNode(self.__ToConditionParameter(operator, value))
     @final
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
         return self._ToConditionRoot(operator, value) if isinstance(value, Entity) else _ValueRoot(self.__ToConditionParameter(operator, value))
+    
+    @final
+    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter:
+        return self.__ToSetConditionParameter(values)
+    @final
+    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueNode:
+        return _ValueNode(self.__ToSetConditionParameter(values))
+    @final
+    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueRoot:
+        return _ValueRoot(self.__ToSetConditionParameter(values))
 
 class ColumnParameterDelegate[TValue](ColumnParameterDelegateBase[TValue]):
     def __init__(self, cookie: IColumnParameterCookie) -> None:
@@ -441,7 +493,7 @@ class ColumnParameterDelegate[TValue](ColumnParameterDelegateBase[TValue]):
         return self.__cookie
     
     @final
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_IDataParameter, ConditionalOperator], count: int) -> None:
         raise InvalidOperationError(f"Multiple primary keys found. The {foreignKeyConfig.__name__} decorator must be applied.")
 class ForeignKeyParameterDelegate[TValue: Entity](ColumnParameterDelegateBase[TValue]):
     def __init__(self, cookieProvider: IColumnParameterCookieProvider) -> None:
@@ -454,8 +506,8 @@ class ForeignKeyParameterDelegate[TValue: Entity](ColumnParameterDelegateBase[TV
         return self.__cookieProvider.GetAt(index)
     
     @final
-    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], count: int) -> None:
-        def concatenate(node: ICompositeExpressionNodeBase[_Parameter[object], ConditionalOperator], index: int) -> None:
+    def _ToForeignKeyCondition(self, operator: Operator, entity: Entity, primaryKeys: ITuple[IDefaultColumn], node: ICompositeExpressionNodeBase[_IDataParameter, ConditionalOperator], count: int) -> None:
+        def concatenate(node: ICompositeExpressionNodeBase[_IDataParameter, ConditionalOperator], index: int) -> None:
             node.GetFirst().SetNext(ConditionalOperator.And, self._GetParameter(operator, entity, index, primaryKeys))
         
         for i in range(2, count):
@@ -617,7 +669,7 @@ class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfigBase
         self.__delegate: IColumnParameterDelegate[TValue] = ColumnParameterDelegate[TValue](self._GetCookie())
     
     @final
-    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _IDataParameter|_ValueNode:
         return self.__delegate.ToConditionParameter(operator, value)
     @final
     def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
@@ -625,6 +677,16 @@ class DefaultColumnParameter[TEntity: Entity, TValue, TConfig: IColumnConfigBase
     @final
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
         return self.__delegate.ToConditionRoot(operator, value)
+    
+    @final
+    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter|_ValueNode:
+        return self.__delegate.ToSetConditionParameter(values)
+    @final
+    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueNode:
+        return self.__delegate.ToSetConditionNode(values)
+    @final
+    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueRoot:
+        return self.__delegate.ToSetConditionRoot(values)
 
 class ColumnParameter[TEntity: Entity, TValue](DefaultColumnParameter[TEntity, TValue, IColumnConfigBase], IColumnParameter[TValue]):
     def __init__(self, func: Converter[TEntity, object], config: IColumnConfigBase) -> None:
@@ -703,7 +765,7 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
         return self.__columns.Convert(tableName)
     
     @final
-    def ToConditionParameter(self, operator: Operator, value: TValue) -> _Parameter[object]|_ValueNode:
+    def ToConditionParameter(self, operator: Operator, value: TValue) -> _IDataParameter|_ValueNode:
         return self.__delegate.ToConditionParameter(operator, value)
     @final
     def ToConditionNode(self, operator: Operator, value: TValue) -> _ValueNode:
@@ -711,6 +773,16 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
     @final
     def ToConditionRoot(self, operator: Operator, value: TValue) -> _ValueRoot:
         return self.__delegate.ToConditionRoot(operator, value)
+    
+    @final
+    def ToSetConditionParameter(self, values: IReadOnlySet[IValueObject[TValue]]) -> _IDataParameter|_ValueNode:
+        return self.__delegate.ToSetConditionParameter(values)
+    @final
+    def ToSetConditionNode(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueNode:
+        return self.__delegate.ToSetConditionNode(values)
+    @final
+    def ToSetConditionRoot(self, values: IReadOnlySet[IValueObject[TValue]]) -> _ValueRoot:
+        return self.__delegate.ToSetConditionRoot(values)
 
 class IColumnAbstract(IInterface):
     def __init__(self) -> None:
