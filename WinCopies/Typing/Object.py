@@ -58,13 +58,17 @@ class IComplexValueProvider[T](IValueProvider):
 class IComparableValue[T](IComparableObject[T], IValueItem):
     def __init__(self) -> None:
         super().__init__()
-class IItemObject[TValue, TObject](IObject[TValue|TObject], IValueItem):
+class IValueObject[T](IValueItem):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def GetValue(self) -> TValue:
+    def GetValue(self) -> T:
         pass
+
+class IItemObject[TValue, TObject](IObject[TValue|TObject], IValueObject[TValue]):
+    def __init__(self) -> None:
+        super().__init__()
 class IComplexValueObject[TValue, TUnderlying, TObject](IItemObject[TValue, TObject], IComplexValueProvider[TUnderlying]):
     def __init__(self) -> None:
         super().__init__()
