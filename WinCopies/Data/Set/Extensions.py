@@ -149,10 +149,13 @@ class ColumnParameterSet[T: IFormattable](ParameterSet[T|None], IColumnParameter
     def __init__(self, dictionary: dict[IColumn, T|None]|None = None) -> None:
         super().__init__(dictionary)
 
+def AsColumns(columnNames: Iterable[str], tableName: str|None = None) -> Generator[IColumn]:
+    return Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName)))
+
 def CreateColumnParameterSet(columns: Iterable[IColumn]) -> IColumnParameterSet[IFormattable]:
     return ColumnParameterSet[IFormattable](dict.fromkeys(columns))
 def CreateColumnParameterSetFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[IFormattable]:
-    return CreateColumnParameterSet(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
+    return CreateColumnParameterSet(AsColumns(columnNames, tableName))
 
 def MakeColumnParameterSet(*columns: IColumn) -> IColumnParameterSet[IFormattable]:
     return CreateColumnParameterSet(columns)
