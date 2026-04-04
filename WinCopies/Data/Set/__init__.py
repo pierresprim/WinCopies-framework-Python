@@ -18,7 +18,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, TryGetKey, TryGetValue
 
 
 from WinCopies.Data import ConditionalOperator, IColumn, IOperandValue
-from WinCopies.Data.Parameter import IParameter, ITableParameter
+from WinCopies.Data.Parameter import IFormattable, IParameter, ITableParameter
 
 class IFieldParameterSetItem[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IInterface):
     def __init__(self) -> None:
@@ -65,7 +65,7 @@ class IParameterSet[T](IDictionary[IColumn, T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IColumnParameterSet[T: IParameter[object]](IParameterSet[T|None]):
+class IColumnParameterSet[T: IFormattable](IParameterSet[T|None]):
     def __init__(self) -> None:
         super().__init__()
 class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IRecursivelyEnumerable[ICompositeExpression[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]]):

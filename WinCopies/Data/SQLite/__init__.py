@@ -35,7 +35,7 @@ from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
-from WinCopies.Data.Parameter import IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
+from WinCopies.Data.Parameter import IFormattable, IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeColumnParameterSet, MakeConjunctionSet
 
@@ -169,7 +169,7 @@ class Table(TableBase):
                     TableParameterSet({
                         String("PRAGMA_TABLE_INFO"): TableParameter[str](
                             't', MakeTableValueIterable(self.GetName()))}),
-                    ColumnParameterSet[IParameter[object]]({
+                    ColumnParameterSet[IFormattable]({
                         Column("name"): None,
                         Column("type"): None,
                         Column("pk"): None,

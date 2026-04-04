@@ -27,7 +27,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 from WinCopies.Data import Ordering, IColumn
 from WinCopies.Data.Misc import IQueryBase
-from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.QueryBuilder import IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin, TableParameterSet
@@ -148,7 +148,7 @@ class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecuti
         super().__init__()
     
     @abstractmethod
-    def GetColumns(self) -> IColumnParameterSet[IParameter[object]]:
+    def GetColumns(self) -> IColumnParameterSet[IFormattable]:
         pass
 
     @abstractmethod
@@ -165,7 +165,7 @@ class ISubselectionQuery(ISelectionQueryBase):
         super().__init__()
     
     @abstractmethod
-    def GetColumn(self) -> IKeyValuePair[IColumn, IParameter[object]]:
+    def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]:
         pass
 
 class IWriteQuery(IQuery[QueryResult, IInsertionQueryExecutionResult]):
@@ -287,16 +287,16 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
             return self.__queries.TryGetEnumerator()
     
-    def __init__(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, conditions)
 
         self.__cases: ICollection[IBranchSet[IValueItem]] = List[IBranchSet[IValueItem]]()
         self.__joins: ICollection[IJoin] = List[IJoin]()
         self.__ordering: IDictionary[IColumn, Ordering] = Dictionary[IColumn, Ordering]()
-        self.__columns: IColumnParameterSet[IParameter[object]] = columns
+        self.__columns: IColumnParameterSet[IFormattable] = columns
     
     @final
-    def GetColumns(self) -> IColumnParameterSet[IParameter[object]]:
+    def GetColumns(self) -> IColumnParameterSet[IFormattable]:
         return self.__columns
 
     @final
@@ -346,7 +346,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 if subqueries is None:
                     return False # No subquery; continue query building.
                 
-                column: IKeyValuePair[IColumn, IParameter[object]]|None = None
+                column: IKeyValuePair[IColumn, IFormattable]|None = None
                 
                 for query in SelectionQuery.__Enumerable(subqueries, queryBuilder).AsIterable():
                     if not self._PrevalidateQuery(query):
@@ -387,13 +387,13 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         
         raise MemoryError()
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
-    def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IParameter[object]], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
+    def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IFormattable], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__(tables, conditions, subqueries)
 
-        self.__column: IKeyValuePair[IColumn, IParameter[object]] = column
+        self.__column: IKeyValuePair[IColumn, IFormattable] = column
     
     @final
-    def GetColumn(self) -> IKeyValuePair[IColumn, IParameter[object]]:
+    def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]:
         return self.__column
 
 class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):

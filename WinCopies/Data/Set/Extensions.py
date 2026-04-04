@@ -31,7 +31,7 @@ from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data import ConditionalOperator, IColumn, Column, TableColumn, IOperand, IOperandValue
 from WinCopies.Data.Misc import JoinType
-from WinCopies.Data.Parameter import IParameter, ITableParameter
+from WinCopies.Data.Parameter import IFormattable, IParameter, ITableParameter
 from WinCopies.Data.QueryBuilder import IJoinBase, IConditionalQueryWriter, ISelectionQueryWriter, IParameterSetBase
 from WinCopies.Data.Set import IFieldParameterSetItem, IFieldConditionSetItemAlias as IFieldConditionSetItem, IFieldParameterRecursivelyEnumerable, IFieldConditionRecursivelyEnumerableAlias as IFieldConditionRecursivelyEnumerable, IParameterSet, IColumnParameterSet, IFieldParameterSet, IFieldConditionSet, ITableParameterSet
 
@@ -145,18 +145,18 @@ class ParameterSet[T](Dictionary[IColumn, T], IParameterSet[T]):
     def __init__(self, dictionary: dict[IColumn, T]|None = None) -> None:
         super().__init__(dictionary)
 
-class ColumnParameterSet[T: IParameter[object]](ParameterSet[T|None], IColumnParameterSet[T]):
+class ColumnParameterSet[T: IFormattable](ParameterSet[T|None], IColumnParameterSet[T]):
     def __init__(self, dictionary: dict[IColumn, T|None]|None = None) -> None:
         super().__init__(dictionary)
 
-def CreateColumnParameterSet(columns: Iterable[IColumn]) -> IColumnParameterSet[IParameter[object]]:
-    return ColumnParameterSet[IParameter[object]](dict.fromkeys(columns))
-def CreateColumnParameterSetFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[IParameter[object]]:
+def CreateColumnParameterSet(columns: Iterable[IColumn]) -> IColumnParameterSet[IFormattable]:
+    return ColumnParameterSet[IFormattable](dict.fromkeys(columns))
+def CreateColumnParameterSetFromNames(columnNames: Iterable[str], tableName: str|None = None) -> IColumnParameterSet[IFormattable]:
     return CreateColumnParameterSet(Select(columnNames, (lambda columnName: Column(columnName)) if tableName is None else (lambda columnName: TableColumn(tableName, columnName))))
 
-def MakeColumnParameterSet(*columns: IColumn) -> IColumnParameterSet[IParameter[object]]:
+def MakeColumnParameterSet(*columns: IColumn) -> IColumnParameterSet[IFormattable]:
     return CreateColumnParameterSet(columns)
-def MakeColumnParameterSetFromNames(tableName: str|None = None, *columnNames: str) -> IColumnParameterSet[IParameter[object]]:
+def MakeColumnParameterSetFromNames(tableName: str|None = None, *columnNames: str) -> IColumnParameterSet[IFormattable]:
     return CreateColumnParameterSetFromNames(columnNames, tableName)
 
 def _TryGetConnector[TColumn: IColumn, TParameter: IParameter[IOperandValue]](connector: IConnector[IKeyValuePair[TColumn, TParameter|None], ConditionalOperator]|None) -> ConditionalOperator|None:
@@ -365,10 +365,10 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
         for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler(writer, process, updateAction)).AsIterable():
             action(condition)
 
-def TryCreateConditionSet[T: IColumn](set: IFieldConditionSet[T]|None) -> IConditionParameterSet|None:
-    return None if set is None else ConditionParameterSet[T](set.AsRecursivelyParameterEnumerable())
 def TryCreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]|None) -> IConditionParameterSet|None:
     return None if set is None else ConditionParameterSet[T](set)
+def TryCreateConditionSet[T: IColumn](set: IFieldConditionSet[T]|None) -> IConditionParameterSet|None:
+    return None if set is None else TryCreateConditionSetFromConditions(set.AsRecursivelyParameterEnumerable())
 
 def CreateConjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IConditionParameterSet|None:
     return TryCreateConditionSet(CreateFieldParameterConjunctionSet(conditions))

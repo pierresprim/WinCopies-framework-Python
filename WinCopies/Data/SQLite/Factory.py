@@ -27,7 +27,7 @@ from WinCopies.Data.Abstract import IConnection
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IndexType, IIndex, IKey, ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey, UnicityIndex, PrimaryKey, ForeignKey
-from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import ITableParameterSet, IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
@@ -163,7 +163,7 @@ class QueryFactory(Abstract, IQueryFactory):
     def _GetConnection(self) -> sqlite3.Connection:
         return self.__connection
     
-    def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+    def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         return SelectionQuery(self._GetConnection(), tables, columns, conditions)
     
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:

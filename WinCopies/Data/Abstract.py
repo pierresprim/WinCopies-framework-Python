@@ -23,7 +23,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
-from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
@@ -52,7 +52,7 @@ class ITable(IEquatable['ITable'], IDisposable):
         pass
 
     @final
-    def Select(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQueryExecutionResult|None:
+    def Select(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQueryExecutionResult|None:
         return self.GetQueryFactory().GetSelectionQuery(columns, conditions).Execute()
     
     @final
@@ -86,7 +86,7 @@ class Table(Abstract, ITable):
             return self.__factory
 
         @final
-        def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+        def GetSelectionQuery(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
             return self._GetFactory().GetSelectionQuery(self._GetTable().GetName(), columns, conditions)
 
         @final

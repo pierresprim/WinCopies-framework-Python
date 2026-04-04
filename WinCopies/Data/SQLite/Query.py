@@ -16,7 +16,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 from WinCopies.Data import Query
 from WinCopies.Data.Query import QueryResult, InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Misc import ITableNameFormater
-from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
@@ -105,7 +105,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
         def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
             return self.__function.GetValue()
     
-    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
         self.__connection: sqlite3.Connection = connection

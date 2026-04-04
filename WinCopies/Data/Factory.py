@@ -7,7 +7,7 @@ from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
-from WinCopies.Data.Parameter import IParameter
+from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
@@ -42,7 +42,7 @@ class IQueryFactory(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         pass
 
     @abstractmethod
@@ -61,7 +61,7 @@ class ITableQueryFactory(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+    def GetSelectionQuery(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         pass
 
     @abstractmethod
