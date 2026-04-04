@@ -20,7 +20,7 @@ from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList,
 
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter
-from WinCopies.Typing.Object import IValueItem, IString
+from WinCopies.Typing.Object import IValueItem, IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 
@@ -30,7 +30,7 @@ from WinCopies.Data.Misc import IQueryBase
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.QueryBuilder import IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
-from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin
+from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin, TableParameterSet
 
 type QueryResult = DualResult[str, ICountableEnumerable[object]|None]
 
@@ -204,10 +204,10 @@ class IUpdateQuery(IWriteQuery, IConditionalQuery):
         pass
 
 class SelectionQueryBase(Abstract, ISelectionQueryBase):
-    def __init__(self, tables: ITableParameterSet, conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
+    def __init__(self, tables: ITableParameterSet|str, conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__()
     
-        self.__tables: ITableParameterSet = tables
+        self.__tables: ITableParameterSet = tables if isinstance(tables, ITableParameterSet) else TableParameterSet.CreateFromNames(String(tables))
         self.__conditions: IConditionParameterSet|None = conditions
         self.__subqueries: IEnumerable[ISubselectionQuery]|None = subqueries
     
@@ -287,7 +287,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
             return self.__queries.TryGetEnumerator()
     
-    def __init__(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, conditions)
 
         self.__cases: ICollection[IBranchSet[IValueItem]] = List[IBranchSet[IValueItem]]()

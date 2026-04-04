@@ -15,7 +15,7 @@ from WinCopies.Collections.Extensions import IArray, IList, IDictionary
 from WinCopies.Collections.Iteration import GetFirstItem
 
 from WinCopies.Typing import IEquatable, INullable, GetDisposedError
-from WinCopies.Typing.Object import IString, String
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
@@ -26,7 +26,7 @@ from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IParameter
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
-from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet
+from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
 class ITable(IEquatable['ITable'], IDisposable):
     def __init__(self) -> None:
@@ -87,7 +87,7 @@ class Table(Abstract, ITable):
 
         @final
         def GetSelectionQuery(self, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-            return self._GetFactory().GetSelectionQuery(TableParameterSet.CreateFromNames(String(self._GetTable().GetName())), columns, conditions)
+            return self._GetFactory().GetSelectionQuery(self._GetTable().GetName(), columns, conditions)
 
         @final
         def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:

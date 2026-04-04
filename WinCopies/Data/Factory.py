@@ -42,7 +42,7 @@ class IQueryFactory(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IParameter[object]], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         pass
 
     @abstractmethod
