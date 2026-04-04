@@ -6,7 +6,7 @@ from typing import final, Callable, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
-from WinCopies.Collections.Abstraction.Enumeration import Enumerator
+from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNodeAbstract
@@ -537,7 +537,7 @@ class ReadOnlyEnumerableList[T](ReadOnlyListBase[T, IEnumerableList[T]], Enumera
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
 class List[T](ListBase[T]):
     def __init__(self) -> None:
@@ -970,7 +970,7 @@ class ReadOnlyCountableEnumerable[T](ReadOnlyListBase[T, ICountableEnumerableLis
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
 class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, IEnumerableList[TItems]]):
     def __init__(self, l: TList) -> None:

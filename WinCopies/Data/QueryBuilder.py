@@ -10,7 +10,7 @@ from typing import final, Callable, Self
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable
+from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -336,7 +336,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     
     @final
     def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
-        return CreateDualResult(self._GetStream().ToString(), CountableEnumerable[object].Create(self._GetArgs()))
+        return CreateDualResult(self._GetStream().ToString(), CreateCountableEnumerable(self._GetArgs()))
     
     def Dispose(self) -> None:
         self._GetStream().Dispose()

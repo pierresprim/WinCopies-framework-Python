@@ -7,7 +7,7 @@ from typing import final, Callable, Self as SelfType
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator as GeneratorBase, IReadOnlyCollection, ICountable
-from WinCopies.Collections.Abstraction.Enumeration import CountableEnumerable, Enumerator
+from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerable, IEnumerator, Enumerable, CountableEnumerable as CountableEnumerableBase, GetEnumerator
 from WinCopies.Collections.Generation import IRemovable, IIterator, Generator, ConverterBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
@@ -645,7 +645,7 @@ class _ReadOnlyEnumerableList[T](_ReadOnlyListBase[T, IReadOnlyEnumerableList[T]
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
 @final
 class _EnumerableUpdater[TItem, TNode, TNodeInterface: IRemovable, TList](ValueFunctionUpdater[IEnumerable[TNodeInterface]]):
@@ -1117,7 +1117,7 @@ class _ReadOnlyCountableEnumerableList[T](_ReadOnlyListBase[T, IReadOnlyCountabl
     def __init__(self, items: IReadOnlyCountableEnumerableList[T]) -> None:
         super().__init__(items)
 
-        self.__items: CountableEnumerableBase[T] = CountableEnumerable[T].Create(items)
+        self.__items: CountableEnumerableBase[T] = CreateCountableEnumerable(items)
     
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()

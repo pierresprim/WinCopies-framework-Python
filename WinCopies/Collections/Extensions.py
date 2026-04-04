@@ -6,7 +6,7 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
 from WinCopies.Collections import Enumeration, ICountable, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
-from WinCopies.Collections.Abstraction.Enumeration import Enumerator
+from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
@@ -421,7 +421,7 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetItems().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
     
     def ToString(self) -> str:
         return self._GetItems().ToString()
@@ -957,7 +957,7 @@ class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetItems().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
     
     def ToString(self) -> str:
         return self._GetItems().ToString()
@@ -1016,7 +1016,7 @@ class _ReadOnlyDictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKey
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]|None:
-        return Enumerator[IKeyValuePair[TKey, TValue]].TryCreate(self._GetDictionary().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetDictionary().TryGetEnumerator())
     
     def ToString(self) -> str:
         return self._GetDictionary().ToString()

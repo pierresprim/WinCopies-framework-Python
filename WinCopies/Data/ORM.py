@@ -7,7 +7,7 @@ from typing import overload, final, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
-from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, CreateTupleFromValues, CreateEquatableTuple, CreateDictionary
+from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, MakeTuple, CreateEquatableTuple, CreateDictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
@@ -1458,7 +1458,7 @@ class EntityCollection[T: Entity](Abstract):
                     return _getEntity(t, _GetPrimaryKeys(t).AsIterable())
                 
                 def processEntityColumn(args: tuple[IDefaultEntityColumn, object]) -> Entity:
-                    return __getEntity(args[0].GetColumnParameter().GetType(), CreateTupleFromValues(args[1]))
+                    return __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1]))
 
                 obj: T = _getEntity(self._GetType(), data.GetPrimaryKeys())
 

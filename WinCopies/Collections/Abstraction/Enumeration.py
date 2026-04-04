@@ -29,13 +29,6 @@ class Enumerable[T](EnumerableBase[T]):
     
     def TryGetEnumerator(self) -> IEnumerator[T] | None:
         return self._GetEnumerable().TryGetEnumerator()
-    
-    @staticmethod
-    def Create(enumerable: IEnumerable[T]) -> EnumerableBase[T]:
-        return enumerable if type(enumerable) == Enumerable[T] else Enumerable[T](enumerable)
-    @staticmethod
-    def TryCreate(enumerable: IEnumerable[T]|None) -> EnumerableBase[T]|None:
-        return None if enumerable is None else Enumerable[T].Create(enumerable)
 
 class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
@@ -60,13 +53,7 @@ class EquatableEnumerable[T: IEquatableItem](EquatableEnumerableBase[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetEnumerable().TryGetEnumerator()
-    
-    @staticmethod
-    def Create(enumerable: IEquatableEnumerable[T]) -> EquatableEnumerableBase[T]:
-        return enumerable if type(enumerable) == EquatableEnumerable[T] else EquatableEnumerable[T](enumerable)
-    @staticmethod
-    def TryCreate(enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerableBase[T]|None:
-        return None if enumerable is None else EquatableEnumerable[T].Create(enumerable)
+
 class CountableEnumerable[T](CountableEnumerableBase[T]):
     def __init__(self, enumerable: ICountableEnumerable[T]) -> None:
         EnsureDirectModuleCall()
@@ -86,23 +73,29 @@ class CountableEnumerable[T](CountableEnumerableBase[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetEnumerable().TryGetEnumerator()
-    
-    @staticmethod
-    def Create(enumerable: ICountableEnumerable[T]) -> CountableEnumerableBase[T]:
-        return enumerable if type(enumerable) == CountableEnumerable[T] else CountableEnumerable[T](enumerable)
-    @staticmethod
-    def TryCreate(enumerable: ICountableEnumerable[T]|None) -> CountableEnumerableBase[T]|None:
-        return None if enumerable is None else CountableEnumerable[T].Create(enumerable)
 
 class Enumerator[T](AbstractEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         EnsureDirectModuleCall()
         
         super().__init__(enumerator)
-    
-    @staticmethod
-    def Create(enumerator: IEnumerator[T]) -> EnumeratorBase[T]:
-        return enumerator if type(enumerator) == Enumerator[T] else Enumerator[T](enumerator)
-    @staticmethod
-    def TryCreate(enumerator: IEnumerator[T]|None) -> EnumeratorBase[T]|None:
-        return None if enumerator is None else Enumerator[T].Create(enumerator)
+
+def CreateEnumerable[T](enumerable: IEnumerable[T]) -> EnumerableBase[T]:
+    return enumerable if type(enumerable) == Enumerable[T] else Enumerable[T](enumerable)
+def TryCreateEnumerable[T](enumerable: IEnumerable[T]|None) -> EnumerableBase[T]|None:
+    return None if enumerable is None else CreateEnumerable(enumerable)
+
+def CreateEquatableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerableBase[T]:
+    return enumerable if type(enumerable) == EquatableEnumerable[T] else EquatableEnumerable[T](enumerable)
+def TryCreateEquatableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerableBase[T]|None:
+    return None if enumerable is None else CreateEquatableEnumerable(enumerable)
+
+def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> CountableEnumerableBase[T]:
+    return enumerable if type(enumerable) == CountableEnumerable[T] else CountableEnumerable[T](enumerable)
+def TryCreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]|None) -> CountableEnumerableBase[T]|None:
+    return None if enumerable is None else CreateCountableEnumerable(enumerable)
+
+def CreateEnumerator[T](enumerator: IEnumerator[T]) -> EnumeratorBase[T]:
+    return enumerator if type(enumerator) == Enumerator[T] else Enumerator[T](enumerator)
+def TryCreateEnumerator[T](enumerator: IEnumerator[T]|None) -> EnumeratorBase[T]|None:
+    return None if enumerator is None else CreateEnumerator(enumerator)

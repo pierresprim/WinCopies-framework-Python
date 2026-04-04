@@ -5,7 +5,7 @@ from typing import final
 from WinCopies import Abstract
 from WinCopies.Collections import EnumerationOrder, ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
-from WinCopies.Collections.Abstraction.Enumeration import Enumerable, CountableEnumerable, Enumerator
+from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, Enumerable as EnumerableBase, CountableEnumerable as CountableEnumerableBase
 from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList as ISinglyLinkedList, ICountableList as ICountableSinglyLinkedList, ICountableEnumerableList, IEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, ReadOnlyListBase
 from WinCopies.Collections.Linked.Doubly import IReadWriteList, IReadWriteEnumerableList, IReadWriteCountableEnumerableList, IList as IDoublyLinkedList, ICountableList as ICountableDoublyLinkedList, List, CountableList
@@ -64,7 +64,7 @@ class _ReadOnlyEnumerableLinkedListUpdaterList[T](_ReadOnlyListBase[T, IEnumerab
         super().__init__(items)
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 @final
 class _ReadOnlyEnumerableLinkedListUpdater[T](_ReadOnlyListUpdaterBase[IEnumerableList[T], IReadOnlyEnumerableList[T]]):
     def __init__(self, items: IEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableList[T]]]) -> None:
@@ -82,7 +82,7 @@ class _ReadOnlyCountableEnumerableLinkedListUpdaterList[T](_ReadOnlyListBase[T, 
         return self._GetContainer().GetCount()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 @final
 class _ReadOnlyCountableEnumerableLinkedListUpdater[T](_ReadOnlyListUpdaterBase[ICountableEnumerableList[T], IReadOnlyCountableEnumerableList[T]]):
     def __init__(self, items: ICountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]) -> None:
@@ -312,7 +312,7 @@ class AbstractReadOnlyEnumerableList[TItem, TList](ReadOnlyListBase[TItem, TList
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return Enumerator[TItem].TryCreate(self._GetSpecializedContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetSpecializedContainer().TryGetEnumerator())
 class AbstractReadOnlyCountableEnumerableList[TItem, TList](ReadOnlyListBase[TItem, TList], IReadOnlyCountableEnumerableList[TItem], GenericSpecializedConstraint[TList, ISinglyLinkedList[TItem], IReadOnlyCountableEnumerableList[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
@@ -323,7 +323,7 @@ class AbstractReadOnlyCountableEnumerableList[TItem, TList](ReadOnlyListBase[TIt
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return Enumerator[TItem].TryCreate(self._GetSpecializedContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetSpecializedContainer().TryGetEnumerator())
 
 @final
 class _CountableUpdater(ValueFunctionUpdater[CountableBase]):
@@ -340,7 +340,7 @@ class _EnumerableUpdater[T](SelectionUpdater[IReadOnlyEnumerableList[T], Iterabl
         super().__init__(items, updater)
     
     def _AsContainer(self, container: IReadOnlyEnumerableList[T]) -> Iterable[T]:
-        return Enumerable[T].Create(container)
+        return CreateEnumerable(container)
 @final
 class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableEnumerableBase[T]]):
     def __init__(self, collection: ICountableEnumerable[T], updater: Method[IFunction[CountableEnumerableBase[T]]]) -> None:
@@ -349,7 +349,7 @@ class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableEnumerableBas
         self.__collection: ICountableEnumerable[T] = collection
     
     def _GetValue(self) -> CountableEnumerableBase[T]:
-        return CountableEnumerable[T].Create(self.__collection)
+        return CreateCountableEnumerable(self.__collection)
 
 @final
 class _ReadOnlyCountableQueueUpdaterList[T](AbstractReadOnlyCountableList[T, ICountableQueue[T]], IReadOnlyCountableQueue[T], IGenericSpecializedConstraintImplementation[ISinglyLinkedList[T], ICountableQueue[T]]):
@@ -549,7 +549,7 @@ class EnumerableQueue[T](QueueBase[T, IDoublyLinkedList[T]], IEnumerableQueue[T]
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]:
@@ -569,7 +569,7 @@ class EnumerableStack[T](StackBase[T, IDoublyLinkedList[T]], IEnumerableStack[T]
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]:
@@ -590,7 +590,7 @@ class CountableEnumerableQueue[T](QueueBase[T, ICountableDoublyLinkedList[T]], I
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]:
@@ -610,7 +610,7 @@ class CountableEnumerableStack[T](StackBase[T, ICountableDoublyLinkedList[T]], I
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return Enumerator[T].TryCreate(self._GetContainer().TryGetEnumerator())
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
