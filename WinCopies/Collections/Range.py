@@ -36,13 +36,21 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
         else:
             raise ValueError()
 
-    s: int = key.step
+    s: int|None = key.step
 
-    if s == 0:
+    if s is None:
+        s = 1
+
+    elif s == 0:
         raise IndexError()
     
-    i: int = key.start
-    l: int = key.stop
+    i: int|None = key.start
+    l: int|None = key.stop
+
+    if i is None:
+        i = 0
+    if l is None:
+        l = lst.GetCount()
 
     if s < 0:
         SetValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s), values)
@@ -62,16 +70,13 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
         else:
             replace(i, l, 1)
     
-    if i == l:
+    elif i == l:
         raise IndexError()
     
     replace(i, l, s)
 def SetItems[T](lst: IList[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex):
-        if isinstance(value, Iterable):
-            raise ValueError()
-        
-        lst.SetAt(int(index), value)
+        lst.SetAt(int(index), value) # type: ignore
     
     else:
         SetValues(lst, index, value) # type: ignore
@@ -81,13 +86,21 @@ def RemoveValues[T](lst: IList[T], key: slice) -> None:
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, lst.GetCount())
 
-    s: int = key.step
+    s: int|None = key.step
 
-    if s == 0:
+    if s is None:
+        s = 1
+
+    elif s == 0:
         raise IndexError()
     
-    i: int = key.start
-    l: int = key.stop
+    i: int|None = key.start
+    l: int|None = key.stop
+
+    if i is None:
+        i = 0
+    if l is None:
+        l = lst.GetCount()
 
     if s < 0:
         RemoveValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s))
