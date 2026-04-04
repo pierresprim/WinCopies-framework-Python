@@ -427,10 +427,15 @@ def CreateIterable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
 def TryCreateIterable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
     return None if iterable is None else CreateIterable(iterable)
 
+def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]) -> IteratorProvider[T]:
+    return IteratorProvider[T](iteratorProvider)
 def TryCreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]|None) -> IteratorProvider[T]|None:
-    return None if iteratorProvider is None else IteratorProvider[T](iteratorProvider)
+    return None if iteratorProvider is None else CreateIteratorProvider(iteratorProvider)
+
+def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]) -> EnumeratorProvider[T]:
+    return EnumeratorProvider[T](enumeratorProvider)
 def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> EnumeratorProvider[T]|None:
-    return None if enumeratorProvider is None else EnumeratorProvider[T](enumeratorProvider)
+    return None if enumeratorProvider is None else CreateEnumeratorProvider(enumeratorProvider)
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator) -> None:
