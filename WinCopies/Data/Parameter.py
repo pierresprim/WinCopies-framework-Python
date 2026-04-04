@@ -25,13 +25,17 @@ class IArgument(IInterface):
     def Join(self, builder: IQueryBuilder, column: str) -> str:
         pass
 
-class IParameter[T](IEnumerable[T], IArgument):
+class IFormattable(IArgument):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def Format(self, key: str, values: str|None) -> str:
         pass
+
+class IParameter[T](IEnumerable[T], IFormattable):
+    def __init__(self) -> None:
+        super().__init__()
 
 class __IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOperand, IKeyValuePair[TKey, Operator]]):
     def __init__(self) -> None:
@@ -111,7 +115,7 @@ class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T
 def CreateFieldParameter[T](operand: IOperand[T]) -> FieldParameter[T]:
     return FieldParameter[T](operand)
 def CreateFieldParameterFromValue[T](operator: Operator, value: T) -> FieldParameter[T]:
-    return FieldParameter[T](Operand(operator, value))
+    return CreateFieldParameter(Operand(operator, value))
 
 __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]
