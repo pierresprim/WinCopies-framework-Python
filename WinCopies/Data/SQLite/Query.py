@@ -105,7 +105,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
         def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
             return self.__function.GetValue()
     
-    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
         self.__connection: sqlite3.Connection = connection

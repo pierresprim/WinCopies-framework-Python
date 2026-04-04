@@ -163,7 +163,7 @@ class QueryFactory(Abstract, IQueryFactory):
     def _GetConnection(self) -> sqlite3.Connection:
         return self.__connection
     
-    def GetSelectionQuery(self, tables: ITableParameterSet, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         return SelectionQuery(self._GetConnection(), tables, columns, conditions)
     
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
