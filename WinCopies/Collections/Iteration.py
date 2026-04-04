@@ -3,13 +3,14 @@ from typing import Type
 
 from WinCopies import NullableBoolean
 from WinCopies.Collections import Generator, IterationResult, MakeGenerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable, TryCreateIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable, TryCreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, NullableConverter, Predicate, Selector
+from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
-def TryEnumerate[T](iterable: Iterable[T]|None) -> Iterable[T]:
+def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
     """Returns the given iterable, or an empty generator if None is given.
 
     Args:
@@ -19,7 +20,9 @@ def TryEnumerate[T](iterable: Iterable[T]|None) -> Iterable[T]:
         The original iterable if not None, otherwise an empty generator.
     """
 
-    return MakeGenerator() if iterable is None else iterable
+    return MakeGenerator() if items is None else items
+def TryGenerate[T](items: Generator[T]|None) -> Generator[T]:
+    return MakeGenerator() if items is None else items
 
 def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
     """Concatenates multiple iterables into a single generator.
@@ -496,6 +499,14 @@ def GetFirstItem[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]
 def TryGetFirstItem[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
     return None if items is None else GetFirstItem(items, predicate)
 
+def GetFirstExclusiveItem[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]:
+    for item in Exclude(items, predicate):
+        return GetNullable(item)
+    
+    return GetNullValue()
+def TryGetFirstExclusiveItem[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
+    return None if items is None else GetFirstExclusiveItem(items, predicate)
+
 def Any[T](items: Iterable[T]) -> bool:
     """Checks if an iterable contains any items.
 
@@ -613,3 +624,31 @@ def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], err
             raiseError("More than one value validating the given predicate were found.")
         case _:
             pass
+
+def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+    current: T2|None = None
+
+    for item in x:
+        if y.MoveNext():
+            if (current := y.GetCurrent()) is None:
+                break
+            
+            yield CreateDualResult(item, current)
+        
+        else:
+            break
+
+def Zip[T1, T2](x: Iterable[T1], y: Iterable[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+    return __Zip(x, AsEnumerator(y) if isinstance(y, Iterator) else CreateIterable(y).GetEnumerator())
+def ZipEnumerables[T1, T2](x: IEnumerable[T1], y: IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
+    _x: IEnumerator[T1]|None = x.TryGetEnumerator()
+
+    if _x is None:
+        return None
+    
+    _y: IEnumerator[T2]|None = y.TryGetEnumerator()
+
+    if _y is None:
+        return None
+    
+    return __Zip(_x.AsIterator(), _y)
