@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sized, Container, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
+from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
+from WinCopies.Collections import Enumeration, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Iteration.Extensions import Reverse
@@ -25,7 +25,7 @@ class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T])
     
     def AsSized(self) -> Sized:
         return self.AsCollection()
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self.AsCollection()
     def AsIterable(self) -> Iterable[T]:
         return self.AsCollection()
@@ -48,7 +48,7 @@ class ISequence[T](IReadOnlyCollection[T]):
 
     def AsSized(self) -> Sized:
         return self.AsSequence()
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self.AsSequence()
     def AsIterable(self) -> Iterable[T]:
         return self.AsSequence()
@@ -64,7 +64,7 @@ class IMutableSequence[T](ISequence[T], ICollection[T]):
 
     def AsSized(self) -> Sized:
         return self.AsMutableSequence()
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self.AsMutableSequence()
     def AsIterable(self) -> Iterable[T]:
         return self.AsMutableSequence()
@@ -86,7 +86,7 @@ class ReadOnlyCollectionBase[T](CollectionBase[T], IReadOnlyCollection[T]):
     
     def AsSized(self) -> Sized:
         return self
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
@@ -103,6 +103,14 @@ class ReadOnlyCollection[T](ReadOnlyCollectionBase[T], IReadOnlyCollection[T]):
     @final
     def __iter__(self) -> Iterator[T]:
         return GetIterator(self._TryGetIterator())
+
+class Container[T](ContainerBase[T], IContainer[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def __contains__(self, x: object) -> bool:
+        return self.Contains(x)
 
 class ReadOnlySequence[T](SequenceBase[T], ReadOnlyCollectionBase[T]):
     def __init__(self) -> None:
@@ -125,7 +133,7 @@ class Sequence[T](ReadOnlySequence[T], ISequence[T]):
 
     def AsSized(self) -> Sized:
         return self
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
@@ -140,7 +148,7 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T
 
     def AsSized(self) -> Sized:
         return self
-    def AsContainer(self) -> Container[T]:
+    def AsContainer(self) -> ContainerBase[T]:
         return self
     def AsIterable(self) -> Iterable[T]:
         return self
@@ -703,13 +711,16 @@ class _ReversedArrayReadOnlyUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     def _GetValue(self) -> ITuple[T]:
         return _ReadOnlyTuple[T](self.__array)
 
-class ArrayAbstractBase[TItem, TCollection](TupleAbstractBase[TItem], GetterBase[int, TItem], IArrayBase[TItem]):
+class IArrayAbstract[TItem, TCollection](IArrayBase[TItem]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _GetUpdater(self, func: Method[IFunction[TCollection]]) -> IFunction[TCollection]:
         pass
+class ArrayAbstractBase[TItem, TCollection](TupleAbstractBase[TItem], GetterBase[int, TItem], IArrayAbstract[TItem, TCollection]):
+    def __init__(self) -> None:
+        super().__init__()
 class ArrayAbstract[TItem, TCollection](ArrayAbstractBase[TItem, TCollection], KeyableBase[int, TItem], TupleAbstract[TItem], IArray[TItem]):
     def __init__(self) -> None:
         super().__init__()
@@ -980,13 +991,17 @@ class _ReversedSortedListUpdater[T](ValueFunctionUpdater[ISortedList[T]]):
     def _GetValue(self) -> ISortedList[T]:
         return _ReversedSortedList[T](self.__array)
 
-class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], IList[T]):
+class CollectionAbstract[T](IArrayAbstract[T, IList[T]], IList[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def _GetUpdater(self, func: Method[IFunction[IList[T]]]) -> IFunction[IList[T]]:
         return _ReversedListUpdater[T](self, func)
+
+class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @final
     def AsReversed(self) -> IList[T]:
