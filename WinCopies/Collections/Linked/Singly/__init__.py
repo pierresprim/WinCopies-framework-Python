@@ -1072,42 +1072,42 @@ class CountableEnumerableStack[T](CountableEnumerableList[T, CountableEnumerable
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
         return self._GetContainer().AsReadOnly()
 
-def CreateQueue[T](items: Iterable[T]) -> Queue[T]:
+def CreateQueue[T](items: Iterable[T]|None) -> Queue[T]:
     return Queue[T](items)
 def MakeQueue[T](*values: T) -> Queue[T]:
     return CreateQueue(values)
 
-def CreateStack[T](items: Iterable[T]) -> Stack[T]:
+def CreateStack[T](items: Iterable[T]|None) -> Stack[T]:
     return Stack[T](items)
 def MakeStack[T](*values: T) -> Stack[T]:
     return CreateStack(values)
 
-def CreateEnumerableQueue[T](items: Iterable[T]) -> EnumerableQueue[T]:
+def CreateEnumerableQueue[T](items: Iterable[T]|None) -> EnumerableQueue[T]:
     return EnumerableQueue[T](items)
 def MakeEnumerableQueue[T](*values: T) -> EnumerableQueue[T]:
     return CreateEnumerableQueue(values)
 
-def CreateEnumerableStack[T](items: Iterable[T]) -> EnumerableStack[T]:
+def CreateEnumerableStack[T](items: Iterable[T]|None) -> EnumerableStack[T]:
     return EnumerableStack[T](items)
 def MakeEnumerableStack[T](*values: T) -> EnumerableStack[T]:
     return CreateEnumerableStack(values)
 
-def CreateCountableQueue[T](items: Iterable[T]) -> CountableQueue[T]:
+def CreateCountableQueue[T](items: Iterable[T]|None) -> CountableQueue[T]:
     return CountableQueue[T](items)
 def MakeCountableQueue[T](*values: T) -> CountableQueue[T]:
     return CreateCountableQueue(values)
 
-def CreateCountableStack[T](items: Iterable[T]) -> CountableStack[T]:
+def CreateCountableStack[T](items: Iterable[T]|None) -> CountableStack[T]:
     return CountableStack[T](items)
 def MakeCountableStack[T](*values: T) -> CountableStack[T]:
     return CreateCountableStack(values)
 
-def CreateCountableEnumerableQueue[T](items: Iterable[T]) -> CountableEnumerableQueue[T]:
+def CreateCountableEnumerableQueue[T](items: Iterable[T]|None) -> CountableEnumerableQueue[T]:
     return CountableEnumerableQueue[T](items)
 def MakeCountableEnumerableQueue[T](*values: T) -> CountableEnumerableQueue[T]:
     return CreateCountableEnumerableQueue(values)
 
-def CreateCountableEnumerableStack[T](items: Iterable[T]) -> CountableEnumerableStack[T]:
+def CreateCountableEnumerableStack[T](items: Iterable[T]|None) -> CountableEnumerableStack[T]:
     return CountableEnumerableStack[T](items)
 def MakeCountableEnumerableStack[T](*values: T) -> CountableEnumerableStack[T]:
     return CreateCountableEnumerableStack(values)

@@ -1381,12 +1381,12 @@ class CountableLinkedListNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ICo
     def _GetNextNode(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None:
         return self._AsContainer(node).GetNext()
 
-def CreateList[T](items: Iterable[T]) -> List[T]:
+def CreateList[T](items: Iterable[T]|None) -> List[T]:
     return List[T](items)
 def MakeList[T](*values: T) -> List[T]:
     return CreateList(values)
 
-def CreateCountableList[T](items: Iterable[T]) -> CountableList[T]:
+def CreateCountableList[T](items: Iterable[T]|None) -> CountableList[T]:
     return CountableList[T](items)
 def MakeCountableList[T](*values: T) -> CountableList[T]:
     return CreateCountableList(values)
