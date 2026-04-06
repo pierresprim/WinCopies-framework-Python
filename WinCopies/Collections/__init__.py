@@ -336,15 +336,15 @@ class ICollection[T](IReadOnlyList[T]):
     def Add(self, item: T) -> None:
         pass
     
-    def AddItems(self, items: Iterable[T]) -> None:
+    def AddRange(self, items: Iterable[T]) -> None:
         for item in items:
             self.Add(item)
     @final
-    def TryAddItems(self, items: Iterable[T]|None) -> bool:
+    def TryAddRange(self, items: Iterable[T]|None) -> bool:
         if items is None:
             return False
         
-        self.AddItems(items)
+        self.AddRange(items)
         
         return True
 
