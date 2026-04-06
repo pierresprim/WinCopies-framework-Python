@@ -11,7 +11,7 @@ import WinCopies.Data
 
 from WinCopies import Abstract, String
 from WinCopies.Collections.Enumeration import ICountableEnumerable
-from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
+from WinCopies.Collections.Extensions import IHashableTuple, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Enum import HasFlag
 from WinCopies.String import CommaJoin
@@ -209,7 +209,7 @@ class IndexFactory(Abstract, IIndexFactory):
             return f"{self._GetHeader()} {self._GetStringColumns()}"
     @final
     class __UnicityIndex(UnicityIndex, _MultiColumnIndex):
-        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
+        def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -227,7 +227,7 @@ class IndexFactory(Abstract, IIndexFactory):
             return f"{self.GetKeyType().name.upper()} {IndexType.Key.name.upper()}"
     @final
     class __PrimaryKey(PrimaryKey, _MultiColumnIndex, _Key):
-        def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
+        def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -260,7 +260,7 @@ class IndexFactory(Abstract, IIndexFactory):
         return self.__connection
     
     @final
-    def GetPrimaryKey(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
+    def GetPrimaryKey(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
         return IndexFactory.__PrimaryKey(name, columns, self._GetConnection())
     @final
     def GetForeignKey(self, name: str, column: str, foreignKey: DualResult[str, str]) -> IForeignKey:
@@ -269,5 +269,5 @@ class IndexFactory(Abstract, IIndexFactory):
     def GetNormalIndex(self, name: str, column: str) -> ISingleColumnIndex:
         raise InvalidOperationError("Not supported.")
     @final
-    def GetUnicityIndex(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
+    def GetUnicityIndex(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
         return IndexFactory.__UnicityIndex(name, columns, self._GetConnection())

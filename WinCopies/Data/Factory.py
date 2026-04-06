@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 from WinCopies import IInterface
 from WinCopies.Collections.Enumeration import ICountableEnumerable
-from WinCopies.Collections.Extensions import IEquatableTuple, IDictionary
+from WinCopies.Collections.Extensions import IHashableTuple, IDictionary
 
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
@@ -80,7 +80,7 @@ class IIndexFactory(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetPrimaryKey(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
+    def GetPrimaryKey(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
         pass
     @abstractmethod
     def GetForeignKey(self, name: str, column: str, foreignKey: DualResult[str, str]) -> IForeignKey:
@@ -89,5 +89,5 @@ class IIndexFactory(IInterface):
     def GetNormalIndex(self, name: str, column: str) -> ISingleColumnIndex:
         pass
     @abstractmethod
-    def GetUnicityIndex(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
+    def GetUnicityIndex(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
         pass
