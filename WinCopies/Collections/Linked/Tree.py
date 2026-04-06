@@ -7,7 +7,7 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumeratorBase, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
-from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableList, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableList, DoublyLinkedNodeEnumeratorBase
+from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableListBase, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableListBase, DoublyLinkedNodeEnumeratorBase
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -19,7 +19,7 @@ class ITreeNode[T](INode[T]):
     def GetItems(self) -> ITree[T]:
         pass
 
-class ITree[T](IEnumerableList[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
+class ITree[T](IEnumerableListBase[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -78,7 +78,7 @@ class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
     def _AsNode(self, node: ITreeNode[T]) -> ITreeNode[T]:
         return node
 
-class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "TreeBase[TItem, TNode]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
+class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     def __init__(self) -> None:
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None:
             self.__recursive = func
@@ -113,7 +113,7 @@ class TreeBase[TItem, TNode](EnumerableList[TItem, TNode, ITreeNode[TItem], "Tre
         return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
 
 @final
-class __TreeNode[T](DoublyLinkedNodeAbstract[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"], TreeBase[T, "__TreeNode[T]"]], NodeBase[T, "__TreeNode[T]"], ITreeNode[T], EnumerableListNodeBase[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"]], IGenericConstraintImplementation[IEnumerableList[T, ITreeNode[T]]]):
+class __TreeNode[T](DoublyLinkedNodeAbstract[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"], TreeBase[T, "__TreeNode[T]"]], NodeBase[T, "__TreeNode[T]"], ITreeNode[T], EnumerableListNodeBase["__TreeNode[T]", TreeBase[T, "__TreeNode[T]"]], IGenericConstraintImplementation[IEnumerableListBase[T, ITreeNode[T]]]):
     def __init__(self, value: T, l: TreeBase[T, __TreeNode[T]]|None, cookie: INodeCookie[__TreeNode[T]], previousNode: __TreeNode[T]|None, nextNode: __TreeNode[T]|None) -> None:
         super().__init__(value, l, cookie, previousNode, nextNode)
 
@@ -129,7 +129,7 @@ class __TreeNode[T](DoublyLinkedNodeAbstract[T, "__TreeNode[T]", ITreeNode[T], T
     def _GetListAsClass(self, l: TreeBase[T, __TreeNode[T]]) -> TreeBase[T, __TreeNode[T]]:
         return l
     @final
-    def _GetListAsSpecialized(self, l: TreeBase[T, __TreeNode[T]]) -> EnumerableList[T, __TreeNode[T], ITreeNode[T], TreeBase[T, __TreeNode[T]]]:
+    def _GetListAsSpecialized(self, l: TreeBase[T, __TreeNode[T]]) -> EnumerableListBase[T, __TreeNode[T], ITreeNode[T]]:
         return l
     
     @final
