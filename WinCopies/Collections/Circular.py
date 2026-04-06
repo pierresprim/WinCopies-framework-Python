@@ -3,7 +3,6 @@ from collections.abc import Iterable, Sequence as SequenceBase
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections import GetIndex
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
@@ -18,8 +17,8 @@ class ICircularTuple[T](ITuple[T]):
         pass
     
     @final
-    def GetIndex(self, index: int) -> int:
-        return GetIndex(index, self.GetCount(), self.GetStart())[0]
+    def GetCircularIndex(self, index: int) -> int:
+        return self.GetIndex(index, self.GetStart())[0]
 class ICircularEquatableTuple[T: IEquatableItem](ICircularTuple[T], IEquatableTuple[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -43,12 +42,12 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     
     @final
     def _GetAt(self, key: int) -> TItem:
-        return self._GetInnerContainer().GetAt(self.GetIndex(key))
+        return self._GetInnerContainer().GetAt(self.GetCircularIndex(key))
     
     @final
     def _GetKey(self, key: slice) -> slice:
         def getIndex(index: int) -> int:
-            return index if index == count else self.GetIndex(index)
+            return index if index == count else self.GetCircularIndex(index)
         
         count = self.GetCount()
         start, stop, step = key.indices(count)
@@ -112,7 +111,7 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecial
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
-        self._GetSpecializedContainer().SetAt(self.GetIndex(key), value)
+        self._GetSpecializedContainer().SetAt(self.GetCircularIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int) -> None:
         super().__init__(items, start)
@@ -126,11 +125,11 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     
     @final
     def _GetIndexOrKey(self, index: SupportsIndex|slice) -> SupportsIndex|slice:
-        return self.GetIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)
+        return self.GetCircularIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)
     
     @final
     def _SetAt(self, key: int, value: T) -> None:
-        return self._GetContainer().SetAt(self.GetIndex(key), value)
+        return self._GetContainer().SetAt(self.GetCircularIndex(key), value)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]:
@@ -146,7 +145,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
             
             return False
 
-        index: int = self.GetIndex(self.GetLastIndex())
+        index: int = self.GetCircularIndex(self.GetLastIndex())
 
         if tryAdd():
             return
@@ -158,11 +157,11 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     
     @final
     def TryInsert(self, index: int, value: T) -> bool:
-        return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetIndex(index), value)
+        return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetCircularIndex(index), value)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
-        return self._GetContainer().TryRemoveAt(self.GetIndex(index))
+        return self._GetContainer().TryRemoveAt(self.GetCircularIndex(index))
     
     @final
     def Clear(self) -> None:
