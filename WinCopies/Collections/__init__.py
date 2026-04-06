@@ -497,7 +497,35 @@ class ICountableIndexableBase(IKeyableBase[int], ICountable):
     def ContainsKey(self, key: int) -> bool:
         return self.ValidateIndex(key)
 
-class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableBase):
+class IIndexableCollectionBase(ICountable):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def ReverseIndex(self, index: int) -> int:
+        return ReverseIndex(index, self.GetCount())
+    
+    @final
+    def GetOffset(self, inStart: int, outStart: int) -> int:
+        return GetOffset(inStart, outStart, self.GetCount())
+    @final
+    def GetIndex(self, start: int, offset: int) -> tuple[int, int]:
+        return GetIndex(start, self.GetCount(), offset)
+    
+    @final
+    def ReverseKey(self, key: slice) -> slice:
+        start, stop, step = key.indices(self.GetCount())
+        
+        return slice(self.ReverseIndex(start), self.ReverseIndex(stop), step)
+    
+    @final
+    def ReverseRangeStartIndex(self, index: int, count: int) -> int:
+        return ReverseRangeStartIndex(index, count, self.GetCount())
+class IIndexableCollection(IIndexableCollectionBase, ICountableIndexableBase):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], IIndexableCollection):
     def __init__(self) -> None:
         super().__init__()
     
@@ -518,7 +546,7 @@ class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], ICountableIndexableB
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyCountableIndexable[T]:
         pass
-class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], ICountableIndexableBase):
+class IWriteOnlyCountableIndexable[T](IWriteOnlyIndexable[T], IIndexableCollection):
     def __init__(self) -> None:
         super().__init__()
 
@@ -563,7 +591,7 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
 
-class IArrayBase[T](ITuple[T], ICountableIndexableBase):
+class IArrayBase[T](ITuple[T], IIndexableCollection):
     def __init__(self) -> None:
         super().__init__()
     
