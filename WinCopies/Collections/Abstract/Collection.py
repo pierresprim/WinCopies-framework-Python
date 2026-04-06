@@ -8,7 +8,7 @@ from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, IDictionary, ISet, TupleAbstract, TupleCollection, EquatableTupleCollection, ArrayCollection, Collection, Set as SetBase, Dictionary as DictionaryBase, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Collection, Set as SetBase, Dictionary as DictionaryBase, Sequence, MutableSequence
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
@@ -74,6 +74,22 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
     def _GetContainer(self) -> IEquatableTuple[TIn]:
         return self.__items
     
+    def Equals(self, item: object) -> bool:
+        return self is item or self._GetContainer().Equals(item)
+    
+    @final
+    def SliceAt(self, key: slice) -> IEquatableTuple[TOut]:
+        return self._Clone(self._GetContainer().SliceAt(key))
+class HashableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+    def __init__(self, items: IHashableTuple[TIn]) -> None:
+        super().__init__()
+
+        self.__items: IHashableTuple[TIn] = items
+    
+    @final
+    def _GetContainer(self) -> IHashableTuple[TIn]:
+        return self.__items
+    
     def Hash(self) -> int:
         return self._GetContainer().Hash()
     
@@ -81,7 +97,7 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
         return self is item or self._GetContainer().Equals(item)
     
     @final
-    def SliceAt(self, key: slice) -> IEquatableTuple[TOut]:
+    def SliceAt(self, key: slice) -> IHashableTuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
 
 class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], StringableTwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):

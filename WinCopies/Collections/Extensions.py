@@ -5,9 +5,9 @@ from collections.abc import Sized, Container, Iterable, Iterator, Collection as 
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable, IGetter, ISetter, FindIndex
+from WinCopies.Collections import Enumeration, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration import IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
@@ -149,7 +149,7 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T
     def AsSequence(self) -> SequenceBase[T]:
         return self
 
-class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
+class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -160,7 +160,7 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IStringable):
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[T], IEquatableEnumerable[T], IItem):
+class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], IEquatableEnumerable[T], ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -170,6 +170,17 @@ class IEquatableTuple[T: IEquatableItem](Collections.IEquatableTuple[T], ITuple[
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
+        pass
+class IHashableTuple[T: IEquatableItem](IEquatableTuple[T], IHashableEnumerable[T], IItem):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def AsReversed(self) -> IHashableTuple[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
         pass
 class IArrayBase[T](ITuple[T], Collections.IArrayBase[T]):
     def __init__(self) -> None:
@@ -565,6 +576,21 @@ class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]
     
     def Equals(self, item: object) -> bool:
         return self._GetContainer().Equals(item)
+@final
+class _ReversedHashableTuple[T: IEquatableItem](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
+    def __init__(self, items: IHashableTuple[T]) -> None:
+        super().__init__(items)
+    
+    def _SliceAt(self, key: slice) -> IHashableTuple[T]:
+        return self._GetContainer().SliceAt(key)
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
+        return self.ToSlicedAt(key)
+
+    def AsReversed(self) -> IHashableTuple[T]:
+        return self._GetContainer()
+    
+    def Equals(self, item: object) -> bool:
+        return self._GetContainer().Equals(item)
     
     def Hash(self) -> int:
         return self._GetContainer().Hash()
@@ -577,6 +603,15 @@ class _ReversedEquatableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IEq
     
     def _GetValue(self) -> IEquatableTuple[T]:
         return _ReversedEquatableTuple[T](self.__array)
+@final
+class _ReversedHashableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IHashableTuple[T]]):
+    def __init__(self, array: IHashableTuple[T], updater: Method[IFunction[IHashableTuple[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__array: IHashableTuple[T] = array
+    
+    def _GetValue(self) -> IHashableTuple[T]:
+        return _ReversedHashableTuple[T](self.__array)
 
 class TupleCollection[T](TupleAbstract[T]):
     def __init__(self) -> None:
@@ -607,6 +642,22 @@ class EquatableTupleCollection[T: IEquatableItem](TupleAbstract[T], IEquatableTu
     def AsReversed(self) -> IEquatableTuple[T]:
         return self.__reversed.GetValue()
 class EquatableTuple[T: IEquatableItem](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class HashableTupleCollection[T: IEquatableItem](TupleAbstract[T], IHashableTuple[T]):
+    def __init__(self) -> None:
+        def update(func: IFunction[IHashableTuple[T]]) -> None:
+            self.__reversed = func
+        
+        super().__init__()
+
+        self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsReversed(self) -> IHashableTuple[T]:
+        return self.__reversed.GetValue()
+class HashableTuple[T: IEquatableItem](HashableTupleCollection[T], TupleBase[T], IHashableTuple[T]):
     def __init__(self) -> None:
         super().__init__()
 

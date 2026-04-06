@@ -9,7 +9,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple, MakeList, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, TupleEnumerator, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
@@ -63,12 +63,12 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeTuple(items))
     
     @final
-    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
         return EquatableTuple[T](self._GetContainer()[key])
     
     def Hash(self) -> int:
@@ -669,9 +669,9 @@ def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
 def CreateTupleFromValues[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
-def CreateEquatableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+def CreateEquatableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
     return EquatableTuple[T](items)
-def CreateEquatableTupleFromValues[T: IEquatableItem](*items: T) -> IEquatableTuple[T]:
+def CreateEquatableTupleFromValues[T: IEquatableItem](*items: T) -> IHashableTuple[T]:
     return CreateEquatableTuple(items)
 
 def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:

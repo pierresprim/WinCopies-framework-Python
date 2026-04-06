@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularArray, ICircularList
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
+from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, HashableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
@@ -62,6 +62,16 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, ICircularEquatab
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
+        return self._GetContainer().SliceAt(key)
+    
+    def Equals(self, item: object) -> bool:
+        return self is item
+class CircularHashableTuple[T: IEquatableItem](CircularBase[T, ICircularHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[ICircularHashableTuple[T]]):
+    def __init__(self, items: ICircularHashableTuple[T]) -> None:
+        super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
         return self._GetContainer().SliceAt(key)
     
     def Hash(self) -> int:

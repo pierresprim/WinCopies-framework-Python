@@ -3,7 +3,7 @@ from collections.abc import Iterable, Sequence as SequenceBase
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, Array, List
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -20,6 +20,9 @@ class ICircularTuple[T](ITuple[T]):
     def GetCircularIndex(self, index: int) -> int:
         return self.GetIndex(index, self.GetStart())[0]
 class ICircularEquatableTuple[T: IEquatableItem](ICircularTuple[T], IEquatableTuple[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class ICircularHashableTuple[T: IEquatableItem](ICircularTuple[T], IHashableTuple[T]):
     def __init__(self) -> None:
         super().__init__()
 class ICircularArray[T](ICircularTuple[T], IArray[T]):
@@ -97,6 +100,16 @@ class CircularEquatableTuple[T: IEquatableItem](CircularBase[T, IEquatableTuple[
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
+        return self._GetContainer().SliceAt(self._GetKey(key))
+    
+    def Equals(self, item: object) -> bool:
+        return self is item
+class CircularHashableTuple[T: IEquatableItem](CircularBase[T, IHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
+    def __init__(self, items: IHashableTuple[T], start: int) -> None:
+        super().__init__(items, start)
+    
+    @final
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
         return self._GetContainer().SliceAt(self._GetKey(key))
     
     def Hash(self) -> int:
