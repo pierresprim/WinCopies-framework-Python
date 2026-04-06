@@ -63,14 +63,12 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
     for item in items.AsIterable():
         lst.SetAt(i, item)
         i += s
-
 def SetItems[T](lst: IList[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex):
         lst.SetAt(int(index), value) # type: ignore
     
     else:
         SetValues(lst, index, value) # type: ignore
-
 
 def RemoveValues[T](lst: IList[T], key: slice) -> None:
     def reverseIndex(index: int) -> int:
