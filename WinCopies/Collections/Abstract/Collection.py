@@ -160,8 +160,16 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], Mu
         return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     
     @final
+    def TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool:
+        return self._GetContainer().TryInsertRange(index, Select(items, lambda item: self._ConvertBack(item)))
+    
+    @final
     def TryRemoveAt(self, index: int) -> bool|None:
         return self._GetContainer().TryRemoveAt(index)
+    
+    @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        return self._GetContainer().TryRemoveRange(index, count)
     
     @final
     def Clear(self) -> None:
