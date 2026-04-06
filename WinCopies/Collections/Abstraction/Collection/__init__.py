@@ -437,10 +437,11 @@ class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Se
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> T|Sequence[T]:
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
-    
-    @staticmethod
-    def Create(*items: T) -> ISortedList[T]:
-        return SortedList[T](items)
+
+def CreateSortedList[T: IComparableValue|SupportsRichComparison](items: Iterable[T]) -> ISortedList[T]:
+    return SortedList[T](items)
+def MakeSortedList[T: IComparableValue|SupportsRichComparison](*items: T) -> ISortedList[T]:
+    return CreateSortedList(items)
 
 @final
 class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
