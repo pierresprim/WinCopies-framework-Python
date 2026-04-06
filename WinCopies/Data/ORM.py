@@ -12,7 +12,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerat
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IReadOnlySet, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, IDictionary
 from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
@@ -1245,8 +1245,8 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
     
     def __init__(self, key: T) -> None:
         super().__init__(key, EntityKey[T]._Enumerable(self))
-class CompositeEntityKey[T: IValueItem](EntityKeyBase[IEquatableTuple[T]], IEntityKey[IEquatableTuple[T]]):
-    def __init__(self, keys: IEquatableTuple[T]) -> None:
+class CompositeEntityKey[T: IValueItem](EntityKeyBase[IHashableTuple[T]], IEntityKey[IHashableTuple[T]]):
+    def __init__(self, keys: IHashableTuple[T]) -> None:
         super().__init__(keys, self.GetValue())
 
 def _SetEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
