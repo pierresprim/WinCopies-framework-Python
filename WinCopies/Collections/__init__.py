@@ -784,6 +784,25 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
     def Remove(self, key: TKey) -> None:
         pass
 
+class IReadOnlyOrderedSet[T: IEquatableItem](IReadOnlySet[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsTuple(self) -> IEquatableTuple[T]:
+        pass
+class IOrderedSet[T: IEquatableItem](ISet[T], IReadOnlyOrderedSet[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
+        pass
+
+    @abstractmethod
+    def AsList(self) -> IList[T]:
+        pass
+
 class Tuple[T](Abstract, ITuple[T]):
     def __init__(self) -> None:
         super().__init__()

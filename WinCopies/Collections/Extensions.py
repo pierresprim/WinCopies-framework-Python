@@ -5,7 +5,7 @@ from collections.abc import Sized, Container as ContainerBase, Iterable, Iterato
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
+from WinCopies.Collections import Enumeration, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Iteration.Extensions import Reverse
@@ -1173,3 +1173,41 @@ class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
+
+class IReadOnlyOrderedSet[T: IEquatableItem](IReadOnlySet[T], Collections.IReadOnlyOrderedSet[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsTuple(self) -> IEquatableTuple[T]:
+        pass
+class IOrderedSet[T: IEquatableItem](Collections.IOrderedSet[T], ISet[T], IReadOnlyOrderedSet[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
+        pass
+
+    @abstractmethod
+    def AsList(self) -> IList[T]:
+        pass
+
+class IReadOnlyKeyedSet[TKey: IEquatableItem, TValue](ICountableEnumerable[ITuple[TValue]], IReadOnlyCollectionBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetKeys(self) -> IReadOnlySet[TKey]:
+        pass
+class IKeyedSet[TKey: IEquatableItem, TValue](IReadOnlyKeyedSet[TKey, TValue], IClearable):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryAdd(self, values: ITuple[TValue]) -> bool:
+        pass
+
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
+        pass
