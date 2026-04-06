@@ -714,6 +714,22 @@ class ISet[T: IEquatableItem](IReadOnlySet[T], IClearable):
     @abstractmethod
     def Add(self, item: T) -> None:
         pass
+
+    @abstractmethod
+    def TryAddRange(self, items: Iterable[T]) -> bool:
+        pass
+    @final
+    def AddRange(self, items: Iterable[T]) -> None:
+        if not self.TryAddRange(items):
+            raise KeyError()
+
+    @final
+    def TryAddValues(self, *values: T) -> bool:
+        return self.TryAddRange(values)
+    @final
+    def AddValues(self, *values: T) -> None:
+        if not self.TryAddValues(*values):
+            raise KeyError()
     
     @abstractmethod
     def Remove(self, item: T) -> None:

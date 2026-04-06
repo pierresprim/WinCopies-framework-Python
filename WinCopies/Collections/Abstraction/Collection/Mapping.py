@@ -1,15 +1,17 @@
+from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections import Extensions
 from WinCopies.Collections.Enumeration import IEnumerator, TryAsEnumerator
 from WinCopies.Collections.Extensions import ISet
+from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
 from WinCopies.Typing import IEquatableItem
 
 class Set[T: IEquatableItem](Extensions.Set[T]):
-    def __init__(self, items: set[T]|None = None) -> None:
+    def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
         super().__init__()
 
-        self.__set: set[T] = set[T]() if items is None else items
+        self.__set: set[T] = set[T]() if items is None else (items if isinstance(items, set) else set[T](items))
     
     @final
     def __TryAdd(self, item: T) -> int:
@@ -28,12 +30,30 @@ class Set[T: IEquatableItem](Extensions.Set[T]):
         return len(self._GetItems())
     
     @final
+    def Contains(self, value: T|object) -> bool:
+        return value in self.__set
+    
+    @final
     def TryAdd(self, item: T) -> bool:
         return self.__TryAdd(item) < self.GetCount()
     @final
     def Add(self, item: T) -> None:
         if self.__TryAdd(item) == self.GetCount():
             raise ValueError(f"Item {item} already exists.")
+    
+    @final
+    def TryAddRange(self, items: Iterable[T]) -> bool:
+        _items: IEnumerableQueue[T] = CreateEnumerableQueue(items)
+
+        for item in _items.AsIterable():
+            if self.Contains(item):
+                return False
+        
+        count = self.GetCount()
+        
+        self._GetItems().update(_items.AsGenerator())
+    
+        return count < self.GetCount()
     
     @final
     def Remove(self, item: T) -> None:

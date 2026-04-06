@@ -1098,6 +1098,10 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
     @final
     def AsReadOnly(self) -> IReadOnlySet[T]:
         return self.__readOnly.GetValue()
+    
+    @final
+    def AsContainer(self) -> ContainerBase[T]:
+        return self.AsReadOnly().AsContainer()
 
 class _ReadOnlyDictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
