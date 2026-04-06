@@ -94,8 +94,13 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 def GetLastIndex[T](l: Sequence[T]) -> int:
     return len(l) - 1
 
+def ReverseIndexFromLast(index: int, lastIndex: int) -> int:
+    return lastIndex - index
 def ReverseIndex(index: int, length: int) -> int:
-    return length - 1 - index
+    return ReverseIndexFromLast(length - 1, index)
+
+def ReverseRangeStartIndex(index: int, count: int, totalLength: int) -> int:
+    return GetIndex(ReverseIndex(index, totalLength), totalLength, -(count - 1))[0]
 
 def TryGetAt[T](l: Sequence[T], index: int, default: T|None = None) -> T|None:
     return l[index] if ValidateIndex(index, len(l)) else default
