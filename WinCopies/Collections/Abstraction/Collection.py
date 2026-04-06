@@ -143,6 +143,16 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
         return True
     
     @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        if self.ValidateIndex(index):
+            for i in range(count):
+                self.RemoveAt(index + i)
+
+            return True
+        
+        return False
+    
+    @final
     def Clear(self) -> None:
         self._GetContainer().clear()
     
@@ -163,6 +173,20 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     @final
     def SliceAt(self, key: slice) -> IList[T]:
         return List[T](self._GetContainer()[key])
+    
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        if self.ValidateIndex(index):
+            index -= 1
+            
+            for item in items:
+                index += 1
+
+                self._GetContainer().insert(index, item)
+            
+            return True
+        
+        return False
     
     @final
     def insert(self, index: int, value: T) -> None:

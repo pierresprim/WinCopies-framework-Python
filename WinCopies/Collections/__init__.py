@@ -368,6 +368,14 @@ class ICollection[T](IReadOnlyList[T]):
     def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
         if not self.TryRemove(item, predicate):
             raise ValueError(item)
+    
+    @abstractmethod
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        pass
+    @final
+    def RemoveRange(self, index: int, count: int) -> None:
+        if not self.TryRemoveRange(index, count):
+            raise IndexError(index)
 
 class ICountable(IInterface):
     def __init__(self) -> None:
@@ -652,6 +660,22 @@ class IList[T](IArray[T], IListBase[T]):
     @final
     def Insert(self, index: int, value: T) -> None:
         if not self.TryInsert(index, value):
+            raise IndexError(index)
+    
+    @abstractmethod
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        pass
+    @final
+    def InsertRange(self, index: int, items: Iterable[T]) -> None:
+        if not self.TryInsertRange(index, items):
+            raise IndexError(index)
+    
+    @final
+    def TryInsertValues(self, index: int, *values: T) -> bool:
+        return self.TryInsertRange(index, values)
+    @final
+    def InsertValues(self, index: int, *values: T) -> None:
+        if not self.TryInsertValues(index, *values):
             raise IndexError(index)
 class ISortedList[T](IListBase[T]):
     def __init__(self) -> None:

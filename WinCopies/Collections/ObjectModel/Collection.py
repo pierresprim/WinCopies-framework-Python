@@ -66,6 +66,12 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         
         return self._GetInnerContainer().TryInsert(index, item)
     
+    def _InsertItems(self, index: int, items: Iterable[TItem]) -> bool:
+        return self._GetInnerContainer().TryInsertRange(index, items)
+    
+    def _RemoveItemsAt(self, index: int, count: int) -> bool:
+        return self._GetInnerContainer().TryRemoveRange(index, count)
+    
     def _RemoveItemAt(self, index: int) -> bool|None:
         return self._GetInnerContainer().TryRemoveAt(index)
     
@@ -120,6 +126,14 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def TryInsert(self, index: int, value: TItem) -> bool:
         return self._InsertItem(index, value)
+    
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
+        return self._InsertItems(index, items)
+    
+    @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        return self._RemoveItemsAt(index, count)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -211,6 +225,16 @@ class ObservableCollection[T](Collection[T]):
         
         return False
     
+    def _InsertItems(self, index: int, items: Iterable[T]) -> bool:
+        self.__AssertReentrancy()
+
+        if super()._InsertItems(index, items):
+            self.__itemAddedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Add))
+
+            return True
+        
+        return False
+    
     def _MoveItem(self, x: int, y: int) -> None:
         self.__AssertReentrancy()
 
@@ -230,6 +254,16 @@ class ObservableCollection[T](Collection[T]):
 
         if super()._SetItem(index, item):
             self.__itemUpdatedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Update))
+
+            return True
+        
+        return False
+    
+    def _RemoveItemsAt(self, index: int, count: int) -> bool:
+        self.__AssertReentrancy()
+
+        if super()._RemoveItemsAt(index, count):
+            self.__itemRemovedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
             return True
         
