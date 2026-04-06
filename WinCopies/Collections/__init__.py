@@ -305,13 +305,18 @@ class IReadOnlyCollection(IInterface):
     def ThrowIfEmpty(self) -> None:
         if self.IsEmpty():
             raise EmptyException()
-class IReadOnlyList[T](IReadOnlyCollection):
+
+class IContainer[T](IInterface):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def Contains(self, value: T|object) -> bool:
         pass
+
+class IReadOnlyList[T](IContainer[T], IReadOnlyCollection):
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def AsContainer(self) -> Container[T]:
