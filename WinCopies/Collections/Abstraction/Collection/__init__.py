@@ -7,7 +7,7 @@ from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple, MakeList, Move
+from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
@@ -55,7 +55,7 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.Tu
 
 class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
-        super().__init__(MakeTuple(items))
+        super().__init__(MakeSequence(items))
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
@@ -65,7 +65,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
         return str(self._GetContainer())
 class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
-        super().__init__(MakeTuple(items))
+        super().__init__(MakeSequence(items))
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
@@ -96,7 +96,7 @@ class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TIt
 
 class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
-        super().__init__(MakeList(items))
+        super().__init__(MakeMutableSequence(items))
     
     @final
     def Move(self, x: int, y: int) -> None:
@@ -124,7 +124,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: MutableSequenceBase[T] = MakeList(items)
+        self.__items: MutableSequenceBase[T] = MakeMutableSequence(items)
     
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]:
@@ -657,22 +657,22 @@ class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValu
 
 def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
     return Tuple[T](items)
-def CreateTupleFromValues[T](*items: T) -> ITuple[T]:
+def MakeTuple[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
 def CreateEquatableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
     return EquatableTuple[T](items)
-def CreateEquatableTupleFromValues[T: IEquatableItem](*items: T) -> IHashableTuple[T]:
+def MakeEquatableTuple[T: IEquatableItem](*items: T) -> IHashableTuple[T]:
     return CreateEquatableTuple(items)
 
 def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
     return Array[T](items)
-def CreateArrayFromValues[T](*items: T) -> IArray[T]:
+def MakeArray[T](*items: T) -> IArray[T]:
     return CreateArray(items)
 
 def CreateList[T](items: MutableSequenceBase[T]|Iterable[T]) -> IList[T]:
     return List[T](items)
-def CreateListFromValues[T](*items: T) -> IList[T]:
+def MakeList[T](*items: T) -> IList[T]:
     return CreateList(items)
 
 def CreateSizedList[T](items: MutableSequenceBase[T]) -> ISizedList[T]:
