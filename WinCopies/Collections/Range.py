@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence
 from typing import SupportsIndex
 
 from WinCopies.Collections import IList, ReverseIndex
-from WinCopies.Collections.Abstraction.Collection import Tuple
+from WinCopies.Collections.Abstraction.Collection import CreateTuple
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple
 from WinCopies.Collections.Linked.Singly import CreateCountableQueue, CreateEnumerableStack
@@ -13,67 +13,57 @@ def GetItems[T](l: ITuple[T], index: SupportsIndex|slice) -> T|Sequence[T]:
 def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, lst.GetCount())
-    def replace(i: int, l: int, s: int) -> None:
-        def getItems() -> ICountableEnumerable[T]:
-            return values if isinstance(values, ICountableEnumerable) else (Tuple[T](values) if isinstance(values, Sequence) else CreateCountableQueue(values).AsCountableGenerator())
-        
-        def getRangeCount(start: int, stop: int, step: int) -> int:
-            count: int = 0
-
-            for _ in range(start, stop, step):
-                count += 1
-            
-            return count
-        
-        items: ICountableEnumerable[T] = getItems()
-        
-        if getRangeCount(i, l, s) == items.GetCount():
-            for item in items.AsIterable():
-                lst.SetAt(i, item)
-
-                i += s
-
-        else:
-            raise ValueError()
+    
+    def getItems() -> ICountableEnumerable[T]:
+        return (values
+        if isinstance(values, ICountableEnumerable)
+        else (CreateTuple(values) if isinstance(values, Sequence)
+        else CreateCountableQueue(values).AsCountableGenerator()))
 
     s: int|None = key.step
 
     if s is None:
         s = 1
-
+    
     elif s == 0:
         raise IndexError()
-    
+
     i: int|None = key.start
     l: int|None = key.stop
 
     if i is None:
         i = 0
+    
     if l is None:
         l = lst.GetCount()
 
     if s < 0:
         SetValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s), values)
 
-        return
+    elif s == 1:
+        if i > l:
+            raise IndexError()
 
-    if i > l:
-        raise IndexError()
-    
-    if s == 1:
-        if i == l:
-            for item in values:
-                lst.Insert(i, item)
+        count: int = l - i
 
-                i += 1
-        
-        else:
-            replace(i, l, 1)
-    
-    elif i == l:
+        if count > 0:
+            lst.RemoveRange(i, count)
+
+        lst.InsertRange(i, values)
+
+    # step > 1
+    elif i >= l:
         raise IndexError()
-    
-    replace(i, l, s)
+
+    items: ICountableEnumerable[T] = getItems()
+
+    if len(range(i, l, s)) != items.GetCount():
+        raise ValueError()
+
+    for item in items.AsIterable():
+        lst.SetAt(i, item)
+        i += s
+
 def SetItems[T](lst: IList[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex):
         lst.SetAt(int(index), value) # type: ignore
