@@ -6,9 +6,10 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IStringable, Abstract
-from WinCopies.Collections.Abstraction.Collection import EquatableTuple, Set
-from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IEnumerator, IterableBase
-from WinCopies.Collections.Extensions import IReadOnlyCollection, IEquatableTuple, ISet, ReadOnlyCollection
+from WinCopies.Collections.Abstraction.Collection import EquatableTuple
+from WinCopies.Collections.Abstraction.Collection.Mapping import OrderedSet
+from WinCopies.Collections.Enumeration import IEnumerable, IHashableEnumerable, IEnumerator, IterableBase
+from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple, IOrderedSet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Typing.Object import  IEquatableObject, IString
@@ -56,7 +57,7 @@ class IMultiColumnIndex(IIndex):
         super().__init__()
     
     @abstractmethod
-    def GetColumns(self) -> IEquatableTuple[IString]:
+    def GetColumns(self) -> IHashableTuple[IString]:
         pass
 
 class IKey(IIndex):
@@ -106,13 +107,13 @@ class SingleColumnIndex(Index, ISingleColumnIndex):
     def GetColumn(self) -> str:
         return self.__columns
 class MultiColumnIndex(Index, IMultiColumnIndex):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
+    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name)
 
-        self.__columns: IEquatableTuple[IString] = columns if isinstance(columns, IEquatableTuple) else EquatableTuple[IString](columns)
+        self.__columns: IHashableTuple[IString] = columns if isinstance(columns, IHashableTuple) else EquatableTuple[IString](columns)
     
     @final
-    def GetColumns(self) -> IEquatableTuple[IString]:
+    def GetColumns(self) -> IHashableTuple[IString]:
         return self.__columns
 
 class NormalIndex(SingleColumnIndex):
@@ -123,7 +124,7 @@ class NormalIndex(SingleColumnIndex):
     def GetType(self) -> IndexType:
         return IndexType.Normal
 class UnicityIndex(MultiColumnIndex):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
+    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name, columns)
     
     @final
@@ -131,7 +132,7 @@ class UnicityIndex(MultiColumnIndex):
         return IndexType.Unique
 
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
-    def __init__(self, name: str, columns: IEquatableTuple[IString]|Iterable[IString]) -> None:
+    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name, columns)
     
     @final
@@ -216,7 +217,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
 
                 self.__index: IMultiColumnIndex = index
             
-            def GetColumns(self) -> IEquatableEnumerable[IString]:
+            def GetColumns(self) -> IHashableEnumerable[IString]:
                 return self.__index.GetColumns()
             
             def Hash(self) -> int:
@@ -228,9 +229,9 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         def __init__(self) -> None:
             super().__init__()
 
-            self.__byName: ISet[IndexCollection.__Indices.__ByName] = Set[IndexCollection.__Indices.__ByName]()
-            self.__byField: ISet[IndexCollection.__Indices.__ByField] = Set[IndexCollection.__Indices.__ByField]()
-            self.__byFields: ISet[IndexCollection.__Indices.__ByFields] = Set[IndexCollection.__Indices.__ByFields]()
+            self.__byName: IOrderedSet[IndexCollection.__Indices.__ByName] = OrderedSet[IndexCollection.__Indices.__ByName]()
+            self.__byField: IOrderedSet[IndexCollection.__Indices.__ByField] = OrderedSet[IndexCollection.__Indices.__ByField]()
+            self.__byFields: IOrderedSet[IndexCollection.__Indices.__ByFields] = OrderedSet[IndexCollection.__Indices.__ByFields]()
         
         def __TryAddIndex(self, index: IIndex) -> bool:
             return self.__byName.TryAdd(IndexCollection.__Indices.__ByName(index))
