@@ -98,10 +98,21 @@ class IEnumerable[T](IEnumerableBase[T]):
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
+class IHashableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
+    def __init__(self) -> None:
+        super().__init__()
 
 class ICountableEnumerable[T](IEnumerable[T], ICountable):
     def __init__(self) -> None:
         super().__init__()
+
+class IReversableEnumerable[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReversed(self) -> IEnumerable[T]:
+        pass
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
