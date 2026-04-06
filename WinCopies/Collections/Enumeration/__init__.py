@@ -14,7 +14,7 @@ from typing import final
 from WinCopies import IInterface, Delegates
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing import IEquatableValue, IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
@@ -95,7 +95,7 @@ class IEnumerable[T](IEnumerableBase[T]):
     def AsIterable(self) -> SystemIterable[T]:
         pass
 
-class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
+class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 
