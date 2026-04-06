@@ -120,7 +120,7 @@ class SizedArray[T](Array[T]):
     def _GetDefaultValue(self) -> T:
         pass
 
-class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.ICollection[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__()
 
