@@ -29,10 +29,10 @@ def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, va
 
         return
 
-    # Matérialiser pour garantir la ré-itérabilité
+    # Materialize to guarantee reiterability
     newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
 
-    # Indices affectés + contrainte de taille
+    # Affected indices + size constraint
     if step == 1:
         indices: range = range(start, max(start, stop))
     else:
@@ -41,7 +41,7 @@ def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, va
         if len(indices) != len(newItems):
             raise ValueError()
 
-    # Phase 1 — Validation pure
+    # Phase 1 — Validation only
     oldSet: set[T] = set[T]()
 
     for idx in indices:
@@ -51,9 +51,9 @@ def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, va
 
     for item in newItems:
         if not seen.TryAdd(item) or (item in s and not item in oldSet):
-            raise ValueError()  # Doublon interne aux nouveaux items OR Conflit avec un item existant hors du slice
+            raise ValueError()  # Internal duplicate of new items OR Conflict with an existing item outside the slice
 
-    # Phase 2 — Mutation (seulement si la validation est passée intégralement)
+    # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices:
         s.remove(lst.GetAt(idx))
 
