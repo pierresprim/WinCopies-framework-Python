@@ -271,7 +271,7 @@ class IDictionary[TKey: IEquatableItem, TValue](Collections.IDictionary[TKey, TV
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         pass
 
-class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet, ICountableEnumerable[T], IStringable):
+class IReadOnlySet[T: IEquatableItem](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
 class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
@@ -1025,11 +1025,34 @@ class SortedList[T](_ArrayBase[T, ISortedList[T]], SortedCollection[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
+@final
+class _SetContainer[T: IEquatableItem](Container[T]):
     def __init__(self, items: IReadOnlySet[T]) -> None:
         super().__init__()
 
+        self.__items: IReadOnlySet[T] = items
+    
+    def Contains(self, value: T|object) -> bool:
+        return self.__items.Contains(value)
+@final
+class _ReadOnlySetContainerUpdater[T: IEquatableItem](ValueFunctionUpdater[ContainerBase[T]]):
+    def __init__(self, items: _ReadOnlySet[T], updater: Method[IFunction[ContainerBase[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: _ReadOnlySet[T] = items
+    
+    def _GetValue(self) -> ContainerBase[T]:
+        return _SetContainer[T](self.__items)
+
+class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
+    def __init__(self, items: IReadOnlySet[T]) -> None:
+        def update(func: IFunction[ContainerBase[T]]) -> None:
+            self.__container = func
+        
+        super().__init__()
+
         self.__set: IReadOnlySet[T] = items
+        self.__container: IFunction[ContainerBase[T]] = _ReadOnlySetContainerUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def _GetItems(self) -> IReadOnlySet[T]:
@@ -1040,11 +1063,19 @@ class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
         return self._GetItems().GetCount()
     
     @final
+    def Contains(self, value: T | object) -> bool:
+        return self.__set.Contains(value)
+    
+    @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
     
     def ToString(self) -> str:
         return self._GetItems().ToString()
+    
+    @final
+    def AsContainer(self) -> ContainerBase[T]:
+        return self.__container.GetValue()
 @final
 class _ReadOnlySetUpdater[T: IEquatableItem](ValueFunctionUpdater[IReadOnlySet[T]]):
     def __init__(self, items: Set[T], updater: Method[IFunction[IReadOnlySet[T]]]) -> None:

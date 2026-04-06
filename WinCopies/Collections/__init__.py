@@ -693,19 +693,19 @@ class ISortedList[T](IListBase[T]):
     def SliceAt(self, key: slice) -> ISortedList[T]:
         pass
 
-class IReadOnlySet(ICountable, IReadOnlyCollection):
+class IReadOnlySet[T: IEquatableItem](IReadOnlyList[T], ICountable):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def IsEmpty(self) -> bool:
-        return self.GetCount() == 0
-class ISet[T: IEquatableItem](IReadOnlySet, IClearable):
+        return self.GetCount() < 1
+class ISet[T: IEquatableItem](IReadOnlySet[T], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def AsReadOnly(self) -> IReadOnlySet:
+    def AsReadOnly(self) -> IReadOnlySet[T]:
         pass
     
     @abstractmethod
