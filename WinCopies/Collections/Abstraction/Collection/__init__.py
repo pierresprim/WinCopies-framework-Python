@@ -680,6 +680,9 @@ def CreateSizedList[T](items: MutableSequenceBase[T]) -> ISizedList[T]:
 def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> ISizedList[T]|None:
     return SizedList[T].Create(length) if items is None else (None if length < len(items) else SizedList[T](_SizedListInitializer[T](length, items)))
 
+def CreateArrayList[T](length: int, func: IFunction[T]) -> IArray[T]:
+    return ArrayList[T](length, func)
+
 def CreateSortedList[T: IComparableValue|SupportsRichComparison](items: Iterable[T]) -> ISortedList[T]:
     return SortedList[T](items)
 def MakeSortedList[T: IComparableValue|SupportsRichComparison](*items: T) -> ISortedList[T]:
