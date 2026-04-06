@@ -1383,10 +1383,10 @@ class CountableLinkedListNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ICo
 
 def CreateList[T](items: Iterable[T]) -> List[T]:
     return List[T](items)
-def CreateListFromValues[T](*values: T) -> List[T]:
+def MakeList[T](*values: T) -> List[T]:
     return CreateList(values)
 
 def CreateCountableList[T](items: Iterable[T]) -> CountableList[T]:
     return CountableList[T](items)
-def CreateCountableListFromValues[T](*values: T) -> CountableList[T]:
+def MakeCountableList[T](*values: T) -> CountableList[T]:
     return CreateCountableList(values)
