@@ -398,7 +398,7 @@ class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Se
     def Add(self, item: T) -> None:
         return insort_right(self._GetContainer(), item)
     @final
-    def AddItems(self, items: Iterable[T]) -> None:
+    def AddRange(self, items: Iterable[T]) -> None:
         self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
     
     @final
