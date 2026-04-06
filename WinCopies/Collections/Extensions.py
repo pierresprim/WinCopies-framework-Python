@@ -5,9 +5,10 @@ from collections.abc import Sized, Container, Iterable, Iterator, Collection as 
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, ICountable, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IGetter, ISetter, FindIndex
+from WinCopies.Collections import Enumeration, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration import ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -262,14 +263,7 @@ class ISet[T: IEquatableItem](Collections.ISet[T], IReadOnlySet[T]):
     def AsReadOnly(self) -> IReadOnlySet[T]:
         pass
 
-class _IReversedAbstract(ICountable):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @final
-    def _GetIndex(self, index: int) -> int:
-        return self.GetCount() - index - 1
-class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], _IReversedAbstract, GenericConstraint[TCollectionIn, ITuple[TItem]]):
+class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
         super().__init__()
 
@@ -279,19 +273,13 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
     def _GetContainer(self) -> TCollectionIn:
         return self.__items
     
-    @final
-    def _GetKey(self, key: slice) -> slice:
-        start, stop, step = key.indices(self.GetCount())
-        
-        return slice(self._GetIndex(start), self._GetIndex(stop), step)
-    
     @abstractmethod
     def _SliceAt(self, key: slice) -> TCollectionOut:
         pass
 
     @final
     def ToSlicedAt(self, key: slice) -> TCollectionOut:
-        return self._SliceAt(self._GetKey(key))
+        return self._SliceAt(self.ReverseKey(key))
     
     @final
     def IsEmpty(self) -> bool:
@@ -303,7 +291,7 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
     
     @final
     def TryGetValue(self, key: int) -> INullable[TItem]:
-        return self._GetInnerContainer().TryGetValue(self._GetIndex(key))
+        return self._GetInnerContainer().TryGetValue(self.ReverseIndex(key))
     
     @final
     def Contains(self, value: TItem|object) -> bool:
@@ -645,11 +633,11 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
     
     @final
     def TrySetAt(self, key: int, value: TItem) -> bool:
-        return self._GetSpecializedContainer().TrySetAt(self._GetIndex(key), value)
+        return self._GetSpecializedContainer().TrySetAt(self.ReverseIndex(key), value)
     
     @final
     def Move(self, x: int, y: int) -> None:
-        self._GetSpecializedContainer().Move(self._GetIndex(x), self._GetIndex(y))
+        self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))
 class ReversedArray[TItem, TCollection](ReversedArrayBase[TItem, TCollection, TCollection]):
     def __init__(self, items: TCollection) -> None:
         super().__init__(items)
@@ -745,7 +733,7 @@ class Array[T](ArrayBase[T, IArray[T]], ArrayCollection[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class _IReversedCollectionAbstract[T](ICollection[T], _IReversedAbstract):
+class _IReversedCollectionAbstract[T](IIndexableCollectionBase, ICollection[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -755,7 +743,7 @@ class _IReversedCollectionAbstract[T](ICollection[T], _IReversedAbstract):
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
-        return self._GetContainerAsList().TryRemoveAt(self._GetIndex(index))
+        return self._GetContainerAsList().TryRemoveAt(self.ReverseIndex(index))
     
     @final
     def Clear(self) -> None:
@@ -801,9 +789,11 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def _GetContainerAsList(self) -> IList[TItem]:
         return self._GetInnerContainerAsList(self._GetContainer())
 
+    @final
     def AsReversed(self) -> IList[TItem]:
         return self._GetContainerAsList()
     
+    @final
     def Add(self, item: TItem) -> None:
         if self.GetCount() > 0:
             self._GetContainerAsList().Insert(0, item)
@@ -811,14 +801,21 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
         else:
             self._GetContainerAsList().Add(item)
     
+    @final
     def TryInsert(self, index: int, value: TItem) -> bool:
-        return self._GetContainerAsList().TryInsert(self._GetIndex(index), value)
+        return self._GetContainerAsList().TryInsert(self.ReverseIndex(index), value)
     
+    @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
+    
+    @final
     def AsMutableSequence(self) -> MutableSequenceBase[TItem]:
         return self
     
+    @final
     def insert(self, index: int, value: TItem) -> None:
-        return self._GetContainerAsList().AsMutableSequence().insert(self._GetIndex(index), value)
+        return self._GetContainerAsList().AsMutableSequence().insert(self.ReverseIndex(index), value)
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...
@@ -827,14 +824,28 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     
     @final
     def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None:
-        self._GetContainerAsList().AsMutableSequence()[self._GetIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)] = value # type: ignore
+        self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(int(index)) if isinstance(index, SupportsIndex) else self.ReverseKey(index)] = value # type: ignore
     
     @final
     def __delitem__(self, index: int|slice) -> None:
-        del self._GetContainerAsList().AsMutableSequence()[self._GetIndex(index) if isinstance(index, int) else self._GetKey(index)]
+        del self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(index) if isinstance(index, int) else self.ReverseKey(index)]
 class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
+    
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
+        if self.ValidateIndex(index):
+            items = Reverse(items)
+
+            if index > 0:
+                return self._GetContainerAsList().TryInsertRange(self.ReverseIndex(index), items)
+            
+            self._GetContainerAsList().AddRange(items)
+
+            return True
+        
+        return False
     
     @final
     def SliceAt(self, key: slice) -> IList[TItem]:
@@ -855,15 +866,22 @@ class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem,
     def _GetContainerAsList(self) -> ISortedList[TItem]:
         return self._GetInnerContainerAsList(self._GetContainer())
     
+    @final
     def AddLeft(self, item: TItem) -> None:
         self._GetContainerAsList().Add(item)
+    @final
     def Add(self, item: TItem) -> None:
         self._GetContainerAsList().AddLeft(item)
+    
+    @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[TItem]:
         return self._GetSpecializedContainerAsList(self.ToSlicedAt(key))
 
+    @final
     def AsReversed(self) -> ISortedList[TItem]:
         return self._GetContainerAsList()
 
@@ -881,10 +899,10 @@ class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T]
         return self._GetContainerAsList().SliceAt(key)
 @final
 class _ReversedListUpdater[T](ValueFunctionUpdater[IList[T]]):
-    def __init__(self, array: Collection[T], updater: Method[IFunction[IList[T]]]) -> None:
+    def __init__(self, array: IList[T], updater: Method[IFunction[IList[T]]]) -> None:
         super().__init__(updater)
 
-        self.__array: Collection[T] = array
+        self.__array: IList[T] = array
     
     def _GetValue(self) -> IList[T]:
         return _ReversedList[T](self.__array)
