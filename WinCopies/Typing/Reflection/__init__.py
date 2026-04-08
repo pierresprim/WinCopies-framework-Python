@@ -478,6 +478,11 @@ def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
     if not __CheckCallerPackage(targetPackage, 2):
         raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
 
+def IsSameClass[T](x: Type[T], y: Type[T]) -> bool:
+    return x is y
+def IsFromSameClass[T](x: T, y: T) -> bool:
+    return IsSameClass(type(x), type(y))
+
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     """Checks if a class is a subclass of any type in an iterable.
 
