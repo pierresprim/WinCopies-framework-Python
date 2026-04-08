@@ -225,6 +225,9 @@ def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse
 def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
 
+def GetNullableValue[T](value: T|None) -> INullable[T]:
+    return GetNullValue() if value is None else GetNullable(value)
+
 class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
     def __init__(self) -> None:
         super().__init__()
