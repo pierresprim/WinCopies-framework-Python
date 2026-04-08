@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from datetime import date, time, datetime, timedelta
 from decimal import Decimal as decimal
