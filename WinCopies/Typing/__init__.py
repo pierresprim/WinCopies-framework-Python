@@ -353,29 +353,3 @@ class IEnum(IInterface):
     @abstractmethod
     def GetEnumValue(self) -> Enum:
         pass
-
-def AsEnumValue(item: IEnum|Enum) -> Enum:
-    return item.GetEnumValue() if isinstance(item, IEnum) else item
-
-def AsUnderlyingEnumValue(item: IEnum|Enum) -> object:
-    return AsEnumValue(item).value
-def TryAsUnderlyingEnumValue(item: IEnum|Enum) -> int|None:
-    value: object = AsUnderlyingEnumValue(item)
-
-    return value if isinstance(value, int) else None
-
-def AreEnumsEqual(x: IEnum|Enum, y: IEnum|Enum) -> bool:
-    return AsEnumValue(x) == AsEnumValue(y)
-def TryAreEnumsEqual(x: IEnum|Enum|None, y: IEnum|Enum|None) -> bool:
-    return False if x is None or y is None else AreEnumsEqual(x, y)
-
-def CompareEnums(x: IEnum|Enum, y: IEnum|Enum) -> INullable[bool|None]:
-    def compare(x: int|None, y: int|None) -> INullable[bool|None]:
-        def compare(x: int, y: int) -> bool|None:
-            return None if x == y else y > x
-
-        return (GetNullValue() if y is None else GetNullable(True)) if x is None else GetNullable(False if y is None else compare(x, y))
-    
-    return compare(TryAsUnderlyingEnumValue(x), TryAsUnderlyingEnumValue(y))
-def TryCompare(x: IEnum|Enum|None, y: IEnum|Enum|None) -> INullable[bool|None]:
-    return GetNullable(y is None) if x is None else (GetNullable(False) if y is None else CompareEnums(x, y))
