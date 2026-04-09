@@ -84,12 +84,16 @@ class ReadOnlyCollectionBase[T](CollectionBase[T], IReadOnlyCollection[T]):
     def __len__(self) -> int:
         return self.GetCount()
     
+    @final
     def AsSized(self) -> Sized:
         return self
+    @final
     def AsContainer(self) -> ContainerBase[T]:
         return self
+    @final
     def AsIterable(self) -> Iterable[T]:
         return self
+    @final
     def AsCollection(self) -> CollectionBase[T]:
         return self
 class ReadOnlyCollection[T](ReadOnlyCollectionBase[T], IReadOnlyCollection[T]):
@@ -130,31 +134,11 @@ class Sequence[T](ReadOnlySequence[T], ISequence[T]):
     
     def AsSequence(self) -> SequenceBase[T]:
         return self
-
-    def AsSized(self) -> Sized:
-        return self
-    def AsContainer(self) -> ContainerBase[T]:
-        return self
-    def AsIterable(self) -> Iterable[T]:
-        return self
-    def AsCollection(self) -> CollectionBase[T]:
-        return self
 class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T]):
     def __init__(self) -> None:
         super().__init__()
     
     def AsMutableSequence(self) -> MutableSequenceBase[T]:
-        return self
-
-    def AsSized(self) -> Sized:
-        return self
-    def AsContainer(self) -> ContainerBase[T]:
-        return self
-    def AsIterable(self) -> Iterable[T]:
-        return self
-    def AsCollection(self) -> CollectionBase[T]:
-        return self
-    def AsSequence(self) -> SequenceBase[T]:
         return self
 
 class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableEnumerable[T], IStringable):
