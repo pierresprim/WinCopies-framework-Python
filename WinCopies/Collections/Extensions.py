@@ -346,7 +346,7 @@ class MutableSequenceAbstract[T](MutableSequence[T], IList[T]):
         return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
 @final
-class _ReadOnlyReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericConstraintImplementation[ITuple[T]]):
+class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None:
         super().__init__(items)
     
@@ -357,16 +357,15 @@ class _ReadOnlyReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IG
 
     def AsReversed(self) -> ITuple[T]:
         return self._GetContainer()
-
 @final
-class _ReadOnlyTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
+class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: ITuple[T] = array
     
     def _GetValue(self) -> ITuple[T]:
-        return _ReadOnlyReversedTuple[T](self.__array)
+        return _ReversedTuple[T](self.__array)
 
 class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
     def __init__(self, items: IArrayBase[T]) -> None:
@@ -376,7 +375,7 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
         super().__init__()
 
         self.__items: IArrayBase[T] = items
-        self.__reversed: IFunction[ITuple[T]] = _ReadOnlyTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def _GetItems(self) -> IArrayBase[T]:
@@ -528,28 +527,6 @@ class _TupleBase[T](TupleAbstractBase[T]):
 class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
-
-@final
-class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericConstraintImplementation[ITuple[T]]):
-    def __init__(self, items: ITuple[T]) -> None:
-        super().__init__(items)
-    
-    def _SliceAt(self, key: slice) -> ITuple[T]:
-        return self._GetContainer().SliceAt(key)
-    def SliceAt(self, key: slice) -> ITuple[T]:
-        return self.ToSlicedAt(key)
-
-    def AsReversed(self) -> ITuple[T]:
-        return self._GetContainer()
-@final
-class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
-    def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
-        super().__init__(updater)
-
-        self.__array: ITuple[T] = array
-    
-    def _GetValue(self) -> ITuple[T]:
-        return _ReversedTuple[T](self.__array)
 
 @final
 class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
