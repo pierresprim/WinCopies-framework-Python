@@ -429,10 +429,10 @@ class _ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](_ReversedBase[TIt
         
         super().__init__(items)
         
-        self.__readOnly: IFunction[ITuple[TItem]] = self._GetUpdater(update) # type: ignore[no-redef]
+        self.__readOnly: IFunction[ITuple[TItem]] = self._GetReadOnlyUpdater(update) # type: ignore[no-redef]
     
     @abstractmethod
-    def _GetUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
+    def _GetReadOnlyUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
         pass
     
     @final
@@ -643,7 +643,7 @@ class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedArray
         super().__init__(items)
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
+    def _GetReadOnlyUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
         return _ReadOnlyReversedArrayUpdater[TItem](self, func)
 class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
