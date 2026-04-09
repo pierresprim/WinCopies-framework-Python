@@ -132,12 +132,14 @@ class Sequence[T](ReadOnlySequence[T], ISequence[T]):
     def __init__(self) -> None:
         super().__init__()
     
+    @final
     def AsSequence(self) -> SequenceBase[T]:
         return self
 class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T]):
     def __init__(self) -> None:
         super().__init__()
     
+    @final
     def AsMutableSequence(self) -> MutableSequenceBase[T]:
         return self
 
@@ -314,10 +316,6 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
     @final
     def ToString(self) -> str:
         return self._GetInnerContainer().ToString()
-    
-    @final
-    def AsSequence(self) -> SequenceBase[TItem]:
-        return self
 class _Reversed[TItem, TCollection](_ReversedBase[TItem, TCollection, TCollection]):
     def __init__(self, items: TCollection) -> None:
         super().__init__(items)
@@ -743,7 +741,7 @@ class ArrayBase[TItem, TCollection](_ArrayBase[TItem, TCollection], ArrayCollect
 class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T]) -> None:
         super().__init__(items)
-
+    
     @final
     def AsReversed(self) -> IArray[T]:
         return self._GetSpecializedContainer()
@@ -854,10 +852,6 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def TryRemoveRange(self, index: int, count: int) -> bool:
         return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
-    
-    @final
-    def AsMutableSequence(self) -> MutableSequenceBase[TItem]:
-        return self
     
     @final
     def insert(self, index: int, value: TItem) -> None:
