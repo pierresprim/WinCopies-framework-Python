@@ -825,6 +825,19 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def TryInsert(self, index: int, value: TItem) -> bool:
         return self._GetContainerAsList().TryInsert(self.ReverseIndex(index), value)
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
+        if self.ValidateIndex(index):
+            items = Reverse(items)
+
+            if index > 0:
+                return self._GetContainerAsList().TryInsertRange(self.ReverseIndex(index), items)
+            
+            self._GetContainerAsList().AddRange(items)
+
+            return True
+        
+        return False
     
     @final
     def TryRemoveRange(self, index: int, count: int) -> bool:
@@ -849,20 +862,6 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
 class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
-    
-    @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
-        if self.ValidateIndex(index):
-            items = Reverse(items)
-
-            if index > 0:
-                return self._GetContainerAsList().TryInsertRange(self.ReverseIndex(index), items)
-            
-            self._GetContainerAsList().AddRange(items)
-
-            return True
-        
-        return False
     
     @final
     def SliceAt(self, key: slice) -> IList[TItem]:
