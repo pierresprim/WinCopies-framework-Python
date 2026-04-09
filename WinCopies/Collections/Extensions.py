@@ -292,7 +292,7 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
     
     @final
     def GetCount(self) -> int:
-        return self.GetCount()
+        return self._GetInnerContainer().GetCount()
     
     @final
     def TryGetValue(self, key: int) -> INullable[TItem]:
@@ -542,7 +542,7 @@ class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericCo
     def AsReversed(self) -> ITuple[T]:
         return self._GetContainer()
 @final
-class __ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
+class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -610,7 +610,7 @@ class TupleCollection[T](TupleAbstract[T]):
         
         super().__init__()
 
-        self.__reversed: IFunction[ITuple[T]] = __ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> ITuple[T]:
