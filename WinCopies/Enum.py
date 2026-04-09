@@ -10,20 +10,20 @@ from WinCopies.String import CommaJoin
 from WinCopies.Typing import IEnum, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate, Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
-from WinCopies.Typing.Reflection import IsFromSameClass
+from WinCopies.Typing.Reflection import AreFromSameClass
 
 class OrderedEnum(Enum):
     def __lt__(self, other: SelfType) -> bool:
-        return self.value < other.value if IsFromSameClass(self, other) else NotImplemented
+        return self.value < other.value if AreFromSameClass(self, other) else NotImplemented
     
     def __le__(self, other: SelfType) -> bool:
-        return self.value <= other.value if IsFromSameClass(self, other) else NotImplemented
+        return self.value <= other.value if AreFromSameClass(self, other) else NotImplemented
     
     def __gt__(self, other: SelfType) -> bool:
-        return self.value > other.value if IsFromSameClass(self, other) else NotImplemented
+        return self.value > other.value if AreFromSameClass(self, other) else NotImplemented
     
     def __ge__(self, other: SelfType) -> bool:
-        return self.value >= other.value if IsFromSameClass(self, other) else NotImplemented
+        return self.value >= other.value if AreFromSameClass(self, other) else NotImplemented
 
 def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
     return obj in [selector(o) for o in e]
