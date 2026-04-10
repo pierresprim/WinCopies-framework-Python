@@ -7,7 +7,7 @@ from WinCopies.Collections import Extensions
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
-from WinCopies.Collections.Extensions import IReadOnlySet, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
+from WinCopies.Collections.Extensions import IReadOnlySet, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems
@@ -88,10 +88,12 @@ class Set[T: IEquatableItem](Extensions.Set[T]):
         return str(self._GetItems())
 
 @final
-class _OrderedSetList[T: IEquatableItem](Extensions.MutableSequence[T], Extensions.CollectionAbstract[T]):
+class _OrderedSetList[T: IEquatableItem](MutableList[T], Extensions.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
-        def update(func: IFunction[IList[T]]) -> None:
+        def updateReversed(func: IFunction[IList[T]]) -> None:
             self.__reversed = func
+        def updateFixedSize(func: IFunction[IArray[T]]) -> None:
+            self.__fixedSize = func
         
         super().__init__()
 
@@ -100,7 +102,8 @@ class _OrderedSetList[T: IEquatableItem](Extensions.MutableSequence[T], Extensio
         self.__set: ISet[T] = s
         self.__innerSet: set[T] = innerSet
 
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(update) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[T]] = self._GetReversedUpdater(updateFixedSize) # type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
     
     def __TryAdd(self, index: int, value: T) -> bool:
         return self.ValidateIndex(index) and self.__set.TryAdd(value)
@@ -191,6 +194,9 @@ class _OrderedSetList[T: IEquatableItem](Extensions.MutableSequence[T], Extensio
     
     def AsReversed(self) -> IList[T]:
         return self.__reversed.GetValue()
+    
+    def AsFixedSize(self) -> IArray[T]:
+        return self.__fixedSize.GetValue()
     
     def insert(self, index: int, value: T) -> None:
         self.Insert(index, value)

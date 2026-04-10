@@ -7,7 +7,7 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence, SequenceAbstract, CollectionAbstract
+from WinCopies.Collections.Extensions import ITuple, IArray, IList, KeyableBase, MutableSequence, SequenceAbstract, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import IMonitor, INullable, Monitor, InvalidOperationError
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -147,7 +147,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def __delitem__(self, index: int|slice) -> None:
         RemoveItems(self, index)
-class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImplementation[IList[T]]):
+class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
 
@@ -281,7 +281,10 @@ class IReadOnlyObservableCollection[T](ITuple[T]):
     @abstractmethod
     def GetEventManager(self) -> IObservableCollectionEvents[T]:
         pass
-class IObservableCollection[T](IReadOnlyObservableCollection[T], IList[T]):
+class IFixedSizeObservableCollection[T](IReadOnlyObservableCollection[T], IArray[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class IObservableCollection[T](IFixedSizeObservableCollection[T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -289,7 +292,7 @@ class IObservableCollection[T](IReadOnlyObservableCollection[T], IList[T]):
     def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
         pass
 
-class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], GenericConstraint[TList, IReadOnlyObservableCollection[TItem]]):
+class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], GenericConstraint[TList, IFixedSizeObservableCollection[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
@@ -329,15 +332,34 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def GetEventManager(self) -> IObservableCollectionEvents[TItem]:
         return self._GetInnerContainer().GetEventManager()
 @final
-class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IReadOnlyObservableCollection[T]], IGenericConstraintImplementation[IReadOnlyObservableCollection[T]]):
-    def __init__(self, items: IReadOnlyObservableCollection[T]) -> None:
+class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFixedSizeObservableCollection[T]], IGenericConstraintImplementation[IFixedSizeObservableCollection[T]]):
+    def __init__(self, items: IFixedSizeObservableCollection[T]) -> None:
         super().__init__(items)
     
     def SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetContainer().SliceAt(key)
     
     def AsReversed(self) -> ITuple[T]:
-        return self._GetContainer().AsReversed()
+        return self._GetContainer().AsReversed().AsReadOnly()
+@final
+class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IGenericConstraintImplementation[IObservableCollection[T]]):
+    def __init__(self, items: IObservableCollection[T]) -> None:
+        super().__init__(items)
+    
+    def TrySetAt(self, key: int, value: T) -> bool:
+        return self._GetContainer().TrySetAt(key, value)
+    
+    def Move(self, x: int, y: int) -> None:
+        return self._GetContainer().Move(x, y)
+    
+    def SliceAt(self, key: slice) -> IArray[T]:
+        return self._GetContainer().SliceAt(key)
+    
+    def AsReversed(self) -> IArray[T]:
+        return self._GetContainer().AsReversed().AsFixedSize()
+    def AsReadOnly(self) -> ITuple[T]:
+        return self._GetContainer().AsReadOnly()
+
 class _ReadOnlyObservableCollectionUpdater[T](ValueFunctionUpdater[IReadOnlyObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T], updater: Method[IFunction[IReadOnlyObservableCollection[T]]]) -> None:
         super().__init__(updater)
@@ -346,11 +368,22 @@ class _ReadOnlyObservableCollectionUpdater[T](ValueFunctionUpdater[IReadOnlyObse
     
     def _GetValue(self) -> IReadOnlyObservableCollection[T]:
         return _ReadOnlyObservableCollection[T](self.__items)
+class _FixedSizeObservableCollectionUpdater[T](ValueFunctionUpdater[IFixedSizeObservableCollection[T]]):
+    def __init__(self, items: IObservableCollection[T], updater: Method[IFunction[IFixedSizeObservableCollection[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: IObservableCollection[T] = items
+    
+    def _GetValue(self) -> IFixedSizeObservableCollection[T]:
+        return _FixedSizeObservableCollection[T](self.__items)
 
 class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T]):
     def __init__(self, items: IList[T]) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyObservableCollection[T]]) -> None:
             self.__readOnly = func
+        def updateFixedSize(func: IFunction[IFixedSizeObservableCollection[T]]) -> None:
+            self.__fixedSize = func
+        
         def updateReversed(func: IFunction[IList[T]]) -> None:
             self.__reversed = func
         
@@ -362,6 +395,8 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__events: _ObservableCollectionEvents[T] = events
 
         self.__readOnly: IFunction[IReadOnlyObservableCollection[T]] = _ReadOnlyObservableCollectionUpdater[T](self, updateReadOnly) #type: ignore[no-redef]
+        self.__fixedSize: IFunction[IFixedSizeObservableCollection[T]] = _FixedSizeObservableCollectionUpdater[T](self, updateFixedSize) #type: ignore[no-redef]
+        
         self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) #type: ignore[no-redef]
     
     @final
@@ -379,6 +414,9 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
     @final
     def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
         return self.__readOnly.GetValue()
+    @final
+    def AsFixedSize(self) -> IFixedSizeObservableCollection[T]:
+        return self.__fixedSize.GetValue()
     
     def _InsertItem(self, index: int|None, item: T) -> bool:
         self.__AssertReentrancy()

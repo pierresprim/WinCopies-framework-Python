@@ -219,6 +219,10 @@ class IList[T](Collections.IList[T], IArray[T], IListBase[T], IMutableSequence[T
         super().__init__()
     
     @abstractmethod
+    def AsFixedSize(self) -> IArray[T]:
+        pass
+    
+    @abstractmethod
     def AsReversed(self) -> IList[T]:
         pass
     
@@ -790,9 +794,77 @@ class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCo
     def __init__(self, items: TList) -> None:
         super().__init__(items)
 
-class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableSequence[TItem], IList[TItem]):
+@final
+class _FixedSizeArray[T](SequenceAbstract[T], IArray[T]):
+    def __init__(self, items: IList[T]) -> None:
+        def update(func: IFunction[IArray[T]]) -> None:
+            self.__reversed = func
+        
+        super().__init__()
+
+        self.__items: IList[T] = items
+        self.__reversed: IFunction[IArray[T]] = _ReversedArrayUpdater[T](self, update) # type: ignore[no-redef]
+    
+    def GetCount(self) -> int:
+        return self.__items.GetCount()
+    
+    def Contains(self, value: T|object) -> bool:
+        return self.__items.Contains(value)
+    
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return self.__items.FindFirstIndex(item, predicate)
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
+        return self.__items.FindLastIndex(item, predicate)
+    
+    def TryGetValue(self, key: int) -> INullable[T]:
+        return self.__items.TryGetValue(key)
+    
+    def Move(self, x: int, y: int) -> None:
+        return self.__items.Move(x, y)
+    
+    def TrySetAt(self, key: int, value: T) -> bool:
+        return self.__items.TrySetAt(key, value)
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+        return self.__items.TryGetEnumerator()
+    
+    def SliceAt(self, key: slice) -> IArray[T]:
+        return self.__items.SliceAt(key)
+    
+    def AsReadOnly(self) -> ITuple[T]:
+        return self.__items.AsReadOnly()
+    
+    def AsReversed(self) -> IArray[T]:
+        return self.__reversed.GetValue()
+    
+    def ToString(self) -> str:
+        return self.__items.ToString()
+@final
+class _FixedSizeArrayUpdater[T](ValueFunctionUpdater[IArray[T]]):
+    def __init__(self, items: IList[T], updater: Method[IFunction[IArray[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: IList[T] = items
+    
+    def _GetValue(self) -> IArray[T]:
+        return _FixedSizeArray[T](self.__items)
+
+class MutableList[T](MutableSequence[T], IList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @final
+    def _GetReversedUpdater(self, updater: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
+        return _FixedSizeArrayUpdater[T](self, updater)
+
+class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableList[TItem], IList[TItem]):
     def __init__(self, items: TListIn) -> None:
+        def update(func: IFunction[IArray[TItem]]) -> None:
+            self.__fixedSize = func
+        
         super().__init__(items)
+
+        self.__fixedSize: IFunction[IArray[TItem]] = self._GetReversedUpdater(update) # type: ignore[no-redef]
     
     @abstractmethod
     def _GetInnerContainerAsList(self, container: TListIn) -> IList[TItem]:
@@ -802,6 +874,9 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def _GetContainerAsList(self) -> IList[TItem]:
         return self._GetInnerContainerAsList(self._GetContainer())
 
+    @final
+    def AsFixedSize(self) -> IArray[TItem]:
+        return self.__fixedSize.GetValue()
     @final
     def AsReversed(self) -> IList[TItem]:
         return self._GetContainerAsList()
@@ -947,11 +1022,20 @@ class CollectionAbstract[T](IArrayAbstract[T, IList[T]], IList[T]):
 
 class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
     def __init__(self) -> None:
+        def update(func: IFunction[IArray[T]]) -> None:
+            self.__fixedSize = func
+        
         super().__init__()
+
+        self.__fixedSize: IFunction[IArray[T]] = _FixedSizeArrayUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> IList[T]:
         return self._AsReversed()
+    
+    @final
+    def AsFixedSize(self) -> IArray[T]:
+        return self.__fixedSize.GetValue()
 class SortedCollection[T](Collections.SortedList[T], _ArrayCollectionBase[T, ISortedList[T]], ISortedList[T]):
     def __init__(self) -> None:
         super().__init__()

@@ -634,6 +634,10 @@ class IListBase[T](ITuple[T], ICountableList[T]):
 class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsFixedSize(self) -> IArray[T]:
+        pass
 
     @abstractmethod
     def AsReversed(self) -> IList[T]:
