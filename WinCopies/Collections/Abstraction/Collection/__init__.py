@@ -301,6 +301,20 @@ class ISizedList[T](IList[T]):
     @abstractmethod
     def ValidateLength(self) -> bool:
         pass
+    
+    @abstractmethod
+    def TryInsertAt(self, index: int, value: T) -> bool|None:
+        pass
+    @final
+    def TryInsert(self, index: int, value: T) -> bool:
+        return self.TryInsertAt(index, value) is True
+    
+    @abstractmethod
+    def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
+        pass
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        return self.TryInsertRangeAt(index, items) is True
 
 class SizedList[T](ListBase[T], ISizedList[T]):
     def __init__(self, initializer: _ISizedListInitializer[T]) -> None:
@@ -326,22 +340,10 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None:
-        if self.ValidateLength():
-            if self.ValidateIndex(index):
-                self._GetContainer().insert(index, value)
-                
-                return True
-            
-            return False
-        
-        return None
+        return self._TryInsert(index, value) if self.ValidateLength() else None
     @final
-    def TryInsert(self, index: int, value: T) -> bool:
-        return self.TryInsertAt(index, value) is True
-    
-    @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
-        return self._TryInsertRange(index, items)
+    def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
+        return self._TryInsertRange(index, items) if self.ValidateLength() else None
     
     @staticmethod
     def Create(length: int) -> ISizedList[T]:
