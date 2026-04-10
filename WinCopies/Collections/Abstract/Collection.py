@@ -5,6 +5,7 @@ from collections.abc import Iterable, Iterator, Sequence as SequenceBase, Mutabl
 from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IInterface, IStringable
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
@@ -62,6 +63,10 @@ class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]],
         return self.__items
     
     @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
+    
+    @final
     def SliceAt(self, key: slice) -> ITuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
@@ -73,6 +78,10 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
     @final
     def _GetContainer(self) -> IEquatableTuple[TIn]:
         return self.__items
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
     
     def Equals(self, item: object) -> bool:
         return self is item or self._GetContainer().Equals(item)
@@ -89,6 +98,10 @@ class HashableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TO
     @final
     def _GetContainer(self) -> IHashableTuple[TIn]:
         return self.__items
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
     
     def Hash(self) -> int:
         return self._GetContainer().Hash()
@@ -126,6 +139,10 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayCollection[TOut],
         return self.__items
     
     @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
+    
+    @final
     def Swap(self, x: int, y: int) -> None:
         super().Swap(x, y)
     
@@ -142,6 +159,10 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], Mu
     @final
     def _GetContainer(self) -> IList[TIn]:
         return self.__items
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
     
     @final
     def Swap(self, x: int, y: int) -> None:

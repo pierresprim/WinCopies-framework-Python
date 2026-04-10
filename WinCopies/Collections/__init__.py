@@ -8,6 +8,7 @@ from typing import final, Callable
 
 from WinCopies import IInterface, Abstract, BooleanableEnum, NullableBoolean, Not
 from WinCopies.Delegates import CompareEquality
+from WinCopies.Enum import OrderedEnum
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
@@ -576,6 +577,11 @@ class IReadOnlyCountableIndexableList[T](IReadOnlyCountableIndexable[T], IReadOn
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
         pass
 
+class Mutability(OrderedEnum):
+    ReadOnly = 0
+    FixedSize = 1
+    Mutable = 2
+
 class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -583,6 +589,19 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @final
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
+    
+    @abstractmethod
+    def GetMutability(self) -> Mutability:
+        pass
+
+    @abstractmethod
+    def TryGetSourceMutability(self) -> Mutability|None:
+        pass
+    @final
+    def GetSourceMutability(self) -> Mutability:
+        result: Mutability|None = self.TryGetSourceMutability()
+
+        return self.GetMutability() if result is None else result
     
     @abstractmethod
     def AsReversed(self) -> ITuple[T]:
@@ -605,6 +624,10 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
 class IHashableTuple[T: IEquatableItem](IEquatableTuple[T], IEquatableItem):
     def __init__(self) -> None:
         super().__init__()
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
     
     @abstractmethod
     def AsReversed(self) -> IHashableTuple[T]:

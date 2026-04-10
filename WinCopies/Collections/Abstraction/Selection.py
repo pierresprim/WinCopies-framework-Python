@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import final
 
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import Collection
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
 from WinCopies.Typing import IEquatableItem
@@ -19,6 +20,10 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
     @final
     def _Convert(self, item: TIn) -> TOut:
         return self.__converter(item)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
 class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.EquatableTuple[TIn, TOut]):
     def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
@@ -31,6 +36,10 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Equat
     @final
     def _Convert(self, item: TIn) -> TOut:
         return self.__converter(item)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
 
 class Array[TIn, TOut](Collection.Array[TIn, TOut]):
     def __init__(self, items: IArray[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
@@ -48,6 +57,10 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
     @final
     def _ConvertBack(self, item: TOut) -> TIn:
         return self.__backConverter(item)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
 
 class List[TIn, TOut](Collection.List[TIn, TOut]):
     def __init__(self, items: IList[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
@@ -65,6 +78,10 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
     @final
     def _ConvertBack(self, item: TOut) -> TIn:
         return self.__backConverter(item)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
 
 class Set[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Set[TIn, TOut]):
     def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:

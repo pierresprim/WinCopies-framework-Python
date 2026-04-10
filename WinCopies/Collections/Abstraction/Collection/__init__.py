@@ -7,7 +7,7 @@ from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Enumeration, Extensions, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
+from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, TupleEnumerator, MutableSequence
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
@@ -15,6 +15,7 @@ from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Reflection import AreSameClass
 
 class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self) -> None:
@@ -55,7 +56,26 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.Tu
 
 class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
-        super().__init__(MakeSequence(items))
+        mutability: Mutability|None = None
+        _items: Sequence[T]|None = None
+
+        if isinstance(items, Sequence):
+            _items = items
+            mutability = None if AreSameClass(type(items), tuple) else Mutability.Mutable
+        
+        else:
+            _items = list[T](items)
+
+        super().__init__(_items)
+
+        self.__mutability: Mutability|None = mutability
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__mutability
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
@@ -66,6 +86,10 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
 class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeSequence(items))
+    
+    @final
+    def TryGetSourceMutability(self) -> None:
+        return None
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
@@ -93,10 +117,28 @@ class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], Tuple
 class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self, items: TSequence) -> None:
         super().__init__(items)
-
 class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
-        super().__init__(MakeMutableSequence(items))
+        mutability: Mutability|None = None
+        _items: MutableSequenceBase[T]|None = None
+
+        if isinstance(items, MutableSequenceBase):
+            _items = items
+            mutability = Mutability.Mutable
+        
+        else:
+            _items = list[T](items)
+
+        super().__init__(_items)
+
+        self.__mutability: Mutability|None = mutability
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__mutability
     
     @final
     def Move(self, x: int, y: int) -> None:
@@ -226,6 +268,13 @@ class List[T](ListBase[T]):
         super().__init__(items)
     
     @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
+    @final
+    def TryGetSourceMutability(self) -> None:
+        return None
+    
+    @final
     def Add(self, item: T) -> None:
         self._GetContainer().append(item)
     
@@ -248,6 +297,10 @@ class _ISizedListInitializer[T](IInterface):
     def GetItems(self) -> MutableSequenceBase[T]|None:
         pass
 
+    @abstractmethod
+    def GetMutability(self) -> Mutability|None:
+        pass
+
 class _SizedListSequenceInitializer[T](Abstract, _ISizedListInitializer[T]):
     def __init__(self, items: MutableSequenceBase[T]) -> None:
         super().__init__()
@@ -261,6 +314,10 @@ class _SizedListSequenceInitializer[T](Abstract, _ISizedListInitializer[T]):
     @final
     def GetMaxLength(self) -> int:
         return len(self.GetItems())
+
+    @final
+    def GetMutability(self) -> Mutability|None:
+        return Mutability.Mutable
 class _SizedListLengthInitializer[T](Abstract, _ISizedListInitializer[T]):
     def __init__(self, length: int) -> None:
         super().__init__()
@@ -274,6 +331,10 @@ class _SizedListLengthInitializer[T](Abstract, _ISizedListInitializer[T]):
     @final
     def GetMaxLength(self) -> int:
         return self.__length
+
+    @final
+    def GetMutability(self) -> Mutability|None:
+        return None
 
 class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
     def __init__(self, length: int, items: MutableSequenceBase[T]) -> None:
@@ -289,6 +350,10 @@ class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
     @final
     def GetItems(self) -> MutableSequenceBase[T]:
         return self.__items
+
+    @final
+    def GetMutability(self) -> Mutability|None:
+        return Mutability.Mutable
 
 class ISizedList[T](IList[T]):
     def __init__(self) -> None:
@@ -321,6 +386,14 @@ class SizedList[T](ListBase[T], ISizedList[T]):
         super().__init__(initializer.GetItems())
 
         self.__maxLength: int = initializer.GetMaxLength()
+        self.__mutability: Mutability|None = initializer.GetMutability()
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__mutability
     
     @final
     def GetMaxLength(self) -> int:
@@ -369,6 +442,13 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
     @final
     def _SetAt(self, key: int, value: T) -> None:
         self._GetStructAt(key).SetValue(value)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetItems().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:

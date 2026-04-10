@@ -5,7 +5,7 @@ from collections.abc import Sized, Container as ContainerBase, Iterable, Iterato
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, Abstract, IStringable
-from WinCopies.Collections import Enumeration, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable, IGetter, ISetter, FindIndex
+from WinCopies.Collections import Enumeration, Mutability, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, IIndexableCollectionBase, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IEnumerator, CountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Iteration.Extensions import Reverse
@@ -291,6 +291,10 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
         return self._SliceAt(self.ReverseKey(key))
     
     @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
+    
+    @final
     def GetCount(self) -> int:
         return self._GetInnerContainer().GetCount()
     
@@ -350,6 +354,10 @@ class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericCo
     def __init__(self, items: ITuple[T]) -> None:
         super().__init__(items)
     
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
+    
     def _SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetContainer().SliceAt(key)
     def SliceAt(self, key: slice) -> ITuple[T]:
@@ -380,6 +388,13 @@ class _ReadOnlyTuple[T](SequenceAbstract[T]):
     @final
     def _GetItems(self) -> IArrayBase[T]:
         return self.__items
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetItems().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:
@@ -524,6 +539,10 @@ class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
 class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T]) -> None:
         super().__init__(items)
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
     
     def _SliceAt(self, key: slice) -> IEquatableTuple[T]:
         return self._GetContainer().SliceAt(key)
@@ -702,6 +721,10 @@ class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGener
         super().__init__(items)
     
     @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    
+    @final
     def AsReversed(self) -> IArray[T]:
         return self._GetSpecializedContainer()
     
@@ -793,6 +816,11 @@ class _FixedSizeArray[T](SequenceAbstract[T], IArray[T]):
 
         self.__items: IList[T] = items
         self.__reversed: IFunction[IArray[T]] = _ReversedArrayUpdater[T](self, update) # type: ignore[no-redef]
+    
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self.__items.TryGetSourceMutability()
     
     def GetCount(self) -> int:
         return self.__items.GetCount()
@@ -962,6 +990,9 @@ class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T]
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
     
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
+    
     def _GetInnerContainerAsList(self, container: IList[T]) -> IList[T]:
         return container
     def _GetSpecializedContainerAsList(self, container: IList[T]) -> IList[T]:
@@ -983,6 +1014,9 @@ class _ReversedListUpdater[T](ValueFunctionUpdater[IList[T]]):
 class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
     def __init__(self, items: ISortedList[T]) -> None:
         super().__init__(items)
+    
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
     
     def _GetInnerContainerAsList(self, container: ISortedList[T]) -> ISortedList[T]:
         return container
@@ -1043,6 +1077,13 @@ class List[T](ArrayBase[T, IList[T]], Collection[T]):
 class SortedList[T](_ArrayBase[T, ISortedList[T]], SortedCollection[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
+    @final
+    def TryGetSourceMutability(self) -> None:
+        return None
 
 @final
 class _SetContainer[T: IEquatableItem](Container[T]):

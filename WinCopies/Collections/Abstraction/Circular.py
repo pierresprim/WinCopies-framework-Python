@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, HashableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
@@ -85,6 +86,9 @@ class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], Sequ
     def __init__(self, items: ICircularArray[T]) -> None:
         super().__init__(items)
     
+    def GetMutability(self) -> Mutability:
+        return Mutability.FixedSize
+    
     def GetStart(self) -> int:
         return self._GetContainer().GetStart()
     
@@ -112,6 +116,9 @@ class _ArrayUpdater[T](ValueFunctionUpdater[ICircularArray[T]]):
 class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], MutableSequenceAbstract[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularList[T]]):
     def __init__(self, items: ICircularList[T]) -> None:
         super().__init__(items)
+    
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
     
     def GetStart(self) -> int:
         return self._GetContainer().GetStart()

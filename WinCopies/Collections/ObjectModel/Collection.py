@@ -6,6 +6,7 @@ from enum import Enum
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IDisposable, Abstract
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Extensions import ITuple, IArray, IList, KeyableBase, MutableSequence, SequenceAbstract, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
@@ -17,6 +18,10 @@ from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericCo
 class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
@@ -65,6 +70,10 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     def _ClearItems(self) -> None:
         self._GetInnerContainer().Clear()
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:
@@ -300,6 +309,13 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     
     def _GetContainer(self) -> TList:
         return self.__items
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Container, Iterable, Sequence, MutableSequence
 from typing import overload, final, SupportsIndex
 
-from WinCopies.Collections import Extensions
+from WinCopies.Collections import Extensions, Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
@@ -107,6 +107,11 @@ class _OrderedSetList[T: IEquatableItem](MutableList[T], Extensions.CollectionAb
     
     def __TryAdd(self, index: int, value: T) -> bool:
         return self.ValidateIndex(index) and self.__set.TryAdd(value)
+    
+    def GetMutability(self) -> Mutability:
+        return Mutability.Mutable
+    def TryGetSourceMutability(self) -> None:
+        return None
     
     def GetCount(self) -> int:
         return self.__items.GetCount()
@@ -241,6 +246,13 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IEquatableItem, TCollection](SequenceA
     @final
     def _GetContainer(self) -> TCollection:
         return self.__items
+    
+    @final
+    def GetMutability(self) -> Mutability:
+        return Mutability.ReadOnly
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:
