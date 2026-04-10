@@ -7,10 +7,10 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence, CollectionAbstract
+from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence, SequenceAbstract, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
-from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
-from WinCopies.Typing.Delegate import IFunction, EqualityComparison
+from WinCopies.Typing import IMonitor, INullable, Monitor, InvalidOperationError
+from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
@@ -284,10 +284,74 @@ class IReadOnlyObservableCollection[T](ITuple[T]):
 class IObservableCollection[T](IReadOnlyObservableCollection[T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
+        pass
+
+class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], GenericConstraint[TList, IReadOnlyObservableCollection[TItem]]):
+    def __init__(self, items: TList) -> None:
+        super().__init__()
+
+        self.__items: TList = items
+    
+    def _GetContainer(self) -> TList:
+        return self.__items
+    
+    @final
+    def GetCount(self) -> int:
+        return self._GetInnerContainer().GetCount()
+    
+    @final
+    def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
+        return self._GetInnerContainer().FindFirstIndex(item, predicate)
+    @final
+    def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
+        return self._GetInnerContainer().FindLastIndex(item, predicate)
+    
+    @final
+    def Contains(self, value: TItem|object) -> bool:
+        return self._GetInnerContainer().Contains(value)
+    
+    @final
+    def TryGetValue(self, key: int) -> INullable[TItem]:
+        return self._GetInnerContainer().TryGetValue(key)
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
+        return self._GetInnerContainer().TryGetEnumerator()
+    
+    @final
+    def ToString(self) -> str:
+        return self._GetInnerContainer().ToString()
+    
+    @final
+    def GetEventManager(self) -> IObservableCollectionEvents[TItem]:
+        return self._GetInnerContainer().GetEventManager()
+@final
+class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IReadOnlyObservableCollection[T]], IGenericConstraintImplementation[IReadOnlyObservableCollection[T]]):
+    def __init__(self, items: IReadOnlyObservableCollection[T]) -> None:
+        super().__init__(items)
+    
+    def SliceAt(self, key: slice) -> ITuple[T]:
+        return self._GetContainer().SliceAt(key)
+    
+    def AsReversed(self) -> ITuple[T]:
+        return self._GetContainer().AsReversed()
+class _ReadOnlyObservableCollectionUpdater[T](ValueFunctionUpdater[IReadOnlyObservableCollection[T]]):
+    def __init__(self, items: IObservableCollection[T], updater: Method[IFunction[IReadOnlyObservableCollection[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: IObservableCollection[T] = items
+    
+    def _GetValue(self) -> IReadOnlyObservableCollection[T]:
+        return _ReadOnlyObservableCollection[T](self.__items)
 
 class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T]):
     def __init__(self, items: IList[T]) -> None:
-        def update(func: IFunction[IList[T]]) -> None:
+        def updateReadOnly(func: IFunction[IReadOnlyObservableCollection[T]]) -> None:
+            self.__readOnly = func
+        def updateReversed(func: IFunction[IList[T]]) -> None:
             self.__reversed = func
         
         super().__init__(items)
@@ -297,7 +361,8 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__invoker: _ObservableCollectionEventInvoker[T] = events.AsInvoker()
         self.__events: _ObservableCollectionEvents[T] = events
 
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(update) #type: ignore[no-redef]
+        self.__readOnly: IFunction[IReadOnlyObservableCollection[T]] = _ReadOnlyObservableCollectionUpdater[T](self, updateReadOnly) #type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) #type: ignore[no-redef]
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]:
@@ -312,8 +377,8 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         return self.__reversed.GetValue()
     
     @final
-    def AsReadOnly(self) -> ITuple[T]:
-        return self._GetInnerContainer().AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
+        return self.__readOnly.GetValue()
     
     def _InsertItem(self, index: int|None, item: T) -> bool:
         self.__AssertReentrancy()
