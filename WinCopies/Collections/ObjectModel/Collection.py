@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from enum import Enum
 from typing import overload, final, SupportsIndex
@@ -36,14 +35,6 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def _GetContainer(self) -> TList:
         return self.__items
-    
-    @abstractmethod
-    def Duplicate(self, items: IList[TItem]) -> CollectionAbstractor[TItem]:
-        pass
-
-    @final
-    def AsReversed(self) -> IList[TItem]:
-        return self.Duplicate(self._GetInnerContainer().AsReversed())
 
     @final
     def AsReadOnly(self) -> ITuple[TItem]:
@@ -162,9 +153,6 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
 class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
-    
-    def Duplicate(self, items: IList[T]) -> CollectionAbstractor[T]:
-        return Collection[T](items)
 
 class ObservableCollection[T](Collection[T]):
     def __init__(self, items: IList[T]) -> None:
@@ -187,6 +175,10 @@ class ObservableCollection[T](Collection[T]):
         self.__monitor.Initialize()
 
         return self.__monitor
+    
+    @final
+    def AsReversed(self) -> IList[T]:
+        return ObservableCollection[T](self._GetInnerContainer().AsReversed())
     
     @final
     def OnCollectionChanged(self, eventManager: IEventManager[ObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
