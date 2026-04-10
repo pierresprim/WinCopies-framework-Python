@@ -175,6 +175,14 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
         return List[T](self._GetContainer()[key])
     
     @final
+    def _TryInsert(self, index: int, value: T) -> bool:
+        if self.ValidateIndex(index):
+            self._GetContainer().insert(index, value)
+            
+            return True
+        
+        return False
+    @final
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         if self.ValidateIndex(index):
             index -= 1
@@ -223,12 +231,7 @@ class List[T](ListBase[T]):
     
     @final
     def TryInsert(self, index: int, value: T) -> bool:
-        if self.ValidateIndex(index):
-            self._GetContainer().insert(index, value)
-            
-            return True
-        
-        return False
+        return self._TryInsert(index, value)
     @final
     def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         return self._TryInsertRange(index, items)
