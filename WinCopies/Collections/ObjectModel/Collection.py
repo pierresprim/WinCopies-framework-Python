@@ -35,10 +35,6 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def _GetContainer(self) -> TList:
         return self.__items
-
-    @final
-    def AsReadOnly(self) -> ITuple[TItem]:
-        return self._GetInnerContainer().AsReadOnly()
     
     def _SetItem(self, index: int, item: TItem) -> bool:
         return self._GetInnerContainer().TrySetAt(index, item)
@@ -179,6 +175,10 @@ class ObservableCollection[T](Collection[T]):
     @final
     def AsReversed(self) -> IList[T]:
         return ObservableCollection[T](self._GetInnerContainer().AsReversed())
+
+    @final
+    def AsReadOnly(self) -> ITuple[T]:
+        return self._GetInnerContainer().AsReadOnly()
     
     @final
     def OnCollectionChanged(self, eventManager: IEventManager[ObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
