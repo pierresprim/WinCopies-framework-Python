@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from enum import Enum
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IDisposable, Abstract
+from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence
 from WinCopies.Collections.Range import SetItems, RemoveItems
@@ -150,27 +151,156 @@ class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImp
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
 
-class ObservableCollection[T](Collection[T]):
-    def __init__(self, items: IList[T]) -> None:
-        super().__init__(items)
+class IObservableCollectionEvents[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        pass
+    @abstractmethod
+    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        pass
+    @abstractmethod
+    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        pass
+    @abstractmethod
+    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        pass
+    @abstractmethod
+    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        pass
+
+@final
+class _ObservableCollectionEvent[T](Abstract):
+    def __init__(self) -> None:
+        super().__init__()
         
-        self.__itemAddedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
-        self.__itemUpdatedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
-        self.__itemsSwappedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
-        self.__itemMovedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
-        self.__itemRemovedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemAddedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemUpdatedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemsSwappedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemMovedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemRemovedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+    
+    def GetAdded(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemAddedEvents
+    def GetUpdated(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemUpdatedEvents
+    def GetSwapped(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemsSwappedEvents
+    def GetMoved(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemMovedEvents
+    def GetRemoved(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemRemovedEvents
+@final
+class _ObservableCollectionEventManager[T](Abstract, IObservableCollectionEvents[T]):
+    def __init__(self, events: _ObservableCollectionEvents[T]) -> None:
+        super().__init__()
+
+        self.__events: _ObservableCollectionEvents[T] = events
+
+    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__events.OnItemAdded(handler)
+    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__events.OnItemUpdated(handler)
+    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__events.OnItemsSwapped(handler)
+    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__events.OnItemMoved(handler)
+    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__events.OnItemRemoved(handler)
+@final
+class _ObservableCollectionEventInvoker[T](Abstract):
+    def __init__(self, sender: IObservableCollection[T], events: _ObservableCollectionEvent[T]) -> None:
+        super().__init__()
+
+        self.__sender: IObservableCollection[T] = sender
+        self.__events: _ObservableCollectionEvent[T] = events
+    
+    def __OnCollectionChanged(self, eventManager: IEventManager[IObservableCollection[T], CollectionChangedEventArgs], args: CollectionChangedEventArgs) -> None:
+        eventManager.Invoke(self.__sender, args)
+    
+    def OnItemAdded(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetAdded(), args)
+    def OnItemUpdated(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetUpdated(), args)
+    def OnItemsSwapped(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetSwapped(), args)
+    def OnItemMoved(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetMoved(), args)
+    def OnItemRemoved(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetRemoved(), args)
+
+@final
+class _ObservableCollectionEvents[T](Abstract, IObservableCollectionEvents[T]):
+    def __init__(self, sender: IObservableCollection[T]) -> None:
+        super().__init__()
+
+        events: _ObservableCollectionEvent[T] = _ObservableCollectionEvent[T]()
+        
+        self.__eventManager: _ObservableCollectionEventManager[T] = _ObservableCollectionEventManager[T](self)
+        self.__invoker: _ObservableCollectionEventInvoker[T] = _ObservableCollectionEventInvoker[T](sender, events)
+        self.__events: _ObservableCollectionEvent[T] = events
         
         self.__monitor: IMonitor = Monitor()
     
-    @final
-    def __AssertReentrancy(self) -> None:
+    def AsEventManager(self) -> IObservableCollectionEvents[T]:
+        return self.__eventManager
+    def AsInvoker(self) -> _ObservableCollectionEventInvoker[T]:
+        return self.__invoker
+    
+    def AssertReentrancy(self) -> None:
         if self.__monitor.IsBusy():
             raise InvalidOperationError("No reentrancy allowed.")
-    @final
     def __BlockReentrancy(self) -> IDisposable:
         self.__monitor.Initialize()
 
         return self.__monitor
+    
+    def __OnCollectionChanged(self, eventManager: IEventManager[IObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        with self.__BlockReentrancy():
+            return eventManager.Add(handler)
+        
+        raise
+
+    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__OnCollectionChanged(self.__events.GetAdded(), handler)
+    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__OnCollectionChanged(self.__events.GetUpdated(), handler)
+    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__OnCollectionChanged(self.__events.GetSwapped(), handler)
+    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__OnCollectionChanged(self.__events.GetMoved(), handler)
+    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        return self.__OnCollectionChanged(self.__events.GetRemoved(), handler)
+
+class IReadOnlyObservableCollection[T](ITuple[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetEventManager(self) -> IObservableCollectionEvents[T]:
+        pass
+class IObservableCollection[T](IReadOnlyObservableCollection[T], IList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class ObservableCollection[T](Collection[T], IObservableCollection[T]):
+    def __init__(self, items: IList[T]) -> None:
+        super().__init__(items)
+
+        events: _ObservableCollectionEvents[T] = _ObservableCollectionEvents[T](self)
+
+        self.__invoker: _ObservableCollectionEventInvoker[T] = events.AsInvoker()
+        self.__events: _ObservableCollectionEvents[T] = events
+    
+    @final
+    def GetEventManager(self) -> IObservableCollectionEvents[T]:
+        return self.__events.AsEventManager()
+    
+    @final
+    def __AssertReentrancy(self) -> None:
+        self.__events.AssertReentrancy()
     
     @final
     def AsReversed(self) -> IList[T]:
@@ -180,34 +310,11 @@ class ObservableCollection[T](Collection[T]):
     def AsReadOnly(self) -> ITuple[T]:
         return self._GetInnerContainer().AsReadOnly()
     
-    @final
-    def OnCollectionChanged(self, eventManager: IEventManager[ObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        with self.__BlockReentrancy():
-            return eventManager.Add(handler)
-        
-        raise
-    
-    @final
-    def OnItemAdded(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.OnCollectionChanged(self.__itemAddedEvents, handler)
-    @final
-    def OnItemUpdated(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.OnCollectionChanged(self.__itemUpdatedEvents, handler)
-    @final
-    def OnItemsSwapped(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.OnCollectionChanged(self.__itemsSwappedEvents, handler)
-    @final
-    def OnItemMoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.OnCollectionChanged(self.__itemMovedEvents, handler)
-    @final
-    def OnItemRemoved(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.OnCollectionChanged(self.__itemRemovedEvents, handler)
-    
     def _InsertItem(self, index: int|None, item: T) -> bool:
         self.__AssertReentrancy()
 
         if super()._InsertItem(index, item):
-            self.__itemAddedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Add))
+            self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
 
             return True
         
@@ -217,7 +324,7 @@ class ObservableCollection[T](Collection[T]):
         self.__AssertReentrancy()
 
         if super()._InsertItems(index, items):
-            self.__itemAddedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Add))
+            self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
 
             return True
         
@@ -228,20 +335,20 @@ class ObservableCollection[T](Collection[T]):
 
         super()._MoveItem(x, y)
 
-        self.__itemMovedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Move))
+        self.__invoker.OnItemMoved(CollectionChangedEventArgs(CollectionChangedAction.Move))
     
     def _SwapItems(self, x: int, y: int) -> None:
         self.__AssertReentrancy()
 
         super()._SwapItems(x, y)
 
-        self.__itemsSwappedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Swap))
+        self.__invoker.OnItemsSwapped(CollectionChangedEventArgs(CollectionChangedAction.Swap))
     
     def _SetItem(self, index: int, item: T) -> bool:
         self.__AssertReentrancy()
 
         if super()._SetItem(index, item):
-            self.__itemUpdatedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Update))
+            self.__invoker.OnItemUpdated(CollectionChangedEventArgs(CollectionChangedAction.Update))
 
             return True
         
@@ -251,7 +358,7 @@ class ObservableCollection[T](Collection[T]):
         self.__AssertReentrancy()
 
         if super()._RemoveItemsAt(index, count):
-            self.__itemRemovedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Remove))
+            self.__invoker.OnItemRemoved(CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
             return True
         
@@ -261,7 +368,7 @@ class ObservableCollection[T](Collection[T]):
         self.__AssertReentrancy()
 
         if super()._RemoveItemAt(index):
-            self.__itemRemovedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Remove))
+            self.__invoker.OnItemRemoved(CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
             return True
         
@@ -272,7 +379,7 @@ class ObservableCollection[T](Collection[T]):
         
         super()._ClearItems()
 
-        self.__itemRemovedEvents.Invoke(self, CollectionChangedEventArgs(CollectionChangedAction.Remove))
+        self.__invoker.OnItemRemoved(CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
 class CollectionChangedAction(Enum):
     Null = 0
