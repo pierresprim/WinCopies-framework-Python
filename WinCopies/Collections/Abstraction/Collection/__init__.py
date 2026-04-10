@@ -364,7 +364,7 @@ class ISizedList[T](IList[T]):
         pass
     
     @abstractmethod
-    def ValidateLength(self) -> bool:
+    def ValidateLength(self, count: int) -> bool:
         pass
     
     @abstractmethod
@@ -400,12 +400,12 @@ class SizedList[T](ListBase[T], ISizedList[T]):
         return self.__maxLength
     
     @final
-    def ValidateLength(self) -> bool:
-        return self.GetCount() < self.GetMaxLength()
+    def ValidateLength(self, count: int) -> bool:
+        return self.GetCount() + count <= self.GetMaxLength()
     
     @final
     def Add(self, item: T) -> None:
-        if self.ValidateLength():
+        if self.ValidateLength(1):
             self._GetContainer().append(item)
         
         else:
@@ -413,7 +413,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None:
-        return self._TryInsert(index, value) if self.ValidateLength() else None
+        return self._TryInsert(index, value) if self.ValidateLength(1) else None
     @final
     def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
         return self._TryInsertRange(index, items) if self.ValidateLength() else None
