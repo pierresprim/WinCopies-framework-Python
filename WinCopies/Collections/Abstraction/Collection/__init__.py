@@ -359,10 +359,6 @@ class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], 
         self._GetStructAt(key).SetValue(value)
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetItems().IsEmpty()
-    
-    @final
     def GetCount(self) -> int:
         return self._GetItems().GetCount()
     

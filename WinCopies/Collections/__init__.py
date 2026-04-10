@@ -580,6 +580,9 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def __init__(self) -> None:
         super().__init__()
     
+    def IsEmpty(self) -> bool:
+        return self.GetCount() == 0
+    
     @abstractmethod
     def AsReversed(self) -> ITuple[T]:
         pass
@@ -791,9 +794,6 @@ class IOrderedSet[T: IEquatableItem](ISet[T], IReadOnlyOrderedSet[T]):
 class Tuple[T](Abstract, ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
-    
-    def IsEmpty(self) -> bool:
-        return self.GetCount() == 0
 
 class ArrayBase[T](Tuple[T]):
     def __init__(self) -> None:

@@ -83,10 +83,6 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         return self._GetInnerContainer().GetCount()
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetInnerContainer().IsEmpty()
-    
-    @final
     def Contains(self, value: TItem|object) -> bool:
         return self._GetInnerContainer().Contains(value)
     
@@ -173,13 +169,13 @@ class Collection[T](CollectionBase[T, IList[T]], IList[T], IGenericConstraintImp
 class ObservableCollection[T](Collection[T]):
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
-
+        
         self.__itemAddedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemUpdatedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemsSwappedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemMovedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemRemovedEvents: IEventManager[ObservableCollection[T], CollectionChangedEventArgs] = EventManager[ObservableCollection[T], CollectionChangedEventArgs]()
-
+        
         self.__monitor: IMonitor = Monitor()
     
     @final
@@ -198,7 +194,7 @@ class ObservableCollection[T](Collection[T]):
             return eventManager.Add(handler)
         
         raise
-
+    
     @final
     def OnItemAdded(self, handler: EventHandler[ObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         return self.OnCollectionChanged(self.__itemAddedEvents, handler)

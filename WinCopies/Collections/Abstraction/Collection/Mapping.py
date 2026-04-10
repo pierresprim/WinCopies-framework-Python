@@ -108,9 +108,6 @@ class _OrderedSetList[T: IEquatableItem](Extensions.MutableSequence[T], Extensio
     def GetCount(self) -> int:
         return self.__items.GetCount()
     
-    def IsEmpty(self) -> bool:
-        return self.__items.IsEmpty()
-    
     def Contains(self, value: T|object) -> bool:
         return self.__set.Contains(value)
     
@@ -238,10 +235,6 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IEquatableItem, TCollection](SequenceA
     @final
     def _GetContainer(self) -> TCollection:
         return self.__items
-    
-    @final
-    def IsEmpty(self) -> bool:
-        return self._GetInnerContainer().IsEmpty()
     
     @final
     def GetCount(self) -> int:

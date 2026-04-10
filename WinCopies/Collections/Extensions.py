@@ -287,10 +287,6 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
         return self._SliceAt(self.ReverseKey(key))
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetInnerContainer().IsEmpty()
-    
-    @final
     def GetCount(self) -> int:
         return self._GetInnerContainer().GetCount()
     
@@ -380,10 +376,6 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
     @final
     def _GetItems(self) -> IArrayBase[T]:
         return self.__items
-    
-    @final
-    def IsEmpty(self) -> bool:
-        return self._GetItems().IsEmpty()
     
     @final
     def GetCount(self) -> int:
