@@ -602,6 +602,17 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
+class IHashableTuple[T: IEquatableItem](IEquatableTuple[T], IEquatableItem):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReversed(self) -> IHashableTuple[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> IHashableTuple[T]:
+        pass
 
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self) -> None:
