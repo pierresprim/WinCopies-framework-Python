@@ -736,13 +736,16 @@ class Array[T](ArrayBase[T, IArray[T]], ArrayCollection[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class _IReversedCollectionAbstract[T](IIndexableCollectionBase, ICollection[T]):
+class _IIndexableCollectionAbstract[T](IIndexableCollectionBase):
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def _GetContainerAsList(self) -> IListBase[T]:
         pass
+class _IReversedCollectionAbstract[T](_IIndexableCollectionAbstract[T], ICollection[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:

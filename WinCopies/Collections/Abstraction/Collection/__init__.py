@@ -175,7 +175,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
         return List[T](self._GetContainer()[key])
     
     @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         if self.ValidateIndex(index):
             index -= 1
             
@@ -229,6 +229,9 @@ class List[T](ListBase[T]):
             return True
         
         return False
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        return self._TryInsertRange(index, items)
 
 class _ISizedListInitializer[T](IInterface):
     def __init__(self) -> None:
@@ -332,6 +335,10 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @final
     def TryInsert(self, index: int, value: T) -> bool:
         return self.TryInsertAt(index, value) is True
+    
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        return self._TryInsertRange(index, items)
     
     @staticmethod
     def Create(length: int) -> ISizedList[T]:
