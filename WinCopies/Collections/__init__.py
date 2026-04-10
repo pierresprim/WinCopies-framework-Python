@@ -580,6 +580,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def __init__(self) -> None:
         super().__init__()
     
+    @final
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
     
