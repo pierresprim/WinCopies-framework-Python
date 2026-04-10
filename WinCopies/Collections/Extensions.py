@@ -367,7 +367,7 @@ class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     def _GetValue(self) -> ITuple[T]:
         return _ReversedTuple[T](self.__array)
 
-class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
+class _ReadOnlyTuple[T](SequenceAbstract[T]):
     def __init__(self, items: IArrayBase[T]) -> None:
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__reversed = func
@@ -413,10 +413,6 @@ class _ReadOnlyTuple[T](Abstract, ITuple[T], IStringable):
     @final
     def AsReversed(self) -> ITuple[T]:
         return self.__reversed.GetValue()
-    
-    @final
-    def AsSequence(self) -> SequenceBase[T]:
-        return self._GetItems().AsSequence()
 
 class _ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](_ReversedBase[TItem, TCollectionIn, TCollectionOut], IArrayBase[TItem]):
     def __init__(self, items: TCollectionIn) -> None:
@@ -656,16 +652,6 @@ class ReversedArray[TItem, TCollection](ReversedArrayBase[TItem, TCollection, TC
     def __init__(self, items: TCollection) -> None:
         super().__init__(items)
 
-@final
-class _ReversedArrayReadOnlyUpdater[T](ValueFunctionUpdater[ITuple[T]]):
-    def __init__(self, array: IArrayBase[T], updater: Method[IFunction[ITuple[T]]]) -> None:
-        super().__init__(updater)
-
-        self.__array: IArrayBase[T] = array
-    
-    def _GetValue(self) -> ITuple[T]:
-        return _ReadOnlyTuple[T](self.__array)
-
 class IArrayAbstract[TItem, TCollection](IArrayBase[TItem]):
     def __init__(self) -> None:
         super().__init__()
@@ -689,7 +675,7 @@ class _ArrayCollectionBase[TItem, TCollection](ArrayAbstractBase[TItem, TCollect
         
         super().__init__()
 
-        self.__readOnly: IFunction[ITuple[TItem]] = _ReversedArrayReadOnlyUpdater[TItem](self, updateReadOnly) # type: ignore[no-redef]
+        self.__readOnly: IFunction[ITuple[TItem]] = _ReadOnlyReversedArrayUpdater[TItem](self, updateReadOnly) # type: ignore[no-redef]
         self.__reversed: IFunction[TCollection] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
     
     @final
