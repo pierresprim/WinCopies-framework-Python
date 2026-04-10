@@ -116,9 +116,6 @@ class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], Muta
     def GetStart(self) -> int:
         return self._GetContainer().GetStart()
     
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
-        return self._GetContainer().TryInsertRange(index, items)
-    
     def _GetInnerContainerAsList(self, container: ICircularList[T]) -> ICircularList[T]:
         return container
     def _GetSpecializedContainerAsList(self, container: IList[T]) -> IList[T]:
