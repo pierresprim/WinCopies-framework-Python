@@ -7,10 +7,10 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IList, KeyableBase, MutableSequence, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
-from WinCopies.Typing.Delegate import EqualityComparison
+from WinCopies.Typing.Delegate import IFunction, EqualityComparison
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
@@ -285,14 +285,19 @@ class IObservableCollection[T](IReadOnlyObservableCollection[T], IList[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class ObservableCollection[T](Collection[T], IObservableCollection[T]):
+class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T]):
     def __init__(self, items: IList[T]) -> None:
+        def update(func: IFunction[IList[T]]) -> None:
+            self.__reversed = func
+        
         super().__init__(items)
 
         events: _ObservableCollectionEvents[T] = _ObservableCollectionEvents[T](self)
 
         self.__invoker: _ObservableCollectionEventInvoker[T] = events.AsInvoker()
         self.__events: _ObservableCollectionEvents[T] = events
+
+        self.__reversed: IFunction[IList[T]] = self._GetUpdater(update) #type: ignore[no-redef]
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]:
@@ -304,8 +309,8 @@ class ObservableCollection[T](Collection[T], IObservableCollection[T]):
     
     @final
     def AsReversed(self) -> IList[T]:
-        return ObservableCollection[T](self._GetInnerContainer().AsReversed())
-
+        return self.__reversed.GetValue()
+    
     @final
     def AsReadOnly(self) -> ITuple[T]:
         return self._GetInnerContainer().AsReadOnly()
