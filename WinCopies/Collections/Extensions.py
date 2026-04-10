@@ -176,7 +176,7 @@ class IHashableTuple[T: IEquatableItem](IEquatableTuple[T], IHashableEnumerable[
     @abstractmethod
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         pass
-class IArrayBase[T](ITuple[T], Collections.IArrayBase[T]):
+class IArrayBase[T](ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
     

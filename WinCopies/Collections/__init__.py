@@ -599,22 +599,7 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
 
-class IArrayBase[T](ITuple[T], IIndexableCollection):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> ITuple[T]:
-        pass
-
-    @abstractmethod
-    def AsReversed(self) -> IArrayBase[T]:
-        pass
-    
-    @abstractmethod
-    def SliceAt(self, key: slice) -> IArrayBase[T]:
-        pass
-class IArray[T](IArrayBase[T], ICountableIndexable[T]):
+class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -626,10 +611,10 @@ class IArray[T](IArrayBase[T], ICountableIndexable[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 
-class IListBase[T](IArrayBase[T], ICountableList[T]):
+class IListBase[T](ITuple[T], ICountableList[T]):
     def __init__(self) -> None:
         super().__init__()
-
+    
     @abstractmethod
     def AsReversed(self) -> IListBase[T]:
         pass
@@ -810,7 +795,7 @@ class Tuple[T](Abstract, ITuple[T]):
     def IsEmpty(self) -> bool:
         return self.GetCount() == 0
 
-class ArrayBase[T](Tuple[T], IArrayBase[T]):
+class ArrayBase[T](Tuple[T]):
     def __init__(self) -> None:
         super().__init__()
 class Array[T](ArrayBase[T], IArray[T]):
