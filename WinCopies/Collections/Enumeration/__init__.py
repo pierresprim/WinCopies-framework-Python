@@ -114,6 +114,9 @@ class IReversableEnumerable[T](IEnumerable[T]):
     @abstractmethod
     def AsReversed(self) -> IEnumerable[T]:
         pass
+class IReversableCountableEnumerable[T](IReversableEnumerable[T], ICountableEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
