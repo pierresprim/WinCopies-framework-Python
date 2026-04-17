@@ -674,3 +674,48 @@ class ConverterEnumerator[TIn, TOut](ConverterEnumeratorBase[TIn, TOut]):
     @final
     def _Convert(self, value: TIn) -> TOut:
         return self.__selector(value)
+
+class IncrementalEnumerator[T](EnumeratorBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__i: int = self.__GetResetIndex()
+    
+    @final
+    def __GetResetIndex(self) -> int:
+        return -1
+    @final
+    def __Reset(self) -> None:
+        self.__i = self.__GetResetIndex()
+    
+    @final
+    def _GetValue(self) -> int:
+        return self.__i
+    @abstractmethod
+    def _GetMaxValue(self) -> int:
+        pass
+    
+    def IsResetSupported(self) -> bool:
+        return True
+    
+    def _MoveNextOverride(self) -> bool:
+        i: int = self.__i
+
+        i += 1
+
+        if i < self._GetMaxValue():
+            self.__i = i
+
+            return True
+        
+        self.__Reset()
+
+        return False
+    
+    def _OnStopped(self) -> None:
+        self.__Reset()
+    
+    def _ResetOverride(self) -> bool:
+        self.__Reset()
+
+        return True
