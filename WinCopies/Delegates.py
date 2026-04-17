@@ -12,6 +12,8 @@ def BoolFalse() -> bool:
 def FuncNone() -> None:
     return None
 
+def NoAction() -> None:
+    pass
 def DoNothing(_: object) -> None:
     pass
 
