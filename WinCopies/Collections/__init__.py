@@ -603,6 +603,10 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
 
         return self.GetMutability() if result is None else result
     
+    @final
+    def IsImmutable(self) -> bool:
+        return self.GetSourceMutability() == Mutability.ReadOnly
+    
     @abstractmethod
     def AsReversed(self) -> ITuple[T]:
         pass
