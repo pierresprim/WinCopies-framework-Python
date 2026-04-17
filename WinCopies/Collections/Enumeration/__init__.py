@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from typing import final
+from typing import final, Any
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import IEquatableValue, IEquatableItem
+from WinCopies.Typing import IDisposable, IEquatableValue, IEquatableItem, GetDisposedError
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
@@ -52,6 +52,9 @@ class IEnumerator[T](IEnumeratorBase):
     @abstractmethod
     def AsIterator(self) -> SystemIterator[T]:
         pass
+class IDisposableEnumerator[T](IEnumerator[T], IDisposable):
+    def __init__(self) -> None:
+        super().__init__()
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None:
@@ -719,3 +722,79 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
         self.__Reset()
 
         return True
+
+@final
+class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def IsStarted(self) -> bool:
+        return False
+    
+    def IsResetSupported(self) -> bool:
+        return False
+    
+    def GetCurrent(self) -> T|None:
+        raise GetDisposedError()
+    
+    def HasProcessedItems(self) -> bool:
+        raise GetDisposedError()
+    
+    def MoveNext(self) -> bool:
+        raise GetDisposedError()
+    
+    def TryReset(self) -> None:
+        return None
+    
+    def Stop(self) -> None:
+        pass
+    
+    def Dispose(self) -> None:
+        pass
+
+    def AsIterator(self) -> SystemIterator[T]:
+        raise GetDisposedError()
+
+__disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
+
+def _GetDisposedEnumerator[T]() -> IDisposableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __disposedEnumerator
+
+@final
+class _DisposableEnumerator[T](Abstract, IDisposableEnumerator[T]):
+    def __init__(self, enumerator: IEnumerator[T]) -> None:
+        super().__init__()
+
+        self.__enumerator: IEnumerator[T] = enumerator
+    
+    def IsStarted(self) -> bool:
+        return self.__enumerator.IsStarted()
+    
+    def IsResetSupported(self) -> bool:
+        return self.__enumerator.IsResetSupported()
+    
+    def HasProcessedItems(self) -> bool:
+        return self.__enumerator.HasProcessedItems()
+    
+    def GetCurrent(self) -> T|None:
+        return self.__enumerator.GetCurrent()
+    
+    def MoveNext(self) -> bool:
+        return self.__enumerator.MoveNext()
+    
+    def Stop(self) -> None:
+        return self.__enumerator.Stop()
+    
+    def TryReset(self) -> bool|None:
+        return self.__enumerator.TryReset()
+    
+    def Dispose(self) -> None:
+        self.__enumerator.Stop()
+
+        self.__enumerator = _GetDisposedEnumerator()
+    
+    def AsIterator(self) -> SystemIterator[T]:
+        return self.__enumerator.AsIterator()
+
+def ToDisposableEnumerator[T](enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
+    return _DisposableEnumerator[T](enumerator)
