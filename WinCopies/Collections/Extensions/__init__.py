@@ -152,6 +152,10 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumera
         super().__init__()
     
     @abstractmethod
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+        pass
+    
+    @abstractmethod
     def AsReversed(self) -> ITuple[T]:
         pass
     
