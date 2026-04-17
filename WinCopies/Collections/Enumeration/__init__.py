@@ -11,9 +11,10 @@ from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
 from typing import final
 
-from WinCopies import IInterface, Delegates
+from WinCopies import IInterface
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
+from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import IEquatableValue, IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
@@ -225,7 +226,7 @@ class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     @final
     def __MoveNext(self) -> bool:
         def setCompletedMoveNext() -> None:
-            self.__moveNextFunc = Delegates.BoolFalse
+            self.__moveNextFunc = BoolFalse
             
             self.__OnCompleted()
         
@@ -297,7 +298,7 @@ class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
     @final
     def TryReset(self) -> bool|None:
         def onReset() -> None:
-            self.__moveNextFunc = Delegates.BoolFalse
+            self.__moveNextFunc = BoolFalse
         
         if self.IsResetSupported():
             if self.IsStarted():
@@ -487,14 +488,11 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         self.__moveNextFunc: Function[bool] = self.__MoveNext
     
     @abstractmethod
-    def _GetEnumerator(self) -> TEnumerator:
-        pass
-    @final
     def _GetContainer(self) -> TEnumerator:
-        return self._GetEnumerator()
+        pass
     
     def _MoveNextOverride(self) -> bool:
-        return self._GetEnumerator().MoveNext()
+        return self._GetContainer().MoveNext()
     
     @abstractmethod
     def _ResetOverride(self) -> bool:
@@ -507,7 +505,7 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
                 if self._MoveNextOverride():
                     return True
                 
-                self.__moveNextFunc = Delegates.BoolFalse
+                self.__moveNextFunc = BoolFalse
 
                 return False
             
@@ -544,13 +542,13 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     
     @final
     def IsStarted(self) -> bool:
-        return self._GetEnumerator().IsStarted()
+        return self._GetContainer().IsStarted()
     @final
     def MoveNext(self) -> bool:
         return self.__moveNextFunc()
     @final
     def Stop(self) -> None:
-        self._GetEnumerator().Stop()
+        self._GetContainer().Stop()
 
         self.__OnTerminated(False)
     
@@ -559,22 +557,22 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         if self.IsStarted():
             self.Stop()
         
-        result: bool|None = self._GetEnumerator().TryReset()
+        result: bool|None = self._GetContainer().TryReset()
 
         if result is True and self._ResetOverride():
             self.__moveNextFunc = self.__MoveNext
 
             return True
         
-        self.__moveNextFunc = Delegates.BoolFalse
+        self.__moveNextFunc = BoolFalse
         
         return result
     @final
     def IsResetSupported(self) -> bool:
-        return self._GetEnumerator().IsResetSupported()
+        return self._GetContainer().IsResetSupported()
     @final
     def HasProcessedItems(self) -> bool:
-        return self._GetEnumerator().HasProcessedItems()
+        return self._GetContainer().HasProcessedItems()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -583,7 +581,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_Abstra
         self.__enumerator: TEnumerator = enumerator
     
     @final
-    def _GetEnumerator(self) -> TEnumerator:
+    def _GetContainer(self) -> TEnumerator:
         return self.__enumerator
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
@@ -637,7 +635,7 @@ class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     
     def _MoveNextOverride(self) -> bool:
         if super()._MoveNextOverride():
-            current: TIn|None = self._GetEnumerator().GetCurrent()
+            current: TIn|None = self._GetContainer().GetCurrent()
 
             if current is None:
                 self.__current = None
