@@ -458,7 +458,7 @@ class CompositeExpressionValueEnumerator[TValue, TConnector](AbstractionEnumerat
     
     def _MoveNextOverride(self) -> bool:
         while super()._MoveNextOverride():
-            current: ICompositeExpression[TValue, TConnector]|None = self._GetEnumerator().GetCurrent()
+            current: ICompositeExpression[TValue, TConnector]|None = self._GetContainer().GetCurrent()
 
             if current is None:
                 return False

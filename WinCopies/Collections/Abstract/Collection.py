@@ -9,7 +9,8 @@ from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Collection, Set as SetBase, Dictionary as DictionaryBase, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, Sequence, MutableSequence
+from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Set as SetBase, Dictionary as DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate

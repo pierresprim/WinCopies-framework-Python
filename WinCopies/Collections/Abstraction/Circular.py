@@ -3,7 +3,8 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, TupleBase, ArrayBase, ReversedArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, HashableTuple, SequenceAbstract, MutableSequenceAbstract, ReversedListAbstract
+from WinCopies.Collections.Extensions import IEnumeratorMonitor, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
+from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
@@ -83,8 +84,8 @@ class CircularHashableTuple[T: IEquatableItem](CircularBase[T, ICircularHashable
 
 @final
 class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], SequenceAbstract[T], ICircularArray[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularArray[T]]):
-    def __init__(self, items: ICircularArray[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICircularArray[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     def GetMutability(self) -> Mutability:
         return Mutability.FixedSize
@@ -104,18 +105,19 @@ class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], Sequ
         return self.ToSlicedAt(key)
 @final
 class _ArrayUpdater[T](ValueFunctionUpdater[ICircularArray[T]]):
-    def __init__(self, array: ICircularArray[T], updater: Method[IFunction[ICircularArray[T]]]) -> None:
+    def __init__(self, array: ICircularArray[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[ICircularArray[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: ICircularArray[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> ICircularArray[T]:
-        return _ReversedArray[T](self.__array)
+        return _ReversedArray[T](self.__array, self.__factory)
 
 @final
 class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], MutableSequenceAbstract[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularList[T]]):
-    def __init__(self, items: ICircularList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICircularList[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     def GetMutability(self) -> Mutability:
         return Mutability.Mutable
@@ -135,13 +137,14 @@ class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], Muta
 
 @final
 class _ListUpdater[T](ValueFunctionUpdater[ICircularList[T]]):
-    def __init__(self, array: ICircularList[T], updater: Method[IFunction[ICircularList[T]]]) -> None:
+    def __init__(self, array: ICircularList[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[ICircularList[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: ICircularList[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> ICircularList[T]:
-        return _ReversedList[T](self.__array)
+        return _ReversedList[T](self.__array, self.__factory)
 
 class CircularArrayAbstract[TItem, TList](CircularAbstract[TItem, TList], ArrayBase[TItem, TList], ICircularArray[TItem], GenericSpecializedConstraint[TList, ICircularTuple[TItem], ICircularArray[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -158,8 +161,8 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
         super().__init__(items)
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]:
-        return _ArrayUpdater[T](self, func)
+    def _GetUpdater(self, factory: IEnumeratorMonitor[T], func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]:
+        return _ArrayUpdater[T](self, factory, func)
     
     @final
     def AsReversed(self) -> IArray[T]:
@@ -173,8 +176,8 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
         super().__init__(items)
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]:
-        return _ListUpdater[T](self, func)
+    def _GetUpdater(self, factory: IEnumeratorMonitor[T], func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]:
+        return _ListUpdater[T](self, factory, func)
     
     @final
     def AsReversed(self) -> IList[T]:

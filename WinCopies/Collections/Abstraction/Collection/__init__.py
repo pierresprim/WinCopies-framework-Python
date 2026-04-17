@@ -9,7 +9,8 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, TupleEnumerator, MutableSequence
+from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence
+from WinCopies.Collections.Extensions.Enumeration import IEnumerationMonitor, TupleEnumerator
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
@@ -17,7 +18,7 @@ from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstr
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 from WinCopies.Typing.Reflection import AreSameClass
 
-class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Collection.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -32,10 +33,10 @@ class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Extensions
     @final
     def Contains(self, value: TItem|object) -> bool:
         return value in self._GetInnerContainer()
-class TupleAbstract[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Extensions.TupleAbstract[TItem]):
+class TupleAbstract[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.TupleAbstract[TItem]):
     def __init__(self) -> None:
         super().__init__()
-class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.TupleBase[TItem]):
+class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Collection.TupleBase[TItem]):
     def __init__(self, items: TSequence) -> None:
         super().__init__()
 
@@ -54,7 +55,7 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Extensions.Tu
     def __getitem__(self, index: SupportsIndex|slice) -> TItem|Sequence[TItem]:
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
-class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         mutability: Mutability|None = None
         _items: Sequence[T]|None = None
@@ -83,7 +84,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Extensions.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeSequence(items))
     
@@ -104,20 +105,22 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Extensions.Ha
     def ToString(self) -> str:
         return str(self._GetContainer())
 
-class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Extensions.ArrayAbstractBase[TItem, IArrayBase[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, IArrayBase[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self) -> None:
         super().__init__()
-class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Extensions.ArrayAbstract[TItem, IArray[TItem]]):
+class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Collection.ArrayAbstract[TItem, IArray[TItem]]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
+        self._InvalidateEnumerators()
+
         self._GetSpecializedContainer()[key] = value
-class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Extensions.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Collection.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self, items: TSequence) -> None:
         super().__init__(items)
-class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class Array[T](ArrayBase[T, MutableSequenceBase[T]], Collection.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
         mutability: Mutability|None = None
         _items: MutableSequenceBase[T]|None = None
@@ -142,10 +145,14 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Extensions.Array[T], IGener
     
     @final
     def Move(self, x: int, y: int) -> None:
+        self._InvalidateEnumerators()
+
         Move(self._GetContainer(), x, y)
     
     @final
     def Swap(self, x: int, y: int) -> None:
+        self._InvalidateEnumerators()
+
         super().Swap(x, y)
     
     @final
@@ -171,6 +178,13 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]:
         return self.__items
+    @abstractmethod
+    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+        pass
+
+    @final
+    def __InvalidateEnumerators(self) -> None:
+        self._GetEnumerationMonitor().InvalidateEnumerators()
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -180,6 +194,8 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
         if index >= self.GetCount():
             return False
         
+        self.__InvalidateEnumerators()
+        
         self._GetContainer().pop(index)
         
         return True
@@ -187,6 +203,8 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     @final
     def TryRemoveRange(self, index: int, count: int) -> bool:
         if self.ValidateIndex(index):
+            self.__InvalidateEnumerators()
+
             for i in range(count):
                 self.RemoveAt(index + i)
 
@@ -196,20 +214,30 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     
     @final
     def Clear(self) -> None:
+        self.__InvalidateEnumerators()
+        
         self._GetContainer().clear()
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Extensions.List[T]):
+class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Collection.List[T]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__(items)
     
     @final
+    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+        return self._GetEnumeratorFactory()
+    
+    @final
     def Move(self, x: int, y: int) -> None:
+        self._InvalidateEnumerators()
+
         Move(self._GetContainer(), x, y)
     
     @final
     def Swap(self, x: int, y: int) -> None:
+        self._InvalidateEnumerators()
+        
         super().Swap(x, y)
     
     @final
@@ -219,6 +247,8 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     @final
     def _TryInsert(self, index: int, value: T) -> bool:
         if self.ValidateIndex(index):
+            self._InvalidateEnumerators()
+
             self._GetContainer().insert(index, value)
             
             return True
@@ -227,6 +257,8 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     @final
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         if self.ValidateIndex(index):
+            self._InvalidateEnumerators()
+
             index -= 1
             
             for item in items:
@@ -240,6 +272,8 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     
     @final
     def insert(self, index: int, value: T) -> None:
+        self._InvalidateEnumerators()
+
         self._GetContainer().insert(index, value)
     
     @overload
@@ -258,10 +292,14 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     
     @final
     def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
+        self._InvalidateEnumerators()
+
         self._GetContainer()[index] = value # type: ignore
     
     @final
     def __delitem__(self, index: int|slice) -> None:
+        self._InvalidateEnumerators()
+
         del self._GetContainer()[index]
 class List[T](ListBase[T]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None = None) -> None:
@@ -276,6 +314,8 @@ class List[T](ListBase[T]):
     
     @final
     def Add(self, item: T) -> None:
+        self._InvalidateEnumerators()
+
         self._GetContainer().append(item)
     
     @final
@@ -406,6 +446,8 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @final
     def Add(self, item: T) -> None:
         if self.ValidateLength(1):
+            self._InvalidateEnumerators()
+
             self._GetContainer().append(item)
         
         else:
@@ -422,7 +464,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     def Create(length: int) -> ISizedList[T]:
         return SizedList[T](_SizedListLengthInitializer[T](length))
 
-class ArrayCollection[T](Extensions.Sequence[T], Extensions.ArrayCollection[T], IArray[T]):
+class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], IArray[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
         super().__init__()
 
@@ -487,9 +529,13 @@ class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Sequence[T], Extensions.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__(None if items is None else sorted(items))
+    
+    @final
+    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+        return self._GetEnumeratorFactory()
     
     @final
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
@@ -600,7 +646,7 @@ class _None(Singleton):
         super().__init__()
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: IEquatableItem, TValue](Extensions.Dictionary[TKey, TValue]):
+class Dictionary[TKey: IEquatableItem, TValue](Collection.Dictionary[TKey, TValue]):
     class _Enumerable[_TKey: IEquatableItem, _TValue, _TItem](CountableEnumerable[_TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()

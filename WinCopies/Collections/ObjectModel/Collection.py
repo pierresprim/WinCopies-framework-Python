@@ -8,7 +8,8 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Extensions import ITuple, IArray, IList, KeyableBase, MutableSequence, SequenceAbstract, CollectionAbstract
+from WinCopies.Collections.Extensions import IEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract
+from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import IMonitor, INullable, Monitor, InvalidOperationError
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -339,6 +340,9 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
         return self._GetInnerContainer().TryGetEnumerator()
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+        return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def ToString(self) -> str:
@@ -413,7 +417,7 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__readOnly: IFunction[IReadOnlyObservableCollection[T]] = _ReadOnlyObservableCollectionUpdater[T](self, updateReadOnly) #type: ignore[no-redef]
         self.__fixedSize: IFunction[IFixedSizeObservableCollection[T]] = _FixedSizeObservableCollectionUpdater[T](self, updateFixedSize) #type: ignore[no-redef]
         
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) #type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetUpdater(items.GetEnumeratorMonitor(), updateReversed) #type: ignore[no-redef]
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]:

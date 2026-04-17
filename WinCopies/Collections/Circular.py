@@ -3,7 +3,8 @@ from collections.abc import Iterable, Sequence as SequenceBase
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, TupleAbstract, TupleBase, ArrayBase, Sequence, MutableSequence, Tuple, EquatableTuple, HashableTuple, Array, List
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
+from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation

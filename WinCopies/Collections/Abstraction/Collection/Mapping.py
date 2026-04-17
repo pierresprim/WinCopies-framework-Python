@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections.abc import Container, Iterable, Sequence, MutableSequence
 from typing import overload, final, SupportsIndex
 
-from WinCopies.Collections import Extensions, Mutability
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
-from WinCopies.Collections.Extensions import IReadOnlySet, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableList
+from WinCopies.Collections.Extensions import Collection, IEnumeratorMonitor, IReadOnlySet, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
+from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems
@@ -15,7 +16,7 @@ from WinCopies.Typing import INullable, IEquatableItem
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
-class Set[T: IEquatableItem](Extensions.Set[T]):
+class Set[T: IEquatableItem](Collection.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
         super().__init__()
 
@@ -88,7 +89,7 @@ class Set[T: IEquatableItem](Extensions.Set[T]):
         return str(self._GetItems())
 
 @final
-class _OrderedSetList[T: IEquatableItem](MutableList[T], Extensions.CollectionAbstract[T]):
+class _OrderedSetList[T: IEquatableItem](MutableList[T], Collection.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None:
             self.__reversed = func
@@ -102,8 +103,8 @@ class _OrderedSetList[T: IEquatableItem](MutableList[T], Extensions.CollectionAb
         self.__set: ISet[T] = s
         self.__innerSet: set[T] = innerSet
 
-        self.__fixedSize: IFunction[IArray[T]] = self._GetReversedUpdater(updateFixedSize) # type: ignore[no-redef]
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[T]] = self._GetReversedUpdater(l.GetEnumeratorMonitor(), updateFixedSize) # type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetUpdater(l.GetEnumeratorMonitor(), updateReversed) # type: ignore[no-redef]
     
     def __TryAdd(self, index: int, value: T) -> bool:
         return self.ValidateIndex(index) and self.__set.TryAdd(value)
@@ -184,6 +185,8 @@ class _OrderedSetList[T: IEquatableItem](MutableList[T], Extensions.CollectionAb
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self.__items.TryGetEnumerator()
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+        return self.__list.GetEnumeratorMonitor()
     
     def Clear(self) -> None:
         self.__items.Clear()
@@ -295,6 +298,9 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IEquatableItem, TCollection](SequenceA
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
         return self._GetInnerContainer().TryGetEnumerator()
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+        return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def ToString(self) -> str:
