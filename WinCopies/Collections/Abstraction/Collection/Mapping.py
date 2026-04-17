@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Container, Iterable, Sequence, MutableSequence
 from typing import overload, final, SupportsIndex
 
+from WinCopies import Abstract
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
@@ -89,7 +90,7 @@ class Set[T: IEquatableItem](Collection.Set[T]):
         return str(self._GetItems())
 
 @final
-class _OrderedSetList[T: IEquatableItem](MutableList[T], Collection.CollectionAbstract[T]):
+class _OrderedSetList[T: IEquatableItem](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None:
             self.__reversed = func
