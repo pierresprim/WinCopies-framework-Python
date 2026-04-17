@@ -107,7 +107,7 @@ class ICountableEnumerable[T](IEnumerable[T], ICountable):
     def __init__(self) -> None:
         super().__init__()
 
-class IReversableEnumerable[T](IInterface):
+class IReversableEnumerable[T](IEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
     
