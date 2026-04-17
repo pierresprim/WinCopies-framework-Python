@@ -1,35 +1,26 @@
-from WinCopies.Collections import Enumeration
+from typing import final
+
+from WinCopies.Collections.Enumeration import IncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
-class TupleEnumeratorBase[TItem, TList](Enumeration.EnumeratorBase[TItem], GenericConstraint[TList, ITuple[TItem]]):
+class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
         self.__list: TList = items
-        self.__i: int = -1
     
+    @final
     def _GetContainer(self) -> TList:
         return self.__list
     
-    def IsResetSupported(self) -> bool:
-        return True
+    @final
+    def _GetMaxValue(self) -> int:
+        return self._GetInnerContainer().GetCount()
     
-    def _MoveNextOverride(self) -> bool:
-        self.__i += 1
-        
-        return self.__i < self._GetInnerContainer().GetCount()
-    
+    @final
     def GetCurrent(self) -> TItem:
-        return self._GetInnerContainer().GetAt(self.__i)
-    
-    def _OnStopped(self) -> None:
-        pass
-    
-    def _ResetOverride(self) -> bool:
-        self.__i = -1
-
-        return True
+        return self._GetInnerContainer().GetAt(self._GetValue())
 class TupleEnumerator[T](TupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None:
         super().__init__(items)
