@@ -4,9 +4,9 @@ from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import Collections, IStringable
+from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
-from WinCopies.Collections.Enumeration import IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration import IEnumerator, IReversableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -139,6 +139,14 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T
     def AsMutableSequence(self) -> MutableSequenceBase[T]:
         return self
 
+class IEnumeratorMonitor[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def CreateEnumerator(self, items: ITuple[T]) -> IEnumerator[T]:
+        pass
+
 class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
@@ -172,6 +180,7 @@ class IHashableTuple[T: IEquatableItem](Collections.IHashableTuple[T], IEquatabl
     @abstractmethod
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         pass
+
 class IArrayBase[T](ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
