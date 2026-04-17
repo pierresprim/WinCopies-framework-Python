@@ -4,19 +4,20 @@ from abc import abstractmethod
 from collections.abc import Container as ContainerBase, Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import Collections, Abstract
+from WinCopies import Collections, IInterface, Abstract
 from WinCopies.Collections import Mutability, IIndexableCollectionBase, IGetter, ISetter, FindIndex
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, ICollection, IListBase, IList, ISortedList, IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container, SequenceAbstract, Sequence, MutableSequenceAbstract, MutableSequence
-from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator
+from WinCopies.Collections.Extensions import ICollection, IEnumeratorMonitor, ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IListBase, IList, ISortedList, IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
+from WinCopies.Collections.Extensions.Enumeration import IEnumeratorFactory, EnumeratorFactory, TupleEnumerator
 from WinCopies.Collections.Iteration.Extensions import Reverse
+from WinCopies.Collections.ObjectModel import ReadOnlyCollection, FixedSizeCollection
 from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
+class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
         super().__init__()
 
@@ -33,10 +34,6 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
     @final
     def ToSlicedAt(self, key: slice) -> TCollectionOut:
         return self._SliceAt(self.ReverseKey(key))
-    
-    @final
-    def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
     def GetCount(self) -> int:
@@ -58,20 +55,34 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], I
         return self._GetInnerContainer().FindFirstIndex(item, predicate)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return TupleEnumerator[TItem](self)
-    
-    @final
     def ToString(self) -> str:
         return self._GetInnerContainer().ToString()
-class _Reversed[TItem, TCollection](_ReversedBase[TItem, TCollection, TCollection]):
-    def __init__(self, items: TCollection) -> None:
+class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TItem, TCollectionIn, TCollectionOut]):
+    def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
         super().__init__(items)
+
+        self.__factory: IEnumeratorMonitor[TItem] = factory
+    
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+        return self.__factory
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
+        return self.__factory.CreateEnumerator(self)
+
+class _Reversed[TItem, TCollection](_ReversedBase[TItem, TCollection, TCollection]):
+    def __init__(self, items: TCollection, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
 
 @final
 class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericConstraintImplementation[ITuple[T]]):
-    def __init__(self, items: ITuple[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ITuple[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     @final
     def GetMutability(self) -> Mutability:
@@ -86,74 +97,49 @@ class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericCo
         return self._GetContainer()
 @final
 class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
-    def __init__(self, array: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
+    def __init__(self, array: ITuple[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[ITuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: ITuple[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> ITuple[T]:
-        return _ReversedTuple[T](self.__array)
+        return _ReversedTuple[T](self.__array, self.__factory)
 
-class _ReadOnlyTuple[T](SequenceAbstract[T]):
-    def __init__(self, items: IArrayBase[T]) -> None:
+class _ReadOnlyTuple[T](ReadOnlyCollection[T]):
+    def __init__(self, items: IArrayBase[T], factory: IEnumeratorMonitor[T]) -> None:
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__reversed = func
         
-        super().__init__()
+        super().__init__(items)
 
-        self.__items: IArrayBase[T] = items
-        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
-    
-    @final
-    def _GetItems(self) -> IArrayBase[T]:
-        return self.__items
+        self.__factory: IEnumeratorMonitor[T] = factory
+        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, factory, update) # type: ignore[no-redef]
     
     @final
     def GetMutability(self) -> Mutability:
         return Mutability.ReadOnly
     @final
     def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetItems().TryGetSourceMutability()
-    
-    @final
-    def GetCount(self) -> int:
-        return self._GetItems().GetCount()
-    
-    @final
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self._GetItems().TryGetValue(key)
-    @final
-    def SliceAt(self, key: slice) -> ITuple[T]:
-        return self._GetItems().SliceAt(key)
-    
-    @final
-    def Contains(self, value: T|object) -> bool:
-        return self._GetItems().Contains(value)
-    
-    @final
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetItems().FindFirstIndex(item, predicate)
-    @final
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetItems().FindLastIndex(item, predicate)
+        return self._GetContainer().TryGetSourceMutability()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
-    
-    def ToString(self) -> str:
-        return self._GetItems().ToString()
+        return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+        return self.__factory
     
     @final
     def AsReversed(self) -> ITuple[T]:
         return self.__reversed.GetValue()
 
 class _ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](_ReversedBase[TItem, TCollectionIn, TCollectionOut], IArrayBase[TItem]):
-    def __init__(self, items: TCollectionIn) -> None:
+    def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
         def update(func: IFunction[ITuple[TItem]]) -> None:
             self.__readOnly = func
         
-        super().__init__(items)
+        super().__init__(items, factory)
         
         self.__readOnly: IFunction[ITuple[TItem]] = self._GetReadOnlyUpdater(update) # type: ignore[no-redef]
     
@@ -211,21 +197,41 @@ class TupleAbstract[T](TupleAbstractBase[T]):
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
         return FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
-class _TupleBase[T](TupleAbstractBase[T]):
+class _ITuple[T](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetEnumeratorFactory(self) -> IEnumeratorFactory[T]:
+        pass
+
+    @final
+    def _InvalidateEnumerators(self) -> None:
+        self._GetEnumeratorFactory().InvalidateEnumerators()
+
+class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
     
     # Not final to allow customization of the enumerator.
-    def TryGetEnumerator(self) -> IEnumerator[T]:
+    def _TryGetEnumerator(self) -> IEnumerator[T]:
         return TupleEnumerator[T](self)
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]:
+        enumerator: IEnumerator[T] = self._TryGetEnumerator()
+
+        self._GetEnumeratorFactory().RegisterEnumerator(enumerator)
+
+        return enumerator
 class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
 
 @final
 class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IEquatableTuple[T], factory: IEnumeratorFactory[T]) -> None:
+        super().__init__(items, factory)
     
     @final
     def GetMutability(self) -> Mutability:
@@ -243,8 +249,8 @@ class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]
         return self._GetContainer().Equals(item)
 @final
 class _ReversedHashableTuple[T: IEquatableItem](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
-    def __init__(self, items: IHashableTuple[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IHashableTuple[T], factory: IEnumeratorFactory[T]) -> None:
+        super().__init__(items, factory)
     
     def _SliceAt(self, key: slice) -> IHashableTuple[T]:
         return self._GetContainer().SliceAt(key)
@@ -261,31 +267,46 @@ class _ReversedHashableTuple[T: IEquatableItem](_Reversed[T, IHashableTuple[T]],
         return self._GetContainer().Hash()
 @final
 class _ReversedEquatableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IEquatableTuple[T]]):
-    def __init__(self, array: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
+    def __init__(self, array: IEquatableTuple[T], factory: IEnumeratorFactory[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: IEquatableTuple[T] = array
+        self.__factory: IEnumeratorFactory[T] = factory
     
     def _GetValue(self) -> IEquatableTuple[T]:
-        return _ReversedEquatableTuple[T](self.__array)
+        return _ReversedEquatableTuple[T](self.__array, self.__factory)
 @final
 class _ReversedHashableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IHashableTuple[T]]):
-    def __init__(self, array: IHashableTuple[T], updater: Method[IFunction[IHashableTuple[T]]]) -> None:
+    def __init__(self, array: IHashableTuple[T], factory: IEnumeratorFactory[T], updater: Method[IFunction[IHashableTuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: IHashableTuple[T] = array
+        self.__factory: IEnumeratorFactory[T] = factory
     
     def _GetValue(self) -> IHashableTuple[T]:
-        return _ReversedHashableTuple[T](self.__array)
+        return _ReversedHashableTuple[T](self.__array, self.__factory)
 
-class TupleCollection[T](TupleAbstract[T]):
+class _TupleCollection[T](TupleAbstract[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__factory: IEnumeratorFactory[T] = EnumeratorFactory[T]()
+    
+    @final
+    def _GetEnumeratorFactory(self) -> IEnumeratorFactory[T]:
+        return self.__factory
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+        return self._GetEnumeratorFactory().AsMonitor()
+
+class TupleCollection[T](_TupleCollection[T]):
     def __init__(self) -> None:
         def update(func: IFunction[ITuple[T]]) -> None:
             self.__reversed = func
         
         super().__init__()
 
-        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, self._GetEnumeratorFactory(), update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> ITuple[T]:
@@ -294,14 +315,14 @@ class Tuple[T](TupleCollection[T], TupleBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class EquatableTupleCollection[T: IEquatableItem](TupleAbstract[T], IEquatableTuple[T]):
+class EquatableTupleCollection[T: IEquatableItem](_TupleCollection[T], IEquatableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None:
             self.__reversed = func
         
         super().__init__()
 
-        self.__reversed: IFunction[IEquatableTuple[T]] = _ReversedEquatableTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[IEquatableTuple[T]] = _ReversedEquatableTupleUpdater[T](self, self._GetEnumeratorFactory(), update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> IEquatableTuple[T]:
@@ -310,14 +331,14 @@ class EquatableTuple[T: IEquatableItem](EquatableTupleCollection[T], TupleBase[T
     def __init__(self) -> None:
         super().__init__()
 
-class HashableTupleCollection[T: IEquatableItem](TupleAbstract[T], IHashableTuple[T]):
+class HashableTupleCollection[T: IEquatableItem](_TupleCollection[T], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None:
             self.__reversed = func
         
         super().__init__()
 
-        self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, self._GetEnumeratorFactory(), update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> IHashableTuple[T]:
@@ -328,24 +349,27 @@ class HashableTuple[T: IEquatableItem](HashableTupleCollection[T], TupleBase[T],
 
 @final
 class _ReadOnlyReversedArrayUpdater[T](ValueFunctionUpdater[ITuple[T]]):
-    def __init__(self, array: IArrayBase[T], updater: Method[IFunction[ITuple[T]]]) -> None:
+    def __init__(self, array: IArrayBase[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[ITuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: IArrayBase[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> ITuple[T]:
-        return _ReadOnlyTuple(self.__array)
+        return _ReadOnlyTuple(self.__array, self.__factory)
 
 class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedArrayBase[TItem, TCollectionIn, TCollectionOut]):
-    def __init__(self, items: TCollectionIn) -> None:
-        super().__init__(items)
+    def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
+
+        self.__factory: IEnumeratorMonitor[TItem] = factory
     
     @final
     def _GetReadOnlyUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
-        return _ReadOnlyReversedArrayUpdater[TItem](self, func)
+        return _ReadOnlyReversedArrayUpdater[TItem](self, self.__factory, func)
 class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
-    def __init__(self, items: TCollectionIn) -> None:
-        super().__init__(items)
+    def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
     
     @final
     def TrySetAt(self, key: int, value: TItem) -> bool:
@@ -355,20 +379,20 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
     def Move(self, x: int, y: int) -> None:
         self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))
 class ReversedArray[TItem, TCollection](ReversedArrayBase[TItem, TCollection, TCollection]):
-    def __init__(self, items: TCollection) -> None:
-        super().__init__(items)
+    def __init__(self, items: TCollection, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
 
 class IArrayAbstract[TItem, TCollection](IArrayBase[TItem]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def _GetUpdater(self, func: Method[IFunction[TCollection]]) -> IFunction[TCollection]:
+    def _GetUpdater(self, factory: IEnumeratorMonitor[TItem], func: Method[IFunction[TCollection]]) -> IFunction[TCollection]:
         pass
 class ArrayAbstractBase[TItem, TCollection](TupleAbstractBase[TItem], GetterBase[int, TItem], IArrayAbstract[TItem, TCollection]):
     def __init__(self) -> None:
         super().__init__()
-class ArrayAbstract[TItem, TCollection](ArrayAbstractBase[TItem, TCollection], KeyableBase[int, TItem], TupleAbstract[TItem], IArray[TItem]):
+class ArrayAbstract[TItem, TCollection](ArrayAbstractBase[TItem, TCollection], KeyableBase[int, TItem], TupleAbstract[TItem], IArray[TItem], _ITuple[TItem]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -381,8 +405,19 @@ class _ArrayCollectionBase[TItem, TCollection](ArrayAbstractBase[TItem, TCollect
         
         super().__init__()
 
-        self.__readOnly: IFunction[ITuple[TItem]] = _ReadOnlyReversedArrayUpdater[TItem](self, updateReadOnly) # type: ignore[no-redef]
-        self.__reversed: IFunction[TCollection] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
+        factory: IEnumeratorFactory[TItem] = EnumeratorFactory[TItem]()
+
+        self.__factory: IEnumeratorFactory[TItem] = factory
+
+        self.__readOnly: IFunction[ITuple[TItem]] = _ReadOnlyReversedArrayUpdater[TItem](self, factory, updateReadOnly) # type: ignore[no-redef]
+        self.__reversed: IFunction[TCollection] = self._GetUpdater(factory, updateReversed) # type: ignore[no-redef]
+    
+    @final
+    def _GetEnumeratorFactory(self) -> IEnumeratorFactory[TItem]:
+        return self.__factory
+    @final
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+        return self._GetEnumeratorFactory().AsMonitor()
     
     @final
     def _AsReversed(self) -> TCollection:
@@ -404,8 +439,8 @@ class ArrayBase[TItem, TCollection](_ArrayBase[TItem, TCollection], ArrayCollect
 
 @final
 class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
-    def __init__(self, items: IArray[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IArray[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     @final
     def GetMutability(self) -> Mutability:
@@ -423,21 +458,22 @@ class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGener
         return self._AsSpecialized(self.ToSlicedAt(key))
 @final
 class _ReversedArrayUpdater[T](ValueFunctionUpdater[IArray[T]]):
-    def __init__(self, array: IArray[T], updater: Method[IFunction[IArray[T]]]) -> None:
+    def __init__(self, array: IArray[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[IArray[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: IArray[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> IArray[T]:
-        return _ReversedArray[T](self.__array)
+        return _ReversedArray[T](self.__array, self.__factory)
 
 class ArrayCollection[T](Collections.Array[T], ArrayCollectionBase[T, IArray[T]]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
-        return _ReversedArrayUpdater[T](self, func)
+    def _GetUpdater(self, factory: IEnumeratorMonitor[T], func: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
+        return _ReversedArrayUpdater[T](self, factory, func)
     
     @final
     def AsReversed(self) -> IArray[T]:
@@ -466,8 +502,8 @@ class _IReversedCollectionAbstract[T](_IIndexableCollectionAbstract[T], ICollect
         self._GetContainerAsList().Clear()
 
 class ReversedCollectionAbstract[TItem, TList](ReversedArrayAbstract[TItem, TList, TList], _IReversedCollectionAbstract[TItem]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IListBase[TItem]:
@@ -476,8 +512,8 @@ class ReversedCollectionAbstract[TItem, TList](ReversedArrayAbstract[TItem, TLis
     def AsReversed(self) -> IListBase[TItem]:
         return self._GetContainerAsList()
 class ReversedCollectionBase[TItem, TListIn, TListOut](ReversedArrayBase[TItem, TListIn, TListOut], _IReversedCollectionAbstract[TItem]):
-    def __init__(self, items: TListIn) -> None:
-        super().__init__(items)
+    def __init__(self, items: TListIn, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
 
     @abstractmethod
     def _GetContainerAsList(self) -> IList[TItem]:
@@ -490,85 +526,59 @@ class ReversedCollectionBase[TItem, TListIn, TListOut](ReversedArrayBase[TItem, 
     def AsReversed(self) -> IList[TItem]:
         return self._GetContainerAsList()
 class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCollectionAbstract[TItem]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList, factory: IEnumeratorFactory[TItem]) -> None:
+        super().__init__(items, factory)
 
 @final
-class _FixedSizeArray[T](SequenceAbstract[T], IArray[T]):
-    def __init__(self, items: IList[T]) -> None:
+class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T]):
+    def __init__(self, items: IList[T], factory: IEnumeratorMonitor[T]) -> None:
         def update(func: IFunction[IArray[T]]) -> None:
             self.__reversed = func
         
-        super().__init__()
+        super().__init__(items)
 
-        self.__items: IList[T] = items
-        self.__reversed: IFunction[IArray[T]] = _ReversedArrayUpdater[T](self, update) # type: ignore[no-redef]
+        self.__factory: IEnumeratorMonitor[T] = factory
+        self.__reversed: IFunction[IArray[T]] = _ReversedArrayUpdater[T](self, factory, update) # type: ignore[no-redef]
     
     def GetMutability(self) -> Mutability:
         return Mutability.FixedSize
     def TryGetSourceMutability(self) -> Mutability|None:
-        return self.__items.TryGetSourceMutability()
-    
-    def GetCount(self) -> int:
-        return self.__items.GetCount()
-    
-    def Contains(self, value: T|object) -> bool:
-        return self.__items.Contains(value)
-    
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__items.FindFirstIndex(item, predicate)
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__items.FindLastIndex(item, predicate)
-    
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self.__items.TryGetValue(key)
-    
-    def Move(self, x: int, y: int) -> None:
-        return self.__items.Move(x, y)
-    
-    def TrySetAt(self, key: int, value: T) -> bool:
-        return self.__items.TrySetAt(key, value)
+        return self._GetContainer().TryGetSourceMutability()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
-    
-    def SliceAt(self, key: slice) -> IArray[T]:
-        return self.__items.SliceAt(key)
-    
-    def AsReadOnly(self) -> ITuple[T]:
-        return self.__items.AsReadOnly()
+        return self._GetContainer().TryGetEnumerator()
+    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+        return self.__factory
     
     def AsReversed(self) -> IArray[T]:
         return self.__reversed.GetValue()
-    
-    def ToString(self) -> str:
-        return self.__items.ToString()
 @final
 class _FixedSizeArrayUpdater[T](ValueFunctionUpdater[IArray[T]]):
-    def __init__(self, items: IList[T], updater: Method[IFunction[IArray[T]]]) -> None:
+    def __init__(self, items: IList[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[IArray[T]]]) -> None:
         super().__init__(updater)
 
         self.__items: IList[T] = items
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> IArray[T]:
-        return _FixedSizeArray[T](self.__items)
+        return _FixedSizeArray[T](self.__items, self.__factory)
 
 class MutableList[T](MutableSequence[T], IList[T]):
-    def __init__(self) -> None:
+    def __init__(self, ) -> None:
         super().__init__()
 
     @final
-    def _GetReversedUpdater(self, updater: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
-        return _FixedSizeArrayUpdater[T](self, updater)
+    def _GetReversedUpdater(self, factory: IEnumeratorMonitor[T], updater: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
+        return _FixedSizeArrayUpdater[T](self, factory, updater)
 
-class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableList[TItem], IList[TItem]):
-    def __init__(self, items: TListIn) -> None:
+class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableList[TItem]):
+    def __init__(self, items: TListIn, factory: IEnumeratorMonitor[TItem]) -> None:
         def update(func: IFunction[IArray[TItem]]) -> None:
             self.__fixedSize = func
         
-        super().__init__(items)
+        super().__init__(items, factory)
 
-        self.__fixedSize: IFunction[IArray[TItem]] = self._GetReversedUpdater(update) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[TItem]] = self._GetReversedUpdater(factory, update) # type: ignore[no-redef]
     
     @abstractmethod
     def _GetInnerContainerAsList(self, container: TListIn) -> IList[TItem]:
@@ -587,11 +597,13 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     
     @final
     def Add(self, item: TItem) -> None:
+        items: IList[TItem] = self._GetContainerAsList()
+
         if self.GetCount() > 0:
-            self._GetContainerAsList().Insert(0, item)
+            items.Insert(0, item)
         
         else:
-            self._GetContainerAsList().Add(item)
+            items.Add(item)
     
     @final
     def TryInsert(self, index: int, value: TItem) -> bool:
@@ -599,12 +611,13 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
         if self.ValidateIndex(index):
+            _items: IList[TItem] = self._GetContainerAsList()
             items = Reverse(items)
 
             if index > 0:
-                return self._GetContainerAsList().TryInsertRange(self.ReverseIndex(index), items)
+                return _items.TryInsertRange(self.ReverseIndex(index), items)
             
-            self._GetContainerAsList().AddRange(items)
+            _items.AddRange(items)
 
             return True
         
@@ -631,16 +644,16 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def __delitem__(self, index: int|slice) -> None:
         del self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(index) if isinstance(index, int) else self.ReverseKey(index)]
 class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
     
     @final
     def SliceAt(self, key: slice) -> IList[TItem]:
         return self._GetInnerContainerAsList(self.ToSlicedAt(key))
 
 class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem, TList], Sequence[TItem], ISortedList[TItem]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList, factory: IEnumeratorMonitor[TItem]) -> None:
+        super().__init__(items, factory)
     
     @abstractmethod
     def _GetInnerContainerAsList(self, container: TList) -> ISortedList[TItem]:
@@ -674,8 +687,8 @@ class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem,
 
 @final
 class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
-    def __init__(self, items: IList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IList[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     def GetMutability(self) -> Mutability:
         return Mutability.Mutable
@@ -689,18 +702,19 @@ class _ReversedList[T](ReversedListBase[T, IList[T]], MutableSequenceAbstract[T]
         return self._GetContainerAsList().SliceAt(key)
 @final
 class _ReversedListUpdater[T](ValueFunctionUpdater[IList[T]]):
-    def __init__(self, array: IList[T], updater: Method[IFunction[IList[T]]]) -> None:
+    def __init__(self, array: IList[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[IList[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: IList[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> IList[T]:
-        return _ReversedList[T](self.__array)
+        return _ReversedList[T](self.__array, self.__factory)
 
 @final
 class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
-    def __init__(self, items: ISortedList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ISortedList[T], factory: IEnumeratorMonitor[T]) -> None:
+        super().__init__(items, factory)
     
     def GetMutability(self) -> Mutability:
         return Mutability.Mutable
@@ -714,21 +728,22 @@ class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], Sequ
         return self._GetContainerAsList().SliceAt(key)
 @final
 class _ReversedSortedListUpdater[T](ValueFunctionUpdater[ISortedList[T]]):
-    def __init__(self, array: ISortedList[T], updater: Method[IFunction[ISortedList[T]]]) -> None:
+    def __init__(self, array: ISortedList[T], factory: IEnumeratorMonitor[T], updater: Method[IFunction[ISortedList[T]]]) -> None:
         super().__init__(updater)
 
         self.__array: ISortedList[T] = array
+        self.__factory: IEnumeratorMonitor[T] = factory
     
     def _GetValue(self) -> ISortedList[T]:
-        return _ReversedSortedList[T](self.__array)
+        return _ReversedSortedList[T](self.__array, self.__factory)
 
 class CollectionAbstract[T](IArrayAbstract[T, IList[T]], IList[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[IList[T]]]) -> IFunction[IList[T]]:
-        return _ReversedListUpdater[T](self, func)
+    def _GetUpdater(self, factory: IEnumeratorMonitor[T], func: Method[IFunction[IList[T]]]) -> IFunction[IList[T]]:
+        return _ReversedListUpdater[T](self, factory, func)
 
 class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
     def __init__(self) -> None:
@@ -737,7 +752,7 @@ class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], Colle
         
         super().__init__()
 
-        self.__fixedSize: IFunction[IArray[T]] = _FixedSizeArrayUpdater[T](self, update) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[T]] = _FixedSizeArrayUpdater[T](self, self._GetEnumeratorFactory(), update) # type: ignore[no-redef]
     
     @final
     def AsReversed(self) -> IList[T]:
@@ -751,8 +766,8 @@ class SortedCollection[T](Collections.SortedList[T], _ArrayCollectionBase[T, ISo
         super().__init__()
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ISortedList[T]]]) -> IFunction[ISortedList[T]]:
-        return _ReversedSortedListUpdater[T](self, func)
+    def _GetUpdater(self, factory: IEnumeratorMonitor[T], func: Method[IFunction[ISortedList[T]]]) -> IFunction[ISortedList[T]]:
+        return _ReversedSortedListUpdater[T](self, factory, func)
     
     @final
     def AsReversed(self) -> ISortedList[T]:
