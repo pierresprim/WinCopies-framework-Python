@@ -5,15 +5,15 @@ from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from enum import Enum
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IInterface, IDisposable, Abstract
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Extensions import IEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
-from WinCopies.Typing import IMonitor, INullable, Monitor, InvalidOperationError
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
-from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager
+from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager, EventMonitor
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
 class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
@@ -242,47 +242,28 @@ class _ObservableCollectionEventInvoker[T](Abstract):
         self.__OnCollectionChanged(self.__events.GetRemoved(), args)
 
 @final
-class _ObservableCollectionEvents[T](Abstract, IObservableCollectionEvents[T]):
+class _ObservableCollectionEvents[T](EventMonitor, IObservableCollectionEvents[T]):
     def __init__(self, sender: IObservableCollection[T]) -> None:
         super().__init__()
 
         events: _ObservableCollectionEvent[T] = _ObservableCollectionEvent[T]()
         
-        self.__eventManager: _ObservableCollectionEventManager[T] = _ObservableCollectionEventManager[T](self)
         self.__invoker: _ObservableCollectionEventInvoker[T] = _ObservableCollectionEventInvoker[T](sender, events)
         self.__events: _ObservableCollectionEvent[T] = events
-        
-        self.__monitor: IMonitor = Monitor()
     
-    def AsEventManager(self) -> IObservableCollectionEvents[T]:
-        return self.__eventManager
     def AsInvoker(self) -> _ObservableCollectionEventInvoker[T]:
         return self.__invoker
-    
-    def AssertReentrancy(self) -> None:
-        if self.__monitor.IsBusy():
-            raise InvalidOperationError("No reentrancy allowed.")
-    def __BlockReentrancy(self) -> IDisposable:
-        self.__monitor.Initialize()
-
-        return self.__monitor
-    
-    def __OnCollectionChanged(self, eventManager: IEventManager[IObservableCollection[T], CollectionChangedEventArgs], handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        with self.__BlockReentrancy():
-            return eventManager.Add(handler)
-        
-        raise
 
     def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__OnCollectionChanged(self.__events.GetAdded(), handler)
+        return self._AddHandler(self.__events.GetAdded(), handler)
     def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__OnCollectionChanged(self.__events.GetUpdated(), handler)
+        return self._AddHandler(self.__events.GetUpdated(), handler)
     def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__OnCollectionChanged(self.__events.GetSwapped(), handler)
+        return self._AddHandler(self.__events.GetSwapped(), handler)
     def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__OnCollectionChanged(self.__events.GetMoved(), handler)
+        return self._AddHandler(self.__events.GetMoved(), handler)
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__OnCollectionChanged(self.__events.GetRemoved(), handler)
+        return self._AddHandler(self.__events.GetRemoved(), handler)
 
 class IReadOnlyObservableCollection[T](ITuple[T]):
     def __init__(self) -> None:
@@ -411,6 +392,7 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
 
         events: _ObservableCollectionEvents[T] = _ObservableCollectionEvents[T](self)
 
+        self.__eventManager: _ObservableCollectionEventManager[T] = _ObservableCollectionEventManager[T](events)
         self.__invoker: _ObservableCollectionEventInvoker[T] = events.AsInvoker()
         self.__events: _ObservableCollectionEvents[T] = events
 
@@ -421,7 +403,7 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]:
-        return self.__events.AsEventManager()
+        return self.__eventManager
     
     @final
     def __AssertReentrancy(self) -> None:
