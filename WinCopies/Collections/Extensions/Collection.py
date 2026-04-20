@@ -64,6 +64,10 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TIte
         self.__factory: IEnumeratorMonitor[TItem] = factory
     
     @final
+    def _GetFactory(self) -> IEnumeratorMonitor[TItem]:
+        return self.__factory
+    
+    @final
     def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
         return self.__factory
     
@@ -361,12 +365,10 @@ class _ReadOnlyReversedArrayUpdater[T](ValueFunctionUpdater[ITuple[T]]):
 class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedArrayBase[TItem, TCollectionIn, TCollectionOut]):
     def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
         super().__init__(items, factory)
-
-        self.__factory: IEnumeratorMonitor[TItem] = factory
     
     @final
     def _GetReadOnlyUpdater(self, func: Method[IFunction[ITuple[TItem]]]) -> ValueFunctionUpdater[ITuple[TItem]]:
-        return _ReadOnlyReversedArrayUpdater[TItem](self, self.__factory, func)
+        return _ReadOnlyReversedArrayUpdater[TItem](self, self._GetFactory(), func)
 class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
     def __init__(self, items: TCollectionIn, factory: IEnumeratorMonitor[TItem]) -> None:
         super().__init__(items, factory)
