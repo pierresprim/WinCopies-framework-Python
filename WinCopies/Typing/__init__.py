@@ -331,10 +331,6 @@ class Monitor(Abstract, IMonitor):
         self.__isBusy: bool = False
     
     @final
-    def __Reset(self) -> None:
-        self.__isBusy = False
-    
-    @final
     def Initialize(self) -> None:
         self.__isBusy = True
     
@@ -344,7 +340,7 @@ class Monitor(Abstract, IMonitor):
     
     @final
     def Dispose(self) -> None:
-        self.__Reset()
+        self.__isBusy = False
 
 class IEnum(IInterface):
     def __init__(self) -> None:
