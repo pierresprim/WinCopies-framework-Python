@@ -5,6 +5,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly import INode, IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableQueue
+from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
 
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
@@ -220,3 +221,29 @@ class WriteOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSend
     @final
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
         return self._GetEventManager().Add(handler)
+
+class IEventMonitor(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AssertReentrancy(self) -> None:
+        pass
+class EventMonitor(Abstract, IEventMonitor):
+    def __init__(self) -> None:
+        super().__init__()
+        
+        self.__monitor: IMonitor = Monitor()
+    
+    @final
+    def AssertReentrancy(self) -> None:
+        if self.__monitor.IsBusy():
+            raise InvalidOperationError("No reentrancy allowed.")
+    
+    def _AddHandler[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent:
+        self.__monitor.Initialize()
+
+        with self.__monitor:
+            return eventManager.Add(handler)
+        
+        raise
