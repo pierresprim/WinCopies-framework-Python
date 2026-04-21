@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from enum import Enum
-from typing import final, runtime_checkable, Any, Protocol, Type as SystemType
+from typing import final, overload, runtime_checkable, Any, Protocol, Type as SystemType
 
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 from WinCopies.Typing.Delegate import Converter
@@ -161,17 +161,16 @@ class IDisposableInfo(IDisposable):
     def IsDisposed(self) -> bool:
         pass
 
-class INullable[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
+class INullable[T]:
+    __slots__ = ()
+
     @abstractmethod
     def HasValue(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def GetValue(self) -> T:
-        pass
+        ...
     
     @final
     def TryGetValueOrDefault[U](self, default: U) -> T|U:
@@ -183,6 +182,14 @@ class INullable[T](IInterface):
     @final
     def Convert[TOut](self, converter: Converter[T, TOut]) -> TOut:
         return converter(self.GetValue())
+    
+    @overload
+    def TryConvert[U, TOut](self, converter: Converter[T, TOut], default: U) -> TOut|U:
+        ...
+    @overload
+    def TryConvert[TOut](self, converter: Converter[T, TOut], default: None = None) -> TOut|None:
+        ...
+    
     @final
     def TryConvert[U, TOut](self, converter: Converter[T, TOut], default: U|None = None) -> TOut|U|None:
         return self.Convert(converter) if self.HasValue() else default
@@ -194,8 +201,13 @@ class INullable[T](IInterface):
     def TryConvertToNullable[TOut](self, converter: Converter[T, TOut]) -> INullable[TOut]:
         return self.ConvertToNullable(converter) if self.HasValue() else GetNullValue()
 
+class _NullableValue[T](INullable[T], metaclass=ABCMeta):
+    __slots__ = ()
+
 @final
-class _Nullable[T](Abstract, INullable[T]):
+class _Nullable[T](_NullableValue[T]):
+    __slots__ = ('__value',)
+    
     def __init__(self, value: T) -> None:
         super().__init__()
         
@@ -206,7 +218,9 @@ class _Nullable[T](Abstract, INullable[T]):
     def GetValue(self) -> T:
         return self.__value
 @final
-class _NullValue[T](Abstract, INullable[T]):
+class _NullValue[T](_NullableValue[T]):
+    __slots__ = ()
+    
     def __init__(self) -> None:
         super().__init__()
     
