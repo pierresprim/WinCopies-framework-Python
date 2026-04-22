@@ -181,7 +181,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
         if items is None:
             raise InvalidOperationError()
 
-        return items.TryGetLast().GetValue()
+        return items.GetLastValue()
     
     def __GetToken(self, func: Converter[IList[T], IDoublyLinkedNode[T]|None]) -> _IToken[T]|None:
         items: IList[T]|None = self.__items

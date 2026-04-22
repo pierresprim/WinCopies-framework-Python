@@ -155,6 +155,13 @@ class IReadOnlyList[T](IReadOnlyCollection):
     @final
     def TryGetLastValueOrNone(self) -> T|None:
         return self.TryGetLastValue(None)
+    
+    @final
+    def GetFirstValue(self) -> T:
+        return self.TryGetFirst().GetValue()
+    @final
+    def GetLastValue(self) -> T:
+        return self.TryGetLast().GetValue()
 
 class _IAbstractList[TItem, TNode](IInterface):
     def __init__(self) -> None:
