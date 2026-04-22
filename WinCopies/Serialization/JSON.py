@@ -15,7 +15,7 @@ from WinCopies.Collections.Linked.Singly import IQueue, Queue
 from WinCopies.Delegates import BoolFalse
 from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
-from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import IDisposable, INullable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
@@ -678,7 +678,7 @@ class Item(Abstract):
 class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def __init__(self, enumerator: IEnumerator[Item]) -> None:
         def getNext() -> Item|None:
-            return self._GetEnumerator().GetCurrent() if self.__MoveNextBase() else None
+            return self._GetContainer().GetCurrent() if self.__MoveNextBase() else None
         def update(generator: _GeneratorAbstract) -> None:
             self.__generator = generator
 
@@ -695,8 +695,13 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
         return super()._MoveNextOverride()
     
     @final
-    def GetCurrent(self) -> DualResult[INode|None, Event]|None:
-        return self.__current
+    def _GetCurrent(self) -> DualResult[INode|None, Event]:
+        current: DualResult[INode|None, Event]|None = self.__current
+
+        if current is None:
+            raise InvalidOperationError()
+        
+        return current
     
     def _OnStarting(self) -> bool:
         def moveNext() -> bool:
@@ -725,11 +730,13 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def _MoveNextOverride(self) -> bool:
         return self.__moveNext()
     
+    def _OnEnded(self) -> None:
+        self.__current = None
     def _OnStopped(self) -> None:
         pass
     
     def _ResetOverride(self) -> bool:
-        return self._GetEnumerator().TryReset() is True
+        return self._GetContainer().TryReset() is True
 
 def _Enumerate(stream: IStreamReader[bytes]) -> Generator[Item]:
     event: Event|None = None
