@@ -4,16 +4,17 @@ from typing import final
 from WinCopies import Abstract
 from WinCopies.Collections.Enumeration import IEnumerator, AbstractEnumerator
 from WinCopies.Delegates import GetAndAlsoFunc
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Predicate
 
 class ConditionalEnumerator[T](AbstractEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
 
-        self.__current: T|None = None
+        self.__current: INullable[T] = GetNullValue()
     
-    def GetCurrent(self) -> T|None:
-        return self.__current
+    def _GetCurrent(self) -> T:
+        return self.__current.GetValue()
 
     @abstractmethod
     def _Validate(self) -> bool:
@@ -22,7 +23,7 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
     @final
     def _MoveNext(self) -> bool:
         if super()._MoveNextOverride():
-            self.__current = self.GetCurrent()
+            self.__current = GetNullable(self._GetContainer().GetCurrent())
 
             return True
         
@@ -37,6 +38,8 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
     
     def _OnStopped(self) -> None:
         pass
+    def _OnEnded(self) -> None:
+        self.__current = GetNullValue()
 
 class _PredicateEnumerator[T](Abstract):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:

@@ -10,7 +10,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerat
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
@@ -404,16 +404,21 @@ class CompositeExpressionEnumerator[TValue, TConnector](EnumeratorBase[IComposit
         return True
     
     @final
-    def GetCurrent(self) -> ICompositeExpression[TValue, TConnector]|None:
+    def _GetCurrent(self) -> ICompositeExpression[TValue, TConnector]:
+        if self.__current is None:
+            raise InvalidOperationError()
+        
         return self.__current
     
     def _OnStarting(self) -> bool:
         def moveNext() -> bool:
             def moveNext() -> bool:
-                if self.__current is None:
+                current: ICompositeExpression[TValue, TConnector]|None = self.__current
+
+                if current is None:
                     return False
                 
-                connector: IConnector[TValue, TConnector]|None = self.__current.GetNext()
+                connector: IConnector[TValue, TConnector]|None = current.GetNext()
 
                 if connector is None:
                     return False
@@ -453,16 +458,15 @@ class CompositeExpressionValueEnumerator[TValue, TConnector](AbstractionEnumerat
         self.__current: IKeyValuePair[TValue, INullable[TConnector]]|None = None
     
     @final
-    def GetCurrent(self) -> IKeyValuePair[TValue, INullable[TConnector]]|None:
+    def _GetCurrent(self) -> IKeyValuePair[TValue, INullable[TConnector]]:
+        if self.__current is None:
+            raise InvalidOperationError()
+        
         return self.__current
     
     def _MoveNextOverride(self) -> bool:
         while super()._MoveNextOverride():
-            current: ICompositeExpression[TValue, TConnector]|None = self._GetContainer().GetCurrent()
-
-            if current is None:
-                return False
-            
+            current: ICompositeExpression[TValue, TConnector] = self._GetContainer().GetCurrent()
             value: INullable[TValue] = current.TryGetValue()
 
             if value.HasValue():

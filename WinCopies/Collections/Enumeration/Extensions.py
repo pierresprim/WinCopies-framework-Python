@@ -19,6 +19,7 @@ from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
 
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter, Function, NullableFunction
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -38,7 +39,7 @@ class _IToken[T](IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetCurrent(self) -> T|None:
+    def GetCurrent(self) -> T:
         pass
     
     @abstractmethod
@@ -49,8 +50,8 @@ class _NullToken[T](Abstract, _IToken[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def GetCurrent(self) -> T|None:
-        return None
+    def GetCurrent(self) -> T:
+        raise InvalidOperationError()
     
     def MoveNext(self) -> bool:
         return False
@@ -79,8 +80,13 @@ class _Token[T](Abstract, _IToken[T]):
         self.__node = node
         self.__moveNext = moveNext
     
-    def GetCurrent(self) -> T|None:
-        return None if self.__node is None else self.__node.GetValue()
+    def GetCurrent(self) -> T:
+        node: IDoublyLinkedNode[T]|None = self.__node
+
+        if node is None:
+            raise InvalidOperationError()
+        
+        return node.GetValue()
     
     def MoveNext(self) -> bool:
         return self.__moveNext()
@@ -118,7 +124,7 @@ class _Enumerator[T](EnumeratorBase[T]):
     def IsResetSupported(self) -> bool:
         return True
     
-    def GetCurrent(self) -> T|None:
+    def _GetCurrent(self) -> T:
         return self.__token.GetCurrent()
     
     def _MoveNextOverride(self) -> bool:
@@ -138,6 +144,8 @@ class _Enumerator[T](EnumeratorBase[T]):
         return False
     
     def _OnStopped(self) -> None:
+        pass
+    def _OnEnded(self) -> None:
         self.__token = _NullToken[T]()
     
     def _ResetOverride(self) -> bool:
@@ -167,10 +175,13 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
 
         return None if getEnumerator is None else getEnumerator()
     
-    def GetCurrent(self) -> T|None:
+    def _GetCurrent(self) -> T:
         items: IList[T]|None = self.__items
 
-        return None if items is None else items.TryGetLastValueOrNone()
+        if items is None:
+            raise InvalidOperationError()
+
+        return items.TryGetLast().GetValue()
     
     def __GetToken(self, func: Converter[IList[T], IDoublyLinkedNode[T]|None]) -> _IToken[T]|None:
         items: IList[T]|None = self.__items
@@ -198,13 +209,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
     
     def _MoveNextOverride(self) -> bool:
         def moveNext() -> bool:
-            value: T|None = self.GetCurrent()
-
-            if value is None:
-                self.__builder.UnsetIterable()
-
-                return False
-
+            value: T = self._GetContainer().GetCurrent()
             items: IList[T]|None = self.__items
 
             if items is None:

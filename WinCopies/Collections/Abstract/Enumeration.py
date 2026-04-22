@@ -7,33 +7,29 @@ from WinCopies import Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
-from WinCopies.Delegates import FuncNone
-from WinCopies.Typing.Delegate import Function, ValueFunction
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 
 class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
-        self.__getCurrent: Function[TOut|None] = FuncNone
+        self.__current: INullable[TOut] = GetNullValue()
     
-    @final
-    def __GetCurrent(self) -> Function[TOut|None]:
-        current: TIn|None = self._GetContainer().GetCurrent()
-
-        return FuncNone if current is None else ValueFunction(self._Convert(current))
+    def _OnEnded(self) -> None:
+        self.__current = GetNullValue()
+        
+        super()._OnEnded()
     
     def _MoveNextOverride(self) -> bool:
-        if super()._MoveNextOverride() and self.__getCurrent is FuncNone:
-            self.__getCurrent = self.__GetCurrent()
+        if super()._MoveNextOverride():
+            self.__current = GetNullable(self._Convert(self._GetContainer().GetCurrent()))
 
             return True
         
-        self.__getCurrent = FuncNone
-
         return False
     
-    def GetCurrent(self) -> TOut|None:
-        return self.__getCurrent()
+    def _GetCurrent(self) -> TOut:
+        return self.__current.GetValue()
 
 @final
 class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):

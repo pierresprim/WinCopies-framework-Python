@@ -77,7 +77,7 @@ class IRecursiveEnumerationDelegate[T](IDisposable):
         pass
 
     @abstractmethod
-    def GetCurrent(self) -> T|None:
+    def GetCurrent(self) -> T:
         pass
 
     @abstractmethod
@@ -95,8 +95,8 @@ class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelega
     def GetOrder(self) -> EnumerationOrder:
         return EnumerationOrder.Null
     
-    def GetCurrent(self) -> T|None:
-        return None
+    def GetCurrent(self) -> T:
+        raise InvalidOperationError()
     
     def MoveNext(self) -> bool:
         return False
@@ -223,8 +223,13 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
         self.__moveNext = self._MoveNext
     
     @final
-    def GetCurrent(self) -> TEnumerationItems|None:
-        return None if self.__currentEnumerator is None else self.__currentEnumerator.GetCurrent()
+    def GetCurrent(self) -> TEnumerationItems:
+        enumerator: IEnumerator[TEnumerationItems]|None = self.__currentEnumerator
+
+        if enumerator is None:
+            raise InvalidOperationError()
+
+        return enumerator.GetCurrent()
     
     @final
     def MoveNext(self) -> bool:
@@ -644,7 +649,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
         return self.__handler.OnExitingMainEnumerationLevel(cookie)
     
     @final
-    def GetCurrent(self) -> TItem|None:
+    def _GetCurrent(self) -> TItem:
         return self.__moveNext.GetCurrent()
     
     def _MoveNextOverride(self) -> bool:

@@ -596,7 +596,7 @@ class DictionaryEnumerator[TKey: IEquatableItem, TValue](EnumeratorBase[IKeyValu
 
         self.__dictionary: MutableMapping[TKey, TValue] = dictionary
         self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
-        self.__current: IKeyValuePair[TKey, TValue]|None = None
+        self.__current: INullable[IKeyValuePair[TKey, TValue]] = GetNullValue()
     
     def IsResetSupported(self) -> bool:
         return True
@@ -614,23 +614,18 @@ class DictionaryEnumerator[TKey: IEquatableItem, TValue](EnumeratorBase[IKeyValu
             return False
         
         if self.__iterator.MoveNext():
-            item: tuple[TKey, TValue]|None = self.__iterator.GetCurrent()
-
-            if item is None:
-                return False
-
-            self.__current = EnumerationKeyValuePair[TKey, TValue](item)
+            self.__current = GetNullable(EnumerationKeyValuePair[TKey, TValue](self.__iterator.GetCurrent()))
 
             return True
         
         return False
     
-    def GetCurrent(self) -> IKeyValuePair[TKey, TValue]|None:
-        return self.__current
+    def _GetCurrent(self) -> IKeyValuePair[TKey, TValue]:
+        return self.__current.GetValue()
     
     def _OnEnded(self) -> None:
         self.__iterator = None
-        self.__current = None
+        self.__current = GetNullValue()
 
         super()._OnEnded()
     

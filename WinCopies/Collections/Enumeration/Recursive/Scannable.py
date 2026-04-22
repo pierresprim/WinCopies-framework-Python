@@ -10,6 +10,7 @@ from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
 from WinCopies.Delegates import BoolFalse
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, NullablePredicate
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -45,13 +46,12 @@ class IEnumerationDelegate[T](IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetCurrent(self) -> IKeyValuePair[T, Events]|None:
+    def GetCurrent(self) -> IKeyValuePair[T, Events]:
         pass
     
     @abstractmethod
     def SetCurrent(self, value: IKeyValuePair[T, Events]) -> LoopResult:
         pass
-    
     @abstractmethod
     def TrySetCurrent(self, item: IKeyValuePair[T, Events]|None) -> LoopResult:
         pass
@@ -63,14 +63,18 @@ class EnumerationDelegate[T](Abstract, IEnumerationDelegate[T]):
         self.__current: IKeyValuePair[T, Events]|None = None
     
     @final
-    def GetCurrent(self) -> IKeyValuePair[T, Events]|None:
-        return self.__current
+    def GetCurrent(self) -> IKeyValuePair[T, Events]:
+        current: IKeyValuePair[T, Events]|None = self.__current
+
+        if current is None:
+            raise InvalidOperationError()
+        
+        return current
     
     def SetCurrent(self, value: IKeyValuePair[T, Events]) -> LoopResult:
         self.__current = value
 
         return LoopResult.Continue
-    
     @final
     def TrySetCurrent(self, item: IKeyValuePair[T, Events]|None) -> LoopResult:
         return LoopResult.Completed if item is None else self.SetCurrent(item)
@@ -158,7 +162,7 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
         self.__moveNext: Function[bool] = BoolFalse
     
     @final
-    def GetCurrent(self) -> IKeyValuePair[T, Events]|None:
+    def _GetCurrent(self) -> IKeyValuePair[T, Events]:
         return self.__delegate.GetCurrent()
     
     @final

@@ -28,7 +28,7 @@ class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericCon
         return self._GetInnerContainer().GetCount()
     
     @final
-    def GetCurrent(self) -> TItem:
+    def _GetCurrent(self) -> TItem:
         return self._GetInnerContainer().GetAt(self._GetValue())
 class TupleEnumerator[T](TupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None:
