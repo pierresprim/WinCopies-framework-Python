@@ -5,9 +5,9 @@ from collections.abc import Sized, Container as ContainerBase, Iterable, Iterato
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Collections, IInterface, IStringable
-from WinCopies.Collections import IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
+from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing import INullable, IEquatableItem, GetNullableValue
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -343,3 +343,38 @@ class IKeyedSet[TKey: IEquatableItem, TValue](IReadOnlyKeyedSet[TKey, TValue], I
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
         pass
+
+def GetCount(items: ICountable|Sized) -> int:
+    match items:
+        case ICountable():
+            return items.GetCount()
+        
+        case Sized():
+            return len(items)
+def TryGetCount(items: ICountable|Sized|None) -> int|None:
+        return None if items is None else GetCount(items)
+
+def GetItemCount[T](items: ICountable|Sized|Iterable[T]) -> int|None:
+    match items:
+        case ICountable():
+            return items.GetCount()
+        
+        case Sized():
+            return len(items)
+        
+        case _:
+            return None
+def TryGetItemCount[T](items: ICountable|Sized|Iterable[T]|None) -> INullable[int]|None:
+    return None if items is None else GetNullableValue(GetItemCount(items))
+
+def Count[T](items: Iterable[T]) -> tuple[Iterable[T], int]:
+    length: int|None = GetItemCount(items)
+
+    if length is None:
+        items = tuple(items)
+
+        return (items, len(items))
+
+    return (items, length)
+def TryCount[T](items: Iterable[T]|None) -> tuple[Iterable[T], int]|None:
+    return None if items is None else Count(items)
