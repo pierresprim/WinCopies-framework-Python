@@ -9,7 +9,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
-from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence
+from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import IEnumerationMonitor, TupleEnumerator
 from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
@@ -458,7 +458,9 @@ class SizedList[T](ListBase[T], ISizedList[T]):
         return self._TryInsert(index, value) if self.ValidateLength(1) else None
     @final
     def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
-        return self._TryInsertRange(index, items) if self.ValidateLength() else None
+        _items: tuple[Iterable[T], int] = Count(items)
+        
+        return self._TryInsertRange(index, _items[0]) if self.ValidateLength(_items[1]) else None
     
     @staticmethod
     def Create(length: int) -> ISizedList[T]:
