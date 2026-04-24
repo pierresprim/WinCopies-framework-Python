@@ -330,7 +330,7 @@ class IReadOnlyKeyedSet[TKey: IEquatableItem, TValue](ICountableEnumerable[ITupl
         super().__init__()
     
     @abstractmethod
-    def GetKeys(self) -> IReadOnlySet[TKey]:
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
         pass
 class IKeyedSet[TKey: IEquatableItem, TValue](IReadOnlyKeyedSet[TKey, TValue], IClearable):
     def __init__(self) -> None:

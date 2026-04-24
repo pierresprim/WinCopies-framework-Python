@@ -8,7 +8,7 @@ from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
-from WinCopies.Collections.Extensions import Collection, IEnumeratorMonitor, IReadOnlySet, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
+from WinCopies.Collections.Extensions import Collection, IEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -515,7 +515,7 @@ class _ReadOnlyKeyedSet[TKey: IEquatableItem, TValue](CountableEnumerable[ITuple
         return self.__set
     
     @final
-    def GetKeys(self) -> IReadOnlySet[TKey]:
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
         return self._GetItems().GetKeys()
     
     @final
@@ -559,7 +559,7 @@ class KeyedSet[TKey: IEquatableItem, TValue](CountableEnumerable[ITuple[TValue]]
         return self.GetCount() < 1
     
     @final
-    def GetKeys(self) -> IReadOnlySet[TKey]:
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
         return self.__keys
     
     @final
