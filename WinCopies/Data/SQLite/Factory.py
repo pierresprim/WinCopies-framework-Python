@@ -24,7 +24,7 @@ from WinCopies.Typing.Reflection import EnsureDirectPackageCall, EnsureCallerPac
 
 from WinCopies.Data import Field
 from WinCopies.Data.Abstract import IConnection
-from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
+from WinCopies.Data.Factory import IFieldFactory, IIndexFactory, QueryFactory as QueryFactoryBase
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IndexType, IIndex, IKey, ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey, UnicityIndex, PrimaryKey, ForeignKey
 from WinCopies.Data.Parameter import IFormattable
@@ -152,7 +152,7 @@ class FieldFactory(Abstract, IFieldFactory):
         return FieldFactory.__TextField(name, attribute, mode, self.__connection)
 
 @final
-class QueryFactory(Abstract, IQueryFactory):
+class QueryFactory(QueryFactoryBase):
     def __init__(self, connection: sqlite3.Connection) -> None:
         EnsureDirectPackageCall()
 

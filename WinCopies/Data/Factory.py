@@ -1,19 +1,28 @@
 from abc import abstractmethod
 from collections.abc import Iterable
+from typing import Callable, final
 
-from WinCopies import IInterface
+from WinCopies import IInterface, Abstract
+from WinCopies.Collections import Generator, MakeGenerator
+from WinCopies.Collections.Abstraction.Collection import CreateTuple
+from WinCopies.Collections.Abstraction.Collection.Mapping import CreateSet
 from WinCopies.Collections.Enumeration import ICountableEnumerable
-from WinCopies.Collections.Extensions import IHashableTuple, IDictionary
+from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
+from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
+from WinCopies.Collections.Iteration import GetFirst, Select, Batch, ExpandItems
 
+from WinCopies.Typing.Object import IValueItem, IString, Map
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
+
+
+
+from WinCopies.Data import Operator, ConditionalOperator, IColumn, IOperandValue, SetOperand
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
-from WinCopies.Data.Parameter import IFormattable
+from WinCopies.Data.Parameter import IFormattable, IParameter, CreateFieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
-from WinCopies.Data.Set.Extensions import IConditionParameterSet
-
-from WinCopies.Typing.Object import IString
-from WinCopies.Typing.Pairing import DualResult
+from WinCopies.Data.Set.Extensions import IConditionParameterSet, FieldConditionNodeSet, AsColumns, MakeConjunctionSet, CreateConditionSet
 
 class IFieldFactory(IInterface):
     def __init__(self) -> None:
@@ -74,6 +83,59 @@ class ITableQueryFactory(IInterface):
     @abstractmethod
     def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
+
+class QueryFactory(Abstract, IQueryFactory):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @final
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
+        def process() -> Generator[IConditionParameterSet]:
+            def getColumns() -> ITuple[IColumn]:
+                return CreateTuple(AsColumns(Select(keys.GetKeys().AsIterable(), lambda column: column.GetValue())))
+            
+            def onSinglePrimaryKey(columns: ITuple[IColumn], values: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
+                def process(column: IColumn, values: Iterable[IValueItem]) -> IConditionParameterSet|None:
+                    return MakeConjunctionSet(CreateDualResult(column, CreateFieldParameter(SetOperand[IValueItem](CreateSet(values)))))
+                
+                conditionSet: IConditionParameterSet|None = process(GetFirst(columns.AsIterable()).GetValue(), Select(values, lambda items: Map(items.GetAt(0))))
+
+                return MakeGenerator() if conditionSet is None else MakeGenerator(conditionSet)
+            def onCompositePrimaryKey(columns: ITuple[IColumn], values: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
+                def process(columns: Iterable[IColumn], iterator: Generator[Iterable[IValueItem]]) -> IConditionParameterSet:
+                    def processItems(columns: Iterable[IColumn], values: Iterable[IValueItem]) -> Generator[IKeyValuePair[IColumn, IParameter[IOperandValue]|None]]:
+                        for items in zip(columns, values):
+                            yield CreateDualResult(items[0], CreateFieldParameterFromValue(Operator.Equals, items[1]))
+                    
+                    def process(columns: Iterable[IColumn], values: Iterable[IValueItem]) -> ICompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator]:
+                        iterator: Generator[IKeyValuePair[IColumn, IParameter[IOperandValue]|None]] = processItems(columns, values)
+                        first: IKeyValuePair[IColumn, IParameter[IOperandValue]|None] = GetFirst(iterator).GetValue()
+                        node: ICompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator] = CompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator](CompositeExpressionValueNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator](first))
+
+                        for items in iterator:
+                            node.GetLast().SetNext(ConditionalOperator.And, items)
+
+                        return node
+
+                    root: FieldConditionNodeSet[IColumn] = FieldConditionNodeSet[IColumn](process(columns, GetFirst(iterator).GetValue()))
+                    
+                    for items in iterator:
+                        root.GetLast().SetNextExpression(ConditionalOperator.Or, process(columns, items))
+
+                    return CreateConditionSet(root)
+                
+                yield process(columns.AsIterable(), Select(values, lambda items: Select(items.AsIterable(), lambda value: Map(value))))
+            
+            def process(keys: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
+                return handler(columns, keys)
+
+            pkCount: int = keys.GetKeys().GetCount()
+            handler: Callable[[ITuple[IColumn], Iterable[ITuple[object]]], Generator[IConditionParameterSet]] = onSinglePrimaryKey if pkCount == 1 else onCompositePrimaryKey
+            columns: ITuple[IColumn] = getColumns()
+
+            return process(keys.AsIterable()) if maxParameterCount is None else ExpandItems(Batch(keys, maxParameterCount // pkCount), lambda batch: process(batch))
+        
+        return process() if keys.HasItems() else None
 
 class IIndexFactory(IInterface):
     def __init__(self) -> None:
