@@ -292,6 +292,15 @@ def PrependIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|Non
     """
     return PrependIterableTo(items, values)
 
+def Expand[T](items: Iterable[Iterable[T]]) -> Generator[T]:
+    for item in items:
+        for _item in item:
+            yield _item
+def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Iterable[TOut]]) -> Generator[TOut]:
+    for item in items:
+        for _item in converter(item):
+            yield _item
+
 def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """Transforms items using a converter function.
 
@@ -303,6 +312,16 @@ def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]
         Transformed items.
     """
     return (converter(item) for item in TryEnumerate(items))
+
+def SelectMany[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Converter[TIn2, TOut]) -> Generator[TOut]:
+    for item in items:
+        for _item in converter(item):
+            yield selector(_item)
+def SelectManyItems[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Callable[[TIn1, TIn2], TOut]) -> Generator[TOut]:
+    for item in items:
+        for _item in converter(item):
+            yield selector(item, _item)
+
 def WhereSelect[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """Filters then transforms items.
 
