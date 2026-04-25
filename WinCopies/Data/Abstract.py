@@ -12,7 +12,7 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
-from WinCopies.Collections.Iteration import GetFirstItem
+from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 
 from WinCopies.Typing import IEquatable, INullable, GetDisposedError
 from WinCopies.Typing.Object import IString
@@ -54,6 +54,9 @@ class ITable(IEquatable['ITable'], IDisposable):
     @final
     def Select(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQueryExecutionResult|None:
         return self.GetQueryFactory().GetSelectionQuery(columns, conditions).Execute()
+    @abstractmethod
+    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
+        pass
     
     @final
     def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
@@ -119,6 +122,23 @@ class Table(Abstract, ITable):
             self.__queryFactory = Table._QueryFactory(self)
         
         return self.__queryFactory
+    
+    @final
+    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
+        def select(conditionSet: IConditionParameterSet) -> ISelectionQueryExecutionResult|None:
+            query.SetConditions(conditionSet)
+
+            return query.Execute()
+
+        factory: ITableQueryFactory = self.GetQueryFactory()
+        conditions: Generator[IConditionParameterSet]|None = factory.TryBuildConditionsByKeys(keys, self._GetConnection().GetQueryLimits().GetMaxParameterCount())
+
+        if conditions is None:
+            return None
+        
+        query: ISelectionQuery = factory.GetSelectionQuery(columns)
+        
+        return SelectWhereNotNone(conditions, select)
     
     def Equals(self, item: ITable|object) -> bool:
         return item is self
@@ -216,6 +236,9 @@ class Connection(Abstract, IConnection):
         def GetIndices(self) -> IArray[IIndex]:
             raise GetDisposedError()
         
+        def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
+            raise GetDisposedError()
+        
         def Remove(self) -> None:
             raise GetDisposedError()
         
@@ -247,6 +270,9 @@ class Connection(Abstract, IConnection):
         
         def GetFields(self) -> IArray[IField]:
             return self.__table.GetFields()
+        
+        def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
+            return self.__table.SelectByKeys(columns, keys)
         
         def Remove(self) -> None:
             self.__table.Remove()
