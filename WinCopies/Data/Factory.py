@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Collection.Mapping import CreateSet
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
-from WinCopies.Collections.Iteration import GetFirst, Select, Batch, ExpandItems
+from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, Batch, ExpandItems
 
 from WinCopies.Typing.Object import IValueItem, IString, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
@@ -53,6 +53,13 @@ class IQueryFactory(IInterface):
     @abstractmethod
     def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
         pass
+
+    @abstractmethod
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
+        pass
+    @final
+    def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]:
+        return TryGenerate(self.TryBuildConditionsByKeys(keys, maxParameterCount))
 
     @abstractmethod
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
