@@ -28,11 +28,9 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 from WinCopies.Data import Ordering, IColumn
 from WinCopies.Data.Misc import IQueryBase
 from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.QueryBuilder import IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
+from WinCopies.Data.QueryBuilder import QueryResult, IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin, TableParameterSet
-
-type QueryResult = DualResult[str, ICountableEnumerable[object]|None]
 
 class IQueryLimits(IInterface):
     def __init__(self) -> None:

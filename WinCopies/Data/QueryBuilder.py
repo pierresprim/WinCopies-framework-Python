@@ -28,6 +28,8 @@ from WinCopies.Data import Ordering, IOperandValue, IColumn, IQueryBuilder
 from WinCopies.Data.Misc import JoinType, IQueryBase
 from WinCopies.Data.Parameter import IArgument, ITableParameter
 
+type QueryResult = DualResult[str, ICountableEnumerable[object]|None]
+
 class IConditionalQueryWriter(IQueryBuilder):
     def __init__(self) -> None:
         super().__init__()
@@ -335,7 +337,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
         return Select(items.AsIterable(), self.ProcessCondition)
     
     @final
-    def Build(self) -> DualResult[str, ICountableEnumerable[object]|None]:
+    def Build(self) -> QueryResult:
         return CreateDualResult(self._GetStream().ToString(), CreateCountableEnumerable(self._GetArgs()))
     
     def Dispose(self) -> None:
