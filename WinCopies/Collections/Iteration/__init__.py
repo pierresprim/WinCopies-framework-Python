@@ -507,7 +507,7 @@ def GetFirstItemExclusive[T](items: Iterable[T], predicate: Predicate[T]) -> INu
 def TryGetFirstItemExclusive[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
     return None if items is None else GetFirstItemExclusive(items, predicate)
 
-def Any[T](items: Iterable[T]) -> bool:
+def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T]) -> bool:
     """Checks if an iterable contains any items.
 
     Args:
@@ -516,10 +516,21 @@ def Any[T](items: Iterable[T]) -> bool:
     Returns:
         None if items is None, True if any items exist, False otherwise.
     """
-    for _ in items:
-        return True
+    def any(length: int) -> bool:
+        return length > 0
+    
+    match items:
+        case ICountableEnumerable():
+            return any(items.GetCount())
+        
+        case Collection():
+            return any(len(items))
+        
+        case Iterable():
+            for _ in items:
+                return True
 
-    return False
+            return False
 def CheckIfAny[T](items: Iterable[T]|None) -> bool|None:
     """Checks if an iterable contains any items.
 
