@@ -46,13 +46,9 @@ class IFieldFactory(IInterface):
     def CreateText(self, name: str, attribute: FieldAttributes, mode: TextMode) -> TextField:
         pass
 
-class IQueryFactory(IInterface):
+class IQueryFactoryBase(IInterface):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-        pass
 
     @abstractmethod
     def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
@@ -60,6 +56,13 @@ class IQueryFactory(IInterface):
     @final
     def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]:
         return TryGenerate(self.TryBuildConditionsByKeys(keys, maxParameterCount))
+class IQueryFactory(IQueryFactoryBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
+        pass
 
     @abstractmethod
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
