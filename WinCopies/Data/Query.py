@@ -34,6 +34,18 @@ from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJ
 
 type QueryResult = DualResult[str, ICountableEnumerable[object]|None]
 
+class IQueryLimits(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetMaxParameterCount(self) -> int|None:
+        pass
+
+    @abstractmethod
+    def GetMaxQuerySize(self) -> int|None:
+        pass
+
 class IQueryExecutionResult(IDisposable):
     def __init__(self) -> None:
         super().__init__()
