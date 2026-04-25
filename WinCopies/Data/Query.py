@@ -385,17 +385,19 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
 
             return False # Continue query rendering.
         
-        with (queryBuilder := SelectionQueryBuilder(self)):
-            queryBuilder.OpenStream()
+        try:
+            with (queryBuilder := SelectionQueryBuilder(self)):
+                queryBuilder.OpenStream()
 
-            if initQuery():
-                return None
-            
-            queryBuilder.AddConditions(self.GetConditions())
-            
-            return queryBuilder.Build()
+                if initQuery():
+                    return None
+                
+                queryBuilder.AddConditions(self.GetConditions())
+                
+                return queryBuilder.Build()
         
-        raise MemoryError()
+        except:
+            raise
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IFormattable], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__(tables, conditions, subqueries)
