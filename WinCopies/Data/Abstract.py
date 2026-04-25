@@ -24,7 +24,7 @@ from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFact
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import IQueryLimits, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
@@ -136,6 +136,10 @@ class IConnection(IDisposable):
 
     @abstractmethod
     def FormatTableName(self, name: str) -> str:
+        pass
+
+    @abstractmethod
+    def GetQueryLimits(self) -> IQueryLimits:
         pass
 
     @abstractmethod
