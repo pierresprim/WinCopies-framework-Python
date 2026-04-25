@@ -1211,8 +1211,11 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
             def IsResetSupported(self) -> bool:
                 return True
             
-            def GetCurrent(self) -> __T|None:
-                return self.__key.GetValue() if self.__canMoveNext is None else None
+            def _GetCurrent(self) -> __T:
+                if self.__canMoveNext is None:
+                    return self.__key.GetValue()
+                
+                raise InvalidOperationError()
             
             def _MoveNextOverride(self) -> bool:
                 canMoveNext: bool|None = self.__canMoveNext
