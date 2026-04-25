@@ -902,13 +902,15 @@ def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T
 
     return -1 if result is None else result
 
-def MakeTuple[T](items: Sequence[T]|Iterable[T]) -> Sequence[T]:
-    return items if isinstance(items, Sequence) else tuple(items)
+def __MakeTuple[T](items: Sequence[T]|Iterable[T]) -> Sequence[T]:
+    return items if isinstance(items, Sequence) else tuple[T, ...](items)
+def __MakeList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
+    return items if isinstance(items, MutableSequence) else list[T](items)
 
-def _MakeList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
-    return items if isinstance(items, MutableSequence) else list(items)
+def MakeTuple[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]:
+    return tuple[T, ...]() if items is None else __MakeTuple(items)
 
 def MakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]:
-    return list() if items is None else _MakeList(items)
+    return list[T]() if items is None else __MakeList(items)
 def TryMakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
-    return None if items is None else _MakeList(items)
+    return None if items is None else __MakeList(items)
