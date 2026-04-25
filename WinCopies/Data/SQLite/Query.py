@@ -6,8 +6,8 @@ from typing import final
 import sqlite3
 
 from WinCopies import String, Abstract
-from WinCopies.Collections import Enumeration, CreateList
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable
+from WinCopies.Collections import Enumeration, MakeList
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
@@ -26,21 +26,7 @@ class QueryResultBase(Abstract):
     
     @final
     def __ExecuteQuery(self, connection: sqlite3.Connection, query: QueryResult) -> sqlite3.Cursor:
-        def getArguments(args: ICountableEnumerable[object]|None) -> list[object]:
-            if args is None:
-                return []
-            
-            l: list[object] = CreateList(args.GetCount())
-            i: int = 0
-
-            for arg in args.AsIterable():
-                l[i] = arg
-
-                i += 1
-            
-            return l
-        
-        return connection.execute(query.GetKey(), getArguments(query.GetValue()))
+        return connection.execute(query.GetKey(), MakeList(TryAsIterable(query.GetValue())))
     
     @final
     def _GetCursor(self) -> sqlite3.Cursor:
