@@ -11,7 +11,7 @@ from WinCopies import IDisposable, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
-from WinCopies.Collections.Extensions import IArray, IList, IDictionary
+from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import GetFirstItem
 
 from WinCopies.Typing import IEquatable, INullable, GetDisposedError
@@ -84,6 +84,10 @@ class Table(Abstract, ITable):
         @final
         def _GetFactory(self) -> IQueryFactory:
             return self.__factory
+        
+        @final
+        def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
+            return self._GetFactory().TryBuildConditionsByKeys(keys, maxParameterCount)
 
         @final
         def GetSelectionQuery(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
