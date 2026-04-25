@@ -7,7 +7,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Typing import INullable, IEquatableItem, GetNullableValue
+from WinCopies.Typing import IEquatableItem
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -354,27 +354,17 @@ def GetCount(items: ICountable|Sized) -> int:
 def TryGetCount(items: ICountable|Sized|None) -> int|None:
         return None if items is None else GetCount(items)
 
-def GetItemCount[T](items: ICountable|Sized|Iterable[T]) -> int|None:
+def Count[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]) -> tuple[Iterable[T], int]:
     match items:
-        case ICountable():
-            return items.GetCount()
+        case ICountableEnumerable():
+            return (items.AsIterable(), items.GetCount())
         
-        case Sized():
-            return len(items)
+        case CollectionBase():
+            return (items, len(items))
         
         case _:
-            return None
-def TryGetItemCount[T](items: ICountable|Sized|Iterable[T]|None) -> INullable[int]|None:
-    return None if items is None else GetNullableValue(GetItemCount(items))
+            items = tuple(items)
 
-def Count[T](items: Iterable[T]) -> tuple[Iterable[T], int]:
-    length: int|None = GetItemCount(items)
-
-    if length is None:
-        items = tuple(items)
-
-        return (items, len(items))
-
-    return (items, length)
+            return (items, len(items))
 def TryCount[T](items: Iterable[T]|None) -> tuple[Iterable[T], int]|None:
     return None if items is None else Count(items)
