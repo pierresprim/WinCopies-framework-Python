@@ -648,21 +648,28 @@ def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePai
         
         else:
             break
-
-def Zip[T1, T2](x: Iterable[T1], y: Iterable[T2]) -> Generator[IKeyValuePair[T1, T2]]:
-    return __Zip(x, AsEnumerator(y) if isinstance(y, Iterator) else CreateIterable(y).GetEnumerator())
-def ZipEnumerables[T1, T2](x: IEnumerable[T1], y: IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
-    _x: IEnumerator[T1]|None = x.TryGetEnumerator()
-
-    if _x is None:
-        return None
+def __TryZip[T1, T2](x: Iterable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
+    def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+        return __Zip(x, y)
     
-    _y: IEnumerator[T2]|None = y.TryGetEnumerator()
+    match y:
+        case Iterator():
+            return zip(AsEnumerator(y))
+        
+        case Iterable():
+            return zip(CreateIterable(y).GetEnumerator())
+        
+        case IEnumerable():
+            _y: IEnumerator[T2]|None = y.TryGetEnumerator()
 
-    if _y is None:
-        return None
-    
-    return __Zip(_x.AsIterator(), _y)
+            return None if _y is None else zip(_y)
+
+def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
+    return __TryZip(x.AsIterable() if isinstance(x, IEnumerable) else x, y)
+def Zip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+    items: Generator[IKeyValuePair[T1, T2]]|None = TryZip(x, y)
+
+    return MakeGenerator() if items is None else items
 
 def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T], size: int, safe: bool = True) -> Generator[Generator[T]]:
     def __getRange(start: int, stop: int) -> Iterable[int]:
