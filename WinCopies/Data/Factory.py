@@ -75,7 +75,7 @@ class IQueryFactory(IQueryFactoryBase):
     def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
         pass
 
-class ITableQueryFactory(IInterface):
+class ITableQueryFactory(IQueryFactoryBase):
     def __init__(self) -> None:
         super().__init__()
     
