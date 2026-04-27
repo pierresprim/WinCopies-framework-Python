@@ -11,7 +11,6 @@ from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable,
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 from WinCopies.Data import Query
 from WinCopies.Data.Query import QueryResult, InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
@@ -48,49 +47,42 @@ class __IQuery(ITableNameFormater):
         return String.DoubleQuoteSurround(name)
 
 @final
-class SelectionQuery(Query.SelectionQuery, __IQuery):
+class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
     @final
-    class ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
-        @final
-        class Enumerator(Enumeration.Iterator[Sequence[object]]):
-            def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action) -> None:
-                EnsureDirectModuleCall()
+    class _Enumerator(Enumeration.Iterator[Sequence[object]]):
+        def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action) -> None:
+            super().__init__(cursor)
 
-                super().__init__(cursor)
-
-                self.__enumeratorUpdater: Action = enumeratorUpdater
-            
-            def _OnEnded(self) -> None:
-                self.__enumeratorUpdater()
+            self.__enumeratorUpdater: Action = enumeratorUpdater
         
-        @final
-        class FunctionUpdater(ValueFunctionUpdater[IEnumerator[Sequence[object]]|None]):
-            def __init__(self, cursor: sqlite3.Cursor, updater: Method[IFunction[IEnumerator[Sequence[object]]|None]], enumeratorUpdater: Action) -> None:
-                super().__init__(updater)
-
-                self.__cursor: sqlite3.Cursor = cursor
-                self.__enumeratorUpdater: Action = enumeratorUpdater
-            
-            def _GetValue(self) -> IEnumerator[Sequence[object]]:
-                return SelectionQuery.ExecutionResult.Enumerator(self.__cursor, self.__enumeratorUpdater)
-        
-        def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
-            EnsureDirectModuleCall()
-
-            super().__init__(connection, query)
-
-            self.__function: IFunction[IEnumerator[Sequence[object]]|None]
-
-            def updateFunction(func: IFunction[IEnumerator[Sequence[object]]|None]) -> None:
-                self.__function = func
-            def resetFunction() -> None:
-                self.__function = GetDefaultFunction()
-
-            self.__function = SelectionQuery.ExecutionResult.FunctionUpdater(self._GetCursor(), updateFunction, resetFunction)
-        
-        def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
-            return self.__function.GetValue()
+        def _OnEnded(self) -> None:
+            self.__enumeratorUpdater()
     
+    @final
+    class _FunctionUpdater(ValueFunctionUpdater[IEnumerator[Sequence[object]]|None]):
+        def __init__(self, cursor: sqlite3.Cursor, updater: Method[IFunction[IEnumerator[Sequence[object]]|None]], enumeratorUpdater: Action) -> None:
+            super().__init__(updater)
+
+            self.__cursor: sqlite3.Cursor = cursor
+            self.__enumeratorUpdater: Action = enumeratorUpdater
+        
+        def _GetValue(self) -> IEnumerator[Sequence[object]]:
+            return _ExecutionResult._Enumerator(self.__cursor, self.__enumeratorUpdater)
+    
+    def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
+        super().__init__(connection, query)
+
+        def updateFunction(func: IFunction[IEnumerator[Sequence[object]]|None]) -> None:
+            self.__function = func
+        def resetFunction() -> None:
+            self.__function = GetDefaultFunction()
+
+        self.__function = _ExecutionResult._FunctionUpdater(self._GetCursor(), updateFunction, resetFunction)
+    
+    def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
+        return self.__function.GetValue()
+@final
+class SelectionQuery(Query.SelectionQuery, __IQuery):
     def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
@@ -102,7 +94,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
     def Execute(self) -> ISelectionQueryExecutionResult|None:
         query: QueryResult|None = self.GetQuery()
 
-        return None if query is None else SelectionQuery.ExecutionResult(self.__connection, query)
+        return None if query is None else _ExecutionResult(self.__connection, query)
 
 @final
 class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionResult):
