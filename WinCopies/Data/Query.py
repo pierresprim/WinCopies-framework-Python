@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from enum import Flag, auto
-from typing import final
+from typing import final, overload
 
 
 
@@ -18,6 +18,8 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Extensions import ICollection, IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
+
+from WinCopies.Enum import HasFlag
 
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter
@@ -73,9 +75,16 @@ class IInsertionQueryExecutionResult(IQueryExecutionResult):
 class IQuery[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](IQueryBase[TQueryResult]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @overload
+    def Execute(self, guards: None = None) -> TQueryExecutionResult:
+        ...
+    @overload
+    def Execute(self, guards: QueryErrorKinds) -> TQueryExecutionResult|QueryErrorKinds:
+        ...
 
     @abstractmethod
-    def Execute(self) -> TQueryExecutionResult:
+    def Execute(self, guards: QueryErrorKinds|None = None) -> TQueryExecutionResult|QueryErrorKinds:
         pass
 
 class QueryProvider[T](Abstract, IQueryBase[T]):
@@ -100,6 +109,39 @@ class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None]
             return self._GetQueryOverride()
         
         raise InvalidOperationError(result)
+    
+    @abstractmethod
+    def _Execute(self) -> TQueryExecutionResult:
+        pass
+    @abstractmethod
+    def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
+        pass
+    
+    @overload
+    def Execute(self, guards: None = None) -> TQueryExecutionResult:
+        ...
+    @overload
+    def Execute(self, guards: QueryErrorKinds) -> TQueryExecutionResult|QueryErrorKinds:
+        ...
+    
+    @final
+    def Execute(self, guards: QueryErrorKinds|None = None) -> TQueryExecutionResult|QueryErrorKinds:
+        def check(guards: QueryErrorKinds) -> bool:
+            return guards == QueryErrorKinds.Null
+
+        try:
+            return self._Execute()
+        
+        except Exception as e:
+            if guards is None or check(guards):
+                raise
+
+            _guards: QueryErrorKinds = self._TryMapException(e)
+
+            if check(_guards) or not HasFlag(guards, _guards):
+                raise
+            
+            return _guards
 class Query[T: IQueryExecutionResult](QueryBase[QueryResult, T]):
     def __init__(self) -> None:
         super().__init__()

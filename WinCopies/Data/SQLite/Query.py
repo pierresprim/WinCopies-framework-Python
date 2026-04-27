@@ -92,7 +92,7 @@ class SelectionQuery(Query.SelectionQuery, __IQuery):
     def _Validate(self) -> str|None:
         return "There must be at most one table." if self.GetTables().GetCount() > 1 else None
     
-    def Execute(self) -> ISelectionQueryExecutionResult|None:
+    def _Execute(self) -> ISelectionQueryExecutionResult|None:
         query: QueryResult|None = self.GetQuery()
 
         return None if query is None else _ExecutionResult(self.__connection, query)
@@ -123,7 +123,7 @@ class InsertionQuery(Query.InsertionQuery, __InsertionQuery):
     def _Validate(self) -> str|None:
         pass
     
-    def Execute(self) -> IInsertionQueryExecutionResult:
+    def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
@@ -135,7 +135,7 @@ class MultiInsertionQuery(Query.MultiInsertionQuery, __InsertionQuery):
     def _Validate(self) -> str|None:
         pass
     
-    def Execute(self) -> IInsertionQueryExecutionResult:
+    def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class UpdateQuery(Query.UpdateQuery, __IQuery):
@@ -147,5 +147,5 @@ class UpdateQuery(Query.UpdateQuery, __IQuery):
     def _Validate(self) -> str|None:
         pass
     
-    def Execute(self) -> IInsertionQueryExecutionResult:
+    def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
