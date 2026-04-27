@@ -5,7 +5,10 @@ from collections.abc import Iterable, Iterator
 from enum import Enum
 from typing import overload, final, Callable, Any, Type, cast
 
+
+
 from WinCopies import IInterface, Abstract
+
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
 from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, MakeTuple, CreateEquatableTuple, CreateDictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
@@ -17,6 +20,7 @@ from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
+
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
