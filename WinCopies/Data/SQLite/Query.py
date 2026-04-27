@@ -13,7 +13,8 @@ from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 
 from WinCopies.Data import Query
-from WinCopies.Data.Query import QueryResult, InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import InsertionQueryStatementProvider, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.QueryBuilder import QueryResult
 from WinCopies.Data.Misc import ITableNameFormater
 from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
