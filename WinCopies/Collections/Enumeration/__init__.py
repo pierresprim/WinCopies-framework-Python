@@ -14,6 +14,7 @@ from typing import final, Any
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, IDisposable, IEquatableValue, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
@@ -333,6 +334,9 @@ class EnumeratorBase[T](IteratorBase[T]):
     @final
     def HasProcessedItems(self) -> bool:
         return self.__hasProcessedItems
+class ResumableEnumeratorBase[T](EnumeratorBase[T], IResumableEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class Enumerator[T](EnumeratorBase[T]):
     def __init__(self) -> None:
@@ -355,6 +359,9 @@ class Enumerator[T](EnumeratorBase[T]):
     @final
     def _UnsetCurrent(self) -> None:
         self.__current = GetNullValue()
+class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class Iterator[T](Enumerator[T]):
     def __init__(self, iterator: SystemIterator[T]) -> None:
