@@ -708,6 +708,10 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
     @final
     def _GetValue(self) -> int:
         return self.__i
+    @final
+    def _SetValue(self, value: int) -> None:
+        self.__i = value
+    
     @abstractmethod
     def _GetMaxValue(self) -> int:
         pass
@@ -721,7 +725,7 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
         i += 1
 
         if i < self._GetMaxValue():
-            self.__i = i
+            self._SetValue(i)
 
             return True
         
