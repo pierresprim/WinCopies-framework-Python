@@ -815,4 +815,4 @@ class _DisposableEnumerator[T](Abstract, IDisposableEnumerator[T]):
         return self.__enumerator.AsIterator()
 
 def ToDisposableEnumerator[T](enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
-    return _DisposableEnumerator[T](enumerator)
+    return enumerator if isinstance(enumerator, IDisposableEnumerator) else _DisposableEnumerator[T](enumerator)
