@@ -185,7 +185,6 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
 
         return enumerator
     
-    @final
     def InvalidateObjects(self) -> None:
         self.__clear()
     
