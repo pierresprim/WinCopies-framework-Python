@@ -31,6 +31,14 @@ class TupleEnumerator[T](TupleEnumeratorBase[T, ITuple[T]], IGenericConstraintIm
     def __init__(self, items: ITuple[T]) -> None:
         super().__init__(items)
 
+class IEnumeratorFactory[T](IObjectFactory[IEnumerator[T]], IEnumeratorMonitor[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsMonitor(self) -> IEnumeratorMonitor[T]:
+        pass
+
 @final
 class _EnumeratorMonitor[T](Abstract, IEnumeratorMonitor[T]):
     def __init__(self, factory: IEnumeratorFactory[T]) -> None:
@@ -50,13 +58,6 @@ class _EnumeratorMonitorUpdater[T](ValueFunctionUpdater[IEnumeratorMonitor[T]]):
     def _GetValue(self) -> IEnumeratorMonitor[T]:
         return _EnumeratorMonitor[T](self.__factory)
 
-class IEnumeratorFactory[T](IObjectFactory[IEnumerator[T]], IEnumeratorMonitor[T]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def AsMonitor(self) -> IEnumeratorMonitor[T]:
-        pass
 class EnumeratorFactory[T](ObjectFactory[IEnumerator[T]], IEnumeratorFactory[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IEnumeratorMonitor[T]]) -> None:
