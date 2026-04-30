@@ -519,6 +519,13 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
         self._GetEnumeratorFactory().RegisterObject(enumerator)
 
         return enumerator
+    @final
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
+        enumerator: IResumableEnumerator[T] = ResumableTupleEnumerator[T](self)
+
+        self._GetEnumeratorFactory().RegisterObject(enumerator)
+
+        return enumerator
     
     @final
     def ToString(self) -> str:
