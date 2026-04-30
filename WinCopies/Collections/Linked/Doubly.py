@@ -1232,7 +1232,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
         if self.GetPrevious() is None:
             return None
         
-        l: _IListCookie[TNode]|None = self._GetListAsSpecialized(_l)
+        l: _IListCookie[TNode] = self._GetListAsSpecialized(_l)
         
         self.Remove()
         
@@ -1257,7 +1257,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
         if self.GetNext() is None:
             return None
         
-        l: _IListCookie[TNode]|None = self._GetListAsSpecialized(_l)
+        l: _IListCookie[TNode] = self._GetListAsSpecialized(_l)
         
         self.Remove()
         
