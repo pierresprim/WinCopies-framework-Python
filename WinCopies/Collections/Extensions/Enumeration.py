@@ -162,7 +162,7 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
         self.__clear = self.__Clear
 
         self.__Push(enumerator)
-    def _PushEnumerator(self, enumerator: IEnumerator[T]) -> None:
+    def _Push(self, enumerator: IEnumerator[T]) -> None:
         self.__push(ToDisposableEnumerator(enumerator))
     
     @final
@@ -175,13 +175,13 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
     
     @final
     def RegisterObject(self, enumerator: IEnumerator[T]) -> None:
-        self._PushEnumerator(enumerator)
+        self._Push(enumerator)
     
     @final
     def CreateEnumerator(self, items: ITuple[T]) -> IEnumerator[T]:
         enumerator: IEnumerator[T] = TupleEnumerator[T](items)
 
-        self._PushEnumerator(enumerator)
+        self._Push(enumerator)
 
         return enumerator
     
