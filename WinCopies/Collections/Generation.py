@@ -11,6 +11,25 @@ from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import BoolTrue, GetNotPredicate
 from WinCopies.Typing.Delegate import Function, Predicate, Converter as ConverterDelegate, Selector
 
+class IResumable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def Resume(self) -> None:
+        pass
+
+class IMovable(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def TryMoveToTop(self) -> bool|None:
+        pass
+    @abstractmethod
+    def TryMoveToBottom(self) -> bool|None:
+        pass
+
 class IRemovable(IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -18,6 +37,10 @@ class IRemovable(IInterface):
     @abstractmethod
     def Remove(self) -> None:
         pass
+
+class INode(IMovable, IRemovable):
+    def __init__(self) -> None:
+        super().__init__()
 
 class IIterator[T](IInterface):
     def __init__(self) -> None:
