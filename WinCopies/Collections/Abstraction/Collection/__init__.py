@@ -11,7 +11,7 @@ from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator
-from WinCopies.Collections.Generation import IObjectMonitor
+from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
