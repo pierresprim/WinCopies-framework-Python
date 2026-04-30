@@ -4,9 +4,10 @@ from weakref import ref, finalize, ReferenceType
 
 from WinCopies import IInterface, IDisposableBase, Abstract
 from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode, IList, List
+from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode, IReadOnlyList, IList, List
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
 
 class _IRegister[T: IDisposableBase](IInterface):
     def __init__(self) -> None:
@@ -73,6 +74,54 @@ class _Cookie[T: IDisposableBase](Abstract):
     def Create(obj: T) -> _IRegister[T]:
         return _Cookie._Register[T](obj, _Cookie[T](obj))
 
+@final
+class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
+    def __init__(self, items: IList[_Cookie[T]]) -> None:
+        super().__init__()
+
+        self.__items: IList[_Cookie[T]] = items
+    
+    def __TryGetValue(self, getNode: Function[IDoublyLinkedNode[_Cookie[T]]|None]) -> INullable[T]:
+        def tryGetValue() -> INullable[T]|None:
+            node: IDoublyLinkedNode[_Cookie[T]]|None = getNode()
+
+            if node is None:
+                return GetNullValue()
+            
+            item: T|None = node.GetValue().TryGetValue()
+
+            if item is None:
+                node.Remove()
+                
+                return None
+
+            return GetNullable(item)
+
+        item: INullable[T]|None = tryGetValue()
+
+        if item is None:
+            while self.__items.HasItems() and (item := tryGetValue()) is None:
+                pass
+        
+        return GetNullValue() if item is None else item
+    
+    def IsEmpty(self) -> bool:
+        return self.__items.IsEmpty()
+    
+    def TryGetFirst(self) -> INullable[T]:
+        return self.__TryGetValue(lambda: self.__items.GetFirst())
+    def TryGetLast(self) -> INullable[T]:
+        return self.__TryGetValue(lambda: self.__items.GetLast())
+@final
+class _ReadOnlyListUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[T]]):
+    def __init__(self, items: IList[_Cookie[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: IList[_Cookie[T]] = items
+    
+    def _GetValue(self) -> IReadOnlyList[T]:
+        return _ReadOnlyList[T](self.__items)
+
 class IObjectMonitor(IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -90,12 +139,21 @@ class IObjectFactory[T](IObjectMonitor):
 
 class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn]):
     def __init__(self) -> None:
+        def update(func: IFunction[IReadOnlyList[TOut]]) -> None:
+            self.__readOnly = func
+        
         super().__init__()
 
         self.__items: IList[_Cookie[TOut]] = List[_Cookie[TOut]]()
 
         self.__push: ConverterDelegate[TOut, INode] = self.__PushFirst
         self.__clear: Action = NoAction
+
+        self.__readOnly: IFunction[IReadOnlyList[TOut]] = _ReadOnlyListUpdater[TOut](self.__items, update) # type: ignore[no-redef]
+    
+    @final
+    def _GetItems(self) -> IReadOnlyList[TOut]:
+        return self.__readOnly.GetValue()
     
     @final
     def __Push(self, obj: TOut) -> INode:
@@ -116,7 +174,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
         pass
-
+    
     @final
     def __Clear(self) -> None:
         for cookie in self.__items.AsQueuedGenerator():
