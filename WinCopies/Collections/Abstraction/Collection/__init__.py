@@ -11,7 +11,7 @@ from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import IEnumerationMonitor, TupleEnumerator
-from WinCopies.Typing import INullable, IEquatableItem, IComparableValue, SupportsRichComparison, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -531,7 +531,7 @@ class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-class SortedList[T: IComparableValue|SupportsRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: IComparableProtocol](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__(None if items is None else sorted(items))
     
@@ -814,9 +814,9 @@ def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> IS
 def CreateArrayList[T](length: int, func: IFunction[T]) -> IArray[T]:
     return ArrayList[T](length, func)
 
-def CreateSortedList[T: IComparableValue|SupportsRichComparison](items: Iterable[T]) -> ISortedList[T]:
+def CreateSortedList[T: IComparableProtocol](items: Iterable[T]) -> ISortedList[T]:
     return SortedList[T](items)
-def MakeSortedList[T: IComparableValue|SupportsRichComparison](*items: T) -> ISortedList[T]:
+def MakeSortedList[T: IComparableProtocol](*items: T) -> ISortedList[T]:
     return CreateSortedList(items)
 
 def CreateDictionary[TKey: IEquatableItem, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:

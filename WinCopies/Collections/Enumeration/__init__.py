@@ -216,7 +216,7 @@ def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
 def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
     return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # pyright: ignore[reportUnknownVariableType]
 
-class EnumeratorBase[T](IteratorBase[T], IEnumerator[T]):
+class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
 

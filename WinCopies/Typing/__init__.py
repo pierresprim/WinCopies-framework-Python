@@ -142,6 +142,8 @@ class IComparableObject[T](IComparable[T|object], IComparableValue, IEquatableOb
     def __init__(self) -> None:
         super().__init__()
 
+type IComparableProtocol = IComparableValue|SupportsRichComparison
+
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
 
