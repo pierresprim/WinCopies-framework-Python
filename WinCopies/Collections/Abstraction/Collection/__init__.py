@@ -9,8 +9,9 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
-from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator
+from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
@@ -513,7 +514,11 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TupleEnumerator[T](self)
+        enumerator: IEnumerator[T] = TupleEnumerator[T](self)
+
+        self._GetEnumeratorFactory().RegisterObject(enumerator)
+
+        return enumerator
     
     @final
     def ToString(self) -> str:
