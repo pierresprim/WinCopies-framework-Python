@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final, Any
 from weakref import ref, finalize, ReferenceType
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IDisposableBase, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator, IDisposableEnumerator, IncrementalEnumerator, ToDisposableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor
 from WinCopies.Collections.Generation import IRemovable
@@ -66,11 +66,11 @@ class _IRegister[T](IInterface):
         pass
 
 @final
-class _Finalizer[T](Abstract, IRemovable):
-    def __init__(self, finalizer: finalize[Any, IEnumerator[T]]) -> None:
+class _Finalizer(Abstract, IRemovable):
+    def __init__(self, finalizer: finalize[Any, IDisposableBase]) -> None:
         super().__init__()
 
-        self.__finalizer: finalize[Any, IEnumerator[T]] = finalizer
+        self.__finalizer: finalize[Any, IDisposableBase] = finalizer
     
     def Remove(self) -> None:
         self.__finalizer.detach()
@@ -79,10 +79,10 @@ class _Finalizer[T](Abstract, IRemovable):
 class _Cookie[T](Abstract):
     @final
     class _Register[_T](Abstract, _IRegister[_T]):
-        def __init__(self, enumerator: IEnumerator[_T], cookie: _Cookie[_T]) -> None:
+        def __init__(self, enumerator: IDisposableEnumerator[_T], cookie: _Cookie[_T]) -> None:
             super().__init__()
 
-            self.__enumerator: IEnumerator[_T] = enumerator
+            self.__enumerator: IDisposableEnumerator[_T] = enumerator
             self.__cookie: _Cookie[_T] = cookie
         
         def GetCookie(self) -> _Cookie[_T]:
@@ -95,21 +95,24 @@ class _Cookie[T](Abstract):
         super().__init__()
 
         self.__ref: ReferenceType[IDisposableEnumerator[T]] = ref(enumerator)
-        self.__finalizer: _Finalizer[T]|None = None
+        self.__finalizer: _Finalizer|None = None
+    
+    def TryGetValue(self) -> IDisposableEnumerator[T]|None:
+        return self.__ref()
     
     def Invalidate(self) -> None:
-        enumerator: IDisposableEnumerator[T]|None = self.__ref()
+        obj: IDisposableBase|None = self.TryGetValue()
 
-        if enumerator is not None:
-            enumerator.Dispose()
+        if obj is not None:
+            obj.Dispose()
 
-            finalizer: _Finalizer[T]|None = self.__finalizer
+            finalizer: _Finalizer|None = self.__finalizer
 
             if finalizer is not None:
                 finalizer.Remove()
     
-    def _RegisterNode(self, enumerator: IEnumerator[T], node: IRemovable) -> None:
-        self.__finalizer = _Finalizer[T](finalize(enumerator, lambda: node.Remove()))
+    def _RegisterNode(self, obj: IDisposableBase, node: IRemovable) -> None:
+        self.__finalizer = _Finalizer(finalize(obj, lambda: node.Remove()))
 
     @staticmethod
     def Create(enumerator: IDisposableEnumerator[T]) -> _IRegister[T]:
