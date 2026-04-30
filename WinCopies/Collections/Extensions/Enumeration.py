@@ -7,10 +7,10 @@ from weakref import ref, finalize, ReferenceType
 from WinCopies import IInterface, IDisposableBase, Abstract
 from WinCopies.Collections.Enumeration import IEnumerator, IDisposableEnumerator, IncrementalEnumerator, ToDisposableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor
-from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode, IList, List
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Action, Method, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
@@ -146,24 +146,26 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
 
         self.__enumerators: IList[_Cookie[T]] = List[_Cookie[T]]()
 
-        self.__push: Method[IDisposableEnumerator[T]] = self.__PushFirst
+        self.__push: Converter[IDisposableEnumerator[T], INode] = self.__PushFirst
         self.__clear: Action = NoAction
 
         self.__monitor: IFunction[IEnumeratorMonitor[T]] = _EnumeratorMonitorUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def __Push(self, enumerator: IDisposableEnumerator[T]) -> None:
+    def __Push(self, enumerator: IDisposableEnumerator[T]) -> INode:
         cookie: _IRegister[T] = _Cookie[T].Create(enumerator)
         node: IDoublyLinkedNode[_Cookie[T]] = self.__enumerators.AddLast(cookie.GetCookie())
 
         cookie.RegisterNode(node)
+
+        return node
     @final
-    def __PushFirst(self, enumerator: IDisposableEnumerator[T]) -> None:
+    def __PushFirst(self, enumerator: IDisposableEnumerator[T]) -> INode:
         self.__clear = self.__Clear
 
-        self.__Push(enumerator)
-    def _Push(self, enumerator: IEnumerator[T]) -> None:
-        self.__push(ToDisposableEnumerator(enumerator))
+        return self.__Push(enumerator)
+    def _Push(self, enumerator: IEnumerator[T]) -> INode:
+        return self.__push(ToDisposableEnumerator(enumerator))
     
     @final
     def __Clear(self) -> None:
