@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Any
-from weakref import ref, finalize, ReferenceType
+from typing import final
 
-from WinCopies import IInterface, IDisposableBase, Abstract
-from WinCopies.Collections.Enumeration import IEnumerator, IDisposableEnumerator, IncrementalEnumerator, ToDisposableEnumerator
+from WinCopies import Abstract, IDisposableBase
+from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator, ToDisposableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor
-from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode, IList, List
-from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Method, Converter, IFunction, ValueFunctionUpdater
+from WinCopies.Collections.Generation.Factory import IObjectFactory, ObjectFactory
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
@@ -53,131 +50,25 @@ class _EnumeratorMonitorUpdater[T](ValueFunctionUpdater[IEnumeratorMonitor[T]]):
     def _GetValue(self) -> IEnumeratorMonitor[T]:
         return _EnumeratorMonitor[T](self.__factory)
 
-class _IRegister[T](IInterface):
+class IEnumeratorFactory[T](IObjectFactory[IEnumerator[T]], IEnumeratorMonitor[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    @abstractmethod
-    def GetCookie(self) -> _Cookie[T]:
-        pass
-    
-    @abstractmethod
-    def RegisterNode(self, node: IRemovable) -> None:
-        pass
-
-@final
-class _Finalizer(Abstract, IRemovable):
-    def __init__(self, finalizer: finalize[Any, IDisposableBase]) -> None:
-        super().__init__()
-
-        self.__finalizer: finalize[Any, IDisposableBase] = finalizer
-    
-    def Remove(self) -> None:
-        self.__finalizer.detach()
-
-@final
-class _Cookie[T](Abstract):
-    @final
-    class _Register[_T](Abstract, _IRegister[_T]):
-        def __init__(self, enumerator: IDisposableEnumerator[_T], cookie: _Cookie[_T]) -> None:
-            super().__init__()
-
-            self.__enumerator: IDisposableEnumerator[_T] = enumerator
-            self.__cookie: _Cookie[_T] = cookie
-        
-        def GetCookie(self) -> _Cookie[_T]:
-            return self.__cookie
-        
-        def RegisterNode(self, node: IRemovable) -> None:
-            self.__cookie._RegisterNode(self.__enumerator, node)
-    
-    def __init__(self, enumerator: IDisposableEnumerator[T]) -> None:
-        super().__init__()
-
-        self.__ref: ReferenceType[IDisposableEnumerator[T]] = ref(enumerator)
-        self.__finalizer: _Finalizer|None = None
-    
-    def TryGetValue(self) -> IDisposableEnumerator[T]|None:
-        return self.__ref()
-    
-    def Invalidate(self) -> None:
-        obj: IDisposableBase|None = self.TryGetValue()
-
-        if obj is not None:
-            obj.Dispose()
-
-            finalizer: _Finalizer|None = self.__finalizer
-
-            if finalizer is not None:
-                finalizer.Remove()
-    
-    def _RegisterNode(self, obj: IDisposableBase, node: IRemovable) -> None:
-        self.__finalizer = _Finalizer(finalize(obj, lambda: node.Remove()))
-
-    @staticmethod
-    def Create(enumerator: IDisposableEnumerator[T]) -> _IRegister[T]:
-        return _Cookie._Register[T](enumerator, _Cookie[T](enumerator))
-
-class IObjectMonitor(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def InvalidateObjects(self) -> None:
-        pass
-
-class IEnumeratorFactory[T](IEnumeratorMonitor[T], IObjectMonitor):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def RegisterObject(self, enumerator: IEnumerator[T]) -> None:
-        pass
-
     @abstractmethod
     def AsMonitor(self) -> IEnumeratorMonitor[T]:
         pass
-class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
+class EnumeratorFactory[T](ObjectFactory[IEnumerator[T]], IEnumeratorFactory[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IEnumeratorMonitor[T]]) -> None:
             self.__monitor = func
         
         super().__init__()
 
-        self.__enumerators: IList[_Cookie[T]] = List[_Cookie[T]]()
-
-        self.__push: Converter[IDisposableEnumerator[T], INode] = self.__PushFirst
-        self.__clear: Action = NoAction
-
         self.__monitor: IFunction[IEnumeratorMonitor[T]] = _EnumeratorMonitorUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def __Push(self, enumerator: IDisposableEnumerator[T]) -> INode:
-        cookie: _IRegister[T] = _Cookie[T].Create(enumerator)
-        node: IDoublyLinkedNode[_Cookie[T]] = self.__enumerators.AddLast(cookie.GetCookie())
-
-        cookie.RegisterNode(node)
-
-        return node
-    @final
-    def __PushFirst(self, enumerator: IDisposableEnumerator[T]) -> INode:
-        self.__clear = self.__Clear
-
-        return self.__Push(enumerator)
-    def _Push(self, enumerator: IEnumerator[T]) -> INode:
-        return self.__push(ToDisposableEnumerator(enumerator))
-    
-    @final
-    def __Clear(self) -> None:
-        for cookie in self.__enumerators.AsQueuedGenerator():
-            cookie.Invalidate()
-        
-        self.__push = self.__PushFirst
-        self.__clear = NoAction
-    
-    @final
-    def RegisterObject(self, enumerator: IEnumerator[T]) -> None:
-        self._Push(enumerator)
+    def _Convert(self, item: IEnumerator[T]) -> IDisposableBase:
+        return ToDisposableEnumerator(item)
     
     @final
     def CreateEnumerator(self, items: ITuple[T]) -> IEnumerator[T]:
@@ -186,9 +77,6 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
         self._Push(enumerator)
 
         return enumerator
-    
-    def InvalidateObjects(self) -> None:
-        self.__clear()
     
     @final
     def AsMonitor(self) -> IEnumeratorMonitor[T]:
