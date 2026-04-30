@@ -115,20 +115,20 @@ class _Cookie[T](Abstract):
     def Create(enumerator: IDisposableEnumerator[T]) -> _IRegister[T]:
         return _Cookie._Register[T](enumerator, _Cookie[T](enumerator))
 
-class IEnumerationMonitor(IInterface):
+class IObjectMonitor(IInterface):
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
-    def InvalidateEnumerators(self) -> None:
+    def InvalidateObjects(self) -> None:
         pass
 
-class IEnumeratorFactory[T](IEnumeratorMonitor[T], IEnumerationMonitor):
+class IEnumeratorFactory[T](IEnumeratorMonitor[T], IObjectMonitor):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def RegisterEnumerator(self, enumerator: IEnumerator[T]) -> None:
+    def RegisterObject(self, enumerator: IEnumerator[T]) -> None:
         pass
 
     @abstractmethod
@@ -172,7 +172,7 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
         self.__clear = NoAction
     
     @final
-    def RegisterEnumerator(self, enumerator: IEnumerator[T]) -> None:
+    def RegisterObject(self, enumerator: IEnumerator[T]) -> None:
         self.__PushEnumerator(enumerator)
     
     @final
@@ -184,7 +184,7 @@ class EnumeratorFactory[T](Abstract, IEnumeratorFactory[T]):
         return enumerator
     
     @final
-    def InvalidateEnumerators(self) -> None:
+    def InvalidateObjects(self) -> None:
         self.__clear()
     
     @final

@@ -211,7 +211,7 @@ class _ITuple[T](IInterface):
 
     @final
     def _InvalidateEnumerators(self) -> None:
-        self._GetEnumeratorFactory().InvalidateEnumerators()
+        self._GetEnumeratorFactory().InvalidateObjects()
 
 class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None:
@@ -225,7 +225,7 @@ class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def TryGetEnumerator(self) -> IEnumerator[T]:
         enumerator: IEnumerator[T] = self._TryGetEnumerator()
 
-        self._GetEnumeratorFactory().RegisterEnumerator(enumerator)
+        self._GetEnumeratorFactory().RegisterObject(enumerator)
 
         return enumerator
 class TupleBase[T](_TupleBase[T], TupleAbstract[T]):

@@ -10,7 +10,8 @@ from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
-from WinCopies.Collections.Extensions.Enumeration import IEnumerationMonitor, TupleEnumerator
+from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator
+from WinCopies.Collections.Generation import IObjectMonitor
 from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
@@ -179,12 +180,12 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     def _GetContainer(self) -> MutableSequenceBase[T]:
         return self.__items
     @abstractmethod
-    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+    def _GetEnumerationMonitor(self) -> IObjectMonitor:
         pass
 
     @final
     def __InvalidateEnumerators(self) -> None:
-        self._GetEnumerationMonitor().InvalidateEnumerators()
+        self._GetEnumerationMonitor().InvalidateObjects()
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -225,7 +226,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
         super().__init__(items)
     
     @final
-    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+    def _GetEnumerationMonitor(self) -> IObjectMonitor:
         return self._GetEnumeratorFactory()
     
     @final
@@ -536,7 +537,7 @@ class SortedList[T: IComparableProtocol](ListAbstract[T], Sequence[T], Collectio
         super().__init__(None if items is None else sorted(items))
     
     @final
-    def _GetEnumerationMonitor(self) -> IEnumerationMonitor:
+    def _GetEnumerationMonitor(self) -> IObjectMonitor:
         return self._GetEnumeratorFactory()
     
     @final
