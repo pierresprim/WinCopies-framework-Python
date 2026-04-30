@@ -9,7 +9,7 @@ from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator as GeneratorBase, IReadOnlyCollection, ICountable, Countable
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
-from WinCopies.Collections.Generation import IRemovable, IIterator, Generator, ConverterBase
+from WinCopies.Collections.Generation import IRemovable, INode as INodeBase, IIterator, Generator, ConverterBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, LinkedNode
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -17,7 +17,7 @@ from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, Va
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation, GenericConstraint
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
-class INode[T](ILinkedNode[T], IRemovable):
+class INode[T](ILinkedNode[T], INodeBase):
     def __init__(self) -> None:
         super().__init__()
     
@@ -684,6 +684,13 @@ class INodeCookie[T](IInterface):
         super().__init__()
     
     @abstractmethod
+    def GetFirst(self, items: _IListCookie[T]) -> T|None:
+        pass
+    @abstractmethod
+    def GetLast(self, items: _IListCookie[T]) -> T|None:
+        pass
+    
+    @abstractmethod
     def SetFirst(self, node: T|None, items: _IListCookie[T]) -> None:
         pass
     @abstractmethod
@@ -790,6 +797,11 @@ class _IListCookie[T](IInterface):
         def __init__(self) -> None:
             super().__init__()
         
+        def GetFirst(self, items: _IListCookie[_T]) -> _T|None:
+            return items._GetFirst()
+        def GetLast(self, items: _IListCookie[_T]) -> _T|None:
+            return items._GetLast()
+        
         def SetFirst(self, node: _T|None, items: _IListCookie[_T]) -> None:
             return items._SetFirst(node)
         def SetLast(self, node: _T|None, items: _IListCookie[_T]) -> None:
@@ -800,6 +812,13 @@ class _IListCookie[T](IInterface):
     
     def _GetCookie(self) -> INodeCookie[T]:
         return _IListCookie._LinkedListCookie[T]()
+    
+    @abstractmethod
+    def _GetFirst(self) -> T|None:
+        pass
+    @abstractmethod
+    def _GetLast(self) -> T|None:
+        pass
     
     @abstractmethod
     def _SetFirst(self, node: T|None) -> None:
@@ -1202,6 +1221,57 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
     @final
     def _RemoveLast(self, l: TListInterface) -> None:
         self._SetLastNode(None, l)
+    
+    @final
+    def TryMoveToTop(self) -> bool|None:
+        _l: TListInterface|None = self._GetInnerList()
+
+        if _l is None:
+            return False
+        
+        if self.GetPrevious() is None:
+            return None
+        
+        l: _IListCookie[TNode]|None = self._GetListAsSpecialized(_l)
+        
+        self.Remove()
+        
+        node: TNode|None = self._GetCookie().GetFirst(l)
+
+        if node is None:
+            return False
+        
+        _node: TNode = self._AsNode()
+
+        self._AsLinkedNode(node)._SetPrevious(_node)
+        self._SetNext(node)
+
+        return True
+    @final
+    def TryMoveToBottom(self) -> bool|None:
+        _l: TListInterface|None = self._GetInnerList()
+
+        if _l is None:
+            return False
+        
+        if self.GetNext() is None:
+            return None
+        
+        l: _IListCookie[TNode]|None = self._GetListAsSpecialized(_l)
+        
+        self.Remove()
+        
+        node: TNode|None = self._GetCookie().GetLast(l)
+
+        if node is None:
+            return False
+        
+        _node: TNode = self._AsNode()
+        
+        self._AsLinkedNode(node)._SetNext(_node)
+        self._SetPrevious(node)
+
+        return True
 
 class DoublyLinkedNode[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface](DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface, TList, TListInterface], IDoublyLinkedNode[TItem]):
     def __init__(self, value: TItem, l: TListInterface|None, cookie: INodeCookie[TNode], previousNode: TNode|None, nextNode: TNode|None) -> None:
