@@ -11,9 +11,9 @@ from WinCopies.Collections import Enumeration, Extensions, Mutability, FindIndex
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import IEnumerationMonitor, TupleEnumerator
-from WinCopies.Typing import INullable, IEquatableItem, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import IFunction, IStruct, Function, EqualityComparison, Handle
+from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 from WinCopies.Typing.Reflection import AreSameClass
@@ -545,6 +545,13 @@ class SortedList[T: IComparableProtocol](ListAbstract[T], Sequence[T], Collectio
     @final
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
         return bisect_right(self.AsSequence(), item) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
+    
+    @final
+    def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        return bisect_left(self.AsSequence(), item, key = converter)
+    @final
+    def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        return bisect_right(self.AsSequence(), item, key = converter)
     
     @final
     def AddLeft(self, item: T) -> None:

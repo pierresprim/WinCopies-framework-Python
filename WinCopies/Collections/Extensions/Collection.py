@@ -12,8 +12,8 @@ from WinCopies.Collections.Extensions import ICollection, IEnumeratorMonitor, IT
 from WinCopies.Collections.Extensions.Enumeration import IEnumeratorFactory, EnumeratorFactory, TupleEnumerator
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, FixedSizeCollection
-from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, GetNullable, GetNullValue
+from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -720,6 +720,11 @@ class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], Sequ
     
     def GetMutability(self) -> Mutability:
         return Mutability.Mutable
+    
+    def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        return self._GetContainer().BisectRight(item, converter)
+    def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        return self._GetContainer().BisectLeft(item, converter)
     
     def _GetInnerContainerAsList(self, container: ISortedList[T]) -> ISortedList[T]:
         return container

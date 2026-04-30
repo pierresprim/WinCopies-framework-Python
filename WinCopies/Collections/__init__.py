@@ -11,7 +11,7 @@ from WinCopies.Delegates import CompareEquality
 from WinCopies.Enum import OrderedEnum
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
 
@@ -711,6 +711,13 @@ class IList[T](IArray[T], IListBase[T]):
 class ISortedList[T](IListBase[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        pass
+    @abstractmethod
+    def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+        pass
     
     @abstractmethod
     def AddLeft(self, item: T) -> None:
