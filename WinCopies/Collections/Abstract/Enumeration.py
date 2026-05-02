@@ -98,12 +98,30 @@ class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumera
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
         return None if result is None else _Enumerator[TIn, TOut](self, result)
-class Enumerable[TIn, TOut](EnumerableAbstract[TIn, TOut]):
-    def __init__(self, enumerable: IEnumerable[TIn]) -> None:
+class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut]):
+    def __init__(self, enumerable: TEnumerable) -> None:
         super().__init__()
 
-        self.__enumerable: IEnumerable[TIn] = enumerable
+        self.__enumerable: TEnumerable = enumerable
+    
+    @abstractmethod
+    def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]:
+        pass
+    
+    @final
+    def _GetItems(self) -> TEnumerable:
+        return self.__enumerable
+    @final
+    def _GetEnumerableItems(self) -> IEnumerable[TIn]:
+        return self._AsEnumerableItems(self._GetItems())
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
-        return self.__enumerable.TryGetEnumerator()
+        return self._GetEnumerableItems().TryGetEnumerator()
+class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut, IEnumerable[TIn]]):
+    def __init__(self, enumerable: IEnumerable[TIn]) -> None:
+        super().__init__(enumerable)
+    
+    @final
+    def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]:
+        return items
