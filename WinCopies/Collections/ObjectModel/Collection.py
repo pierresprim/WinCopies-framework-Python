@@ -8,7 +8,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Extensions import IEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract
+from WinCopies.Collections.Extensions import IResumableEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import INullable
@@ -322,7 +322,7 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
         return self._GetInnerContainer().TryGetEnumerator()
     @final
-    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]:
         return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
