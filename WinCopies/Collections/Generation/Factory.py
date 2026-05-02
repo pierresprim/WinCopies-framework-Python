@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final, Any
 from weakref import ref, finalize, ReferenceType
