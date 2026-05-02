@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstract import TwoWayConverterBase
-from WinCopies.Collections.Abstract.Enumeration import EnumerableBase
+from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, IEnumerableList, ICountableList, ICountableEnumerableList
@@ -44,7 +44,7 @@ class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IList[TIn]], I
     def __init__(self, items: IList[TIn]) -> None:
         super().__init__(items)
 
-class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableBase[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):
+class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableAbstract[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):
     def __init__(self, items: IEnumerableList[TIn]) -> None:
         super().__init__(items)
     
@@ -59,7 +59,7 @@ class CountableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICoun
     def GetCount(self) -> int:
         return self._GetContainer().GetCount()
 
-class CountableEnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableEnumerableList[TIn]], EnumerableBase[TIn, TOut], ICountableEnumerableList[TOut], IGenericConstraintImplementation[ICountableEnumerableList[TIn]]):
+class CountableEnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableEnumerableList[TIn]], EnumerableAbstract[TIn, TOut], ICountableEnumerableList[TOut], IGenericConstraintImplementation[ICountableEnumerableList[TIn]]):
     def __init__(self, items: ICountableEnumerableList[TIn]) -> None:
         super().__init__(items)
     
