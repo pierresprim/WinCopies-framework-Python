@@ -7,7 +7,7 @@ from typing import final, overload, Self, SupportsIndex
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
-from WinCopies.Collections.Abstract.Enumeration import EnumerableBase, Enumerator
+from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Set as SetBase, Dictionary as DictionaryBase
@@ -17,7 +17,7 @@ from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], EnumerableBase[TIn, TOut]):
+class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], EnumerableAbstract[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -340,7 +340,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
 
         return None if enumerator is None else _Enumerator[TKey, TValueIn, TValueOut](Dictionary[TKey, TValueIn, TValueOut]._Cookie(self), enumerator)
 
-class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableBase[TIn, TOut]):
+class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
     def __init__(self, items: ISet[TIn]) -> None:
         super().__init__(items)
     
