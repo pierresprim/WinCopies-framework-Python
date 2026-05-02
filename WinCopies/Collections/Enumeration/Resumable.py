@@ -11,6 +11,7 @@ from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory, DisposableObjectFactory
 from WinCopies.Typing import IComparableItem, IComparableObject, INullable, InvalidOperationError, GetDisposedError
+from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
 class IResumableEnumerationCursor(IResumable, IDisposable):
@@ -257,8 +258,14 @@ class _ResumableEnumerationCursorFactory(ResumableEnumerationCursorFactory[_Resu
     def _InitializeCursor(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: Cookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
-class AbstractResumableEnumerator[TItem, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TItem, TItem, TEnumerator], IResumableEnumerator[TItem]):
+class AbstractResumableEnumeratorAbstract[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator], IResumableEnumerator[TOut]):
     def __init__(self, enumerator: TEnumerator) -> None:
+        super().__init__(enumerator)
+class AbstractResumableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](AbstractResumableEnumeratorAbstract[TItem, TItem, TEnumerator]):
+    def __init__(self, enumerator: TEnumerator) -> None:
+        super().__init__(enumerator)
+class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumableEnumerator[T]], IGenericConstraintImplementation[IResumableEnumerator[T]]):
+    def __init__(self, enumerator: IResumableEnumerator[T]) -> None:
         super().__init__(enumerator)
 
 class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnumerator[T]):
