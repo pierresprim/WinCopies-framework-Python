@@ -250,7 +250,7 @@ class _ResumableEnumerationCursorFactory(ResumableEnumerationCursorFactory[_Resu
     def _InitializeCursor(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: Cookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
-class ResumableEnumerator[TItem, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TItem, TItem, TEnumerator], IResumableEnumerator[TItem]):
+class AbstractResumableEnumerator[TItem, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TItem, TItem, TEnumerator], IResumableEnumerator[TItem]):
     def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__(enumerator)
 
