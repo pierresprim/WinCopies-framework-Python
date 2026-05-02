@@ -7,7 +7,9 @@ from WinCopies import Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
@@ -30,6 +32,48 @@ class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, 
     
     def _GetCurrent(self) -> TOut:
         return self.__current.GetValue()
+class ResumableEnumerator[TIn, TOut](AbstractResumableEnumeratorAbstract[TIn, TOut, IResumableEnumerator[TIn]], ConverterBase[TIn, TOut], IGenericConstraintImplementation[IResumableEnumerator[TIn]]):
+    def __init__(self, enumerator: IResumableEnumerator[TIn]) -> None:
+        super().__init__(enumerator)
+
+        self.__current: INullable[TOut] = GetNullValue()
+    
+    def _OnEnded(self) -> None:
+        self.__current = GetNullValue()
+        
+        super()._OnEnded()
+    
+    def _MoveNextOverride(self) -> bool:
+        if super()._MoveNextOverride():
+            self.__current = GetNullable(self._Convert(self._GetContainer().GetCurrent()))
+
+            return True
+        
+        return False
+    
+    def _GetCurrent(self) -> TOut:
+        return self.__current.GetValue()
+    
+    def SupportsMultipleCursors(self) -> bool:
+        return self._GetContainer().SupportsMultipleCursors()
+    
+    @final
+    def PlaceCursor(self) -> IResumableEnumerationCursor:
+        return self._GetContainer().PlaceCursor()
+    @final
+    def PlaceTopCursor(self) -> IResumableEnumerationCursor:
+        return self._GetContainer().PlaceTopCursor()
+    
+    @final
+    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None:
+        return self._GetContainer().MoveToTop(cursor)
+    
+    @final
+    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
+        return self._GetContainer().Resume(cursor)
+    
+    def Dispose(self) -> None:
+        self._GetContainer().Dispose()
 
 @final
 class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
