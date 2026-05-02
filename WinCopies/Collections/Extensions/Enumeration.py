@@ -174,7 +174,7 @@ class ResumableEnumeratorFactory[T](EnumeratorFactoryBase[T, IResumableEnumerato
     
     @final
     def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
-        enumerator: IEnumerator[T] = ResumableTupleEnumerator[T](items)
+        enumerator: IResumableEnumerator[T] = ResumableTupleEnumerator[T](items)
 
         self._Push(enumerator)
 
