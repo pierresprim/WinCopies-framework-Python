@@ -187,7 +187,7 @@ class _OrderedSetList[T: IEquatableItem](Abstract, MutableList[T], Collection.Co
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self.__list.TryGetEnumerator()
-    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]:
         return self.__list.GetEnumeratorMonitor()
     
     def Clear(self) -> None:
@@ -301,7 +301,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IEquatableItem, TCollection](SequenceA
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
         return self._GetInnerContainer().TryGetEnumerator()
     @final
-    def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[TItem]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]:
         return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
