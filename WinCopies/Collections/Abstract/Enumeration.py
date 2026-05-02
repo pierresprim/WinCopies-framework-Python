@@ -7,7 +7,7 @@ from WinCopies import Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -84,6 +84,15 @@ class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
     
     def _Convert(self, item: TIn) -> TOut:
         return self.__enumerable._Convert(item)
+@final
+class _ResumableEnumerator[TIn, TOut](ResumableEnumerator[TIn, TOut]):
+    def __init__(self, enumerable: ConverterBase[TIn, TOut], enumerator: IResumableEnumerator[TIn]) -> None:
+        super().__init__(enumerator)
+
+        self.__enumerable: ConverterBase[TIn, TOut] = enumerable
+    
+    def _Convert(self, item: TIn) -> TOut:
+        return self.__enumerable._Convert(item)
 
 class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     def __init__(self) -> None:
@@ -125,3 +134,38 @@ class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut, IEnumerable[TIn]]):
     @final
     def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]:
         return items
+
+class _ResumableEnumerable[TIn, TOut](ConverterBase[TIn, TOut], IResumableEnumerable[TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
+        pass
+    
+    @final
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TOut]|None:
+        result: IResumableEnumerator[TIn]|None = self._TryGetResumableEnumerator()
+
+        return None if result is None else _ResumableEnumerator[TIn, TOut](self, result)
+class ResumableEnumerableAbstract[TIn, TOut](EnumerableAbstract[TIn, TOut], _ResumableEnumerable[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+class ResumableEnumerableBase[TIn, TOut, TEnumerable](EnumerableBase[TIn, TOut, TEnumerable], _ResumableEnumerable[TIn, TOut]):
+    def __init__(self, enumerable: TEnumerable) -> None:
+        super().__init__(enumerable)
+    
+    @abstractmethod
+    def _AsResumableEnumerableItems(self, items: TEnumerable) -> IResumableEnumerable[TIn]:
+        pass
+
+    @final
+    def _GetResumableEnumerableItems(self) -> IResumableEnumerable[TIn]:
+        return self._AsResumableEnumerableItems(self._GetItems())
+    
+    @final
+    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
+        return self._GetResumableEnumerableItems().TryGetResumableEnumerator()
+class ResumableEnumerable[TIn, TOut](ResumableEnumerableBase[TIn, TOut, IResumableEnumerable[TIn]], IGenericConstraintImplementation[IResumableEnumerable[TIn]]):
+    def __init__(self, enumerable: IResumableEnumerable[TIn]) -> None:
+        super().__init__(enumerable)
