@@ -8,7 +8,8 @@ from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
-from WinCopies.Collections.Extensions import Collection, IEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
+from WinCopies.Collections.Extensions import Collection, IResumableEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -185,7 +186,7 @@ class _OrderedSetList[T: IEquatableItem](Abstract, MutableList[T], Collection.Co
         return True
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
+        return self.__list.TryGetEnumerator()
     def GetEnumeratorMonitor(self) -> IEnumeratorMonitor[T]:
         return self.__list.GetEnumeratorMonitor()
     
