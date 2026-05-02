@@ -6,7 +6,7 @@ from typing import Callable, final
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import IReadOnlyCollection, IGetter
 from WinCopies.Collections.Abstraction.Collection import SortedList
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnumerator, AbstractEnumeratorBase, IncrementalEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnumerator, EnumeratorBase, AbstractEnumeratorBase, IncrementalEnumerator
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory, DisposableObjectFactory
@@ -58,6 +58,13 @@ class IResumableEnumerator[T](IEnumerator[T], IDisposable):
     @abstractmethod
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         pass
+
+class ResumableEnumeratorBase[T](EnumeratorBase[T], IResumableEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class ICookieBase(IInterface):
     def __init__(self) -> None:
