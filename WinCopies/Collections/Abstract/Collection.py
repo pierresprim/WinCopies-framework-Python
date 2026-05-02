@@ -343,10 +343,14 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
 class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableBase[TIn, TOut]):
     def __init__(self, items: ISet[TIn]) -> None:
         super().__init__(items)
-
+    
     @final
     def GetCount(self) -> int:
         return self._GetItems().GetCount()
+    
+    @final
+    def Contains(self, value: TOut|object) -> bool:
+        return self._GetItems().Contains(value)
     
     @final
     def TryAdd(self, item: TOut) -> bool:
@@ -354,6 +358,10 @@ class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TI
     @final
     def Add(self, item: TOut) -> None:
         self._GetItems().Add(self._ConvertBack(item))
+    
+    @final
+    def TryAddRange(self, items: Iterable[TOut]) -> bool:
+        return self._GetItems().TryAddRange(Select(items, lambda item: self._ConvertBack(item)))
     
     @final
     def Remove(self, item: TOut) -> None:
