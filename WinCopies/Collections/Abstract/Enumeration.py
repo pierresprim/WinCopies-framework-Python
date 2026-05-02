@@ -77,15 +77,15 @@ class ResumableEnumerator[TIn, TOut](AbstractResumableEnumeratorAbstract[TIn, TO
 
 @final
 class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
-    def __init__(self, enumerable: EnumerableBase[TIn, TOut], enumerator: IEnumerator[TIn]) -> None:
+    def __init__(self, enumerable: EnumerableAbstract[TIn, TOut], enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
-        self.__enumerable: EnumerableBase[TIn, TOut] = enumerable
+        self.__enumerable: EnumerableAbstract[TIn, TOut] = enumerable
     
     def _Convert(self, item: TIn) -> TOut:
         return self.__enumerable._Convert(item)
 
-class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
+class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -98,7 +98,7 @@ class EnumerableBase[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
         return None if result is None else _Enumerator[TIn, TOut](self, result)
-class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut]):
+class Enumerable[TIn, TOut](EnumerableAbstract[TIn, TOut]):
     def __init__(self, enumerable: IEnumerable[TIn]) -> None:
         super().__init__()
 
