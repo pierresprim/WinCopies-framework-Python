@@ -7,8 +7,9 @@ from typing import final, overload, Self, SupportsIndex
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
-from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, Enumerator
+from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, ResumableEnumerableAbstract, Enumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Set as SetBase, Dictionary as DictionaryBase
 from WinCopies.Collections.Iteration import Select
@@ -17,7 +18,7 @@ from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], EnumerableAbstract[TIn, TOut]):
+class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -40,6 +41,9 @@ class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConve
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetInnerContainer().TryGetEnumerator()
+    @final
+    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
+        return self._GetInnerContainer().TryGetResumableEnumerator()
 class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence]):
     def __init__(self) -> None:
         super().__init__()
