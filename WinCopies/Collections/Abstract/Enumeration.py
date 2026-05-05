@@ -4,14 +4,13 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstract import ConverterBase
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Selector
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
-class Enumerator[TIn, TOut](Enumeration.Selector[TIn, TOut], ConverterBase[TIn, TOut]):
+class Enumerator[TIn, TOut](Selector[TIn, TOut], ConverterBase[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
         super().__init__(enumerator)
 
