@@ -142,6 +142,9 @@ class Enumerable[T](_SystemIterable[T]):
 class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
+class HashableEnumerable[T: IEquatableItem](Enumerable[T], IHashableEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 @final
 class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableBase]):
