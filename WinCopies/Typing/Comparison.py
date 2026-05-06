@@ -1,17 +1,8 @@
 from abc import abstractmethod
-from typing import final, runtime_checkable, Any, Protocol
+from typing import final, Any
 
 from WinCopies import IInterface
-
-@runtime_checkable
-class SupportsEqualityComparison(Protocol):
-    """Protocol for types that support equality comparison operator."""
-    
-    def __eq__(self, other: Any, /) -> bool:
-        ...
-    
-    def __hash__(self, /) -> int:
-        ...
+from WinCopies.Typing.Protocols import SupportsRichComparison
 
 class IEquatableValue(IInterface):
     def __init__(self) -> None:
@@ -46,26 +37,6 @@ class IEquatable[T](IInterface):
 class IEquatableObject[T](IEquatable[T|object], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
-
-@runtime_checkable
-class SupportsRichComparison(Protocol):
-    """Protocol for types that support comparison operators."""
-    
-    def __lt__(self, other: Any, /) -> bool:
-        """Less than comparison."""
-        ...
-    
-    def __le__(self, other: Any, /) -> bool:
-        """Less than or equal comparison."""
-        ...
-    
-    def __gt__(self, other: Any, /) -> bool:
-        """Greater than comparison."""
-        ...
-    
-    def __ge__(self, other: Any, /) -> bool:
-        """Greater than or equal comparison."""
-        ...
 
 class IComparableValue(IEquatableValue):
     def __init__(self) -> None:
