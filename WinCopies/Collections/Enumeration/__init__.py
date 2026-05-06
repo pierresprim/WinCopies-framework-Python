@@ -98,7 +98,7 @@ class IEnumerable[T](IEnumerableBase[T]):
 class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
-class IHashableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableItem):
+class IHashableEnumerable[T: IEquatableItem](IEquatableEnumerable[T], IEquatableItem):
     def __init__(self) -> None:
         super().__init__()
 
