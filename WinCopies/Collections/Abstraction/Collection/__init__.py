@@ -14,11 +14,12 @@ from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple,
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableItem, SupportsRichComparison, IComparableProtocol
+from WinCopies.Typing.Comparison import IEquatableItem, IComparableProtocol
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Protocols import SupportsRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
 
 class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Collection.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):

@@ -6,7 +6,7 @@ from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTup
 from WinCopies.Collections.Extensions import IResumableEnumeratorMonitor, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
 from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableItem
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
