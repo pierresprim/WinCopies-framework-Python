@@ -18,14 +18,16 @@ def GetNameInfo(item: IBrowsable) -> IBrowsableNameInfo:
     return item.GetPathInfo().GetNameInfo()
 
 def TryGetNameInfo(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> IBrowsableNameInfo|None:
-    if isinstance(item, IBrowsableNameInfo):
-        return item
-    if isinstance(item, IBrowsablePathInfo):
-        return item.GetNameInfo()
-    if isinstance(item, IBrowsable):
-        return GetNameInfo(item)
-    
-    return None
+    match item:
+        case IBrowsableNameInfo():
+            return item
+        case IBrowsablePathInfo():
+            return item.GetNameInfo()
+        case IBrowsable():
+            return GetNameInfo(item)
+        
+        case _:
+            return None
 
 def TryGetName(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> str|None:
     name: IBrowsableNameInfo|None = TryGetNameInfo(item)

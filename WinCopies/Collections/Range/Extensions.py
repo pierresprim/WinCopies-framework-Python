@@ -3,7 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections import IList, ISet, ReverseIndex
 from WinCopies.Collections.Abstraction.Collection.Mapping import Set
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableItem
 
 def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
     def reverseIndex(index: int) -> int:

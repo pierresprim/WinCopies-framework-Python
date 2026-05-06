@@ -8,7 +8,7 @@ from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerator
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableItem
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 

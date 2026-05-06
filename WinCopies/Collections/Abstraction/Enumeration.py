@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable as EnumerableBase, CountableEnumerable as CountableEnumerableBase, EquatableEnumerable as EquatableEnumerableBase, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableItem
 
 def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
     yield from iterable

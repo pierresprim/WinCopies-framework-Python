@@ -14,7 +14,8 @@ from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems
-from WinCopies.Typing import INullable, IEquatableItem
+from WinCopies.Typing import INullable
+from WinCopies.Typing.Comparison import IEquatableItem
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 

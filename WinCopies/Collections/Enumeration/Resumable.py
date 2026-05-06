@@ -10,7 +10,8 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnu
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory, DisposableObjectFactory
-from WinCopies.Typing import IComparableItem, IComparableObject, INullable, InvalidOperationError, GetDisposedError
+from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
+from WinCopies.Typing.Comparison import IComparableItem, IComparableObject
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 

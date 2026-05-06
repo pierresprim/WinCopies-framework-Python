@@ -9,7 +9,8 @@ from typing import final, Type as TypeBase
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Math import NumericalValue, CompareTo
-from WinCopies.Typing import IDisposable, INullable, IEnum, IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
+from WinCopies.Typing import IDisposable, INullable, IEnum
+from WinCopies.Typing.Comparison import IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
 from WinCopies.Typing.Reflection import IsOf
 
 class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):

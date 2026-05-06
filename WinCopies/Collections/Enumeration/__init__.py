@@ -15,7 +15,8 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, IDisposable, IEquatableValue, IEquatableItem, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing.Comparison import IEquatableValue, IEquatableItem
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 

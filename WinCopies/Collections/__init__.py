@@ -11,7 +11,8 @@ from WinCopies.Delegates import CompareEquality
 from WinCopies.Enum import OrderedEnum
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Comparison import IEquatableItem, SupportsRichComparison
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
 

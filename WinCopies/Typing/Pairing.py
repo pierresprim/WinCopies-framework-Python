@@ -4,8 +4,9 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import Abstract
-from WinCopies.Typing import INullable, IEquatable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
+from WinCopies.Typing.Comparison import IEquatable
 
 class IKeyValuePair[TKey, TValue](IEquatable["IKeyValuePair[TKey, TValue]"]):
     def __init__(self) -> None:

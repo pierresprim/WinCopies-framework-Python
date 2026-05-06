@@ -13,7 +13,8 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Set as SetBase, Dictionary as DictionaryBase
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing import INullable, IEquatableItem, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Comparison import IEquatableItem
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool

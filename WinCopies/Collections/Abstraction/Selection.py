@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import Collection
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
-from WinCopies.Typing import IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableItem
 from WinCopies.Typing.Delegate import Converter
 
 class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):

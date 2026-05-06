@@ -13,7 +13,8 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, IDictionary, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
-from WinCopies.Typing import INullable, IEquatableItem, SupportsRichComparison, IComparableProtocol, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing.Comparison import IEquatableItem, SupportsRichComparison, IComparableProtocol
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation

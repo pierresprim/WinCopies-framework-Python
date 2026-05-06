@@ -14,7 +14,8 @@ from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable,
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 
-from WinCopies.Typing import IEquatable, INullable, GetDisposedError
+from WinCopies.Typing import INullable, GetDisposedError
+from WinCopies.Typing.Comparison import IEquatable
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
