@@ -135,8 +135,8 @@ def TryCreateEquatableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumer
 
 def CreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]) -> EquatableEnumerable[T]:
     return enumerable if type(enumerable) == _HashableEnumerable[T] else _HashableEnumerable[T](enumerable)
-def TryCreateHashableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
-    return None if enumerable is None else CreateEquatableEnumerable(enumerable)
+def TryCreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
+    return None if enumerable is None else CreateHashableEnumerable(enumerable)
 
 def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> CountableEnumerable[T]:
     return enumerable if type(enumerable) == _CountableEnumerable[T] else _CountableEnumerable[T](enumerable)
