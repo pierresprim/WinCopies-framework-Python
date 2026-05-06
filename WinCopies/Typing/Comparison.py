@@ -3,6 +3,16 @@ from typing import final, runtime_checkable, Any, Protocol
 
 from WinCopies import IInterface
 
+@runtime_checkable
+class SupportsEqualityComparison(Protocol):
+    """Protocol for types that support equality comparison operator."""
+    
+    def __eq__(self, other: Any, /) -> bool:
+        ...
+    
+    def __hash__(self, /) -> int:
+        ...
+
 class IEquatableValue(IInterface):
     def __init__(self) -> None:
         super().__init__()
