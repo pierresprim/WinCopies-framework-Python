@@ -10,7 +10,7 @@ from typing import overload, final, Callable, Any, Type, cast
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
-from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, MakeTuple, CreateEquatableTuple, CreateDictionary
+from WinCopies.Collections.Abstraction.Collection import Dictionary, CreateTuple, MakeTuple, CreateHashableTuple, CreateDictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
@@ -1313,7 +1313,7 @@ class EntityMapper[T: Entity](Abstract, IEntityMapper[T]):
                 raise InvalidOperationError("No primary key found.")
             
             if count > 1:
-                return CompositeEntityKey[IValueItem](CreateEquatableTuple(Select(keys.AsIterable(), getKey)))
+                return CompositeEntityKey[IValueItem](CreateHashableTuple(Select(keys.AsIterable(), getKey)))
             
             return EntityKey[IValueItem](getKey(keys.GetAt(0)))
 
