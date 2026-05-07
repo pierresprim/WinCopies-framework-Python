@@ -10,28 +10,21 @@ from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Math import NumericalValue, CompareTo
 from WinCopies.Typing import IDisposable, INullable, IEnum
-from WinCopies.Typing.Comparison import IEquatableObject as IEquatableObjectBase, IEquatableItem, IComparableObject as IComparableObjectBase
+from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable
 from WinCopies.Typing.Reflection import IsOf
 
-class IEquatableObject[T](IEquatableObjectBase[T], IEquatableItem):
+class IItem(IHashableValue, IStringable):
     def __init__(self) -> None:
         super().__init__()
 
-class IItem(IEquatableItem, IStringable):
-    def __init__(self) -> None:
-        super().__init__()
-
-class IObject[T](IEquatableObject[T], IItem):
+class IObject[T](IHashable[T], IItem):
     def __init__(self) -> None:
         super().__init__()
 class Object[T](Abstract, IObject[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IComparableObject[T](IEquatableObject[T], IComparableObjectBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
-class IComparableItem[T: IEquatableItem](IObject[T], IComparableObject[T]):
+class IComparableObject[T](IObject[T], IExtendedHashableComparable[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -58,7 +51,7 @@ class IComplexValueProvider[T](IValueProvider):
     def GetUnderlyingValue(self) -> T:
         pass
 
-class IComparableValue[T](IComparableObject[T], IValueItem):
+class IComparable[T](IComparableObject[T], IValueItem):
     def __init__(self) -> None:
         super().__init__()
 class IValueObject[T](IValueItem):
@@ -76,7 +69,7 @@ class IComplexValueObject[TValue, TUnderlying, TObject](IItemObject[TValue, TObj
     def __init__(self) -> None:
         super().__init__()
 
-class IComparableValueObject[TValue, TObject](IItemObject[TValue, TObject], IComparableValue[TValue|TObject]):
+class IComparableValueObject[TValue, TObject](IItemObject[TValue, TObject], IComparable[TValue|TObject]):
     def __init__(self) -> None:
         super().__init__()
 class IComparableComplexValueObject[TValue, TUnderlying, TObject](IComplexValueObject[TValue, TUnderlying, TObject], IComparableValueObject[TValue, TObject]):
@@ -488,16 +481,16 @@ type DateOrTime = DateOrTimeValue|DateOrTimeItem
 type DateAndTime = DateOrTime|DateAndTimeValue|DateAndTimeItem
 type DateTimeOrDelta = DateAndTime|DateTimeOrDeltaValue|DateTimeOrDeltaItem
 
-class IDate(IItemObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["date|DateTimeOrDeltaItem"]):
+class IDate(IItemObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["date|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITime(IItemObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparableValue["time|DateTimeOrDeltaItem"]):
+class ITime(IItemObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["time|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class IDateTime(IItemObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparableValue["datetime|DateTimeOrDeltaItem"]):
+class IDateTime(IItemObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparable["datetime|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
-class ITimeDelta(IItemObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparableValue["timedelta|DateTimeOrDeltaItem"]):
+class ITimeDelta(IItemObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparable["timedelta|DateTimeOrDeltaItem"]):
     def __init__(self) -> None:
         super().__init__()
 

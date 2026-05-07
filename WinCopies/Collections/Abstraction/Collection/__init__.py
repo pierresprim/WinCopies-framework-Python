@@ -14,7 +14,7 @@ from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableItem, IComparableProtocol
+from WinCopies.Typing.Comparison import IHashableValue, ComparableProtocol
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -88,7 +88,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeSequence(items))
     
@@ -108,7 +108,7 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Collection.Eq
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class HashableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeSequence(items))
     
@@ -566,7 +566,7 @@ class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None:
         super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-class SortedList[T: IComparableProtocol](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: ComparableProtocol](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__(None if items is None else sorted(items))
     
@@ -612,7 +612,7 @@ class SortedList[T: IComparableProtocol](ListAbstract[T], Sequence[T], Collectio
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 @final
-class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValuePair[TKey, TValue]):
+class EnumerationKeyValuePair[TKey: IHashableValue, TValue](Abstract, IKeyValuePair[TKey, TValue]):
     def __init__(self, item: tuple[TKey, TValue]) -> None:
         super().__init__()
         
@@ -634,7 +634,7 @@ class EnumerationKeyValuePair[TKey: IEquatableItem, TValue](Abstract, IKeyValueP
         return isinstance(item, EnumerationKeyValuePair)
 
 @final
-class DictionaryEnumerator[TKey: IEquatableItem, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
+class DictionaryEnumerator[TKey: IHashableValue, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
     def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
         super().__init__()
 
@@ -685,8 +685,8 @@ class _None(Singleton):
         super().__init__()
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: IEquatableItem, TValue](Collection.Dictionary[TKey, TValue]):
-    class _Enumerable[_TKey: IEquatableItem, _TValue, _TItem](CountableEnumerable[_TItem]):
+class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValue]):
+    class _Enumerable[_TKey: IHashableValue, _TValue, _TItem](CountableEnumerable[_TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()
 
@@ -704,14 +704,14 @@ class Dictionary[TKey: IEquatableItem, TValue](Collection.Dictionary[TKey, TValu
         def TryGetEnumerator(self) -> IEnumerator[_TItem]|None:
             return TryAsEnumerator(self._TryGetIterator())
     @final
-    class _KeyEnumerable[_TKey: IEquatableItem, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
+    class _KeyEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[_TKey]|None:
             return iter(self._GetDictionary().keys())
     @final
-    class _ValueEnumerable[_TKey: IEquatableItem, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
+    class _ValueEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
@@ -833,14 +833,14 @@ def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
 def MakeTuple[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
-def CreateEquatableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+def CreateEquatableTuple[T: IHashableValue](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
     return EquatableTuple[T](items)
-def MakeEquatableTuple[T: IEquatableItem](*items: T) -> IEquatableTuple[T]:
+def MakeEquatableTuple[T: IHashableValue](*items: T) -> IEquatableTuple[T]:
     return CreateEquatableTuple(items)
 
-def CreateHashableTuple[T: IEquatableItem](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
+def CreateHashableTuple[T: IHashableValue](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
     return HashableTuple[T](items)
-def MakeHashableTuple[T: IEquatableItem](*items: T) -> IHashableTuple[T]:
+def MakeHashableTuple[T: IHashableValue](*items: T) -> IHashableTuple[T]:
     return CreateHashableTuple(items)
 
 def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
@@ -861,10 +861,10 @@ def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> IS
 def CreateArrayList[T](length: int, func: IFunction[T]) -> IArray[T]:
     return ArrayList[T](length, func)
 
-def CreateSortedList[T: IComparableProtocol](items: Iterable[T]) -> ISortedList[T]:
+def CreateSortedList[T: ComparableProtocol](items: Iterable[T]) -> ISortedList[T]:
     return SortedList[T](items)
-def MakeSortedList[T: IComparableProtocol](*items: T) -> ISortedList[T]:
+def MakeSortedList[T: ComparableProtocol](*items: T) -> ISortedList[T]:
     return CreateSortedList(items)
 
-def CreateDictionary[TKey: IEquatableItem, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:
+def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:
     return Dictionary[TKey, TValue](dictionary)

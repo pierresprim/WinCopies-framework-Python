@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import Collection
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
-from WinCopies.Typing.Comparison import IEquatableItem
+from WinCopies.Typing.Comparison import IHashableValue
 from WinCopies.Typing.Delegate import Converter
 
 class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
@@ -24,7 +24,7 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability:
         return Mutability.ReadOnly
-class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](Collection.EquatableTuple[TIn, TOut]):
+class EquatableTuple[TIn: IHashableValue, TOut: IHashableValue](Collection.EquatableTuple[TIn, TOut]):
     def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
@@ -83,7 +83,7 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
     def GetMutability(self) -> Mutability:
         return Mutability.Mutable
 
-class Set[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Set[TIn, TOut]):
+class Set[TIn: IHashableValue, TOut: IHashableValue](Collection.Set[TIn, TOut]):
     def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
@@ -97,7 +97,7 @@ class Set[TIn: IEquatableItem, TOut: IEquatableItem](Collection.Set[TIn, TOut]):
     def _ConvertBack(self, item: TOut) -> TIn:
         return self.__backConverter(item)
 
-class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Collection.Dictionary[TKey, TValueIn, TValueOut]):
+class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Collection.Dictionary[TKey, TValueIn, TValueOut]):
     def __init__(self, items: IDictionary[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> None:
         super().__init__(items)
 

@@ -12,7 +12,8 @@ from WinCopies.Collections.Enumeration import IEnumerable, IHashableEnumerable, 
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple, IOrderedSet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
-from WinCopies.Typing.Object import IEquatableObject, IString
+from WinCopies.Typing.Comparison import IHashable
+from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 
 class IndexType(Enum):
@@ -179,7 +180,7 @@ class IIndexCollection(IEnumerable[IIndex]):
 class IndexCollection(IterableBase[IIndex], IIndexCollection):
     @final
     class __Indices(Abstract):
-        class __IByName(IEquatableObject[IIndex]):
+        class __IByName(IHashable[IIndex]):
             def __init__(self) -> None:
                 super().__init__()
             
@@ -211,7 +212,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             def GetName(self) -> str:
                 return self.__index.GetColumn()
         @final
-        class __ByFields(Abstract, IEquatableObject[IMultiColumnIndex]):
+        class __ByFields(Abstract, IHashable[IMultiColumnIndex]):
             def __init__(self, index: IMultiColumnIndex) -> None:
                 super().__init__()
 

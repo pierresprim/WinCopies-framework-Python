@@ -14,7 +14,7 @@ from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableT
 from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection, Set as SetBase, Dictionary as DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableItem
+from WinCopies.Typing.Comparison import IHashableValue
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
@@ -75,7 +75,7 @@ class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]],
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
-class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
+class EquatableTuple[TIn: IHashableValue, TOut: IHashableValue](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]) -> None:
         super().__init__()
 
@@ -95,7 +95,7 @@ class EquatableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, T
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]:
         return self._Clone(self._GetContainer().SliceAt(key))
-class HashableTuple[TIn: IEquatableItem, TOut: IEquatableItem](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+class HashableTuple[TIn: IHashableValue, TOut: IHashableValue](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]) -> None:
         super().__init__()
 
@@ -237,7 +237,7 @@ class _ICookie[TIn, TOut](IInterface):
         pass
 
 @final
-class _ValueEnumerable[TKey: IEquatableItem, TValueIn, TValueOut](CountableEnumerable[TValueOut]):
+class _ValueEnumerable[TKey: IHashableValue, TValueIn, TValueOut](CountableEnumerable[TValueOut]):
     def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]) -> None:
         super().__init__()
 
@@ -253,7 +253,7 @@ class _ValueEnumerable[TKey: IEquatableItem, TValueIn, TValueOut](CountableEnume
     def TryGetEnumerator(self) -> IEnumerator[TValueOut]|None:
         return TryAsEnumerator(self._TryGetIterator())
 @final
-class _Enumerator[TKey: IEquatableItem, TValueIn, TValueOut](Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
+class _Enumerator[TKey: IHashableValue, TValueIn, TValueOut](Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
     def __init__(self, dictionary: _ICookie[TValueIn, TValueOut], enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]) -> None:
         super().__init__(enumerator)
 
@@ -262,9 +262,9 @@ class _Enumerator[TKey: IEquatableItem, TValueIn, TValueOut](Enumerator[IKeyValu
     def _Convert(self, item: IKeyValuePair[TKey, TValueIn]) -> IKeyValuePair[TKey, TValueOut]:
         return KeyValuePair[TKey, TValueOut](item.GetKey(), self.__dictionary.Convert(item.GetValue()))
 
-class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], DictionaryBase[TKey, TValueOut]):
+class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], DictionaryBase[TKey, TValueOut]):
     @final
-    class _Cookie[_TKey: IEquatableItem, T, U](_ICookie[T, U]):
+    class _Cookie[_TKey: IHashableValue, T, U](_ICookie[T, U]):
         def __init__(self, dic: Dictionary[_TKey, T, U]) -> None:
             super().__init__()
 
@@ -345,7 +345,7 @@ class Dictionary[TKey: IEquatableItem, TValueIn, TValueOut](Selector[TValueIn, T
 
         return None if enumerator is None else _Enumerator[TKey, TValueIn, TValueOut](Dictionary[TKey, TValueIn, TValueOut]._Cookie(self), enumerator)
 
-class Set[TIn: IEquatableItem, TOut: IEquatableItem](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
+class Set[TIn: IHashableValue, TOut: IHashableValue](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
     def __init__(self, items: ISet[TIn]) -> None:
         super().__init__(items)
     

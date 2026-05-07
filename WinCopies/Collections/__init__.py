@@ -12,9 +12,10 @@ from WinCopies.Enum import OrderedEnum
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableItem, SupportsRichComparison
+from WinCopies.Typing.Comparison import IHashableValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
+from WinCopies.Typing.Protocols import SupportsRichComparison
 
 type Generator[T] = GeneratorBase[T, None, None]
 
@@ -615,7 +616,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IEquatableItem](ITuple[T]):
+class IEquatableTuple[T: IHashableValue](ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -626,7 +627,7 @@ class IEquatableTuple[T: IEquatableItem](ITuple[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
-class IHashableTuple[T: IEquatableItem](IEquatableTuple[T], IEquatableItem):
+class IHashableTuple[T: IHashableValue](IEquatableTuple[T], IHashableValue):
     def __init__(self) -> None:
         super().__init__()
     
@@ -732,14 +733,14 @@ class ISortedList[T](IListBase[T]):
     def SliceAt(self, key: slice) -> ISortedList[T]:
         pass
 
-class IReadOnlySet[T: IEquatableItem](IReadOnlyList[T], ICountable):
+class IReadOnlySet[T: IHashableValue](IReadOnlyList[T], ICountable):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def IsEmpty(self) -> bool:
         return self.GetCount() < 1
-class ISet[T: IEquatableItem](IReadOnlySet[T], IClearable):
+class ISet[T: IHashableValue](IReadOnlySet[T], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -777,10 +778,10 @@ class ISet[T: IEquatableItem](IReadOnlySet[T], IClearable):
     def TryRemove(self, item: T) -> bool:
         pass
 
-class IReadOnlyDictionary[TKey: IEquatableItem, TValue](IGetter[TKey, TValue], ICountable):
+class IReadOnlyDictionary[TKey: IHashableValue, TValue](IGetter[TKey, TValue], ICountable):
     def __init__(self) -> None:
         super().__init__()
-class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
+class IDictionary[TKey: IHashableValue, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -823,14 +824,14 @@ class IDictionary[TKey: IEquatableItem, TValue](IReadOnlyDictionary[TKey, TValue
     def Remove(self, key: TKey) -> None:
         pass
 
-class IReadOnlyOrderedSet[T: IEquatableItem](IReadOnlySet[T]):
+class IReadOnlyOrderedSet[T: IHashableValue](IReadOnlySet[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsTuple(self) -> IEquatableTuple[T]:
         pass
-class IOrderedSet[T: IEquatableItem](ISet[T], IReadOnlyOrderedSet[T]):
+class IOrderedSet[T: IHashableValue](ISet[T], IReadOnlyOrderedSet[T]):
     def __init__(self) -> None:
         super().__init__()
     

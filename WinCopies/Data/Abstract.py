@@ -15,7 +15,7 @@ from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOn
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 
 from WinCopies.Typing import INullable, GetDisposedError
-from WinCopies.Typing.Comparison import IEquatable
+from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -74,7 +74,7 @@ class ITable(IEquatable['ITable'], IDisposable):
     def Remove(self) -> None:
         pass
 
-class Table(Abstract, ITable):
+class Table(Abstract, ITable, INotHashableValue):
     class _QueryFactory(Abstract, ITableQueryFactory):
         def __init__(self, table: Table) -> None:
             super().__init__()

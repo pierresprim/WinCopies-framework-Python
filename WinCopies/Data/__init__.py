@@ -8,13 +8,14 @@ from typing import final
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Extensions import IReadOnlySet
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
+from WinCopies.Typing.Comparison import IHashable
 from WinCopies.Typing.Delegate import Method, Selector
-from WinCopies.Typing.Object import IValueItem, IEquatableObject
+from WinCopies.Typing.Object import IValueItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater
 
-class IColumn(IEquatableObject['IColumn']):
+class IColumn(IHashable['IColumn']):
     def __init__(self) -> None:
         super().__init__()
 

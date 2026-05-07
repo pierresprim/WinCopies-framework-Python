@@ -16,7 +16,7 @@ from WinCopies.Collections import ICountable, Countable as CountableBase
 from WinCopies.Collections.Abstraction import Countable
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
-from WinCopies.Typing.Comparison import IEquatableValue, IEquatableItem
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
@@ -95,10 +95,10 @@ class IEnumerable[T](IEnumerableBase[T]):
     def AsIterable(self) -> SystemIterable[T]:
         pass
 
-class IEquatableEnumerable[T: IEquatableItem](IEnumerable[T], IEquatableValue):
+class IEquatableEnumerable[T: IHashableValue](IEnumerable[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
-class IHashableEnumerable[T: IEquatableItem](IEquatableEnumerable[T], IEquatableItem):
+class IHashableEnumerable[T: IHashableValue](IEquatableEnumerable[T], IHashableValue):
     def __init__(self) -> None:
         super().__init__()
 
@@ -139,10 +139,10 @@ class Enumerable[T](_SystemIterable[T]):
     def __iter__(self) -> SystemIterator[T]:
         return GetIterator(self._TryGetIterator())
 
-class EquatableEnumerable[T: IEquatableItem](Enumerable[T], IEquatableEnumerable[T]):
+class EquatableEnumerable[T: IHashableValue](Enumerable[T], IEquatableEnumerable[T], INotHashableValue):
     def __init__(self) -> None:
         super().__init__()
-class HashableEnumerable[T: IEquatableItem](Enumerable[T], IHashableEnumerable[T]):
+class HashableEnumerable[T: IHashableValue](Enumerable[T], IHashableEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
 

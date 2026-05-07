@@ -3,9 +3,9 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections import IList, ISet, ReverseIndex
 from WinCopies.Collections.Abstraction.Collection.Mapping import Set
-from WinCopies.Typing.Comparison import IEquatableItem
+from WinCopies.Typing.Comparison import IHashableValue
 
-def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
+def SetOrderedValues[T: IHashableValue](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, lst.GetCount())
 
@@ -76,13 +76,13 @@ def SetOrderedValues[T: IEquatableItem](lst: IList[T], s: set[T], key: slice, va
     s.update(newItems)
 
 @overload
-def SetOrderedItems[T: IEquatableItem](lst: IList[T], s: set[T], index: SupportsIndex, value: T) -> None:
+def SetOrderedItems[T: IHashableValue](lst: IList[T], s: set[T], index: SupportsIndex, value: T) -> None:
     ...
 @overload
-def SetOrderedItems[T: IEquatableItem](lst: IList[T], s: set[T], index: slice, value: Iterable[T]) -> None:
+def SetOrderedItems[T: IHashableValue](lst: IList[T], s: set[T], index: slice, value: Iterable[T]) -> None:
     ...
 
-def SetOrderedItems[T: IEquatableItem](lst: IList[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
+def SetOrderedItems[T: IHashableValue](lst: IList[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex):
         lst.SetAt(int(index), value) # type: ignore
     

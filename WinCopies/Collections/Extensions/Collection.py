@@ -14,7 +14,7 @@ from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFac
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, FixedSizeCollection
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableItem
+from WinCopies.Typing.Comparison import IHashableValue, INotHashableValue
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -252,7 +252,7 @@ class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
         super().__init__()
 
 @final
-class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
+class _ReversedEquatableTuple[T: IHashableValue](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], INotHashableValue, IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], factory: IResumableEnumeratorFactory[T]) -> None:
         super().__init__(items, factory)
     
@@ -271,7 +271,7 @@ class _ReversedEquatableTuple[T: IEquatableItem](_Reversed[T, IEquatableTuple[T]
     def Equals(self, item: object) -> bool:
         return self._GetContainer().Equals(item)
 @final
-class _ReversedHashableTuple[T: IEquatableItem](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
+class _ReversedHashableTuple[T: IHashableValue](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
     def __init__(self, items: IHashableTuple[T], factory: IResumableEnumeratorFactory[T]) -> None:
         super().__init__(items, factory)
     
@@ -289,7 +289,7 @@ class _ReversedHashableTuple[T: IEquatableItem](_Reversed[T, IHashableTuple[T]],
     def Hash(self) -> int:
         return self._GetContainer().Hash()
 @final
-class _ReversedEquatableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IEquatableTuple[T]]):
+class _ReversedEquatableTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, array: IEquatableTuple[T], factory: IResumableEnumeratorFactory[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -299,7 +299,7 @@ class _ReversedEquatableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IEq
     def _GetValue(self) -> IEquatableTuple[T]:
         return _ReversedEquatableTuple[T](self.__array, self.__factory)
 @final
-class _ReversedHashableTupleUpdater[T: IEquatableItem](ValueFunctionUpdater[IHashableTuple[T]]):
+class _ReversedHashableTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IHashableTuple[T]]):
     def __init__(self, array: IHashableTuple[T], factory: IResumableEnumeratorFactory[T], updater: Method[IFunction[IHashableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -338,7 +338,7 @@ class Tuple[T](TupleCollection[T], TupleBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class EquatableTupleCollection[T: IEquatableItem](_TupleCollection[T], IEquatableTuple[T]):
+class EquatableTupleCollection[T: IHashableValue](_TupleCollection[T], IEquatableTuple[T], INotHashableValue):
     def __init__(self) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None:
             self.__reversed = func
@@ -350,11 +350,11 @@ class EquatableTupleCollection[T: IEquatableItem](_TupleCollection[T], IEquatabl
     @final
     def AsReversed(self) -> IEquatableTuple[T]:
         return self.__reversed.GetValue()
-class EquatableTuple[T: IEquatableItem](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
+class EquatableTuple[T: IHashableValue](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class HashableTupleCollection[T: IEquatableItem](_TupleCollection[T], IHashableTuple[T]):
+class HashableTupleCollection[T: IHashableValue](_TupleCollection[T], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None:
             self.__reversed = func
@@ -366,7 +366,7 @@ class HashableTupleCollection[T: IEquatableItem](_TupleCollection[T], IHashableT
     @final
     def AsReversed(self) -> IHashableTuple[T]:
         return self.__reversed.GetValue()
-class HashableTuple[T: IEquatableItem](HashableTupleCollection[T], TupleBase[T], IHashableTuple[T]):
+class HashableTuple[T: IHashableValue](HashableTupleCollection[T], TupleBase[T], IHashableTuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -817,7 +817,7 @@ class SortedList[T](_ArrayBase[T, ISortedList[T]], SortedCollection[T]):
         return None
 
 @final
-class _SetContainer[T: IEquatableItem](Container[T]):
+class _SetContainer[T: IHashableValue](Container[T]):
     def __init__(self, items: IReadOnlySet[T]) -> None:
         super().__init__()
 
@@ -826,7 +826,7 @@ class _SetContainer[T: IEquatableItem](Container[T]):
     def Contains(self, value: T|object) -> bool:
         return self.__items.Contains(value)
 @final
-class _ReadOnlySetContainerUpdater[T: IEquatableItem](ValueFunctionUpdater[ContainerBase[T]]):
+class _ReadOnlySetContainerUpdater[T: IHashableValue](ValueFunctionUpdater[ContainerBase[T]]):
     def __init__(self, items: _ReadOnlySet[T], updater: Method[IFunction[ContainerBase[T]]]) -> None:
         super().__init__(updater)
 
@@ -835,7 +835,7 @@ class _ReadOnlySetContainerUpdater[T: IEquatableItem](ValueFunctionUpdater[Conta
     def _GetValue(self) -> ContainerBase[T]:
         return _SetContainer[T](self.__items)
 
-class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
+class _ReadOnlySet[T: IHashableValue](CountableEnumerable[T], IReadOnlySet[T]):
     def __init__(self, items: IReadOnlySet[T]) -> None:
         def update(func: IFunction[ContainerBase[T]]) -> None:
             self.__container = func
@@ -868,7 +868,7 @@ class _ReadOnlySet[T: IEquatableItem](CountableEnumerable[T], IReadOnlySet[T]):
     def AsContainer(self) -> ContainerBase[T]:
         return self.__container.GetValue()
 @final
-class _ReadOnlySetUpdater[T: IEquatableItem](ValueFunctionUpdater[IReadOnlySet[T]]):
+class _ReadOnlySetUpdater[T: IHashableValue](ValueFunctionUpdater[IReadOnlySet[T]]):
     def __init__(self, items: Set[T], updater: Method[IFunction[IReadOnlySet[T]]]) -> None:
         super().__init__(updater)
 
@@ -877,7 +877,7 @@ class _ReadOnlySetUpdater[T: IEquatableItem](ValueFunctionUpdater[IReadOnlySet[T
     def _GetValue(self) -> IReadOnlySet[T]:
         return _ReadOnlySet[T](self.__items)
 
-class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
+class Set[T: IHashableValue](CountableEnumerable[T], ISet[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlySet[T]]) -> None:
             self.__readOnly = func
@@ -894,7 +894,7 @@ class Set[T: IEquatableItem](CountableEnumerable[T], ISet[T]):
     def AsContainer(self) -> ContainerBase[T]:
         return self.AsReadOnly().AsContainer()
 
-class _ReadOnlyDictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
+class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self, dictionary: Dictionary[TKey, TValue]) -> None:
         super().__init__()
@@ -931,7 +931,7 @@ class _ReadOnlyDictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKey
     def ToString(self) -> str:
         return self._GetDictionary().ToString()
 @final
-class _ReadOnlyDictionaryUpdater[TKey: IEquatableItem, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
+class _ReadOnlyDictionaryUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
     def __init__(self, dictionary: Dictionary[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
@@ -940,7 +940,7 @@ class _ReadOnlyDictionaryUpdater[TKey: IEquatableItem, TValue](ValueFunctionUpda
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]:
         return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class Dictionary[TKey: IEquatableItem, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None:
