@@ -68,7 +68,7 @@ class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class ICookieBase(IInterface):
+class ICookie(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
@@ -76,7 +76,7 @@ class ICookieBase(IInterface):
     def SetIndex(self, index: int) -> None:
         pass
 
-class _ICursorCookie(ICookieBase, IRemovable):
+class _ICookie(ICookie, IRemovable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -87,12 +87,12 @@ class _ICursorCookie(ICookieBase, IRemovable):
 @final
 class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnumerationCursor):
     @final
-    class _Cookie(Abstract, _ICursorCookie):
-        def __init__(self, node: INode, cookie: ICookieBase) -> None:
+    class _Cookie(Abstract, _ICookie):
+        def __init__(self, node: INode, cookie: ICookie) -> None:
             super().__init__()
             
             self.__node: INode = node
-            self.__cookie: ICookieBase = cookie
+            self.__cookie: ICookie = cookie
         
         def SetIndex(self, index: int) -> None:
             return self.__cookie.SetIndex(index)
@@ -107,9 +107,9 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
         super().__init__()
 
         self.__index: int = index
-        self.__cookie: _ICursorCookie|None = None
+        self.__cookie: _ICookie|None = None
     
-    def _InitializeCookie(self, node: INode, cookie: ICookieBase) -> None:
+    def _InitializeCookie(self, node: INode, cookie: ICookie) -> None:
         self.__cookie = _ResumableIncrementalEnumerationCursor._Cookie(node, cookie)
     
     def __Compare[T](self, item: IResumableIncrementalEnumerationCursor|int|object, func: Callable[[int, int|object], T]) -> T:
@@ -119,7 +119,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
         return self.__index
     
     def Resume(self) -> None:
-        cookie: _ICursorCookie|None = self.__cookie
+        cookie: _ICookie|None = self.__cookie
 
         if cookie is None:
             raise GetDisposedError()
@@ -127,7 +127,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
         cookie.SetIndex(self.__index)
     
     def MoveToTop(self) -> None:
-        cookie: _ICursorCookie|None = self.__cookie
+        cookie: _ICookie|None = self.__cookie
 
         if cookie is None:
             raise GetDisposedError()
@@ -144,7 +144,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
         return hash(self.GetIndex())
     
     def Dispose(self) -> None:
-        cookie: _ICursorCookie|None = self.__cookie
+        cookie: _ICookie|None = self.__cookie
 
         if cookie is not None:
             cookie.Remove()
@@ -164,14 +164,14 @@ class IResumableEnumerationCursorFactory(IObjectFactory[IResumableIncrementalEnu
     def BisectLeft(self, index: int) -> int:
         pass
 class ResumableEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](DisposableObjectFactory[T], IResumableEnumerationCursorFactory):
-    def __init__(self, cookie: ICookieBase) -> None:
+    def __init__(self, cookie: ICookie) -> None:
         super().__init__()
         
-        self.__cookie: ICookieBase = cookie
+        self.__cookie: ICookie = cookie
         self.__cursors: ISortedList[IResumableIncrementalEnumerationCursor] = SortedList[IResumableIncrementalEnumerationCursor]()
     
     @abstractmethod
-    def _InitializeCursor(self, cursor: T, node: INode, cookie: ICookieBase) -> None:
+    def _InitializeCursor(self, cursor: T, node: INode, cookie: ICookie) -> None:
         pass
     
     def _Push(self, item: T) -> INode:
@@ -213,10 +213,10 @@ class ResumableEnumerationCursorFactory[T: IResumableIncrementalEnumerationCurso
         return self.__cursors.BisectLeft(index, lambda cursor: cursor.GetIndex())
 @final
 class _ResumableEnumerationCursorFactory(ResumableEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
-    def __init__(self, cookie: ICookieBase) -> None:
+    def __init__(self, cookie: ICookie) -> None:
         super().__init__(cookie)
     
-    def _InitializeCursor(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookieBase) -> None:
+    def _InitializeCursor(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
 class AbstractResumableEnumeratorAbstract[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator], IResumableEnumerator[TOut]):
@@ -231,7 +231,7 @@ class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumab
 
 class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnumerator[T]):
     @final
-    class _Cookie[_T](Abstract, ICookieBase):
+    class _Cookie[_T](Abstract, ICookie):
         def __init__(self, enumerator: IncrementalResumableEnumerator[_T]) -> None:
             super().__init__()
 
