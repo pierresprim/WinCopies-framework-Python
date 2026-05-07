@@ -1312,10 +1312,7 @@ class EntityMapper[T: Entity](Abstract, IEntityMapper[T]):
             if count < 1:
                 raise InvalidOperationError("No primary key found.")
             
-            if count > 1:
-                return CompositeEntityKey[IValueItem](CreateHashableTuple(Select(keys.AsIterable(), getKey)))
-            
-            return EntityKey[IValueItem](getKey(keys.GetAt(0)))
+            return CompositeEntityKey[IValueItem](CreateHashableTuple(Select(keys.AsIterable(), getKey))) if count > 1 else EntityKey[IValueItem](getKey(keys.GetAt(0)))
 
         raise ValueError(f"The given key collection's length does not match the primary keys length of {t}.")
     
