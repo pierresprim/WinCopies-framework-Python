@@ -1723,13 +1723,13 @@ class _ReversedCountableList[T](CountableEnumerable[T], _EnumerableListAbstract[
         super().__init__()
 
         self.__items: _ReversedCountableListBase[T] = _ReversedCountableListBase[T](items)
-        self.__count: ICountable = items
+        self.__countable: ICountable = items
     
     def IsEmpty(self) -> bool:
         return self.__items.IsEmpty()
     
     def GetCount(self) -> int:
-        return self.__count.GetCount()
+        return self.__countable.GetCount()
     
     def GetFirst(self) -> ICountableLinkedListNode[T]|None:
         return self.__items.GetFirst()
