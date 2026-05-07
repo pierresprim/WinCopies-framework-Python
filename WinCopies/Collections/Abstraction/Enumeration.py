@@ -3,7 +3,7 @@ import collections.abc
 from typing import final
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
 from WinCopies.Typing.Comparison import IEquatableItem
 
@@ -45,7 +45,7 @@ class _EquatableEnumerable[T: IEquatableItem](EquatableEnumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return self._GetEnumerable().TryGetEnumerator()
-class _HashableEnumerable[T: IEquatableItem](EquatableEnumerable[T], IHashableEnumerable[T]):
+class _HashableEnumerable[T: IEquatableItem](HashableEnumerable[T]):
     def __init__(self, enumerable: IHashableEnumerable[T]) -> None:
         super().__init__()
 
@@ -133,9 +133,9 @@ def CreateEquatableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumerabl
 def TryCreateEquatableEnumerable[T: IEquatableItem](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
     return None if enumerable is None else CreateEquatableEnumerable(enumerable)
 
-def CreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]) -> EquatableEnumerable[T]:
+def CreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]) -> HashableEnumerable[T]:
     return enumerable if type(enumerable) == _HashableEnumerable[T] else _HashableEnumerable[T](enumerable)
-def TryCreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
+def TryCreateHashableEnumerable[T: IEquatableItem](enumerable: IHashableEnumerable[T]|None) -> HashableEnumerable[T]|None:
     return None if enumerable is None else CreateHashableEnumerable(enumerable)
 
 def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> CountableEnumerable[T]:
