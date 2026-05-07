@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import Collection
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
-from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Delegate import Converter
 
 class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
@@ -24,7 +24,7 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability:
         return Mutability.ReadOnly
-class EquatableTuple[TIn: IHashableValue, TOut: IHashableValue](Collection.EquatableTuple[TIn, TOut]):
+class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](Collection.EquatableTuple[TIn, TOut]):
     def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
 

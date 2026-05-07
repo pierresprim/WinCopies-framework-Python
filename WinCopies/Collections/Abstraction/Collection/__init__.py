@@ -14,7 +14,7 @@ from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IHashableValue, ComparableProtocol
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, ComparableProtocol
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import IFunction, IStruct, Function, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -88,7 +88,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str:
         return str(self._GetContainer())
-class EquatableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         super().__init__(MakeSequence(items))
     
@@ -833,9 +833,9 @@ def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
 def MakeTuple[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
-def CreateEquatableTuple[T: IHashableValue](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+def CreateEquatableTuple[T: IEquatableValue](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
     return EquatableTuple[T](items)
-def MakeEquatableTuple[T: IHashableValue](*items: T) -> IEquatableTuple[T]:
+def MakeEquatableTuple[T: IEquatableValue](*items: T) -> IEquatableTuple[T]:
     return CreateEquatableTuple(items)
 
 def CreateHashableTuple[T: IHashableValue](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:

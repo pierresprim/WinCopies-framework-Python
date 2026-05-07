@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
-from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 
 def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
     yield from iterable
@@ -28,7 +28,7 @@ class _Enumerable[T](Enumerable[T]):
     def TryGetEnumerator(self) -> IEnumerator[T] | None:
         return self._GetEnumerable().TryGetEnumerator()
 
-class _EquatableEnumerable[T: IHashableValue](EquatableEnumerable[T]):
+class _EquatableEnumerable[T: IEquatableValue](EquatableEnumerable[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
         super().__init__()
 
@@ -128,9 +128,9 @@ def CreateEnumerable[T](enumerable: IEnumerable[T]) -> Enumerable[T]:
 def TryCreateEnumerable[T](enumerable: IEnumerable[T]|None) -> Enumerable[T]|None:
     return None if enumerable is None else CreateEnumerable(enumerable)
 
-def CreateEquatableEnumerable[T: IHashableValue](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerable[T]:
+def CreateEquatableEnumerable[T: IEquatableValue](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerable[T]:
     return enumerable if type(enumerable) == _EquatableEnumerable[T] else _EquatableEnumerable[T](enumerable)
-def TryCreateEquatableEnumerable[T: IHashableValue](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
+def TryCreateEquatableEnumerable[T: IEquatableValue](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
     return None if enumerable is None else CreateEquatableEnumerable(enumerable)
 
 def CreateHashableEnumerable[T: IHashableValue](enumerable: IHashableEnumerable[T]) -> HashableEnumerable[T]:

@@ -95,7 +95,7 @@ class IEnumerable[T](IEnumerableBase[T]):
     def AsIterable(self) -> SystemIterable[T]:
         pass
 
-class IEquatableEnumerable[T: IHashableValue](IEnumerable[T], IEquatableValue):
+class IEquatableEnumerable[T: IEquatableValue](IEnumerable[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 class IHashableEnumerable[T: IHashableValue](IEquatableEnumerable[T], IHashableValue):
@@ -139,7 +139,7 @@ class Enumerable[T](_SystemIterable[T]):
     def __iter__(self) -> SystemIterator[T]:
         return GetIterator(self._TryGetIterator())
 
-class EquatableEnumerable[T: IHashableValue](Enumerable[T], IEquatableEnumerable[T], INotHashableValue):
+class EquatableEnumerable[T: IEquatableValue](Enumerable[T], IEquatableEnumerable[T], INotHashableValue):
     def __init__(self) -> None:
         super().__init__()
 class HashableEnumerable[T: IHashableValue](Enumerable[T], IHashableEnumerable[T]):

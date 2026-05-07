@@ -616,7 +616,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IHashableValue](ITuple[T], IEquatableValue):
+class IEquatableTuple[T: IEquatableValue](ITuple[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 

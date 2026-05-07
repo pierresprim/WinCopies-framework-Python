@@ -8,7 +8,7 @@ from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerator
-from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -170,7 +170,7 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumera
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IHashableValue](Collections.IEquatableTuple[T], IEquatableEnumerable[T], ITuple[T]):
+class IEquatableTuple[T: IEquatableValue](Collections.IEquatableTuple[T], IEquatableEnumerable[T], ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
