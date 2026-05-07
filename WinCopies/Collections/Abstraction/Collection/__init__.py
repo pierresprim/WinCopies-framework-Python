@@ -103,9 +103,6 @@ class EquatableTuple[T: IEquatableItem](TupleBase[T, Sequence[T]], Collection.Eq
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         return EquatableTuple[T](self._GetContainer()[key])
     
-    def Hash(self) -> int:
-        return hash(self._GetContainer())
-    
     def Equals(self, item: object) -> bool:
         return self is item
     
