@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Any
-from weakref import ref, finalize, ReferenceType
+from typing import final
+from weakref import ref, ReferenceType
 
 from WinCopies import IInterface, IDisposableBase, Abstract
 from WinCopies.Collections.Abstraction.Collection import SortedList
@@ -13,32 +13,11 @@ from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetNullableValue
 from WinCopies.Typing.Comparison import IExtendedHashableComparableValue, IExtendedComparable
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
-
-class _IRegister[T: IDisposableBase](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def GetCookie(self) -> _Cookie[T]:
-        pass
-    
-    @abstractmethod
-    def RegisterNode(self, node: IRemovable) -> None:
-        pass
-
-@final
-class _Finalizer(Abstract, IRemovable):
-    def __init__(self, finalizer: finalize[Any, IDisposableBase]) -> None:
-        super().__init__()
-
-        self.__finalizer: finalize[Any, IDisposableBase] = finalizer
-    
-    def Remove(self) -> None:
-        self.__finalizer.detach()
+from WinCopies.Typing.Object import IWeakReferenceRegister, WeakReference, CreateWeakReferenceRegister
 
 @final
 class _CompositeRemovable[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](Abstract, IRemovable):
-    def __init__(self, node: IDoublyLinkedNode[_Cookie[TValue]], sortedNode: _SortedNode[TKey, TValue]) -> None:
+    def __init__(self, node: IDoublyLinkedNode[WeakReference[TValue]], sortedNode: _SortedNode[TKey, TValue]) -> None:
         def remove() -> None:
             self.__node.Remove()
             self.__sortedNode.Remove()
@@ -55,58 +34,15 @@ class _CompositeRemovable[TKey: IExtendedHashableComparableValue, TValue: IDispo
         self.__remove()
 
 @final
-class _Cookie[T: IDisposableBase](Abstract):
-    @final
-    class _Register[_T: IDisposableBase](Abstract, _IRegister[_T]):
-        def __init__(self, obj: _T, cookie: _Cookie[_T]) -> None:
-            super().__init__()
-
-            self.__obj: _T = obj
-            self.__cookie: _Cookie[_T] = cookie
-        
-        def GetCookie(self) -> _Cookie[_T]:
-            return self.__cookie
-        
-        def RegisterNode(self, node: IRemovable) -> None:
-            self.__cookie._RegisterNode(self.__obj, node)
-    
-    def __init__(self, obj: T) -> None:
-        super().__init__()
-
-        self.__ref: ReferenceType[T] = ref(obj)
-        self.__finalizer: _Finalizer|None = None
-    
-    def TryGetValue(self) -> T|None:
-        return self.__ref()
-    
-    def Invalidate(self) -> None:
-        obj: IDisposableBase|None = self.TryGetValue()
-
-        if obj is not None:
-            obj.Dispose()
-
-            finalizer: _Finalizer|None = self.__finalizer
-
-            if finalizer is not None:
-                finalizer.Remove()
-    
-    def _RegisterNode(self, obj: IDisposableBase, node: IRemovable) -> None:
-        self.__finalizer = _Finalizer(finalize(obj, lambda: node.Remove()))
-
-    @staticmethod
-    def Create(obj: T) -> _IRegister[T]:
-        return _Cookie._Register[T](obj, _Cookie[T](obj))
-
-@final
 class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
-    def __init__(self, items: IList[_Cookie[T]]) -> None:
+    def __init__(self, items: IList[WeakReference[T]]) -> None:
         super().__init__()
 
-        self.__items: IList[_Cookie[T]] = items
+        self.__items: IList[WeakReference[T]] = items
     
-    def __TryGetValue(self, getNode: Function[IDoublyLinkedNode[_Cookie[T]]|None]) -> INullable[T]:
+    def __TryGetValue(self, getNode: Function[IDoublyLinkedNode[WeakReference[T]]|None]) -> INullable[T]:
         def tryGetValue() -> INullable[T]|None:
-            node: IDoublyLinkedNode[_Cookie[T]]|None = getNode()
+            node: IDoublyLinkedNode[WeakReference[T]]|None = getNode()
 
             if node is None:
                 return GetNullValue()
@@ -137,10 +73,10 @@ class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
         return self.__TryGetValue(lambda: self.__items.GetLast())
 @final
 class _ReadOnlyListUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[T]]):
-    def __init__(self, items: IList[_Cookie[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
+    def __init__(self, items: IList[WeakReference[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
         super().__init__(updater)
 
-        self.__items: IList[_Cookie[T]] = items
+        self.__items: IList[WeakReference[T]] = items
     
     def _GetValue(self) -> IReadOnlyList[T]:
         return _ReadOnlyList[T](self.__items)
@@ -167,7 +103,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         
         super().__init__()
 
-        self.__items: IList[_Cookie[TOut]] = List[_Cookie[TOut]]()
+        self.__items: IList[WeakReference[TOut]] = List[WeakReference[TOut]]()
 
         self.__push: ConverterDelegate[TOut, INode] = self.__PushFirst
         self.__clear: Action = NoAction
@@ -180,8 +116,8 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     
     @final
     def __Push(self, obj: TOut) -> INode:
-        cookie: _IRegister[TOut] = _Cookie[TOut].Create(obj)
-        node: IDoublyLinkedNode[_Cookie[TOut]] = self.__items.AddLast(cookie.GetCookie())
+        cookie: IWeakReferenceRegister[TOut] = CreateWeakReferenceRegister(obj)
+        node: IDoublyLinkedNode[WeakReference[TOut]] = self.__items.AddLast(cookie.GetCookie())
 
         cookie.RegisterNode(self._GetRemovable(obj, node))
 
@@ -194,7 +130,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     def _Push(self, item: TIn) -> INode:
         return self.__push(self._Convert(item))
     
-    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[_Cookie[TOut]]) -> IRemovable:
+    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[WeakReference[TOut]]) -> IRemovable:
         return node
     
     @abstractmethod
@@ -284,7 +220,7 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
     def _GetKey(self, item: TOut) -> TKey:
         pass
     
-    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[_Cookie[TOut]]) -> IRemovable:
+    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[WeakReference[TOut]]) -> IRemovable:
         items: ISortedList[_SortedNode[TKey, TOut]] = self._GetSortedItems()
         sortedNode: _SortedNode[TKey, TOut] = _SortedNode[TKey, TOut](self._GetKey(obj), obj, items)
 
