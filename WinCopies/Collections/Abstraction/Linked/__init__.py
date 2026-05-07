@@ -4,7 +4,7 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections import EnumerationOrder, ICountable, Countable as CountableBase
-from WinCopies.Collections.Abstraction import Countable
+from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, Enumerable as EnumerableBase, CountableEnumerable as CountableEnumerableBase
 from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList as ISinglyLinkedList, ICountableList as ICountableSinglyLinkedList, ICountableEnumerableList, IEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, ReadOnlyListBase
@@ -124,7 +124,7 @@ class _ReadOnlyEnumerableList[T](Abstract, IEnumerableList[T]):
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
         return self._GetUpdater().GetValue()
-class _ReadOnlyCountableEnumerableList[T](Abstract, ICountableEnumerableList[T]):
+class _ReadOnlyCountableEnumerableList[T](ICountableEnumerableList[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
             self.__updater = func
@@ -326,14 +326,14 @@ class AbstractReadOnlyCountableEnumerableList[TItem, TList](ReadOnlyListBase[TIt
         return TryCreateEnumerator(self._GetSpecializedContainer().TryGetEnumerator())
 
 @final
-class _CountableUpdater(ValueFunctionUpdater[CountableBase]):
-    def __init__(self, collection: ICountable, updater: Method[IFunction[CountableBase]]) -> None:
+class _CountableUpdater(ValueFunctionUpdater[ICountable]):
+    def __init__(self, collection: ICountable, updater: Method[IFunction[ICountable]]) -> None:
         super().__init__(updater)
 
         self.__collection: ICountable = collection
     
-    def _GetValue(self) -> CountableBase:
-        return Countable.Create(self.__collection)
+    def _GetValue(self) -> ICountable:
+        return CreateCountable(self.__collection)
 @final
 class _EnumerableUpdater[T](SelectionUpdater[IReadOnlyEnumerableList[T], Iterable[T]]):
     def __init__(self, items: IReadOnlyEnumerableList[T], updater: Method[IFunction[Iterable[T]]]) -> None:
@@ -354,15 +354,15 @@ class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableEnumerableBas
 @final
 class _ReadOnlyCountableQueueUpdaterList[T](AbstractReadOnlyCountableList[T, ICountableQueue[T]], IReadOnlyCountableQueue[T], IGenericSpecializedConstraintImplementation[ISinglyLinkedList[T], ICountableQueue[T]]):
     def __init__(self, items: ICountableQueue[T]) -> None:
-        def update(func: IFunction[CountableBase]) -> None:
+        def update(func: IFunction[ICountable]) -> None:
             self.__updater = func
         
         super().__init__(items)
 
-        self.__updater: IFunction[CountableBase] = _CountableUpdater(self, update) # type: ignore[no-redef]
+        self.__updater: IFunction[ICountable] = _CountableUpdater(self, update) # type: ignore[no-redef]
     
     def AsSized(self) -> Sized:
-        return self.__updater.GetValue()
+        return self.__updater.GetValue().AsSized()
 @final
 class _CountableQueueUpdater[T](_ReadOnlyListUpdaterBase[ICountableQueue[T], IReadOnlyCountableQueue[T]]):
     def __init__(self, items: ICountableQueue[T], updater: Method[IFunction[IReadOnlyCountableQueue[T]]]) -> None:
@@ -374,15 +374,15 @@ class _CountableQueueUpdater[T](_ReadOnlyListUpdaterBase[ICountableQueue[T], IRe
 @final
 class _ReadOnlyCountableStackUpdaterList[T](AbstractReadOnlyCountableList[T, ICountableStack[T]], IReadOnlyCountableStack[T], IGenericSpecializedConstraintImplementation[ISinglyLinkedList[T], ICountableStack[T]]):
     def __init__(self, items: ICountableStack[T]) -> None:
-        def update(func: IFunction[CountableBase]) -> None:
+        def update(func: IFunction[ICountable]) -> None:
             self.__updater = func
         
         super().__init__(items)
 
-        self.__updater: IFunction[CountableBase] = _CountableUpdater(self, update) # type: ignore[no-redef]
+        self.__updater: IFunction[ICountable] = _CountableUpdater(self, update) # type: ignore[no-redef]
     
     def AsSized(self) -> Sized:
-        return self.__updater.GetValue()
+        return self.__updater.GetValue().AsSized()
 @final
 class _CountableStackUpdater[T](_ReadOnlyListUpdaterBase[ICountableStack[T], IReadOnlyCountableStack[T]]):
     def __init__(self, items: ICountableStack[T], updater: Method[IFunction[IReadOnlyCountableStack[T]]]) -> None:

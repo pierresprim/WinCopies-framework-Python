@@ -12,8 +12,8 @@ from collections.abc import Iterable as SystemIterable, Iterator as SystemIterat
 from typing import final, Any
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import ICountable, Countable as CountableBase
-from WinCopies.Collections.Abstraction import Countable
+from WinCopies.Collections import ICountable
+from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
@@ -147,27 +147,27 @@ class HashableEnumerable[T: IHashableValue](Enumerable[T], IHashableEnumerable[T
         super().__init__()
 
 @final
-class _CountableEnumerableUpdater[T](ValueFunctionUpdater[CountableBase]):
-    def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[CountableBase]]) -> None:
+class _CountableEnumerableUpdater[T](ValueFunctionUpdater[ICountable]):
+    def __init__(self, items: ICountableEnumerable[T], updater: Method[IFunction[ICountable]]) -> None:
         super().__init__(updater)
 
         self.__items: ICountableEnumerable[T] = items
     
-    def _GetValue(self) -> CountableBase:
-        return Countable.Create(self.__items)
+    def _GetValue(self) -> ICountable:
+        return CreateCountable(self.__items)
 
 class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
-        def update(func: IFunction[CountableBase]) -> None:
+        def update(func: IFunction[ICountable]) -> None:
             self.__countable = func
         
         super().__init__()
         
-        self.__countable: IFunction[CountableBase] = _CountableEnumerableUpdater[T](self, update) # type: ignore[no-redef]
+        self.__countable: IFunction[ICountable] = _CountableEnumerableUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
     def AsSized(self) -> Sized:
-        return self.__countable.GetValue()
+        return self.__countable.GetValue().AsSized()
 
 @final
 class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
