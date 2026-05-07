@@ -162,7 +162,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         cookie: _IRegister[TOut] = _Cookie[TOut].Create(obj)
         node: IDoublyLinkedNode[_Cookie[TOut]] = self.__items.AddLast(cookie.GetCookie())
 
-        cookie.RegisterNode(node)
+        cookie.RegisterNode(self._GetRemovable(obj, node))
 
         return node
     @final
@@ -172,6 +172,9 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         return self.__Push(obj)
     def _Push(self, item: TIn) -> INode:
         return self.__push(self._Convert(item))
+    
+    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[_Cookie[TOut]]) -> IRemovable:
+        return node
     
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
