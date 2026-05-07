@@ -612,7 +612,7 @@ class SortedList[T: ComparableProtocol](ListAbstract[T], Sequence[T], Collection
         return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
 @final
-class EnumerationKeyValuePair[TKey: IHashableValue, TValue](Abstract, IKeyValuePair[TKey, TValue]):
+class EnumerationKeyValuePair[TKey: IEquatableValue, TValue](Abstract, IKeyValuePair[TKey, TValue]):
     def __init__(self, item: tuple[TKey, TValue]) -> None:
         super().__init__()
         
