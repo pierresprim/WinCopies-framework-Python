@@ -12,7 +12,7 @@ from WinCopies.Enum import OrderedEnum
 from WinCopies.Math import Between, Outside
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
 from WinCopies.Typing.Protocols import SupportsRichComparison
@@ -616,7 +616,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IHashableValue](ITuple[T]):
+class IEquatableTuple[T: IHashableValue](ITuple[T], IEquatableValue):
     def __init__(self) -> None:
         super().__init__()
 
