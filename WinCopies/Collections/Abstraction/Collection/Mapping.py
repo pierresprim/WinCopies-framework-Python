@@ -1,23 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Container, Iterable, Sequence, MutableSequence
+from collections.abc import Container, Iterable, Iterator, Sequence, MutableSequence, MutableMapping
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Abstract
-from WinCopies.Collections import Mutability
+from WinCopies.Collections import Enumeration, Mutability
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator, TryAsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, CreateIterable, AsEnumerator, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, IResumableEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, SequenceAbstract
+from WinCopies.Collections.Extensions import Collection, IResumableEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, IDictionary, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, ICountableEnumerableQueue, CreateEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems
-from WinCopies.Typing import INullable
-from WinCopies.Typing.Comparison import IHashableValue, INotHashableValue
-from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
+from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
+from WinCopies.Typing.Delegate import Method, Function, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
 class Set[T: IHashableValue](Collection.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
@@ -596,6 +598,223 @@ class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]]
     def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
         return self.__readOnly.GetValue()
 
+@final
+class EnumerationKeyValuePair[TKey: IEquatableValue, TValue](Abstract, IKeyValuePair[TKey, TValue]):
+    def __init__(self, item: tuple[TKey, TValue]) -> None:
+        super().__init__()
+        
+        self.__item: tuple[TKey, TValue] = item
+    
+    @final
+    def IsKeyValuePair(self) -> bool:
+        return True
+    
+    @final
+    def GetKey(self) -> TKey:
+        return self.__item[0]
+    @final
+    def GetValue(self) -> TValue:
+        return self.__item[1]
+
+    @final
+    def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
+        return isinstance(item, EnumerationKeyValuePair)
+
+@final
+class DictionaryEnumerator[TKey: IHashableValue, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
+    def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
+        super().__init__()
+
+        self.__dictionary: MutableMapping[TKey, TValue] = dictionary
+        self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
+        self.__current: INullable[IKeyValuePair[TKey, TValue]] = GetNullValue()
+    
+    def IsResetSupported(self) -> bool:
+        return True
+    
+    def _OnStarting(self) -> bool:
+        if super()._OnStarting():
+            self.__iterator = Enumeration.Iterator(self.__dictionary.items().__iter__())
+            
+            return True
+        
+        return False
+    
+    def _MoveNextOverride(self) -> bool:
+        if self.__iterator is None:
+            return False
+        
+        if self.__iterator.MoveNext():
+            self.__current = GetNullable(EnumerationKeyValuePair[TKey, TValue](self.__iterator.GetCurrent()))
+
+            return True
+        
+        return False
+    
+    def _GetCurrent(self) -> IKeyValuePair[TKey, TValue]:
+        return self.__current.GetValue()
+    
+    def _OnEnded(self) -> None:
+        self.__iterator = None
+        self.__current = GetNullValue()
+
+        super()._OnEnded()
+    
+    def _OnStopped(self) -> None:
+        pass
+    
+    def _ResetOverride(self) -> bool:
+        return True
+
+@final
+class _None(Singleton):
+    def __init__(self) -> None:
+        super().__init__()
+
+# TODO: Should inherit from MutableMapping
+class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValue]):
+    class _Enumerable[_TKey: IHashableValue, _TValue, _TItem](CountableEnumerable[_TItem]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
+            super().__init__()
+
+            self.__dic: Dictionary[_TKey, _TValue] = dic
+        
+        @final
+        def _GetDictionary(self) -> MutableMapping[_TKey, _TValue]:
+            return self.__dic._GetDictionary()
+        
+        @final
+        def GetCount(self) -> int:
+            return self.__dic.GetCount()
+        
+        @final
+        def TryGetEnumerator(self) -> IEnumerator[_TItem]|None:
+            return TryAsEnumerator(self._TryGetIterator())
+    @final
+    class _KeyEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
+            super().__init__(dic)
+        
+        def _TryGetIterator(self) -> Iterator[_TKey]|None:
+            return iter(self._GetDictionary().keys())
+    @final
+    class _ValueEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
+            super().__init__(dic)
+        
+        def _TryGetIterator(self) -> Iterator[_TValue]|None:
+            return iter(self._GetDictionary().values())
+    
+    __getInstance: Function[_None] = GetSingletonInstanceProvider(_None)
+    
+    @staticmethod
+    def __GetNoneInstance() -> _None:
+        return Dictionary[TKey, TValue].__getInstance() # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType,reportAttributeAccessIssue]
+    
+    def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None) -> None:
+        super().__init__()
+
+        self.__dictionary: MutableMapping[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
+        self.__keys: ICountableEnumerable[TKey] = Dictionary._KeyEnumerable(self)
+        self.__values: ICountableEnumerable[TValue] = Dictionary._ValueEnumerable(self)
+    
+    @final
+    def __TryAdd(self, key: TKey, value: TValue) -> int:
+        count = self.GetCount()
+        
+        self._GetDictionary().setdefault(key, value)
+    
+        return count
+    
+    @final
+    def __SetAt(self, key: TKey, value: TValue) -> None:
+        self._GetDictionary()[key] = value
+    
+    @final
+    def _GetDictionary(self) -> MutableMapping[TKey, TValue]:
+        return self.__dictionary
+    
+    @final
+    def GetCount(self) -> int:
+        return len(self._GetDictionary())
+    
+    @final
+    def ContainsKey(self, key: TKey) -> bool:
+        return key in self._GetDictionary()
+    
+    @final
+    def TryGetValue(self, key: TKey) -> INullable[TValue]:
+        result: TValue|_None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
+
+        return GetNullValue() if isinstance(result, _None) else GetNullable(result)
+    
+    @final
+    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+        if key in self.GetKeys().AsIterable():
+            self.__SetAt(key, value)
+
+            return True
+        
+        return False
+    
+    @final
+    def GetKeys(self) -> ICountableEnumerable[TKey]:
+        return self.__keys
+    @final
+    def GetValues(self) -> ICountableEnumerable[TValue]:
+        return self.__values
+    
+    @final
+    def TryAdd(self, key: TKey, value: TValue) -> bool:
+        return self.__TryAdd(key, value) < self.GetCount()
+    @final
+    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.TryAdd(item.GetKey(), item.GetValue())
+    
+    @final
+    def Add(self, key: TKey, value: TValue) -> None:
+        if self.__TryAdd(key, value) == self.GetCount():
+            raise KeyError(f"Key {key} already exists.")
+    @final
+    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
+        self.Add(item.GetKey(), item.GetValue())
+    
+    @final
+    def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
+        if self.TryAdd(key, value):
+            return True
+        
+        self.__SetAt(key, value)
+
+        return False
+    @final
+    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.AddOrUpdate(item.GetKey(), item.GetValue())
+
+    @final
+    def Remove(self, key: TKey) -> None:
+        self._GetDictionary().pop(key)
+    
+    @final
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        def getResult(key: TValue|TDefault, value: bool) -> DualValueBool[TValue|TDefault]:
+            return DualValueBool[TValue|TDefault](key, value)
+        
+        result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
+
+        return getResult(defaultValue, False) if isinstance(result, _None) else getResult(result, True)
+    
+    @final
+    def Clear(self) -> None:
+        self._GetDictionary().clear()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
+        return DictionaryEnumerator[TKey, TValue](self._GetDictionary())
+    
+    def ToString(self) -> str:
+        return str(self._GetDictionary())
+
 def CreateSet[T: IHashableValue](items: set[T]|Iterable[T]) -> ISet[T]:
     return Set[T](items)
 def MakeSet[T: IHashableValue](*items: T) -> ISet[T]:
@@ -613,3 +832,6 @@ def MakeKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], *values: IT
 
 def MakeKeyedSetFromKeys[TKey: IHashableValue, TValue](values: Iterable[ITuple[TValue]], *keys: TKey) -> IKeyedSet[TKey, TValue]:
     return CreateKeyedSet(keys, values)
+
+def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:
+    return Dictionary[TKey, TValue](dictionary)

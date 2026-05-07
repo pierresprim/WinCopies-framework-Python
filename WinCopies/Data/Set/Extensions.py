@@ -9,7 +9,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, EnumerationOrder, MakeSequence
-from WinCopies.Collections.Abstraction.Collection import Dictionary
+from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator

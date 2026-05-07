@@ -6,7 +6,8 @@ from typing import Callable, final
 
 from WinCopies import Abstract
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Abstraction.Collection import Tuple, Dictionary
+from WinCopies.Collections.Abstraction.Collection import Tuple
+from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ObjectGeneratorProvider

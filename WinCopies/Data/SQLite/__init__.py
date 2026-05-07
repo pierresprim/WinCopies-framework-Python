@@ -11,7 +11,8 @@ import sqlite3
 from WinCopies import IDisposable, Abstract, TryConvertToInt
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Abstraction.Collection import Array, Dictionary
+from WinCopies.Collections.Abstraction.Collection import Array
+from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
 from WinCopies.Collections.Linked.Singly import IList, Queue
