@@ -4,13 +4,17 @@ from abc import abstractmethod
 from datetime import date, time, datetime, timedelta
 from decimal import Decimal as decimal
 from enum import Enum
-from typing import final, Type as TypeBase
+from typing import final, Any, Type as TypeBase
+from weakref import finalize, ref, ReferenceType
 
-from WinCopies import IInterface, IStringable, Abstract
+from WinCopies import IInterface, IDisposableBase, IStringable, Abstract
+from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Delegates import NoAction, FuncNone
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Math import NumericalValue, CompareTo
 from WinCopies.Typing import IDisposable, INullable, IEnum
 from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable
+from WinCopies.Typing.Delegate import Action, NullableFunction
 from WinCopies.Typing.Reflection import IsOf
 
 class IItem(IHashableValue, IStringable):
@@ -677,3 +681,112 @@ def Map(obj: object) -> IValueItem:
         raise ValueError(f"{type(obj)} is not supported or is not primitive.")
 
     return result
+
+class Finalizer(Abstract, IRemovable):
+    def __init__(self, obj: object, action: Action) -> None:
+        def remove() -> None:
+            finalizer.detach()
+
+            self.__remove = NoAction
+        
+        super().__init__()
+
+        finalizer: finalize[Any, object] = finalize[Any, object](obj, action)
+
+        self.__remove: Action = remove # type: ignore[no-redef]
+    
+    def Remove(self) -> None:
+        self.__remove()
+class WeakReferenceFinalizer[T](Finalizer):
+    def __init__(self, obj: T, action: Action) -> None:
+        def tryGetValue() -> T|None:
+            return _ref()
+
+        super().__init__(obj, action)
+
+        _ref: ReferenceType[T] = ref(obj)
+
+        self.__tryGetValue: NullableFunction[T] = tryGetValue
+    
+    def TryGetValue(self) -> T|None:
+        return self.__tryGetValue()
+    
+    def Remove(self) -> None:
+        super().Remove()
+
+        self.__tryGetValue = FuncNone
+class DisposableFinalizer[T: IDisposableBase](WeakReferenceFinalizer[T], IDisposableBase):
+    def __init__(self, obj: T, action: Action) -> None:
+        def dispose() -> None:
+            obj: IDisposableBase|None = self.TryGetValue()
+
+            if obj is not None:
+                obj.Dispose()
+
+                self.Remove()
+
+        super().__init__(obj, action)
+
+        self.__dispose: Action = dispose
+    
+    def Remove(self) -> None:
+        super().Remove()
+
+        self.__dispose = NoAction
+    
+    def Dispose(self) -> None:
+        self.__dispose()
+
+class IWeakReferenceRegister[T: IDisposableBase](IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetCookie(self) -> WeakReference[T]:
+        pass
+    
+    @abstractmethod
+    def RegisterNode(self, node: IRemovable) -> None:
+        pass
+
+@final
+class WeakReference[T: IDisposableBase](Abstract):
+    @final
+    class _Register[_T: IDisposableBase](Abstract, IWeakReferenceRegister[_T]):
+        def __init__(self, obj: _T, cookie: WeakReference[_T]) -> None:
+            super().__init__()
+
+            self.__obj: _T = obj
+            self.__weakReference: WeakReference[_T] = cookie
+        
+        def GetCookie(self) -> WeakReference[_T]:
+            return self.__weakReference
+        
+        def RegisterNode(self, node: IRemovable) -> None:
+            self.__weakReference._RegisterNode(self.__obj, node)
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__finalizer: DisposableFinalizer[T]|None = None
+    
+    def TryGetValue(self) -> T|None:
+        finalizer: DisposableFinalizer[T]|None = self.__finalizer
+
+        return None if finalizer is None else finalizer.TryGetValue()
+    
+    def Invalidate(self) -> None:
+        finalizer: DisposableFinalizer[T]|None = self.__finalizer
+
+        if finalizer is not None:
+            finalizer.Dispose()
+    
+    def _RegisterNode(self, obj: T, node: IRemovable) -> None:
+        self.__finalizer = DisposableFinalizer[T](obj, lambda: node.Remove())
+
+    @staticmethod
+    def _CreateRegister(obj: T) -> IWeakReferenceRegister[T]:
+        return WeakReference._Register[T](obj, WeakReference[T]())
+
+def CreateWeakReferenceRegister[T: IDisposableBase](obj: T) -> IWeakReferenceRegister[T]:
+    return WeakReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]
