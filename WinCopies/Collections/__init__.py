@@ -778,7 +778,7 @@ class ISet[T: IHashableValue](IReadOnlySet[T], IClearable):
     def TryRemove(self, item: T) -> bool:
         pass
 
-class IReadOnlyDictionary[TKey: IHashableValue, TValue](IGetter[TKey, TValue], ICountable):
+class IReadOnlyDictionary[TKey: IHashableValue, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None:
         super().__init__()
 class IDictionary[TKey: IHashableValue, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):

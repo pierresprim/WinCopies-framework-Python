@@ -684,6 +684,10 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
             return self.__dic._GetDictionary()
         
         @final
+        def IsEmpty(self) -> bool:
+            return self.__dic.IsEmpty()
+        
+        @final
         def GetCount(self) -> int:
             return self.__dic.GetCount()
         

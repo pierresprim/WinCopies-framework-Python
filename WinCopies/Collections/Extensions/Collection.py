@@ -894,6 +894,7 @@ class Set[T: IHashableValue](CountableEnumerable[T], ISet[T]):
     def AsContainer(self) -> ContainerBase[T]:
         return self.AsReadOnly().AsContainer()
 
+@final
 class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self, dictionary: Dictionary[TKey, TValue]) -> None:
@@ -901,30 +902,26 @@ class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKey
 
         self.__dictionary: Dictionary[TKey, TValue] = dictionary
     
-    @final
     def _GetDictionary(self) -> Dictionary[TKey, TValue]:
         return self.__dictionary
     
-    @final
+    def IsEmpty(self) -> bool:
+        return self.__dictionary.IsEmpty()
+    
     def GetCount(self) -> int:
         return self._GetDictionary().GetCount()
     
-    @final
     def ContainsKey(self, key: TKey) -> bool:
         return self._GetDictionary().ContainsKey(key)
     
-    @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
         return self._GetDictionary().TryGetValue(key)
     
-    @final
     def GetKeys(self) -> ICountableEnumerable[TKey]:
         return self._GetDictionary().GetKeys()
-    @final
     def GetValues(self) -> ICountableEnumerable[TValue]:
         return self._GetDictionary().GetValues()
     
-    @final
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]|None:
         return TryCreateEnumerator(self._GetDictionary().TryGetEnumerator())
     
@@ -951,8 +948,8 @@ class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair
         self.__readOnly: IFunction[IReadOnlyDictionary[TKey, TValue]] = _ReadOnlyDictionaryUpdater[TKey, TValue](self, update) # type: ignore[no-redef]
     
     @final
-    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
-        return self.__readOnly.GetValue()
+    def IsEmpty(self) -> bool:
+        return self.GetCount() < 1
     
     def Move(self, x: TKey, y: TKey) -> None:
         def getValue() -> TValue:
@@ -964,3 +961,7 @@ class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
+    
+    @final
+    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
+        return self.__readOnly.GetValue()
