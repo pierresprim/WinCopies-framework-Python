@@ -897,10 +897,10 @@ class Set[T: IHashableValue](CountableEnumerable[T], ISet[T]):
 @final
 class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
-    def __init__(self, dictionary: Dictionary[TKey, TValue]) -> None:
+    def __init__(self, dictionary: DictionaryBase[TKey, TValue]) -> None:
         super().__init__()
 
-        self.__dictionary: Dictionary[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
     
     def IsEmpty(self) -> bool:
         return self.__dictionary.IsEmpty()
@@ -926,15 +926,15 @@ class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKey
         return self.__dictionary.ToString()
 @final
 class _ReadOnlyDictionaryUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
-    def __init__(self, dictionary: Dictionary[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
+    def __init__(self, dictionary: DictionaryBase[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
-        self.__dictionary: Dictionary[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
     
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]:
         return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class DictionaryBase[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None:
@@ -948,6 +948,13 @@ class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair
     def IsEmpty(self) -> bool:
         return self.GetCount() < 1
     
+    @final
+    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
+        return self.__readOnly.GetValue()
+class Dictionary[TKey: IHashableValue, TValue](DictionaryBase[TKey, TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+    
     def Move(self, x: TKey, y: TKey) -> None:
         def getValue() -> TValue:
             value: INullable[TValue] = self.TryRemoveItem(x)
@@ -958,7 +965,3 @@ class Dictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
-    
-    @final
-    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
-        return self.__readOnly.GetValue()
