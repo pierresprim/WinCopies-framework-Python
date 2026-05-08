@@ -821,7 +821,7 @@ class IDictionary[TKey: IHashableValue, TValue](IReadOnlyDictionary[TKey, TValue
         return GetNullable(value) if result.GetValue() and value is not None else GetNullValue()
 
     @abstractmethod
-    def Remove(self, key: TKey) -> None:
+    def Remove(self, key: TKey) -> TValue:
         pass
 
 class IReadOnlyOrderedSet[T: IHashableValue](IReadOnlySet[T]):

@@ -19,7 +19,7 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHas
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Method, Function, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool, CreateDualValueBool
 
 class Set[T: IHashableValue](Collection.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
@@ -694,6 +694,7 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
         @final
         def TryGetEnumerator(self) -> IEnumerator[_TItem]|None:
             return TryAsEnumerator(self._TryGetIterator())
+    
     @final
     class _KeyEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
@@ -719,6 +720,7 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
         super().__init__()
 
         self.__dictionary: MutableMapping[TKey, TValue] = dict[TKey, TValue]() if dictionary is None else dictionary
+        
         self.__keys: ICountableEnumerable[TKey] = Dictionary._KeyEnumerable(self)
         self.__values: ICountableEnumerable[TValue] = Dictionary._ValueEnumerable(self)
     
@@ -794,19 +796,15 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
     @final
     def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
         return self.AddOrUpdate(item.GetKey(), item.GetValue())
-
-    @final
-    def Remove(self, key: TKey) -> None:
-        self._GetDictionary().pop(key)
     
     @final
+    def Remove(self, key: TKey) -> TValue:
+        return self._GetDictionary().pop(key)
+    @final
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        def getResult(key: TValue|TDefault, value: bool) -> DualValueBool[TValue|TDefault]:
-            return DualValueBool[TValue|TDefault](key, value)
-        
         result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
 
-        return getResult(defaultValue, False) if isinstance(result, _None) else getResult(result, True)
+        return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
     
     @final
     def Clear(self) -> None:
