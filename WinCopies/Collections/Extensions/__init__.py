@@ -11,6 +11,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IR
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
+from WinCopies.Typing.Protocols import SupportsEqualityComparison
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
@@ -259,7 +260,7 @@ class ISortedList[T](Collections.ISortedList[T], IListBase[T]):
         pass
 
 # TODO: Should implement a Mapping abstractor provider.
-class IReadOnlyDictionary[TKey: IHashableValue, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
+class IReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -270,7 +271,7 @@ class IReadOnlyDictionary[TKey: IHashableValue, TValue](Collections.IReadOnlyDic
     def GetValues(self) -> ICountableEnumerable[TValue]:
         pass
 # TODO: Should implement a MutableMapping abstractor provider.
-class IDictionary[TKey: IHashableValue, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+class IDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -278,10 +279,10 @@ class IDictionary[TKey: IHashableValue, TValue](Collections.IDictionary[TKey, TV
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         pass
 
-class IReadOnlySet[T: IHashableValue](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
+class IReadOnlySet[T: IHashableValue|SupportsEqualityComparison](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
-class ISet[T: IHashableValue](Collections.ISet[T], IReadOnlySet[T]):
+class ISet[T: IHashableValue|SupportsEqualityComparison](Collections.ISet[T], IReadOnlySet[T]):
     def __init__(self) -> None:
         super().__init__()
     

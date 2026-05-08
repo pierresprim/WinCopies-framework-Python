@@ -15,7 +15,7 @@ from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Delegate import Converter, Function, Predicate, EqualityComparison
 from WinCopies.Typing.Pairing import KeyValuePair, DualNullableValueInfo, DualValueBool
-from WinCopies.Typing.Protocols import SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison
 
 type Generator[T] = GeneratorBase[T, None, None]
 
@@ -733,14 +733,14 @@ class ISortedList[T](IListBase[T]):
     def SliceAt(self, key: slice) -> ISortedList[T]:
         pass
 
-class IReadOnlySet[T: IHashableValue](IReadOnlyList[T], ICountable):
+class IReadOnlySet[T: IHashableValue|SupportsEqualityComparison](IReadOnlyList[T], ICountable):
     def __init__(self) -> None:
         super().__init__()
     
     @final
     def IsEmpty(self) -> bool:
         return self.GetCount() < 1
-class ISet[T: IHashableValue](IReadOnlySet[T], IClearable):
+class ISet[T: IHashableValue|SupportsEqualityComparison](IReadOnlySet[T], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -778,10 +778,10 @@ class ISet[T: IHashableValue](IReadOnlySet[T], IClearable):
     def TryRemove(self, item: T) -> bool:
         pass
 
-class IReadOnlyDictionary[TKey: IHashableValue, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
+class IReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None:
         super().__init__()
-class IDictionary[TKey: IHashableValue, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
+class IDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
     def __init__(self) -> None:
         super().__init__()
     
