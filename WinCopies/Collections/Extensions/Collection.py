@@ -902,31 +902,28 @@ class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKey
 
         self.__dictionary: Dictionary[TKey, TValue] = dictionary
     
-    def _GetDictionary(self) -> Dictionary[TKey, TValue]:
-        return self.__dictionary
-    
     def IsEmpty(self) -> bool:
         return self.__dictionary.IsEmpty()
     
     def GetCount(self) -> int:
-        return self._GetDictionary().GetCount()
+        return self.__dictionary.GetCount()
     
     def ContainsKey(self, key: TKey) -> bool:
-        return self._GetDictionary().ContainsKey(key)
+        return self.__dictionary.ContainsKey(key)
     
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        return self._GetDictionary().TryGetValue(key)
+        return self.__dictionary.TryGetValue(key)
     
     def GetKeys(self) -> ICountableEnumerable[TKey]:
-        return self._GetDictionary().GetKeys()
+        return self.__dictionary.GetKeys()
     def GetValues(self) -> ICountableEnumerable[TValue]:
-        return self._GetDictionary().GetValues()
+        return self.__dictionary.GetValues()
     
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]|None:
-        return TryCreateEnumerator(self._GetDictionary().TryGetEnumerator())
+        return TryCreateEnumerator(self.__dictionary.TryGetEnumerator())
     
     def ToString(self) -> str:
-        return self._GetDictionary().ToString()
+        return self.__dictionary.ToString()
 @final
 class _ReadOnlyDictionaryUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
     def __init__(self, dictionary: Dictionary[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
