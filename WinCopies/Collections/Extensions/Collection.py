@@ -955,6 +955,7 @@ class Dictionary[TKey: IHashableValue, TValue](DictionaryBase[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
+    @final
     def Move(self, x: TKey, y: TKey) -> None:
         def getValue() -> TValue:
             value: INullable[TValue] = self.TryRemoveItem(x)
