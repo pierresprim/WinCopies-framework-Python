@@ -811,13 +811,13 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
         return self.AddOrUpdate(item.GetKey(), item.GetValue())
     
     @final
-    def Remove(self, key: TKey) -> TValue:
-        return self._GetDictionary().pop(key)
-    @final
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
 
         return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
+    @final
+    def Remove(self, key: TKey) -> TValue:
+        return self._GetDictionary().pop(key)
     
     @final
     def Clear(self) -> None:
