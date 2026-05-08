@@ -20,7 +20,7 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHas
 from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Method, Function, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool, CreateDualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
 
 class Set[T: IHashableValue](Collection.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
@@ -738,14 +738,6 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
         self.__values: ICountableEnumerable[TValue] = Dictionary._ValueEnumerable(self)
     
     @final
-    def __TryAdd(self, key: TKey, value: TValue) -> int:
-        count = self.GetCount()
-        
-        self._GetDictionary().setdefault(key, value)
-    
-        return count
-    
-    @final
     def __SetAt(self, key: TKey, value: TValue) -> None:
         self._GetDictionary()[key] = value
     
@@ -785,18 +777,11 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
     
     @final
     def TryAdd(self, key: TKey, value: TValue) -> bool:
-        return self.__TryAdd(key, value) < self.GetCount()
-    @final
-    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        return self.TryAdd(item.GetKey(), item.GetValue())
+        count = self.GetCount()
+        
+        self._GetDictionary().setdefault(key, value)
     
-    @final
-    def Add(self, key: TKey, value: TValue) -> None:
-        if self.__TryAdd(key, value) == self.GetCount():
-            raise KeyError(f"Key {key} already exists.")
-    @final
-    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
-        self.Add(item.GetKey(), item.GetValue())
+        return count < self.GetCount()
     
     @final
     def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
@@ -806,9 +791,6 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
         self.__SetAt(key, value)
 
         return False
-    @final
-    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        return self.AddOrUpdate(item.GetKey(), item.GetValue())
     
     @final
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:

@@ -17,7 +17,7 @@ from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
-from WinCopies.Typing.Pairing import IKeyValuePair
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 from WinCopies.Typing.Protocols import SupportsRichComparison
 
 class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
@@ -897,10 +897,10 @@ class Set[T: IHashableValue](CountableEnumerable[T], ISet[T]):
 @final
 class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
-    def __init__(self, dictionary: DictionaryBase[TKey, TValue]) -> None:
+    def __init__(self, dictionary: DictionaryAbstract[TKey, TValue]) -> None:
         super().__init__()
 
-        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryAbstract[TKey, TValue] = dictionary
     
     def IsEmpty(self) -> bool:
         return self.__dictionary.IsEmpty()
@@ -926,15 +926,15 @@ class _ReadOnlyDictionary[TKey: IHashableValue, TValue](CountableEnumerable[IKey
         return self.__dictionary.ToString()
 @final
 class _ReadOnlyDictionaryUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
-    def __init__(self, dictionary: DictionaryBase[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
+    def __init__(self, dictionary: DictionaryAbstract[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
-        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryAbstract[TKey, TValue] = dictionary
     
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]:
         return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class DictionaryBase[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class DictionaryAbstract[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None:
@@ -951,7 +951,7 @@ class DictionaryBase[TKey: IHashableValue, TValue](CountableEnumerable[IKeyValue
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         return self.__readOnly.GetValue()
-class Dictionary[TKey: IHashableValue, TValue](DictionaryBase[TKey, TValue]):
+class DictionaryBase[TKey: IHashableValue, TValue](DictionaryAbstract[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -966,3 +966,22 @@ class Dictionary[TKey: IHashableValue, TValue](DictionaryBase[TKey, TValue]):
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
+class Dictionary[TKey: IHashableValue, TValue](DictionaryBase[TKey, TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def Add(self, key: TKey, value: TValue) -> None:
+        if not self.TryAdd(key, value):
+            raise KeyError(f"Key {key} already exists.")
+    
+    @final
+    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.TryAdd(item.GetKey(), item.GetValue())
+    @final
+    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
+        self.Add(item.GetKey(), item.GetValue())
+    
+    @final
+    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.AddOrUpdate(item.GetKey(), item.GetValue())
