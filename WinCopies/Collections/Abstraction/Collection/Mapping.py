@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Container, Iterable, Iterator, Sequence, MutableSequence, MutableMapping
 from typing import overload, final, SupportsIndex
 
@@ -666,6 +667,26 @@ class DictionaryEnumerator[TKey: IHashableValue, TValue](EnumeratorBase[IKeyValu
     def _ResetOverride(self) -> bool:
         return True
 
+class DictionaryEnumerable[TKey: IHashableValue, TValue, TItem](CountableEnumerable[TItem]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _GetDictionary(self) -> IDictionary[TKey, TValue]:
+        pass
+    
+    @final
+    def IsEmpty(self) -> bool:
+        return self._GetDictionary().IsEmpty()
+    
+    @final
+    def GetCount(self) -> int:
+        return self._GetDictionary().GetCount()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
+        return TryAsEnumerator(self._TryGetIterator())
+
 @final
 class _None(Singleton):
     def __init__(self) -> None:
@@ -673,27 +694,19 @@ class _None(Singleton):
 
 # TODO: Should inherit from MutableMapping
 class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValue]):
-    class _Enumerable[_TKey: IHashableValue, _TValue, _TItem](CountableEnumerable[_TItem]):
+    class _Enumerable[_TKey: IHashableValue, _TValue, _TItem](DictionaryEnumerable[_TKey, _TValue, _TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()
 
             self.__dic: Dictionary[_TKey, _TValue] = dic
         
         @final
-        def _GetDictionary(self) -> MutableMapping[_TKey, _TValue]:
-            return self.__dic._GetDictionary()
+        def _GetDictionary(self) -> Dictionary[_TKey, _TValue]:
+            return self.__dic
         
         @final
-        def IsEmpty(self) -> bool:
-            return self.__dic.IsEmpty()
-        
-        @final
-        def GetCount(self) -> int:
-            return self.__dic.GetCount()
-        
-        @final
-        def TryGetEnumerator(self) -> IEnumerator[_TItem]|None:
-            return TryAsEnumerator(self._TryGetIterator())
+        def _GetInnerDictionary(self) -> MutableMapping[_TKey, _TValue]:
+            return self._GetDictionary()._GetDictionary()
     
     @final
     class _KeyEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
@@ -701,14 +714,14 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[_TKey]|None:
-            return iter(self._GetDictionary().keys())
+            return iter(self._GetInnerDictionary().keys())
     @final
     class _ValueEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[_TValue]|None:
-            return iter(self._GetDictionary().values())
+            return iter(self._GetInnerDictionary().values())
     
     __getInstance: Function[_None] = GetSingletonInstanceProvider(_None)
     
