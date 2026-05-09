@@ -3,25 +3,16 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Callable, final
 
-from WinCopies import IInterface, IDisposable, Abstract
-from WinCopies.Collections import IReadOnlyCollection, IGetter
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Collection import SortedList
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnumerator, EnumeratorBase, AbstractEnumeratorBase, IncrementalEnumerator
+from WinCopies.Collections.Enumeration import IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IResumableEnumerationCursorFactory, IResumableEnumerator, ResumableEnumerationCursorFactory
 from WinCopies.Collections.Extensions import ISortedList
-from WinCopies.Collections.Generation import IResumable, IRemovable, INode
-from WinCopies.Collections.Generation.Factory import IObjectFactory, DisposableObjectFactory
+from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IExtendedComparable
-from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
-class IResumableEnumerationCursor(IResumable, IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def MoveToTop(self) -> None:
-        pass
 class IResumableIncrementalEnumerationCursor(IExtendedComparable["IResumableIncrementalEnumerationCursor|int"], IResumableEnumerationCursor):
     def __init__(self) -> None:
         super().__init__()
@@ -29,44 +20,6 @@ class IResumableIncrementalEnumerationCursor(IExtendedComparable["IResumableIncr
     @abstractmethod
     def GetIndex(self) -> int:
         pass
-
-class IResumableEnumerable[T](IEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
-        pass
-
-class IResumableEnumerator[T](IEnumerator[T], IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def SupportsMultipleCursors(self) -> bool:
-        pass
-    
-    @abstractmethod
-    def PlaceCursor(self) -> IResumableEnumerationCursor:
-        pass
-    @abstractmethod
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor:
-        pass
-
-    @abstractmethod
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None:
-        pass
-
-    @abstractmethod
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
-        pass
-
-class ResumableEnumeratorBase[T](EnumeratorBase[T], IResumableEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
-class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
 
 class ICookie(IInterface):
     def __init__(self) -> None:
@@ -152,44 +105,38 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
 
             self.__cookie = None
 
-class IResumableEnumerationCursorFactory(IObjectFactory[IResumableIncrementalEnumerationCursor], IGetter[int, IResumableIncrementalEnumerationCursor], IReadOnlyCollection):
+class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](IResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None:
         super().__init__()
-
-    @abstractmethod
-    def GetLastCursor(self) -> IResumableIncrementalEnumerationCursor:
-        pass
     
     @abstractmethod
     def BisectLeft(self, index: int) -> int:
         pass
-class ResumableEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](DisposableObjectFactory[T], IResumableEnumerationCursorFactory):
+class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](ResumableEnumerationCursorFactory[T], IResumableIncrementalEnumerationCursorFactory[T]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__()
         
         self.__cookie: ICookie = cookie
-        self.__cursors: ISortedList[IResumableIncrementalEnumerationCursor] = SortedList[IResumableIncrementalEnumerationCursor]()
+        self.__cursors: ISortedList[T] = SortedList[T]()
     
     @abstractmethod
-    def _InitializeCursor(self, cursor: T, node: INode, cookie: ICookie) -> None:
+    def _InitializeCursorOverride(self, cursor: T, node: INode, cookie: ICookie) -> None:
         pass
     
-    def _Push(self, item: T) -> INode:
-        node: INode = super()._Push(item)
-
-        self._InitializeCursor(item, node, self.__cookie)
-
-        self.__cursors.Add(item)
-
-        return node
+    @final
+    def _InitializeCursor(self, cursor: T, node: INode) -> None:
+        self._InitializeCursorOverride(cursor, node, self.__cookie)
     
-    def InvalidateObjects(self) -> None:
-        super().InvalidateObjects()
-
+    @final
+    def _AddItem(self, item: T) -> None:
+        self.__cursors.Add(item)
+    
+    @final
+    def _Clear(self) -> None:
         self.__cursors.Clear()
     
     @final
-    def _GetSortedItems(self) -> ISortedList[IResumableIncrementalEnumerationCursor]:
+    def _GetSortedItems(self) -> ISortedList[T]:
         return self.__cursors
     
     @final
@@ -201,33 +148,19 @@ class ResumableEnumerationCursorFactory[T: IResumableIncrementalEnumerationCurso
         return self.__cursors.ContainsKey(key)
     
     @final
-    def TryGetValue(self, key: int) -> INullable[IResumableIncrementalEnumerationCursor]:
+    def TryGetValue(self, key: int) -> INullable[T]:
         return self.__cursors.TryGetValue(key)
-    
-    @final
-    def GetLastCursor(self) -> IResumableIncrementalEnumerationCursor:
-        return self._GetItems().GetLastValue()
     
     @final
     def BisectLeft(self, index: int) -> int:
         return self.__cursors.BisectLeft(index, lambda cursor: cursor.GetIndex())
 @final
-class _ResumableEnumerationCursorFactory(ResumableEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
+class _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__(cookie)
     
-    def _InitializeCursor(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
+    def _InitializeCursorOverride(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
-
-class AbstractResumableEnumeratorAbstract[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator], IResumableEnumerator[TOut]):
-    def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__(enumerator)
-class AbstractResumableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](AbstractResumableEnumeratorAbstract[TItem, TItem, TEnumerator]):
-    def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__(enumerator)
-class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumableEnumerator[T]], IGenericConstraintImplementation[IResumableEnumerator[T]]):
-    def __init__(self, enumerator: IResumableEnumerator[T]) -> None:
-        super().__init__(enumerator)
 
 class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnumerator[T]):
     @final
@@ -243,7 +176,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnum
     def __init__(self) -> None:
         super().__init__()
         
-        self.__cursors: IResumableEnumerationCursorFactory = _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerator[T]._Cookie(self))
+        self.__cursors: IResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor] = _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerator[T]._Cookie(self))
     
     @staticmethod
     def __GetException(msg: str) -> InvalidOperationError:
@@ -263,14 +196,14 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnum
     @final
     def PlaceCursor(self) -> IResumableEnumerationCursor:
         def add(index: int) -> IResumableEnumerationCursor:
-            cursor: IResumableIncrementalEnumerationCursor = _ResumableIncrementalEnumerationCursor(index)
+            cursor: _ResumableIncrementalEnumerationCursor = _ResumableIncrementalEnumerationCursor(index)
 
             cursors.RegisterObject(cursor)
 
             return cursor
         
         if self.IsStarted():
-            cursors: IResumableEnumerationCursorFactory = self.__cursors
+            cursors: IResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor] = self.__cursors
             index: int = self._GetValue()
             cursor: IResumableIncrementalEnumerationCursor|None = cursors.TryGetValue(cursors.BisectLeft(index)).TryGetValue()
 
