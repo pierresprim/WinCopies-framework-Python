@@ -229,13 +229,13 @@ class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumab
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None:
         super().__init__(enumerator)
 
-class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnumerator[T]):
+class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnumerator[T]):
     @final
     class _Cookie[_T](Abstract, ICookie):
-        def __init__(self, enumerator: IncrementalResumableEnumerator[_T]) -> None:
+        def __init__(self, enumerator: ResumableIncrementalEnumerator[_T]) -> None:
             super().__init__()
 
-            self.__enumerator: IncrementalResumableEnumerator[_T] = enumerator
+            self.__enumerator: ResumableIncrementalEnumerator[_T] = enumerator
         
         def SetIndex(self, index: int) -> None:
             self.__enumerator._SetIndex(index)
@@ -243,14 +243,14 @@ class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnum
     def __init__(self) -> None:
         super().__init__()
         
-        self.__cursors: IResumableEnumerationCursorFactory = _ResumableEnumerationCursorFactory(IncrementalResumableEnumerator[T]._Cookie(self))
+        self.__cursors: IResumableEnumerationCursorFactory = _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerator[T]._Cookie(self))
     
     @staticmethod
     def __GetException(msg: str) -> InvalidOperationError:
         return InvalidOperationError(f"Cannot {msg} before the enumeration has started.")
     @staticmethod
     def __GetCursorException(msg: str) -> InvalidOperationError:
-        return IncrementalResumableEnumerator.__GetException(f"{msg} a cursor")
+        return ResumableIncrementalEnumerator.__GetException(f"{msg} a cursor")
     
     @final
     def _SetIndex(self, index: int) -> None:
@@ -276,7 +276,7 @@ class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnum
 
             return add(index) if cursor is None else (cursor if cursor.Equals(index) else add(index))
         
-        raise IncrementalResumableEnumerator[T].__GetCursorException("place")
+        raise ResumableIncrementalEnumerator.__GetCursorException("place")
     @final
     def PlaceTopCursor(self) -> IResumableEnumerationCursor:
         cursor: IResumableEnumerationCursor = self.PlaceCursor()
@@ -291,7 +291,7 @@ class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnum
             cursor.MoveToTop()
         
         else:
-            raise IncrementalResumableEnumerator[T].__GetCursorException("move")
+            raise ResumableIncrementalEnumerator.__GetCursorException("move")
     
     @final
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
@@ -299,7 +299,7 @@ class IncrementalResumableEnumerator[T](IncrementalEnumerator[T], IResumableEnum
             (self.__cursors.GetLastCursor() if cursor is None else cursor).Resume()
         
         else:
-            raise IncrementalResumableEnumerator[T].__GetException("resume")
+            raise ResumableIncrementalEnumerator.__GetException("resume")
     
     def _OnEnded(self) -> None:
         super()._OnEnded()
