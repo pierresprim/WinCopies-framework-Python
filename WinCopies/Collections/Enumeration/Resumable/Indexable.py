@@ -136,10 +136,6 @@ class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnume
         self.__cursors.Clear()
     
     @final
-    def _GetSortedItems(self) -> ISortedList[T]:
-        return self.__cursors
-    
-    @final
     def IsEmpty(self) -> bool:
         return self.__cursors.IsEmpty()
     
