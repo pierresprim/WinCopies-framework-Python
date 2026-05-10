@@ -21,6 +21,7 @@ from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
 from WinCopies.Typing.Delegate import Method, Function, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
+from WinCopies.Typing.Protocols import SupportsEqualityComparison
 
 class Set[T: IHashableValue](Collection.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
@@ -600,7 +601,7 @@ class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]]
         return self.__readOnly.GetValue()
 
 @final
-class EnumerationKeyValuePair[TKey: IEquatableValue, TValue](Abstract, IKeyValuePair[TKey, TValue]):
+class EnumerationKeyValuePair[TKey: IEquatableValue|SupportsEqualityComparison, TValue](Abstract, IKeyValuePair[TKey, TValue]):
     def __init__(self, item: tuple[TKey, TValue]) -> None:
         super().__init__()
         
@@ -622,7 +623,7 @@ class EnumerationKeyValuePair[TKey: IEquatableValue, TValue](Abstract, IKeyValue
         return isinstance(item, EnumerationKeyValuePair)
 
 @final
-class DictionaryEnumerator[TKey: IHashableValue, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
+class DictionaryEnumerator[TKey: IHashableValue|SupportsEqualityComparison, TValue](EnumeratorBase[IKeyValuePair[TKey, TValue]]):
     def __init__(self, dictionary: MutableMapping[TKey, TValue]) -> None:
         super().__init__()
 
@@ -667,7 +668,7 @@ class DictionaryEnumerator[TKey: IHashableValue, TValue](EnumeratorBase[IKeyValu
     def _ResetOverride(self) -> bool:
         return True
 
-class DictionaryEnumerable[TKey: IHashableValue, TValue, TItem](CountableEnumerable[TItem]):
+class DictionaryEnumerable[TKey: IHashableValue|SupportsEqualityComparison, TValue, TItem](CountableEnumerable[TItem]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -693,8 +694,8 @@ class _None(Singleton):
         super().__init__()
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValue]):
-    class _Enumerable[_TKey: IHashableValue, _TValue, _TItem](DictionaryEnumerable[_TKey, _TValue, _TItem]):
+class Dictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Collection.Dictionary[TKey, TValue]):
+    class _Enumerable[_TKey: IHashableValue|SupportsEqualityComparison, _TValue, _TItem](DictionaryEnumerable[_TKey, _TValue, _TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()
 
@@ -709,14 +710,14 @@ class Dictionary[TKey: IHashableValue, TValue](Collection.Dictionary[TKey, TValu
             return self._GetDictionary()._GetDictionary()
     
     @final
-    class _KeyEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
+    class _KeyEnumerable[_TKey: IHashableValue|SupportsEqualityComparison, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
         def _TryGetIterator(self) -> Iterator[_TKey]|None:
             return iter(self._GetInnerDictionary().keys())
     @final
-    class _ValueEnumerable[_TKey: IHashableValue, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
+    class _ValueEnumerable[_TKey: IHashableValue|SupportsEqualityComparison, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__(dic)
         
