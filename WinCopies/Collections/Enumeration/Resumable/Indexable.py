@@ -101,9 +101,9 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
 
         if cookie is not None:
             cookie.Remove()
-            self.__index = -1
 
             self.__cookie = None
+            self.__index = -1
 
 class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](IResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None:

@@ -24,6 +24,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
     def _GetNextNode(self, node: TNode) -> TNode|None:
         pass
     
+    @final
     def __MoveNext(self) -> bool:
         self._SetCurrent(self.__first)
 
