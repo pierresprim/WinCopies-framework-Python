@@ -3,13 +3,14 @@ from weakref import WeakKeyDictionary as WeakKeyDictionaryBase, WeakValueDiction
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Protocols import SupportsEqualityComparison
 
-class WeakKeyDictionary[TKey: IHashableValue, TValue](Dictionary[TKey, TValue]):
+class WeakKeyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Dictionary[TKey, TValue]):
     def __init__(self, dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> None:
-        super().__init__(WeakKeyDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
-class WeakValueDictionary[TKey: IHashableValue, TValue](Dictionary[TKey, TValue]):
+        super().__init__(dictionary)
+class WeakValueDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Dictionary[TKey, TValue]):
     def __init__(self, dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> None:
-        super().__init__(WeakValueDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
+        super().__init__(dictionary)
 
 def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """
