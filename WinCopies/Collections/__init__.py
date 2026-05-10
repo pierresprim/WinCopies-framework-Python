@@ -643,6 +643,14 @@ class IHashableTuple[T: IHashableValue](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         pass
 
+class IArrayBase[T](ITuple[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> ITuple[T]:
+        pass
+
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self) -> None:
         super().__init__()
