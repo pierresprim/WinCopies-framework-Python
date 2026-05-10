@@ -651,7 +651,7 @@ class IArrayBase[T](ITuple[T]):
     def AsReadOnly(self) -> ITuple[T]:
         pass
 
-class IArray[T](ITuple[T], ICountableIndexable[T]):
+class IArray[T](IArrayBase[T], ICountableIndexable[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -663,7 +663,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 
-class IListBase[T](ITuple[T], ICountableList[T]):
+class IListBase[T](IArrayBase[T], ICountableList[T]):
     def __init__(self) -> None:
         super().__init__()
     
