@@ -59,7 +59,7 @@ class IResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IObject
         super().__init__()
 
     @abstractmethod
-    def GetLastCursor(self) -> IResumableEnumerationCursor:
+    def GetFirstCursor(self) -> IResumableEnumerationCursor:
         pass
 class ResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](DisposableObjectFactory[T], IResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None:
@@ -92,7 +92,7 @@ class ResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](Disposab
         self._Clear()
     
     @final
-    def GetLastCursor(self) -> T:
+    def GetFirstCursor(self) -> T:
         return self._GetItems().GetLastValue()
 
 class AbstractResumableEnumeratorAbstract[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator], IResumableEnumerator[TOut]):

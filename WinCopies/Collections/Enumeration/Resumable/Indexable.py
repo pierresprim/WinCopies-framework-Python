@@ -51,7 +51,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
             return self.__cookie.SetIndex(index)
         
         def MoveToTop(self) -> None:
-            self.__node.TryMoveToTop()
+            self.__node.TryMoveToBottom()
         
         def Remove(self) -> None:
             self.__node.Remove()
@@ -225,7 +225,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnum
     @final
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         if self.IsStarted():
-            (self.__cursors.GetLastCursor() if cursor is None else cursor).Resume()
+            (self.__cursors.GetFirstCursor() if cursor is None else cursor).Resume()
         
         else:
             raise ResumableIncrementalEnumerator.__GetException("resume")
