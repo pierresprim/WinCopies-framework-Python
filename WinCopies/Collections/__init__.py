@@ -729,6 +729,18 @@ class ISortedTuple[T](IArrayBase[T]):
     @abstractmethod
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
         pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> ISortedTuple[T]:
+        pass
+    
+    @abstractmethod
+    def AsReversed(self) -> ISortedTuple[T]:
+        pass
+
+    @abstractmethod
+    def AsReadOnly(self) -> ISortedTuple[T]:
+        pass
 class ISortedList[T](IListBase[T], ISortedTuple[T]):
     def __init__(self) -> None:
         super().__init__()
