@@ -1,10 +1,17 @@
-from weakref import WeakValueDictionary, WeakKeyDictionary
+from weakref import WeakKeyDictionary as WeakKeyDictionaryBase, WeakValueDictionary as WeakValueDictionaryBase
 
-from WinCopies.Collections.Abstraction.Collection.Mapping import CreateDictionary
+from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Comparison import IHashableValue
 
-def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDictionary[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+class WeakKeyDictionary[TKey: IHashableValue, TValue](Dictionary[TKey, TValue]):
+    def __init__(self, dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> None:
+        super().__init__(WeakKeyDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
+class WeakValueDictionary[TKey: IHashableValue, TValue](Dictionary[TKey, TValue]):
+    def __init__(self, dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> None:
+        super().__init__(WeakValueDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
+
+def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """
     Returns an IDictionary whose keys are held by weak reference. Entries vanish
     automatically when the key is no longer strongly referenced elsewhere.
@@ -15,8 +22,8 @@ def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDic
     Iteration safety: changes triggered by garbage collection during iteration are
     handled transparently by the underlying weakref.WeakKeyDictionary.
     """
-    return CreateDictionary(WeakKeyDictionary[TKey, TValue]() if dictionary is None else dictionary)
-def CreateWeakValueDictionary[TKey: IHashableValue, TValue](dictionary: WeakValueDictionary[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+    return WeakKeyDictionary[TKey, TValue](dictionary)
+def CreateWeakValueDictionary[TKey: IHashableValue, TValue](dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """
     Returns an IDictionary whose values are held by weak reference. Entries vanish
     automatically when the value is no longer strongly referenced elsewhere.
@@ -27,4 +34,4 @@ def CreateWeakValueDictionary[TKey: IHashableValue, TValue](dictionary: WeakValu
     Iteration safety: changes triggered by garbage collection during iteration are
     handled transparently by the underlying weakref.WeakValueDictionary.
     """
-    return CreateDictionary(WeakValueDictionary[TKey, TValue]() if dictionary is None else dictionary)
+    return WeakValueDictionary[TKey, TValue](dictionary)
