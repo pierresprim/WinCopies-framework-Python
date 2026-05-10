@@ -247,9 +247,29 @@ class IList[T](Collections.IList[T], IArray[T], IListBase[T], IMutableSequence[T
     @abstractmethod
     def SliceAt(self, key: slice) -> IList[T]:
         pass
-class ISortedList[T](Collections.ISortedList[T], IListBase[T]):
+
+class ISortedTuple[T](ITuple[T], Collections.ISortedTuple[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> ISortedTuple[T]:
+        pass
+    
+    @abstractmethod
+    def AsReversed(self) -> ISortedTuple[T]:
+        pass
+    
+    @abstractmethod
+    def SliceAt(self, key: slice) -> ISortedTuple[T]:
+        pass
+class ISortedList[T](IListBase[T], ISortedTuple[T], Collections.ISortedList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> ISortedTuple[T]:
+        pass
     
     @abstractmethod
     def AsReversed(self) -> ISortedList[T]:
