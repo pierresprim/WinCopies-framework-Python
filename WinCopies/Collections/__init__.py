@@ -718,7 +718,8 @@ class IList[T](IArray[T], IListBase[T]):
     def InsertValues(self, index: int, *values: T) -> None:
         if not self.TryInsertValues(index, *values):
             raise IndexError(index)
-class ISortedList[T](IListBase[T]):
+
+class ISortedTuple[T](IArrayBase[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -728,6 +729,9 @@ class ISortedList[T](IListBase[T]):
     @abstractmethod
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
         pass
+class ISortedList[T](IListBase[T], ISortedTuple[T]):
+    def __init__(self) -> None:
+        super().__init__()
     
     @abstractmethod
     def AddLeft(self, item: T) -> None:
