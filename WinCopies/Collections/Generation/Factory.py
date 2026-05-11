@@ -254,6 +254,9 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
     @final
     def BisectLeft(self, key: TKey) -> int:
         return self._GetSortedItems().BisectLeft(key, GetKey)
+    @final
+    def BisectRight(self, key: TKey) -> int:
+        return self._GetSortedItems().BisectRight(key, GetKey)
     
     def InvalidateObjects(self) -> None:
         super().InvalidateObjects()
