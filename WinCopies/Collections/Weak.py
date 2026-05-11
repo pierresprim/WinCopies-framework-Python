@@ -2,17 +2,16 @@ from weakref import WeakKeyDictionary as WeakKeyDictionaryBase, WeakValueDiction
 
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IDictionary
-from WinCopies.Typing.Comparison import IHashableValue
-from WinCopies.Typing.Protocols import SupportsEqualityComparison
+from WinCopies.Typing.Comparison import HashableProtocol
 
-class WeakKeyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Dictionary[TKey, TValue]):
+class WeakKeyDictionary[TKey: HashableProtocol, TValue](Dictionary[TKey, TValue]):
     def __init__(self, dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> None:
         super().__init__(dictionary)
-class WeakValueDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Dictionary[TKey, TValue]):
+class WeakValueDictionary[TKey: HashableProtocol, TValue](Dictionary[TKey, TValue]):
     def __init__(self, dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> None:
         super().__init__(dictionary)
 
-def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+def CreateWeakKeyDictionary[TKey: HashableProtocol, TValue](dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """
     Returns an IDictionary whose keys are held by weak reference. Entries vanish
     automatically when the key is no longer strongly referenced elsewhere.
@@ -24,7 +23,7 @@ def CreateWeakKeyDictionary[TKey: IHashableValue, TValue](dictionary: WeakKeyDic
     handled transparently by the underlying weakref.WeakKeyDictionary.
     """
     return WeakKeyDictionary[TKey, TValue](dictionary)
-def CreateWeakValueDictionary[TKey: IHashableValue, TValue](dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+def CreateWeakValueDictionary[TKey: HashableProtocol, TValue](dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """
     Returns an IDictionary whose values are held by weak reference. Entries vanish
     automatically when the value is no longer strongly referenced elsewhere.
