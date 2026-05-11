@@ -113,6 +113,26 @@ class IExtendedComparableValue(IComparableValue):
     @abstractmethod
     def CompareTo(self, item: Any) -> bool|None:
         pass
+    
+    @final
+    def IsLessThan(self, other: Any) -> bool:
+        """Less than comparison."""
+        return self.CompareTo(other) is False
+    
+    @final
+    def IsLessThanOrEqual(self, other: Any) -> bool:
+        """Less than or equal comparison."""
+        return self.CompareTo(other) is not True
+    
+    @final
+    def IsGreaterThan(self, other: Any) -> bool:
+        """Greater than comparison."""
+        return self.CompareTo(other) is True
+    
+    @final
+    def IsGreaterThanOrEqual(self, other: Any) -> bool:
+        """Greater than or equal comparison."""
+        return self.CompareTo(other) is not False
 
 class IHashableComparableValue(IComparableValue, IHashableValue):
     def __init__(self) -> None:
