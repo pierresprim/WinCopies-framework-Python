@@ -15,19 +15,18 @@ from WinCopies.Typing.Comparison import IExtendedHashableComparableValue, IExten
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Object import IWeakReferenceRegister, WeakReference, CreateWeakReferenceRegister
 
-@final
-class _CompositeRemovable[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](Abstract, IRemovable):
-    def __init__(self, node: IDoublyLinkedNode[WeakReference[TValue]], sortedNode: _SortedNode[TKey, TValue]) -> None:
+class CompositeRemovable[T: IDisposableBase](Abstract, IRemovable):
+    def __init__(self, node: IDoublyLinkedNode[WeakReference[T]], obj: IRemovable) -> None:
         def remove() -> None:
             self.__node.Remove()
-            self.__sortedNode.Remove()
+            self.__obj.Remove()
 
             self.__remove = NoAction
 
         super().__init__()
 
         self.__node: IRemovable = node
-        self.__sortedNode: IRemovable = sortedNode
+        self.__obj: IRemovable = obj
         self.__remove: Action = remove # type: ignore[no-redef]
     
     def Remove(self) -> None:
@@ -155,7 +154,7 @@ class ObjectFactory[T](ObjectFactoryBase[T, IDisposableBase]):
     def __init__(self) -> None:
         super().__init__()
 
-class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T], IObjectFactory[T]):
+class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -163,7 +162,7 @@ class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T], IObje
     def _Convert(self, item: T) -> T:
         return item
 
-def _ExtractKey(item: _SortedNodeBase|object) -> object:
+def ExtractKey(item: _SortedNodeBase|object) -> object:
     return item.GetKey() if isinstance(item, _SortedNodeBase) else item
 
 class _SortedNodeBase(Abstract):
@@ -189,10 +188,10 @@ class _SortedNode[TKey: IExtendedHashableComparableValue, TValue: IDisposableBas
         return self.__key
     
     def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None:
-        return self.GetKey().CompareTo(_ExtractKey(item))
+        return self.GetKey().CompareTo(ExtractKey(item))
     
     def Equals(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool:
-        return self.GetKey().Equals(_ExtractKey(item))
+        return self.GetKey().Equals(ExtractKey(item))
     
     def Hash(self) -> int:
         return self.GetKey().Hash()
@@ -226,7 +225,7 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
 
         items.Add(sortedNode)
 
-        return _CompositeRemovable(node, sortedNode)
+        return CompositeRemovable[TOut](node, sortedNode)
     
     @final
     def IsEmpty(self) -> bool:
@@ -256,7 +255,7 @@ class SortedObjectFactory[TKey: IExtendedHashableComparableValue, TValue](Sorted
     def __init__(self) -> None:
         super().__init__()
 
-class SortedDisposableObjectFactory[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], IObjectFactory[TValue]):
+class SortedDisposableObjectFactory[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
