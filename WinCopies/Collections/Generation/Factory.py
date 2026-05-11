@@ -194,6 +194,20 @@ class Node[TKey: HashableComparableProtocol, TValue](NodeBase, IHashableItem["No
     def Hash(self) -> int:
         return hash(self.GetKey())
 
+class IKeyableObjectFactoryBase[TKey, TIn, TOut](IObjectFactory[TIn], IGetter[TKey, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def BisectLeft(self, key: TKey) -> int:
+        pass
+    @abstractmethod
+    def BisectRight(self, key: TKey) -> int:
+        pass
+class IKeyableObjectFactory[TKey, TValue](IKeyableObjectFactoryBase[TKey, TValue, TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+
 @final
 class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], IExtendedComparable['_SortedNode[TKey, TValue]|TKey'], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[_SortedNode[TKey, TValue]]) -> None:
@@ -207,7 +221,7 @@ class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Nod
     def Remove(self) -> None:
         self.__items.RemoveAt(self.__items.BisectLeft(self.GetKey(), GetKey))
 
-class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut]):
+class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -266,7 +280,7 @@ class SortedObjectFactory[TKey: HashableComparableProtocol, TValue](SortedObject
     def __init__(self) -> None:
         super().__init__()
 
-class SortedDisposableObjectFactory[TKey: HashableComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue]):
+class SortedDisposableObjectFactory[TKey: HashableComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
