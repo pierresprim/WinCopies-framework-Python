@@ -11,7 +11,7 @@ from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode, IReadOnlyList, IList, List
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetNullableValue
-from WinCopies.Typing.Comparison import IExtendedHashableComparableValue, IExtendedComparable
+from WinCopies.Typing.Comparison import IExtendedComparable, HashableComparableProtocol, CompareTo
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Object import IWeakReferenceRegister, WeakReference, CreateWeakReferenceRegister
 
@@ -164,7 +164,7 @@ class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
 
 def ExtractKey(item: _SortedNodeBase|object) -> object:
     return item.GetKey() if isinstance(item, _SortedNodeBase) else item
-def GetKey[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](node: _SortedNode[TKey, TValue]) -> TKey:
+def GetKey[TKey: HashableComparableProtocol, TValue: IDisposableBase](node: _SortedNode[TKey, TValue]) -> TKey:
     return node.GetKey()
 
 class _SortedNodeBase(Abstract):
@@ -175,7 +175,7 @@ class _SortedNodeBase(Abstract):
     def GetKey(self) -> object:
         pass
 @final
-class _SortedNode[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](_SortedNodeBase, IExtendedComparable['_SortedNode[TKey, TValue]|TKey'], IRemovable):
+class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](_SortedNodeBase, IExtendedComparable['_SortedNode[TKey, TValue]|TKey'], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[_SortedNode[TKey, TValue]]) -> None:
         super().__init__()
 
@@ -190,18 +190,18 @@ class _SortedNode[TKey: IExtendedHashableComparableValue, TValue: IDisposableBas
         return self.__key
     
     def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None:
-        return self.GetKey().CompareTo(ExtractKey(item))
+        return CompareTo(self.GetKey(), ExtractKey(item))
     
     def Equals(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool:
-        return self.GetKey().Equals(ExtractKey(item))
+        return self.GetKey() == ExtractKey(item)
     
     def Hash(self) -> int:
-        return self.GetKey().Hash()
+        return hash(self.GetKey())
     
     def Remove(self) -> None:
         self.__items.RemoveAt(self.__items.BisectLeft(self.GetKey(), GetKey))
 
-class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut]):
+class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -237,13 +237,13 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
     def ContainsKey(self, key: TKey) -> bool:
         node: _SortedNode[TKey, TOut]|None = self.__TryGetNode(key)
 
-        return node is not None and node.GetKey().Equals(key)
+        return node is not None and node.GetKey() == key
     
     @final
     def TryGetByKey(self, key: TKey) -> INullable[TOut]:
         node: _SortedNode[TKey, TOut]|None = self.__TryGetNode(key)
         
-        return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey().Equals(key) else None))
+        return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
     def BisectLeft(self, key: TKey) -> int:
@@ -253,11 +253,11 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
         super().InvalidateObjects()
         
         self._GetSortedItems().Clear()
-class SortedObjectFactory[TKey: IExtendedHashableComparableValue, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
+class SortedObjectFactory[TKey: HashableComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
     def __init__(self) -> None:
         super().__init__()
 
-class SortedDisposableObjectFactory[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue]):
+class SortedDisposableObjectFactory[TKey: HashableComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
