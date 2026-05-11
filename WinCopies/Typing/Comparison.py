@@ -29,11 +29,11 @@ class IEquatableValue(IInterface):
         super().__init__()
     
     @abstractmethod
-    def Equals(self, item: object) -> bool:
+    def Equals(self, item: Any) -> bool:
         pass
     
     @final
-    def __eq__(self, value: object) -> bool:
+    def __eq__(self, value: Any) -> bool:
         return self.Equals(value)
 class IEquatableItem[T](IInterface):
     def __init__(self) -> None:
@@ -68,22 +68,22 @@ class IComparableValue(IEquatableValue):
         super().__init__()
     
     @abstractmethod
-    def IsLessThan(self, other: object) -> bool:
+    def IsLessThan(self, other: Any) -> bool:
         """Less than comparison."""
         pass
     
     @abstractmethod
-    def IsLessThanOrEqual(self, other: object) -> bool:
+    def IsLessThanOrEqual(self, other: Any) -> bool:
         """Less than or equal comparison."""
         pass
     
     @abstractmethod
-    def IsGreaterThan(self, other: object) -> bool:
+    def IsGreaterThan(self, other: Any) -> bool:
         """Greater than comparison."""
         pass
     
     @abstractmethod
-    def IsGreaterThanOrEqual(self, other: object) -> bool:
+    def IsGreaterThanOrEqual(self, other: Any) -> bool:
         """Greater than or equal comparison."""
         pass
     
@@ -111,7 +111,7 @@ class IExtendedComparableValue(IComparableValue):
         super().__init__()
     
     @abstractmethod
-    def CompareTo(self, item: object) -> bool|None:
+    def CompareTo(self, item: Any) -> bool|None:
         pass
 
 class IHashableComparableValue(IComparableValue, IHashableValue):
