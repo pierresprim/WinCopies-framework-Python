@@ -839,7 +839,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     @overload
     def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue]|None:
         ...
-
+    
     @abstractmethod
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault]|None:
         pass
