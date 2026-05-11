@@ -7,7 +7,8 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IResumableEnumerator
 from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Collections.Generation.Factory import IKeyableObjectFactory, SortedDisposableObjectFactory
+from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactory
+from WinCopies.Collections.Generation.Factory.Sorted import SortedDisposableObjectFactory
 from WinCopies.Typing import InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IExtendedComparable
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
