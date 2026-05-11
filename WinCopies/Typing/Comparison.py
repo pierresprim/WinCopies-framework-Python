@@ -193,5 +193,5 @@ class IExtendedHashableComparable[T](IHashableComparable[T], IExtendedComparable
     def __init__(self) -> None:
         super().__init__()
 
-type EqualityComparableProtocol = IEquatableValue|SupportsEqualityComparison
+type EquatableProtocol = IEquatableValue|SupportsEqualityComparison
 type ComparableProtocol = IComparableValue|SupportsRichComparison
