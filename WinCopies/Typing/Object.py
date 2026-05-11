@@ -11,9 +11,8 @@ from WinCopies import IInterface, IDisposableBase, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Delegates import NoAction, FuncNone
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
-from WinCopies.Math import NumericalValue, CompareTo
-from WinCopies.Typing import IDisposable, INullable, IEnum
-from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable
+from WinCopies.Typing import NumericalValue, IDisposable, INullable, IEnum
+from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable, CompareTo
 from WinCopies.Typing.Delegate import Action, NullableFunction
 from WinCopies.Typing.Reflection import IsOf
 
