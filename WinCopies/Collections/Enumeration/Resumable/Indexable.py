@@ -221,4 +221,4 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IResumableEnum
         self.__cursors.InvalidateObjects()
     
     def Dispose(self) -> None:
-        self.__cursors.InvalidateObjects()
+        self.Stop()
