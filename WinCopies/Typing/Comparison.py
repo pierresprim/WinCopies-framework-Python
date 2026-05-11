@@ -182,14 +182,14 @@ class IExtendedHashableComparableItem[T](IExtendedComparableItem[T], IHashableCo
 class IComparable[T](IComparableItem[T|object], IComparableValue):
     def __init__(self) -> None:
         super().__init__()
-class IExtendedComparable[T](IComparable[T], IExtendedComparableItem[T|object], IExtendedComparableValue):
+class IExtendedComparable[T](IComparable[T], IExtendedComparableItem[T|object]):
     def __init__(self) -> None:
         super().__init__()
 
 class IHashableComparable[T](IComparable[T], IHashable[T], IHashableComparableItem[T|object], IHashableComparableValue):
     def __init__(self) -> None:
         super().__init__()
-class IExtendedHashableComparable[T](IHashableComparable[T], IExtendedComparable[T], IExtendedHashableComparableItem[T|object], IExtendedHashableComparableValue):
+class IExtendedHashableComparable[T](IHashableComparable[T], IExtendedComparable[T], IExtendedHashableComparableItem[T|object]):
     def __init__(self) -> None:
         super().__init__()
 
