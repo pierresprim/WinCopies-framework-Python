@@ -164,6 +164,8 @@ class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
 
 def ExtractKey(item: _SortedNodeBase|object) -> object:
     return item.GetKey() if isinstance(item, _SortedNodeBase) else item
+def GetKey[TKey: IExtendedHashableComparableValue, TValue: IDisposableBase](node: _SortedNode[TKey, TValue]) -> TKey:
+    return node.GetKey()
 
 class _SortedNodeBase(Abstract):
     def __init__(self) -> None:
@@ -197,7 +199,7 @@ class _SortedNode[TKey: IExtendedHashableComparableValue, TValue: IDisposableBas
         return self.GetKey().Hash()
     
     def Remove(self) -> None:
-        self.__items.RemoveAt(self.__items.BisectLeft(self.GetKey(), lambda n: n.GetKey()))
+        self.__items.RemoveAt(self.__items.BisectLeft(self.GetKey(), GetKey))
 
 class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut]):
     def __init__(self) -> None:
@@ -209,7 +211,7 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
     def __TryGetNode(self, key: TKey) -> _SortedNode[TKey, TOut]|None:
         items: ISortedList[_SortedNode[TKey, TOut]] = self._GetSortedItems()
 
-        return items.TryGetValue(items.BisectLeft(key, lambda n: n.GetKey())).TryGetValue()
+        return items.TryGetValue(items.BisectLeft(key, GetKey)).TryGetValue()
     
     @final
     def _GetSortedItems(self) -> ISortedList[_SortedNode[TKey, TOut]]:
@@ -245,7 +247,7 @@ class SortedObjectFactoryBase[TKey: IExtendedHashableComparableValue, TIn, TOut:
     
     @final
     def BisectLeft(self, key: TKey) -> int:
-        return self._GetSortedItems().BisectLeft(key, lambda n: n.GetKey())
+        return self._GetSortedItems().BisectLeft(key, GetKey)
     
     def InvalidateObjects(self) -> None:
         super().InvalidateObjects()
