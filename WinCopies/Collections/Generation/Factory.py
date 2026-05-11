@@ -5,6 +5,7 @@ from typing import final
 from weakref import ref, ReferenceType
 
 from WinCopies import IInterface, IDisposableBase, Abstract
+from WinCopies.Collections import IGetter
 from WinCopies.Collections.Abstraction.Collection import SortedList
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Generation import IRemovable, INode
@@ -245,7 +246,7 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         return node is not None and node.GetKey() == key
     
     @final
-    def TryGetByKey(self, key: TKey) -> INullable[TOut]:
+    def TryGetValue(self, key: TKey) -> INullable[TOut]:
         node: _SortedNode[TKey, TOut]|None = self.__TryGetNode(key)
         
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
