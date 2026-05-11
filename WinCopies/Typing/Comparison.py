@@ -197,3 +197,16 @@ type EquatableProtocol = IEquatableValue|SupportsEqualityComparison
 type HashableProtocol = IHashableValue|SupportsEqualityComparison
 type ComparableProtocol = IComparableValue|SupportsRichComparison
 type HashableComparableProtocol = IHashableComparableValue|SupportsEqualityAndRichComparison
+
+def __Check(x: ComparableProtocol, y: ComparableProtocol, b: bool) -> bool:
+    return x <= y if b else x < y
+
+def Between[T: ComparableProtocol](x: T, value: T, y: T, bx: bool = True, by: bool = True) -> bool:
+    return __Check(x, value, bx) and __Check(value, y, by)
+def Outside[T: ComparableProtocol](x: T, value: T, y: T, bx: bool = True, by: bool = True) -> bool:
+    return __Check(value, x, bx) or __Check(y, value, by)
+
+def CompareFrom(x: ComparableProtocol, y: Any) -> bool|None:
+    return None if x == y else x < y
+def CompareTo(x: ComparableProtocol, y: Any) -> bool|None:
+    return None if x == y else x > y
