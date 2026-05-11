@@ -8,10 +8,9 @@ from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerator
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, HashableProtocol
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
-from WinCopies.Typing.Protocols import SupportsEqualityComparison
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
@@ -280,7 +279,7 @@ class ISortedList[T](IListBase[T], ISortedTuple[T], Collections.ISortedList[T]):
         pass
 
 # TODO: Should implement a Mapping abstractor provider.
-class IReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
+class IReadOnlyDictionary[TKey: HashableProtocol, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -291,7 +290,7 @@ class IReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValu
     def GetValues(self) -> ICountableEnumerable[TValue]:
         pass
 # TODO: Should implement a MutableMapping abstractor provider.
-class IDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+class IDictionary[TKey: HashableProtocol, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -299,10 +298,10 @@ class IDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](Colle
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         pass
 
-class IReadOnlySet[T: IHashableValue|SupportsEqualityComparison](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
+class IReadOnlySet[T: HashableProtocol](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
-class ISet[T: IHashableValue|SupportsEqualityComparison](Collections.ISet[T], IReadOnlySet[T]):
+class ISet[T: HashableProtocol](Collections.ISet[T], IReadOnlySet[T]):
     def __init__(self) -> None:
         super().__init__()
     

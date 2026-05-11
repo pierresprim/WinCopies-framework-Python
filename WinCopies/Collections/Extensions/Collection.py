@@ -14,11 +14,11 @@ from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFac
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, FixedSizeCollection
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
-from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Protocols import SupportsRichComparison
 
 class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
@@ -817,7 +817,7 @@ class SortedList[T](_ArrayBase[T, ISortedList[T]], SortedCollection[T]):
         return None
 
 @final
-class _SetContainer[T: IHashableValue|SupportsEqualityComparison](Container[T]):
+class _SetContainer[T: HashableProtocol](Container[T]):
     def __init__(self, items: IReadOnlySet[T]) -> None:
         super().__init__()
 
@@ -826,7 +826,7 @@ class _SetContainer[T: IHashableValue|SupportsEqualityComparison](Container[T]):
     def Contains(self, value: T|object) -> bool:
         return self.__items.Contains(value)
 @final
-class _ReadOnlySetContainerUpdater[T: IHashableValue|SupportsEqualityComparison](ValueFunctionUpdater[ContainerBase[T]]):
+class _ReadOnlySetContainerUpdater[T: HashableProtocol](ValueFunctionUpdater[ContainerBase[T]]):
     def __init__(self, items: _ReadOnlySet[T], updater: Method[IFunction[ContainerBase[T]]]) -> None:
         super().__init__(updater)
 
@@ -835,7 +835,7 @@ class _ReadOnlySetContainerUpdater[T: IHashableValue|SupportsEqualityComparison]
     def _GetValue(self) -> ContainerBase[T]:
         return _SetContainer[T](self.__items)
 
-class _ReadOnlySet[T: IHashableValue|SupportsEqualityComparison](CountableEnumerable[T], IReadOnlySet[T]):
+class _ReadOnlySet[T: HashableProtocol](CountableEnumerable[T], IReadOnlySet[T]):
     def __init__(self, items: IReadOnlySet[T]) -> None:
         def update(func: IFunction[ContainerBase[T]]) -> None:
             self.__container = func
@@ -868,7 +868,7 @@ class _ReadOnlySet[T: IHashableValue|SupportsEqualityComparison](CountableEnumer
     def AsContainer(self) -> ContainerBase[T]:
         return self.__container.GetValue()
 @final
-class _ReadOnlySetUpdater[T: IHashableValue|SupportsEqualityComparison](ValueFunctionUpdater[IReadOnlySet[T]]):
+class _ReadOnlySetUpdater[T: HashableProtocol](ValueFunctionUpdater[IReadOnlySet[T]]):
     def __init__(self, items: Set[T], updater: Method[IFunction[IReadOnlySet[T]]]) -> None:
         super().__init__(updater)
 
@@ -877,7 +877,7 @@ class _ReadOnlySetUpdater[T: IHashableValue|SupportsEqualityComparison](ValueFun
     def _GetValue(self) -> IReadOnlySet[T]:
         return _ReadOnlySet[T](self.__items)
 
-class Set[T: IHashableValue|SupportsEqualityComparison](CountableEnumerable[T], ISet[T]):
+class Set[T: HashableProtocol](CountableEnumerable[T], ISet[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlySet[T]]) -> None:
             self.__readOnly = func
@@ -895,7 +895,7 @@ class Set[T: IHashableValue|SupportsEqualityComparison](CountableEnumerable[T], 
         return self.AsReadOnly().AsContainer()
 
 @final
-class _ReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
+class _ReadOnlyDictionary[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self, dictionary: DictionaryAbstract[TKey, TValue]) -> None:
         super().__init__()
@@ -925,7 +925,7 @@ class _ReadOnlyDictionary[TKey: IHashableValue|SupportsEqualityComparison, TValu
     def ToString(self) -> str:
         return self.__dictionary.ToString()
 @final
-class _ReadOnlyDictionaryUpdater[TKey: IHashableValue|SupportsEqualityComparison, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
+class _ReadOnlyDictionaryUpdater[TKey: HashableProtocol, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
     def __init__(self, dictionary: DictionaryAbstract[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
@@ -934,7 +934,7 @@ class _ReadOnlyDictionaryUpdater[TKey: IHashableValue|SupportsEqualityComparison
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]:
         return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class DictionaryAbstract[TKey: IHashableValue|SupportsEqualityComparison, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None:
@@ -951,7 +951,7 @@ class DictionaryAbstract[TKey: IHashableValue|SupportsEqualityComparison, TValue
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         return self.__readOnly.GetValue()
-class DictionaryBase[TKey: IHashableValue|SupportsEqualityComparison, TValue](DictionaryAbstract[TKey, TValue]):
+class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -966,7 +966,7 @@ class DictionaryBase[TKey: IHashableValue|SupportsEqualityComparison, TValue](Di
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
-class Dictionary[TKey: IHashableValue|SupportsEqualityComparison, TValue](DictionaryBase[TKey, TValue]):
+class Dictionary[TKey: HashableProtocol, TValue](DictionaryBase[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
