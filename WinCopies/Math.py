@@ -5,9 +5,7 @@ Created on Tue Jan 21 05:25:00 2025
 @author: Pierre Sprimont
 """
 
-from decimal import Decimal as decimal
-
-type NumericalValue = int|float|decimal
+from WinCopies.Typing import NumericalValue
 
 def __Check(x: NumericalValue, y: NumericalValue, b: bool) -> bool:
     return x <= y if b else x < y

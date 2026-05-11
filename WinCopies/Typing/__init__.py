@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABCMeta
+from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, overload, Type as SystemType
 
 from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
 from WinCopies.Typing.Delegate import Converter
+
+type NumericalValue = int|float|decimal
 
 class InvalidOperationError(Exception):
     def __init__(self, *args: object) -> None:
