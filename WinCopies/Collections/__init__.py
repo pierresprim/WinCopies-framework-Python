@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Generator as GeneratorBase, Sized, Iterable, Container, Sequence, MutableSequence
 from contextlib import AbstractContextManager
 from enum import Flag
-from typing import final, Callable
+from typing import overload, final, Callable
 
 from WinCopies import IInterface, Abstract, BooleanableEnum, NullableBoolean, Not
 from WinCopies.Delegates import CompareEquality
@@ -833,15 +833,21 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
         pass
     
-    @abstractmethod
+    @overload
     def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        ...
+    @overload
+    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue]|None:
+        ...
+
+    @abstractmethod
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault]|None:
         pass
     @final
     def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
-        result: DualValueBool[TValue|None] = self.TryRemove(key, None)
-        value: TValue|None = result.GetKey()
+        result: DualValueBool[TValue]|None = self.TryRemove(key)
 
-        return GetNullable(value) if result.GetValue() and value is not None else GetNullValue()
+        return GetNullable(result.GetKey()) if result is not None and result.GetValue() else GetNullValue()
 
     @abstractmethod
     def Remove(self, key: TKey) -> TValue:

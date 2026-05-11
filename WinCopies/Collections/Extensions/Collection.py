@@ -944,9 +944,24 @@ class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKe
 
         self.__readOnly: IFunction[IReadOnlyDictionary[TKey, TValue]] = _ReadOnlyDictionaryUpdater[TKey, TValue](self, update) # type: ignore[no-redef]
     
+    @abstractmethod
+    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        pass
+    
     @final
     def IsEmpty(self) -> bool:
         return self.GetCount() < 1
+    
+    @overload
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+        ...
+    @overload
+    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue]|None:
+        ...
+
+    @final
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault]|None:
+        return None if defaultValue is None else self._TryRemove(key, defaultValue)
     
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:

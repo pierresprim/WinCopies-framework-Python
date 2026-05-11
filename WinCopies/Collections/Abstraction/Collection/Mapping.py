@@ -793,7 +793,7 @@ class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TVa
         return False
     
     @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
         result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
 
         return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
