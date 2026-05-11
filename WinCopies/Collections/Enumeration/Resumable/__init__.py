@@ -1,11 +1,10 @@
 from abc import abstractmethod
-from typing import final
 
 from WinCopies import IDisposable
-from WinCopies.Collections import IReadOnlyCollection, IGetter
+from WinCopies.Collections import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnumerator, EnumeratorBase, AbstractEnumeratorBase
 from WinCopies.Collections.Generation import IResumable, INode
-from WinCopies.Collections.Generation.Factory import IObjectFactory, DisposableObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class IResumableEnumerationCursor(IResumable, IDisposable):
@@ -54,46 +53,20 @@ class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-class IResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IObjectFactory[T], IGetter[int, T], IReadOnlyCollection):
+class IResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IObjectFactory[T], IReadOnlyCollection):
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
     def GetFirstCursor(self) -> IResumableEnumerationCursor:
         pass
-class ResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](DisposableObjectFactory[T], IResumableEnumerationCursorFactory[T]):
+class IDefaultResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def _InitializeCursor(self, cursor: T, node: INode) -> None:
         pass
-
-    @abstractmethod
-    def _AddItem(self, item: T) -> None:
-        pass
-
-    @abstractmethod
-    def _Clear(self) -> None:
-        pass
-    
-    def _Push(self, item: T) -> INode:
-        node: INode = super()._Push(item)
-
-        self._InitializeCursor(item, node)
-
-        self._AddItem(item)
-
-        return node
-    
-    def InvalidateObjects(self) -> None:
-        super().InvalidateObjects()
-
-        self._Clear()
-    
-    @final
-    def GetFirstCursor(self) -> T:
-        return self._GetItems().GetLastValue()
 
 class AbstractResumableEnumeratorAbstract[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator], IResumableEnumerator[TOut]):
     def __init__(self, enumerator: TEnumerator) -> None:

@@ -4,12 +4,11 @@ from abc import abstractmethod
 from typing import Callable, final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Abstraction.Collection import SortedList
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IResumableEnumerationCursorFactory, IResumableEnumerator, ResumableEnumerationCursorFactory
-from WinCopies.Collections.Extensions import ISortedList
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IResumableEnumerator
 from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
+from WinCopies.Collections.Generation.Factory import IKeyableObjectFactory, SortedDisposableObjectFactory
+from WinCopies.Typing import InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IExtendedComparable
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
@@ -105,19 +104,14 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
             self.__cookie = None
             self.__index = -1
 
-class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](IResumableEnumerationCursorFactory[T]):
+class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](IKeyableObjectFactory[int, T], IDefaultResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def BisectLeft(self, index: int) -> int:
-        pass
-class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](ResumableEnumerationCursorFactory[T], IResumableIncrementalEnumerationCursorFactory[T]):
+class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](SortedDisposableObjectFactory[int, T], IResumableIncrementalEnumerationCursorFactory[T]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__()
         
         self.__cookie: ICookie = cookie
-        self.__cursors: ISortedList[T] = SortedList[T]()
     
     @abstractmethod
     def _InitializeCursorOverride(self, cursor: T, node: INode, cookie: ICookie) -> None:
@@ -128,28 +122,19 @@ class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnume
         self._InitializeCursorOverride(cursor, node, self.__cookie)
     
     @final
-    def _AddItem(self, item: T) -> None:
-        self.__cursors.Add(item)
+    def _GetKey(self, item: T) -> int:
+        return item.GetIndex()
+    
+    def _Push(self, item: T) -> INode:
+        node: INode = super()._Push(item)
+
+        self._InitializeCursor(item, node)
+
+        return node
     
     @final
-    def _Clear(self) -> None:
-        self.__cursors.Clear()
-    
-    @final
-    def IsEmpty(self) -> bool:
-        return self.__cursors.IsEmpty()
-    
-    @final
-    def ContainsKey(self, key: int) -> bool:
-        return self.__cursors.ContainsKey(key)
-    
-    @final
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self.__cursors.TryGetValue(key)
-    
-    @final
-    def BisectLeft(self, index: int) -> int:
-        return self.__cursors.BisectLeft(index, lambda cursor: cursor.GetIndex())
+    def GetFirstCursor(self) -> T:
+        return self._GetItems().GetLastValue()
 @final
 class _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
     def __init__(self, cookie: ICookie) -> None:
