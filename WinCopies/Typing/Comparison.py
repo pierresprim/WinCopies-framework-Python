@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final, Any
 
 from WinCopies import IInterface
-from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison, SupportsEqualityAndRichComparison
 
 class _IHashableBase(IInterface):
     def __init__(self) -> None:
@@ -194,4 +194,6 @@ class IExtendedHashableComparable[T](IHashableComparable[T], IExtendedComparable
         super().__init__()
 
 type EquatableProtocol = IEquatableValue|SupportsEqualityComparison
+type HashableProtocol = IHashableValue|SupportsEqualityComparison
 type ComparableProtocol = IComparableValue|SupportsRichComparison
+type HashableComparableProtocol = IHashableComparableValue|SupportsEqualityAndRichComparison
