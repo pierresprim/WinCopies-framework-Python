@@ -4,16 +4,16 @@ from typing import final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Collections.Linked.Node import INode, ILinkedNode
 
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
-class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TNode, ILinkedNode[TItems]]):
-    def __init__(self, node: TNode) -> None:
+class NodeEnumeratorBase[T](Enumerator[T], IGenericConstraint[T, INode]):
+    def __init__(self, node: T) -> None:
         super().__init__()
 
-        self.__first: TNode = node
+        self.__first: T = node
         self.__moveNextFunc: Function[bool]|None = None
     
     @final
@@ -21,7 +21,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
         return True
     
     @abstractmethod
-    def _GetNextNode(self, node: TNode) -> TNode|None:
+    def _GetNextNode(self, node: T) -> T|None:
         pass
     
     @final
@@ -29,7 +29,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
-            node: TNode|None = self.GetCurrent()
+            node: T|None = self.GetCurrent()
 
             if node is None or (node := self._GetNextNode(node)) is None:
                 return False
@@ -70,7 +70,7 @@ class NodeEnumeratorBase[TItems, TNode](Enumerator[TNode], IGenericConstraint[TN
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[T, ILinkedNode[T]], IGenericConstraintImplementation[ILinkedNode[T]]):
+class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]], IGenericConstraintImplementation[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]) -> None:
         super().__init__(node)
     
