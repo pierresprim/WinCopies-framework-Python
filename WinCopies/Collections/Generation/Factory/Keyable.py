@@ -10,7 +10,7 @@ from WinCopies.Typing.Comparison import IHashableItem, HashableComparableProtoco
 
 def ExtractKey(item: INodeBase|object) -> object:
     return item.GetKey() if isinstance(item, INodeBase) else item
-def GetKey[TKey: HashableComparableProtocol, TValue](node: Node[TKey, TValue]) -> TKey:
+def GetKey[TKey: HashableComparableProtocol, TValue](node: INode[TKey, TValue]) -> TKey:
     return node.GetKey()
 
 class INodeBase(IInterface):
@@ -20,7 +20,19 @@ class INodeBase(IInterface):
     @abstractmethod
     def GetKey(self) -> object:
         pass
-class Node[TKey: HashableComparableProtocol, TValue](Abstract, INodeBase, IHashableItem["Node[TKey, TValue]|TKey"]):
+class INode[TKey, TValue](INodeBase, IHashableItem["INode[TKey, TValue]|TKey"]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetKey(self) -> TKey:
+        pass
+    
+    @abstractmethod
+    def TryGetValue(self) -> TValue|None:
+        pass
+
+class Node[TKey: HashableComparableProtocol, TValue](Abstract, INode[TKey, TValue]):
     def __init__(self, key: TKey, obj: TValue) -> None:
         super().__init__()
 
@@ -33,7 +45,7 @@ class Node[TKey: HashableComparableProtocol, TValue](Abstract, INodeBase, IHasha
     def TryGetValue(self) -> TValue|None:
         return self.__ref()
     
-    def Equals(self, item: Node[TKey, TValue]|TKey|object) -> bool:
+    def Equals(self, item: INode[TKey, TValue]|TKey|object) -> bool:
         return self.GetKey() == ExtractKey(item)
     
     def Hash(self) -> int:
