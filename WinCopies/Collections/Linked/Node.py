@@ -5,7 +5,15 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-class ILinkedNode[T](IInterface):
+class INode(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def GetNext(self) -> INode|None:
+        pass
+
+class ILinkedNode[T](INode):
     def __init__(self) -> None:
         super().__init__()
     
