@@ -36,6 +36,13 @@ class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Nod
 class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def BisectLeft(self, key: TKey) -> int:
+        pass
+    @abstractmethod
+    def BisectRight(self, key: TKey) -> int:
+        pass
 class ISortedObjectFactory[TKey, TValue](ISortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()

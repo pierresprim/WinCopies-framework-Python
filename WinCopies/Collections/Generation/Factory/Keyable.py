@@ -54,13 +54,6 @@ class Node[TKey: HashableProtocol, TValue](Abstract, INode[TKey, TValue]):
 class IKeyableObjectFactoryBase[TKey, TIn, TOut](IObjectFactory[TIn], IGetter[TKey, TOut]):
     def __init__(self) -> None:
         super().__init__()
-    
-    @abstractmethod
-    def BisectLeft(self, key: TKey) -> int:
-        pass
-    @abstractmethod
-    def BisectRight(self, key: TKey) -> int:
-        pass
 class IKeyableObjectFactory[TKey, TValue](IKeyableObjectFactoryBase[TKey, TValue, TValue]):
     def __init__(self) -> None:
         super().__init__()
