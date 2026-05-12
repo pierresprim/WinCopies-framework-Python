@@ -629,7 +629,7 @@ def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
 def MakeArray[T](*items: T) -> IArray[T]:
     return CreateArray(items)
 
-def CreateList[T](items: MutableSequenceBase[T]|Iterable[T]) -> IList[T]:
+def CreateList[T](items: MutableSequenceBase[T]|Iterable[T]|None = None) -> IList[T]:
     return List[T](items)
 def MakeList[T](*items: T) -> IList[T]:
     return CreateList(items)

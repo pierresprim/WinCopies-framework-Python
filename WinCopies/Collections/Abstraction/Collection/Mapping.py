@@ -822,7 +822,7 @@ def CreateOrderedSet[T: IHashableValue](items: Iterable[T]) -> IOrderedSet[T]:
 def MakeOrderedSet[T: IHashableValue](*items: T) -> IOrderedSet[T]:
     return CreateOrderedSet(items)
 
-def CreateKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None) -> IKeyedSet[TKey, TValue]:
+def CreateKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> IKeyedSet[TKey, TValue]:
     return KeyedSet[TKey, TValue](keys, values)
 def MakeKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], *values: ITuple[TValue]) -> IKeyedSet[TKey, TValue]:
     return CreateKeyedSet(keys, values)
@@ -830,5 +830,5 @@ def MakeKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], *values: IT
 def MakeKeyedSetFromKeys[TKey: IHashableValue, TValue](values: Iterable[ITuple[TValue]], *keys: TKey) -> IKeyedSet[TKey, TValue]:
     return CreateKeyedSet(keys, values)
 
-def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]) -> IDictionary[TKey, TValue]:
+def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return Dictionary[TKey, TValue](dictionary)
