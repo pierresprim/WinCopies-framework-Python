@@ -7,7 +7,8 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumeratorBase, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
-from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableListBase, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableListBase, DoublyLinkedNodeEnumeratorBase
+from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableListBase, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableListBase
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -163,7 +164,7 @@ class Tree[T](TreeBase[T, __TreeNode[T]]):
     def _GetNode(self, value: T) -> __TreeNode[T]:
         return __TreeNode[T](value, self, self._GetCookie(), None, None)
 
-class TreeNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ITreeNode[T]], IGenericConstraintImplementation[ITreeNode[T]]):
+class TreeNodeEnumerator[T](NodeEnumeratorBase[T, ITreeNode[T]], IGenericConstraintImplementation[ITreeNode[T]]):
     def __init__(self, node: ITreeNode[T]) -> None:
         super().__init__(node)
 

@@ -1919,17 +1919,13 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     def Clear(self) -> None:
         self._GetItems().Clear()
 
-class DoublyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
-    def __init__(self, node: TNode) -> None:
-        super().__init__(node)
-
-class DoublyLinkedNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
+class DoublyLinkedNodeEnumerator[T](NodeEnumeratorBase[T, IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
     def __init__(self, node: IDoublyLinkedNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None:
         return self._AsContainer(node).GetNext()
-class CountableLinkedListNodeEnumerator[T](DoublyLinkedNodeEnumeratorBase[T, ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
+class CountableLinkedListNodeEnumerator[T](NodeEnumeratorBase[T, ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, node: ICountableLinkedListNode[T]) -> None:
         super().__init__(node)
 
