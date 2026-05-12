@@ -24,7 +24,7 @@ class _KeyedNode[TKey: HashableProtocol, TValue: IDisposableBase](Abstract, IRem
         self.__items: IDictionary[TKey, ReferenceType[TValue]] = items
     
     def Remove(self) -> None:
-        self.__items.TryRemove(self.__key, None)
+        self.__items.TryRemove(self.__key)
 
 class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
