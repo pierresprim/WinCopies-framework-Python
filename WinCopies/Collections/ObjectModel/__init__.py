@@ -49,14 +49,18 @@ class FixedSizeCollection[T](ReadOnlyCollectionBase[T, IArray[T]], IGenericConst
     def __init__(self, items: IArray[T]) -> None:
         super().__init__(items)
     
+    @final
     def Move(self, x: int, y: int) -> None:
         return self._GetContainer().Move(x, y)
     
+    @final
     def TrySetAt(self, key: int, value: T) -> bool:
         return self._GetContainer().TrySetAt(key, value)
     
+    @final
     def SliceAt(self, key: slice) -> IArray[T]:
         return self._GetContainer().SliceAt(key)
     
+    @final
     def AsReadOnly(self) -> ITuple[T]:
         return self._GetContainer().AsReadOnly()
