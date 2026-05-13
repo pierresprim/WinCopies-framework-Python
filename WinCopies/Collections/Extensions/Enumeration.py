@@ -5,7 +5,8 @@ from typing import final
 
 from WinCopies import Abstract, IDisposableBase
 from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator, ToDisposableEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IncrementalResumableEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
+from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation.Factory import IObjectFactory, ObjectFactory
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
@@ -32,7 +33,7 @@ class TupleEnumerator[T](TupleEnumeratorBase[T, ITuple[T]], IGenericConstraintIm
     def __init__(self, items: ITuple[T]) -> None:
         super().__init__(items)
 
-class ResumableTupleEnumeratorBase[TItem, TList](IncrementalResumableEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
+class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
