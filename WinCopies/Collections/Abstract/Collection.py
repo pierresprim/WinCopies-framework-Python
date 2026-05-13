@@ -310,23 +310,13 @@ class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Selector[TValueIn, T
     @final
     def TryAdd(self, key: TKey, value: TValueOut) -> bool:
         return self._GetItems().TryAdd(key, self._ConvertBack(value))
-    @final
-    def TryAddItem(self, item: KeyValuePair[TKey, TValueOut]) -> bool:
-        return self.TryAdd(item.GetKey(), item.GetValue())
     
     @final
-    def Add(self, key: TKey, value: TValueOut) -> None:
-        self._GetItems().Add(key, self._ConvertBack(value))
-    @final
-    def AddItem(self, item: KeyValuePair[TKey, TValueOut]) -> None:
-        self.Add(item.GetKey(), item.GetValue())
-
-    @final
-    def Remove(self, key: TKey) -> None:
-        self._GetItems().Remove(key)
+    def Remove(self, key: TKey) -> TValueOut:
+        return self._Convert(self._GetItems().Remove(key))
     
     @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
+    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
         def getResult(key: TValueOut|TDefault, value: bool) -> DualValueBool[TValueOut|TDefault]:
             return DualValueBool[TValueOut|TDefault](key, value)
         
