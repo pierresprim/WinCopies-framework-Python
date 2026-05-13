@@ -27,7 +27,7 @@ class IResumableEnumerationCursor(IResumable, IDisposable):
     def MoveToTop(self) -> None:
         pass
 
-class IResumableEnumerator[T](IEnumerator[T], IDisposable):
+class IResumableEnumerator[T](IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -115,9 +115,6 @@ class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TIte
         
         else:
             raise IDefaultResumableEnumerator._GetException("resume")
-    
-    def Dispose(self) -> None:
-        self.Stop()
 
 class IResumableEnumerable[T](IEnumerable[T]):
     def __init__(self) -> None:
