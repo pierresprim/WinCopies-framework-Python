@@ -190,10 +190,9 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
+    def TryGetEnumerator(self) -> None:
         return None
     
-    @final
     def __iter__(self) -> SystemIterator[T]:
         return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
@@ -727,44 +726,73 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     def AsIterator(self) -> SystemIterator[T]:
         raise GetDisposedError()
 
-@final
-class _DisposableEnumerator[T](Abstract, IDisposableEnumerator[T]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None:
+class DisposableEnumeratorAbstract[T](Abstract, IDisposableEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @staticmethod
+    def _GetDefaultDisposedEnumerator() -> IEnumerator[T]:
+        return _GetDisposedEnumerator()
+class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEnumeratorAbstract[TItem], GenericConstraint[TEnumerator, IEnumerator[TItem]]):
+    def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
 
-        self.__enumerator: IEnumerator[T] = enumerator
+        self.__enumerator: TEnumerator = enumerator
     
+    @final
+    def _GetContainer(self) -> TEnumerator:
+        return self.__enumerator
+    
+    @abstractmethod
+    def _GetDisposedEnumerator(self) -> TEnumerator:
+        pass
+    
+    @final
     def IsStarted(self) -> bool:
-        return self.__enumerator.IsStarted()
+        return self._GetInnerContainer().IsStarted()
     
+    @final
     def IsResetSupported(self) -> bool:
-        return self.__enumerator.IsResetSupported()
+        return self._GetInnerContainer().IsResetSupported()
     
+    @final
     def HasProcessedItems(self) -> bool:
-        return self.__enumerator.HasProcessedItems()
+        return self._GetInnerContainer().HasProcessedItems()
     
-    def GetCurrent(self) -> T:
-        return self.__enumerator.GetCurrent()
+    @final
+    def GetCurrent(self) -> TItem:
+        return self._GetInnerContainer().GetCurrent()
     
+    @final
     def MoveNext(self) -> bool:
-        return self.__enumerator.MoveNext()
+        return self._GetInnerContainer().MoveNext()
     
+    @final
     def Stop(self) -> None:
-        return self.__enumerator.Stop()
+        return self._GetInnerContainer().Stop()
     
+    @final
     def TryReset(self) -> bool|None:
-        return self.__enumerator.TryReset()
+        return self._GetInnerContainer().TryReset()
     
     def Dispose(self) -> None:
-        self.__enumerator.Stop()
+        self._GetInnerContainer().Stop()
 
-        self.__enumerator = _GetDisposedEnumerator()
+        self.__enumerator = self._GetDisposedEnumerator()
     
-    def AsIterator(self) -> SystemIterator[T]:
-        return self.__enumerator.AsIterator()
+    @final
+    def AsIterator(self) -> SystemIterator[TItem]:
+        return self._GetInnerContainer().AsIterator()
+@final
+class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
+    def __init__(self, enumerator: IEnumerator[T]) -> None:
+        super().__init__(enumerator)
+    
+    def _GetDisposedEnumerator(self) -> IEnumerator[T]:
+        return DisposableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
 
-__emptyEnumerator = _EmptyEnumerator[None]()
-__emptyEnumerable = _EmptyEnumerable[None]()
+__emptyEnumerator = _EmptyEnumerator[Any]()
+__emptyEnumerable = _EmptyEnumerable[Any]()
 
 __disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
 
@@ -775,9 +803,9 @@ def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()
 
 def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyEnumerator # type: ignore
+    return __emptyEnumerator
 def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyEnumerable # type: ignore
+    return __emptyEnumerable
 def GetEmptyIterable[T]() -> SystemIterable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
 
@@ -812,9 +840,9 @@ def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]
 def TryCreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]|None) -> IteratorProvider[T]|None:
     return None if iteratorProvider is None else CreateIteratorProvider(iteratorProvider)
 
-def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]) -> EnumeratorProvider[T]:
+def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]) -> IEnumerable[T]:
     return EnumeratorProvider[T](enumeratorProvider)
-def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> EnumeratorProvider[T]|None:
+def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> IEnumerable[T]|None:
     return None if enumeratorProvider is None else CreateEnumeratorProvider(enumeratorProvider)
 
 def ToDisposableEnumerator[T](enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
