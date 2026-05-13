@@ -7,9 +7,8 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import INode, ILinkedNode
 
 from WinCopies.Typing.Delegate import Function
-from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
-class NodeEnumeratorBase[T](Enumerator[T], IGenericConstraint[T, INode]):
+class NodeEnumeratorBase[T: INode](Enumerator[T]):
     def __init__(self, node: T) -> None:
         super().__init__()
 
@@ -29,12 +28,13 @@ class NodeEnumeratorBase[T](Enumerator[T], IGenericConstraint[T, INode]):
         self._SetCurrent(self.__first)
 
         def moveNext() -> bool:
-            node: T|None = self.GetCurrent()
+            node: T = self.GetCurrent()
+            _node: T|None = None
 
-            if node is None or (node := self._GetNextNode(node)) is None:
+            if (_node := self._GetNextNode(node)) is None:
                 return False
             
-            self._SetCurrent(node)
+            self._SetCurrent(_node)
 
             return True
 
@@ -70,7 +70,7 @@ class NodeEnumeratorBase[T](Enumerator[T], IGenericConstraint[T, INode]):
 
         return True
 
-class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]], IGenericConstraintImplementation[ILinkedNode[T]]):
+class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]) -> None:
         super().__init__(node)
     

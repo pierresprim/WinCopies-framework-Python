@@ -164,9 +164,9 @@ class Tree[T](TreeBase[T, __TreeNode[T]]):
     def _GetNode(self, value: T) -> __TreeNode[T]:
         return __TreeNode[T](value, self, self._GetCookie(), None, None)
 
-class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]], IGenericConstraintImplementation[ITreeNode[T]]):
+class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
     def __init__(self, node: ITreeNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:
-        return self._AsContainer(node).GetNext()
+        return node.GetNext()

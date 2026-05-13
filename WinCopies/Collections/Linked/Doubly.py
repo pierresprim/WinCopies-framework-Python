@@ -1919,18 +1919,18 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     def Clear(self) -> None:
         self._GetItems().Clear()
 
-class DoublyLinkedNodeEnumerator[T](NodeEnumeratorBase[IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
+class DoublyLinkedNodeEnumerator[T](NodeEnumeratorBase[IDoublyLinkedNode[T]]):
     def __init__(self, node: IDoublyLinkedNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None:
-        return self._AsContainer(node).GetNext()
+        return node.GetNext()
 class CountableLinkedListNodeEnumerator[T](NodeEnumeratorBase[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, node: ICountableLinkedListNode[T]) -> None:
         super().__init__(node)
 
     def _GetNextNode(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None:
-        return self._AsContainer(node).GetNext()
+        return node.GetNext()
 
 def CreateList[T](items: Iterable[T]|None) -> List[T]:
     return List[T](items)
