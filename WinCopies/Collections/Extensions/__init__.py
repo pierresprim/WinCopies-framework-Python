@@ -252,17 +252,13 @@ class ISortedTuple[T](ITuple[T], Collections.ISortedTuple[T]):
         super().__init__()
     
     @abstractmethod
-    def AsReadOnly(self) -> ISortedTuple[T]:
-        pass
-    
-    @abstractmethod
     def AsReversed(self) -> ISortedTuple[T]:
         pass
     
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedTuple[T]:
         pass
-class ISortedList[T](IListBase[T], ISortedTuple[T], Collections.ISortedList[T]):
+class ISortedList[T](IListBase[T], Collections.ISortedList[T], ISortedTuple[T]):
     def __init__(self) -> None:
         super().__init__()
     
