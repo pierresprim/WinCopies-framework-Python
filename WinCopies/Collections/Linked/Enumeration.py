@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import final
+from typing import overload, final
 
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumerator
@@ -105,14 +105,30 @@ class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]]):
             case _:
                 raise ValueError()
 
-def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]) -> Generator[T]:
+def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]|TwoWayNodeEnumerator[T]) -> Generator[T]:
     return Select(nodeEnumerator, lambda node: node.GetValue())
+
+@overload
 def GetValueIteratorFromNode[T](node: ILinkedNode[T]) -> Generator[T]:
-    return GetValueIterator(NodeEnumerator[T](node))
+    ...
+@overload
+def GetValueIteratorFromNode[T](node: ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> Generator[T]:
+    ...
+
+def GetValueIteratorFromNode[T](node: ILinkedNode[T]|ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> Generator[T]:
+    return GetValueIterator(TwoWayNodeEnumerator[T](node) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else NodeEnumerator[T](node))
 
 def GetValueEnumerator[T](nodeEnumerator: NodeEnumerator[T]) -> IEnumerator[T]:
     return AsEnumerator(GetValueIterator(nodeEnumerator))
+
+@overload
 def GetValueEnumeratorFromNode[T](node: ILinkedNode[T]) -> IEnumerator[T]:
-    return AsEnumerator(GetValueIteratorFromNode(node))
+    ...
+@overload
+def GetValueEnumeratorFromNode[T](node: ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[T]:
+    ...
+
+def GetValueEnumeratorFromNode[T](node: ILinkedNode[T]|ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[T]:
+    return AsEnumerator(GetValueIteratorFromNode(node, enumerationOrder) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else GetValueIteratorFromNode(node))
 def TryGetValueEnumeratorFromNode[T](node: ILinkedNode[T]|None) -> IEnumerator[T]|None:
     return None if node is None else GetValueEnumeratorFromNode(node)
