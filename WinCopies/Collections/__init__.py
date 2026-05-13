@@ -736,10 +736,6 @@ class ISortedTuple[T](IArrayBase[T]):
     @abstractmethod
     def AsReversed(self) -> ISortedTuple[T]:
         pass
-
-    @abstractmethod
-    def AsReadOnly(self) -> ISortedTuple[T]:
-        pass
 class ISortedList[T](IListBase[T], ISortedTuple[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -750,6 +746,10 @@ class ISortedList[T](IListBase[T], ISortedTuple[T]):
 
     @abstractmethod
     def AsReversed(self) -> ISortedList[T]:
+        pass
+
+    @abstractmethod
+    def AsReadOnly(self) -> ISortedTuple[T]:
         pass
     
     @abstractmethod
