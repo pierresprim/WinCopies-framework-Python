@@ -117,9 +117,6 @@ class IReversableCountableEnumerable[T](IReversableEnumerable[T], ICountableEnum
     def __init__(self) -> None:
         super().__init__()
 
-def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
-    return None if enumerable is None else enumerable.TryGetEnumerator()
-
 class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -199,26 +196,6 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     @final
     def __iter__(self) -> SystemIterator[T]:
         return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
-
-__emptyEnumerator = _EmptyEnumerator[None]()
-__emptyEnumerable = _EmptyEnumerable[None]()
-
-def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyEnumerator # type: ignore
-def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyEnumerable # type: ignore
-def GetEmptyIterable[T]() -> SystemIterable[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
-
-def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
-    return GetEmptyEnumerator() if enumerator is None else enumerator
-def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # pyright: ignore[reportUnknownVariableType]
-
-def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
-    return GetEmptyEnumerable() if enumerable is None else enumerable
-def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
-    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # pyright: ignore[reportUnknownVariableType]
 
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
@@ -389,17 +366,6 @@ class Iterator[T](Enumerator[T]):
     def _ResetOverride(self) -> bool:
         return False
 
-def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
-    return None if enumerable is None else enumerable.AsIterable()
-
-def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
-    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
-def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
-    return None if iterator is None else AsEnumerator(iterator)
-
-def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
-    return None if enumerator is None else enumerator.AsIterator()
-
 class IterableBase[T](Enumerable[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -451,21 +417,6 @@ class EnumeratorProvider[T](Enumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
-
-def CreateIterable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
-    return iterable if isinstance(iterable, IEnumerable) else Iterable(iterable)
-def TryCreateIterable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
-    return None if iterable is None else CreateIterable(iterable)
-
-def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]) -> IteratorProvider[T]:
-    return IteratorProvider[T](iteratorProvider)
-def TryCreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]|None) -> IteratorProvider[T]|None:
-    return None if iteratorProvider is None else CreateIteratorProvider(iteratorProvider)
-
-def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]) -> EnumeratorProvider[T]:
-    return EnumeratorProvider[T](enumeratorProvider)
-def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> EnumeratorProvider[T]|None:
-    return None if enumeratorProvider is None else CreateEnumeratorProvider(enumeratorProvider)
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -776,11 +727,6 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     def AsIterator(self) -> SystemIterator[T]:
         raise GetDisposedError()
 
-__disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
-
-def _GetDisposedEnumerator[T]() -> IDisposableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __disposedEnumerator
-
 @final
 class _DisposableEnumerator[T](Abstract, IDisposableEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
@@ -816,6 +762,60 @@ class _DisposableEnumerator[T](Abstract, IDisposableEnumerator[T]):
     
     def AsIterator(self) -> SystemIterator[T]:
         return self.__enumerator.AsIterator()
+
+__emptyEnumerator = _EmptyEnumerator[None]()
+__emptyEnumerable = _EmptyEnumerable[None]()
+
+__disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
+
+def _GetDisposedEnumerator[T]() -> IDisposableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __disposedEnumerator
+
+def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
+    return None if enumerable is None else enumerable.TryGetEnumerator()
+
+def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyEnumerator # type: ignore
+def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyEnumerable # type: ignore
+def GetEmptyIterable[T]() -> SystemIterable[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
+
+def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
+    return GetEmptyEnumerator() if enumerator is None else enumerator
+def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
+    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # pyright: ignore[reportUnknownVariableType]
+
+def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
+    return GetEmptyEnumerable() if enumerable is None else enumerable
+def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
+    return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # pyright: ignore[reportUnknownVariableType]
+
+def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
+    return None if enumerable is None else enumerable.AsIterable()
+
+def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
+    return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
+def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
+    return None if iterator is None else AsEnumerator(iterator)
+
+def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
+    return None if enumerator is None else enumerator.AsIterator()
+
+def CreateIterable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
+    return iterable if isinstance(iterable, IEnumerable) else Iterable(iterable)
+def TryCreateIterable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
+    return None if iterable is None else CreateIterable(iterable)
+
+def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]) -> IteratorProvider[T]:
+    return IteratorProvider[T](iteratorProvider)
+def TryCreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]|None) -> IteratorProvider[T]|None:
+    return None if iteratorProvider is None else CreateIteratorProvider(iteratorProvider)
+
+def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]) -> EnumeratorProvider[T]:
+    return EnumeratorProvider[T](enumeratorProvider)
+def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> EnumeratorProvider[T]|None:
+    return None if enumeratorProvider is None else CreateEnumeratorProvider(enumeratorProvider)
 
 def ToDisposableEnumerator[T](enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
     return enumerator if isinstance(enumerator, IDisposableEnumerator) else _DisposableEnumerator[T](enumerator)
