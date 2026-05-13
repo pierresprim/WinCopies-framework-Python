@@ -718,7 +718,7 @@ class IList[T](IArray[T], IListBase[T]):
         if not self.TryInsertValues(index, *values):
             raise IndexError(index)
 
-class ISortedTuple[T](IArrayBase[T]):
+class ISortedTuple[T](ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
     
