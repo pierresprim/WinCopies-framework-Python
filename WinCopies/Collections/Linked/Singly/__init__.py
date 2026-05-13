@@ -686,10 +686,7 @@ class Stack[T](List[T], StackBase[T]):
     def AsReadOnly(self) -> IReadOnlyStack[T]:
         return self.__readOnly.GetValue()
 
-class SinglyLinkedNodeEnumeratorBase[TItems, TNode](NodeEnumeratorBase[TItems, TNode]):
-    def __init__(self, node: TNode) -> None:
-        super().__init__(node)
-class SinglyLinkedNodeEnumerator[T](SinglyLinkedNodeEnumeratorBase[T, SinglyLinkedNode[T]]):
+class SinglyLinkedNodeEnumerator[T](NodeEnumeratorBase[SinglyLinkedNode[T]]):
     def __init__(self, node: SinglyLinkedNode[T]) -> None:
         super().__init__(node)
 
