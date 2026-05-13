@@ -4,12 +4,13 @@ from abc import abstractmethod
 from typing import final, cast
 
 from WinCopies import Abstract
+from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactory
 from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObjectFactory
-from WinCopies.Collections.Linked.Node import INode as ILinkedNode
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase
+from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
 from WinCopies.Typing import GetDisposedError
 from WinCopies.Typing.Comparison import IHashable
 
@@ -151,20 +152,32 @@ class _ResumableEnumerationCursorFactory(ResumableNodeEnumerationCursorFactory[_
     def _InitializeCursorOverride(self, cursor: _ResumableNodeEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
+class IDefaultResumableNodeEnumerator[T: ILinkedNode](IDefaultResumableEnumerator[T, ILinkedNode]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    def _CreateCursorFactory(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
+        return _ResumableEnumerationCursorFactory(self._CreateCursorCookie())
 
-class ResumableNodeEnumerator[T: ILinkedNode](NodeEnumeratorBase[T], IDefaultResumableEnumerator[T, ILinkedNode]):
-    def __init__(self, firstNode: T) -> None:
-        super().__init__(firstNode)
-        
-        self.__cursors: IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor] = _ResumableEnumerationCursorFactory(self._CreateCursorCookie())
+    @abstractmethod
+    def _GetCursors(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
+        pass
+    
+    @abstractmethod
+    def _GetCurrentNode(self) -> T:
+        pass
+    @abstractmethod
+    def _SetCurrentNode(self, node: T) -> None:
+        pass
     
     @final
     def _GetFirstCursor(self) -> IResumableEnumerationCursor:
-        return self.__cursors.GetFirstCursor()
+        return self._GetCursors().GetFirstCursor()
     
     @final
     def _SetCursor(self, value: ILinkedNode) -> None:
-        self._SetCurrent(cast(T, value))
+        self._SetCurrentNode(cast(T, value))
     
     @final
     def SupportsMultipleCursors(self) -> bool:
@@ -179,13 +192,51 @@ class ResumableNodeEnumerator[T: ILinkedNode](NodeEnumeratorBase[T], IDefaultRes
 
             return cursor
         
-        cursors: IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor] = self.__cursors
-        node: T = self._GetCurrent()
+        cursors: IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor] = self._GetCursors()
+        node: T = self._GetCurrentNode()
         cursor: IResumableNodeEnumerationCursor|None = cursors.TryGetValue(_NodeKey(node)).TryGetValue()
 
         return add(node) if cursor is None else cursor
+
+class ResumableNodeEnumerator[T: ILinkedNode](NodeEnumeratorBase[T], IDefaultResumableNodeEnumerator[T]):
+    def __init__(self, firstNode: T) -> None:
+        super().__init__(firstNode)
+        
+        self.__cursors: IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor] = self._CreateCursorFactory()
+    
+    @final
+    def _GetCursors(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
+        return self.__cursors
+    
+    @final
+    def _GetCurrentNode(self) -> T:
+        return self._GetCurrent()
+    @final
+    def _SetCurrentNode(self, node: T) -> None:
+        return self._SetCurrent(node)
     
     def _OnEnded(self) -> None:
         super()._OnEnded()
 
-        self.__cursors.InvalidateObjects()
+        self._GetCursors().InvalidateObjects()
+class TwoWayResumableNodeEnumerator[T: ITwoWayLinkedNode](TwoWayNodeEnumeratorBase[T], IDefaultResumableNodeEnumerator[T]):
+    def __init__(self, firstNode: T, order: EnumerationOrder) -> None:
+        super().__init__(firstNode, order)
+        
+        self.__cursors: IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor] = self._CreateCursorFactory()
+    
+    @final
+    def _GetCursors(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
+        return self.__cursors
+    
+    @final
+    def _GetCurrentNode(self) -> T:
+        return self._GetCurrent()
+    @final
+    def _SetCurrentNode(self, node: T) -> None:
+        return self._SetCurrent(node)
+    
+    def _OnEnded(self) -> None:
+        super()._OnEnded()
+
+        self._GetCursors().InvalidateObjects()
