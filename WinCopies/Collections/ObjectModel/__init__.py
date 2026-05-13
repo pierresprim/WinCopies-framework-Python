@@ -1,6 +1,6 @@
 from typing import final
 
-from WinCopies.Collections.Extensions import ITuple, IArray, SequenceAbstract
+from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
@@ -45,6 +45,14 @@ class ReadOnlyCollection[T](ReadOnlyCollectionBase[T, ITuple[T]], IGenericConstr
     @final
     def SliceAt(self, key: slice) -> ITuple[T]:
         return self._GetInnerContainer().SliceAt(key)
+
+class SortedCollection[T](ReadOnlyCollectionBase[T, ISortedTuple[T]], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
+    def __init__(self, items: ISortedTuple[T]) -> None:
+        super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> ISortedTuple[T]:
+        return self._GetContainer().SliceAt(key)
 class FixedSizeCollection[T](ReadOnlyCollectionBase[T, IArray[T]], IGenericConstraintImplementation[IArray[T]]):
     def __init__(self, items: IArray[T]) -> None:
         super().__init__(items)
