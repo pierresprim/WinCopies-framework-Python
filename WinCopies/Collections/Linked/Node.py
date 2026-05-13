@@ -12,6 +12,16 @@ class INode(IInterface):
     @abstractmethod
     def GetNext(self) -> INode|None:
         pass
+class ITwoWayNode(INode):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def GetPrevious(self) -> ITwoWayNode|None:
+        pass
+    @abstractmethod
+    def GetNext(self) -> ITwoWayNode|None:
+        pass
 
 class ILinkedNode[T](INode):
     def __init__(self) -> None:
@@ -26,6 +36,16 @@ class ILinkedNode[T](INode):
 
     @abstractmethod
     def GetNext(self) -> ILinkedNode[T]|None:
+        pass
+class ITwoWayLinkedNode[T](ILinkedNode[T], ITwoWayNode):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def GetPrevious(self) -> ITwoWayLinkedNode[T]|None:
+        pass
+    @abstractmethod
+    def GetNext(self) -> ITwoWayLinkedNode[T]|None:
         pass
 
 class LinkedNodeBase[T](Abstract):
