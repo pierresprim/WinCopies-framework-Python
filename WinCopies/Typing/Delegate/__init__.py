@@ -19,6 +19,7 @@ type IndexedValueFunction[TIn, TOut] = Callable[[int, TIn], TOut]
 type IndexedValueAction[T] = IndexedValueFunction[T, None]
 type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
 type Selector[T] = Converter[T, T]
+type NullableSelector[T] = NullableConverter[T, T]
 
 class IFunctionBase[T](IInterface):
     def __init__(self) -> None:
