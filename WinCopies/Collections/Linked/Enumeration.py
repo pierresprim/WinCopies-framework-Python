@@ -1,12 +1,12 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies.Collections import Generator
+from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Node import INode, ILinkedNode
+from WinCopies.Collections.Linked.Node import INode, ITwoWayNode, ILinkedNode, ITwoWayLinkedNode
 
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import Function, NullableSelector
 
 class NodeEnumeratorBase[T: INode](Enumerator[T]):
     def __init__(self, node: T) -> None:
@@ -69,7 +69,6 @@ class NodeEnumeratorBase[T: INode](Enumerator[T]):
         self.__OnEnded()
 
         return True
-
 class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]) -> None:
         super().__init__(node)
@@ -77,6 +76,34 @@ class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]]):
     @final
     def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None:
         return node.GetNext()
+
+class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorBase[T]):
+    def __init__(self, node: T, order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
+        super().__init__(node)
+        
+        self.__getNext: NullableSelector[T] = self._GetNodeConverter(order)
+    
+    @abstractmethod
+    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[T]:
+        pass
+    
+    @final
+    def _GetNextNode(self, node: T) -> T|None:
+        return self.__getNext(node)
+class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]]):
+    def __init__(self, node: ITwoWayLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
+        super().__init__(node, order)
+    
+    @final
+    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ITwoWayLinkedNode[T]]:
+        match order:
+            case EnumerationOrder.FIFO:
+                return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO:
+                return lambda node: node.GetPrevious()
+            
+            case _:
+                raise ValueError()
 
 def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]) -> Generator[T]:
     return Select(nodeEnumerator, lambda node: node.GetValue())
