@@ -7,7 +7,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import Collections, IInterface, IStringable
 from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, HashableProtocol
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -155,7 +155,7 @@ class IResumableEnumeratorMonitor[T](IEnumeratorMonitor[T]):
     def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
         pass
 
-class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumerable[T], IResumableEnumerable[T], IStringable):
+class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
