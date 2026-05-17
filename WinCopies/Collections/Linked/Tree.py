@@ -7,9 +7,11 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumeratorBase, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
+from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
 from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableListBase, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableListBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase
-from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import IFunction, Method, NullableSelector, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ITreeNode[T](INode[T]):
@@ -112,6 +114,10 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]],
     @final
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
         return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
+    
+    @final
+    def _GetResumableNodeEnumerator(self, node: ITreeNode[TItem]) -> IResumableEnumerator[ITreeNode[TItem]]:
+        return ResumableTreeNodeEnumerator[TItem](node)
 
 @final
 class __TreeNode[T](DoublyLinkedNodeAbstract[T, "__TreeNode[T]", ITreeNode[T], TreeBase[T, "__TreeNode[T]"], TreeBase[T, "__TreeNode[T]"]], NodeBase[T, "__TreeNode[T]"], ITreeNode[T], EnumerableListNodeBase["__TreeNode[T]", TreeBase[T, "__TreeNode[T]"]], IGenericConstraintImplementation[IEnumerableListBase[T, ITreeNode[T]]]):
@@ -170,3 +176,17 @@ class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:
         return node.GetNext()
+class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]]):
+    def __init__(self, node: ITreeNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
+        super().__init__(node, order)
+    
+    @final
+    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ITreeNode[T]]:
+        match order:
+            case EnumerationOrder.FIFO:
+                return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO:
+                return lambda node: node.GetPrevious()
+            
+            case _:
+                raise ValueError()

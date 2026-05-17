@@ -8,8 +8,8 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator as GeneratorBase, EnumerationOrder, IReadOnlyCollection, ICountable, Countable
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerator, GetResumableEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, GetResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase, IIterator, Generator, ConverterBase
 from WinCopies.Collections.Linked.Enumeration import TwoWayNodeEnumeratorBase, GetValueEnumeratorFromNode
@@ -392,7 +392,7 @@ class ICountableLinkedListNode[T](INode[T]):
     def GetList(self) -> ICountableList[T]|None:
         pass
 
-class IReadOnlyCountableList[T](IReadOnlyList[T], ICountable):
+class IReadOnlyCountableList[T](IReadOnlyList[T], IReversableCountableEnumerable[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -414,6 +414,10 @@ class IReadWriteCountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], 
 class ICountableList[T](IReadWriteCountableEnumerableList[T], IEnumerableList[T, ICountableLinkedListNode[T]]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
+        pass
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
@@ -728,6 +732,23 @@ class _EnumerableListEnumerable[TItem, TNode: IRemovable](Enumerable[TNode], IRe
         return self.__list.TryGetNodeEnumerator()
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TNode]|None:
         return self.__list.TryGetResumableNodeEnumerator()
+@final
+class _CountableEnumerableListEnumerable[T](Enumerable[ICountableLinkedListNode[T]], IResumableCountableEnumerable[ICountableLinkedListNode[T]]):
+    def __init__(self, l: ICountableList[T]) -> None:
+        super().__init__()
+
+        self.__list: ICountableList[T] = l
+    
+    def GetCount(self) -> int:
+        return self.__list.GetCount()
+    
+    def TryGetEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None:
+        return self.__list.TryGetNodeEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None:
+        return self.__list.TryGetResumableNodeEnumerator()
+    
+    def AsSized(self) -> Sized:
+        return self.__list.AsSized()
 
 @final
 class _ReversedReadOnlyListUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IReadOnlyEnumerableList[TItem]]):
@@ -782,6 +803,15 @@ class _EnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IResumab
     
     def _GetValue(self) -> IResumableEnumerable[TNode]:
         return _EnumerableListEnumerable[TItem, TNode](self.__items)
+@final
+class _CountableEnumerableUpdater[T](ValueFunctionUpdater[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]):
+    def __init__(self, items: ICountableList[T], updater: Method[IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]]) -> None:
+        super().__init__(updater)
+
+        self.__items: ICountableList[T] = items
+    
+    def _GetValue(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
+        return _CountableEnumerableListEnumerable[T](self.__items)
 
 @final
 class _ReadOnlyEnumerableUpdaterBase[TItem, TNode: IRemovable](ValueFunctionUpdater[IReadOnlyEnumerableListBase[TItem]]):
@@ -953,6 +983,13 @@ class IEnumerableListCookieAbstract[TItem, TNode, TReadOnly](IInterface):
     @abstractmethod
     def GetGenerator(self) -> IIterator[TItem]:
         pass
+class ICountableEnumerableListCookieAbstract[TItem, TNode, TReadOnly](IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetNodeEnumerable(self) -> IResumableCountableEnumerable[TNode]:
+        pass
 
 class IEnumerableListCookieBase[TItem, TNode](IEnumerableListCookieAbstract[TItem, TNode, IReadOnlyEnumerableListBase[TItem]]):
     def __init__(self) -> None:
@@ -961,14 +998,12 @@ class IEnumerableListCookie[TItem, TNode](IEnumerableListCookieAbstract[TItem, T
     def __init__(self) -> None:
         super().__init__()
 
-class ICountableEnumerableListCookie[TItem, TNode](IEnumerableListCookieAbstract[TItem, TNode, IReadOnlyCountableEnumerableList[TItem]]):
+class ICountableEnumerableListCookie[TItem, TNode](ICountableEnumerableListCookieAbstract[TItem, TNode, IReadOnlyCountableEnumerableList[TItem]]):
     def __init__(self) -> None:
         super().__init__()
 
 class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
     def __init__(self, items: TList, cookie: IValueCookie[TItem, TNode]) -> None:
-        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None:
-            self.__nodeEnumerable = func
         def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None:
             self.__readOnlyEnumerable = func
         
@@ -979,14 +1014,11 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
         
         super().__init__()
 
-        _items: IEnumerableListBase[TItem, TNode] = self._AsList(items)
-
         self.__cookie: IValueCookie[TItem, TNode] = cookie
 
-        self.__nodeEnumerable: IFunction[IResumableEnumerable[TNode]] = _EnumerableUpdater[TItem, TNode](_items, updateNodeEnumerable) # type: ignore[no-redef]
         self.__readOnlyEnumerable: IFunction[TReadOnly] = self._CreateReadOnly(items, updateReadOnlyEnumerable) # type: ignore[no-redef]
         
-        self.__nodeGenerator: IFunction[IIterator[TNode]] = _NodeGeneratorUpdater[TItem, TNode](_items, updateNodeGenerator) # type: ignore[no-redef]
+        self.__nodeGenerator: IFunction[IIterator[TNode]] = _NodeGeneratorUpdater[TItem, TNode](self._AsList(items), updateNodeGenerator) # type: ignore[no-redef]
         self.__generator: IFunction[IIterator[TItem]] = _GeneratorUpdater[TItem, TNode](cookie, updateGenerator) # type: ignore[no-redef]
     
     @abstractmethod
@@ -1002,9 +1034,6 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
         return self.__cookie
     
     @final
-    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        return self.__nodeEnumerable.GetValue()
-    @final
     def GetReadOnly(self) -> TReadOnly:
         return self.__readOnlyEnumerable.GetValue()
     
@@ -1018,42 +1047,69 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
 @final
 class _ReadOnlyEnumerableListAbstract[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableListBase[TItem, TNode], IReadOnlyEnumerableListBase[TItem]], IEnumerableListCookieBase[TItem, TNode]):
     def __init__(self, items: IEnumerableListBase[TItem, TNode], cookie: IValueCookie[TItem, TNode]) -> None:
+        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None:
+            self.__nodeEnumerable = func
+        
         super().__init__(items, cookie)
+
+        self.__nodeEnumerable: IFunction[IResumableEnumerable[TNode]] = _EnumerableUpdater[TItem, TNode](items, updateNodeEnumerable) # type: ignore[no-redef]
     
     def _CreateReadOnly(self, items: IEnumerableListBase[TItem, TNode], action: Method[IFunction[IReadOnlyEnumerableListBase[TItem]]]) -> IFunction[IReadOnlyEnumerableListBase[TItem]]:
         return _ReadOnlyEnumerableUpdaterBase[TItem, TNode](items, action)
     
     def _AsList(self, items: IEnumerableListBase[TItem, TNode]) -> IEnumerableListBase[TItem, TNode]:
         return items
+    
+    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
+        return self.__nodeEnumerable.GetValue()
 @final
 class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableList[TItem, TNode], IReadOnlyEnumerableList[TItem]], IEnumerableListCookie[TItem, TNode]):
     def __init__(self, items: IEnumerableList[TItem, TNode], cookie: IValueCookie[TItem, TNode]) -> None:
+        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None:
+            self.__nodeEnumerable = func
+        
         super().__init__(items, cookie)
+
+        self.__nodeEnumerable: IFunction[IResumableEnumerable[TNode]] = _EnumerableUpdater[TItem, TNode](items, updateNodeEnumerable) # type: ignore[no-redef]
     
     def _CreateReadOnly(self, items: IEnumerableList[TItem, TNode], action: Method[IFunction[IReadOnlyEnumerableList[TItem]]]) -> IFunction[IReadOnlyEnumerableList[TItem]]:
         return _ReadOnlyEnumerableUpdater[TItem, TNode](items, action)
     
     def _AsList(self, items: IEnumerableList[TItem, TNode]) -> IEnumerableList[TItem, TNode]:
         return items
+    
+    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
+        return self.__nodeEnumerable.GetValue()
 
-class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_EnumerableList[TItem, TNode], _EnumerableListAbstract[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
+class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie](_EnumerableList[TItem, TNode], _EnumerableListAbstract[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self, items: Iterable[TItem]|None) -> None:
         super().__init__()
         
         self.__first: TNode|None = None
         self.__last: TNode|None = None
 
-        self.__enumerable: IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable] = self._CreateEnumerationCookie(super()._GetValueCookie())
+        self.__cookie: TCookie = self._CreateEnumerationCookie(super()._GetValueCookie())
 
         self.AddLastItems(items)
     
     @abstractmethod
-    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNodeInterface]) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
+    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNodeInterface]) -> TCookie:
+        pass
+
+    @abstractmethod
+    def _GetCookieAsEnumerationCookie(self, items: TCookie) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
         pass
 
     @final
+    def _GetEnumerationCookie(self) -> TCookie:
+        return self.__cookie
+    @final
+    def _GetInnerCookie(self) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
+        return self._GetCookieAsEnumerationCookie(self._GetEnumerationCookie())
+
+    @final
     def _AsReadOnly(self) -> TEnumerable:
-        return self.__enumerable.GetReadOnly()
+        return self._GetInnerCookie().GetReadOnly()
     
     @abstractmethod
     def _GetNode(self, value: TItem) -> TNode:
@@ -1061,7 +1117,7 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_Enumer
     
     @final
     def _GetValueCookie(self) -> IValueCookie[TItem, TNodeInterface]:
-        return self.__enumerable.GetValueCookie()
+        return self._GetInnerCookie().GetValueCookie()
 
     @final
     def _GetFirst(self) -> TNode|None:
@@ -1155,20 +1211,24 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_Enumer
         first: TNodeInterface|None = self.GetFirst()
 
         return None if first is None else self._GetResumableNodeEnumerator(first)
-    
-    @final
-    def AsNodeEnumerable(self) -> IResumableEnumerable[TNodeInterface]:
-        return self.__enumerable.GetNodeEnumerable()
 
     @final
     def AsNodeGenerator(self) -> IIterator[TNodeInterface]:
-        return self.__enumerable.GetNodeGenerator()
+        return self._GetInnerCookie().GetNodeGenerator()
     @final
     def AsGenerator(self) -> IIterator[TItem]:
-        return self.__enumerable.GetGenerator()
-class EnumerableListAbstract[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_Enumerable[TItem, TNode, TNodeInterface, TEnumerable]):
+        return self._GetInnerCookie().GetGenerator()
+class EnumerableListAbstract[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_Enumerable[TItem, TNode, TNodeInterface, TEnumerable, IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]]):
     def __init__(self, items: Iterable[TItem]|None = None) -> None:
         super().__init__(items)
+    
+    @final
+    def _GetCookieAsEnumerationCookie(self, items: IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
+        return items
+    
+    @final
+    def AsNodeEnumerable(self) -> IResumableEnumerable[TNodeInterface]:
+        return self._GetInnerCookie().GetNodeEnumerable()
 class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable](EnumerableListAbstract[TItem, TNode, TNodeInterface, IReadOnlyEnumerableListBase[TItem]]):
     def __init__(self, items: Iterable[TItem]|None = None) -> None:
         super().__init__(items)
@@ -1413,6 +1473,9 @@ class _ReversedReadOnlyCountableListBase[T](_ReversedReadOnlyListBase[T, ICounta
     
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
         return self._GetInnerList()
+    
+    def AsSized(self) -> Sized:
+        return self._GetInnerList().AsSized()
 @final
 class _ReversedReadOnlyCountableList[T](Countable, IReadOnlyCountableEnumerableList[T]):
     def __init__(self, items: ICountableList[T]) -> None:
@@ -1440,19 +1503,30 @@ class _ReversedReadOnlyCountableList[T](Countable, IReadOnlyCountableEnumerableL
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
         return self.__items.AsReversed()
 
-class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly](_ReversedReadOnlyListAbstract[TItem, TNode, TList], _EnumerableListAbstract[TItem, TNode], IEnumerableList[TItem, TNode]):
+class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_ReversedReadOnlyListAbstract[TItem, TNode, TList], _EnumerableListAbstract[TItem, TNode], IEnumerableList[TItem, TNode]):
     def __init__(self, items: TList) -> None:
         super().__init__(items)
 
-        self.__enumerable: IEnumerableListCookieAbstract[TItem, TNode, TReadOnly] = self._CreateEnumerationCookie(super()._GetValueCookie())
+        self.__cookie: TCookie = self._CreateEnumerationCookie(super()._GetValueCookie())
     
     @abstractmethod
-    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNode]) -> IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]:
+    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNode]) -> TCookie:
         pass
+
+    @abstractmethod
+    def _GetCookieAsEnumerationCookie(self, items: TCookie) -> IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]:
+        pass
+
+    @final
+    def _GetEnumerationCookie(self) -> TCookie:
+        return self.__cookie
+    @final
+    def _GetInnerCookie(self) -> IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]:
+        return self._GetCookieAsEnumerationCookie(self._GetEnumerationCookie())
     
     @final
     def _AsReadOnly(self) -> TReadOnly:
-        return self.__enumerable.GetReadOnly()
+        return self._GetInnerCookie().GetReadOnly()
     
     @abstractmethod
     def _GetNodeEnumerator(self, first: TNode) -> IEnumerator[TNode]:
@@ -1463,7 +1537,7 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly](_ReversedRea
     
     @final
     def _GetValueCookie(self) -> IValueCookie[TItem, TNode]:
-        return self.__enumerable.GetValueCookie()
+        return self._GetInnerCookie().GetValueCookie()
     
     @final
     def GetFirst(self) -> TNode|None:
@@ -1500,25 +1574,24 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly](_ReversedRea
         first: TNode|None = self.GetFirst()
 
         return None if first is None else self._GetResumableNodeEnumerator(first)
-    
-    @final
-    def AsNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        return self.__enumerable.GetNodeEnumerable()
 
     @final
     def AsNodeGenerator(self) -> IIterator[TNode]:
-        return self.__enumerable.GetNodeGenerator()
+        return self._GetInnerCookie().GetNodeGenerator()
     @final
     def AsGenerator(self) -> IIterator[TItem]:
-        return self.__enumerable.GetGenerator()
+        return self._GetInnerCookie().GetGenerator()
 
 @final
-class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IReadOnlyEnumerableList[T]], IList[T], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
+class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IReadOnlyEnumerableList[T], IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]], IList[T], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
     def __init__(self, items: IList[T]) -> None:
         super().__init__(items)
     
     def _CreateEnumerationCookie(self, cookie: IValueCookie[T, IDoublyLinkedNode[T]]) -> IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]:
         return _ReadOnlyEnumerableListBase[T, IDoublyLinkedNode[T]](self, cookie)
+    
+    def _GetCookieAsEnumerationCookie(self, items: IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]) -> IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]:
+        return items
     
     def _AsList(self, items: IList[T]) -> IEnumerableList[T, IDoublyLinkedNode[T]]:
         return items
@@ -1535,13 +1608,20 @@ class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IRea
     
     def AsReversed(self) -> IList[T]:
         return self._GetInnerList()
+    
+    @final
+    def AsNodeEnumerable(self) -> IResumableEnumerable[IDoublyLinkedNode[T]]:
+        return self._GetEnumerationCookie().GetNodeEnumerable()
 @final
-class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
+class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T], ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, items: ICountableList[T]) -> None:
         super().__init__(items)
     
-    def _CreateEnumerationCookie(self, cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> IEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]:
+    def _CreateEnumerationCookie(self, cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]:
         return _ReadOnlyCountableEnumerableListBase[T](self._GetInnerList(), cookie)
+    
+    def _GetCookieAsEnumerationCookie(self, items: ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]) -> IEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]:
+        return items
     
     def _AsList(self, items: ICountableList[T]) -> IEnumerableList[T, ICountableLinkedListNode[T]]:
         return items
@@ -1553,11 +1633,21 @@ class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNod
     def _GetResumableNodeEnumerator(self, first: ICountableLinkedListNode[T]) -> IResumableEnumerator[ICountableLinkedListNode[T]]:
         return ResumableCountableLinkedListNodeEnumerator[T](first)
     
+    def GetCount(self) -> int:
+        return self._GetInnerList().GetCount()
+    
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
         return self._AsReadOnly()
     
     def AsReversed(self) -> ICountableList[T]:
         return self._GetInnerList()
+    
+    def AsSized(self) -> Sized:
+        return self._GetInnerList().AsSized()
+    
+    @final
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
+        return self._GetEnumerationCookie().GetNodeEnumerable()
 
 @final
 class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
@@ -1653,21 +1743,33 @@ class _ReadOnlyCountableUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumer
 @final
 class _ReadOnlyCountableEnumerableListBase[T](_EnumerableListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]], ICountableEnumerableListCookie[T, ICountableLinkedListNode[T]]):
     def __init__(self, items: ICountableList[T], cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> None:
+        def updateNodeEnumerable(func: IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]) -> None:
+            self.__nodeEnumerable = func
+        
         super().__init__(items, cookie)
+
+        self.__nodeEnumerable: IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]] = _CountableEnumerableUpdater[T](items, updateNodeEnumerable) # type: ignore[no-redef]
     
     def _CreateReadOnly(self, items: ICountableList[T], action: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]) -> IFunction[IReadOnlyCountableEnumerableList[T]]:
         return _ReadOnlyCountableUpdater[T](items, action)
     
     def _AsList(self, items: ICountableList[T]) -> IEnumerableList[T, ICountableLinkedListNode[T]]:
         return items
+    
+    def GetNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
+        return self.__nodeEnumerable.GetValue()
 
-class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
+class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem], ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
     def __init__(self, items: Iterable[TItem]|None) -> None:
         super().__init__(items)
     
     @final
-    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, ICountableLinkedListNode[TItem]]) -> IEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]:
+    def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, ICountableLinkedListNode[TItem]]) -> ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]:
         return _ReadOnlyCountableEnumerableListBase[TItem](self, cookie)
+    
+    @final
+    def _GetCookieAsEnumerationCookie(self, items: ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]) -> IEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]:
+        return items
     
     @final
     def _GetNodeEnumerator(self, node: ICountableLinkedListNode[TItem]) -> IEnumerator[ICountableLinkedListNode[TItem]]:
@@ -1675,6 +1777,9 @@ class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinked
     @final
     def _GetResumableNodeEnumerator(self, node: ICountableLinkedListNode[TItem]) -> IResumableEnumerator[ICountableLinkedListNode[TItem]]:
         return ResumableCountableLinkedListNodeEnumerator[TItem](node)
+    
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[TItem]]:
+        return self._GetEnumerationCookie().GetNodeEnumerable()
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[TItem]:
@@ -1798,7 +1903,7 @@ class _ReversedCountableList[T](CountableEnumerable[T], _EnumerableListAbstract[
     def AsReversed(self) -> ICountableList[T]:
         return self.__items.AsReversed()
     
-    def AsNodeEnumerable(self) -> IResumableEnumerable[ICountableLinkedListNode[T]]:
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
         return self.__items.AsNodeEnumerable()
     
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
@@ -1946,7 +2051,7 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         return self._GetItems().TryGetResumableNodeEnumerator()
     
     @final
-    def AsNodeEnumerable(self) -> IResumableEnumerable[ICountableLinkedListNode[T]]:
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
         return self._GetItems().AsNodeEnumerable()
     
     @final
