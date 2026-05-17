@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing import InvalidOperationError
@@ -125,6 +125,13 @@ class IResumableEnumerable[T](IEnumerable[T]):
     @abstractmethod
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
         pass
+
+class IResumableCountableEnumerable[T](IResumableEnumerable[T], ICountableEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
+class ResumableCountableEnumerable[T](CountableEnumerable[T], IResumableCountableEnumerable[T]):
+    def __init__(self) -> None:
+        super().__init__()
 
 class ResumableEnumeratorBase[T](EnumeratorBase[T], IResumableEnumerator[T]):
     def __init__(self) -> None:
