@@ -42,6 +42,13 @@ def BoolFuncAction(func: Function[bool], action: Action) -> bool:
 def GetBoolFuncAction(func: Function[bool], action: Action) -> Function[bool]:
     return lambda: BoolFuncAction(func, action)
 
+def ActionBoolFunc(action: Action, func: Function[bool]) -> bool:
+    action()
+    
+    return func()
+def GetActionBoolFunc(action: Action, func: Function[bool]) -> Function[bool]:
+    return lambda: ActionBoolFunc(action, func)
+
 
 
 def ExecuteActions(*actions: Action) -> None:
