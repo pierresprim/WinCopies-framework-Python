@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from typing import final, Any
+from typing import final, Any, cast
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import ICountable
@@ -313,27 +313,66 @@ class EnumeratorBase[T](IteratorBase[T]):
     @final
     def HasProcessedItems(self) -> bool:
         return self.__hasProcessedItems
-class Enumerator[T](EnumeratorBase[T]):
+
+class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
+    
+    @abstractmethod
+    def _SetCurrentOverride(self, current: T) -> None:
+        pass
+    @abstractmethod
+    def _UnsetCurrentOverride(self) -> None:
+        pass
 
-        self.__current: INullable[T] = GetNullValue()
+    @final
+    def _SetCurrent(self, current: T) -> None:
+        if not self.IsStarted():
+            raise InvalidOperationError()
+        
+        self._SetCurrentOverride(current)
+    @final
+    def _UnsetCurrent(self) -> None:
+        if self.IsStarted():
+            self._UnsetCurrentOverride()
     
     def _OnEnded(self) -> None:
         self._UnsetCurrent()
 
         super()._OnEnded()
+
+class Enumerator[T](_EnumeratorBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__current: INullable[T] = GetNullValue()
     
     @final
     def _GetCurrent(self) -> T:
         return self.__current.GetValue()
     
     @final
-    def _SetCurrent(self, current: T) -> None:
+    def _SetCurrentOverride(self, current: T) -> None:
         self.__current = GetNullable(current)
     @final
-    def _UnsetCurrent(self) -> None:
+    def _UnsetCurrentOverride(self) -> None:
         self.__current = GetNullValue()
+class NullableEnumerator[T](_EnumeratorBase[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__current: T|None = None
+    
+    @final
+    def _GetCurrent(self) -> T:
+        return cast(T, self.__current)
+    
+    @final
+    def _SetCurrentOverride(self, current: T) -> None:
+        self.__current = current
+    @final
+    def _UnsetCurrentOverride(self) -> None:
+        self.__current = None
 
 class Iterator[T](Enumerator[T]):
     def __init__(self, iterator: SystemIterator[T]) -> None:
