@@ -802,7 +802,7 @@ def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|Seque
             
             yield iterate()
         
-        return getIterator() if size >= count else batch(items)
+        return MakeGenerator() if count < 1 else (getIterator() if size >= count else batch(items))
 
     def batchFromEnumerable(items: ICountableEnumerable[T]) -> Generator[Generator[T]]:
         return batchFromCollection(items.AsIterable(), items.GetCount())
@@ -812,11 +812,11 @@ def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|Seque
     match items:
         case IReadOnlyCountableIndexable():
             return batchFromIndexable(items)
-        case ICountableEnumerable():
-            return batchFromEnumerable(items)
-        
         case Sequence():
             return batchFromSequence(items)
+        
+        case ICountableEnumerable():
+            return batchFromEnumerable(items)
         case Collection():
             return batchFromIterable(items)
         
