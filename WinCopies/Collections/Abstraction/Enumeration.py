@@ -118,10 +118,6 @@ class _ResumableEnumerator[T](AbstractEnumeratorBase[T, T, IResumableEnumerator[
     @final
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         return self._GetContainer().Resume(cursor)
-    
-    @final
-    def Dispose(self) -> None:
-        return self._GetContainer().Dispose()
 
 def CreateEnumerable[T](enumerable: IEnumerable[T]) -> Enumerable[T]:
     return enumerable if type(enumerable) == _Enumerable[T] else _Enumerable[T](enumerable)
