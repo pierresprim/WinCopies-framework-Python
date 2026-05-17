@@ -70,9 +70,6 @@ class ResumableEnumerator[TIn, TOut](AbstractResumableEnumeratorAbstract[TIn, TO
     @final
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         return self._GetContainer().Resume(cursor)
-    
-    def Dispose(self) -> None:
-        self._GetContainer().Dispose()
 
 @final
 class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
