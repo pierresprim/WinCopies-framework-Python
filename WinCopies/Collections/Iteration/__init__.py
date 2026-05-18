@@ -1,14 +1,213 @@
+from abc import abstractmethod
 from collections.abc import Iterable, Iterator, Collection, Sequence
-from typing import Callable, Type
+from typing import final, Callable, Type
 
-from WinCopies import NullableBoolean
+from WinCopies import NullableBoolean, IInterface, Abstract
 from WinCopies.Collections import Generator, IterationResult, IReadOnlyCountableIndexable, MakeGenerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, CreateIterable, TryCreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
-from WinCopies.Delegates import GetNotPredicate
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Delegates import BoolFalse, GetNotPredicate
+from WinCopies.Typing import INullable, GetNullable, GetNullValue, InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter, NullableConverter, Predicate, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
+
+class IAdaptiveRefinement(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def IsRefining(self) -> bool:
+        pass
+    @abstractmethod
+    def IsTrueSize(self) -> bool:
+        pass
+    
+    @final
+    def GetSizeState(self) -> bool|None:
+        return True if self.IsTrueSize() else (None if self.IsRefining() else False)
+    
+    @final
+    def GetDiscoveredSize(self) -> int|None:
+        low: int = self.GetLow()
+        
+        return None if low == 0 else low
+    @final
+    def TryGetDiscoveredSize(self) -> int|None:
+        return self.GetLow() if self.IsTrueSize() else None
+    
+    @abstractmethod
+    def CanSignalSuccess(self) -> bool:
+        pass
+    @abstractmethod
+    def CanSignalError(self) -> bool:
+        pass
+
+    @abstractmethod
+    def GetCurrent(self) -> int:
+        pass
+
+    @abstractmethod
+    def GetLow(self) -> int:
+        pass
+    @abstractmethod
+    def GetHigh(self) -> int|None:
+        pass
+    
+    @abstractmethod
+    def Reset(self) -> None:
+        pass
+    @abstractmethod
+    def ResetTo(self, hint: int, refine: bool) -> None:
+        pass
+
+    @abstractmethod
+    def TryOnSuccess(self) -> bool:
+        pass
+    @abstractmethod
+    def TryOnError(self) -> bool|None:
+        pass
+
+    @final
+    def OnSuccess(self) -> None:
+        if not self.TryOnSuccess():
+            raise InvalidOperationError()
+    @final
+    def OnError(self) -> None:
+        if self.TryOnError() is not True:
+            raise InvalidOperationError()
+
+    @final
+    def Update(self, success: bool) -> None:
+        if success:
+            self.OnSuccess()
+        
+        else:
+            self.OnError()
+@final
+class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
+    def __init__(self, current: int|None, refine: bool) -> None:
+        super().__init__()
+
+        self.__low: int = 0
+        self.__high: int|None = None
+        self.__delta: int = 1
+        self.__current: int = 1 if current is None or current == 0 else current
+        self.__refine: bool|None = refine
+        self.__tryOnSuccess: Function[bool] = self.__TryOnSuccess
+        self.__tryOnError: Function[bool|None] = self.__TryOnError
+    
+    def __TryOnSuccess(self) -> bool:
+        current: int = self.__current
+        high: int|None = self.GetHigh()
+        
+        self.__low = current
+
+        if high is None:
+            if self.__refine:
+                self.__current = 2 * current
+        
+        else:
+            delta: int = 2 * self.__delta
+
+            self.__delta = delta
+            low: int = self.GetLow()
+            current = min(low + delta, high - 1)
+            self.__current = current
+
+            if current == low:
+                self.__refine = None
+
+                self.__tryOnSuccess = BoolFalse
+                self.__tryOnError = BoolFalse
+        
+        return True
+    def __TryOnError(self) -> bool|None:
+        low: int = self.GetLow()
+        current: int = self.__current
+
+        if low == current:
+            return None
+
+        self.__refine = True
+
+        if low == 0:
+            self.__Reset(1)
+
+        else:
+            self.__ResetDelta()
+            
+            self.__high = current
+            self.__current = low + 1
+        
+        return True
+    
+    def __ResetDelegates(self) -> None:
+        self.__tryOnSuccess = self.__TryOnSuccess
+        self.__tryOnError = self.__TryOnError
+    def __ResetDelta(self) -> None:
+        self.__delta = 1
+    def __Reset(self, current: int) -> None:
+        self.__ResetDelta()
+
+        self.__current = current
+    
+    def CanSignalSuccess(self) -> bool:
+        return not self.IsTrueSize()
+    def CanSignalError(self) -> bool:
+        return self.CanSignalSuccess()
+    
+    def GetCurrent(self) -> int:
+        return self.__current
+    
+    def GetLow(self) -> int:
+        return self.__low
+    def GetHigh(self) -> int|None:
+        return self.__high
+    
+    def TryOnSuccess(self) -> bool:
+        return self.__tryOnSuccess()
+    def TryOnError(self) -> bool|None:
+        return self.__tryOnError()
+    
+    def __ResetTo(self, hint: int, refine: bool) -> None:
+        self.__Reset(hint)
+        self.__ResetDelegates()
+
+        self.__low = 0
+        self.__high = None
+        self.__refine = refine
+    
+    def Reset(self) -> None:
+        self.__ResetTo(1, True)
+    def ResetTo(self, hint: int, refine: bool) -> None:
+        if hint == 0:
+            if refine:
+                hint = 1
+            
+            else:
+                raise ValueError()
+        
+        self.__ResetTo(hint, refine)
+    
+    def IsRefining(self) -> bool:
+        return self.__refine is True
+    
+    def IsTrueSize(self) -> bool:
+        return self.__refine is None
+
+def CreateAdaptiveRefinement() -> IAdaptiveRefinement:
+    return _AdaptiveRefinement(None, True)
+def CreateFineRefinement(hint: int|None, refine: bool) -> IAdaptiveRefinement:
+    if hint is None or hint == 0:
+        if refine:
+            return CreateAdaptiveRefinement()
+        
+        raise ValueError()
+    
+    if hint < 0:
+        raise ValueError()
+    
+    return _AdaptiveRefinement(hint, refine)
 
 def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
     """Returns the given iterable, or an empty generator if None is given.
