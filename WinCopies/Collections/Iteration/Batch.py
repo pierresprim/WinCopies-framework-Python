@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, MakeGenerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, CreateIterable
 from WinCopies.Delegates import BoolFalse, GetActionBoolFunc
-from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Delegate import Function
 
 def _GetCustomRange(start: int, stop: int) -> Iterable[int]:
     return range(start, stop)
@@ -208,16 +208,15 @@ class SequenceBatchEnumerator[T](IndexableBatchEnumeratorBase[T]):
         return self.__items[index]
 
 class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
-    def __init__(self, size: int, enumerator: IEnumerator[T], safe: bool = True) -> None:
+    def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
         super().__init__()
 
         self.__size: int = size
         self.__enumerator: IEnumerator[T] = enumerator
 
         self.__moveNext: Function[bool] = self._MoveNext
-        self.__batch: Predicate[IEnumerator[T]] = self.__SafeBatch if safe else self.__Batch
     
-    def __Batch(self, enumerator: IEnumerator[T]) -> bool:
+    def _Enumerate(self) -> bool:
         def enumerate() -> Generator[T]:
             for _ in _GetDefaultRange(self._GetSize()):
                 if enumerator.MoveNext():
@@ -234,12 +233,58 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
             
             return False
         
+        enumerator: IEnumerator[T] = self._GetEnumerator()
+        
         self._SetCurrent(enumerate())
-
-        self.__moveNext = moveNext
+        self._SetMoveNext(moveNext)
 
         return True
-    def __SafeBatch(self, enumerator: IEnumerator[T]) -> bool:
+
+    @final
+    def _GetSize(self) -> int:
+        return self.__size
+    
+    @final
+    def _GetEnumerator(self) -> IEnumerator[T]:
+        return self.__enumerator
+
+    @abstractmethod
+    def _MoveNext(self) -> bool:
+        pass
+    @final
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNext()
+    
+    def _ResetOverride(self) -> bool:
+        if self.__enumerator.TryReset() is True:
+            self.__moveNext = self._MoveNext
+
+            return True
+        
+        return False
+    
+    @final
+    def _SetMoveNext(self, func: Function[bool]) -> None:
+        self.__moveNext = func
+    @final
+    def _UnsetMoveNext(self) -> None:
+        self.__moveNext = BoolFalse
+    
+    def _OnStopped(self) -> None:
+        pass
+    
+    def _OnEnded(self) -> None:
+        self._UnsetMoveNext()
+    
+    def IsResetSupported(self) -> bool:
+        return self.__enumerator.IsResetSupported()
+class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
+    def __init__(self, size: int, enumerator: IEnumerator[T], safe: bool = True) -> None:
+        super().__init__(size, enumerator)
+
+        self.__batch: Function[bool] = self.__EnumerateSafe if safe else self._Enumerate
+    
+    def __EnumerateSafe(self) -> bool:
         def enumerate() -> Generator[T]:
             def enumerate() -> Generator[T]:
                 for _ in _GetCustomRange(1, self._GetSize()):
@@ -264,52 +309,20 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
             
             return False
         
+        enumerator: IEnumerator[T] = self._GetEnumerator()
+        
         if enumerator.MoveNext():
             func: Function[Generator[T]] = iterate if self._GetSize() == 1 else enumerate
-            self.__moveNext = lambda: getGenerator(func)
+            self._SetMoveNext(lambda: getGenerator(func))
 
             self._SetCurrent(func())
 
             return True
         
         return False
-
-    @final
-    def _GetSize(self) -> int:
-        return self.__size
     
-    @final
-    def _GetEnumerator(self) -> IEnumerator[T]:
-        return self.__enumerator
-
     def _MoveNext(self) -> bool:
-        return self.__batch(self.__enumerator)
-    def _MoveNextOverride(self) -> bool:
-        return self.__moveNext()
-    
-    def _ResetOverride(self) -> bool:
-        if self.__enumerator.TryReset() is True:
-            self.__moveNext = self._MoveNext
-
-            return True
-        
-        return False
-    
-    @final
-    def _UnsetMoveNext(self) -> None:
-        self.__moveNext = BoolFalse
-    
-    def _OnStopped(self) -> None:
-        pass
-    
-    def _OnEnded(self) -> None:
-        self._UnsetMoveNext()
-    
-    def IsResetSupported(self) -> bool:
-        return self.__enumerator.IsResetSupported()
-class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
-    def __init__(self, size: int, enumerator: IEnumerator[T], safe: bool = True) -> None:
-        super().__init__(size, enumerator, safe)
+        return self.__batch()
 
 class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
@@ -336,7 +349,7 @@ class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
 
             return True
         
-        return super()._MoveNext()
+        return self._Enumerate()
 
 class BufferedCountableBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: ICountableEnumerable[T]) -> None:
