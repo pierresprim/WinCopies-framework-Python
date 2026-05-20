@@ -14,7 +14,49 @@ def _GetRange(start: int, size: int) -> Iterable[int]:
 def _GetDefaultRange(size: int) -> Iterable[int]:
     return _GetRange(0, size)
 
-class RangeEnumerator(NullableEnumerator[Iterable[int]]):
+class IResumableEnumerator[T](IEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def CanResume(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def TryResume(self, size: int) -> bool:
+        pass
+class ResumableEnumerator[T](NullableEnumerator[T], IResumableEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _TryResumeOverride(self, size: int) -> bool:
+        pass
+    
+    def CanResume(self) -> bool:
+        return self.IsStarted()
+    
+    @final
+    def TryResume(self, size: int) -> bool:
+        if self.CanResume() and self._TryResumeOverride(size):
+            self._UnsetCurrent()
+
+            return True
+        
+        return False
+
+class IRangeEnumerator(IResumableEnumerator[Iterable[int]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def GetCount(self) -> int:
+        pass
+    
+    @abstractmethod
+    def GetSize(self) -> int:
+        pass
+class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
     def __init__(self, size: int, count: int) -> None:
         super().__init__()
 
@@ -22,6 +64,7 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
         self.__count: int = count
 
         self.__moveNext: Function[bool] = self.__MoveNext
+        self.__tryResume: Function[bool] = BoolFalse
     
     @final
     def __Enumerate(self, start: int) -> Iterable[int]:
@@ -32,9 +75,16 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
         return length - self.GetSize()
     
     @final
-    def __Batch(self, length: int) -> bool:
+    def __Batch(self, start: int, length: int) -> bool:
+        def updateResume() -> None:
+            def resume() -> bool:
+                self.__moveNext = lambda: self.__Batch(start, length)
+
+                return True
+            
+            self.__tryResume = resume
+        
         size: int = self.GetSize()
-        start: int = size
 
         def update() -> None:
             nonlocal start
@@ -61,22 +111,39 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
         def batch() -> bool:
             if check():
                 setCurrent()
+                updateResume()
 
                 return True
             
-            return trySetCurrent()
+            if trySetCurrent():
+                updateResume()
+
+                return True
+            
+            return False
         
         if check():
             setCurrent()
+            updateResume()
 
             self.__moveNext = GetActionBoolFunc(update, batch)
             
             return True
     
-        return trySetCurrent()
+        if trySetCurrent():
+            updateResume()
+
+            return True
+        
+        return False
     
     @final
     def __MoveNext(self) -> bool:
+        def resume() -> bool:
+            self.__moveNext = self.__MoveNext
+
+            return True
+        
         count: int = self.GetCount()
 
         if count > 0:
@@ -89,7 +156,8 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
 
                 return True
             
-            self.__moveNext = lambda: self.__Batch(self.__Decrement(self.GetCount()))
+            self.__moveNext = lambda: self.__Batch(size, self.__Decrement(self.GetCount()))
+            self.__tryResume = resume
 
             self._SetCurrent(self.__Enumerate(0))
 
@@ -100,6 +168,15 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
     def _MoveNextOverride(self) -> bool:
         return self.__moveNext()
     
+    @final
+    def _TryResumeOverride(self, size: int) -> bool:
+        if self.__tryResume():
+            self.__size = size
+
+            return True
+        
+        return False
+    
     def _ResetOverride(self) -> bool:
         self.__moveNext = self.__MoveNext
         
@@ -107,6 +184,7 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
     
     def _OnEnded(self) -> None:
         self.__moveNext = BoolFalse
+        self.__tryResume = BoolFalse
 
         super()._OnEnded()
     
@@ -119,6 +197,7 @@ class RangeEnumerator(NullableEnumerator[Iterable[int]]):
     @final
     def GetCount(self) -> int:
         return self.__count
+    
     @final
     def GetSize(self) -> int:
         return self.__size
@@ -143,10 +222,6 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
         super().__init__()
 
         self.__rangeEnumerator: RangeEnumerator = RangeEnumerator(size, self._GetCount())
-    
-    @final
-    def GetSize(self) -> int:
-        return self.__rangeEnumerator.GetSize()
 
     @abstractmethod
     def _GetAt(self, index: int) -> T:
@@ -179,6 +254,10 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
     
     def IsResetSupported(self) -> bool:
         return True
+    
+    @final
+    def GetSize(self) -> int:
+        return self.__rangeEnumerator.GetSize()
 
 class IndexableBatchEnumerator[T](IndexableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: IReadOnlyCountableIndexable[T]) -> None:
