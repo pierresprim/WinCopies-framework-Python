@@ -459,13 +459,13 @@ class BufferedCollectionBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[
     def _GetCount(self) -> int:
         return len(self.__items)
 
-def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T], size: int, safe: bool = True) -> Generator[Generator[T]]:
+def TryBatch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> Generator[Generator[T]]|None:
     def tryCreateEnumerator(items: IEnumerable[T]) -> IBatchEnumerator[T]|None:
         enumerator: IEnumerator[T]|None = items.TryGetEnumerator()
 
         return None if enumerator is None else BufferedBatchEnumerator[T](size, enumerator, safe)
 
-    def batch() -> IBatchEnumerator[T]|None:
+    def batch(items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]) -> IBatchEnumerator[T]|None:
         match items:
             case IReadOnlyCountableIndexable():
                 return IndexableBatchEnumerator[T](size, items)
@@ -486,6 +486,13 @@ def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnum
         for _batch in enumerator.AsIterator():
             yield _batch
     
-    enumerator: IBatchEnumerator[T]|None = batch()
+    if items is None:
+        return None
+    
+    enumerator: IBatchEnumerator[T]|None = batch(items)
 
-    return MakeGenerator() if enumerator is None else enumerate(enumerator)
+    return None if enumerator is None else enumerate(enumerator)
+def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> Generator[Generator[T]]:
+    generator: Generator[Generator[T]]|None = TryBatch(items, size, safe)
+
+    return MakeGenerator() if generator is None else generator
