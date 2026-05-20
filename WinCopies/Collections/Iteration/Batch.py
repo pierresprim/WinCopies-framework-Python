@@ -209,6 +209,13 @@ class BatchEnumerator[T](NullableEnumerator[Generator[T]], IBatchEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
+class IResumableBatchEnumerator[T](IBatchEnumerator[T], IResumableEnumerator[Generator[T]]):
+    def __init__(self) -> None:
+        super().__init__()
+class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableBatchEnumerator[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
 class CountableBatchEnumerator[T](BatchEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
