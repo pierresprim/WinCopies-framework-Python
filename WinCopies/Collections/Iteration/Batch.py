@@ -216,7 +216,7 @@ class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableB
     def __init__(self) -> None:
         super().__init__()
 
-class CountableBatchEnumerator[T](BatchEnumerator[T]):
+class CountableBatchEnumerator[T](ResumableBatchEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -249,6 +249,9 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
             return True
 
         return False
+    
+    def _TryResumeOverride(self, size: int) -> bool:
+        return self.__rangeEnumerator.TryResume(size)
     
     def _ResetOverride(self) -> bool:
         return self.__rangeEnumerator.TryReset() is True
