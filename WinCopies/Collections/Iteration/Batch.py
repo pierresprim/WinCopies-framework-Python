@@ -216,6 +216,12 @@ class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableB
     def __init__(self) -> None:
         super().__init__()
 
+    def _OnCurrentInvalidated(self, old: Generator[T]|None) -> None:
+        super()._OnCurrentInvalidated(old)
+
+        if old is not None:
+            old.close()
+
 class CountableBatchEnumerator[T](ResumableBatchEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
