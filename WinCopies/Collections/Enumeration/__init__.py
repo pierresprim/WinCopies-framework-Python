@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from typing import final, Any, cast
+from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import ICountable
@@ -347,15 +347,36 @@ class Enumerator[T](_EnumeratorBase[T]):
 
         self.__current: INullable[T] = GetNullValue()
     
+    def _OnCurrentUpdating(self, old: INullable[T], new: T) -> None:
+        pass
+    def _OnCurrentReset(self, old: INullable[T]) -> None:
+        pass
+    
+    def _OnCurrentInvalidated(self, old: INullable[T]) -> None:
+        pass
+    
+    @final
+    def _TryGetCurrent(self) -> INullable[T]:
+        return self.__current
     @final
     def _GetCurrent(self) -> T:
-        return self.__current.GetValue()
+        return self._TryGetCurrent().GetValue()
     
     @final
     def _SetCurrentOverride(self, current: T) -> None:
+        old: INullable[T] = self._TryGetCurrent()
+
+        self._OnCurrentUpdating(old, current)
+        self._OnCurrentInvalidated(old)
+        
         self.__current = GetNullable(current)
     @final
     def _UnsetCurrentOverride(self) -> None:
+        old: INullable[T] = self._TryGetCurrent()
+
+        self._OnCurrentReset(old)
+        self._OnCurrentInvalidated(old)
+
         self.__current = GetNullValue()
 class NullableEnumerator[T](_EnumeratorBase[T]):
     def __init__(self) -> None:
@@ -363,15 +384,41 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
 
         self.__current: T|None = None
     
+    def _OnCurrentUpdating(self, old: T|None, new: T) -> None:
+        pass
+    def _OnCurrentReset(self, old: T|None) -> None:
+        pass
+    
+    def _OnCurrentInvalidated(self, old: T|None) -> None:
+        pass
+    
+    @final
+    def _TryGetCurrent(self) -> T|None:
+        return self.__current
     @final
     def _GetCurrent(self) -> T:
-        return cast(T, self.__current)
+        current: T|None = self.__current
+
+        if current is None:
+            raise ValueError()
+        
+        return current
     
     @final
     def _SetCurrentOverride(self, current: T) -> None:
+        old: T|None = self._TryGetCurrent()
+
+        self._OnCurrentUpdating(old, current)
+        self._OnCurrentInvalidated(old)
+        
         self.__current = current
     @final
     def _UnsetCurrentOverride(self) -> None:
+        old: T|None = self._TryGetCurrent()
+
+        self._OnCurrentReset(old)
+        self._OnCurrentInvalidated(old)
+
         self.__current = None
 
 class Iterator[T](Enumerator[T]):
