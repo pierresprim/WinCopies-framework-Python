@@ -776,8 +776,10 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
         
         self.__RemoveFirst(nextNode, None)
     
+    @final
     def Check(self, l: TList) -> bool:
         return self._GetList() is l
+    @final
     def Ensure(self, l: TList) -> None:
         EnsureTrue(self.Check(l))
     
