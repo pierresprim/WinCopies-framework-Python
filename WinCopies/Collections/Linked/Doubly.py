@@ -1299,12 +1299,32 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
     def TryRemoveLast(self) -> INullable[TItem]:
         return self.__TryRemove(self._GetLast())
     
+    @abstractmethod
+    def _GetPreviousNode(self, node: TNode) -> TNode|None:
+        pass
+    @abstractmethod
+    def _GetNextNode(self, node: TNode) -> TNode|None:
+        pass
+
+    @abstractmethod
+    def _UnregisterNode(self, node: TNode) -> None:
+        pass
+    
     @final
     def Clear(self) -> None:
-        node: INullable[TItem] = self.TryRemoveFirst()
+        def enumerate() -> GeneratorBase[TNode]:
+            node: TNode|None = self._GetFirst()
 
-        while node.HasValue():
-            node = self.TryRemoveFirst()
+            while node is not None:
+                yield node
+
+                node = self._GetNextNode(node)
+        
+        for node in enumerate():
+            self._UnregisterNode(node)
+
+        self.__first = None
+        self.__last = None
     
     @abstractmethod
     def _GetNodeEnumerator(self, node: TNodeInterface) -> IEnumerator[TNodeInterface]:
@@ -1798,6 +1818,17 @@ class List[T](ListBase[T, _Node[T]]):
         return _Node[T](value, self, self._GetCookie(), None, None)
     
     @final
+    def _GetPreviousNode(self, node: _Node[T]) -> _Node[T]|None:
+        return node.GetPreviousNode()
+    @final
+    def _GetNextNode(self, node: _Node[T]) -> _Node[T]|None:
+        return node.GetNextNode()
+    
+    @final
+    def _UnregisterNode(self, node: _Node[T]) -> None:
+        return node._Unregister() # pyright: ignore[reportPrivateUsage]
+    
+    @final
     def AsReversed(self) -> IList[T]:
         return self.__reversed.GetValue()
 
@@ -2080,6 +2111,17 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
         self.__count += 1
     def Decrement(self) -> None:
         self.__count -= 1
+    
+    @final
+    def _GetPreviousNode(self, node: _CountableListNode[T]) -> _CountableListNode[T]|None:
+        return node.GetPreviousNode()
+    @final
+    def _GetNextNode(self, node: _CountableListNode[T]) -> _CountableListNode[T]|None:
+        return node.GetNextNode()
+    
+    @final
+    def _UnregisterNode(self, node: _CountableListNode[T]) -> None:
+        return node._Unregister() # pyright: ignore[reportPrivateUsage]
     
     @final
     def AsReversed(self) -> ICountableList[T]:
