@@ -132,7 +132,7 @@ class TestEnsureTrue(unittest.TestCase):
     def test_ensure_true_with_non_bool_raises_value_error(self) -> None:
         """EnsureTrue raises ValueError when condition is not a boolean."""
         with self.assertRaises(ValueError):
-            EnsureTrue(42)  # type: ignore
+            EnsureTrue(42) # type: ignore[arg-type]
 
     # TryEnsureTrue
 
@@ -147,7 +147,7 @@ class TestEnsureTrue(unittest.TestCase):
 
     def test_try_ensure_true_with_non_bool_returns_false(self) -> None:
         """TryEnsureTrue returns False (skips validation) when condition is not a boolean."""
-        self.assertFalse(TryEnsureTrue(0))  # type: ignore
+        self.assertFalse(TryEnsureTrue(0)) # type: ignore[arg-type]
 
 class TestEnsureNone(unittest.TestCase):
     """Tests for EnsureNone."""
