@@ -218,9 +218,9 @@ class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableB
         super().__init__()
 
     def _OnCurrentInvalidated(self, old: Generator[T]) -> None:
-        super()._OnCurrentInvalidated(old)
-
         old.close()
+
+        super()._OnCurrentInvalidated(old)
 
 class CountableBatchEnumerator[T](ResumableBatchEnumerator[T]):
     def __init__(self) -> None:
@@ -312,6 +312,13 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
         self.__enumerator: IEnumerator[T] = enumerator
 
         self.__moveNext: Function[bool] = self._MoveNext
+    
+    def _OnCurrentUpdating(self, old: Generator[T]|None, new: Generator[T]) -> None:
+        if old is not None:
+            for _ in old:
+                pass
+
+        super()._OnCurrentUpdating(old, new)
     
     def _Enumerate(self) -> bool:
         def enumerate() -> Generator[T]:
@@ -461,24 +468,16 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
         self.__batchStart: IDoublyLinkedNode[T]|None = None
         self.__cursor: IDoublyLinkedNode[T]|None = None
 
-    @final
-    def _GetSize(self) -> int:
-        return self.__size
-
-    @final
-    def _GetSource(self) -> IEnumerator[T]:
-        return self.__source
-
-    @final
-    def __Commit(self) -> None:
-        if self.__batchStart is None:
-            return
-
-        if self.__cursor is None:
-            self.__buffer.Clear()
+        self.__emitted: int = 0
+        self.__moveNext: Function[bool] = self.__MoveNext
+    
+    def _OnStarting(self) -> bool:
+        if super()._OnStarting():
+            self.__emitted = 0
+            
+            return True
         
-        else:
-            self.__cursor.RemoveRangeBefore()
+        return False
 
     @final
     def __TryGetCursor(self) -> IDoublyLinkedNode[T]|None:
@@ -488,22 +487,46 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
 
     @final
     def __Enumerate(self) -> Generator[T]:
-        count: int = 0
         size: int = self._GetSize()
         node: IDoublyLinkedNode[T]|None = None
 
-        while count < size:
+        while self.__emitted < size:
             if (node := self.__TryGetCursor()) is None:
                 return
             
-            yield node.GetValue()
-            
             self.__cursor = node.GetNext()
             
-            count += 1
+            self.__emitted += 1
+            
+            yield node.GetValue()
+    
+    @final
+    def __MoveNext(self) -> bool:
+        def completeBatch() -> None:
+            if self.__batchStart is None:
+                return
+            
+            while self.__emitted < self.__size:
+                node = self.__TryGetCursor()
 
-    def _MoveNextOverride(self) -> bool:
-        self.__Commit()
+                if node is None:
+                    break
+
+                self.__cursor = node.GetNext()
+                self.__emitted += 1
+        
+        def commit() -> None:
+            if self.__batchStart is None:
+                return
+
+            if self.__cursor is None:
+                self.__buffer.Clear()
+            
+            else:
+                self.__cursor.RemoveRangeBefore()
+        
+        completeBatch()
+        commit()
 
         node: IDoublyLinkedNode[T]|None = self.__TryGetCursor()
 
@@ -512,13 +535,32 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
 
         self.__cursor = node
         self.__batchStart = node
+        self.__emitted = 0
 
         self._SetCurrent(self.__Enumerate())
 
         return True
 
     @final
+    def _GetSize(self) -> int:
+        return self.__size
+
+    @final
+    def _GetSource(self) -> IEnumerator[T]:
+        return self.__source
+
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNext()
+
+    @final
     def _TryResumeOverride(self, size: int) -> bool:
+        def moveNext() -> bool:
+            self._SetCurrent(self.__Enumerate())
+
+            self.__moveNext = self.__MoveNext
+
+            return True
+        
         batchStart: IDoublyLinkedNode[T]|None = self.__batchStart
 
         if batchStart is None:
@@ -526,6 +568,10 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
         
         self.__cursor = batchStart
         self.__size = size
+
+        self.__emitted = 0
+
+        self.__moveNext = moveNext
 
         return True
 
@@ -535,6 +581,10 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
 
             self.__cursor = None
             self.__batchStart = None
+            
+            self.__moveNext = self.__MoveNext
+
+            self.__emitted = 0
 
             return True
         
@@ -544,10 +594,14 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
         pass
 
     def _OnEnded(self) -> None:
+        self.__moveNext = BoolFalse
+
         self.__buffer.Clear()
 
         self.__cursor = None
         self.__batchStart = None
+        
+        self.__emitted = 0
 
         super()._OnEnded()
 
