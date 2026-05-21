@@ -349,10 +349,10 @@ class Enumerator[T](_EnumeratorBase[T]):
     
     def _OnCurrentUpdating(self, old: INullable[T], new: T) -> None:
         pass
-    def _OnCurrentReset(self, old: INullable[T]) -> None:
+    def _OnCurrentReset(self, old: T) -> None:
         pass
     
-    def _OnCurrentInvalidated(self, old: INullable[T]) -> None:
+    def _OnCurrentInvalidated(self, old: T) -> None:
         pass
     
     @final
@@ -367,17 +367,23 @@ class Enumerator[T](_EnumeratorBase[T]):
         old: INullable[T] = self._TryGetCurrent()
 
         self._OnCurrentUpdating(old, current)
-        self._OnCurrentInvalidated(old)
+
+        if old.HasValue():
+            self._OnCurrentInvalidated(old.GetValue())
         
         self.__current = GetNullable(current)
     @final
     def _UnsetCurrentOverride(self) -> None:
+        def onCurrentReset(old: T) -> None:
+            self._OnCurrentReset(old)
+            self._OnCurrentInvalidated(old)
+
         old: INullable[T] = self._TryGetCurrent()
 
-        self._OnCurrentReset(old)
-        self._OnCurrentInvalidated(old)
+        if old.HasValue():
+            onCurrentReset(old.GetValue())
 
-        self.__current = GetNullValue()
+            self.__current = GetNullValue()
 class NullableEnumerator[T](_EnumeratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -386,10 +392,10 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
     
     def _OnCurrentUpdating(self, old: T|None, new: T) -> None:
         pass
-    def _OnCurrentReset(self, old: T|None) -> None:
+    def _OnCurrentReset(self, old: T) -> None:
         pass
     
-    def _OnCurrentInvalidated(self, old: T|None) -> None:
+    def _OnCurrentInvalidated(self, old: T) -> None:
         pass
     
     @final
@@ -409,12 +415,17 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
         old: T|None = self._TryGetCurrent()
 
         self._OnCurrentUpdating(old, current)
-        self._OnCurrentInvalidated(old)
+
+        if old is not None:
+            self._OnCurrentInvalidated(old)
         
         self.__current = current
     @final
     def _UnsetCurrentOverride(self) -> None:
         old: T|None = self._TryGetCurrent()
+
+        if old is None:
+            return
 
         self._OnCurrentReset(old)
         self._OnCurrentInvalidated(old)
