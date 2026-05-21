@@ -438,7 +438,7 @@ class _INodeBase[TNode, TList](IInterface):
     def _SetLast(self, cookie: INodeCookie[TNode], items: _IListCookie[TNode], node: TNode|None) -> None:
         pass
 
-class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
+class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
         EnsureDirectModuleCall()
         
@@ -610,51 +610,55 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
         return self.SetNextItems(values)
     
     def RemoveNode(self) -> TItem:
-        def removeFirst(node: TNode, previousNode: TNode|None) -> None:
+        def removeFirst(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], previousNode: TNode|None) -> None:
             self._SetNext(None)
 
-            self._AsLinkedNode(node)._SetPrevious(previousNode)
-        def removeLast(node: TNode, nextNode: TNode|None) -> None:
+            node._SetPrevious(previousNode)
+        def removeLast(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], nextNode: TNode|None) -> None:
             self._SetPrevious(None)
 
-            self._AsLinkedNode(node)._SetNext(nextNode)
+            node._SetNext(nextNode)
         
-        def whenFirst(nextNode: TNode|None) -> None:
+        def whenFirst(nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None) -> bool:
             l: TListInterface|None = self._GetInnerList()
             
             if nextNode is None:
                 if l is not None:
-                    self._RemoveFirst(l)
-                    self._RemoveLast(l)
+                    l.Clear()
+
+                    return False
             
             else:
                 if l is not None:
-                    self._UpdateFirst(nextNode, l)
+                    self._UpdateFirst(nextNode._AsNode(), l)
 
                 removeFirst(nextNode, None)
-        def whenLast(previousNode: TNode) -> None:
+            
+            return True
+        def whenLast(previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
             l: TListInterface|None = self._GetInnerList()
 
             if l is not None:
-                self._UpdateLast(previousNode, l)
+                self._UpdateLast(previousNode._AsNode(), l)
             
             removeLast(previousNode, None)
         
-        def tryAsNode(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None) -> TNode|None:
-            return None if node is None else node._AsNode()
-        
-        previousNode: TNode|None = tryAsNode(self.GetPrevious())
-        nextNode: TNode|None = tryAsNode(self.GetNext())
+        previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+        nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
 
         if previousNode is None:
-            whenFirst(nextNode)
+            if whenFirst(nextNode):
+                self._Unregister()
 
-        elif nextNode is None:
-            whenLast(previousNode)
-        
         else:
-            removeFirst(nextNode, previousNode)
-            removeLast(previousNode, nextNode)
+            if nextNode is None:
+                whenLast(previousNode)
+
+            else:
+                removeFirst(nextNode, previousNode._AsNode())
+                removeLast(previousNode, nextNode._AsNode())
+            
+            self._Unregister()
 
         return self.GetValue()
     
@@ -662,6 +666,10 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
         return self._GetList() is l
     def Ensure(self, l: TList) -> None:
         EnsureTrue(self.Check(l))
+    
+    @final
+    def _Unregister(self) -> None:
+        self.__list = None
 
 class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyEnumerableListBase[TItem], GenericConstraint[TList, IReadOnlyEnumerableListBase[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -1263,7 +1271,7 @@ class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TIte
     def _GetResumableNodeEnumerator(self, node: IDoublyLinkedNode[TItem]) -> IResumableEnumerator[IDoublyLinkedNode[TItem]]:
         return ResumableDoublyLinkedNodeEnumerator[TItem](node)
 
-class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TNode, TListInterface], IAbstractNode[TNode, TNodeInterface]):
+class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface: IClearable](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TNode, TListInterface], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self, value: TItem, l: TListInterface|None, cookie: INodeCookie[TNode], previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
 
@@ -1352,7 +1360,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
 
         return True
 
-class DoublyLinkedNode[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface](DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface, TList, TListInterface], IDoublyLinkedNode[TItem]):
+class DoublyLinkedNode[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface: IClearable](DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface, TList, TListInterface], IDoublyLinkedNode[TItem]):
     def __init__(self, value: TItem, l: TListInterface|None, cookie: INodeCookie[TNode], previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, l, cookie, previousNode, nextNode)
 
