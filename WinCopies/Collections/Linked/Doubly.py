@@ -457,7 +457,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
         return self._AsContainer(self._GetListAsClass(l))
     
     @abstractmethod
-    def _GetNode(self, value: TItem, previous: TNode|None, next: TNode|None) -> TNode:
+    def _CreateNode(self, value: TItem, previous: TNode|None, next: TNode|None) -> TNode:
         pass
 
     @final
@@ -503,7 +503,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
     @final
     def _SetPreviousNode(self, value: TItem) -> TNode:
         def getNode(previousNode: TNode|None) -> TNode:
-            return self._GetNode(value, previousNode, self._AsNode())
+            return self._CreateNode(value, previousNode, self._AsNode())
         
         def tryAddFirst() -> TNode|None:
             def tryAdd(l: TListInterface) -> TNode|None:
@@ -535,7 +535,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface](NodeBase[TItem, 
     @final
     def _SetNextNode(self, value: TItem) -> TNode:
         def getNode(nextNode: TNode|None) -> TNode:
-            return self._GetNode(value, self._AsNode(), nextNode)
+            return self._CreateNode(value, self._AsNode(), nextNode)
         
         def tryAddLast() -> TNode|None:
             def tryAdd(l: TListInterface) -> TNode|None:
@@ -1108,7 +1108,7 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return self._GetInnerCookie().GetReadOnly()
     
     @abstractmethod
-    def _GetNode(self, value: TItem) -> TNode:
+    def _CreateNode(self, value: TItem) -> TNode:
         pass
     
     @final
@@ -1141,7 +1141,7 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return super().HasItems()
     
     def _AddNode(self, value: TItem) -> TNode:
-        node: TNode = self._GetNode(value)
+        node: TNode = self._CreateNode(value)
 
         self._SetFirst(node)
         self._SetLast(node)
@@ -1399,7 +1399,7 @@ class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], L
     def _AsNode(self) -> _Node[T]:
         return self
     
-    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _Node[T]:
+    def _CreateNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _Node[T]:
         return _Node[T](value, self._GetInnerList(), self._GetCookie(), previous, next)
     
     def GetList(self) -> IList[T]|None:
@@ -1672,7 +1672,7 @@ class List[T](ListBase[T, _Node[T]]):
         return node
     
     @final
-    def _GetNode(self, value: T) -> _Node[T]:
+    def _CreateNode(self, value: T) -> _Node[T]:
         return _Node[T](value, self, self._GetCookie(), None, None)
     
     @final
@@ -1806,7 +1806,7 @@ class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]",
         return node
     
     @final
-    def _GetNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _CountableListNode[T]:
+    def _CreateNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _CountableListNode[T]:
         return _CountableListNode[T](value, self._GetInnerList(), self._GetCookie(), previous, next)
     
     @final
@@ -1937,7 +1937,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     def _GetNodeAsInterface(self, node: _CountableListNode[T]) -> IDoublyLinkedNodeBase[T, _CountableListNode[T]]:
         return node
     
-    def _GetNode(self, value: T) -> _CountableListNode[T]:
+    def _CreateNode(self, value: T) -> _CountableListNode[T]:
         return _CountableListNode[T](value, self.__items, self._GetCookie(), None, None)
     
     @final
