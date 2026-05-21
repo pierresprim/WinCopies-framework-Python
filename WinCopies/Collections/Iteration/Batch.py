@@ -4,6 +4,7 @@ from typing import final
 
 from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, MakeGenerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, CreateIterable
+from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 from WinCopies.Delegates import BoolFalse, GetActionBoolFunc
 from WinCopies.Typing.Delegate import Function
 
@@ -445,6 +446,110 @@ class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
             return True
         
         return self._Enumerate()
+
+class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
+    def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
+        super().__init__()
+
+        self.__size: int = size
+        self.__source: IEnumerator[T] = enumerator
+
+        self.__buffer: IList[T] = List[T]()
+        self.__batchStart: IDoublyLinkedNode[T]|None = None
+        self.__cursor: IDoublyLinkedNode[T]|None = None
+
+    @final
+    def _GetSize(self) -> int:
+        return self.__size
+
+    @final
+    def _GetSource(self) -> IEnumerator[T]:
+        return self.__source
+
+    @final
+    def __Commit(self) -> None:
+        if self.__batchStart is None:
+            return
+
+        if self.__cursor is None:
+            self.__buffer.Clear()
+        
+        else:
+            self.__cursor.RemoveRangeBefore()
+
+    @final
+    def __TryGetCursor(self) -> IDoublyLinkedNode[T]|None:
+        cursor: IDoublyLinkedNode[T]|None = self.__cursor
+
+        return (self.__buffer.AddLast(self.__source.GetCurrent()) if self.__source.MoveNext() else None) if cursor is None else cursor
+
+    @final
+    def __Enumerate(self) -> Generator[T]:
+        count: int = 0
+        size: int = self._GetSize()
+        node: IDoublyLinkedNode[T]|None = None
+
+        while count < size:
+            if (node := self.__TryGetCursor()) is None:
+                return
+            
+            yield node.GetValue()
+            
+            self.__cursor = node.GetNext()
+            
+            count += 1
+
+    def _MoveNextOverride(self) -> bool:
+        self.__Commit()
+
+        node: IDoublyLinkedNode[T]|None = self.__TryGetCursor()
+
+        if node is None:
+            return False
+
+        self.__cursor = node
+        self.__batchStart = node
+
+        self._SetCurrent(self.__Enumerate())
+
+        return True
+
+    @final
+    def _TryResumeOverride(self, size: int) -> bool:
+        batchStart: IDoublyLinkedNode[T]|None = self.__batchStart
+
+        if batchStart is None:
+            return False
+        
+        self.__cursor = batchStart
+        self.__size = size
+
+        return True
+
+    def _ResetOverride(self) -> bool:
+        if self.__source.TryReset() is True:
+            self.__buffer.Clear()
+
+            self.__cursor = None
+            self.__batchStart = None
+
+            return True
+        
+        return False
+
+    def _OnStopped(self) -> None:
+        pass
+
+    def _OnEnded(self) -> None:
+        self.__buffer.Clear()
+
+        self.__cursor = None
+        self.__batchStart = None
+
+        super()._OnEnded()
+
+    def IsResetSupported(self) -> bool:
+        return self.__source.IsResetSupported()
 
 class BufferedCountableBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: ICountableEnumerable[T]) -> None:
