@@ -48,6 +48,13 @@ class INode[T](ITwoWayLinkedNode[T], INodeBase):
     @final
     def Remove(self) -> None:
         self.RemoveNode()
+
+    @abstractmethod
+    def RemoveRangeBefore(self, inclusive: bool = False) -> None:
+        pass
+    @abstractmethod
+    def RemoveRangeAfter(self, inclusive: bool = False) -> None:
+        pass
 class IDoublyLinkedNode[T](INode[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -609,16 +616,18 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
     def SetNextValues(self, *values: TItem) -> bool:
         return self.SetNextItems(values)
     
+    @final
+    def __RemoveFirst(self, node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], previousNode: TNode|None) -> None:
+        self._SetNext(None)
+
+        node._SetPrevious(previousNode)
+    @final
+    def __RemoveLast(self, node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], nextNode: TNode|None) -> None:
+        self._SetPrevious(None)
+
+        node._SetNext(nextNode)
+    
     def RemoveNode(self) -> TItem:
-        def removeFirst(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], previousNode: TNode|None) -> None:
-            self._SetNext(None)
-
-            node._SetPrevious(previousNode)
-        def removeLast(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], nextNode: TNode|None) -> None:
-            self._SetPrevious(None)
-
-            node._SetNext(nextNode)
-        
         def whenFirst(nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None) -> bool:
             l: TListInterface|None = self._GetInnerList()
             
@@ -632,7 +641,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
                 if l is not None:
                     self._UpdateFirst(nextNode._AsNode(), l)
 
-                removeFirst(nextNode, None)
+                self.__RemoveFirst(nextNode, None)
             
             return True
         def whenLast(previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
@@ -641,7 +650,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
             if l is not None:
                 self._UpdateLast(previousNode._AsNode(), l)
             
-            removeLast(previousNode, None)
+            self.__RemoveLast(previousNode, None)
         
         previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
         nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
@@ -655,12 +664,117 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
                 whenLast(previousNode)
 
             else:
-                removeFirst(nextNode, previousNode._AsNode())
-                removeLast(previousNode, nextNode._AsNode())
+                self.__RemoveFirst(nextNode, previousNode._AsNode())
+                self.__RemoveLast(previousNode, nextNode._AsNode())
             
             self._Unregister()
 
         return self.GetValue()
+    
+    @final
+    def RemoveRangeBefore(self, inclusive: bool = False) -> None:
+        def unregister(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
+            def enumerate(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
+                yield node
+
+                _node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetPrevious()
+
+                while _node is not None:
+                    yield node
+
+                    _node = self.GetPrevious()
+            
+            for _node in enumerate(node):
+                _node._Unregister()
+
+        previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+        
+        if previousNode is None:
+            if inclusive:
+                self.Remove()
+            
+            return
+        
+        l: TListInterface|None = self._GetInnerList()
+
+        if inclusive:
+            node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
+
+            if node is None:
+                if l is not None:
+                    l.Clear()
+
+                return
+            
+            if l is not None:
+                self._Unregister()
+
+                unregister(previousNode)
+
+                self._UpdateFirst(node._AsNode(), l)
+
+            self.__RemoveFirst(node, None)
+            
+            return
+        
+        if l is not None:
+            unregister(previousNode)
+
+            self._UpdateFirst(self._AsNode(), l)
+        
+        self.__RemoveLast(previousNode, None)
+    @final
+    def RemoveRangeAfter(self, inclusive: bool = False) -> None:
+        def unregister(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
+            def enumerate(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
+                yield node
+
+                _node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetNext()
+
+                while _node is not None:
+                    yield node
+
+                    _node = self.GetNext()
+            
+            for _node in enumerate(node):
+                _node._Unregister()
+
+        nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
+        
+        if nextNode is None:
+            if inclusive:
+                self.Remove()
+            
+            return
+        
+        l: TListInterface|None = self._GetInnerList()
+
+        if inclusive:
+            node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+
+            if node is None:
+                if l is not None:
+                    l.Clear()
+
+                return
+            
+            if l is not None:
+                self._Unregister()
+
+                unregister(nextNode)
+
+                self._UpdateLast(node._AsNode(), l)
+
+            self.__RemoveLast(node, None)
+            
+            return
+        
+        if l is not None:
+            unregister(nextNode)
+
+            self._UpdateLast(self._AsNode(), l)
+        
+        self.__RemoveFirst(nextNode, None)
     
     def Check(self, l: TList) -> bool:
         return self._GetList() is l
