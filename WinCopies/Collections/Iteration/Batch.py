@@ -268,6 +268,8 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
     
     def _OnEnded(self) -> None:
         self.__rangeEnumerator.Stop()
+
+        super()._OnEnded()
     
     def IsResetSupported(self) -> bool:
         return True
@@ -371,6 +373,8 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
     
     def _OnEnded(self) -> None:
         self._UnsetMoveNext()
+        
+        super()._OnEnded()
     
     def IsResetSupported(self) -> bool:
         return self.__enumerator.IsResetSupported()
