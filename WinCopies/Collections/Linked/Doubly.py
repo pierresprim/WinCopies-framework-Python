@@ -6,7 +6,7 @@ from typing import final, Callable, Self as SelfType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
-from WinCopies.Collections import Generator as GeneratorBase, EnumerationOrder, IReadOnlyCollection, ICountable, Countable
+from WinCopies.Collections import Generator as GeneratorBase, EnumerationOrder, IReadOnlyCollection, ICountable, IClearable, Countable
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, GetResumableEnumerator
@@ -180,7 +180,7 @@ class IAbstractNode[TNode, TNodeInterface](IInterface):
     def _GetNodeAsClass(self, node: TNode) -> TNodeInterface:
         pass
 
-class IReadWriteList[T](IReadOnlyList[T]):
+class IReadWriteList[T](IReadOnlyList[T], IClearable):
     def __init__(self) -> None:
         super().__init__()
 
@@ -256,10 +256,6 @@ class IReadWriteList[T](IReadOnlyList[T]):
         pass
     @abstractmethod
     def TryRemoveLast(self) -> INullable[T]:
-        pass
-    
-    @abstractmethod
-    def Clear(self) -> None:
         pass
     
     @final
@@ -1171,15 +1167,15 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return self.__TryGetNodeAsClass(self._GetLast())
     
     @final
-    def TryRemoveFirst(self) -> INullable[TItem]:
-        node: TNode|None = self._GetFirst()
-
+    def __TryRemove(self, node: TNode|None) -> INullable[TItem]:
         return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).RemoveNode())
+    
+    @final
+    def TryRemoveFirst(self) -> INullable[TItem]:
+        return self.__TryRemove(self._GetFirst())
     @final
     def TryRemoveLast(self) -> INullable[TItem]:
-        node: TNode|None = self._GetLast()
-
-        return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).RemoveNode())
+        return self.__TryRemove(self._GetLast())
     
     @final
     def Clear(self) -> None:
@@ -1683,7 +1679,7 @@ class List[T](ListBase[T, _Node[T]]):
     def AsReversed(self) -> IList[T]:
         return self.__reversed.GetValue()
 
-class CountableListProvider[T](Abstract):
+class CountableListProvider[T](Abstract, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -1980,6 +1976,9 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         
         def GetItems(self) -> ICountableList[_T]:
             return self.__items
+        
+        def Clear(self) -> None:
+            return self.GetItems().Clear()
         
         def AsSized(self) -> Sized:
             return self.GetItems().AsSized()
