@@ -125,6 +125,9 @@ class IResumableEnumerable[T](IEnumerable[T]):
     @abstractmethod
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
         pass
+    @final
+    def GetResumableEnumerator(self) -> IResumableEnumerator[T]:
+        return GetResumableEnumerator(self.TryGetResumableEnumerator())
 
 class IResumableCountableEnumerable[T](IResumableEnumerable[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
