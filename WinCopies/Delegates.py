@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 from WinCopies.Typing.Delegate import Action, Converter, Function, Method, Predicate, EqualityComparison, IndexedValueComparison
 
@@ -16,6 +16,11 @@ def NoAction() -> None:
     pass
 def DoNothing(_: object) -> None:
     pass
+
+def AlwaysTrue(obj: Any) -> bool:
+    return True
+def AlwaysFlase(obj: Any) -> bool:
+    return False
 
 def CompareEquality[T](x: T, y: T) -> bool:
     return x == y
