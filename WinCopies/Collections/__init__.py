@@ -268,10 +268,13 @@ def ContainsOnlyOneSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) 
 def ContainsOneSequence[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
     return Not(ContainsMultipleSequences(l, values))
 
+def Enumerate[T](items: Iterable[T]) -> Generator[T]:
+    yield from items
+
 def MakeSequence[T](*items: T) -> Sequence[T]:
     return items
 def MakeGenerator[T](*items: T) -> Generator[T]:
-    yield from items
+    return Enumerate(items)
 
 def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> bool|None:
     with itemsProvider() as items:
