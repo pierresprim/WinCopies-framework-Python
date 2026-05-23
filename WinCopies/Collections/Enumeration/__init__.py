@@ -377,9 +377,9 @@ class Enumerator[T](_EnumeratorBase[T]):
         def onCurrentReset(old: T) -> None:
             self._OnCurrentReset(old)
             self._OnCurrentInvalidated(old)
-
+        
         old: INullable[T] = self._TryGetCurrent()
-
+        
         if old.HasValue():
             onCurrentReset(old.GetValue())
 

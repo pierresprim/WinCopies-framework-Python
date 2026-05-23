@@ -9,7 +9,7 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 from WinCopies.Delegates import NoAction, BoolFalse, AlwaysFalse, GetActionBoolFunc
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Delegate import Action, Function, Predicate
+from WinCopies.Typing.Delegate import Action, Function, NullablePredicate
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 def _GetCustomRange(start: int, stop: int) -> Iterable[int]:
@@ -52,25 +52,30 @@ class IResumableEnumerator[T](IEnumerator[T]):
         pass
     
     @abstractmethod
-    def TryResume(self, size: int) -> bool:
+    def TryResume(self, size: int) -> bool|None:
         pass
 class ResumableEnumerator[T](NullableEnumerator[T], IResumableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def _TryResumeOverride(self, size: int) -> bool:
+    def _TryResumeOverride(self, size: int) -> bool|None:
         pass
     
     def CanResume(self) -> bool:
         return self.IsStarted()
     
     @final
-    def TryResume(self, size: int) -> bool:
-        if self.CanResume() and self._TryResumeOverride(size):
+    def TryResume(self, size: int) -> bool|None:
+        if self.CanResume():
+            result: bool|None = self._TryResumeOverride(size)
+
+            if result is False:
+                return False
+
             self._UnsetCurrent()
 
-            return True
+            return result
         
         return False
 
@@ -194,7 +199,7 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
         return self.__moveNext()
     
     @final
-    def _TryResumeOverride(self, size: int) -> bool:
+    def _TryResumeOverride(self, size: int) -> bool|None:
         self.__resume()
         self.__size = size
 
@@ -277,7 +282,7 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
 
         return False
     
-    def _TryResumeOverride(self, size: int) -> bool:
+    def _TryResumeOverride(self, size: int) -> bool|None:
         return self.__rangeEnumerator.TryResume(size)
     
     def _ResetOverride(self) -> bool:
@@ -330,7 +335,7 @@ class IResumableBatchInnerEnumerator[T](IEnumerator[Generator[T]]):
         super().__init__()
     
     @abstractmethod
-    def TryResume(self, size: int) -> bool:
+    def TryResume(self, size: int) -> bool|None:
         pass
 class _ResumableBatchInnerEnumeratorBase[T](AbstractEnumeratorBase[T, Generator[T], IResumableEnumeratorBase[T]], IResumableBatchInnerEnumerator[T], IGenericConstraintImplementation[IResumableEnumeratorBase[T]]):
     def __init__(self, enumerator: IResumableEnumeratorBase[T], size: int) -> None:
@@ -440,13 +445,16 @@ class _ResumableBatchInnerEnumeratorBase[T](AbstractEnumeratorBase[T, Generator[
 
         super()._OnEnded()
     
-    def TryResume(self, size: int) -> bool:
+    def TryResume(self, size: int) -> bool|None:
         cursor: IResumableEnumerationCursor|None = self.__cursor
 
         if cursor is None:
             return False
         
         cursor.Resume()
+        
+        if self.__size == size:
+            return None
         
         self.__size = size
 
@@ -484,7 +492,7 @@ class ResumableBatchEnumeratorBase[TItem, TEnumerable](ResumableBatchEnumeratorA
         self.__size: int = size
 
         self.__moveNext: Function[bool] = self._MoveNext
-        self.__tryResume: Predicate[int] = AlwaysFalse
+        self.__tryResume: NullablePredicate[int] = AlwaysFalse
     
     def _CreateEnumerator(self, enumerator: IResumableEnumeratorBase[TItem], size: int) -> IResumableBatchInnerEnumerator[TItem]:
         return _ResumableBatchInnerEnumerator[TItem](enumerator, size)
@@ -544,14 +552,16 @@ class ResumableBatchEnumeratorBase[TItem, TEnumerable](ResumableBatchEnumeratorA
         self.__moveNext = BoolFalse
     
     @final
-    def _SetTryResume(self, predicate: Predicate[int]) -> None:
+    def _SetTryResume(self, predicate: NullablePredicate[int]) -> None:
         self.__tryResume = predicate
     
-    def _TryResumeOverride(self, size: int) -> bool:
-        self.__tryResume(size)
-        self.__size = size
+    def _TryResumeOverride(self, size: int) -> bool|None:
+        result: bool|None = self.__tryResume(size)
 
-        return True
+        if result is True:
+            self.__size = size
+
+        return result
     
     def _ResetOverride(self) -> bool:
         self.__moveNext = self._MoveNext
@@ -833,7 +843,7 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumeratorAbstract[T]):
         return self.__moveNext()
 
     @final
-    def _TryResumeOverride(self, size: int) -> bool:
+    def _TryResumeOverride(self, size: int) -> bool|None:
         def moveNext() -> bool:
             self._SetCurrent(self.__Enumerate())
 
