@@ -2,11 +2,12 @@ from abc import abstractmethod
 from collections.abc import Iterable, Collection, Sequence
 from typing import final
 
-from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, MakeGenerator
+from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, Enumerate, MakeGenerator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, CreateIterable
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
-from WinCopies.Delegates import BoolFalse, GetActionBoolFunc
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Delegates import NoAction, BoolFalse, GetActionBoolFunc
+from WinCopies.Typing.Delegate import Action, Function
 
 def _GetCustomRange(start: int, stop: int) -> Iterable[int]:
     return range(start, stop)
@@ -65,7 +66,7 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
         self.__count: int = count
 
         self.__moveNext: Function[bool] = self.__MoveNext
-        self.__tryResume: Function[bool] = BoolFalse
+        self.__resume: Action = NoAction
     
     @final
     def __Enumerate(self, start: int) -> Iterable[int]:
@@ -78,12 +79,10 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
     @final
     def __Batch(self, start: int, length: int) -> bool:
         def updateResume() -> None:
-            def resume() -> bool:
+            def resume() -> None:
                 self.__moveNext = lambda: self.__Batch(start, length)
-
-                return True
             
-            self.__tryResume = resume
+            self.__resume = resume
         
         size: int = self.GetSize()
 
@@ -140,10 +139,8 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
     
     @final
     def __MoveNext(self) -> bool:
-        def resume() -> bool:
+        def resume() -> None:
             self.__moveNext = self.__MoveNext
-
-            return True
         
         count: int = self.GetCount()
 
@@ -158,7 +155,7 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
                 return True
             
             self.__moveNext = lambda: self.__Batch(size, self.__Decrement(self.GetCount()))
-            self.__tryResume = resume
+            self.__resume = resume
 
             self._SetCurrent(self.__Enumerate(0))
 
@@ -171,12 +168,10 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
     
     @final
     def _TryResumeOverride(self, size: int) -> bool:
-        if self.__tryResume():
-            self.__size = size
+        self.__resume()
+        self.__size = size
 
-            return True
-        
-        return False
+        return True
     
     def _ResetOverride(self) -> bool:
         self.__moveNext = self.__MoveNext
@@ -185,7 +180,7 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
     
     def _OnEnded(self) -> None:
         self.__moveNext = BoolFalse
-        self.__tryResume = BoolFalse
+        self.__resume = NoAction
 
         super()._OnEnded()
     
@@ -242,8 +237,7 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
 
     def _MoveNextOverride(self) -> bool:
         def enumerate(range: Iterable[int]) -> Generator[T]:
-            for i in range:
-                yield self._GetAt(i)
+            return Select(range, self._GetAt)
         
         enumerator: RangeEnumerator = self.__rangeEnumerator
 
@@ -419,8 +413,8 @@ class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
         
         if enumerator.MoveNext():
             func: Function[Generator[T]] = iterate if self._GetSize() == 1 else enumerate
-            self._SetMoveNext(lambda: getGenerator(func))
 
+            self._SetMoveNext(lambda: getGenerator(func))
             self._SetCurrent(func())
 
             return True
@@ -629,16 +623,12 @@ def TryBatch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IE
             case _:
                 return tryCreateEnumerator(CreateIterable(items))
     
-    def enumerate(enumerator: IBatchEnumerator[T]) -> Generator[Generator[T]]:
-        for _batch in enumerator.AsIterator():
-            yield _batch
-    
     if items is None:
         return None
     
     enumerator: IBatchEnumerator[T]|None = batch(items)
 
-    return None if enumerator is None else enumerate(enumerator)
+    return None if enumerator is None else Enumerate(enumerator.AsIterator())
 def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> Generator[Generator[T]]:
     generator: Generator[Generator[T]]|None = TryBatch(items, size, safe)
 
