@@ -19,7 +19,7 @@ def DoNothing(_: object) -> None:
 
 def AlwaysTrue(obj: Any) -> bool:
     return True
-def AlwaysFlase(obj: Any) -> bool:
+def AlwaysFalse(obj: Any) -> bool:
     return False
 
 def CompareEquality[T](x: T, y: T) -> bool:
