@@ -1,13 +1,16 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Collection, Sequence
-from typing import final
+from typing import Callable, final
 
 from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, Enumerate, MakeGenerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, CreateIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, CreateIterable
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorBase, IResumableEnumerationCursor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
-from WinCopies.Delegates import NoAction, BoolFalse, GetActionBoolFunc
-from WinCopies.Typing.Delegate import Action, Function
+from WinCopies.Delegates import NoAction, BoolFalse, AlwaysFalse, GetActionBoolFunc
+from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import Action, Function, Predicate
+from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 def _GetCustomRange(start: int, stop: int) -> Iterable[int]:
     return range(start, stop)
@@ -15,6 +18,30 @@ def _GetRange(start: int, size: int) -> Iterable[int]:
     return _GetCustomRange(start, start + size)
 def _GetDefaultRange(size: int) -> Iterable[int]:
     return _GetRange(0, size)
+
+def _Enumerate[T](enumerator: IEnumerator[T], size: int) -> Generator[T]:
+    def iterate() -> Generator[T]:
+        yield enumerator.GetCurrent()
+    
+    def enumerate() -> Generator[T]:
+        def enumerate() -> Generator[T]:
+            for _ in _GetCustomRange(1, size):
+                if enumerator.MoveNext():
+                    yield enumerator.GetCurrent()
+                
+                else:
+                    break
+        
+        yield enumerator.GetCurrent()
+        
+        for item in enumerate():
+            yield item
+    
+    return iterate() if size == 1 else enumerate()
+
+def _CompleteBatch[T](batch: Generator[T]) -> None:
+    for _ in batch:
+        pass
 
 class IResumableEnumerator[T](IEnumerator[T]):
     def __init__(self) -> None:
@@ -208,7 +235,7 @@ class BatchEnumerator[T](NullableEnumerator[Generator[T]], IBatchEnumerator[T]):
 class IResumableBatchEnumerator[T](IBatchEnumerator[T], IResumableEnumerator[Generator[T]]):
     def __init__(self) -> None:
         super().__init__()
-class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableBatchEnumerator[T]):
+class ResumableBatchEnumeratorAbstract[T](ResumableEnumerator[Generator[T]], IResumableBatchEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -217,7 +244,7 @@ class ResumableBatchEnumerator[T](ResumableEnumerator[Generator[T]], IResumableB
 
         super()._OnCurrentInvalidated(old)
 
-class CountableBatchEnumerator[T](ResumableBatchEnumerator[T]):
+class CountableBatchEnumerator[T](ResumableBatchEnumeratorAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -298,6 +325,302 @@ class SequenceBatchEnumerator[T](IndexableBatchEnumeratorBase[T]):
     def _GetAt(self, index: int) -> T:
         return self.__items[index]
 
+class IResumableBatchInnerEnumerator[T](IEnumerator[Generator[T]]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryResume(self, size: int) -> bool:
+        pass
+class _ResumableBatchInnerEnumeratorBase[T](AbstractEnumeratorBase[T, Generator[T], IResumableEnumeratorBase[T]], IResumableBatchInnerEnumerator[T], IGenericConstraintImplementation[IResumableEnumeratorBase[T]]):
+    def __init__(self, enumerator: IResumableEnumeratorBase[T], size: int) -> None:
+        super().__init__(enumerator)
+
+        self.__current: Generator[T]|None = None
+        self.__cursor: IResumableEnumerationCursor|None = None
+        
+        self.__size: int = size
+        
+        self.__moveNext: Function[bool] = self.__MoveFirst
+    
+    @final
+    def _GetSize(self) -> int:
+        return self.__size
+    
+    @final
+    def _SetCurrent(self, generator: Generator[T]) -> None:
+        self.__current = generator
+    
+    @final
+    def _PlaceCursor(self, enumerator: IResumableEnumeratorBase[T]) -> None:
+        self.__cursor = enumerator.PlaceCursor()
+    
+    @abstractmethod
+    def _MoveFirst(self, enumerator: IResumableEnumeratorBase[T]) -> bool:
+        pass
+    
+    @final
+    def _SetCurrentDefault(self, enumerator: IResumableEnumeratorBase[T]) -> None:
+        def enumerate() -> Generator[T]:
+            getCurrent: Function[T]
+
+            def __getCurrent() -> T:
+                return enumerator.GetCurrent()
+            def _getCurrent() -> T:
+                nonlocal getCurrent
+                
+                self._PlaceCursor(enumerator)
+
+                return (getCurrent := __getCurrent)()
+
+            getCurrent = _getCurrent
+            
+            for _ in _GetDefaultRange(self._GetSize()):
+                if enumerator.MoveNext():
+                    yield getCurrent()
+                
+                else:
+                    break
+        
+        self._SetCurrent(enumerate())
+        
+    @final
+    def __MoveNext(self, enumerator: IResumableEnumeratorBase[T]) -> None:
+        old: Generator[T]|None = self.__current
+
+        if old is not None:
+            _CompleteBatch(old)
+
+            cursor: IResumableEnumerationCursor|None = self.__cursor
+
+            if cursor is not None:
+                cursor.Dispose()
+
+                self.__cursor = None
+        
+        self._SetCurrentDefault(enumerator)
+    @final
+    def __MoveFirst(self) -> bool:
+        def moveNext() -> bool:
+            if enumerator.IsStarted():
+                self.__MoveNext(enumerator)
+
+                return True
+            
+            return False
+
+        enumerator: IResumableEnumeratorBase[T] = self._GetContainer()
+
+        self.__moveNext = moveNext
+
+        return self._MoveFirst(enumerator)
+    
+    def _GetCurrent(self) -> Generator[T]:
+        current: Generator[T]|None = self.__current
+
+        if current is None:
+            raise InvalidOperationError()
+        
+        return current
+    
+    def _MoveNextOverride(self) -> bool:
+        return self.__moveNext()
+    
+    def _OnEnded(self) -> None:
+        self.__moveNext = BoolFalse
+    
+        cursor: IResumableEnumerationCursor|None = self.__cursor
+
+        if cursor is not None:
+            cursor.Dispose()
+
+            self.__cursor = None
+        
+        self.__current = None
+
+        super()._OnEnded()
+    
+    def TryResume(self, size: int) -> bool:
+        cursor: IResumableEnumerationCursor|None = self.__cursor
+
+        if cursor is None:
+            return False
+        
+        cursor.Resume()
+        
+        self.__size = size
+
+        return True
+
+@final
+class _ResumableBatchInnerEnumerator[T](_ResumableBatchInnerEnumeratorBase[T]):
+    def __init__(self, enumerator: IResumableEnumeratorBase[T], size: int) -> None:
+        super().__init__(enumerator, size)
+    
+    def _MoveFirst(self, enumerator: IResumableEnumeratorBase[T]) -> bool:
+        self._SetCurrentDefault(enumerator)
+        
+        return True
+@final
+class _ResumableBatchSafeInnerEnumerator[T](_ResumableBatchInnerEnumeratorBase[T]):
+    def __init__(self, enumerator: IResumableEnumeratorBase[T], size: int) -> None:
+        super().__init__(enumerator, size)
+    
+    def _MoveFirst(self, enumerator: IResumableEnumeratorBase[T]) -> bool:
+        if enumerator.MoveNext():
+            self._SetCurrent(_Enumerate(enumerator, self._GetSize()))
+            
+            self._PlaceCursor(enumerator)
+
+            return True
+        
+        return False
+
+class ResumableBatchEnumeratorBase[TItem, TEnumerable](ResumableBatchEnumeratorAbstract[TItem], GenericConstraint[TEnumerable, IResumableEnumerable[TItem]]):
+    def __init__(self, size: int, items: TEnumerable) -> None:
+        super().__init__()
+
+        self.__items: TEnumerable = items
+        self.__size: int = size
+
+        self.__moveNext: Function[bool] = self._MoveNext
+        self.__tryResume: Predicate[int] = AlwaysFalse
+    
+    def _CreateEnumerator(self, enumerator: IResumableEnumeratorBase[TItem], size: int) -> IResumableBatchInnerEnumerator[TItem]:
+        return _ResumableBatchInnerEnumerator[TItem](enumerator, size)
+    
+    @final
+    def _Enumerate(self) -> bool:
+        def tryGetEnumerator(size: int) -> IResumableBatchInnerEnumerator[TItem]|None:
+            enumerator: IResumableEnumeratorBase[TItem]|None = items.TryGetResumableEnumerator()
+
+            return None if enumerator is None else self._CreateEnumerator(enumerator, size)
+        
+        def moveNext(enumerator: IResumableBatchInnerEnumerator[TItem]) -> bool:
+            if enumerator.MoveNext():
+                self._SetCurrent(enumerator.GetCurrent())
+
+                return True
+            
+            return False
+        
+        items: IResumableEnumerable[TItem] = self._GetInnerContainer()
+        size: int = self._GetSize()
+
+        enumerator: IResumableBatchInnerEnumerator[TItem]|None = tryGetEnumerator(size)
+
+        if enumerator is None:
+            return False
+
+        self.__moveNext = lambda: moveNext(enumerator)
+        self.__tryResume = lambda size: enumerator.TryResume(size)
+
+        return self.__moveNext()
+    
+    @final
+    def _GetContainer(self) -> TEnumerable:
+        return self.__items
+    
+    @final
+    def _GetSize(self) -> int:
+        return self.__size
+    
+    @abstractmethod
+    def _MoveNext(self) -> bool:
+        pass
+    
+    @final
+    def _DoMoveNext(self) -> bool:
+        return self.__moveNext()
+    
+    def _MoveNextOverride(self) -> bool:
+        return self._DoMoveNext()
+    
+    @final
+    def _SetMoveNext(self, func: Function[bool]) -> None:
+        self.__moveNext = func
+    @final
+    def _UnsetMoveNext(self) -> None:
+        self.__moveNext = BoolFalse
+    
+    @final
+    def _SetTryResume(self, predicate: Predicate[int]) -> None:
+        self.__tryResume = predicate
+    
+    def _TryResumeOverride(self, size: int) -> bool:
+        self.__tryResume(size)
+        self.__size = size
+
+        return True
+    
+    def _ResetOverride(self) -> bool:
+        self.__moveNext = self._MoveNext
+        self.__tryResume = AlwaysFalse
+
+        return True
+    
+    def _OnStopped(self) -> None:
+        pass
+    
+    def _OnEnded(self) -> None:
+        self.__moveNext = BoolFalse
+        self.__tryResume = AlwaysFalse
+
+        super()._OnEnded()
+    
+    def IsResetSupported(self) -> bool:
+        return True
+
+class ResumableBatchEnumerator[T](ResumableBatchEnumeratorBase[T, IResumableEnumerable[T]], IGenericConstraintImplementation[IResumableEnumerable[T]]):
+    def __init__(self, size: int, items: IResumableEnumerable[T], safe: bool = True) -> None:
+        super().__init__(size, items)
+
+        self.__createEnumerator: Callable[[IResumableEnumeratorBase[T], int], IResumableBatchInnerEnumerator[T]] = self._CreateSafeEnumerator if safe else self._CreateUnsafeEnumerator
+    
+    def _CreateEnumerator(self, enumerator: IResumableEnumeratorBase[T], size: int) -> IResumableBatchInnerEnumerator[T]:
+        return self.__createEnumerator(enumerator, size)
+    
+    @final
+    def _CreateSafeEnumerator(self, enumerator: IResumableEnumeratorBase[T], size: int) -> IResumableBatchInnerEnumerator[T]:
+        return _ResumableBatchSafeInnerEnumerator[T](enumerator, size)
+    @final
+    def _CreateUnsafeEnumerator(self, enumerator: IResumableEnumeratorBase[T], size: int) -> IResumableBatchInnerEnumerator[T]:
+        return super()._CreateEnumerator(enumerator, size)
+    
+    def _MoveNext(self) -> bool:
+        return self._Enumerate()
+class ResumableCountableBatchEnumerator[T](ResumableBatchEnumeratorBase[T, IResumableCountableEnumerable[T]], IGenericConstraintImplementation[IResumableCountableEnumerable[T]]):
+    def __init__(self, size: int, items: IResumableCountableEnumerable[T]) -> None:
+        super().__init__(size, items)
+    
+    def _MoveNext(self) -> bool:
+        def tryResume(_: int) -> bool:
+            self._SetMoveNext(self._MoveNext)
+
+            return True
+
+        count: int = self._GetCount()
+
+        if count < 1:
+            return False
+        
+        items: IResumableCountableEnumerable[T] = self._GetContainer()
+        size: int = self._GetSize()
+        
+        if size < count:
+            return self._Enumerate()
+        
+        self._SetCurrent(Enumerate(items.AsIterable()))
+
+        self._UnsetMoveNext()
+        self._SetTryResume(tryResume)
+
+        return True
+    
+    @final
+    def _GetCount(self) -> int:
+        return self._GetContainer().GetCount()
+
 class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
         super().__init__()
@@ -309,8 +632,7 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
     
     def _OnCurrentUpdating(self, old: Generator[T]|None, new: Generator[T]) -> None:
         if old is not None:
-            for _ in old:
-                pass
+            _CompleteBatch(old)
 
         super()._OnCurrentUpdating(old, new)
     
@@ -385,22 +707,6 @@ class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
         self.__batch: Function[bool] = self.__EnumerateSafe if safe else self._Enumerate
     
     def __EnumerateSafe(self) -> bool:
-        def enumerate() -> Generator[T]:
-            def enumerate() -> Generator[T]:
-                for _ in _GetCustomRange(1, self._GetSize()):
-                    if enumerator.MoveNext():
-                        yield enumerator.GetCurrent()
-                    
-                    else:
-                        break
-            
-            yield enumerator.GetCurrent()
-            
-            for item in enumerate():
-                yield item
-        def iterate() -> Generator[T]:
-            yield enumerator.GetCurrent()
-        
         def getGenerator(func: Function[Generator[T]]) -> bool:
             if enumerator.MoveNext():
                 self._SetCurrent(func())
@@ -412,7 +718,7 @@ class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
         enumerator: IEnumerator[T] = self._GetEnumerator()
         
         if enumerator.MoveNext():
-            func: Function[Generator[T]] = iterate if self._GetSize() == 1 else enumerate
+            func: Function[Generator[T]] = lambda: _Enumerate(enumerator, self._GetSize())
 
             self._SetMoveNext(lambda: getGenerator(func))
             self._SetCurrent(func())
@@ -433,10 +739,6 @@ class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
         pass
 
     def _MoveNext(self) -> bool:
-        def iterate() -> Generator[T]:
-            for item in self._GetEnumerator().AsIterator():
-                yield item
-        
         count: int = self._GetCount()
         
         if count < 1:
@@ -445,13 +747,13 @@ class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
         if self._GetSize() >= count:
             self._UnsetMoveNext()
 
-            self._SetCurrent(iterate())
+            self._SetCurrent(Enumerate(self._GetEnumerator().AsIterator()))
 
             return True
         
         return self._Enumerate()
 
-class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
+class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumeratorAbstract[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
         super().__init__()
 
@@ -492,8 +794,7 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumerator[T]):
             if self.__batchStart is None:
                 return
             
-            for _ in self.GetCurrent():
-                pass
+            _CompleteBatch(self.GetCurrent())
         
         def commit() -> None:
             if self.__batchStart is None:
