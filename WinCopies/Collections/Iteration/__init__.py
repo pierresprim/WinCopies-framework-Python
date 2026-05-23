@@ -96,6 +96,21 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         self.__tryOnSuccess: Function[bool] = self.__TryOnSuccess
         self.__tryOnError: Function[bool|None] = self.__TryOnError
     
+    def __AreConverged(self) -> bool:
+        low: int = self.GetLow()
+        high: int|None = self.GetHigh()
+
+        if high is None or low + 1 < high:
+            return False
+
+        self.__refine = None
+        self.__current = low
+
+        self.__tryOnSuccess = BoolFalse
+        self.__tryOnError = BoolFalse
+
+        return True
+    
     def __TryOnSuccess(self) -> bool:
         current: int = self.__current
         high: int|None = self.GetHigh()
@@ -106,19 +121,11 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
             if self.__refine:
                 self.__current = 2 * current
         
-        else:
+        elif not self.__AreConverged():
             delta: int = 2 * self.__delta
 
             self.__delta = delta
-            low: int = self.GetLow()
-            current = min(low + delta, high - 1)
-            self.__current = current
-
-            if current == low:
-                self.__refine = None
-
-                self.__tryOnSuccess = BoolFalse
-                self.__tryOnError = BoolFalse
+            self.__current = min(self.GetLow() + delta, high - 1)
         
         return True
     def __TryOnError(self) -> bool|None:
@@ -130,14 +137,14 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
 
         self.__refine = True
 
-        if low == 0:
-            self.__Reset(1)
-
-        else:
-            self.__ResetDelta()
-            
-            self.__high = current
-            self.__current = low + 1
+        self.__ResetDelta()
+        
+        self.__high = current
+        
+        if self.__AreConverged():
+            return low > 0
+        
+        self.__current = low + 1
         
         return True
     
