@@ -144,24 +144,24 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
         
         count: int = self.GetCount()
 
-        if count > 0:
-            size: int = self.GetSize()
+        if count < 1:
+            return False
+        
+        size: int = self.GetSize()
+        
+        if size >= count:
+            self.__moveNext = BoolFalse
             
-            if size >= count:
-                self.__moveNext = BoolFalse
+            self._SetCurrent(_GetDefaultRange(count))
 
-                self._SetCurrent(_GetDefaultRange(count))
-
-                return True
-            
+        else:
             self.__moveNext = lambda: self.__Batch(size, self.__Decrement(self.GetCount()))
-            self.__resume = resume
-
+            
             self._SetCurrent(self.__Enumerate(0))
 
-            return True
-        
-        return False
+        self.__resume = resume
+
+        return True
     
     def _MoveNextOverride(self) -> bool:
         return self.__moveNext()
