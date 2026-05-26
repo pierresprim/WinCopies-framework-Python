@@ -9,11 +9,12 @@ import os
 
 from typing import Callable, Iterable, AnyStr
 
-from WinCopies import Delegates, Collections, IO
+from WinCopies.Collections import IterableScanResult, FinderPredicate, TryIterateFrom
+from WinCopies.Collections.Loop import ForEachItemUntil, DoForEachItem, ScanItems
+from WinCopies.Delegates import GetPredicateAction, GetAndPredicate, GetAndAlsoPredicate
+from WinCopies.IO import FileKind, GetDirectoryPredicate, GetFilePredicate, TryCheckExtension
 from WinCopies.Typing.Delegate import Converter, Method, Predicate
 from WinCopies.Typing.Pairing import DualResult, CreateDualResult
-from WinCopies.Collections import Loop, IterableScanResult
-from WinCopies.IO import FileKind
 
 def ProcessDirEntries(path: str, func: Converter[Iterable[os.DirEntry[str]], bool|None]) -> IterableScanResult:
     """Processes directory entries using a custom converter function.
@@ -25,7 +26,7 @@ def ProcessDirEntries(path: str, func: Converter[Iterable[os.DirEntry[str]], boo
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return Collections.TryIterateFrom(path, os.path.isdir, os.scandir, func)
+    return TryIterateFrom(path, os.path.isdir, os.scandir, func)
 
 def ParseEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableScanResult:
     """Parses directory entries until the given predicate returns True.
@@ -37,10 +38,10 @@ def ParseEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableS
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ProcessDirEntries(path, lambda paths: Loop.ForEachItemUntil(paths, predicate))
+    return ProcessDirEntries(path, lambda paths: ForEachItemUntil(paths, predicate))
 
-def __ParseDir(path: str, func: Callable[[str, Predicate[os.DirEntry[AnyStr]]], IterableScanResult], converter: Converter[Collections.FinderPredicate[os.DirEntry[AnyStr]], Predicate[os.DirEntry[AnyStr]]]) -> DualResult[os.DirEntry[AnyStr]|None, IterableScanResult]:
-    predicate = Collections.FinderPredicate[os.DirEntry[AnyStr]]()
+def __ParseDir(path: str, func: Callable[[str, Predicate[os.DirEntry[AnyStr]]], IterableScanResult], converter: Converter[FinderPredicate[os.DirEntry[AnyStr]], Predicate[os.DirEntry[AnyStr]]]) -> DualResult[os.DirEntry[AnyStr]|None, IterableScanResult]:
+    predicate = FinderPredicate[os.DirEntry[AnyStr]]()
     
     dirScanResult: IterableScanResult = func(path, converter(predicate))
 
@@ -110,7 +111,7 @@ def ParseDir(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[o
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ScanDir(path, Delegates.GetPredicateAction(predicate, action))
+    return ScanDir(path, GetPredicateAction(predicate, action))
 
 def ForEachDirEntry(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
     """Executes an action on directory entries while the given predicate is True and validates.
@@ -123,7 +124,7 @@ def ForEachDirEntry(path: str, predicate: Predicate[os.DirEntry[str]], action: M
     Returns:
         A DualResult containing the first non-matching entry (or None if all entries matched the predicate) and the scan result.
     """
-    return ValidateDirEntries(path, Delegates.GetPredicateAction(predicate, action))
+    return ValidateDirEntries(path, GetPredicateAction(predicate, action))
 
 def ScanDirEntries(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on all directory entries.
@@ -135,7 +136,7 @@ def ScanDirEntries(path: str, action: Method[os.DirEntry[str]]) -> IterableScanR
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ProcessDirEntries(path, lambda paths: Loop.DoForEachItem(paths, action))
+    return ProcessDirEntries(path, lambda paths: DoForEachItem(paths, action))
 
 def ParseDirEntries(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on directory entries while all match the given predicate.
@@ -148,10 +149,10 @@ def ParseDirEntries(path: str, predicate: Predicate[os.DirEntry[str]], action: M
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ProcessDirEntries(path, lambda paths: Loop.ScanItems(paths, predicate, action))
+    return ProcessDirEntries(path, lambda paths: ScanItems(paths, predicate, action))
 
 def __ParseDirEntries(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]], dirEntryPredicate: Predicate[os.DirEntry[str]]) -> IterableScanResult:
-    return ParseDirEntries(path, Delegates.GetAndAlsoPredicate(dirEntryPredicate, predicate), action)
+    return ParseDirEntries(path, GetAndAlsoPredicate(dirEntryPredicate, predicate), action)
 
 def ScanSubdirectories(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on all subdirectories.
@@ -163,7 +164,7 @@ def ScanSubdirectories(path: str, action: Method[os.DirEntry[str]]) -> IterableS
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ParseDirEntries(path, IO.GetDirectoryPredicate(), action)
+    return ParseDirEntries(path, GetDirectoryPredicate(), action)
 def ParseSubdirectories(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on subdirectories while all match the given predicate.
 
@@ -175,7 +176,7 @@ def ParseSubdirectories(path: str, predicate: Predicate[os.DirEntry[str]], actio
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return __ParseDirEntries(path, predicate, action, IO.GetDirectoryPredicate())
+    return __ParseDirEntries(path, predicate, action, GetDirectoryPredicate())
 
 def ScanFiles(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on all files.
@@ -187,7 +188,7 @@ def ScanFiles(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return ParseDirEntries(path, IO.GetFilePredicate(), action)
+    return ParseDirEntries(path, GetFilePredicate(), action)
 def ParseFiles(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
     """Executes the given action on files while all match the given predicate.
 
@@ -199,7 +200,7 @@ def ParseFiles(path: str, predicate: Predicate[os.DirEntry[str]], action: Method
     Returns:
         An IterableScanResult indicating the outcome of the operation.
     """
-    return __ParseDirEntries(path, predicate, action, IO.GetFilePredicate())
+    return __ParseDirEntries(path, predicate, action, GetFilePredicate())
 
 def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]) -> Predicate[os.DirEntry[str]]:
     """Creates a predicate to find entries matching specified file kind and extensions.
@@ -214,23 +215,23 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]
     Raises:
         ValueError: If the FileKind is not supported.
     """
-    predicate: Predicate[os.DirEntry[str]] = lambda entry: IO.TryCheckExtension(entry.path, extensions) == True
+    predicate: Predicate[os.DirEntry[str]] = lambda entry: TryCheckExtension(entry.path, extensions) == True
 
     match fileKind:
         case FileKind.Null:
             return predicate
 
         case FileKind.Folder:
-            return Delegates.GetAndAlsoPredicate(lambda value: value.is_dir(), predicate)
+            return GetAndAlsoPredicate(lambda value: value.is_dir(), predicate)
 
         case FileKind.File:
-            return Delegates.GetAndAlsoPredicate(lambda value: value.is_file(), predicate)
+            return GetAndAlsoPredicate(lambda value: value.is_file(), predicate)
 
         case FileKind.Link:
-            return Delegates.GetAndAlsoPredicate(lambda value: value.is_symlink(), predicate)
+            return GetAndAlsoPredicate(lambda value: value.is_symlink(), predicate)
 
         case FileKind.Junction:
-            return Delegates.GetAndAlsoPredicate(lambda value: value.is_junction(), predicate)
+            return GetAndAlsoPredicate(lambda value: value.is_junction(), predicate)
 
         case _:
             raise ValueError("FileKind not supported.", fileKind)
@@ -300,7 +301,7 @@ def FindFromExtensionsAndCheck(path: str, fileKind: FileKind, predicate: Predica
     Raises:
         ValueError: If the FileKind is not supported.
     """
-    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
+    return __FindFromExtensions(path, GetAndAlsoPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
 def FindFromExtensionsAndValidate(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
     """Finds the first entry matching the specified file kind and variadic extensions, then validates with the given predicate.
 
@@ -316,7 +317,7 @@ def FindFromExtensionsAndValidate(path: str, fileKind: FileKind, predicate: Pred
     Raises:
         ValueError: If the FileKind is not supported.
     """
-    return __FindFromExtensions(path, Delegates.GetAndPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
+    return __FindFromExtensions(path, GetAndPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
 
 def CheckAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
     """Checks entries with the given predicate first, then finds matching file kind and variadic extensions.
@@ -333,7 +334,7 @@ def CheckAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predica
     Raises:
         ValueError: If the FileKind is not supported.
     """
-    return __FindFromExtensions(path, Delegates.GetAndAlsoPredicate(predicate, GetFindFromExtensionsPredicate(fileKind, extensions)))
+    return __FindFromExtensions(path, GetAndAlsoPredicate(predicate, GetFindFromExtensionsPredicate(fileKind, extensions)))
 def ValidateAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
     """Validates entries with the given predicate first, then finds matching file kind and variadic extensions.
 
@@ -349,4 +350,4 @@ def ValidateAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Pred
     Raises:
         ValueError: If the FileKind is not supported.
     """
-    return __FindFromExtensions(path, Delegates.GetAndPredicate(predicate, GetFindFromExtensionsPredicate(fileKind, extensions)))
+    return __FindFromExtensions(path, GetAndPredicate(predicate, GetFindFromExtensionsPredicate(fileKind, extensions)))

@@ -11,12 +11,11 @@ import os
 
 from typing import final
 
-from WinCopies import IO, String
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerator
-from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
-from WinCopies.IO import IDirEntry
-from WinCopies.String import StringifyIfNone
+from WinCopies.Collections.Iteration import Select
+from WinCopies.IO import IDirEntry, GetFileName, GetExtension, GetExtensionFromArray
+from WinCopies.String import StringifyIfNone, SurroundWith
 
 class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
     def __init__(self) -> None:
@@ -50,11 +49,11 @@ class SystemDirEntry(IterableDirEntry):
     
     @final
     def GetName(self) -> str:
-        return IO.GetFileName(self.__dirEntry.name)
+        return GetFileName(self.__dirEntry.name)
     
     @final
     def GetExtension(self) -> str:
-        return IO.GetExtension(self.GetPath())
+        return GetExtension(self.GetPath())
     
     @final
     def GetFullName(self) -> str:
@@ -72,7 +71,7 @@ class DirEntry(IterableDirEntry):
     def FromFileName(cls, directory: str, fileName: str) -> DirEntry:
         entry = os.path.splitext(fileName)
         
-        return cls(directory, entry[0], IO.GetExtensionFromArray(entry))
+        return cls(directory, entry[0], GetExtensionFromArray(entry))
     
     @classmethod
     def FromPath(cls, path: str) -> DirEntry:
@@ -85,7 +84,7 @@ class DirEntry(IterableDirEntry):
         entry: SystemDirEntry = SystemDirEntry(dirEntry)
         array = os.path.splitext(entry.GetFullName())
         
-        return cls(entry.GetDirectory(), array[0], IO.GetExtensionFromArray(array))
+        return cls(entry.GetDirectory(), array[0], GetExtensionFromArray(array))
     
     @final
     def GetPath(self) -> str:
@@ -105,4 +104,4 @@ class DirEntry(IterableDirEntry):
     
     @final
     def GetFullName(self) -> str:
-        return String.SurroundWith(self.__name, None if self.__extension == '' else '.', self.__extension)
+        return SurroundWith(self.__name, None if self.__extension == '' else '.', self.__extension)

@@ -3,7 +3,8 @@ import subprocess
 
 from collections.abc import Iterable, Sequence
 
-from WinCopies.Collections import Iteration, MakeSequence
+from WinCopies.Collections import MakeSequence
+from WinCopies.Collections.Iteration import PrependValues
 from WinCopies.Typing.Pairing import DualResult, KeyValuePair, CreateDualResult
 
 def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
@@ -12,7 +13,7 @@ def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = F
     return CreateDualResult(result.stdout, result.returncode)
 
 def RunWithArgs(command: str, args: Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:
-    return Run(Iteration.PrependValues(args, command), captureOutput, shell, throwOnError)
+    return Run(PrependValues(args, command), captureOutput, shell, throwOnError)
 def RunWithArgValues(command: str, captureOutput: bool, shell: bool, throwOnError: bool, *args: str) -> DualResult[object, int]:
     return RunWithArgs(command, args, captureOutput, shell, throwOnError)
 
