@@ -8,7 +8,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Generator, EnumerationOrder, MakeSequence
+from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
@@ -17,6 +17,7 @@ from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExp
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
+from WinCopies.Collections.Util import MakeSequence
 
 from WinCopies.Delegates import Self
 

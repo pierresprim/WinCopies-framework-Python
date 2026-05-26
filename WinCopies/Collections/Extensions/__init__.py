@@ -4,8 +4,17 @@ from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import Collections, IInterface, IStringable
-from WinCopies.Collections import ICountable, IReadOnlyCollection as IReadOnlyCollectionBase, IContainer, ICountableCollection, IReadOnlyCountableList, ICountableList as ICountableListBase, IClearable
+from WinCopies import IInterface, IStringable
+from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
+                                        IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
+                                        ITuple as ITupleBase, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
+                                        IArray as IArrayAbstract,
+                                        IListBase as IListAbstractBase, IList as IListAbstract,
+                                        ISortedTuple as ISortedTupleBase, ISortedList as ISortedListBase,
+                                        ICountableList as ICountableListBase,
+                                        IReadOnlySet as IReadOnlySetBase, ISet as ISetBase,
+                                        IReadOnlyDictionary as IReadOnlyDictionaryBase, IDictionary as IDictionaryBase,
+                                        IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, HashableProtocol
@@ -155,7 +164,7 @@ class IResumableEnumeratorMonitor[T](IEnumeratorMonitor[T]):
     def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
         pass
 
-class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -170,7 +179,7 @@ class ITuple[T](Collections.ITuple[T], ISequence[T], IReversableCountableEnumera
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         pass
-class IEquatableTuple[T: IEquatableValue](Collections.IEquatableTuple[T], IEquatableEnumerable[T], ITuple[T]):
+class IEquatableTuple[T: IEquatableValue](IEquatableTupleBase[T], IEquatableEnumerable[T], ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -181,7 +190,7 @@ class IEquatableTuple[T: IEquatableValue](Collections.IEquatableTuple[T], IEquat
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         pass
-class IHashableTuple[T: IHashableValue](Collections.IHashableTuple[T], IEquatableTuple[T], IHashableEnumerable[T], IItem):
+class IHashableTuple[T: IHashableValue](IHashableTupleBase[T], IEquatableTuple[T], IHashableEnumerable[T], IItem):
     def __init__(self) -> None:
         super().__init__()
 
@@ -208,7 +217,7 @@ class IArrayBase[T](ITuple[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> IArrayBase[T]:
         pass
-class IArray[T](IArrayBase[T], Collections.IArray[T]):
+class IArray[T](IArrayBase[T], IArrayAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -220,7 +229,7 @@ class IArray[T](IArrayBase[T], Collections.IArray[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         pass
 
-class IListBase[T](IArrayBase[T], Collections.IListBase[T]):
+class IListBase[T](IArrayBase[T], IListAbstractBase[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -231,7 +240,7 @@ class IListBase[T](IArrayBase[T], Collections.IListBase[T]):
     @abstractmethod
     def AsReversed(self) -> IListBase[T]:
         pass
-class IList[T](Collections.IList[T], IArray[T], IListBase[T], IMutableSequence[T]):
+class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -247,7 +256,7 @@ class IList[T](Collections.IList[T], IArray[T], IListBase[T], IMutableSequence[T
     def SliceAt(self, key: slice) -> IList[T]:
         pass
 
-class ISortedTuple[T](ITuple[T], Collections.ISortedTuple[T]):
+class ISortedTuple[T](ITuple[T], ISortedTupleBase[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -258,7 +267,7 @@ class ISortedTuple[T](ITuple[T], Collections.ISortedTuple[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedTuple[T]:
         pass
-class ISortedList[T](IListBase[T], Collections.ISortedList[T], ISortedTuple[T]):
+class ISortedList[T](IListBase[T], ISortedListBase[T], ISortedTuple[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -275,7 +284,7 @@ class ISortedList[T](IListBase[T], Collections.ISortedList[T], ISortedTuple[T]):
         pass
 
 # TODO: Should implement a Mapping abstractor provider.
-class IReadOnlyDictionary[TKey: HashableProtocol, TValue](Collections.IReadOnlyDictionary[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
+class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionaryBase[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -286,7 +295,7 @@ class IReadOnlyDictionary[TKey: HashableProtocol, TValue](Collections.IReadOnlyD
     def GetValues(self) -> ICountableEnumerable[TValue]:
         pass
 # TODO: Should implement a MutableMapping abstractor provider.
-class IDictionary[TKey: HashableProtocol, TValue](Collections.IDictionary[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+class IDictionary[TKey: HashableProtocol, TValue](IDictionaryBase[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -294,10 +303,10 @@ class IDictionary[TKey: HashableProtocol, TValue](Collections.IDictionary[TKey, 
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
         pass
 
-class IReadOnlySet[T: HashableProtocol](Collections.IReadOnlySet[T], ICountableEnumerable[T], IStringable):
+class IReadOnlySet[T: HashableProtocol](IReadOnlySetBase[T], ICountableEnumerable[T], IStringable):
     def __init__(self) -> None:
         super().__init__()
-class ISet[T: HashableProtocol](Collections.ISet[T], IReadOnlySet[T]):
+class ISet[T: HashableProtocol](ISetBase[T], IReadOnlySet[T]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -330,14 +339,14 @@ class MutableSequenceAbstract[T](MutableSequence[T], IList[T]):
     def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]:
         return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
-class IReadOnlyOrderedSet[T: IHashableValue](IReadOnlySet[T], Collections.IReadOnlyOrderedSet[T]):
+class IReadOnlyOrderedSet[T: IHashableValue](IReadOnlySet[T], IReadOnlyOrderedSetBase[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsTuple(self) -> IEquatableTuple[T]:
         pass
-class IOrderedSet[T: IHashableValue](Collections.IOrderedSet[T], ISet[T], IReadOnlyOrderedSet[T]):
+class IOrderedSet[T: IHashableValue](IOrderedSetBase[T], ISet[T], IReadOnlyOrderedSet[T]):
     def __init__(self) -> None:
         super().__init__()
     

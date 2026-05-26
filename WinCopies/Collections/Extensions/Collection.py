@@ -4,15 +4,17 @@ from abc import abstractmethod
 from collections.abc import Container as ContainerBase, Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import Collections, IInterface, Abstract
-from WinCopies.Collections import Mutability, IIndexableCollectionBase, IGetter, ISetter, FindIndex
+from WinCopies import IInterface, Abstract
+from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
+from WinCopies.Collections.Core import IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollection, IResumableEnumeratorMonitor, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IListBase, IList, ISortedList, IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFactory, ResumableEnumeratorFactory, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
+from WinCopies.Collections.Util import FindIndex
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
@@ -236,7 +238,7 @@ class KeyableBase[TKey, TValue](GetterBase[TKey, TValue], SetterBase[TKey, TValu
     def __init__(self) -> None:
         super().__init__()
 
-class TupleAbstractBase[T](GetterBase[int, T], Collections.Tuple[T], ITuple[T]):
+class TupleAbstractBase[T](GetterBase[int, T], _Tuple[T], ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 class TupleAbstract[T](TupleAbstractBase[T]):
@@ -549,7 +551,7 @@ class _ReversedArrayUpdater[T](ValueFunctionUpdater[IArray[T]]):
     def _GetValue(self) -> IArray[T]:
         return _ReversedArray[T](self.__array, self.__factory)
 
-class ArrayCollection[T](Collections.Array[T], ArrayCollectionBase[T, IArray[T]]):
+class ArrayCollection[T](_Array[T], ArrayCollectionBase[T, IArray[T]]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -844,7 +846,7 @@ class CollectionAbstract[T](IArrayAbstract[T, IList[T]], IList[T]):
     def _GetUpdater(self, factory: IResumableEnumeratorMonitor[T], func: Method[IFunction[IList[T]]]) -> IFunction[IList[T]]:
         return _ReversedListUpdater[T](self, factory, func)
 
-class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
+class Collection[T](_List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IArray[T]]) -> None:
             self.__fixedSize = func
@@ -860,7 +862,7 @@ class Collection[T](Collections.List[T], ArrayCollectionBase[T, IList[T]], Colle
     @final
     def AsFixedSize(self) -> IArray[T]:
         return self.__fixedSize.GetValue()
-class SortedCollection[T](Collections.SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T]):
+class SortedCollection[T](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T]):
     def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ISortedTuple[T]]) -> None:
             self.__readOnly = func

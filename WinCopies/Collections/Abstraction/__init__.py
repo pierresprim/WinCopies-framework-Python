@@ -1,6 +1,6 @@
 from typing import final
 
-from WinCopies.Collections import ICountable, Countable
+from WinCopies.Collections.Core import ICountable, Countable
 
 @final
 class _Countable(Countable):

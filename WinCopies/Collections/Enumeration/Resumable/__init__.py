@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from typing import final, Any
 
 from WinCopies import IInterface, IDisposable, Abstract
-from WinCopies.Collections import IReadOnlyCollection
+from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory

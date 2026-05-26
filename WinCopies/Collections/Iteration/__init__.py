@@ -1,13 +1,15 @@
 from collections.abc import Iterable, Iterator, Collection
+from contextlib import AbstractContextManager
 from typing import Callable, Type
 
 from WinCopies import NullableBoolean
-from WinCopies.Collections import Generator, IterationResult, MakeGenerator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, CreateIterable, TryCreateIterable, AsEnumerator
+from WinCopies.Collections import Generator, IterationResult, IterableScanResult
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, CreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
+from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Converter, NullableConverter, Predicate, Selector
+from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
 def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
@@ -452,15 +454,12 @@ def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
     return DoIncludeUntil(items, GetNotPredicate(predicate))
 
 def __Exclude[T](items: Iterable[T]|None, selector: Selector[IEnumerator[T]]) -> Generator[T]:
-    def getIterator(enumerable: IEnumerable[T]|None) -> Iterator[T]|None:
-        if enumerable is None:
-            return None
-        
+    def getIterator(enumerable: IEnumerable[T]) -> Iterator[T]|None:
         enumerator: IEnumerator[T]|None = enumerable.TryGetEnumerator()
         
         return None if enumerator is None else selector(enumerator).AsIterator()
     
-    for item in TryEnumerate(getIterator(TryCreateIterable(items))):
+    for item in TryEnumerate(None if items is None else getIterator(CreateIterable(items))):
         yield item
 
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
@@ -689,3 +688,19 @@ def Zip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]
     items: Generator[IKeyValuePair[T1, T2]]|None = TryZip(x, y)
 
     return MakeGenerator() if items is None else items
+
+def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> bool|None:
+    with itemsProvider() as items:
+        return func(items)
+def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
+    return IterateWith(lambda: itemsProvider(value), func)
+
+def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> IterableScanResult:
+    if checker():
+        result: bool|None = IterateWith(itemsProvider, func)
+
+        return IterableScanResult.Empty if result == None else (IterableScanResult.Success if result else IterableScanResult.Error)
+    
+    return IterableScanResult.DoesNotExist
+def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
+    return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)

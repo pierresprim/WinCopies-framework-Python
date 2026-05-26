@@ -1,11 +1,12 @@
 from collections.abc import Iterable, Sequence
 from typing import SupportsIndex
 
-from WinCopies.Collections import IList, ReverseIndex
 from WinCopies.Collections.Abstraction.Collection import CreateTuple
+from WinCopies.Collections.Core import IList
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple
 from WinCopies.Collections.Linked.Singly import CreateCountableQueue, CreateEnumerableStack
+from WinCopies.Collections.Util import ReverseIndex
 
 def GetItems[T](l: ITuple[T], index: SupportsIndex|slice) -> T|Sequence[T]:
     return l.GetAt(int(index)) if isinstance(index, SupportsIndex) else l.SliceAt(index).AsSequence()

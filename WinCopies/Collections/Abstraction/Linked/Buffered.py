@@ -2,8 +2,8 @@ from collections.abc import Iterable
 from typing import final, Callable
 
 from WinCopies import Abstract
-from WinCopies.Collections import IList
 from WinCopies.Collections.Abstraction.Collection import List
+from WinCopies.Collections.Core import IList
 from WinCopies.Collections.Linked.Singly import IList as ISinglyLinkedList
 
 from WinCopies.Typing import INullable

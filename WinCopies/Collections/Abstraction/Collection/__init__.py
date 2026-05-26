@@ -7,12 +7,13 @@ from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Extensions, Mutability, FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
+from WinCopies.Collections import Extensions, Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
+from WinCopies.Collections.Util import FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, ComparableProtocol
 from WinCopies.Typing.Delegate import IFunction, IStruct, Converter, EqualityComparison, Handle

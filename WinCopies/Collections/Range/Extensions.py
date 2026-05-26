@@ -1,8 +1,9 @@
 from collections.abc import Iterable, Sequence
 from typing import SupportsIndex, overload
 
-from WinCopies.Collections import IList, ISet, ReverseIndex
 from WinCopies.Collections.Abstraction.Collection.Mapping import Set
+from WinCopies.Collections.Core import IList, ISet
+from WinCopies.Collections.Util import ReverseIndex
 from WinCopies.Typing.Comparison import IHashableValue
 
 def SetOrderedValues[T: IHashableValue](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:

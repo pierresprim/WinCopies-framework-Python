@@ -3,13 +3,15 @@ from collections.abc import Iterable
 from typing import Callable, final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import Generator, MakeGenerator
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import CreateTuple
 from WinCopies.Collections.Abstraction.Collection.Mapping import CreateSet
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
-from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, Batch, ExpandItems
+from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, ExpandItems
+from WinCopies.Collections.Iteration.Batch import Batch
+from WinCopies.Collections.Util import MakeGenerator
 
 from WinCopies.Typing.Object import IValueItem, IString, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult

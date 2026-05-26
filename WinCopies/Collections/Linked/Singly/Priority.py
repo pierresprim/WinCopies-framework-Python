@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Iterable, final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import IArray
 from WinCopies.Collections.Abstraction.Collection import ArrayList, SortedList
+from WinCopies.Collections.Core import IArray
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue

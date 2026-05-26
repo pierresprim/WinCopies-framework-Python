@@ -6,9 +6,10 @@ from typing import final
 import sqlite3
 
 from WinCopies import String, Abstract
-from WinCopies.Collections import Enumeration, MakeList
+from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
 from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Util import MakeList
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 

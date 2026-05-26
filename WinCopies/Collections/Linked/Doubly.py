@@ -6,8 +6,9 @@ from typing import final, Callable, Self as SelfType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
-from WinCopies.Collections import Generator as GeneratorBase, EnumerationOrder, IReadOnlyCollection, ICountable, IClearable, Countable
+from WinCopies.Collections import Generator as GeneratorBase, EnumerationOrder
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
+from WinCopies.Collections.Core import IReadOnlyCollection, ICountable, IClearable, Countable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, GetResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator

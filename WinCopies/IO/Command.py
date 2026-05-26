@@ -3,8 +3,8 @@ import subprocess
 
 from collections.abc import Iterable, Sequence
 
-from WinCopies.Collections import MakeSequence
 from WinCopies.Collections.Iteration import PrependValues
+from WinCopies.Collections.Util import MakeSequence
 from WinCopies.Typing.Pairing import DualResult, KeyValuePair, CreateDualResult
 
 def Run(command: str|Iterable[str], captureOutput: bool = False, shell: bool = False, throwOnError: bool = True) -> DualResult[object, int]:

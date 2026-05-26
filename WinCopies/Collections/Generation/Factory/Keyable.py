@@ -4,7 +4,7 @@ from abc import abstractmethod
 from weakref import ref, ReferenceType
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import IGetter
+from WinCopies.Collections.Core import IGetter
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol, HashableComparableProtocol
 

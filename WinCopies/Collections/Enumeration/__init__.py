@@ -12,8 +12,8 @@ from collections.abc import Iterable as SystemIterable, Iterator as SystemIterat
 from typing import final, Any
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import ICountable
 from WinCopies.Collections.Abstraction import CreateCountable
+from WinCopies.Collections.Core import ICountable
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue

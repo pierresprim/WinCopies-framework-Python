@@ -9,9 +9,10 @@ from typing import overload, final, Callable, Any, Type, cast
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Generator, EnumerationOrder, IReadOnlyIndexable
+from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple, CreateHashableTuple
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary, CreateDictionary
+from WinCopies.Collections.Core import IReadOnlyIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
