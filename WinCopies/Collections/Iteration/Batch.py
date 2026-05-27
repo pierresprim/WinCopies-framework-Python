@@ -14,6 +14,8 @@ from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Function, NullablePredicate
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
+type BatchGenerator[T] = Generator[Generator[T]]
+
 def _GetCustomRange(start: int, stop: int) -> Iterable[int]:
     return range(start, stop)
 def _GetRange(start: int, size: int) -> Iterable[int]:
@@ -913,7 +915,7 @@ class BufferedCollectionBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[
     def _GetCount(self) -> int:
         return len(self.__items)
 
-def TryBatch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> Generator[Generator[T]]|None:
+def TryBatch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> BatchGenerator[T]|None:
     def tryCreateEnumerator(items: IEnumerable[T]) -> IBatchEnumerator[T]|None:
         enumerator: IEnumerator[T]|None = items.TryGetEnumerator()
 
@@ -942,7 +944,7 @@ def TryBatch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IE
     enumerator: IBatchEnumerator[T]|None = batch(items)
 
     return None if enumerator is None else Enumerate(enumerator.AsIterator())
-def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> Generator[Generator[T]]:
-    generator: Generator[Generator[T]]|None = TryBatch(items, size, safe)
+def Batch[T](items: IReadOnlyCountableIndexable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None, size: int, safe: bool = True) -> BatchGenerator[T]:
+    generator: BatchGenerator[T]|None = TryBatch(items, size, safe)
 
     return MakeGenerator() if generator is None else generator
