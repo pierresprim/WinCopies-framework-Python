@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
+from enum import Enum
 from typing import final, Any
 
 from WinCopies import IInterface, Abstract
@@ -20,13 +21,20 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHas
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
+class EnumerationState(Enum):
+    Idle = 0
+    Started = 1
+    Ended = 2
+class EnumerationResult(Enum):
+    Stopped = -2
+    NoData = -1
+    Running = 0
+    Completed = 1
+
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None:
         super().__init__()
     
-    @abstractmethod
-    def IsStarted(self) -> bool:
-        pass
     @abstractmethod
     def MoveNext(self) -> bool:
         pass
@@ -39,6 +47,17 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def IsResetSupported(self) -> bool:
         pass
+
+    @abstractmethod
+    def GetState(self) -> EnumerationState:
+        pass
+    @abstractmethod
+    def GetResult(self) -> EnumerationResult:
+        pass
+    
+    @final
+    def IsStarted(self) -> bool:
+        return self.GetState() == EnumerationState.Started
     @abstractmethod
     def HasProcessedItems(self) -> bool:
         pass
@@ -66,8 +85,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
         if self.MoveNext():
             return self.GetCurrent()
         
-        else:
-            raise StopIteration
+        raise StopIteration
     
     @final
     def AsIterator(self) -> SystemIterator[T]:
@@ -171,8 +189,6 @@ class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def IsStarted(self) -> bool:
-        return False
     def GetCurrent(self) -> T:
         raise InvalidOperationError()
     def MoveNext(self) -> bool:
@@ -183,6 +199,12 @@ class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
         return None
     def IsResetSupported(self) -> bool:
         return False
+    
+    def GetState(self) -> EnumerationState:
+        return EnumerationState.Ended
+    def GetResult(self) -> EnumerationResult:
+        return EnumerationResult.NoData
+    
     def HasProcessedItems(self) -> bool:
         return False
 @final
@@ -200,42 +222,41 @@ class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__moveNextFunc: Function[bool] = self.__MoveNext
-        self.__isStarted: bool = False
-        self.__hasProcessedItems: bool = False
+        self.__moveNextFunc: Function[bool] = self.__MoveFirst
+        self.__status: EnumerationState = EnumerationState.Idle
+        self.__result: EnumerationResult = EnumerationResult.NoData
+    
+    def __SetCompletedMoveNext(self) -> None:
+        self.__moveNextFunc = BoolFalse
+        
+        self.__OnCompleted()
     
     @final
     def __MoveNext(self) -> bool:
-        def setCompletedMoveNext() -> None:
-            self.__moveNextFunc = BoolFalse
-            
-            self.__OnCompleted()
-        
-        def moveNext() -> bool:
-            if self._MoveNextOverride():
-                return True
+        if self._MoveNextOverride():
+            return True
 
-            setCompletedMoveNext()
+        self.__SetCompletedMoveNext()
 
-            return False
-        
+        return False
+    @final
+    def __MoveFirst(self) -> bool:
         if self._OnStarting():
-            self.__isStarted = True
+            self.__status = EnumerationState.Started
             
             if self._MoveNextOverride():
-                self.__moveNextFunc = moveNext
-                
-                self.__hasProcessedItems = True
+                self.__moveNextFunc = self.__MoveNext
+                self.__result = EnumerationResult.Completed
                 
                 return True
         
-        setCompletedMoveNext()
+        self.__SetCompletedMoveNext()
 
         return False
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
-        self.__isStarted = False
+        self.__status = EnumerationState.Ended
 
         self._OnTerminated(completed)
         self._OnEnded()
@@ -248,10 +269,6 @@ class EnumeratorBase[T](IteratorBase[T]):
     @abstractmethod
     def _GetCurrent(self) -> T:
         pass
-    
-    @final
-    def IsStarted(self) -> bool:
-        return self.__isStarted
     
     @abstractmethod
     def _MoveNextOverride(self) -> bool:
@@ -284,6 +301,8 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def Stop(self) -> None:
+        self.__result = EnumerationResult.Stopped
+
         self.__OnTerminated(False)
         self._OnStopped()
     
@@ -297,8 +316,9 @@ class EnumeratorBase[T](IteratorBase[T]):
                 self.Stop()
             
             if self._ResetOverride():
-                self.__moveNextFunc = self.__MoveNext
-                self.__hasProcessedItems = False
+                self.__moveNextFunc = self.__MoveFirst
+                self.__status = EnumerationState.Idle
+                self.__result = EnumerationResult.NoData
                 
                 return True
             
@@ -311,8 +331,17 @@ class EnumeratorBase[T](IteratorBase[T]):
         return None
     
     @final
+    def GetState(self) -> EnumerationState:
+        return self.__status
+    @final
+    def GetResult(self) -> EnumerationResult:
+        return EnumerationResult.Running if self.GetState().value < EnumerationState.Ended.value else self.__result
+    
+    @final
     def HasProcessedItems(self) -> bool:
-        return self.__hasProcessedItems
+        result: EnumerationResult = self.GetResult()
+
+        return self.__moveNextFunc == self.__MoveNext if result == EnumerationResult.Running else result != EnumerationResult.NoData
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None:
@@ -610,9 +639,6 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         pass
     
     @final
-    def IsStarted(self) -> bool:
-        return self._GetContainer().IsStarted()
-    @final
     def GetCurrent(self) -> TOut:
         if self.IsStarted():
             return self._GetCurrent()
@@ -645,9 +671,13 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     @final
     def IsResetSupported(self) -> bool:
         return self._GetContainer().IsResetSupported()
+    
     @final
-    def HasProcessedItems(self) -> bool:
-        return self._GetContainer().HasProcessedItems()
+    def GetState(self) -> EnumerationState:
+        return self._GetContainer().GetState()
+    @final
+    def GetResult(self) -> EnumerationResult:
+        return self._GetContainer().GetResult()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -796,16 +826,18 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def IsStarted(self) -> bool:
-        return False
-    
     def IsResetSupported(self) -> bool:
         return False
+    
+    def HasProcessedItems(self) -> bool:
+        raise GetDisposedError()
     
     def GetCurrent(self) -> T:
         raise GetDisposedError()
     
-    def HasProcessedItems(self) -> bool:
+    def GetState(self) -> EnumerationState:
+        raise GetDisposedError()
+    def GetResult(self) -> EnumerationResult:
         raise GetDisposedError()
     
     def MoveNext(self) -> bool:
@@ -845,16 +877,19 @@ class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEn
         pass
     
     @final
-    def IsStarted(self) -> bool:
-        return self._GetInnerContainer().IsStarted()
-    
-    @final
     def IsResetSupported(self) -> bool:
         return self._GetInnerContainer().IsResetSupported()
     
     @final
     def HasProcessedItems(self) -> bool:
         return self._GetInnerContainer().HasProcessedItems()
+    
+    @final
+    def GetState(self) -> EnumerationState:
+        return self._GetInnerContainer().GetState()
+    @final
+    def GetResult(self) -> EnumerationResult:
+        return self._GetInnerContainer().GetResult()
     
     @final
     def GetCurrent(self) -> TItem:

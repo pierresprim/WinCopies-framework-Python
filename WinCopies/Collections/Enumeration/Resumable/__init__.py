@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
+from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing import InvalidOperationError
@@ -177,8 +177,11 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def IsStarted(self) -> bool:
-        return GetEmptyEnumerator().IsStarted()
+    def GetState(self) -> EnumerationState:
+        return GetEmptyEnumerator().GetState()
+    def GetResult(self) -> EnumerationResult:
+        return GetEmptyEnumerator().GetResult()
+    
     def GetCurrent(self) -> T:
         return GetEmptyEnumerator().GetCurrent() # pyright: ignore[reportUnknownVariableType]
     def MoveNext(self) -> bool:
@@ -238,8 +241,11 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
 
         self.__enumerator: IEnumerator[T] = enumerator
     
-    def IsStarted(self) -> bool:
-        return self.__enumerator.IsStarted()
+    def GetState(self) -> EnumerationState:
+        return GetEmptyEnumerator().GetState()
+    def GetResult(self) -> EnumerationResult:
+        return GetEmptyEnumerator().GetResult()
+    
     def MoveNext(self) -> bool:
         return self.__enumerator.MoveNext()
     def Stop(self) -> None:
