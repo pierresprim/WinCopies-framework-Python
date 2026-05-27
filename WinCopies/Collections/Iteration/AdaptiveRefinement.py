@@ -106,8 +106,11 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
 
         return True
     
+    def __IsShrinkCompleted(self) -> bool:
+        return self.GetLow() == self.GetCurrent()
+    
     def __TryOnSuccess(self) -> bool:
-        current: int = self.__current
+        current: int = self.GetCurrent()
         high: int|None = self.GetHigh()
         
         self.__low = current
@@ -124,17 +127,15 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         
         return True
     def __TryOnError(self) -> bool|None:
-        low: int = self.GetLow()
-        current: int = self.__current
-
-        if low == current:
+        if self.__IsShrinkCompleted():
             return None
 
+        self.__high = self.GetCurrent()
         self.__refine = True
 
         self.__ResetDelta()
-        
-        self.__high = current
+
+        low: int = self.GetLow()
         
         if self.__AreConverged():
             return low > 0
@@ -156,7 +157,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
     def CanSignalSuccess(self) -> bool:
         return not self.IsTrueSize()
     def CanSignalError(self) -> bool:
-        return self.CanSignalSuccess()
+        return not (self.IsTrueSize() or self.__IsShrinkCompleted())
     
     def GetCurrent(self) -> int:
         return self.__current
