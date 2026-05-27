@@ -593,7 +593,7 @@ class ResumableCountableBatchEnumerator[T](ResumableBatchEnumeratorBase[T, IResu
     def _GetCount(self) -> int:
         return self._GetContainer().GetCount()
 
-class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
+class LasyBatchEnumeratorBase[T](BatchEnumerator[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
         super().__init__()
 
@@ -672,7 +672,7 @@ class BufferedBatchEnumeratorBase[T](BatchEnumerator[T]):
     
     def IsResetSupported(self) -> bool:
         return self.__enumerator.IsResetSupported()
-class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
+class LasyBatchEnumerator[T](LasyBatchEnumeratorBase[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T], safe: bool = True) -> None:
         super().__init__(size, enumerator)
 
@@ -702,7 +702,7 @@ class BufferedBatchEnumerator[T](BufferedBatchEnumeratorBase[T]):
     def _MoveNext(self) -> bool:
         return self.__batch()
 
-class BufferedCountableBatchEnumeratorBase[T](BufferedBatchEnumeratorBase[T]):
+class LasyCountableBatchEnumeratorBase[T](LasyBatchEnumeratorBase[T]):
     def __init__(self, size: int, enumerator: IEnumerator[T]) -> None:
         super().__init__(size, enumerator)
     
@@ -852,7 +852,7 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumeratorAbstract[T]):
     def IsResetSupported(self) -> bool:
         return self.__source.IsResetSupported()
 
-class BufferedCountableBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[T]):
+class LasyCountableBatchEnumerator[T](LasyCountableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: ICountableEnumerable[T]) -> None:
         super().__init__(size, items.GetEnumerator())
 
@@ -861,7 +861,7 @@ class BufferedCountableBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[T
     @final
     def _GetCount(self) -> int:
         return self.__items.GetCount()
-class BufferedCollectionBatchEnumerator[T](BufferedCountableBatchEnumeratorBase[T]):
+class LasyCollectionBatchEnumerator[T](LasyCountableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: Collection[T]) -> None:
         super().__init__(size, CreateIterable(items).GetEnumerator())
 
@@ -966,7 +966,7 @@ def TryBatch[T](size: int,
         def tryCreateEnumerator(items: IEnumerable[T]) -> BatchGenerator[T]|None:
             enumerator: IEnumerator[T]|None = items.TryGetEnumerator()
 
-            return None if enumerator is None else (enumerate(BufferedBatchEnumerator[T](size, enumerator, safe)) if handler is None else _handle(enumerator, handler))
+            return None if enumerator is None else (enumerate(LasyBatchEnumerator[T](size, enumerator, safe)) if handler is None else _handle(enumerator, handler))
 
         match items:
             case IReadOnlyCountableIndexable():
@@ -981,13 +981,13 @@ def TryBatch[T](size: int,
             
             case ICountableEnumerable():
                 if handler is None:
-                    return enumerate(BufferedCountableBatchEnumerator[T](size, items))
+                    return enumerate(LasyCountableBatchEnumerator[T](size, items))
                 
                 enumerator: IEnumerator[T]|None = items.TryGetEnumerator()
 
                 return None if enumerator is None else _handle(enumerator, handler)
             case Collection():
-                return enumerate(BufferedCollectionBatchEnumerator[T](size, items)) if handler is None else _handle(CreateIterable(items).GetEnumerator(), handler)
+                return enumerate(LasyCollectionBatchEnumerator[T](size, items)) if handler is None else _handle(CreateIterable(items).GetEnumerator(), handler)
             
             case IEnumerable():
                 return tryCreateEnumerator(items)
