@@ -2,11 +2,13 @@ from abc import abstractmethod
 from collections.abc import Iterable, Collection, Sequence
 from typing import Callable, final
 
-from WinCopies.Collections import Generator, IReadOnlyCountableIndexable, Enumerate, MakeGenerator
+from WinCopies.Collections import Generator
+from WinCopies.Collections.Core import IReadOnlyCountableIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, CreateIterable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorBase, IResumableEnumerationCursor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
+from WinCopies.Collections.Util import Enumerate, MakeGenerator
 from WinCopies.Delegates import NoAction, BoolFalse, AlwaysFalse, GetActionBoolFunc
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Function, NullablePredicate
