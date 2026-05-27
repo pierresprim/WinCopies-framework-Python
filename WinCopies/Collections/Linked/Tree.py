@@ -144,7 +144,7 @@ class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], Tre
         return self
     
     @final
-    def _GetNode(self, value: T, previous: Self|None, next: Self|None) -> _TreeNode[T]:
+    def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _TreeNode[T]:
         return _TreeNode[T](value, self._GetList(), self._GetCookie(), previous, next)
     
     @final
@@ -167,8 +167,19 @@ class Tree[T](TreeBase[T, _TreeNode[T]]):
         return node
     
     @final
-    def _GetNode(self, value: T) -> _TreeNode[T]:
+    def _CreateNode(self, value: T) -> _TreeNode[T]:
         return _TreeNode[T](value, self, self._GetCookie(), None, None)
+    
+    @final
+    def _GetPreviousNode(self, node: _TreeNode[T]) -> _TreeNode[T]|None:
+        return node.GetPreviousNode()
+    @final
+    def _GetNextNode(self, node: _TreeNode[T]) -> _TreeNode[T]|None:
+        return node.GetNextNode()
+    
+    @final
+    def _UnregisterNode(self, node: _TreeNode[T]) -> None:
+        return node._Unregister() # pyright: ignore[reportPrivateUsage]
 
 class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
     def __init__(self, node: ITreeNode[T]) -> None:
