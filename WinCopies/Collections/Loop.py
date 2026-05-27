@@ -1,10 +1,11 @@
 from collections.abc import Iterable
 from typing import Callable
 
-import WinCopies
-
-from WinCopies import Delegates
+from WinCopies import Not
 from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
+from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
+                                 GetIndexedValueComparison,
+                                 GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Pairing import DualValueBool
 
@@ -18,7 +19,7 @@ def While(func: Function[bool], action: Action) -> bool:
     Returns:
         True if the loop executed at least once, False otherwise.
     """
-    if (func := Delegates.GetBoolFuncAction(func, action))():
+    if (func := GetBoolFuncAction(func, action))():
         while func():
             pass
         
@@ -175,11 +176,11 @@ def ForEachItem[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
         predicate: A function to test each item.
 
     Returns:
-        - None if no items processed
+        - None if no item processed
         - True if completed all items
         - False if stopped early.
     """
-    return WinCopies.Not(ForEachItemUntil(items, Delegates.GetNotPredicate(predicate)))
+    return Not(ForEachItemUntil(items, GetNotPredicate(predicate)))
 def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     """Iterates over variadic values while the given predicate returns True.
 
@@ -188,7 +189,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
         *values: The values to iterate over.
 
     Returns:
-        - None if no values processed
+        - None if no value processed
         - True if completed all values
         - False if stopped early.
     """
@@ -218,7 +219,9 @@ def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
         *values: The values to iterate over.
 
     Returns:
-        True if at least one value was processed, False otherwise.
+        - None if no value processed
+        - True if completed all values
+        - False if stopped early.
     """
     return DoForEachItem(values, action)
 
@@ -254,7 +257,7 @@ def ForEachWhileIndex[T](items: Iterable[T], action: IndexedValueAction[T], inde
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachWhile(items, Delegates.GetIndexedValueIndexComparison(index), action)
+    return ForEachWhile(items, GetIndexedValueIndexComparison(index), action)
 def ForEachWhileValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until finding a specific value.
 
@@ -266,7 +269,7 @@ def ForEachWhileValue[T](items: Iterable[T], action: IndexedValueAction[T], valu
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachWhile(items, Delegates.GetIndexedValueValueComparison(value), action)
+    return ForEachWhile(items, GetIndexedValueValueComparison(value), action)
 def ForEachWhileIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index and value.
 
@@ -279,7 +282,7 @@ def ForEachWhileIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachWhile(items, Delegates.GetIndexedValueComparison(index, value), action)
+    return ForEachWhile(items, GetIndexedValueComparison(index, value), action)
 
 def ForEachUntil[T](items: Iterable[T], predicate: IndexedValueComparison[T], action: IndexedValueAction[T]) -> DualValueBool[int]|None:
     """Executes the given action for items until the given predicate is True.
@@ -313,7 +316,7 @@ def ForEachUntilIndex[T](items: Iterable[T], action: IndexedValueAction[T], inde
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachUntil(items, Delegates.GetIndexedValueIndexComparison(index), action)
+    return ForEachUntil(items, GetIndexedValueIndexComparison(index), action)
 def ForEachUntilValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until finding a specific value.
 
@@ -325,7 +328,7 @@ def ForEachUntilValue[T](items: Iterable[T], action: IndexedValueAction[T], valu
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachUntil(items, Delegates.GetIndexedValueValueComparison(value), action)
+    return ForEachUntil(items, GetIndexedValueValueComparison(value), action)
 def ForEachUntilIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
     """Executes the given action for items until reaching a specific index and value.
 
@@ -338,7 +341,7 @@ def ForEachUntilIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[
     Returns:
         None if no items, DualValueBool with last index and status otherwise.
     """
-    return ForEachUntil(items, Delegates.GetIndexedValueComparison(index, value), action)
+    return ForEachUntil(items, GetIndexedValueComparison(index, value), action)
 
 def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool|None:
     """Scans items and executes the given action only while all items match a predicate.
