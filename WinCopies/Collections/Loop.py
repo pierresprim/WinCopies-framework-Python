@@ -195,7 +195,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     """
     return ForEachItem(values, predicate)
 
-def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
+def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool|None:
     """Executes the given action for each item in items.
 
     Args:
@@ -203,7 +203,9 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
         action: A function to execute for each item.
 
     Returns:
-        True if at least one item was processed, False otherwise.
+        - None if no item processed
+        - True if completed all values
+        - False if stopped early.
     """
     enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
@@ -466,7 +468,7 @@ def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], actio
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
 
-def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
+def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool|None:
     """Executes the given action for all items except the first.
 
     Args:
@@ -474,7 +476,9 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
         action: A function to execute for each item except the first.
 
     Returns:
-        True if at least one item was processed, False otherwise.
+        - None if no item processed
+        - True if completed all values
+        - False if stopped early.
     """
     _action: Method[T]
     
@@ -486,7 +490,7 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
     _action = __action
     
     return DoForEachItem(items, lambda item: _action(item))
-def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
+def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool|None:
     """Executes a special action for the first item, then a different one for the rest.
 
     Args:
@@ -495,7 +499,9 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
         action: A function to execute for subsequent items.
 
     Returns:
-        True if at least one item was processed, False otherwise.
+        - None if no item processed
+        - True if completed all values
+        - False if stopped early.
     """
     _action: Method[T]
     
@@ -513,7 +519,7 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
 def ForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Predicate[T]) -> bool|None:
     return ForEachAndFirst(items, lambda item: firstAction() and action(item), action)
 
-def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool:
+def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool|None:
     _action: Method[T]
     
     def __action(item: T) -> None:
