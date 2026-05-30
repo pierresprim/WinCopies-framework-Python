@@ -6,11 +6,11 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorProvider, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorProvider, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
@@ -406,7 +406,7 @@ class CompositeExpressionEnumerator[TValue, TConnector](EnumeratorBase[IComposit
     @final
     def _GetCurrent(self) -> ICompositeExpression[TValue, TConnector]:
         if self.__current is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         return self.__current
     
@@ -460,7 +460,7 @@ class CompositeExpressionValueEnumerator[TValue, TConnector](AbstractionEnumerat
     @final
     def _GetCurrent(self) -> IKeyValuePair[TValue, INullable[TConnector]]:
         if self.__current is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         return self.__current
     

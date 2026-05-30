@@ -13,7 +13,7 @@ from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple, CreateHashableTuple
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary, CreateDictionary
 from WinCopies.Collections.Core import IReadOnlyIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
@@ -1221,7 +1221,7 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
                 if self.__canMoveNext is None:
                     return self.__key.GetValue()
                 
-                raise InvalidOperationError()
+                raise GetEnumeratorInactiveError()
             
             def _MoveNextOverride(self) -> bool:
                 canMoveNext: bool|None = self.__canMoveNext

@@ -14,12 +14,11 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetEnumeratorInactiveError
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter, Function, NullableFunction
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
@@ -51,7 +50,7 @@ class _NullToken[T](Abstract, _IToken[T]):
         super().__init__()
     
     def GetCurrent(self) -> T:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     
     def MoveNext(self) -> bool:
         return False
@@ -84,7 +83,7 @@ class _Token[T](Abstract, _IToken[T]):
         node: IDoublyLinkedNode[T]|None = self.__node
 
         if node is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         return node.GetValue()
     
@@ -179,7 +178,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
         items: IList[T]|None = self.__items
 
         if items is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
 
         return items.GetLastValue()
     

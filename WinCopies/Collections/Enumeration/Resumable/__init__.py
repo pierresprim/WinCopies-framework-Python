@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
+from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing import InvalidOperationError
@@ -197,13 +197,13 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def SupportsMultipleCursors(self) -> bool:
         return False
     def PlaceCursor(self) -> IResumableEnumerationCursor:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     def PlaceTopCursor(self) -> IResumableEnumerationCursor:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
 @final
 class _EmptyEnumerable[T](Iterable[T], IResumableEnumerable[T]):
     def __init__(self) -> None:

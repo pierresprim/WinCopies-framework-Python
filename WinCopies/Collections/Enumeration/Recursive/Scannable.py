@@ -7,10 +7,9 @@ from typing import final, Callable
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, NullablePredicate
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -67,7 +66,7 @@ class EnumerationDelegate[T](Abstract, IEnumerationDelegate[T]):
         current: IKeyValuePair[T, Events]|None = self.__current
 
         if current is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         return current
     

@@ -8,7 +8,7 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Tuple
 from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ObjectGeneratorProvider
 from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
@@ -16,7 +16,7 @@ from WinCopies.Collections.Linked.Singly import IQueue, Queue
 from WinCopies.Delegates import BoolFalse
 from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
-from WinCopies.Typing import IDisposable, INullable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
@@ -700,7 +700,7 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
         current: DualResult[INode|None, Event]|None = self.__current
 
         if current is None:
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         return current
     
