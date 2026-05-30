@@ -384,3 +384,19 @@ class QueryErrorKinds(Flag):
             
             case _:
                 return "Invalid error value."
+
+class QueryError(ErrorBase):
+    def __init__(self, errorKind: QueryErrorKinds, *args: object) -> None:
+        EnsureOneAndOnlyOneFlag(errorKind)
+
+        super().__init__(errorKind, *args)
+
+        self.__errorKind: QueryErrorKinds = errorKind
+    
+    @final
+    def GetMessage(self) -> str:
+        return str(self.__errorKind)
+    
+    @final
+    def GetErrorKind(self) -> QueryErrorKinds:
+        return self.__errorKind
