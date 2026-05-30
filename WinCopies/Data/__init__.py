@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, Flag, auto
 from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
@@ -361,3 +361,9 @@ class ColumnOperand(_Operand[IColumn], IColumnOperand):
     @final
     def Format(self, builder: IQueryBuilder) -> str:
         return self.GetKey().ToString(builder.FormatTableName)
+
+class QueryErrorKinds(Flag):
+    Null = 0
+    ParameterLimitExceeded = auto()
+    QuerySizeExceeded = auto()
+    ConnectionLost = auto()

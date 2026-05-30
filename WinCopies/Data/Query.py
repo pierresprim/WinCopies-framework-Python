@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from enum import Flag, auto
 from typing import final, overload
 
 
@@ -28,18 +27,12 @@ from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
 
 
 
-from WinCopies.Data import Ordering, IColumn
+from WinCopies.Data import QueryErrorKinds, Ordering, IColumn
 from WinCopies.Data.Misc import IQueryBase
 from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.QueryBuilder import QueryResult, IConditionalQueryBuilder, ISelectionQueryBuilder, ConditionalQueryBuilder, SelectionQueryBuilder, GetPrefixedSelectionQueryWriter
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin, TableParameterSet
-
-class QueryErrorKinds(Flag):
-    Null = 0
-    ParameterLimitExceeded = auto()
-    QuerySizeExceeded = auto()
-    ConnectionLost = auto()
 
 class IQueryLimits(IInterface):
     def __init__(self) -> None:
