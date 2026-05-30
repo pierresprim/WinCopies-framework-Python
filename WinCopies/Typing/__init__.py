@@ -10,9 +10,32 @@ from WinCopies.Typing.Delegate import Converter
 
 type NumericalValue = int|float|decimal
 
+class ErrorBase(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+    
+    @abstractmethod
+    def GetMessage(self) -> str:
+        pass
+    
+    def __str__(self) -> str:
+        return self.GetMessage()
+class Error(ErrorBase):
+    def __init__(self, message: str, *args: object) -> None:
+        super().__init__(message, *args)
+
+        self.__message: str = message # 'args' can be reassigned after construction, so the message is kept here as a stable source for GetMessage().
+    
+    @final
+    def GetMessage(self) -> str:
+        return self.__message
+
 class InvalidOperationError(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
+
+def GetGenericError() -> InvalidOperationError:
+    return InvalidOperationError("Could not perform the requested action.")
 
 def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
