@@ -4,7 +4,10 @@ from abc import abstractmethod
 from collections.abc import Container as ContainerBase, Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
+
+
 from WinCopies import IInterface, Abstract
+
 from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
 from WinCopies.Collections.Core import IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
@@ -15,6 +18,7 @@ from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFac
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
 from WinCopies.Collections.Util import FindIndex
+
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater

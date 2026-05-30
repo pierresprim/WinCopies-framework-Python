@@ -906,7 +906,7 @@ class _Cursor[T](Abstract, ICursor):
 
 def TryBatch[T](size: int,
                 items: IReadOnlyCountableIndexable[T]|IResumableCountableEnumerable[T]|IResumableEnumerable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None,
-                safe: bool = True, handler: IHandler|None = None) -> BatchGenerator[T]|None:
+                handler: IHandler|None = None, safe: bool = True) -> BatchGenerator[T]|None:
     def batch(items: IReadOnlyCountableIndexable[T]|IResumableCountableEnumerable[T]|IResumableEnumerable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]) -> BatchGenerator[T]|None:
         def enumerate(enumerator: IBatchEnumerator[T]) -> BatchGenerator[T]:
             return Enumerate(enumerator.AsIterator())
@@ -995,7 +995,7 @@ def TryBatch[T](size: int,
     return None if items is None else batch(items)
 def Batch[T](size: int,
              items: IReadOnlyCountableIndexable[T]|IResumableCountableEnumerable[T]|IResumableEnumerable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None,
-             safe: bool = True, handler: IHandler|None = None) -> BatchGenerator[T]:
-    generator: BatchGenerator[T]|None = TryBatch(size, items, safe, handler)
+             handler: IHandler|None = None, safe: bool = True) -> BatchGenerator[T]:
+    generator: BatchGenerator[T]|None = TryBatch(size, items, handler, safe)
 
     return MakeGenerator() if generator is None else generator
