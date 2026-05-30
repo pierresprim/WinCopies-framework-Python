@@ -21,6 +21,9 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHas
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
+def GetEnumeratorInactiveError() -> InvalidOperationError:
+    return InvalidOperationError("The enumeration has not started or has been terminated.")
+
 class EnumerationState(Enum):
     Idle = 0
     Started = 1
@@ -190,7 +193,7 @@ class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
         super().__init__()
     
     def GetCurrent(self) -> T:
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     def MoveNext(self) -> bool:
         return False
     def Stop(self) -> None:
@@ -293,7 +296,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         if self.IsStarted():
             return self._GetCurrent()
         
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
 
     @final
     def MoveNext(self) -> bool:
@@ -357,7 +360,7 @@ class _EnumeratorBase[T](EnumeratorBase[T]):
     @final
     def _SetCurrent(self, current: T) -> None:
         if not self.IsStarted():
-            raise InvalidOperationError()
+            raise GetEnumeratorInactiveError()
         
         self._SetCurrentOverride(current)
     @final
@@ -643,7 +646,7 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         if self.IsStarted():
             return self._GetCurrent()
         
-        raise InvalidOperationError()
+        raise GetEnumeratorInactiveError()
     @final
     def MoveNext(self) -> bool:
         return self.__moveNextFunc()
