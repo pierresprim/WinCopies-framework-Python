@@ -678,6 +678,10 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     @final
     def GetResult(self) -> EnumerationResult:
         return self._GetContainer().GetResult()
+    
+    @final
+    def HasProcessedItems(self) -> bool:
+        return self._GetContainer().HasProcessedItems()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
