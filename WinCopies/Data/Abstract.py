@@ -13,21 +13,68 @@ from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
+from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement, CreateFineRefinement
+from WinCopies.Collections.Iteration.Batch import ICursor, IHandler, ICompletionHandler
 
-from WinCopies.Typing import INullable, GetDisposedError
+from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
+from WinCopies.Typing.Delegate import NullableConverter
 from WinCopies.Typing.Object import IString
+from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
+from WinCopies.Data import QueryErrorKinds, QueryError
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.Query import IQueryLimits, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import IQueryLimits, IMutableQueryLimits, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
+
+@final
+class _CompletionHandler(Abstract, ICompletionHandler):
+    def __init__(self, pkCount: int, limits: IMutableQueryLimits) -> None:
+        super().__init__()
+
+        self.__pkCount: int = pkCount
+        self.__limits:  IMutableQueryLimits = limits
+
+    def OnCompleted(self, size: int|None, safe: bool) -> None:
+        if size is not None:
+            self.__limits.UpdateParameterCount(size * self.__pkCount, safe)
+
+class ISelectionHandler(IHandler):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryResume(self, newSize: int|None = None) -> bool|None:
+        pass
+@final
+class _SelectionHandler(Abstract, ISelectionHandler):
+    def __init__(self, refine: bool, pkCount: int, limits: IMutableQueryLimits) -> None:
+        super().__init__()
+
+        self.__refine: bool = refine
+        self.__cursor: ICursor|None = None
+        self.__completionHandler: ICompletionHandler = _CompletionHandler(pkCount, limits)
+
+    def Initialize(self, cursor: ICursor) -> None:
+        self.__cursor = cursor
+
+    def CreateAdaptiveRefinement(self, size: int) -> IAdaptiveRefinement:
+        return CreateFineRefinement(size, self.__refine)
+
+    def GetCompletionHandler(self) -> ICompletionHandler:
+        return self.__completionHandler
+    
+    def TryResume(self, newSize: int|None = None) -> bool|None:
+        cursor: ICursor|None = self.__cursor
+
+        return False if cursor is None else cursor.TryResume(newSize)
 
 class ITable(IEquatable['ITable'], IDisposable):
     def __init__(self) -> None:
@@ -90,8 +137,8 @@ class Table(Abstract, ITable, INotHashableValue):
             return self.__factory
         
         @final
-        def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
-            return self._GetFactory().TryBuildConditionsByKeys(keys, maxParameterCount)
+        def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
+            return self._GetFactory().TryBuildConditionsByKeys(keys, maxParameterCount, handler)
 
         @final
         def GetSelectionQuery(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
@@ -108,9 +155,10 @@ class Table(Abstract, ITable, INotHashableValue):
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
             return self._GetFactory().GetUpdateQuery(self._GetTable().GetName(), values, conditions)
     
-    def __init__(self) -> None:
+    def __init__(self, queryLimits: IMutableQueryLimits) -> None:
         super().__init__()
 
+        self.__queryLimits: IMutableQueryLimits = queryLimits
         self.__queryFactory: ITableQueryFactory|None = None
     
     @abstractmethod
@@ -126,20 +174,56 @@ class Table(Abstract, ITable, INotHashableValue):
     
     @final
     def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
-        def select(conditionSet: IConditionParameterSet) -> ISelectionQueryExecutionResult|None:
+        def setConditions(conditionSet: IConditionParameterSet) -> None:
             query.SetConditions(conditionSet)
 
+        def _select(conditionSet: IConditionParameterSet) -> ISelectionQueryExecutionResult|None:
+            setConditions(conditionSet)
+
             return query.Execute()
+        def select(conditionSet: IConditionParameterSet, handler: ISelectionHandler) -> ISelectionQueryExecutionResult|None:
+            setConditions(conditionSet)
+
+            result: ISelectionQueryExecutionResult|QueryErrorKinds|None = query.Execute(QueryErrorKinds.ParameterLimitExceeded)
+
+            if isinstance(result, QueryErrorKinds):
+                if result == QueryErrorKinds.ParameterLimitExceeded:
+                    match handler.TryResume():
+                        case True:
+                            return None
+                        
+                        case _:
+                            raise QueryError(QueryErrorKinds.ParameterLimitExceeded)
+                
+                raise InvalidOperationError("An unexpected error occurred.")
+
+            return result
+        
+        def getLimit() -> tuple[int|None, ISelectionHandler|None, NullableConverter[IConditionParameterSet, ISelectionQueryExecutionResult]]:
+            limit: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
+
+            if limit is None:
+                return (None, None, _select)
+            
+            handler: ISelectionHandler = _SelectionHandler(not limit.GetValue(), keys.GetKeys().GetCount(), queryLimits)
+            
+            return (limit.GetKey(), handler, lambda conditionSet: select(conditionSet, handler))
+        
+        if keys.GetCount() < 1:
+            return None
 
         factory: ITableQueryFactory = self.GetQueryFactory()
-        conditions: Generator[IConditionParameterSet]|None = factory.TryBuildConditionsByKeys(keys, self._GetConnection().GetQueryLimits().GetMaxParameterCount())
+        queryLimits: IMutableQueryLimits = self.__queryLimits
+        maxParameterCount, handler, selector = getLimit()
+        
+        conditions: Generator[IConditionParameterSet]|None = factory.TryBuildConditionsByKeys(keys, maxParameterCount, handler)
 
         if conditions is None:
             return None
         
         query: ISelectionQuery = factory.GetSelectionQuery(columns)
         
-        return SelectWhereNotNone(conditions, select)
+        return SelectWhereNotNone(conditions, selector)
     
     def Equals(self, item: ITable|object) -> bool:
         return item is self
@@ -289,6 +373,45 @@ class Connection(Abstract, IConnection):
             
             self.__table = Connection._GetNullTable()
     
+    @final
+    class _MutableQueryLimits(Abstract, IMutableQueryLimits):
+        def __init__(self, queryLimits: IQueryLimits) -> None:
+            super().__init__()
+
+            self.__maxParameterCount: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
+            self.__maxQuerySize: int|None = queryLimits.GetMaxQuerySize()
+
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None:
+            return self.__maxParameterCount
+
+        def GetMaxQuerySize(self) -> int|None:
+            return self.__maxQuerySize
+        
+        def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
+            def update(result: bool) -> bool:
+                self.__maxParameterCount = CreateDualValueBool(size, result)
+
+                return result
+
+            if safe:
+                return update(True)
+            
+            maxParameterCount: DualValueBool[int]|None = self.__maxParameterCount
+            
+            return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
+    @final
+    class _QueryLimits(Abstract, IQueryLimits):
+        def __init__(self, queryLimits: IMutableQueryLimits) -> None:
+            super().__init__()
+
+            self.__queryLimits: IMutableQueryLimits = queryLimits
+
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None:
+            return self.__queryLimits.GetMaxParameterCount()
+
+        def GetMaxQuerySize(self) -> int|None:
+            return self.__queryLimits.GetMaxQuerySize()
+    
     __table: ITable = __NullTable()
 
     @staticmethod
@@ -301,6 +424,9 @@ class Connection(Abstract, IConnection):
         self.__tables: List[Connection._Table] = List[Connection._Table]()
 
         self.__factories: Connection.__Factories = Connection.__Factories()
+        
+        self.__mutableQueryLimits: IMutableQueryLimits = Connection._MutableQueryLimits(self._CreateQueryLimits())
+        self.__queryLimits: IQueryLimits = Connection._QueryLimits(self.__mutableQueryLimits)
     
     @abstractmethod
     def _GetFieldFactory(self) -> IFieldFactory:
@@ -394,6 +520,17 @@ class Connection(Abstract, IConnection):
     @final
     def GetTables(self) -> IEnumerable[ITable]:
         return IteratorProvider[ITable](self.EnumerateTables)
+    
+    @abstractmethod
+    def _CreateQueryLimits(self) -> IQueryLimits:
+        pass
+    
+    @final
+    def _GetMutableQueryLimits(self) -> IMutableQueryLimits:
+        return self.__mutableQueryLimits
+    @final
+    def GetQueryLimits(self) -> IQueryLimits:
+        return self.__queryLimits
     
     @abstractmethod
     def _CloseOverride(self) -> None:

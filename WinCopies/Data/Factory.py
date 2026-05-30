@@ -10,15 +10,16 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, ExpandItems
-from WinCopies.Collections.Iteration.Batch import Batch
+from WinCopies.Collections.Iteration.Batch import Batch, IHandler
 from WinCopies.Collections.Util import MakeGenerator
 
+from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IValueItem, IString, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 
 
-from WinCopies.Data import Operator, ConditionalOperator, IColumn, IOperandValue, SetOperand
+from WinCopies.Data import Operator, ConditionalOperator, IColumn, IOperandValue, SetOperand, QueryErrorKinds, QueryError
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
 from WinCopies.Data.Parameter import IFormattable, IParameter, CreateFieldParameter, CreateFieldParameterFromValue
@@ -53,11 +54,11 @@ class IQueryFactoryBase(IInterface):
         super().__init__()
 
     @abstractmethod
-    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
         pass
     @final
-    def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]:
-        return TryGenerate(self.TryBuildConditionsByKeys(keys, maxParameterCount))
+    def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]:
+        return TryGenerate(self.TryBuildConditionsByKeys(keys, maxParameterCount, handler))
 class IQueryFactory(IQueryFactoryBase):
     def __init__(self) -> None:
         super().__init__()
@@ -101,7 +102,7 @@ class QueryFactory(Abstract, IQueryFactory):
         super().__init__()
 
     @final
-    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None) -> Generator[IConditionParameterSet]|None:
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
         def process() -> Generator[IConditionParameterSet]:
             def getColumns() -> ITuple[IColumn]:
                 return CreateTuple(AsColumns(Select(keys.GetKeys().AsIterable(), lambda column: column.GetValue())))
@@ -138,15 +139,22 @@ class QueryFactory(Abstract, IQueryFactory):
                 
                 yield process(columns.AsIterable(), Select(values, lambda items: Select(items.AsIterable(), lambda value: Map(value))))
             
-            def process(keys: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
-                return handler(columns, keys)
+            def getProcessor() -> Converter[Iterable[ITuple[object]], Generator[IConditionParameterSet]]:
+                processor: Callable[[ITuple[IColumn], Iterable[ITuple[object]]], Generator[IConditionParameterSet]] = onSinglePrimaryKey if pkCount == 1 else onCompositePrimaryKey
+                columns: ITuple[IColumn] = getColumns()
+
+                return lambda keys: processor(columns, keys)
 
             pkCount: int = keys.GetKeys().GetCount()
-            handler: Callable[[ITuple[IColumn], Iterable[ITuple[object]]], Generator[IConditionParameterSet]] = onSinglePrimaryKey if pkCount == 1 else onCompositePrimaryKey
-            columns: ITuple[IColumn] = getColumns()
 
-            return process(keys.AsIterable()) if maxParameterCount is None else ExpandItems(Batch(keys, maxParameterCount // pkCount), lambda batch: process(batch))
-        
+            if maxParameterCount is None:
+                return getProcessor()(keys.AsIterable())
+            
+            if maxParameterCount < pkCount:
+                raise QueryError(QueryErrorKinds.ParameterLimitExceeded)
+            
+            return ExpandItems(Batch(maxParameterCount // pkCount, keys, handler), getProcessor())
+
         return process() if keys.HasItems() else None
 
 class IIndexFactory(IInterface):

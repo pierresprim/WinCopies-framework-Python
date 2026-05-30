@@ -24,7 +24,7 @@ from WinCopies.Enum import HasFlag
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IValueItem, IString, String
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, DualValueBool
 
 
 
@@ -40,11 +40,18 @@ class IQueryLimits(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetMaxParameterCount(self) -> int|None:
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None:
         pass
 
     @abstractmethod
     def GetMaxQuerySize(self) -> int|None:
+        pass
+class IMutableQueryLimits(IQueryLimits):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
         pass
 
 class IQueryExecutionResult(IDisposable):

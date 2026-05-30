@@ -21,7 +21,7 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import InvalidOperationError, INullable, GetDisposedError
+from WinCopies.Typing import INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueNullableInfo, CreateDualResult, CreateDualValueNullableInfo
@@ -37,24 +37,29 @@ from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMo
 from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IFormattable, IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
-from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
+from WinCopies.Data.Query import IMutableQueryLimits, ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeColumnParameterSet, MakeConjunctionSet
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
 
 @final
 class _Connection(Abstract):
-    def __init__(self, connection: Connection, innerCollection: sqlite3.Connection) -> None:
+    def __init__(self, connection: Connection, innerCollection: sqlite3.Connection, queryLimits: IMutableQueryLimits) -> None:
         super().__init__()
 
         self.__connection: IConnection = connection
         self.__innerCollection: sqlite3.Connection = innerCollection
+
+        self.__queryLimits: IMutableQueryLimits = queryLimits
     
     def GetConnection(self) -> IConnection:
         return self.__connection
     
     def GetInnerConnection(self) -> sqlite3.Connection:
         return self.__innerCollection
+    
+    def GetQueryLimits(self) -> IMutableQueryLimits:
+        return self.__queryLimits
 
 @final
 class Table(TableBase):
@@ -63,17 +68,19 @@ class Table(TableBase):
         def __init__(self, connection: _Connection) -> None:
             self.__connection: _Connection|None = connection
         
-        def GetConnection(self) -> IConnection:
-            if self.__connection is None:
-                raise InvalidOperationError()
+        def __GetConnection(self) -> _Connection:
+            connection: _Connection|None = self.__connection
+
+            if connection is None:
+                raise GetDisposedError()
             
-            return self.__connection.GetConnection()
+            return connection
+        
+        def GetConnection(self) -> IConnection:
+            return self.__GetConnection().GetConnection()
         
         def Execute(self, sql: str, values: Sequence[object]|None = None) -> None:
-            if self.__connection is None:
-                raise InvalidOperationError()
-            
-            connection: sqlite3.Connection = self.__connection.GetInnerConnection()
+            connection: sqlite3.Connection = self.__GetConnection().GetInnerConnection()
 
             if values is None:
                 connection.execute(sql)
@@ -95,7 +102,7 @@ class Table(TableBase):
     def __init__(self, connection: _Connection, name: str) -> None:
         EnsureDirectModuleCall()
         
-        super().__init__()
+        super().__init__(connection.GetQueryLimits())
         
         self.__connection: Table.__Connection = Table.__Connection(connection)
         self.__name: str = name
@@ -416,8 +423,14 @@ class Table(TableBase):
 
 @final
 class Connection(ConnectionBase):
+    def __init__(self, path: str) -> None:
+        super().__init__()
+
+        self.__path: str = path
+        self.__connection: sqlite3.Connection|None = None
+    
     def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
-        return Table(_Connection(self, connection), name)
+        return Table(_Connection(self, connection, self._GetMutableQueryLimits()), name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
@@ -435,12 +448,6 @@ class Connection(ConnectionBase):
         self.__DoCreateTable(self.__connection, '', name, fields, indices)
 
         return self.__GetTable(self.__connection, name)
-    
-    def __init__(self, path: str) -> None:
-        super().__init__()
-
-        self.__path: str = path
-        self.__connection: sqlite3.Connection|None = None
     
     def Open(self) -> bool:
         self.__connection = sqlite3.connect(self.__path, autocommit = False)
