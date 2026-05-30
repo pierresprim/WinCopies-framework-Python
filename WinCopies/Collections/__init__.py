@@ -6,7 +6,7 @@ from typing import Callable
 
 from WinCopies import Abstract, BooleanableEnum, NullableBoolean
 from WinCopies.Enum import OrderedEnum
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate
 
 type ReadOnlyArray[T] = tuple[T, ...]
@@ -43,9 +43,9 @@ class IterationResult(BooleanableEnum):
     def ToNullableBoolean(self) -> NullableBoolean:
         return NullableBoolean.BoolTrue if self == IterationResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
 
-class EmptyException(Exception):
+class EmptyException(Error):
     def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+        super().__init__("The collection is empty.", *args)
 
 class FinderPredicate[T](Abstract):
     def __init__(self) -> None:
