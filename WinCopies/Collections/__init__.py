@@ -9,6 +9,7 @@ from WinCopies.Enum import OrderedEnum
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate
 
+type ReadOnlyArray[T] = tuple[T, ...]
 type Generator[T] = GeneratorBase[T, None, None]
 
 class Mutability(OrderedEnum):
