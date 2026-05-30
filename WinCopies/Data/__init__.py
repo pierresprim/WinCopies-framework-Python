@@ -7,7 +7,9 @@ from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Extensions import IReadOnlySet
+from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
+from WinCopies.Typing import ErrorBase
 from WinCopies.Typing.Comparison import IHashable
 from WinCopies.Typing.Delegate import Method, Selector
 from WinCopies.Typing.Object import IValueItem
@@ -367,3 +369,18 @@ class QueryErrorKinds(Flag):
     ParameterLimitExceeded = auto()
     QuerySizeExceeded = auto()
     ConnectionLost = auto()
+
+    def __str__(self) -> str:
+        match self:
+            case QueryErrorKinds.Null:
+                return "No error."
+            
+            case QueryErrorKinds.ParameterLimitExceeded:
+                return "The query parameter count exceeds this DBMS's capacity."
+            case QueryErrorKinds.QuerySizeExceeded:
+                return "The query size exceeds this DBMS's capacity."
+            case QueryErrorKinds.ConnectionLost:
+                return "The connection is no longer active."
+            
+            case _:
+                return "Invalid error value."
