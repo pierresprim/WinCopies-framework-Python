@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence, MutableSequence
 
 from WinCopies import Not
-from WinCopies.Collections import Generator
+from WinCopies.Collections import ReadOnlyArray, Generator
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -236,7 +236,7 @@ def ContainsOneSequence[T](l: Sequence[T], values: Sequence[T]) -> bool|None:
 def Enumerate[T](items: Iterable[T]) -> Generator[T]:
     yield from items
 
-def MakeSequence[T](*items: T) -> Sequence[T]:
+def MakeSequence[T](*items: T) -> ReadOnlyArray[T]:
     return items
 def MakeGenerator[T](*items: T) -> Generator[T]:
     return Enumerate(items)
