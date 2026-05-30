@@ -30,9 +30,9 @@ class Error(ErrorBase):
     def GetMessage(self) -> str:
         return self.__message
 
-class InvalidOperationError(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+class InvalidOperationError(Error):
+    def __init__(self, message: str, *args: object) -> None:
+        super().__init__(message, *args)
 
 def GetGenericError() -> InvalidOperationError:
     return InvalidOperationError("Could not perform the requested action.")
@@ -122,7 +122,7 @@ class _NullValue[T](_NullableValue[T]):
     def HasValue(self) -> bool:
         return False
     def GetValue(self) -> T:
-        raise InvalidOperationError()
+        raise InvalidOperationError("No value available.")
 
 __nullValue: _NullValue = _NullValue() # type: ignore
 
