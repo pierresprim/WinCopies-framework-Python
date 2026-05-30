@@ -311,6 +311,31 @@ def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
     if not HasFlag(e, v):
         raise ValueError(f"{v} is not in {e}.")
 
+def __GetNormalizedFlag(value: int) -> int:
+    return value & (value - 1)
+
+def HasMultipleFlags(e: Flag) -> bool|None:
+    value: int = e.value
+
+    return None if value == 0 else __GetNormalizedFlag(value) != 0
+def EnsureMultipleFlags(e: Flag) -> None:
+    if HasMultipleFlags(e) is not True:
+        raise ValueError(f"Multiple values were expected; got {e}.")
+
+def HasOnlyOneFlag(e: Flag) -> bool|None:
+    value: int = e.value
+
+    return None if value == 0 else __GetNormalizedFlag(value) == 0
+def EnsureOnlyOneFlag(e: Flag) -> None:
+    if HasMultipleFlags(e) is True:
+        raise ValueError(f"Only one value was expected; got {e}.")
+
+def HasOneAndOnlyOneFlag(e: Flag) -> bool:
+    return HasOnlyOneFlag(e) is True
+def EnsureOneAndOnlyOneFlag(e: Flag) -> None:
+    if not HasOneAndOnlyOneFlag(e):
+        raise ValueError(f"One and only one value was expected; got {e}.")
+
 def EnumerateNames(t: Type[Enum]) -> Generator[str]:
     for item in t:
         yield item.name
