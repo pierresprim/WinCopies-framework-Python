@@ -474,7 +474,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
             self._GetContainer().append(item)
         
         else:
-            raise InvalidOperationError()
+            raise InvalidOperationError("The list is already full.")
     
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None:

@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing import GetGenericError
 from WinCopies.Typing.Delegate import Function
 
 class IAdaptiveRefinement(IInterface):
@@ -65,11 +65,11 @@ class IAdaptiveRefinement(IInterface):
     @final
     def OnSuccess(self) -> None:
         if not self.TryOnSuccess():
-            raise InvalidOperationError()
+            raise GetGenericError()
     @final
     def OnError(self) -> None:
         if self.TryOnError() is not True:
-            raise InvalidOperationError()
+            raise GetGenericError()
 
     @final
     def Update(self, success: bool) -> None:
