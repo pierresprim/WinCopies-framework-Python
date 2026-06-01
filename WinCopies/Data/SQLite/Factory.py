@@ -3,15 +3,12 @@ from collections.abc import Iterable
 from enum import Enum
 from typing import final
 
-import sqlite3
-
 
 
 import WinCopies.Data
 
 from WinCopies import Abstract, String
-from WinCopies.Collections.Enumeration import ICountableEnumerable
-from WinCopies.Collections.Extensions import IHashableTuple, IDictionary
+from WinCopies.Collections.Extensions import IHashableTuple
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Enum import HasFlag
 from WinCopies.String import CommaJoin
@@ -24,15 +21,9 @@ from WinCopies.Typing.Reflection import EnsureDirectPackageCall, EnsureCallerPac
 
 from WinCopies.Data import Field
 from WinCopies.Data.Abstract import IConnection
-from WinCopies.Data.Factory import IFieldFactory, IIndexFactory, QueryFactory as QueryFactoryBase
+from WinCopies.Data.Factory import IFieldFactory, IIndexFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, RealMode, TextMode, IField
 from WinCopies.Data.Index import IndexType, IIndex, IKey, ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey, UnicityIndex, PrimaryKey, ForeignKey
-from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
-from WinCopies.Data.Set import ITableParameterSet, IColumnParameterSet
-from WinCopies.Data.Set.Extensions import IConditionParameterSet
-
-from WinCopies.Data.SQLite.Query import SelectionQuery, InsertionQuery, MultiInsertionQuery, UpdateQuery
 
 @final
 class FieldFactory(Abstract, IFieldFactory):
@@ -150,29 +141,6 @@ class FieldFactory(Abstract, IFieldFactory):
         return FieldFactory.__RealField(name, attribute, mode, self.__connection)
     def CreateText(self, name: str, attribute: FieldAttributes, mode: TextMode) -> __TextField:
         return FieldFactory.__TextField(name, attribute, mode, self.__connection)
-
-@final
-class QueryFactory(QueryFactoryBase):
-    def __init__(self, connection: sqlite3.Connection) -> None:
-        EnsureDirectPackageCall()
-
-        super().__init__()
-
-        self.__connection: sqlite3.Connection = connection
-    
-    def _GetConnection(self) -> sqlite3.Connection:
-        return self.__connection
-    
-    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-        return SelectionQuery(self._GetConnection(), tables, columns, conditions)
-    
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
-        return InsertionQuery(self._GetConnection(), tableName, items, ignoreExisting)
-    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
-        return MultiInsertionQuery(self._GetConnection(), tableName, columns, items, ignoreExisting)
-    
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
-        return UpdateQuery(self._GetConnection(), tableName, values, conditions)
 
 @final
 class IndexFactory(Abstract, IIndexFactory):
