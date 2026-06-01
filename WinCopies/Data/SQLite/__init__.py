@@ -25,12 +25,11 @@ from WinCopies.Typing import INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueNullableInfo, CreateDualResult, CreateDualValueNullableInfo
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
 from WinCopies.Data import IOperand, IColumn, Column, TableColumn, Operator
-from WinCopies.Data.Abstract import IConnection, ITable, Connection as ConnectionBase, Table as TableBase
+from WinCopies.Data.Abstract import IConnection, ITable, Connection as ConnectionBase, Table
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
@@ -63,9 +62,9 @@ class _Connection(Abstract):
         return self.__queryLimits
 
 @final
-class Table(TableBase):
+class _Table(Table):
     @final
-    class __Connection(IDisposable):
+    class __Connection(Abstract, IDisposable):
         def __init__(self, connection: _Connection) -> None:
             self.__connection: _Connection|None = connection
         
@@ -104,11 +103,9 @@ class Table(TableBase):
         Nullable = auto()
     
     def __init__(self, connection: _Connection, name: str) -> None:
-        EnsureDirectModuleCall()
-        
         super().__init__()
         
-        self.__connection: Table.__Connection = Table.__Connection(connection)
+        self.__connection: _Table.__Connection = _Table.__Connection(connection)
         self.__name: str = name
         self.__fields: IArray[IField]|None = None
         self.__indices: IArray[IIndex]|None = None
@@ -151,25 +148,25 @@ class Table(TableBase):
                     case _:
                         raise NotImplementedError(f"The '{fieldType}' field type is not supported.")
             
-            def getAttributes(attributes: Table.FieldAttributes) -> FieldAttributes:
-                if attributes == Table.FieldAttributes.Null:
+            def getAttributes(attributes: _Table.FieldAttributes) -> FieldAttributes:
+                if attributes == _Table.FieldAttributes.Null:
                     return FieldAttributes.Null
                 
-                def check(value: Table.FieldAttributes) -> bool:
+                def check(value: _Table.FieldAttributes) -> bool:
                     return HasFlag(attributes, value)
                 
                 result: FieldAttributes = FieldAttributes.Null
                 
-                if check(Table.FieldAttributes.PrimaryKey):
+                if check(_Table.FieldAttributes.PrimaryKey):
                     result = FieldAttributes.PrimaryKey
                     
-                    if check(Table.FieldAttributes.Integer) and check(Table.FieldAttributes.NoDefault):
+                    if check(_Table.FieldAttributes.Integer) and check(_Table.FieldAttributes.NoDefault):
                         result |= FieldAttributes.AutoIncrement
                 
-                if check(Table.FieldAttributes.Unique):
+                if check(_Table.FieldAttributes.Unique):
                     result |= FieldAttributes.Unique
                 
-                if check(Table.FieldAttributes.Nullable):
+                if check(_Table.FieldAttributes.Nullable):
                     result |= FieldAttributes.Nullable
                 
                 return result
@@ -219,24 +216,24 @@ class Table(TableBase):
                 return
             
             fieldFactory: IFieldFactory = connection.GetFieldFactory()
-            attributes: Table.FieldAttributes|None = None
+            attributes: _Table.FieldAttributes|None = None
             result: DualValueNullableInfo[FieldType, Enum]|None = None
 
             for row in columns.AsIterable():
                 result = getFieldType(str(row[1]))
 
-                attributes = Table.FieldAttributes.Null
+                attributes = _Table.FieldAttributes.Null
 
                 if result.GetKey() == FieldType.Integer:
-                    attributes |= Table.FieldAttributes.Integer
+                    attributes |= _Table.FieldAttributes.Integer
                 if checkAttributeValue(row, 2):
-                    attributes |= Table.FieldAttributes.PrimaryKey
+                    attributes |= _Table.FieldAttributes.PrimaryKey
                 if checkAttributeValue(row, 3):
-                    attributes |= Table.FieldAttributes.NoDefault
+                    attributes |= _Table.FieldAttributes.NoDefault
                 if checkAttributeValue(row, 4):
-                    attributes |= Table.FieldAttributes.Nullable
+                    attributes |= _Table.FieldAttributes.Nullable
                 if checkAttributeValue(row, 5):
-                    attributes |= Table.FieldAttributes.Unique
+                    attributes |= _Table.FieldAttributes.Unique
 
                 yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
             
@@ -437,7 +434,7 @@ class Connection(ConnectionBase):
         self.__connection: sqlite3.Connection|None = None
     
     def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
-        return Table(_Connection(self, connection, self._GetMutableQueryLimits()), name)
+        return _Table(_Connection(self, connection, self._GetMutableQueryLimits()), name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
