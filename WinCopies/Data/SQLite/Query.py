@@ -155,7 +155,7 @@ class UpdateQuery(UpdateQueryBase, __IQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 
 @final
-class QueryFactory(QueryFactoryBase):
+class Factory(QueryFactoryBase):
     def __init__(self, connection: sqlite3.Connection) -> None:
         super().__init__()
 

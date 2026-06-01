@@ -40,7 +40,8 @@ from WinCopies.Data.Parameter import IFormattable, IParameter, ColumnParameter, 
 from WinCopies.Data.Query import IMutableQueryLimits, ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeColumnParameterSet, MakeConjunctionSet
 
-from WinCopies.Data.SQLite.Factory import FieldFactory, QueryFactory, IndexFactory
+from WinCopies.Data.SQLite.Factory import FieldFactory, IndexFactory
+from WinCopies.Data.SQLite.Query import Factory
 
 @final
 class _Connection(Abstract):
@@ -505,7 +506,7 @@ class Connection(ConnectionBase):
         if self.__connection is None:
             raise GetDisposedError()
         
-        return QueryFactory(self.__connection)
+        return Factory(self.__connection)
     def _GetIndexFactory(self) -> IIndexFactory:
         if self.__connection is None:
             raise GetDisposedError()
