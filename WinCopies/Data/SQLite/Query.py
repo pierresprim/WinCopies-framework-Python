@@ -13,16 +13,25 @@ from WinCopies.Collections.Util import MakeList
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 
+from WinCopies.Data import QueryErrorKinds
 from WinCopies.Data.Factory import QueryFactory as QueryFactoryBase
 from WinCopies.Data.Misc import ITableNameFormater
 from WinCopies.Data.Parameter import IFormattable
 from WinCopies.Data.Query import (ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery,
                                   SelectionQuery as SelectionQueryBase, InsertionQuery as InsertionQueryBase, MultiInsertionQuery as MultiInsertionQueryBase, UpdateQuery as UpdateQueryBase,
                                   InsertionQueryStatementProvider,
-                                  ISelectionQueryExecutionResult, IInsertionQueryExecutionResult)
+                                  ISelectionQueryExecutionResult, IInsertionQueryExecutionResult,
+                                  QueryExceptionMapper as QueryExceptionMapperBase)
 from WinCopies.Data.QueryBuilder import QueryResult
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
+
+class QueryExceptionMapper(QueryExceptionMapperBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
+        return QueryErrorKinds.ParameterLimitExceeded if isinstance(exception, sqlite3.OperationalError) and "too many sql variables" in str(exception).lower() else QueryErrorKinds.Null
 
 class QueryResultBase(Abstract):
     def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
