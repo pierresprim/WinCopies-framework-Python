@@ -24,7 +24,7 @@ from WinCopies.String import DoubleQuoteSurround
 from WinCopies.Typing import INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
-from WinCopies.Typing.Pairing import DualValueNullableInfo, CreateDualResult, CreateDualValueNullableInfo
+from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 
 
@@ -36,7 +36,7 @@ from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMo
 from WinCopies.Data.Index import IndexKind, IIndex
 from WinCopies.Data.Misc import JoinType
 from WinCopies.Data.Parameter import IFormattable, IParameter, ColumnParameter, TableParameter, MakeTableColumnIterable, MakeTableValueIterable, GetNullFieldParameter, GetNotNullFieldParameter, CreateFieldParameterFromValue
-from WinCopies.Data.Query import IMutableQueryLimits, ISelectionQuery, ISelectionQueryExecutionResult
+from WinCopies.Data.Query import IMutableQueryLimits, IQueryLimits, ISelectionQuery, ISelectionQueryExecutionResult
 from WinCopies.Data.Set.Extensions import Join, ColumnParameterSet, TableParameterSet, ConditionSet, ExistenceSet, IExistenceQuery, ExistenceQuery, MakeColumnParameterSet, MakeConjunctionSet
 
 from WinCopies.Data.SQLite.Factory import FieldFactory, IndexFactory
@@ -427,34 +427,59 @@ class _Table(Table):
 
 @final
 class Connection(ConnectionBase):
+    @final
+    class _QueryLimits(Abstract, IQueryLimits):
+        def __init__(self, connection: sqlite3.Connection) -> None:
+            super().__init__()
+
+            self.__connection: sqlite3.Connection = connection
+        
+        def __GetLimit(self, value: int) -> int:
+            return self.__connection.getlimit(value)
+
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None:
+            return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
+
+        def GetMaxQuerySize(self) -> int|None:
+            return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+    
     def __init__(self, path: str) -> None:
         super().__init__()
 
         self.__path: str = path
-        self.__connection: sqlite3.Connection|None = None
+        self.__connection: _Connection|None = None
     
-    def __GetTable(self, connection: sqlite3.Connection, name: str) -> Table:
-        return _Table(_Connection(self, connection, self._GetMutableQueryLimits()), name)
+    def __GetConnection(self) -> _Connection:
+        connection: _Connection|None = self.__connection
+
+        if connection is None:
+            raise GetDisposedError()
+        
+        return connection
+    def __GetInnerConnection(self) -> sqlite3.Connection:
+        return self.__GetConnection().GetInnerConnection()
+    
+    def __GetTable(self, connection: _Connection, name: str) -> _Table:
+        return _Table(connection, name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
     def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
-        if self.__connection is None:
-            raise GetDisposedError()
-        
-        self.__DoCreateTable(self.__connection, "IF NOT EXISTS ", name, fields, indices)
+        self.__DoCreateTable(self.__GetInnerConnection(), "IF NOT EXISTS ", name, fields, indices)
 
         return None
     def __CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
-        if self.__connection is None:
-            raise GetDisposedError()
-        
-        self.__DoCreateTable(self.__connection, '', name, fields, indices)
+        connection: _Connection = self.__GetConnection()
 
-        return self.__GetTable(self.__connection, name)
+        self.__DoCreateTable(connection.GetInnerConnection(), '', name, fields, indices)
+
+        return self.__GetTable(connection, name)
+    
+    def _CreateQueryLimits(self) -> IQueryLimits:
+        return Connection._QueryLimits(self.__GetInnerConnection())
     
     def Open(self) -> bool:
-        self.__connection = sqlite3.connect(self.__path, autocommit = False)
+        self.__connection = _Connection(self, sqlite3.connect(self.__path, autocommit = False), self._GetMutableQueryLimits())
 
         return True
     
@@ -492,18 +517,12 @@ class Connection(ConnectionBase):
         return self.__CreateTable(name, fields, indices)
 
     def _GetTable(self, name: str) -> ITable:
-        if self.__connection is None:
-            raise GetDisposedError()
-        
-        return self.__GetTable(self.__connection, name)
+        return self.__GetTable(self.__GetConnection(), name)
     
     def _GetFieldFactory(self) -> IFieldFactory:
         return FieldFactory(self)
     def _GetQueryFactory(self) -> IQueryFactory:
-        if self.__connection is None:
-            raise GetDisposedError()
-        
-        return Factory(self.__connection)
+        return Factory(self.__GetInnerConnection())
     def _GetIndexFactory(self) -> IIndexFactory:
         if self.__connection is None:
             raise GetDisposedError()
@@ -511,16 +530,20 @@ class Connection(ConnectionBase):
         return IndexFactory(self)
     
     def Commit(self) -> bool:
-        if self.__connection is None:
+        connection: _Connection|None = self.__connection
+
+        if connection is None:
             return False
         
-        self.__connection.commit()
+        connection.GetInnerConnection().commit()
 
         return True
 
     def _CloseOverride(self) -> None:
-        if self.__connection is None:
+        connection: _Connection|None = self.__connection
+
+        if connection is None:
             return
         
-        self.__connection.close()
+        connection.GetInnerConnection().close()
         self.__connection = None
