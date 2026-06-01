@@ -79,6 +79,9 @@ class Table(TableBase):
         def GetConnection(self) -> IConnection:
             return self.__GetConnection().GetConnection()
         
+        def GetQueryLimits(self) -> IMutableQueryLimits:
+            return self.__GetConnection().GetQueryLimits()
+        
         def Execute(self, sql: str, values: Sequence[object]|None = None) -> None:
             connection: sqlite3.Connection = self.__GetConnection().GetInnerConnection()
 
@@ -102,7 +105,7 @@ class Table(TableBase):
     def __init__(self, connection: _Connection, name: str) -> None:
         EnsureDirectModuleCall()
         
-        super().__init__(connection.GetQueryLimits())
+        super().__init__()
         
         self.__connection: Table.__Connection = Table.__Connection(connection)
         self.__name: str = name
@@ -114,6 +117,9 @@ class Table(TableBase):
     
     def _GetConnection(self) -> IConnection:
         return self.__connection.GetConnection()
+    
+    def _GetQueryLimits(self) -> IMutableQueryLimits:
+        return self.__connection.GetQueryLimits()
     
     def GetName(self) -> str:
         return self.__name

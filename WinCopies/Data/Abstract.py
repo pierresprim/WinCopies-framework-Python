@@ -155,14 +155,17 @@ class Table(Abstract, ITable, INotHashableValue):
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
             return self._GetFactory().GetUpdateQuery(self._GetTable().GetName(), values, conditions)
     
-    def __init__(self, queryLimits: IMutableQueryLimits) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
-        self.__queryLimits: IMutableQueryLimits = queryLimits
         self.__queryFactory: ITableQueryFactory|None = None
     
     @abstractmethod
     def _GetConnection(self) -> IConnection:
+        pass
+    
+    @abstractmethod
+    def _GetQueryLimits(self) -> IMutableQueryLimits:
         pass
     
     @final
@@ -213,7 +216,7 @@ class Table(Abstract, ITable, INotHashableValue):
             return None
 
         factory: ITableQueryFactory = self.GetQueryFactory()
-        queryLimits: IMutableQueryLimits = self.__queryLimits
+        queryLimits: IMutableQueryLimits = self._GetQueryLimits()
         maxParameterCount, handler, selector = getLimit()
         
         conditions: Generator[IConditionParameterSet]|None = factory.TryBuildConditionsByKeys(keys, maxParameterCount, handler)
@@ -330,17 +333,17 @@ class Connection(Abstract, IConnection):
         def Dispose(self) -> None:
             pass
     @final
-    class _Table(Abstract, ITable):
-        def __init__(self, tableList: IList[Connection._Table], table: ITable) -> None:
+    class __Table(Abstract, ITable):
+        def __init__(self, tableList: IList[Connection.__Table], table: ITable) -> None:
             EnsureDirectModuleCall()
 
             super().__init__()
             
-            self.__tableList: IList[Connection._Table]|None = tableList
+            self.__tableList: IList[Connection.__Table]|None = tableList
             self.__table: ITable = table
         
         def Equals(self, item: ITable|object) -> bool:
-            return isinstance(item, Connection._Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
+            return isinstance(item, Connection.__Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
         
         def GetName(self) -> str:
             return self.__table.GetName()
@@ -374,7 +377,7 @@ class Connection(Abstract, IConnection):
             self.__table = Connection._GetNullTable()
     
     @final
-    class _MutableQueryLimits(Abstract, IMutableQueryLimits):
+    class __MutableQueryLimits(Abstract, IMutableQueryLimits):
         def __init__(self, queryLimits: IQueryLimits) -> None:
             super().__init__()
 
@@ -400,7 +403,7 @@ class Connection(Abstract, IConnection):
             
             return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
     @final
-    class _QueryLimits(Abstract, IQueryLimits):
+    class __QueryLimits(Abstract, IQueryLimits):
         def __init__(self, queryLimits: IMutableQueryLimits) -> None:
             super().__init__()
 
@@ -421,12 +424,12 @@ class Connection(Abstract, IConnection):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__tables: List[Connection._Table] = List[Connection._Table]()
+        self.__tables: List[Connection.__Table] = List[Connection.__Table]()
 
         self.__factories: Connection.__Factories = Connection.__Factories()
         
-        self.__mutableQueryLimits: IMutableQueryLimits = Connection._MutableQueryLimits(self._CreateQueryLimits())
-        self.__queryLimits: IQueryLimits = Connection._QueryLimits(self.__mutableQueryLimits)
+        self.__mutableQueryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
+        self.__queryLimits: IQueryLimits = Connection.__QueryLimits(self.__mutableQueryLimits)
     
     @abstractmethod
     def _GetFieldFactory(self) -> IFieldFactory:
@@ -467,7 +470,7 @@ class Connection(Abstract, IConnection):
     
     @final
     def __AddNewTable(self, table: ITable) -> ITable:
-        _table: Connection._Table = Connection._Table(self.__tables, table)
+        _table: Connection.__Table = Connection.__Table(self.__tables, table)
         
         self.__tables.Add(_table)
 
