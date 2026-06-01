@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import final
+from typing import final, NoReturn
 
 
 
@@ -14,7 +14,7 @@ from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable,
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement, CreateFineRefinement
-from WinCopies.Collections.Iteration.Batch import ICursor, IHandler, ICompletionHandler
+from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandler, ICompletionHandler
 
 from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
@@ -51,7 +51,7 @@ class ISelectionHandler(IHandler):
         super().__init__()
     
     @abstractmethod
-    def TryResume(self, newSize: int|None = None) -> bool|None:
+    def TryResume(self, newSize: int|None = None) -> ResumeResult|None:
         pass
 @final
 class _SelectionHandler(Abstract, ISelectionHandler):
@@ -71,10 +71,10 @@ class _SelectionHandler(Abstract, ISelectionHandler):
     def GetCompletionHandler(self) -> ICompletionHandler:
         return self.__completionHandler
     
-    def TryResume(self, newSize: int|None = None) -> bool|None:
+    def TryResume(self, newSize: int|None = None) -> ResumeResult|None:
         cursor: ICursor|None = self.__cursor
 
-        return False if cursor is None else cursor.TryResume(newSize)
+        return None if cursor is None else cursor.TryResume(newSize)
 
 class ITable(IEquatable['ITable'], IDisposable):
     def __init__(self) -> None:
@@ -185,18 +185,33 @@ class Table(Abstract, ITable, INotHashableValue):
 
             return query.Execute()
         def select(conditionSet: IConditionParameterSet, handler: ISelectionHandler) -> ISelectionQueryExecutionResult|None:
+            def throw(msg: str) -> NoReturn:
+                raise InvalidOperationError(msg)
+
             setConditions(conditionSet)
 
             result: ISelectionQueryExecutionResult|QueryErrorKinds|None = query.Execute(QueryErrorKinds.ParameterLimitExceeded)
 
             if isinstance(result, QueryErrorKinds):
                 if result == QueryErrorKinds.ParameterLimitExceeded:
-                    match handler.TryResume():
-                        case True:
+                    resumeResult: ResumeResult|None = handler.TryResume()
+
+                    if resumeResult is None:
+                        raise InvalidOperationError(f"{handler.TryResume.__name__} called before handler initialization.")
+
+                    match resumeResult:
+                        case ResumeResult.Resumed:
                             return None
                         
-                        case _:
+                        case ResumeResult.AtFloor|ResumeResult.Exhausted:
                             raise QueryError(QueryErrorKinds.ParameterLimitExceeded)
+                        
+                        case ResumeResult.PostConvergence:
+                            throw("Resume failed at a size previously proven valid (limit shifted).")
+                        case ResumeResult.ResumeFailed:
+                            throw("Enumerator failed to re-arm after a valid refinement.")
+                        case ResumeResult.NotResumable:
+                            throw("Cursor is not in a resumable state.")
                 
                 raise InvalidOperationError("An unexpected error occurred.")
 

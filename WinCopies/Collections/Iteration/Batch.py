@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Collection, Sequence
+from enum import Enum
 from typing import Callable, final
 
 from WinCopies import IInterface, Abstract
@@ -48,6 +49,14 @@ def _CompleteBatch[T](batch: Generator[T]) -> None:
     for _ in batch:
         pass
 
+class ResumeResult(Enum):
+    NotResumable = -3
+    PostConvergence = -2
+    Exhausted = -1
+    AtFloor = 0
+    Resumed = 1
+    ResumeFailed = 2
+
 class ICursor(IInterface):
     def __init__(self) -> None:
         super().__init__()
@@ -57,7 +66,7 @@ class ICursor(IInterface):
         pass
 
     @abstractmethod
-    def TryResume(self, newSize: int|None = None) -> bool|None:
+    def TryResume(self, newSize: int|None = None) -> ResumeResult:
         pass
 
 class ICompletionHandler(IInterface):
@@ -881,17 +890,22 @@ class _Cursor[T](Abstract, ICursor):
     def IsValid(self) -> bool:
         return self.__enumerator.CanResume()
     
-    def TryResume(self, newSize: int|None = None) -> bool|None:
+    def TryResume(self, newSize: int|None = None) -> ResumeResult:
         self.__onResume()
 
         if self.IsValid():
             refinement: IAdaptiveRefinement = self.__refinement
 
             if newSize is None:
-                result: bool|None = refinement.TryOnError()
-
-                if result is not True:
-                    return result
+                match refinement.TryOnError():
+                    case None:
+                        return ResumeResult.AtFloor
+                    
+                    case False:
+                        return ResumeResult.Exhausted if refinement.GetDiscoveredSize() is None else ResumeResult.PostConvergence
+                    
+                    case _:
+                        pass
             
             else:
                 refinement.ResetTo(newSize, True)
@@ -899,9 +913,11 @@ class _Cursor[T](Abstract, ICursor):
             if self.__enumerator.TryResume():
                 self.__size.SetValue(refinement.GetCurrent())
 
-                return True
+                return ResumeResult.Resumed
+            
+            return ResumeResult.ResumeFailed
         
-        return False
+        return ResumeResult.NotResumable
 
 def TryBatch[T](size: int,
                 items: IReadOnlyCountableIndexable[T]|IResumableCountableEnumerable[T]|IResumableEnumerable[T]|ICountableEnumerable[T]|IEnumerable[T]|Sequence[T]|Collection[T]|Iterable[T]|None,
