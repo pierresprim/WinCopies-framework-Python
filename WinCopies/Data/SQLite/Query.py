@@ -87,7 +87,7 @@ class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelection
     def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
         return self.__function.GetValue()
 @final
-class SelectionQuery(SelectionQueryBase, __IQuery):
+class _SelectionQuery(SelectionQueryBase, __IQuery):
     def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
@@ -118,7 +118,7 @@ class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
         return InsertionQueryBase.GetStandardStatement(ignoreExisting)
 
 @final
-class InsertionQuery(InsertionQueryBase, __InsertionQuery):
+class _InsertionQuery(InsertionQueryBase, __InsertionQuery):
     def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, items, ignoreExisting)
 
@@ -130,7 +130,7 @@ class InsertionQuery(InsertionQueryBase, __InsertionQuery):
     def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
-class MultiInsertionQuery(MultiInsertionQueryBase, __InsertionQuery):
+class _MultiInsertionQuery(MultiInsertionQueryBase, __InsertionQuery):
     def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, columns, items, ignoreExisting)
 
@@ -142,7 +142,7 @@ class MultiInsertionQuery(MultiInsertionQueryBase, __InsertionQuery):
     def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
-class UpdateQuery(UpdateQueryBase, __IQuery):
+class _UpdateQuery(UpdateQueryBase, __IQuery):
     def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tableName, values, conditions)
 
@@ -162,12 +162,12 @@ class Factory(QueryFactoryBase):
         self.__connection: sqlite3.Connection = connection
     
     def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-        return SelectionQuery(self.__connection, tables, columns, conditions)
+        return _SelectionQuery(self.__connection, tables, columns, conditions)
     
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
-        return InsertionQuery(self.__connection, tableName, items, ignoreExisting)
+        return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
     def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
-        return MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
+        return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
     
     def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
-        return UpdateQuery(self.__connection, tableName, values, conditions)
+        return _UpdateQuery(self.__connection, tableName, values, conditions)
