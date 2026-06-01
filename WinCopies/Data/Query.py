@@ -95,7 +95,14 @@ class QueryProvider[T](Abstract, IQueryBase[T]):
     @abstractmethod
     def _Validate(self) -> str|None:
         pass
-class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](QueryProvider[TQueryResult], IQuery[TQueryResult, TQueryExecutionResult]):
+class QueryExceptionMapper(Abstract):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
+        pass
+class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](QueryProvider[TQueryResult], QueryExceptionMapper, IQuery[TQueryResult, TQueryExecutionResult]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -113,9 +120,6 @@ class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None]
     
     @abstractmethod
     def _Execute(self) -> TQueryExecutionResult:
-        pass
-    @abstractmethod
-    def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
         pass
     
     @overload
