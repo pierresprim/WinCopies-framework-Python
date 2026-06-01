@@ -52,7 +52,7 @@ class QueryResultBase(Abstract):
     def Dispose(self) -> None:
         self._GetCursor().close()
 
-class __IQuery(ITableNameFormater):
+class __Query(QueryExceptionMapper, ITableNameFormater):
     def __init__(self) -> None:
         super().__init__()
     
@@ -96,7 +96,7 @@ class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelection
     def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
         return self.__function.GetValue()
 @final
-class _SelectionQuery(SelectionQueryBase, __IQuery):
+class _SelectionQuery(SelectionQueryBase, __Query):
     def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, columns, conditions)
 
@@ -118,7 +118,7 @@ class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionRe
     def GetLastRowId(self) -> int:
         return self._GetCursor().lastrowid # type: ignore
 
-class __InsertionQuery(InsertionQueryStatementProvider, __IQuery):
+class __InsertionQuery(__Query, InsertionQueryStatementProvider):
     def __init__(self) -> None:
         super().__init__()
     
@@ -151,7 +151,7 @@ class _MultiInsertionQuery(MultiInsertionQueryBase, __InsertionQuery):
     def _Execute(self) -> IInsertionQueryExecutionResult:
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
-class _UpdateQuery(UpdateQueryBase, __IQuery):
+class _UpdateQuery(UpdateQueryBase, __Query):
     def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tableName, values, conditions)
 
