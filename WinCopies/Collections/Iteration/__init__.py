@@ -80,6 +80,9 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
 def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
+def ConcatenateItems[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[T]:
+    return Concatenate(Select(collection, lambda items: None if items is None else items.AsIterable()))
+
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
     """Appends values to the end of items.
 
