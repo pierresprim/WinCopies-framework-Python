@@ -207,6 +207,7 @@ def _GetEnumerable(enumerationItems: IFieldParameterSetItem[ITableColumn, IParam
 
     return GetEmptyEnumerable() if items is None else items
 
+@final
 class _RecursiveEnumerator(RecursiveEnumerator[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]):
     def __init__(self, enumerator: IEnumerator[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]], handler: IRecursiveEnumerationHandler[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None = None) -> None:
         super().__init__(enumerator, handler)
@@ -214,6 +215,7 @@ class _RecursiveEnumerator(RecursiveEnumerator[IFieldParameterSetItem[ITableColu
     @final
     def _GetEnumerationItems(self, enumerationItems: IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]) -> IEnumerable[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]:
         return _GetEnumerable(enumerationItems)
+@final
 class _StackedRecursiveEnumerator(StackedRecursiveEnumerator[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]):
     def __init__(self, enumerator: IEnumerator[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None = None) -> None:
         super().__init__(enumerator, enumerationOrder, handler)
@@ -1159,6 +1161,7 @@ class _Columns(Abstract):
     def GetAllColumns(self) -> Iterable[IColumnAbstract]:
         return self.__allColumns
 
+@final
 class _EntityUpdater(ValueFunctionUpdater[_Columns]):
     def __init__(self, t: Type[Entity], updater: Method[IFunction[_Columns]]) -> None:
         super().__init__(updater)
@@ -1424,6 +1427,7 @@ class Entity(Abstract, IDisposable):
 
         self.__cookie.Seal() # TODO: Should be called from protected variant
 
+@final
 class _SelectionQueryData(Abstract):
     def __init__(self, columns: _Columns) -> None:
         super().__init__()
@@ -1462,9 +1466,6 @@ class EntityCollection[T: Entity](Abstract):
                     return __getEntity(t, CreateTuple(Select(primaryKeys, lambda _: next(row)))) # pyright: ignore[reportPrivateUsage]
                 def getEntity[_T: Entity](t: Type[_T]) -> _T:
                     return _getEntity(t, _GetPrimaryKeys(t).AsIterable())
-                
-                def processEntityColumn(args: tuple[IDefaultEntityColumn, object]) -> Entity:
-                    return __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1]))
 
                 obj: T = _getEntity(self._GetType(), data.GetPrimaryKeys())
 
@@ -1472,7 +1473,7 @@ class EntityCollection[T: Entity](Abstract):
                     return obj
                 
                 _ProcessColumns(obj, row, data.GetColumns())
-                __ProcessColumns(obj, data.GetEntityColumns(), row, processEntityColumn)
+                __ProcessColumns(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
 
                 for fk in data.GetForeignKeys():
                     _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
@@ -1497,25 +1498,14 @@ class EntityCollection[T: Entity](Abstract):
         def getDefaultTableName() -> str:
             return self.__GetDefaultTableName()
 
-        def asColumns(*columns: Iterable[IDefaultColumn|IDefaultEntityColumn]) -> Iterable[ITableColumn]:
-            def asColumns(columns: Iterable[IDefaultColumn|IDefaultEntityColumn]) -> Iterable[ITableColumn]:
-                def asColumn(column: IDefaultColumn|IDefaultEntityColumn) -> ITableColumn:
-                    return column.GetColumnParameter()._AsColumn(getDefaultTableName()) # pyright: ignore[reportPrivateUsage]
-                
-                return Select(columns, asColumn)
-            
-            return ConcatenateIterables(Select(columns, asColumns))
-        def asForeignKeys(column: IDefaultForeignKey) -> Iterable[ITableColumn]:
-            return column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable() # pyright: ignore[reportPrivateUsage]
-
         data: _SelectionQueryData = _SelectionQueryData(_GetColumns(self._GetType()))
 
         return data, self.__context._GetConnection().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
             TableParameterSet.CreateFromNames(String(getDefaultTableName())),
             CreateColumnParameterSet(
                 ConcatenateValues(
-                    asColumns(data.GetPrimaryKeys(), data.GetColumns(), data.GetEntityColumns()),
-                    ConcatenateIterables(Select(data.GetForeignKeys(), asForeignKeys)))))
+                    ConcatenateIterables(Select((data.GetPrimaryKeys(), data.GetColumns(), data.GetEntityColumns()), lambda columns: Select(columns, lambda column: column.GetColumnParameter()._AsColumn(getDefaultTableName())))), # pyright: ignore[reportPrivateUsage]
+                    ConcatenateIterables(Select(data.GetForeignKeys(), lambda  column: column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable()))))) # pyright: ignore[reportPrivateUsage]
     
     @final
     def Select(self) -> IEnumerable[T]:
