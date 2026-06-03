@@ -11,31 +11,32 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple, CreateHashableTuple
-from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary, CreateDictionary
+from WinCopies.Collections.Abstraction.Collection.Mapping import Set, Dictionary, CreateKeyedSet, CreateDictionary
 from WinCopies.Collections.Core import IReadOnlyIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
-from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, Select, WhereOfType
+from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, Select, WhereOfType
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem
 
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, IString, String, IType, Type as TypeObject, Map
+from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
 
 
 
 from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, IOperand, ITableColumn, Operand, SetOperand
-from WinCopies.Data.Abstract import IConnection
-from WinCopies.Data.Parameter import IParameter, FieldParameter
+from WinCopies.Data.Abstract import IConnection, ITable
+from WinCopies.Data.Parameter import IFormattable, IParameter, FieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult
-from WinCopies.Data.Set import IFieldConditionRecursivelyEnumerable, IFieldParameterSetItem
+from WinCopies.Data.Set import IColumnParameterSet, IFieldConditionRecursivelyEnumerable, IFieldParameterSetItem
 from WinCopies.Data.Set.Extensions import TableParameterSet, CreateColumnParameterSet, TryCreateConditionSetFromConditions
 
 @final
@@ -1446,79 +1447,143 @@ class _SelectionQueryData(Abstract):
     def GetAllColumns(self) -> Iterable[IColumnAbstract]:
         return self.__columns.GetAllColumns()
 
+@final
+class _Hydrator[T: Entity](Abstract):
+    def __init__(self, t: Type[T], context: DataContextBase) -> None:
+        super().__init__()
+        
+        self.__type: Type[T] = t
+        self.__context: DataContextBase = context
+        self.__data: _SelectionQueryData = _SelectionQueryData(_GetColumns(t))
+
+    def GetDefaultTableName(self) -> str:
+        return self.__type.__name__
+
+    def GetSelectionColumnSet(self) -> IColumnParameterSet[IFormattable]:
+        data: _SelectionQueryData = self.__data
+
+        return CreateColumnParameterSet(
+                ConcatenateValues(
+                    ConcatenateIterables(
+                        Select((data.GetPrimaryKeys(), data.GetColumns(), data.GetEntityColumns()), lambda columns: Select(columns, lambda column: column.GetColumnParameter()._AsColumn(self.GetDefaultTableName())))), # pyright: ignore[reportPrivateUsage]
+                    ConcatenateIterables(
+                        Select(data.GetForeignKeys(), lambda  column: column.GetColumnParameter()._AsColumns(self.GetDefaultTableName()).AsIterable())))) # pyright: ignore[reportPrivateUsage]
+
+    def __CreateEntity(self, row: Iterator[object]) -> T:
+        def __getEntity[_T: Entity](t: Type[_T], values: ITuple[object]) -> _T:
+            return self.__context._GetMapper(t).GetEntityFromKeys(values) # pyright: ignore[reportPrivateUsage]
+        def _getEntity[_T: Entity](t: Type[_T], primaryKeys: Iterable[IDefaultColumn]) -> _T:
+            return __getEntity(t, CreateTuple(Select(primaryKeys, lambda _: next(row))))
+        def getEntity[_T: Entity](t: Type[_T]) -> _T:
+            return _getEntity(t, _GetPrimaryKeys(t).AsIterable())
+
+        data: _SelectionQueryData = self.__data
+        obj: T = _getEntity(self.__type, data.GetPrimaryKeys())
+
+        if obj.IsReady():
+            return obj
+        
+        _ProcessColumns(obj, row, data.GetColumns())
+        __ProcessColumns(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
+
+        for fk in data.GetForeignKeys():
+            _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
+
+        obj.Initialize()
+
+        return obj
+
+    def Enumerate(self, results: Iterable[ISelectionQueryExecutionResult|None]) -> IEnumerable[T]:
+        return IteratorProvider[T](lambda: Select(ConcatenateItems(results), lambda row: self.__CreateEntity(iter(row))))
+    def Iterate(self, *results: ISelectionQueryExecutionResult|None) -> IEnumerable[T]:
+        return self.Enumerate(results)
+
+def InitializeStubs[T: Entity](items: IEnumerable[T], context: DataContextBase, maxDepth: int = 1) -> None:
+    def getPKs(t: Type[Entity]) -> Iterable[IDefaultColumn]:
+        return _GetPrimaryKeys(t).AsIterable()
+    def getPKNames(t: Type[Entity]) -> Generator[IString]:
+        return Select((name.GetColumnParameter().GetColumnName() for name in getPKs(t)), lambda name: String(name))
+    
+    def getEntityValue(obj: Entity, column: IColumnAbstract) -> object:
+        return column._GetEntityValue(obj) # pyright: ignore[reportPrivateUsage]
+
+    if maxDepth < 1:
+        return
+
+    keyedSetsByType: IDictionary[IType[Entity], IKeyedSet[IString, object]] = Dictionary[IType[Entity], IKeyedSet[IString, object]]()
+    seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
+
+    for parent in items.AsIterable():
+        if not parent.IsReady():
+            raise InvalidOperationError(f"{parent} is not ready.")
+        
+        cols: _Columns = _GetColumns(type(parent))
+
+        for col in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
+            stub: Entity|None = cast(Entity|None, getEntityValue(parent, col))
+
+            if stub is None or stub.IsReady() or not seen.TryAdd(DefaultReference[Entity](stub)):
+                continue
+            
+            t: IType[Entity] = TypeObject[Entity](type(stub))
+            ks: IKeyedSet[IString, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
+
+            if ks is None:
+                ks = CreateKeyedSet(getPKNames(t.GetValue()))
+
+                keyedSetsByType.Add(t, ks)
+            
+            ks.TryAdd(CreateTuple(getEntityValue(stub, pk) for pk in getPKs(t.GetValue())))
+
+    fresh: ICountableEnumerableList[Entity] = CountableEnumerableQueue[Entity]()
+
+    for item in keyedSetsByType.AsIterable():
+        hydrator: _Hydrator[Entity] = _Hydrator[Entity](item.GetKey().GetValue(), context)
+        table: ITable|None = context._GetConnection().TryGetTable(hydrator.GetDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        
+        if table is None:
+            raise ValueError("Unknown table.")
+
+        results: Generator[ISelectionQueryExecutionResult]|None = table.SelectByKeys(hydrator.GetSelectionColumnSet(), item.GetValue())
+
+        if results is not None:
+            fresh.PushItems(hydrator.Enumerate(results).AsIterable())
+
+    if fresh.GetCount() > 0:
+        InitializeStubs(fresh, context, maxDepth - 1)
+
 class EntityCollection[T: Entity](Abstract):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__()
 
         self.__context: DataContextBase = context
+        self.__hydrator: _Hydrator[T] = _Hydrator[T](self._GetType(), context)
     
     @abstractmethod
     def _GetType(self) -> Type[T]:
         pass
-
-    @final
-    def __Iterate(self, data: _SelectionQueryData, query: ISelectionQuery) -> IEnumerable[T]:
-        def iterate(items: ISelectionQueryExecutionResult) -> Generator[T]:
-            def createEntity(row: Iterator[object]) -> T:
-                def __getEntity[_T: Entity](t: Type[_T], values: ITuple[object]) -> _T:
-                    return self.__context._GetMapper(t).GetEntityFromKeys(values) # pyright: ignore[reportPrivateUsage]
-                def _getEntity[_T: Entity](t: Type[_T], primaryKeys: Iterable[IDefaultColumn]) -> _T:
-                    return __getEntity(t, CreateTuple(Select(primaryKeys, lambda _: next(row)))) # pyright: ignore[reportPrivateUsage]
-                def getEntity[_T: Entity](t: Type[_T]) -> _T:
-                    return _getEntity(t, _GetPrimaryKeys(t).AsIterable())
-
-                obj: T = _getEntity(self._GetType(), data.GetPrimaryKeys())
-
-                if obj.IsReady():
-                    return obj
-                
-                _ProcessColumns(obj, row, data.GetColumns())
-                __ProcessColumns(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
-
-                for fk in data.GetForeignKeys():
-                    _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
-
-                obj.Initialize()
-
-                return obj
-            
-            for row in items.AsIterable():
-                yield createEntity(iter(row))
-
-        items: ISelectionQueryExecutionResult|None = query.Execute()
-
-        return GetEmptyEnumerable() if items is None else IteratorProvider[T](lambda: iterate(items))
     
     @final
-    def __GetDefaultTableName(self) -> str:
-        return self._GetType().__name__
-    
+    def __GetSelectionQuery(self) -> ISelectionQuery:
+        return self.__context._GetConnection().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
+            TableParameterSet.CreateFromNames(String(self.__hydrator.GetDefaultTableName())),
+            self.__hydrator.GetSelectionColumnSet())
+
     @final
-    def __GetSelectionQuery(self) -> tuple[_SelectionQueryData, ISelectionQuery]:
-        def getDefaultTableName() -> str:
-            return self.__GetDefaultTableName()
-
-        data: _SelectionQueryData = _SelectionQueryData(_GetColumns(self._GetType()))
-
-        return data, self.__context._GetConnection().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
-            TableParameterSet.CreateFromNames(String(getDefaultTableName())),
-            CreateColumnParameterSet(
-                ConcatenateValues(
-                    ConcatenateIterables(Select((data.GetPrimaryKeys(), data.GetColumns(), data.GetEntityColumns()), lambda columns: Select(columns, lambda column: column.GetColumnParameter()._AsColumn(getDefaultTableName())))), # pyright: ignore[reportPrivateUsage]
-                    ConcatenateIterables(Select(data.GetForeignKeys(), lambda  column: column.GetColumnParameter()._AsColumns(getDefaultTableName()).AsIterable()))))) # pyright: ignore[reportPrivateUsage]
+    def __Run(self, query: ISelectionQuery) -> IEnumerable[T]:
+        return self.__hydrator.Iterate(query.Execute())
     
     @final
     def Select(self) -> IEnumerable[T]:
-        return self.__Iterate(*self.__GetSelectionQuery())
+        return self.__Run(self.__GetSelectionQuery())
 
     @final
     def Where(self, conditions: _IRoot) -> IEnumerable[T]:
-        data, query = self.__GetSelectionQuery()
+        query: ISelectionQuery = self.__GetSelectionQuery()
 
-        query.SetConditions(TryCreateConditionSetFromConditions(_Set(conditions, self.__GetDefaultTableName())))
-        # Select(conditions, lambda condition: CreateKeyValuePair(asColumn(condition.GetKey()), condition.GetValue()))
-        
-        return self.__Iterate(data, query)
+        query.SetConditions(TryCreateConditionSetFromConditions(_Set(conditions, self.__hydrator.GetDefaultTableName())))
+
+        return self.__Run(query)
 
 class DataContextBase(Abstract):
     def __init__(self) -> None:
