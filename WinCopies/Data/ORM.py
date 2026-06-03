@@ -1549,7 +1549,7 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
 
     return None if fresh.GetCount() < 1 else fresh.AsIterable()
 
-def InitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool:
+def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool:
     def validate(item: Entity) -> None:
         if not item.IsReady():
             raise InvalidOperationError(f"{item} is not ready.")
