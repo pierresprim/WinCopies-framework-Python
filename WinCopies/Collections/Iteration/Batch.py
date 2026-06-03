@@ -8,8 +8,9 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IReadOnlyCountableIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, CreateIterable, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorAbstract, IResumableEnumerationCursor
-from WinCopies.Collections.Iteration import ForEach, Select
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement
+from WinCopies.Collections.Iteration.Loop import ForEach
 from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
 from WinCopies.Collections.Util import Enumerate, MakeGenerator
 from WinCopies.Delegates import BoolFalse
