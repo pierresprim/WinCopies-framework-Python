@@ -467,10 +467,13 @@ class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
         super().__init__(parameter)
     
     def Equals(self, item: IReference[T]|object) -> bool:
-        return self.GetValue() is item
+        def equals(item: Any) -> bool:
+            return self.GetValue() is item
+        
+        return equals(item.GetValue()) if isinstance(item, IReference) else equals(item)
     
     def Hash(self) -> int:
-        return hash(self.GetValue())
+        return hash(id(self.GetValue()))
 
 type DateOrTimeValue = date|time
 type DateAndTimeValue = DateOrTimeValue|datetime
