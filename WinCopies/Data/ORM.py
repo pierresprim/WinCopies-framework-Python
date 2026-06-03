@@ -20,9 +20,10 @@ from WinCopies.Collections.Expression import IConnector, ICompositeExpression, I
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, Select, WhereOfType
+from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly import IList, CreateList
-from WinCopies.Collections.Loop import DoForEachItem
+from WinCopies.Collections.Loop import DoForEachItem as DoForEach
 
 from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
@@ -1269,7 +1270,7 @@ def __ProcessColumns[TColumn: IColumnAbstract](obj: Entity, columns: Iterable[TC
     def setValue(args: tuple[TColumn, object]) -> None:
         _SetEntityValue(obj, args[0], converter(args))
 
-    DoForEachItem(zip(columns, row), setValue)
+    DoForEach(zip(columns, row), setValue)
 def _ProcessColumns[TColumn: IColumnAbstract](obj: Entity, row: Iterable[object], columns: Iterable[TColumn]) -> None:
     __ProcessColumns(obj, columns, row, lambda args: args[1])
 
@@ -1498,42 +1499,39 @@ class _Hydrator[T: Entity](Abstract):
     def Iterate(self, *results: ISelectionQueryExecutionResult|None) -> IEnumerable[T]:
         return self.Enumerate(results)
 
-def InitializeStubs[T: Entity](items: IEnumerable[T], context: DataContextBase, maxDepth: int = 1) -> None:
-    def getPKs(t: Type[Entity]) -> Iterable[IDefaultColumn]:
-        return _GetPrimaryKeys(t).AsIterable()
-    def getPKNames(t: Type[Entity]) -> Generator[IString]:
-        return Select((name.GetColumnParameter().GetColumnName() for name in getPKs(t)), lambda name: String(name))
-    
+def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iterable[Entity]|None:
     def getEntityValue(obj: Entity, column: IColumnAbstract) -> object:
         return column._GetEntityValue(obj) # pyright: ignore[reportPrivateUsage]
+    
+    def populate(stub: Entity) -> None:
+        def getPKs() -> Iterable[IDefaultColumn]:
+            return pks.AsIterable()
+        
+        t: IType[Entity] = TypeObject[Entity](type(stub))
+        ks: IKeyedSet[IString, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
+        pks: ITuple[IDefaultColumn] = _GetPrimaryKeys(t.GetValue())
 
-    if maxDepth < 1:
-        return
+        if ks is None:
+            ks = CreateKeyedSet(Select(getPKs(), lambda name: String(name.GetColumnParameter().GetColumnName())))
+
+            keyedSetsByType.Add(t, ks)
+        
+        ks.TryAdd(CreateTuple(Select(getPKs(), lambda pk: getEntityValue(stub, pk))))
 
     keyedSetsByType: IDictionary[IType[Entity], IKeyedSet[IString, object]] = Dictionary[IType[Entity], IKeyedSet[IString, object]]()
     seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
 
-    for parent in items.AsIterable():
-        if not parent.IsReady():
-            raise InvalidOperationError(f"{parent} is not ready.")
-        
+    for parent in items:
         cols: _Columns = _GetColumns(type(parent))
 
         for col in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
             stub: Entity|None = cast(Entity|None, getEntityValue(parent, col))
 
-            if stub is None or stub.IsReady() or not seen.TryAdd(DefaultReference[Entity](stub)):
-                continue
-            
-            t: IType[Entity] = TypeObject[Entity](type(stub))
-            ks: IKeyedSet[IString, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
-
-            if ks is None:
-                ks = CreateKeyedSet(getPKNames(t.GetValue()))
-
-                keyedSetsByType.Add(t, ks)
-            
-            ks.TryAdd(CreateTuple(getEntityValue(stub, pk) for pk in getPKs(t.GetValue())))
+            if not (stub is None or stub.IsReady()) and seen.TryAdd(DefaultReference[Entity](stub)):
+                populate(stub)
+    
+    if keyedSetsByType.GetCount() < 1:
+        return None
 
     fresh: ICountableEnumerableList[Entity] = CountableEnumerableQueue[Entity]()
 
@@ -1549,8 +1547,27 @@ def InitializeStubs[T: Entity](items: IEnumerable[T], context: DataContextBase, 
         if results is not None:
             fresh.PushItems(hydrator.Enumerate(results).AsIterable())
 
-    if fresh.GetCount() > 0:
-        InitializeStubs(fresh, context, maxDepth - 1)
+    return None if fresh.GetCount() < 1 else fresh.AsIterable()
+
+def InitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool:
+    def validate(item: Entity) -> None:
+        if not item.IsReady():
+            raise InvalidOperationError(f"{item} is not ready.")
+    
+    def check() -> bool:
+        nonlocal maxDepth
+
+        maxDepth -= 1
+
+        return maxDepth > 0
+    
+    if items is None or maxDepth < 1 or (items := __InitializeStubs(DoForEachItem(items, validate), context)) is None:
+        return False
+    
+    while check() and (items := __InitializeStubs(items, context)) is not None:
+        pass
+    
+    return True
 
 class EntityCollection[T: Entity](Abstract):
     def __init__(self, context: DataContextBase) -> None:
