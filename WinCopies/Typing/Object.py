@@ -462,6 +462,7 @@ class Type[T](ValueObjectBase[type[T], IType[T]], IType[T]):
 class IReference[T](IItemObject[T, 'IReference[T]']):
     def __init__(self) -> None:
         super().__init__()
+
 class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
     def __init__(self, parameter: T) -> None:
         super().__init__(parameter)
@@ -474,6 +475,12 @@ class Reference[T](ValueObjectBase[T, IReference[T]], IReference[T]):
     
     def Hash(self) -> int:
         return hash(id(self.GetValue()))
+class DefaultReference[T](Reference[T]):
+    def __init__(self, parameter: T) -> None:
+        super().__init__(parameter)
+    
+    def ToString(self) -> str:
+        return str(self)
 
 type DateOrTimeValue = date|time
 type DateAndTimeValue = DateOrTimeValue|datetime
