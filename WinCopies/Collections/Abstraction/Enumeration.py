@@ -10,10 +10,7 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
     yield from iterable
 def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[T]|None:
-    if iterable is None:
-        return None
-    
-    return GetGenerator(iterable)
+    return None if iterable is None else GetGenerator(iterable)
 
 class _Enumerable[T](Enumerable[T]):
     def __init__(self, enumerable: IEnumerable[T]) -> None:
