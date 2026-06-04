@@ -26,7 +26,7 @@ from WinCopies.Collections.Linked.Doubly import IList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach
 
 from WinCopies.Typing import IDisposable, InvalidOperationError
-from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Delegate import Method, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
@@ -1410,16 +1410,16 @@ class Entity(Abstract, IDisposable):
         super().__init_subclass__(**kwargs)
         
         cls.__columns = _EntityUpdater(cls, update)
-
-    @classmethod
-    @final
-    def _GetColumns(cls) -> _Columns:
-        return cls.__columns.GetValue()
     
     def __init__(self) -> None:
         super().__init__()
 
         self.__cookie: Entity._Cookie = Entity._AppCookie(self)
+
+    @classmethod
+    @final
+    def _GetColumns(cls) -> _Columns:
+        return cls.__columns.GetValue()
     
     @final
     def _InitCookie(self) -> None:
@@ -1429,18 +1429,13 @@ class Entity(Abstract, IDisposable):
     def _GetCookie(self) -> ICookie:
         return self.__cookie
     
-    def _InitializeOverride(self) -> None:
-        pass
-    
     @final
     def IsReady(self) -> bool:
         return self._GetCookie().IsReady()
     
     @final
-    def Initialize(self) -> None:
-        self._InitializeOverride()
-
-        self.__cookie.Seal() # TODO: Should be called from protected variant
+    def _Initialize(self) -> None:
+        self.__cookie.Seal()
 
 @final
 class _SelectionQueryData(Abstract):
@@ -1503,7 +1498,7 @@ class _Hydrator[T: Entity](Abstract):
         for fk in data.GetForeignKeys():
             _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
 
-        obj.Initialize()
+        obj._Initialize() # pyright: ignore[reportPrivateUsage]
 
         return obj
 
