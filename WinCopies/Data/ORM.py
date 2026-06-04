@@ -29,7 +29,7 @@ from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction, IMethodBase, Method, Predicate, Converter, Selector, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
-from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
+from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
 
 
 
@@ -809,10 +809,13 @@ class IColumnBase[T: IColumnParameterAbstract](IColumnAbstract):
     def GetColumnParameter(self) -> T:
         pass
 
-class IDefaultReadOnlyColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IReadOnlyProperty[TEntity, TValue, TParameter], IColumnAbstract):
+class IDefaultReadOnlyColumnAbstract[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IReadOnlyPropertyBase[TEntity, TValue, TParameter], IColumnAbstract):
     def __init__(self) -> None:
         super().__init__()
-class IDefaultColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IDefaultReadOnlyColumnBase[TEntity, TValue, TParameter], IProperty[TEntity, TValue, TParameter]):
+class IDefaultReadOnlyColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IDefaultReadOnlyColumnAbstract[TEntity, TValue, TParameter], IReadOnlyProperty[TEntity, TValue, TParameter]):
+    def __init__(self) -> None:
+        super().__init__()
+class IDefaultColumnBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract](IDefaultReadOnlyColumnAbstract[TEntity, TValue, TParameter], IProperty[TEntity, TValue, TParameter]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -823,10 +826,13 @@ class IDefaultEntityColumn(IColumnBase[IEntityColumnParameterBase]):
     def __init__(self) -> None:
         super().__init__()
 
-class IReadOnlyColumn[TEntity: Entity, TValue](IDefaultReadOnlyColumnBase[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
+class IReadOnlyColumnBase[TEntity: Entity, TValue](IDefaultReadOnlyColumnAbstract[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
     def __init__(self) -> None:
         super().__init__()
-class IColumn[TEntity: Entity, TValue](IReadOnlyColumn[TEntity, TValue], IDefaultColumnBase[TEntity, TValue, IColumnParameter[TValue]]):
+class IReadOnlyColumn[TEntity: Entity, TValue](IReadOnlyColumnBase[TEntity, TValue], IDefaultReadOnlyColumnBase[TEntity, TValue, IColumnParameter[TValue]], IDefaultColumn):
+    def __init__(self) -> None:
+        super().__init__()
+class IColumn[TEntity: Entity, TValue](IReadOnlyColumnBase[TEntity, TValue], IDefaultColumnBase[TEntity, TValue, IColumnParameter[TValue]]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -862,7 +868,7 @@ class _ColumnConfigDecoratorBase[TConfig: IColumnConfigBase](Abstract):
         return self.__config
     
     @abstractmethod
-    def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumn[TEntity, TValue]:
+    def __call__[TEntity: Entity, TValue](self, func: GetterBase[TEntity, TValue]) -> IReadOnlyColumnBase[TEntity, TValue]:
         pass
 
 @final
@@ -978,10 +984,10 @@ class _ColumnDecorator[TEntity: Entity, TValue, TParameter: IColumnParameterAbst
     def __init__(self, parameter: TParameter, func: Property[TEntity, TValue]) -> None:
         super().__init__(parameter, func, lambda entity: cast(IMethodBase[object], func(cast(TEntity, entity)).AsMethod()))
     
-def _GetName[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](column: _IColumn[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]) -> str:
+def _GetName[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](column: _IReadOnlyColumnBase[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]) -> str:
     return column._GetDecoratorAsInterface().GetColumnParameter().GetColumnName() # pyright: ignore[reportPrivateUsage]
 
-class _IColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IReadOnlyProperty[TEntity, TValue, TParameter], IColumnAbstract):
+class _IReadOnlyColumnBase[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IReadOnlyPropertyBase[TEntity, TValue, TParameter], IColumnAbstract):
     def __init__(self) -> None:
         super().__init__()
     
@@ -1011,7 +1017,14 @@ class _IColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, 
     def _GetEntityValue(self, obj: Entity) -> object:
         return self._GetDecoratorAsInterface().GetEntityValue(obj, _GetName(self))
 
-class _ReadOnlyColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](ReadOnlyPropertyDecorator[TEntity, TValue, TParameter], _IColumn[TEntity, TValue, _ReadOnlyColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, GetterBase[TEntity, TValue]]):
+class _IReadOnlyColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IReadOnlyProperty[TEntity, TValue, TParameter], _IReadOnlyColumnBase[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]):
+    def __init__(self) -> None:
+        super().__init__()
+class _IColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IProperty[TEntity, TValue, TParameter], _IReadOnlyColumnBase[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]):
+    def __init__(self) -> None:
+        super().__init__()
+
+class _ReadOnlyColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](ReadOnlyPropertyDecorator[TEntity, TValue, TParameter], _IReadOnlyColumn[TEntity, TValue, _ReadOnlyColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, GetterBase[TEntity, TValue]]):
     def __init__(self, func: GetterBase[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func)
 

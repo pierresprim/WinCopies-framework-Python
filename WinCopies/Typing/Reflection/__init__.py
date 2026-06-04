@@ -5,7 +5,7 @@ from inspect import FrameInfo, stack, getfile, getmembers, isfunction, ismethod
 from os import path, sep
 from sys import modules, builtin_module_names
 from types import ModuleType, FrameType, FunctionType, MethodType
-from typing import overload, final, List, Type
+from typing import overload, final, Any, Callable, List, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
@@ -101,7 +101,10 @@ class SetterDecorator[TClass, TValue](_FunctionDecoratorAbstract[Setter[TClass, 
     def __call__(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None:
         self._Invoke(obj, value, *args, **kwargs)
 
-class IReadOnlyProperty[TClass, TValue, TAccessor](IFunctionDecorator[TClass, TValue]):
+def _None(_: Callable[[Any, Any, Any], None]) -> None:
+    return None
+
+class IReadOnlyPropertyBase[TClass, TValue, TAccessor](IFunctionDecorator[TClass, TValue]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -119,7 +122,15 @@ class IReadOnlyProperty[TClass, TValue, TAccessor](IFunctionDecorator[TClass, TV
     @final
     def __get__(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor:
         return self.Get(obj)
-class IProperty[TClass, TValue, TAccessor](IReadOnlyProperty[TClass, TValue, TAccessor]):
+class IReadOnlyProperty[TClass, TValue, TAccessor](IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @final
+    @_None
+    def __set__(self, obj: TClass, value: TValue) -> None:
+        pass
+class IProperty[TClass, TValue, TAccessor](IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
     def __init__(self) -> None:
         super().__init__()
     
@@ -131,11 +142,11 @@ class IProperty[TClass, TValue, TAccessor](IReadOnlyProperty[TClass, TValue, TAc
     def __set__(self, obj: TClass, value: TValue) -> None:
         self.Set(obj, value)
 
-class _PropertyDecorator[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyProperty[TClass, TValue, TAccessor]):
+class _PropertyDecorator[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
     def __init__(self, func: TProperty) -> None:
         super().__init__(func)
 
-class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IGetterProvider[TClass, TValue]):
+class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IReadOnlyProperty[TClass, TValue, TAccessor], IGetterProvider[TClass, TValue]):
     def __init__(self, func: GetterBase[TClass, TValue]) -> None:
         super().__init__(func)
 class PropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, Property[TClass, TValue]], IProperty[TClass, TValue, TAccessor], IPropertyProvider[TClass, TValue]):
@@ -143,18 +154,13 @@ class PropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TV
         super().__init__(func)
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
-    frames: List[FrameInfo] = stack()
+    def getName(index: int) -> str:
+        return selector(path.abspath(frames[index].filename))
     
+    frames: List[FrameInfo] = stack()
     nextIndex: int = index + 1
 
-    if len(frames) > nextIndex:
-        def getName(index: int) -> str:
-            return selector(path.abspath(frames[index].filename))
-        
-        return getName(index) == getName(nextIndex)
-    
-    else:
-        return None
+    return getName(index) == getName(nextIndex) if len(frames) > nextIndex else None
 def __EnsureDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
     if not TryEnsureTrue(selector(index) == True):
         raise ValueError(index)
@@ -269,6 +275,7 @@ def TryIsModuleInPackage(module: ModuleType, package: ModuleType) -> bool|None:
     """
     try:
         return IsModuleInPackage(module, package)
+    
     except TypeError:
         return None
 
