@@ -21,15 +21,15 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import INullable, GetDisposedError
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing import IDisposableInfo, INullable, GetDisposedError
+from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 
 
 from WinCopies.Data import IOperand, IColumn, Column, TableColumn, Operator
-from WinCopies.Data.Abstract import IConnection, ITable, Connection as ConnectionBase, Table
+from WinCopies.Data.Abstract import IFactoryProvider, IConnection, ITable, Connection as ConnectionBase, Table
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
@@ -106,12 +106,17 @@ class _Table(Table):
         super().__init__()
         
         self.__connection: _Table.__Connection = _Table.__Connection(connection)
+        self.__factoryProvider: IFactoryProvider = self._GetConnection().GetFactoryProvider()
+
         self.__name: str = name
         self.__fields: IArray[IField]|None = None
         self.__indices: IArray[IIndex]|None = None
     
-    def __GetArray[T](self, converter: Converter[IConnection, Iterable[T]]) -> IArray[T]:
-        return Array[T](converter(self._GetConnection()))
+    def __GetQueryFactory(self) -> IQueryFactory:
+        return self.__factoryProvider.GetQueryFactory()
+    
+    def __GetArray[T](self, func: Function[Iterable[T]]) -> IArray[T]:
+        return Array[T](func())
     
     def _GetConnection(self) -> IConnection:
         return self.__connection.GetConnection()
@@ -127,7 +132,7 @@ class _Table(Table):
         self.__connection.Execute(f"ALTER TABLE {connection.FormatTableName(self.GetName())} RENAME TO {connection.FormatTableName(name)}")
     
     def GetFields(self) -> IArray[IField]:
-        def getFields(connection: IConnection) -> Generator[IField]:
+        def getFields() -> Generator[IField]:
             def getFieldType(fieldType: str) -> DualValueNullableInfo[FieldType, Enum]:
                 def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualValueNullableInfo[FieldType, Enum]:
                     return CreateDualValueNullableInfo(fieldType, fieldMode)
@@ -176,8 +181,8 @@ class _Table(Table):
 
                 return not (value is None or value <= 0)
             
-            def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
-                query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
+            def executeQuery() -> ISelectionQueryExecutionResult|None:
+                query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                     TableParameterSet({
                         String("PRAGMA_TABLE_INFO"): TableParameter[str](
                             't', MakeTableValueIterable(self.GetName()))}),
@@ -210,12 +215,12 @@ class _Table(Table):
 
                 return query.Execute()
 
-            columns: ISelectionQueryExecutionResult|None = executeQuery(connection)
+            columns: ISelectionQueryExecutionResult|None = executeQuery()
 
             if columns is None:
                 return
             
-            fieldFactory: IFieldFactory = connection.GetFieldFactory()
+            fieldFactory: IFieldFactory = self.__factoryProvider.GetFieldFactory()
             attributes: _Table.FieldAttributes|None = None
             result: DualValueNullableInfo[FieldType, Enum]|None = None
 
@@ -244,8 +249,8 @@ class _Table(Table):
 
     @final
     def GetIndices(self) -> IArray[IIndex]:
-        def getIndices(connection: IConnection) -> Iterable[IIndex]:
-            def getIndices(connection: IConnection) -> Generator[IIndex]:
+        def getIndices() -> Iterable[IIndex]:
+            def getIndices() -> Generator[IIndex]:
                 func: Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]|None = None
 
                 def checkIndexKind(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str) -> IIndex|None:
@@ -315,8 +320,8 @@ class _Table(Table):
 
                     return getGenerator(index)
                 
-                def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
-                    query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
+                def executeQuery() -> ISelectionQueryExecutionResult|None:
+                    query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
                             String("PRAGMA_INDEX_LIST"): TableParameter(
                                 "il", MakeTableValueIterable(self.GetName()))}),
@@ -354,12 +359,12 @@ class _Table(Table):
                     
                     return query.Execute()
 
-                indices: ISelectionQueryExecutionResult|None = executeQuery(connection)
+                indices: ISelectionQueryExecutionResult|None = executeQuery()
 
                 if indices is None:
                     return
                 
-                factory: IIndexFactory = connection.GetIndexFactory()
+                factory: IIndexFactory = self.__factoryProvider.GetIndexFactory()
                 oldIndexName: str = ''
                 newIndexName: str = ''
                 indexKind: IndexKind = IndexKind.Null
@@ -378,12 +383,12 @@ class _Table(Table):
                 if columns.HasItems():
                     yield getIndex(factory, newIndexName, indexKind, columns)
             
-            def getForeignKeys(connection: IConnection) -> Generator[IIndex]:
-                def executeQuery(connection: IConnection) -> ISelectionQueryExecutionResult|None:
+            def getForeignKeys() -> Generator[IIndex]:
+                def executeQuery() -> ISelectionQueryExecutionResult|None:
                     def getColumn(name: str) -> TableColumn:
                         return TableColumn("fk", name)
                     
-                    query: ISelectionQuery = connection.GetQueryFactory().GetSelectionQuery(
+                    query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
                             String("PRAGMA_FOREIGN_KEY_LIST"): TableParameter(
                                 "fk", MakeTableValueIterable(self.GetName()))}),
@@ -401,17 +406,17 @@ class _Table(Table):
                     
                     return query.Execute()
 
-                foreignKeys: ISelectionQueryExecutionResult|None = executeQuery(connection)
+                foreignKeys: ISelectionQueryExecutionResult|None = executeQuery()
 
                 if foreignKeys is None:
                     return
                 
-                factory: IIndexFactory = connection.GetIndexFactory()
+                factory: IIndexFactory = self.__factoryProvider.GetIndexFactory()
 
                 for row in foreignKeys.AsIterable():
                     yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
 
-            return Append(getIndices(connection), getForeignKeys(connection))
+            return Append(getIndices(), getForeignKeys())
 
         if self.__indices is None:
             self.__indices = self.__GetArray(getIndices)
@@ -426,7 +431,7 @@ class _Table(Table):
         self.__connection.Dispose()
 
 @final
-class Connection(ConnectionBase):
+class Connection(ConnectionBase, IDisposableInfo):
     @final
     class _QueryLimits(Abstract, IQueryLimits):
         def __init__(self, connection: sqlite3.Connection) -> None:
@@ -442,6 +447,23 @@ class Connection(ConnectionBase):
 
         def GetMaxQuerySize(self) -> int|None:
             return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+    
+    @final
+    class __FactoryProvider(Abstract, IFactoryProvider):
+        def __init__(self, connection: Connection) -> None:
+            super().__init__()
+
+            self.__connection: Connection = connection
+        
+        def GetFieldFactory(self) -> IFieldFactory:
+            return FieldFactory(self.__connection)
+        def GetQueryFactory(self) -> IQueryFactory:
+            return Factory(self.__connection.__GetInnerConnection())
+        def GetIndexFactory(self) -> IIndexFactory:
+            if self.__connection.IsDisposed():
+                raise GetDisposedError()
+            
+            return IndexFactory(self.__connection)
     
     def __init__(self, path: str) -> None:
         super().__init__()
@@ -487,7 +509,7 @@ class Connection(ConnectionBase):
         return DoubleQuoteSurround(name)
     
     def GetTableNames(self) -> Generator[str]:
-        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetQueryFactory().GetSelectionQuery(
+        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(
                 String("sqlite_master")),
             MakeColumnParameterSet(
@@ -519,15 +541,8 @@ class Connection(ConnectionBase):
     def _GetTable(self, name: str) -> ITable:
         return self.__GetTable(self.__GetConnection(), name)
     
-    def _GetFieldFactory(self) -> IFieldFactory:
-        return FieldFactory(self)
-    def _GetQueryFactory(self) -> IQueryFactory:
-        return Factory(self.__GetInnerConnection())
-    def _GetIndexFactory(self) -> IIndexFactory:
-        if self.__connection is None:
-            raise GetDisposedError()
-        
-        return IndexFactory(self)
+    def _CreateFactoryProvider(self) -> IFactoryProvider:
+        return Connection.__FactoryProvider(self)
     
     def Commit(self) -> bool:
         connection: _Connection|None = self.__connection
@@ -547,3 +562,6 @@ class Connection(ConnectionBase):
         
         connection.GetInnerConnection().close()
         self.__connection = None
+    
+    def IsDisposed(self) -> bool:
+        return self.__connection is None

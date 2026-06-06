@@ -6,7 +6,7 @@ from typing import final, NoReturn
 
 
 
-from WinCopies import IDisposable, Abstract
+from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
@@ -18,7 +18,7 @@ from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandle
 
 from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
-from WinCopies.Typing.Delegate import NullableConverter
+from WinCopies.Typing.Delegate import Method, NullableConverter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
@@ -127,7 +127,7 @@ class Table(Abstract, ITable, INotHashableValue):
             super().__init__()
 
             self.__table: Table = table
-            self.__factory: IQueryFactory = table._GetConnection().GetQueryFactory()
+            self.__factory: IQueryFactory = table._GetConnection().GetFactoryProvider().GetQueryFactory()
         
         @final
         def _GetTable(self) -> Table:
@@ -137,23 +137,27 @@ class Table(Abstract, ITable, INotHashableValue):
             return self.__factory
         
         @final
+        def _GetTableName(self) -> str:
+            return self._GetTable().GetName()
+        
+        @final
         def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
             return self._GetFactory().TryBuildConditionsByKeys(keys, maxParameterCount, handler)
 
         @final
         def GetSelectionQuery(self, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-            return self._GetFactory().GetSelectionQuery(self._GetTable().GetName(), columns, conditions)
+            return self._GetFactory().GetSelectionQuery(self._GetTableName(), columns, conditions)
 
         @final
         def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
-            return self._GetFactory().GetInsertionQuery(self._GetTable().GetName(), items, ignoreExisting)
+            return self._GetFactory().GetInsertionQuery(self._GetTableName(), items, ignoreExisting)
         @final
         def GetMultiInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
-            return self._GetFactory().GetMultiInsertionQuery(self._GetTable().GetName(), columns, items, ignoreExisting)
+            return self._GetFactory().GetMultiInsertionQuery(self._GetTableName(), columns, items, ignoreExisting)
         
         @final
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
-            return self._GetFactory().GetUpdateQuery(self._GetTable().GetName(), values, conditions)
+            return self._GetFactory().GetUpdateQuery(self._GetTableName(), values, conditions)
     
     def __init__(self) -> None:
         super().__init__()
@@ -246,6 +250,20 @@ class Table(Abstract, ITable, INotHashableValue):
     def Equals(self, item: ITable|object) -> bool:
         return item is self
 
+class IFactoryProvider(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def GetFieldFactory(self) -> IFieldFactory:
+        pass
+    @abstractmethod
+    def GetQueryFactory(self) -> IQueryFactory:
+        pass
+    @abstractmethod
+    def GetIndexFactory(self) -> IIndexFactory:
+        pass
+
 class IConnection(IDisposable):
     def __init__(self) -> None:
         pass
@@ -264,15 +282,9 @@ class IConnection(IDisposable):
     @abstractmethod
     def GetQueryLimits(self) -> IQueryLimits:
         pass
-
+    
     @abstractmethod
-    def GetQueryFactory(self) -> IQueryFactory:
-        pass
-    @abstractmethod
-    def GetFieldFactory(self) -> IFieldFactory:
-        pass
-    @abstractmethod
-    def GetIndexFactory(self) -> IIndexFactory:
+    def GetFactoryProvider(self) -> IFactoryProvider:
         pass
     
     @abstractmethod
@@ -307,16 +319,64 @@ class IConnection(IDisposable):
 
     def Dispose(self) -> None:
         self.Close()
-
 class Connection(Abstract, IConnection):
     @final
-    class __Factories(Abstract):
-        def __init__(self) -> None:
+    class __Factories(Abstract, IFactoryProvider):
+        class _Updater[T](ValueFunctionUpdater[T]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[T]]) -> None:
+                super().__init__(updater)
+
+                self.__provider: IFactoryProvider = provider
+            
+            @final
+            def _GetProvider(self) -> IFactoryProvider:
+                return self.__provider
+        
+        @final
+        class __Field(_Updater[IFieldFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IFieldFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IFieldFactory:
+                return self._GetProvider().GetFieldFactory()
+        @final
+        class __Query(_Updater[IQueryFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IQueryFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IQueryFactory:
+                return self._GetProvider().GetQueryFactory()
+        @final
+        class __Index(_Updater[IIndexFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IIndexFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IIndexFactory:
+                return self._GetProvider().GetIndexFactory()
+        
+        def __init__(self, provider: IFactoryProvider) -> None:
+            def updateField(func: IFunction[IFieldFactory]) -> None:
+                self.__field = func
+            def updateQuery(func: IFunction[IQueryFactory]) -> None:
+                self.__query = func
+            def updateIndex(func: IFunction[IIndexFactory]) -> None:
+                self.__index = func
+            
             super().__init__()
 
-            self.Field: IFieldFactory|None = None
-            self.Query: IQueryFactory|None = None
-            self.Index: IIndexFactory|None = None
+            self.__field: IFunction[IFieldFactory] = Connection.__Factories.__Field(provider, updateField) # type: ignore[no-redef]
+            self.__query: IFunction[IQueryFactory] = Connection.__Factories.__Query(provider, updateQuery) # type: ignore[no-redef]
+            self.__index: IFunction[IIndexFactory] = Connection.__Factories.__Index(provider, updateIndex) # type: ignore[no-redef]
+
+        @final
+        def GetFieldFactory(self) -> IFieldFactory:
+            return self.__field.GetValue()
+        @final
+        def GetQueryFactory(self) -> IQueryFactory:
+            return self.__query.GetValue()
+        @final
+        def GetIndexFactory(self) -> IIndexFactory:
+            return self.__index.GetValue()
     @final
     class __NullTable(Abstract, ITable):
         def __init__(self) -> None:
@@ -441,39 +501,18 @@ class Connection(Abstract, IConnection):
 
         self.__tables: List[Connection.__Table] = List[Connection.__Table]()
 
-        self.__factories: Connection.__Factories = Connection.__Factories()
+        self.__factories: Connection.__Factories = Connection.__Factories(self._CreateFactoryProvider())
         
         self.__mutableQueryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
         self.__queryLimits: IQueryLimits = Connection.__QueryLimits(self.__mutableQueryLimits)
     
     @abstractmethod
-    def _GetFieldFactory(self) -> IFieldFactory:
-        pass
-    @abstractmethod
-    def _GetQueryFactory(self) -> IQueryFactory:
-        pass
-    @abstractmethod
-    def _GetIndexFactory(self) -> IIndexFactory:
+    def _CreateFactoryProvider(self) -> IFactoryProvider:
         pass
 
     @final
-    def GetFieldFactory(self) -> IFieldFactory:
-        if self.__factories.Field is None:
-            self.__factories.Field = self._GetFieldFactory()
-        
-        return self.__factories.Field
-    @final
-    def GetQueryFactory(self) -> IQueryFactory:
-        if self.__factories.Query is None:
-            self.__factories.Query = self._GetQueryFactory()
-        
-        return self.__factories.Query
-    @final
-    def GetIndexFactory(self) -> IIndexFactory:
-        if self.__factories.Index is None:
-            self.__factories.Index = self._GetIndexFactory()
-        
-        return self.__factories.Index
+    def GetFactoryProvider(self) -> IFactoryProvider:
+        return self.__factories
     
     @abstractmethod
     def _GetTable(self, name: str) -> ITable:

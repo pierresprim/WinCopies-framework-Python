@@ -1590,7 +1590,7 @@ class EntityCollection[T: Entity](Abstract):
     
     @final
     def __GetSelectionQuery(self) -> ISelectionQuery:
-        return self.__context._GetConnection().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
+        return self.__context._GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
             TableParameterSet.CreateFromNames(String(self.__hydrator.GetDefaultTableName())),
             self.__hydrator.GetSelectionColumnSet())
 
