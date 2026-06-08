@@ -776,3 +776,43 @@ class CountableEnumerableBufferedStack[T](CountableEnumerableBuffer[T, Countable
     @final
     def Move(self) -> bool|None:
         return self._GetContainer().Move()
+
+def CreateBufferedQueue[T](values: Iterable[T]) -> IBufferedQueue[T]:
+    return BufferedQueue[T](values)
+def MakeBufferedQueue[T](*values: T) -> IBufferedQueue[T]:
+    return CreateBufferedQueue(values)
+
+def CreateBufferedStack[T](values: Iterable[T]) -> IBufferedStack[T]:
+    return BufferedStack[T](values)
+def MakeBufferedStack[T](*values: T) -> IBufferedStack[T]:
+    return CreateBufferedStack(values)
+
+def CreateCountableBufferedQueue[T](values: Iterable[T]) -> ICountableBufferedQueue[T]:
+    return CountableBufferedQueue[T](values)
+def MakeCountableBufferedQueue[T](*values: T) -> ICountableBufferedQueue[T]:
+    return CreateCountableBufferedQueue(values)
+
+def CreateCountableBufferedStack[T](values: Iterable[T]) -> ICountableBufferedStack[T]:
+    return CountableBufferedStack[T](values)
+def MakeCountableBufferedStack[T](*values: T) -> ICountableBufferedStack[T]:
+    return CreateCountableBufferedStack(values)
+
+def CreateEnumerableBufferedQueue[T](values: Iterable[T]) -> IEnumerableBufferedQueue[T]:
+    return EnumerableBufferedQueue[T](values)
+def MakeEnumerableBufferedQueue[T](*values: T) -> IEnumerableBufferedQueue[T]:
+    return CreateEnumerableBufferedQueue(values)
+
+def CreateEnumerableBufferedStack[T](values: Iterable[T]) -> IEnumerableBufferedStack[T]:
+    return EnumerableBufferedStack[T](values)
+def MakeEnumerableBufferedStack[T](*values: T) -> IEnumerableBufferedStack[T]:
+    return CreateEnumerableBufferedStack(values)
+
+def CreateCountableEnumerableBufferedQueue[T](values: Iterable[T]) -> ICountableEnumerableBufferedQueue[T]:
+    return CountableEnumerableBufferedQueue[T](values)
+def MakeCountableEnumerableBufferedQueue[T](*values: T) -> ICountableEnumerableBufferedQueue[T]:
+    return CreateCountableEnumerableBufferedQueue(values)
+
+def CreateCountableEnumerableBufferedStack[T](values: Iterable[T]) -> ICountableEnumerableBufferedStack[T]:
+    return CountableEnumerableBufferedStack[T](values)
+def MakeCountableEnumerableBufferedStack[T](*values: T) -> ICountableEnumerableBufferedStack[T]:
+    return CreateCountableEnumerableBufferedStack(values)
