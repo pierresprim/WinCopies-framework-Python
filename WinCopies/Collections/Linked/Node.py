@@ -44,7 +44,7 @@ class ITwoWayLinkedNode[T](ILinkedNode[T], ITwoWayNode):
     def GetNext(self) -> ITwoWayLinkedNode[T]|None:
         ...
 
-class LinkedNodeAbstract[T](Abstract):
+class LinkedNodeAbstract[T](Abstract, ILinkedNode[T]):
     def __init__(self, value: T) -> None:
         super().__init__()
         
@@ -56,7 +56,7 @@ class LinkedNodeAbstract[T](Abstract):
     @final
     def SetValue(self, value: T) -> None:
         self.__value = value
-class LinkedNodeBase[TItem, TNode](LinkedNodeAbstract[TItem], ILinkedNode[TItem]):
+class LinkedNodeBase[TItem, TNode](LinkedNodeAbstract[TItem]):
     def __init__(self, value: TItem) -> None:
         super().__init__(value)
 
