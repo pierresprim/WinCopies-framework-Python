@@ -47,7 +47,7 @@ class INullableBooleanable(IInterface):
     def ToNullableBoolean(self) -> NullableBoolean:
         ...
     
-    @abstractmethod
+    @final
     def ToNullableBool(self) -> bool|None:
         return ToNullableBool(self.ToNullableBoolean())
 
