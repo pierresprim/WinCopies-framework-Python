@@ -36,8 +36,7 @@ def __TryEnsure(condition: bool|object, errorMessage: str|None, action: Callable
     
     return False
 def __Ensure(condition: bool, errorMessage: str|None, action: Callable[[bool, str|None], None]) -> None:
-    if not __TryEnsure(condition, errorMessage, action):
-        raise ValueError(condition)
+    if not __TryEnsure(condition, errorMessage, action): raise ValueError(condition)
 
 def EnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") -> None:
     """Ensures a condition is False.

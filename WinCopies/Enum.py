@@ -1,10 +1,10 @@
-from typing import Type
+from collections.abc import Iterable
 from enum import Enum, Flag
-from typing import Self as SelfType
+from typing import Callable, Self as SelfType, Type
 
 from WinCopies.Assertion import EnsureEnum
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Iteration import SelectWhereNotNone
+from WinCopies.Collections.Iteration import Select, SelectWhereNotNone, GetFirstItem
 from WinCopies.Delegates import Self
 from WinCopies.String import CommaJoin
 from WinCopies.Typing import IEnum, INullable, GetNullable, GetNullValue
@@ -14,19 +14,25 @@ from WinCopies.Typing.Reflection import AreFromSameClass
 
 class OrderedEnum(Enum):
     def __lt__(self, other: SelfType) -> bool:
+        """Less than comparison."""
+
         return self.value < other.value if AreFromSameClass(self, other) else NotImplemented
-    
     def __le__(self, other: SelfType) -> bool:
+        """Less than or equal comparison."""
+
         return self.value <= other.value if AreFromSameClass(self, other) else NotImplemented
     
     def __gt__(self, other: SelfType) -> bool:
+        """Greater than comparison."""
+
         return self.value > other.value if AreFromSameClass(self, other) else NotImplemented
-    
     def __ge__(self, other: SelfType) -> bool:
+        """Greater than or equal comparison."""
+
         return self.value >= other.value if AreFromSameClass(self, other) else NotImplemented
 
 def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
-    return obj in [selector(o) for o in e]
+    return obj in Select(e, selector)
 
 def IsMemberOf(e: Type[Enum], n: str) -> bool:
     """Checks if a name is a member of an enum.
@@ -55,8 +61,7 @@ def EnsureMemberOf(e: Type[Enum], n: str) -> None:
         AssertionError: If e is not an enum type.
         ValueError: If the name is not a member of the enum.
     """
-    if not IsMemberOf(e, n):
-        raise ValueError()
+    if not IsMemberOf(e, n): raise ValueError()
 
 def IsValueOf(e: Type[Enum], v: int) -> bool:
     """Checks if a value exists in an enum.
@@ -85,8 +90,7 @@ def EnsureValueOf(e: Type[Enum], v: int) -> None:
         AssertionError: If e is not an enum type.
         ValueError: If the value does not exist in the enum.
     """
-    if not IsValueOf(e, v):
-        raise ValueError()
+    if not IsValueOf(e, v): raise ValueError()
 
 def ToKeyValuePair(e: Enum) -> KeyValuePair[str, int]:
     """Converts an enum member to a key-value pair.
@@ -108,8 +112,7 @@ def ToKeyValuePairs(e: Type[Enum]) -> Generator[KeyValuePair[str, int]]:
     Yields:
         KeyValuePair objects for each enum member.
     """
-    for value in e:
-        yield ToKeyValuePair(value)
+    for value in e: yield ToKeyValuePair(value)
 
 def ToTuple(e: Enum) -> tuple[str, int]:
     """Converts an enum member to a tuple.
@@ -131,8 +134,7 @@ def ToTuples(e: Type[Enum]) -> Generator[tuple[str, int]]:
     Yields:
         Tuples containing name and value for each enum member.
     """
-    for value in e:
-        yield ToTuple(value)
+    for value in e: yield ToTuple(value)
 
 def IsIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> bool:
     """Checks if a tuple or key-value pair exists in an enum.
@@ -149,12 +151,10 @@ def IsIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> bool:
     """
     EnsureEnum(e)
 
-    if isinstance(t, tuple):
-        return t in ToTuples(e)
+    if isinstance(t, tuple): return t in ToTuples(e)
 
     for item in ToKeyValuePairs(e):
-        if t.GetKey() == item.GetKey() and t.GetValue() == item.GetValue():
-            return True
+        if t.GetKey() == item.GetKey() and t.GetValue() == item.GetValue(): return True
 
     return False
 def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
@@ -168,13 +168,11 @@ def EnsureIn(e: Type[Enum], t: tuple[str, int]|IKeyValuePair[str, int]) -> None:
         AssertionError: If e is not an enum type.
         ValueError: If the tuple or key-value pair does not exist in the enum.
     """
-    if not IsIn(e, t):
-        raise ValueError()
+    if not IsIn(e, t): raise ValueError()
 
 def __TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None:
     for o in e:
-        if predicate(o):
-            return selector(o)
+        if predicate(o): return selector(o)
     
     return None
 
@@ -287,6 +285,9 @@ def TryGetFieldFromValue[T: Enum](e: Type[T], v: int) -> T|None:
 
     return __TryGetField(e, lambda o: o.value == v)
 
+def EnumerateFlags[T: Flag](e: T) -> Iterable[T]:
+    yield from e
+
 def HasFlag[T: Flag](e: T, v: T) -> bool:
     """Checks if a flag is set in a Flag enum.
 
@@ -297,7 +298,7 @@ def HasFlag[T: Flag](e: T, v: T) -> bool:
     Returns:
         True if the flag is set, False otherwise.
     """
-    return v in e
+    return v in EnumerateFlags(e)
 def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
     """Ensures a flag is set in a Flag enum.
 
@@ -308,8 +309,7 @@ def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
     Raises:
         ValueError: If the flag is not set in the enum.
     """
-    if not HasFlag(e, v):
-        raise ValueError(f"{v} is not in {e}.")
+    if not HasFlag(e, v): raise ValueError(f"{v} is not in {e}.")
 
 def __GetNormalizedFlag(value: int) -> int:
     return value & (value - 1)
@@ -319,61 +319,64 @@ def HasMultipleFlags(e: Flag) -> bool|None:
 
     return None if value == 0 else __GetNormalizedFlag(value) != 0
 def EnsureMultipleFlags(e: Flag) -> None:
-    if HasMultipleFlags(e) is not True:
-        raise ValueError(f"Multiple values were expected; got {e}.")
+    if HasMultipleFlags(e) is not True: raise ValueError(f"Multiple values were expected; got {e}.")
 
 def HasOnlyOneFlag(e: Flag) -> bool|None:
     value: int = e.value
 
     return None if value == 0 else __GetNormalizedFlag(value) == 0
 def EnsureOnlyOneFlag(e: Flag) -> None:
-    if HasMultipleFlags(e) is True:
-        raise ValueError(f"Only one value was expected; got {e}.")
+    if HasMultipleFlags(e) is True: raise ValueError(f"Only one value was expected; got {e}.")
 
 def HasOneAndOnlyOneFlag(e: Flag) -> bool:
     return HasOnlyOneFlag(e) is True
 def EnsureOneAndOnlyOneFlag(e: Flag) -> None:
-    if not HasOneAndOnlyOneFlag(e):
-        raise ValueError(f"One and only one value was expected; got {e}.")
+    if not HasOneAndOnlyOneFlag(e): raise ValueError(f"One and only one value was expected; got {e}.")
 
 def EnumerateNames(t: Type[Enum]) -> Generator[str]:
-    for item in t:
-        yield item.name
+    return Select(t, lambda item: item.name)
 def EnumerateValues(t: Type[Enum]) -> Generator[int]:
-    for item in t:
-        yield item.value
+    return Select(t, lambda item: item.value)
 
 def EnumerateFieldNames(value: Flag) -> Generator[str]:
     return SelectWhereNotNone(value, lambda value: value.name)
 def EnumerateFieldValues(value: Flag) -> Generator[int]:
-    for item in value:
-        yield item.value
+    return Select(value, lambda item: item.value)
 
-def Print(value: Flag) -> str:
-    return CommaJoin(EnumerateFieldNames(value))
+def Enumerate[T: Enum](t: Type[T]) -> Generator[T]:
+    return Select(t, lambda value: value)
 
-def AsEnumValue(item: IEnum|Enum) -> Enum:
-    return item.GetEnumValue() if isinstance(item, IEnum) else item
+def Print(value: Flag) -> str: return CommaJoin(EnumerateFieldNames(value))
 
-def AsUnderlyingEnumValue(item: IEnum|Enum) -> object:
-    return AsEnumValue(item).value
+def AsEnumValue(item: IEnum|Enum) -> Enum: return item.GetEnumValue() if isinstance(item, IEnum) else item
+
+def AsUnderlyingEnumValue(item: IEnum|Enum) -> object: return AsEnumValue(item).value
 def TryAsUnderlyingEnumValue(item: IEnum|Enum) -> int|None:
     value: object = AsUnderlyingEnumValue(item)
 
     return value if isinstance(value, int) else None
 
-def AreEnumsEqual(x: IEnum|Enum, y: IEnum|Enum) -> bool:
-    return AsEnumValue(x) == AsEnumValue(y)
-def TryAreEnumsEqual(x: IEnum|Enum|None, y: IEnum|Enum|None) -> bool:
-    return False if x is None or y is None else AreEnumsEqual(x, y)
+def AreEnumsEqual(x: IEnum|Enum, y: IEnum|Enum) -> bool: return AsEnumValue(x) == AsEnumValue(y)
+def TryAreEnumsEqual(x: IEnum|Enum|None, y: IEnum|Enum|None) -> bool: return False if x is None or y is None else AreEnumsEqual(x, y)
 
 def CompareEnums(x: IEnum|Enum, y: IEnum|Enum) -> INullable[bool|None]:
     def compare(x: int|None, y: int|None) -> INullable[bool|None]:
-        def compare(x: int, y: int) -> bool|None:
-            return None if x == y else y > x
+        def compare(x: int, y: int) -> bool|None: return None if x == y else y > x
 
         return (GetNullValue() if y is None else GetNullable(True)) if x is None else GetNullable(False if y is None else compare(x, y))
     
     return compare(TryAsUnderlyingEnumValue(x), TryAsUnderlyingEnumValue(y))
 def TryCompare(x: IEnum|Enum|None, y: IEnum|Enum|None) -> INullable[bool|None]:
     return GetNullable(y is None) if x is None else (GetNullable(False) if y is None else CompareEnums(x, y))
+
+def TryConvertFromString[T: Enum](t: Type[T], value: str, predicate: Callable[[str|None, str], bool]|None = None) -> T|None:
+    def getPredicate() -> Predicate[str|None]:
+        def __predicate(name: str|None) -> bool: return name is not None and name == value
+        
+        _predicate: Callable[[str|None, str], bool]|None = predicate
+        
+        return __predicate if _predicate is None else lambda name: _predicate(name, value)
+    
+    _predicate: Predicate[str|None] = getPredicate()
+
+    return GetFirstItem(t, lambda item: _predicate(item.name)).TryGetValue()

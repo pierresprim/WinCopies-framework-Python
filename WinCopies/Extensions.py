@@ -4,8 +4,7 @@ from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
 def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range.") -> int:
     value: int = 0
     
-    def loop() -> int:
-        return ReadInt(message)
+    def loop() -> int: return ReadInt(message)
     
     value = loop()
     
@@ -17,8 +16,7 @@ def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The val
     return value
 
 def Process(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
-    while AskConfirmation(message, info, value):
-        action()
+    while AskConfirmation(message, info, value): action()
 
 def DoProcess(action: Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
     action()
@@ -44,12 +42,10 @@ def TryPredicate(predicate: Predicate[Exception], action: Action) -> bool|None:
     _predicate = __predicate
     
     while True:
-        try:
-            action()
+        try: action()
 
         except Exception as e:
-            if _predicate(e):
-                continue
+            if _predicate(e): continue
             
             return None
         

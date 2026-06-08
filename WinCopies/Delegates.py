@@ -57,14 +57,12 @@ def GetActionBoolFunc(action: Action, func: Function[bool]) -> Function[bool]:
 
 
 def ExecuteActions(*actions: Action) -> None:
-    for action in actions:
-        action()
+    for action in actions: action()
 def ConcatenateActions(*actions: Action) -> Action:
     return lambda: ExecuteActions(*actions)
 
 def ExecuteMethods[T](arg: T, *actions: Method[T]) -> None:
-    for action in actions:
-        action(arg)
+    for action in actions: action(arg)
 def ConcatenateMethods[T](*actions: Method[T]) -> Method[T]:
     return lambda arg: ExecuteMethods(arg, *actions)
 def JoinMethods[T](arg: T, *actions: Method[T]) -> Action:
@@ -73,15 +71,13 @@ def JoinMethods[T](arg: T, *actions: Method[T]) -> Action:
 
 
 def __CheckRepeat(n: int) -> None:
-    if n < 1:
-        raise ValueError()
+    if n < 1: raise ValueError()
 
 def __RepeatAndAlso(n: int, func: Function[bool]) -> bool:
     i: int = 1
 
     while i < n:
-        if not func():
-            return False
+        if not func(): return False
         
         i += 1
 
@@ -90,24 +86,18 @@ def RepeatAndAlso(n: int, func: Function[bool]) -> bool:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func()
-        case 2:
-            return func() and func()
+        case 1: return func()
+        case 2: return func() and func()
 
-        case _:
-            return __RepeatAndAlso(n, func)
+        case _: return __RepeatAndAlso(n, func)
 def GetRepeatAndAlso(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func
-        case 2:
-            return lambda: func() and func()
+        case 1: return func
+        case 2: return lambda: func() and func()
 
-        case _:
-            return lambda: __RepeatAndAlso(n, func)
+        case _: return lambda: __RepeatAndAlso(n, func)
 
 def __RepeatAnd(n: int, func: Function[bool]) -> bool:
     i: int = 1
@@ -140,31 +130,24 @@ def RepeatAnd(n: int, func: Function[bool]) -> bool:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func()
-        case 2:
-            return func() & func()
+        case 1: return func()
+        case 2: return func() & func()
 
-        case _:
-            return __RepeatAnd(n, func)
+        case _: return __RepeatAnd(n, func)
 def GetRepeatAnd(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func
-        case 2:
-            return lambda: func() & func()
+        case 1: return func
+        case 2: return lambda: func() & func()
 
-        case _:
-            return lambda: __RepeatAnd(n, func)
+        case _: return lambda: __RepeatAnd(n, func)
 
 def __RepeatOrElse(n: int, func: Function[bool]) -> bool:
     i: int = 1
 
     while i < n:
-        if func():
-            return True
+        if func(): return True
 
         i += 1
 
@@ -173,24 +156,18 @@ def RepeatOrElse(n: int, func: Function[bool]) -> bool:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func()
-        case 2:
-            return func() or func()
+        case 1: return func()
+        case 2: return func() or func()
 
-        case _:
-            return __RepeatOrElse(n, func)
+        case _: return __RepeatOrElse(n, func)
 def GetRepeatOrElse(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func
-        case 2:
-            return lambda: func() or func()
+        case 1: return func
+        case 2: return lambda: func() or func()
 
-        case _:
-            return lambda: __RepeatOrElse(n, func)
+        case _: return lambda: __RepeatOrElse(n, func)
 
 def __RepeatOr(n: int, func: Function[bool]) -> bool:
     i: int = 1
@@ -203,8 +180,7 @@ def __RepeatOr(n: int, func: Function[bool]) -> bool:
         nonlocal result
 
         if func():
-            def doAction() -> None:
-                func()
+            def doAction() -> None: func()
             
             result = True
             action = doAction
@@ -223,24 +199,18 @@ def RepeatOr(n: int, func: Function[bool]) -> bool:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func()
-        case 2:
-            return func() | func()
+        case 1: return func()
+        case 2: return func() | func()
 
-        case _:
-            return __RepeatOr(n, func)
+        case _: return __RepeatOr(n, func)
 def GetRepeatOr(n: int, func: Function[bool]) -> Function[bool]:
     __CheckRepeat(n)
 
     match n:
-        case 1:
-            return func
-        case 2:
-            return lambda: func() | func()
+        case 1: return func
+        case 2: return lambda: func() | func()
 
-        case _:
-            return lambda: __RepeatOr(n, func)
+        case _: return lambda: __RepeatOr(n, func)
 
 
 
