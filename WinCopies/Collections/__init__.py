@@ -29,23 +29,19 @@ class IterableScanResult(BooleanableEnum):
     Success = 0
     Error = 1
     
-    def Not(self) -> IterableScanResult:
-        return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
+    def Not(self) -> IterableScanResult: return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
 class IterationResult(BooleanableEnum):
     Error = -1
     Success = 0
     Empty = 1
     Null = 2
     
-    def ToNullableBool(self) -> bool|None:
-        return True if self == IterationResult.Success else (None if self.value > 0 else False)
+    def ToNullableBool(self) -> bool|None: return True if self == IterationResult.Success else (None if self.value > 0 else False)
     
-    def ToNullableBoolean(self) -> NullableBoolean:
-        return NullableBoolean.BoolTrue if self == IterationResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
+    def ToNullableBoolean(self) -> NullableBoolean: return NullableBoolean.BoolTrue if self == IterationResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
 
 class EmptyException(Error):
-    def __init__(self, *args: object) -> None:
-        super().__init__("The collection is empty.", *args)
+    def __init__(self, *args: object) -> None: super().__init__("The collection is empty.", *args)
 
 class FinderPredicate[T](Abstract):
     def __init__(self) -> None:
@@ -68,8 +64,7 @@ class FinderPredicate[T](Abstract):
         return False
 
     def __Validate(self, entry: T, predicate: Predicate[T]) -> bool:
-        if predicate(entry):
-            return True
+        if predicate(entry): return True
         
         self.__Set(entry)
         

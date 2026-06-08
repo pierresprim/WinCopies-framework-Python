@@ -25,8 +25,7 @@ def GetOffset(inStart: int, outStart: int, length: int) -> int:
     if check(inStart, "inStart") and check(outStart, "outStart"):
         inStart = outStart - inStart
 
-        if inStart < 0:
-            inStart += length
+        if inStart < 0: inStart += length
 
         return -inStart if outStart < 0 else inStart
     
@@ -36,21 +35,14 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
     offset %= totalLength
 
     match offset:
-        case 0:
-            return (start, offset)
-
-        case 1:
-            return ((start + 1) % totalLength, offset)
-
-        case -1:
-            return (totalLength - 1 if start == 0 else start - 1, offset)
+        case 0: return (start, offset)
+        case 1: return ((start + 1) % totalLength, offset)
+        case -1: return (totalLength - 1 if start == 0 else start - 1, offset)
         
-        case _:
-            pass
+        case _: pass
 
     if offset > 0:
-        if start == 0:
-            return (offset, offset)
+        if start == 0: return (offset, offset)
 
         tmp: int = totalLength - start
 
@@ -83,16 +75,12 @@ def TrySetAt[T](l: MutableSequence[T], index: int, value: T) -> bool:
     return False
 
 def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
-    if x == y:
-        return
+    if x == y: return
     
     item: T = l.pop(x)
 
-    if y == len(l):
-        l.append(item)
-    
-    else:
-        l.insert(y, item)
+    if y == len(l): l.append(item)
+    else: l.insert(y, item)
 
 def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
@@ -100,26 +88,19 @@ def TryGetItem[TIn, TOut](l: Sequence[TIn], index: int, ifTrue: Converter[TIn, T
     return ifTrue(l[index]) if ValidateIndex(index, len(l)) else ifFalse()
 
 def GetIndexOf[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]|None:
-    def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]:
-        return DualNullableValueInfo[int, int](value, info)
-    def getNullValue(length: int) -> DualNullableValueInfo[int, int]:
-        return getReturnValue(None, length)
+    def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]: return DualNullableValueInfo[int, int](value, info)
+    def getNullValue(length: int) -> DualNullableValueInfo[int, int]: return getReturnValue(None, length)
     
-    def validate(length: int|None, listLength: int) -> int|None:
-        return listLength if length is None else (None if Outside(0, length, listLength) else length)
+    def validate(length: int|None, listLength: int) -> int|None: return listLength if length is None else (None if Outside(0, length, listLength) else length)
     
-    if (length := validate(length, len(l))) is None:
-        return None
+    if (length := validate(length, len(l))) is None: return None
     
-    if length == 0 or i < 0:
-        return getNullValue(length)
+    if length == 0 or i < 0: return getNullValue(length)
     
-    if predicate is None:
-        predicate = CompareEquality
+    if predicate is None: predicate = CompareEquality
     
     while i < length:
-        if predicate(l[i], value):
-            return getReturnValue(i, length)
+        if predicate(l[i], value): return getReturnValue(i, length)
 
         i += 1
     
@@ -128,8 +109,7 @@ def GetIndexOf[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None,
 def IndexOf[T](l: Sequence[T], value: T, predicate: EqualityComparison[T]|None = None) -> int|None:
     result: DualNullableValueInfo[int, int]|None = GetIndexOf(l, value, predicate = predicate)
     
-    if result is None:
-        raise NotImplementedError() # Should not end up here
+    if result is None: raise NotImplementedError() # Should not end up here
     
     return result.GetKey()
 
@@ -137,17 +117,14 @@ def GetIndexOfSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tu
     length: int = len(l)
     valuesLength: int = len(values)
     
-    def getResult(result: int|None) -> tuple[int|None, int, int]:
-        return (result, length, valuesLength)
+    def getResult(result: int|None) -> tuple[int|None, int, int]: return (result, length, valuesLength)
 
-    if length == 0 or valuesLength == 0 or valuesLength > length:
-        return getResult(None)
+    if length == 0 or valuesLength == 0 or valuesLength > length: return getResult(None)
     
     if valuesLength == 1:
         result: DualNullableValueInfo[int, int]|None = GetIndexOf(l, values[0])
         
-        if result is None:
-            raise NotImplementedError() # Should not end up here
+        if result is None: raise NotImplementedError() # Should not end up here
         
         return (result.GetKey(), result.GetValue(), valuesLength)
     
@@ -157,8 +134,7 @@ def GetIndexOfSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tu
         if l[i] == values[j]:
             j += 1
 
-            if j == valuesLength:
-                return getResult(i)
+            if j == valuesLength: return getResult(i)
         
         else:
             j = 0
@@ -167,20 +143,17 @@ def GetIndexOfSequence[T](l: Sequence[T], values: Sequence[T], i: int = 0) -> tu
     
     return getResult(None)
 
-def IndexOfSequence[T](l: Sequence[T], values: Sequence[T]) -> int|None:
-    return GetIndexOfSequence(l, values)[0]
+def IndexOfSequence[T](l: Sequence[T], values: Sequence[T]) -> int|None: return GetIndexOfSequence(l, values)[0]
 
 def ContainsMultipleTimes[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None) -> tuple[bool|None, int|None, int]|None:
     result: DualNullableValueInfo[int, int]|None = GetIndexOf(l, value, i, length)
 
-    if result is None:
-        return None
+    if result is None: return None
 
     index: int|None = result.GetKey()
     length = result.GetValue()
     
-    if index is None:
-        return (None, None, length)
+    if index is None: return (None, None, length)
     
     result = GetIndexOf(l, value, index + 1, length - 1 - (index - i))
     
@@ -189,8 +162,7 @@ def ContainsMultipleTimes[T](l: Sequence[T], value: T, i: int = 0, length: int|N
 def ContainsMultiple[T](l: Sequence[T], value: T) -> INullable[bool]|None:
     result: tuple[bool|None, int|None, int]|None = ContainsMultipleTimes(l, value)
     
-    if result is None:
-        return None
+    if result is None: return None
     
     _result: bool|None = result[0]
 
@@ -204,8 +176,7 @@ def ContainsOnlyOne[T](l: Sequence[T], value: T, i: int = 0, length: int|None = 
 def ContainsOne[T](l: Sequence[T], value: T) -> INullable[bool]|None:
     result: INullable[bool]|None = ContainsMultiple(l, value)
 
-    if result is None:
-        return None
+    if result is None: return None
     
     _result: bool|None = Not(result.TryGetValue())
     
@@ -216,8 +187,7 @@ def ContainsSequenceMultipleTimes[T](l: Sequence[T], values: Sequence[T], i: int
     
     initialResult: int|None = result[0]
 
-    if initialResult is None:
-        return (None, None, result[1], result[2])
+    if initialResult is None: return (None, None, result[1], result[2])
     
     result = GetIndexOfSequence(l, values, initialResult + 1)
     

@@ -5,11 +5,9 @@ from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Comparison import HashableProtocol
 
 class WeakKeyDictionary[TKey: HashableProtocol, TValue](Dictionary[TKey, TValue]):
-    def __init__(self, dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> None:
-        super().__init__(WeakKeyDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
+    def __init__(self, dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> None: super().__init__(WeakKeyDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
 class WeakValueDictionary[TKey: HashableProtocol, TValue](Dictionary[TKey, TValue]):
-    def __init__(self, dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> None:
-        super().__init__(WeakValueDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
+    def __init__(self, dictionary: WeakValueDictionaryBase[TKey, TValue]|None = None) -> None: super().__init__(WeakValueDictionaryBase[TKey, TValue]() if dictionary is None else dictionary)
 
 def CreateWeakKeyDictionary[TKey: HashableProtocol, TValue](dictionary: WeakKeyDictionaryBase[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     """

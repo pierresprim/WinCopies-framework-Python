@@ -10,28 +10,23 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class ICircularTuple[T](ITuple[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetStart(self) -> int:
-        pass
+        ...
     
     @final
     def GetCircularIndex(self, index: int) -> int:
         return self.GetIndex(index, self.GetStart())[0]
 class ICircularEquatableTuple[T: IEquatableValue](ICircularTuple[T], IEquatableTuple[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ICircularHashableTuple[T: IHashableValue](ICircularTuple[T], IHashableTuple[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ICircularArray[T](ICircularTuple[T], IArray[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ICircularList[T](ICircularArray[T], IList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None:
@@ -50,8 +45,7 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     
     @final
     def _GetKey(self, key: slice) -> slice:
-        def getIndex(index: int) -> int:
-            return index if index == count else self.GetCircularIndex(index)
+        def getIndex(index: int) -> int: return index if index == count else self.GetCircularIndex(index)
         
         count = self.GetCount()
         start, stop, step = key.indices(count)
@@ -59,25 +53,19 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
         return slice(getIndex(start), getIndex(stop), step)
     
     @final
-    def Contains(self, value: TItem|object) -> bool:
-        return self._GetInnerContainer().Contains(value)
+    def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
     
     @final
-    def GetCount(self) -> int:
-        return self._GetInnerContainer().GetCount()
+    def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
     
     @final
-    def GetStart(self) -> int:
-        return self.__start
+    def GetStart(self) -> int: return self.__start
     @final
-    def SetStart(self, start: int = 0) -> None:
-        self.__start = start
+    def SetStart(self, start: int = 0) -> None: self.__start = start
     
-    def ToString(self) -> str:
-        return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return self._GetInnerContainer().ToString()
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
-    def __init__(self, items: TList, start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> TItem: ...
@@ -85,57 +73,42 @@ class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem
     def __getitem__(self, index: slice) -> SequenceBase[TItem]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> TItem|SequenceBase[TItem]:
-        return GetItems(self, index)
+    def __getitem__(self, index: SupportsIndex|slice) -> TItem|SequenceBase[TItem]: return GetItems(self, index)
 
 class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintImplementation[ITuple[T]]):
-    def __init__(self, items: ITuple[T], start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: ITuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
-    def SliceAt(self, key: slice) -> ITuple[T]:
-        return self._GetInnerContainer().SliceAt(self._GetKey(key))
+    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(self._GetKey(key))
 class CircularEquatableTuple[T: IEquatableValue](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T], start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: IEquatableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
-    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
-        return self._GetContainer().SliceAt(self._GetKey(key))
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
-    def Equals(self, item: object) -> bool:
-        return self is item
+    def Equals(self, item: object) -> bool: return self is item
 class CircularHashableTuple[T: IHashableValue](CircularBase[T, IHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
-    def __init__(self, items: IHashableTuple[T], start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: IHashableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
-    def SliceAt(self, key: slice) -> IHashableTuple[T]:
-        return self._GetContainer().SliceAt(self._GetKey(key))
+    def SliceAt(self, key: slice) -> IHashableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
-    def Hash(self) -> int:
-        return self._GetContainer().Hash()
-    
-    def Equals(self, item: object) -> bool:
-        return self is item
+    def Equals(self, item: object) -> bool: return self is item
+    def Hash(self) -> int: return self._GetContainer().Hash()
 
 class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], ArrayBase[TItem, TList], ICircularArray[TItem]):
-    def __init__(self, items: TList, start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
         self._GetSpecializedContainer().SetAt(self.GetCircularIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
-    def __init__(self, items: IArray[T], start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: IArray[T], start: int) -> None: super().__init__(items, start)
     
     @final
-    def SliceAt(self, key: slice) -> IArray[T]:
-        return self._GetContainer().SliceAt(self._GetKey(key))
+    def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(self._GetKey(key))
 class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
-    def __init__(self, items: IList[T], start: int) -> None:
-        super().__init__(items, start)
+    def __init__(self, items: IList[T], start: int) -> None: super().__init__(items, start)
     
     @final
     def _GetIndexOrKey(self, index: SupportsIndex|slice) -> SupportsIndex|slice:
@@ -146,8 +119,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         return self._GetContainer().SetAt(self.GetCircularIndex(key), value)
     
     @final
-    def SliceAt(self, key: slice) -> IList[T]:
-        return self._GetContainer().SliceAt(self._GetKey(key))
+    def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
     @final
     def Add(self, item: T) -> None:
@@ -161,29 +133,23 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
 
         index: int = self.GetCircularIndex(self.GetLastIndex())
 
-        if tryAdd():
-            return
+        if tryAdd(): return
         
         index += 1
 
-        if not tryAdd():
-            self._GetContainer().Insert(index, item)
+        if not tryAdd(): self._GetContainer().Insert(index, item)
     
     @final
-    def TryInsert(self, index: int, value: T) -> bool:
-        return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetCircularIndex(index), value)
+    def TryInsert(self, index: int, value: T) -> bool: return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetCircularIndex(index), value)
     
     @final
-    def TryRemoveAt(self, index: int) -> bool|None:
-        return self._GetContainer().TryRemoveAt(self.GetCircularIndex(index))
+    def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(self.GetCircularIndex(index))
     
     @final
-    def Clear(self) -> None:
-        self._GetContainer().Clear()
+    def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
-    def insert(self, index: int, value: T) -> None:
-        self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
@@ -191,9 +157,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
     
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-        SetItems(self, self._GetIndexOrKey(index), value)
+    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None: SetItems(self, self._GetIndexOrKey(index), value)
     
     @final
-    def __delitem__(self, index: int|slice) -> None:
-        RemoveItems(self, self._GetIndexOrKey(index))
+    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, self._GetIndexOrKey(index))

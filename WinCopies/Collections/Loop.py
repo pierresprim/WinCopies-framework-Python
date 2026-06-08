@@ -20,8 +20,7 @@ def While(func: Function[bool], action: Action) -> bool:
         True if the loop executed at least once, False otherwise.
     """
     if (func := GetBoolFuncAction(func, action))():
-        while func():
-            pass
+        while func(): pass
         
         return True
 
@@ -36,13 +35,11 @@ def Until(func: Function[bool], action: Action) -> bool:
     Returns:
         True if the loop executed at least once, False if the condition was already True.
     """
-    if func():
-        return False
+    if func(): return False
     
     action()
     
-    while not func():
-        action()
+    while not func(): action()
 
     return True
 
@@ -89,8 +86,7 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     for item in items:
         i += 1
 
-        if action(i, item):
-            return DualValueBool(i, False)
+        if action(i, item): return DualValueBool(i, False)
     
     return None if i == -1 else DualValueBool(i, True)
 def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
@@ -108,8 +104,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
     enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator():
-        if predicate(entry):
-            return True
+        if predicate(entry): return True
     
     return False if enumerator.HasProcessedItems() else None
 
@@ -209,8 +204,7 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool|None:
     """
     enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
-    for entry in enumerator.AsIterator():
-        action(entry)
+    for entry in enumerator.AsIterator(): action(entry)
     
     return enumerator.HasProcessedItems()
 def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
@@ -239,8 +233,7 @@ def ForEachWhile[T](items: Iterable[T], predicate: IndexedValueComparison[T], ac
         None if no items, DualValueBool with last index and status otherwise.
     """
     def _action(i: int, value: T) -> bool:
-        if (predicate(i, value)):
-            return False
+        if (predicate(i, value)): return False
 
         action(i, value)
         
@@ -360,15 +353,13 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
     func: Method[T]|None = None
     
     def scan(entry: T) -> None:
-        if predicate(entry):
-            action(entry)
+        if predicate(entry): action(entry)
     
     def tryScan(entry: T) -> None:
         nonlocal func
         nonlocal result
 
-        if predicate(entry):
-            action(entry)
+        if predicate(entry): action(entry)
         
         else:
             func = scan
@@ -385,8 +376,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
     
     func = init
 
-    for entry in items:
-        func(entry)
+    for entry in items: func(entry)
     
     return result
 
@@ -437,8 +427,7 @@ def __ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: 
 
             return returnValue
         
-        else:
-            return not returnValue
+        else: return not returnValue
     
     _action = __action
 
