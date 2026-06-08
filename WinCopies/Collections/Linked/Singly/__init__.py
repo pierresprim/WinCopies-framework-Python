@@ -11,7 +11,7 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import LinkedNodeAbstract
+from WinCopies.Collections.Linked.Node import LinkedNodeBase
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
@@ -254,7 +254,7 @@ class INodeCookie[T](IInterface):
     def SetNext(self, nextNode: SinglyLinkedNode[T]|None) -> None:
         pass
 
-class SinglyLinkedNode[T](LinkedNodeAbstract[T, "SinglyLinkedNode[T]"]):
+class SinglyLinkedNode[T](LinkedNodeBase[T, "SinglyLinkedNode[T]"]):
     @final
     class _Cookie[U](Abstract, INodeCookie[U]):
         def __init__(self, node: SinglyLinkedNode[U]) -> None:
