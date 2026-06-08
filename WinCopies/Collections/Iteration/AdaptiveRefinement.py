@@ -7,15 +7,14 @@ from WinCopies.Typing import GetGenericError
 from WinCopies.Typing.Delegate import Function
 
 class IAdaptiveRefinement(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsRefining(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def IsTrueSize(self) -> bool:
-        pass
+        ...
     
     @final
     def GetSizeState(self) -> bool|None:
@@ -32,52 +31,47 @@ class IAdaptiveRefinement(IInterface):
     
     @abstractmethod
     def CanSignalSuccess(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def CanSignalError(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def GetCurrent(self) -> int:
-        pass
+        ...
 
     @abstractmethod
     def GetLow(self) -> int:
-        pass
+        ...
     @abstractmethod
     def GetHigh(self) -> int|None:
-        pass
+        ...
     
     @abstractmethod
     def Reset(self) -> None:
-        pass
+        ...
     @abstractmethod
     def ResetTo(self, hint: int, refine: bool) -> None:
-        pass
+        ...
 
     @abstractmethod
     def TryOnSuccess(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def TryOnError(self) -> bool|None:
-        pass
+        ...
 
     @final
     def OnSuccess(self) -> None:
-        if not self.TryOnSuccess():
-            raise GetGenericError()
+        if not self.TryOnSuccess(): raise GetGenericError()
     @final
     def OnError(self) -> None:
-        if self.TryOnError() is not True:
-            raise GetGenericError()
+        if self.TryOnError() is not True: raise GetGenericError()
 
     @final
     def Update(self, success: bool) -> None:
-        if success:
-            self.OnSuccess()
-        
-        else:
-            self.OnError()
+        if success: self.OnSuccess()
+        else: self.OnError()
 @final
 class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
     def __init__(self, current: int|None, refine: bool) -> None:
@@ -95,8 +89,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         low: int = self.GetLow()
         high: int|None = self.GetHigh()
 
-        if high is None or low + 1 < high:
-            return False
+        if high is None or low + 1 < high: return False
 
         self.__refine = None
         self.__current = low
@@ -116,8 +109,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         self.__low = current
 
         if high is None:
-            if self.__refine:
-                self.__current = 2 * current
+            if self.__refine: self.__current = 2 * current
         
         elif not self.__AreConverged():
             delta: int = 2 * self.__delta
@@ -127,8 +119,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         
         return True
     def __TryOnError(self) -> bool|None:
-        if self.__IsShrinkCompleted():
-            return None
+        if self.__IsShrinkCompleted(): return None
 
         self.__high = self.GetCurrent()
         self.__refine = True
@@ -137,8 +128,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
 
         low: int = self.GetLow()
         
-        if self.__AreConverged():
-            return low > 0
+        if self.__AreConverged(): return low > 0
         
         self.__current = low + 1
         
@@ -154,23 +144,16 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
 
         self.__current = current
     
-    def CanSignalSuccess(self) -> bool:
-        return not self.IsTrueSize()
-    def CanSignalError(self) -> bool:
-        return not (self.IsTrueSize() or self.__IsShrinkCompleted())
+    def CanSignalSuccess(self) -> bool: return not self.IsTrueSize()
+    def CanSignalError(self) -> bool: return not (self.IsTrueSize() or self.__IsShrinkCompleted())
     
-    def GetCurrent(self) -> int:
-        return self.__current
+    def GetCurrent(self) -> int: return self.__current
     
-    def GetLow(self) -> int:
-        return self.__low
-    def GetHigh(self) -> int|None:
-        return self.__high
+    def GetLow(self) -> int: return self.__low
+    def GetHigh(self) -> int|None: return self.__high
     
-    def TryOnSuccess(self) -> bool:
-        return self.__tryOnSuccess()
-    def TryOnError(self) -> bool|None:
-        return self.__tryOnError()
+    def TryOnSuccess(self) -> bool: return self.__tryOnSuccess()
+    def TryOnError(self) -> bool|None: return self.__tryOnError()
     
     def __ResetTo(self, hint: int, refine: bool) -> None:
         self.__Reset(hint)
@@ -180,34 +163,25 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
         self.__high = None
         self.__refine = refine
     
-    def Reset(self) -> None:
-        self.__ResetTo(1, True)
+    def Reset(self) -> None: self.__ResetTo(1, True)
     def ResetTo(self, hint: int, refine: bool) -> None:
         if hint == 0:
-            if refine:
-                hint = 1
-            
-            else:
-                raise ValueError()
+            if refine: hint = 1
+            else: raise ValueError()
         
         self.__ResetTo(hint, refine)
     
-    def IsRefining(self) -> bool:
-        return self.__refine is True
-    
-    def IsTrueSize(self) -> bool:
-        return self.__refine is None
+    def IsRefining(self) -> bool: return self.__refine is True
+    def IsTrueSize(self) -> bool: return self.__refine is None
 
 def CreateAdaptiveRefinement() -> IAdaptiveRefinement:
     return _AdaptiveRefinement(None, True)
 def CreateFineRefinement(hint: int|None, refine: bool) -> IAdaptiveRefinement:
     if hint is None or hint == 0:
-        if refine:
-            return CreateAdaptiveRefinement()
+        if refine: return CreateAdaptiveRefinement()
         
         raise ValueError()
     
-    if hint < 0:
-        raise ValueError()
+    if hint < 0: raise ValueError()
     
     return _AdaptiveRefinement(hint, refine)

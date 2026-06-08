@@ -36,8 +36,7 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
         Items from all iterables in the collection.
     """
     for iterable in TryEnumerate(collection):
-        for item in TryEnumerate(iterable):
-            yield item
+        for item in TryEnumerate(iterable): yield item
 def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
@@ -56,11 +55,9 @@ def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]
     Yields:
         All items followed by all values.
     """
-    for item in TryEnumerate(items):
-        yield item
+    for item in TryEnumerate(items): yield item
 
-    for value in TryEnumerate(values):
-        yield value
+    for value in TryEnumerate(values): yield value
 def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     """Appends a single item to the end of items.
 
@@ -71,8 +68,7 @@ def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     Yields:
         All items followed by the value.
     """
-    for item in TryEnumerate(items):
-        yield item
+    for item in TryEnumerate(items): yield item
 
     yield value
 def AppendValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
@@ -110,8 +106,7 @@ def PrependItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     """
     yield value
 
-    for item in TryEnumerate(items):
-        yield item
+    for item in TryEnumerate(items): yield item
 def PrependValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     """Prepends variadic values to the beginning of items.
 
@@ -137,8 +132,7 @@ def AppendTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[
     for item in TryEnumerate(items):
         yield item
 
-        for value in TryEnumerate(values):
-            yield value
+        for value in TryEnumerate(values): yield value
 def AppendValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     """Appends variadic values after each item.
 
@@ -162,8 +156,7 @@ def PrependTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator
         All values followed by each item.
     """
     for item in TryEnumerate(items):
-        for value in TryEnumerate(values):
-            yield value
+        for value in TryEnumerate(values): yield value
 
         yield item
 def PrependValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
@@ -301,12 +294,10 @@ def PrependIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|Non
 
 def Expand[T](items: Iterable[Iterable[T]]) -> Generator[T]:
     for item in items:
-        for _item in item:
-            yield _item
+        for _item in item: yield _item
 def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Iterable[TOut]]) -> Generator[TOut]:
     for item in items:
-        for _item in converter(item):
-            yield _item
+        for _item in converter(item): yield _item
 
 def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """Transforms items using a converter function.
@@ -322,12 +313,10 @@ def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]
 
 def SelectMany[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Converter[TIn2, TOut]) -> Generator[TOut]:
     for item in items:
-        for _item in converter(item):
-            yield selector(_item)
+        for _item in converter(item): yield selector(_item)
 def SelectManyItems[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Callable[[TIn1, TIn2], TOut]) -> Generator[TOut]:
     for item in items:
-        for _item in converter(item):
-            yield selector(item, _item)
+        for _item in converter(item): yield selector(item, _item)
 
 def WhereSelect[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """Filters then transforms items.
@@ -355,8 +344,7 @@ def SelectWhere[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, 
     result: TOut|None = None
 
     for item in TryEnumerate(items):
-        if predicate(result := converter(item)):
-            yield result
+        if predicate(result := converter(item)): yield result
 
 def WhereNotNone[T](items: Iterable[T|None]|None) -> Generator[T]:
     return (item for item in TryEnumerate(items) if item is not None)
@@ -368,13 +356,11 @@ def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Con
 
 def WhereOfType[T](t: Type[T], items: Iterable[object]) -> Generator[T]:
     for item in items:
-        if isinstance(item, t):
-            yield item
+        if isinstance(item, t): yield item
 
 def WhereOfTypeSelect[TIn, TOut](t: Type[TIn], items: Iterable[object], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
-        if isinstance(item, t):
-            yield converter(item)
+        if isinstance(item, t): yield converter(item)
 
 def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes only items that match a given predicate.
@@ -410,11 +396,8 @@ def IncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         Items until the first one that doesn't match the predicate.
     """
     for item in TryEnumerate(items):
-        if predicate(item):
-            yield item
-
-        else:
-            break
+        if predicate(item): yield item
+        else: break
 def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes items until one matches a predicate (exclusive).
 
@@ -426,8 +409,7 @@ def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         Items until the first one that matches the predicate.
     """
     for item in TryEnumerate(items):
-        if predicate(item):
-            break
+        if predicate(item): break
 
         yield item
 
@@ -444,8 +426,7 @@ def DoIncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
     for item in TryEnumerate(items):
         yield item
 
-        if predicate(item):
-            break
+        if predicate(item): break
 def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes items while they match a predicate (inclusive).
 
@@ -464,8 +445,7 @@ def __Exclude[T](items: Iterable[T]|None, selector: Selector[IEnumerator[T]]) ->
         
         return None if enumerator is None else selector(enumerator).AsIterator()
     
-    for item in TryEnumerate(None if items is None else getIterator(CreateIterable(items))):
-        yield item
+    for item in TryEnumerate(None if items is None else getIterator(CreateIterable(items))): yield item
 
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items while they match a predicate, then includes the rest.
@@ -499,8 +479,7 @@ def GetFirst[T](items: Iterable[T]) -> INullable[T]:
     Returns:
         INullable with first item if found or null value if empty.
     """
-    for item in items:
-        return GetNullable(item)
+    for item in items: return GetNullable(item)
 
     return GetNullValue()
 def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
@@ -515,16 +494,14 @@ def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
     return None if items is None else GetFirst(items)
 
 def GetFirstItem[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]:
-    for item in Include(items, predicate):
-        return GetNullable(item)
+    for item in Include(items, predicate): return GetNullable(item)
     
     return GetNullValue()
 def TryGetFirstItem[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
     return None if items is None else GetFirstItem(items, predicate)
 
 def GetFirstItemExclusive[T](items: Iterable[T], predicate: Predicate[T]) -> INullable[T]:
-    for item in Exclude(items, predicate):
-        return GetNullable(item)
+    for item in Exclude(items, predicate): return GetNullable(item)
     
     return GetNullValue()
 def TryGetFirstItemExclusive[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
@@ -539,19 +516,14 @@ def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T]) -> bool:
     Returns:
         None if items is None, True if any items exist, False otherwise.
     """
-    def any(length: int) -> bool:
-        return length > 0
+    def any(length: int) -> bool: return length > 0
     
     match items:
-        case ICountableEnumerable():
-            return any(items.GetCount())
-        
-        case Collection():
-            return any(len(items))
+        case ICountableEnumerable(): return any(items.GetCount())
+        case Collection(): return any(len(items))
         
         case Iterable():
-            for _ in items:
-                return True
+            for _ in items: return True
 
             return False
 def CheckIfAny[T](items: Iterable[T]|None) -> bool|None:
@@ -578,16 +550,14 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
         - IterationResult.Success if exactly one item matches
         - IterationResult.Error if more than one item matches
     """
-    if items is None:
-        return IterationResult.Null
+    if items is None: return IterationResult.Null
 
     validator: Predicate[T]|None = None
 
     def validate(value: T) -> bool:
         nonlocal validator
 
-        if predicate(value):
-            validator = predicate # Stop iteration if a second item validated the given predicate.
+        if predicate(value): validator = predicate # Stop iteration if a second item validated the given predicate.
 
         return False # Do not stop iteration.
 
@@ -595,13 +565,11 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
 
     enumerator: IEnumerator[T]|None = CreateIterable(items).TryGetEnumerator()
 
-    if enumerator is None:
-        return IterationResult.Empty
+    if enumerator is None: return IterationResult.Empty
 
     for item in enumerator.AsIterator():
-        if validator(item):
-            # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
-            return IterationResult.Error
+        # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
+        if validator(item): return IterationResult.Error
 
     return IterationResult.Success if enumerator.HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
 def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
@@ -617,12 +585,10 @@ def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -
         - False if zero or more than one item matches
     """
     match ValidateOnlyOne(items, predicate):
-        case IterationResult.Success:
-            return True
-        case IterationResult.Null:
-            return None
-        case _:
-            return False
+        case IterationResult.Success: return True
+        case IterationResult.Null: return None
+        
+        case _: return False
 
 def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
     """Ensures exactly one item matches a predicate, ignoring null or empty cases.
@@ -635,8 +601,7 @@ def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMess
     Raises:
         ValueError: If more than one item matches the predicate.
     """
-    if not ValidateOnlyOne(items, predicate):
-        raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
+    if not ValidateOnlyOne(items, predicate): raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
 def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
     """Ensures exactly one item matches a predicate, with null-safe validation.
 
@@ -648,39 +613,30 @@ def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], err
     Raises:
         ValueError: If no iterable given, if no items are found or if zero or more than one item matches the predicate.
     """
-    def raiseError(msg: str) -> None:
-        raise ValueError(msg if errorMessage is None else errorMessage)
+    def raiseError(msg: str) -> None: raise ValueError(msg if errorMessage is None else errorMessage)
 
     match ValidateOnlyOne(items, predicate).ToNullableBoolean():
-        case NullableBoolean.Null:
-            raiseError("No item found.")
-        case NullableBoolean.BoolFalse:
-            raiseError("More than one value validating the given predicate were found.")
-        case _:
-            pass
+        case NullableBoolean.Null: raiseError("No item found.")
+        case NullableBoolean.BoolFalse: raiseError("More than one value validating the given predicate were found.")
+        
+        case _: pass
 
 def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
     current: T2|None = None
 
     for item in x:
         if y.MoveNext():
-            if (current := y.GetCurrent()) is None:
-                break
+            if (current := y.GetCurrent()) is None: break
             
             yield CreateDualResult(item, current)
         
-        else:
-            break
+        else: break
 def __TryZip[T1, T2](x: Iterable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
-    def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
-        return __Zip(x, y)
+    def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]: return __Zip(x, y)
     
     match y:
-        case Iterator():
-            return zip(AsEnumerator(y))
-        
-        case Iterable():
-            return zip(CreateIterable(y).GetEnumerator())
+        case Iterator(): return zip(AsEnumerator(y))
+        case Iterable(): return zip(CreateIterable(y).GetEnumerator())
         
         case IEnumerable():
             _y: IEnumerator[T2]|None = y.TryGetEnumerator()
@@ -695,8 +651,7 @@ def Zip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]
     return MakeGenerator() if items is None else items
 
 def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> bool|None:
-    with itemsProvider() as items:
-        return func(items)
+    with itemsProvider() as items: return func(items)
 def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
     return IterateWith(lambda: itemsProvider(value), func)
 
