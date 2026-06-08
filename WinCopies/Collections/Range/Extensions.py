@@ -12,18 +12,14 @@ def SetOrderedValues[T: IHashableValue](lst: IList[T], s: set[T], key: slice, va
 
     step: int|None = key.step
 
-    if step is None:
-        step = 1
-    elif step == 0:
-        raise IndexError()
+    if step is None: step = 1
+    elif step == 0: raise IndexError()
 
     start: int|None = key.start
     stop: int|None = key.stop
 
-    if start is None:
-        start = 0
-    if stop is None:
-        stop = lst.GetCount()
+    if start is None: start = 0
+    if stop is None: stop = lst.GetCount()
 
     if step < 0:
         SetOrderedValues(lst.AsReversed(), s, slice(reverseIndex(start), reverseIndex(stop), -step), values)
@@ -34,35 +30,29 @@ def SetOrderedValues[T: IHashableValue](lst: IList[T], s: set[T], key: slice, va
     newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
 
     # Affected indices + size constraint
-    if step == 1:
-        indices: range = range(start, max(start, stop))
+    if step == 1: indices: range = range(start, max(start, stop))
     else:
         indices = range(start, stop, step)
 
-        if len(indices) != len(newItems):
-            raise ValueError()
+        if len(indices) != len(newItems): raise ValueError()
 
     # Phase 1 — Validation only
     oldSet: set[T] = set[T]()
 
-    for idx in indices:
-        oldSet.add(lst.GetAt(idx))
+    for idx in indices: oldSet.add(lst.GetAt(idx))
 
     seen: ISet[T] = Set[T]()
 
     for item in newItems:
-        if not seen.TryAdd(item) or (item in s and not item in oldSet):
-            raise ValueError()  # Internal duplicate of new items OR Conflict with an existing item outside the slice
+        if not seen.TryAdd(item) or (item in s and not item in oldSet): raise ValueError()  # Internal duplicate of new items OR Conflict with an existing item outside the slice
 
     # Phase 2 — Mutation (only if validation is entirely successful)
-    for idx in indices:
-        s.remove(lst.GetAt(idx))
+    for idx in indices: s.remove(lst.GetAt(idx))
 
     if step == 1:
         count: int = len(indices)
 
-        if count > 0:
-            lst.RemoveRange(start, count)
+        if count > 0: lst.RemoveRange(start, count)
 
         lst.InsertRange(start, newItems)
     
@@ -84,8 +74,5 @@ def SetOrderedItems[T: IHashableValue](lst: IList[T], s: set[T], index: slice, v
     ...
 
 def SetOrderedItems[T: IHashableValue](lst: IList[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-    if isinstance(index, SupportsIndex):
-        lst.SetAt(int(index), value) # type: ignore
-    
-    else:
-        SetOrderedValues(lst, s, index, value) # type: ignore
+    if isinstance(index, SupportsIndex): lst.SetAt(int(index), value) # type: ignore
+    else: SetOrderedValues(lst, s, index, value) # type: ignore

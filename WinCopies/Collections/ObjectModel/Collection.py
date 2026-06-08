@@ -18,12 +18,10 @@ from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler,
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
 class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.Mutable
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
@@ -31,8 +29,7 @@ class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T])
     def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]:
-        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
 class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstraint[TList, IList[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -41,8 +38,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self.__items: TList = items
     
     @final
-    def _GetContainer(self) -> TList:
-        return self.__items
+    def _GetContainer(self) -> TList: return self.__items
     
     def _SetItem(self, index: int, item: TItem) -> bool:
         return self._GetInnerContainer().TrySetAt(index, item)
@@ -74,27 +70,21 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self._GetInnerContainer().Clear()
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetInnerContainer().GetCount()
+    def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
     
     @final
-    def Contains(self, value: TItem|object) -> bool:
-        return self._GetInnerContainer().Contains(value)
+    def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return self._GetInnerContainer().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
     
     @final
-    def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
-        return self._GetInnerContainer().FindFirstIndex(item, predicate)
+    def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindFirstIndex(item, predicate)
     @final
-    def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
-        return self._GetInnerContainer().FindLastIndex(item, predicate)
+    def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindLastIndex(item, predicate)
     
     @final
     def _GetAt(self, key: int) -> TItem:
@@ -104,47 +94,36 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self._SetItem(key, value)
     
     @final
-    def Move(self, x: int, y: int) -> None:
-        self._MoveItem(x, y)
+    def Move(self, x: int, y: int) -> None: self._MoveItem(x, y)
     
     @final
-    def Swap(self, x: int, y: int) -> None:
-        self._SwapItems(x, y)
+    def Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
     
     @final
-    def SliceAt(self, key: slice) -> IList[TItem]:
-        return self._GetInnerContainer().SliceAt(key)
+    def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainer().SliceAt(key)
     
     @final
-    def Add(self, item: TItem) -> None:
-        self._InsertItem(None, item)
+    def Add(self, item: TItem) -> None: self._InsertItem(None, item)
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool:
-        return self._InsertItem(index, value)
+    def TryInsert(self, index: int, value: TItem) -> bool: return self._InsertItem(index, value)
     
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
-        return self._InsertItems(index, items)
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool: return self._InsertItems(index, items)
     
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool:
-        return self._RemoveItemsAt(index, count)
+    def TryRemoveRange(self, index: int, count: int) -> bool: return self._RemoveItemsAt(index, count)
     
     @final
-    def TryRemoveAt(self, index: int) -> bool|None:
-        return self._RemoveItemAt(index)
+    def TryRemoveAt(self, index: int) -> bool|None: return self._RemoveItemAt(index)
     
     @final
-    def Clear(self) -> None:
-        self._ClearItems()
+    def Clear(self) -> None: self._ClearItems()
     
     @final
-    def ToString(self) -> str:
-        return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return self._GetInnerContainer().ToString()
     
     @final
-    def insert(self, index: int, value: TItem) -> None:
-        self.Insert(index, value)
+    def insert(self, index: int, value: TItem) -> None: self.Insert(index, value)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...
@@ -152,35 +131,31 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def __setitem__(self, index: slice, value: Iterable[TItem]) -> None: ...
     
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None:
-        SetItems(self, index, value)
+    def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None: SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice) -> None:
-        RemoveItems(self, index)
+    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, index)
 class Collection[T](CollectionBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, items: IList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IList[T]) -> None: super().__init__(items)
 
 class IObservableCollectionEvents[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        pass
+        ...
     @abstractmethod
     def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        pass
+        ...
     @abstractmethod
     def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        pass
+        ...
     @abstractmethod
     def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        pass
+        ...
     @abstractmethod
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        pass
+        ...
 
 @final
 class _ObservableCollectionEvent[T](Abstract):
@@ -210,16 +185,11 @@ class _ObservableCollectionEventManager[T](Abstract, IObservableCollectionEvents
 
         self.__events: _ObservableCollectionEvents[T] = events
 
-    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__events.OnItemAdded(handler)
-    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__events.OnItemUpdated(handler)
-    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__events.OnItemsSwapped(handler)
-    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__events.OnItemMoved(handler)
-    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self.__events.OnItemRemoved(handler)
+    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemAdded(handler)
+    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemUpdated(handler)
+    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemsSwapped(handler)
+    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemMoved(handler)
+    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemRemoved(handler)
 @final
 class _ObservableCollectionEventInvoker[T](Abstract):
     def __init__(self, sender: IObservableCollection[T], events: _ObservableCollectionEvent[T]) -> None:
@@ -255,34 +225,26 @@ class _ObservableCollectionEvents[T](EventMonitor, IObservableCollectionEvents[T
     def AsInvoker(self) -> _ObservableCollectionEventInvoker[T]:
         return self.__invoker
 
-    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self._AddHandler(self.__events.GetAdded(), handler)
-    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self._AddHandler(self.__events.GetUpdated(), handler)
-    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self._AddHandler(self.__events.GetSwapped(), handler)
-    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self._AddHandler(self.__events.GetMoved(), handler)
-    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
-        return self._AddHandler(self.__events.GetRemoved(), handler)
+    def OnItemAdded(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetAdded(), handler)
+    def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetUpdated(), handler)
+    def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetSwapped(), handler)
+    def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetMoved(), handler)
+    def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetRemoved(), handler)
 
 class IReadOnlyObservableCollection[T](ITuple[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetEventManager(self) -> IObservableCollectionEvents[T]:
-        pass
+        ...
 class IFixedSizeObservableCollection[T](IReadOnlyObservableCollection[T], IArray[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IObservableCollection[T](IFixedSizeObservableCollection[T], IList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
-        pass
+        ...
 
 class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], GenericConstraint[TList, IFixedSizeObservableCollection[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -294,77 +256,56 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
         return self.__items
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.ReadOnly
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     @final
-    def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetInnerContainer().GetCount()
+    def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
     
     @final
-    def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
-        return self._GetInnerContainer().FindFirstIndex(item, predicate)
+    def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindFirstIndex(item, predicate)
     @final
-    def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int:
-        return self._GetInnerContainer().FindLastIndex(item, predicate)
+    def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindLastIndex(item, predicate)
     
     @final
-    def Contains(self, value: TItem|object) -> bool:
-        return self._GetInnerContainer().Contains(value)
+    def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
     
     @final
-    def TryGetValue(self, key: int) -> INullable[TItem]:
-        return self._GetInnerContainer().TryGetValue(key)
+    def TryGetValue(self, key: int) -> INullable[TItem]: return self._GetInnerContainer().TryGetValue(key)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return self._GetInnerContainer().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None:
-        return self._GetInnerContainer().TryGetResumableEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]:
-        return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
-    def ToString(self) -> str:
-        return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return self._GetInnerContainer().ToString()
     
     @final
-    def GetEventManager(self) -> IObservableCollectionEvents[TItem]:
-        return self._GetInnerContainer().GetEventManager()
+    def GetEventManager(self) -> IObservableCollectionEvents[TItem]: return self._GetInnerContainer().GetEventManager()
 @final
 class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFixedSizeObservableCollection[T]], IGenericConstraintImplementation[IFixedSizeObservableCollection[T]]):
-    def __init__(self, items: IFixedSizeObservableCollection[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IFixedSizeObservableCollection[T]) -> None: super().__init__(items)
     
-    def SliceAt(self, key: slice) -> ITuple[T]:
-        return self._GetContainer().SliceAt(key)
+    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
     
-    def AsReversed(self) -> ITuple[T]:
-        return self._GetContainer().AsReversed().AsReadOnly()
+    def AsReversed(self) -> ITuple[T]: return self._GetContainer().AsReversed().AsReadOnly()
 @final
 class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IGenericConstraintImplementation[IObservableCollection[T]]):
-    def __init__(self, items: IObservableCollection[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IObservableCollection[T]) -> None: super().__init__(items)
     
-    def TrySetAt(self, key: int, value: T) -> bool:
-        return self._GetContainer().TrySetAt(key, value)
+    def TrySetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(key, value)
     
-    def Move(self, x: int, y: int) -> None:
-        return self._GetContainer().Move(x, y)
+    def Move(self, x: int, y: int) -> None: return self._GetContainer().Move(x, y)
     
-    def SliceAt(self, key: slice) -> IArray[T]:
-        return self._GetContainer().SliceAt(key)
+    def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(key)
     
-    def AsReversed(self) -> IArray[T]:
-        return self._GetContainer().AsReversed().AsFixedSize()
-    def AsReadOnly(self) -> ITuple[T]:
-        return self._GetContainer().AsReadOnly()
+    def AsReversed(self) -> IArray[T]: return self._GetContainer().AsReversed().AsFixedSize()
+    def AsReadOnly(self) -> ITuple[T]: return self._GetContainer().AsReadOnly()
 
 class _ReadOnlyObservableCollectionUpdater[T](ValueFunctionUpdater[IReadOnlyObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T], updater: Method[IFunction[IReadOnlyObservableCollection[T]]]) -> None:
@@ -372,26 +313,21 @@ class _ReadOnlyObservableCollectionUpdater[T](ValueFunctionUpdater[IReadOnlyObse
 
         self.__items: IObservableCollection[T] = items
     
-    def _GetValue(self) -> IReadOnlyObservableCollection[T]:
-        return _ReadOnlyObservableCollection[T](self.__items)
+    def _GetValue(self) -> IReadOnlyObservableCollection[T]: return _ReadOnlyObservableCollection[T](self.__items)
 class _FixedSizeObservableCollectionUpdater[T](ValueFunctionUpdater[IFixedSizeObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T], updater: Method[IFunction[IFixedSizeObservableCollection[T]]]) -> None:
         super().__init__(updater)
 
         self.__items: IObservableCollection[T] = items
     
-    def _GetValue(self) -> IFixedSizeObservableCollection[T]:
-        return _FixedSizeObservableCollection[T](self.__items)
+    def _GetValue(self) -> IFixedSizeObservableCollection[T]: return _FixedSizeObservableCollection[T](self.__items)
 
 class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T]):
     def __init__(self, items: IList[T]) -> None:
-        def updateReadOnly(func: IFunction[IReadOnlyObservableCollection[T]]) -> None:
-            self.__readOnly = func
-        def updateFixedSize(func: IFunction[IFixedSizeObservableCollection[T]]) -> None:
-            self.__fixedSize = func
+        def updateReadOnly(func: IFunction[IReadOnlyObservableCollection[T]]) -> None: self.__readOnly = func
+        def updateFixedSize(func: IFunction[IFixedSizeObservableCollection[T]]) -> None: self.__fixedSize = func
         
-        def updateReversed(func: IFunction[IList[T]]) -> None:
-            self.__reversed = func
+        def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
         
         super().__init__(items)
 
@@ -407,23 +343,19 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__reversed: IFunction[IList[T]] = self._GetUpdater(items.GetEnumeratorMonitor(), updateReversed) #type: ignore[no-redef]
     
     @final
-    def GetEventManager(self) -> IObservableCollectionEvents[T]:
-        return self.__eventManager
+    def GetEventManager(self) -> IObservableCollectionEvents[T]: return self.__eventManager
     
     @final
     def __AssertReentrancy(self) -> None:
         self.__events.AssertReentrancy()
     
     @final
-    def AsReversed(self) -> IList[T]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
     
     @final
-    def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
-        return self.__readOnly.GetValue()
+    def AsReadOnly(self) -> IReadOnlyObservableCollection[T]: return self.__readOnly.GetValue()
     @final
-    def AsFixedSize(self) -> IFixedSizeObservableCollection[T]:
-        return self.__fixedSize.GetValue()
+    def AsFixedSize(self) -> IFixedSizeObservableCollection[T]: return self.__fixedSize.GetValue()
     
     def _InsertItem(self, index: int|None, item: T) -> bool:
         self.__AssertReentrancy()
