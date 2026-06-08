@@ -10,8 +10,7 @@ class _Countable(Countable):
         self.__collection: ICountable = collection
     
     @final
-    def GetCount(self) -> int:
-        return self.__collection.GetCount()
+    def GetCount(self) -> int: return self.__collection.GetCount()
 
 def CreateCountable(collection: ICountable) -> ICountable:
     return collection if type(collection) == _Countable else _Countable(collection)

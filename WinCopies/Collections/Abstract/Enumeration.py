@@ -53,23 +53,18 @@ class ResumableEnumerator[TIn, TOut](AbstractResumableEnumeratorAbstract[TIn, TO
     def _GetCurrent(self) -> TOut:
         return self.__current.GetValue()
     
-    def SupportsMultipleCursors(self) -> bool:
-        return self._GetContainer().SupportsMultipleCursors()
+    def SupportsMultipleCursors(self) -> bool: return self._GetContainer().SupportsMultipleCursors()
     
     @final
-    def PlaceCursor(self) -> IResumableEnumerationCursor:
-        return self._GetContainer().PlaceCursor()
+    def PlaceCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceCursor()
     @final
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor:
-        return self._GetContainer().PlaceTopCursor()
+    def PlaceTopCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceTopCursor()
     
     @final
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None:
-        return self._GetContainer().MoveToTop(cursor)
+    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: return self._GetContainer().MoveToTop(cursor)
     
     @final
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
-        return self._GetContainer().Resume(cursor)
+    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
 @final
 class _Enumerator[TIn, TOut](Enumerator[TIn, TOut]):
@@ -91,12 +86,11 @@ class _ResumableEnumerator[TIn, TOut](ResumableEnumerator[TIn, TOut]):
         return self.__enumerable._Convert(item)
 
 class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
-        pass
+        ...
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TOut]|None:
@@ -111,7 +105,7 @@ class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut]):
     
     @abstractmethod
     def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]:
-        pass
+        ...
     
     @final
     def _GetItems(self) -> TEnumerable:
@@ -124,8 +118,7 @@ class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut]):
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetEnumerableItems().TryGetEnumerator()
 class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut, IEnumerable[TIn]]):
-    def __init__(self, enumerable: IEnumerable[TIn]) -> None:
-        super().__init__(enumerable)
+    def __init__(self, enumerable: IEnumerable[TIn]) -> None: super().__init__(enumerable)
     
     @final
     def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]:
@@ -137,7 +130,7 @@ class _ResumableEnumerable[TIn, TOut](ConverterBase[TIn, TOut], IResumableEnumer
     
     @abstractmethod
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
-        pass
+        ...
     
     @final
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TOut]|None:
@@ -145,15 +138,13 @@ class _ResumableEnumerable[TIn, TOut](ConverterBase[TIn, TOut], IResumableEnumer
 
         return None if result is None else _ResumableEnumerator[TIn, TOut](self, result)
 class ResumableEnumerableAbstract[TIn, TOut](EnumerableAbstract[TIn, TOut], _ResumableEnumerable[TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ResumableEnumerableBase[TIn, TOut, TEnumerable](EnumerableBase[TIn, TOut, TEnumerable], _ResumableEnumerable[TIn, TOut]):
-    def __init__(self, enumerable: TEnumerable) -> None:
-        super().__init__(enumerable)
+    def __init__(self, enumerable: TEnumerable) -> None: super().__init__(enumerable)
     
     @abstractmethod
     def _AsResumableEnumerableItems(self, items: TEnumerable) -> IResumableEnumerable[TIn]:
-        pass
+        ...
 
     @final
     def _GetResumableEnumerableItems(self) -> IResumableEnumerable[TIn]:
@@ -163,5 +154,4 @@ class ResumableEnumerableBase[TIn, TOut, TEnumerable](EnumerableBase[TIn, TOut, 
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
         return self._GetResumableEnumerableItems().TryGetResumableEnumerator()
 class ResumableEnumerable[TIn, TOut](ResumableEnumerableBase[TIn, TOut, IResumableEnumerable[TIn]], IGenericConstraintImplementation[IResumableEnumerable[TIn]]):
-    def __init__(self, enumerable: IResumableEnumerable[TIn]) -> None:
-        super().__init__(enumerable)
+    def __init__(self, enumerable: IResumableEnumerable[TIn]) -> None: super().__init__(enumerable)

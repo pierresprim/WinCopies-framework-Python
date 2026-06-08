@@ -22,8 +22,7 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
         return self.__converter(item)
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.ReadOnly
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
 class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](Collection.EquatableTuple[TIn, TOut]):
     def __init__(self, items: IEquatableTuple[TIn], converter: Converter[TIn, TOut]) -> None:
         super().__init__(items)
@@ -38,8 +37,7 @@ class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](Collection.Equ
         return self.__converter(item)
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.ReadOnly
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
 
 class Array[TIn, TOut](Collection.Array[TIn, TOut]):
     def __init__(self, items: IArray[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
@@ -59,8 +57,7 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
         return self.__backConverter(item)
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.FixedSize
+    def GetMutability(self) -> Mutability: return Mutability.FixedSize
 
 class List[TIn, TOut](Collection.List[TIn, TOut]):
     def __init__(self, items: IList[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
@@ -80,8 +77,7 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
         return self.__backConverter(item)
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.Mutable
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
 
 class Set[TIn: IHashableValue, TOut: IHashableValue](Collection.Set[TIn, TOut]):
     def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:

@@ -22,50 +22,39 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
         return self.__items
     
     @final
-    def Push(self, value: TOut) -> None:
-        self._GetInnerContainer().Push(self._ConvertBack(value))
+    def Push(self, value: TOut) -> None: self._GetInnerContainer().Push(self._ConvertBack(value))
     @final
-    def PushItems(self, items: Iterable[TOut]) -> None:
-        self._GetInnerContainer().PushItems(Select(items, self._ConvertBack))
+    def PushItems(self, items: Iterable[TOut]) -> None: self._GetInnerContainer().PushItems(Select(items, self._ConvertBack))
     
     @final
-    def TryPeek(self) -> INullable[TOut]:
-        return self._GetInnerContainer().TryPeek().TryConvertToNullable(self._Convert)
+    def TryPeek(self) -> INullable[TOut]: return self._GetInnerContainer().TryPeek().TryConvertToNullable(self._Convert)
     
     @final
-    def TryPop(self) -> INullable[TOut]:
-        return self._GetInnerContainer().TryPop().TryConvertToNullable(self._Convert)
+    def TryPop(self) -> INullable[TOut]: return self._GetInnerContainer().TryPop().TryConvertToNullable(self._Convert)
     
     @final
-    def Clear(self) -> None:
-        self._GetInnerContainer().Clear()
+    def Clear(self) -> None: self._GetInnerContainer().Clear()
 
 class SinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IList[TIn]], IList[TOut], IGenericConstraintImplementation[IList[TIn]]):
-    def __init__(self, items: IList[TIn]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IList[TIn]) -> None: super().__init__(items)
 
 class EnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, IEnumerableList[TIn]], EnumerableAbstract[TIn, TOut], IEnumerableList[TOut], IGenericConstraintImplementation[IEnumerableList[TIn]]):
-    def __init__(self, items: IEnumerableList[TIn]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IEnumerableList[TIn]) -> None: super().__init__(items)
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetContainer().TryGetEnumerator()
 class CountableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableList[TIn]], ICountableList[TOut], IGenericConstraintImplementation[ICountableList[TIn]]):
-    def __init__(self, items: ICountableList[TIn]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICountableList[TIn]) -> None: super().__init__(items)
     
     @final
-    def GetCount(self) -> int:
-        return self._GetContainer().GetCount()
+    def GetCount(self) -> int: return self._GetContainer().GetCount()
 
 class CountableEnumerableSinglyLinkedList[TIn, TOut](SinglyLinkedListBase[TIn, TOut, ICountableEnumerableList[TIn]], EnumerableAbstract[TIn, TOut], ICountableEnumerableList[TOut], IGenericConstraintImplementation[ICountableEnumerableList[TIn]]):
-    def __init__(self, items: ICountableEnumerableList[TIn]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICountableEnumerableList[TIn]) -> None: super().__init__(items)
     
     @final
-    def GetCount(self) -> int:
-        return self._GetContainer().GetCount()
+    def GetCount(self) -> int: return self._GetContainer().GetCount()
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:

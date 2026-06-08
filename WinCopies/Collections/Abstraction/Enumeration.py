@@ -22,8 +22,7 @@ class _Enumerable[T](Enumerable[T]):
     def _GetEnumerable(self) -> IEnumerable[T]:
         return self.__enumerable
     
-    def TryGetEnumerator(self) -> IEnumerator[T] | None:
-        return self._GetEnumerable().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T] | None: return self._GetEnumerable().TryGetEnumerator()
 
 class _EquatableEnumerable[T: IEquatableValue](EquatableEnumerable[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
@@ -36,12 +35,10 @@ class _EquatableEnumerable[T: IEquatableValue](EquatableEnumerable[T]):
         return self.__enumerable
     
     @final
-    def Equals(self, item: object) -> bool:
-        return self.__enumerable.Equals(item)
+    def Equals(self, item: object) -> bool: return self.__enumerable.Equals(item)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetEnumerable().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 class _HashableEnumerable[T: IHashableValue](HashableEnumerable[T]):
     def __init__(self, enumerable: IHashableEnumerable[T]) -> None:
         super().__init__()
@@ -53,16 +50,12 @@ class _HashableEnumerable[T: IHashableValue](HashableEnumerable[T]):
         return self.__enumerable
     
     @final
-    def Equals(self, item: object) -> bool:
-        return self.__enumerable.Equals(item)
+    def Equals(self, item: object) -> bool: return self.__enumerable.Equals(item)
+    @final
+    def Hash(self) -> int: return self.__enumerable.Hash()
     
     @final
-    def Hash(self) -> int:
-        return self.__enumerable.Hash()
-    
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetEnumerable().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 
 class _CountableEnumerable[T](CountableEnumerable[T]):
     def __init__(self, enumerable: ICountableEnumerable[T]) -> None:
@@ -75,46 +68,35 @@ class _CountableEnumerable[T](CountableEnumerable[T]):
         return self.__enumerable
     
     @final
-    def GetCount(self) -> int:
-        return self._GetEnumerable().GetCount()
+    def GetCount(self) -> int: return self._GetEnumerable().GetCount()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetEnumerable().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 
 class _Enumerator[T](AbstractEnumerator[T]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
 class _ResumableEnumerator[T](AbstractEnumeratorBase[T, T, IResumableEnumerator[T]], IResumableEnumerator[T]):
-    def __init__(self, enumerator: IResumableEnumerator[T]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
     
     @final
-    def _AsContainer(self, container: IResumableEnumerator[T]) -> IEnumerator[T]:
-        return container
+    def _AsContainer(self, container: IResumableEnumerator[T]) -> IEnumerator[T]: return container
     
     @final
-    def _GetCurrent(self) -> T:
-        return self._GetContainer().GetCurrent()
+    def _GetCurrent(self) -> T: return self._GetContainer().GetCurrent()
     
     @final
-    def SupportsMultipleCursors(self) -> bool:
-        return self._GetContainer().SupportsMultipleCursors()
+    def SupportsMultipleCursors(self) -> bool: return self._GetContainer().SupportsMultipleCursors()
     
     @final
-    def PlaceCursor(self) -> IResumableEnumerationCursor:
-        return self._GetContainer().PlaceCursor()
+    def PlaceCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceCursor()
     @final
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor:
-        return self._GetContainer().PlaceTopCursor()
+    def PlaceTopCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceTopCursor()
     
     @final
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None:
-        return self._GetContainer().MoveToTop(cursor)
+    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: return self._GetContainer().MoveToTop(cursor)
     
     @final
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
-        return self._GetContainer().Resume(cursor)
+    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
 def CreateEnumerable[T](enumerable: IEnumerable[T]) -> Enumerable[T]:
     return enumerable if type(enumerable) == _Enumerable[T] else _Enumerable[T](enumerable)

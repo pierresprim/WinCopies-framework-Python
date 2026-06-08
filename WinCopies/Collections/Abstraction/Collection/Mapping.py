@@ -41,28 +41,23 @@ class Set[T: IHashableValue](Collection.Set[T]):
         return self.__set
     
     @final
-    def GetCount(self) -> int:
-        return len(self._GetItems())
+    def GetCount(self) -> int: return len(self._GetItems())
     
     @final
-    def Contains(self, value: T|object) -> bool:
-        return value in self.__set
+    def Contains(self, value: T|object) -> bool: return value in self.__set
     
     @final
-    def TryAdd(self, item: T) -> bool:
-        return self.__TryAdd(item) < self.GetCount()
+    def TryAdd(self, item: T) -> bool: return self.__TryAdd(item) < self.GetCount()
     @final
     def Add(self, item: T) -> None:
-        if self.__TryAdd(item) == self.GetCount():
-            raise ValueError(f"Item {item} already exists.")
+        if self.__TryAdd(item) == self.GetCount(): raise ValueError(f"Item {item} already exists.")
     
     @final
     def TryAddRange(self, items: Iterable[T]) -> bool:
         _items: IEnumerableQueue[T] = CreateEnumerableQueue(items)
 
         for item in _items.AsIterable():
-            if self.Contains(item):
-                return False
+            if self.Contains(item): return False
         
         count = self.GetCount()
         
@@ -71,8 +66,7 @@ class Set[T: IHashableValue](Collection.Set[T]):
         return count < self.GetCount()
     
     @final
-    def Remove(self, item: T) -> None:
-        self._GetItems().remove(item)
+    def Remove(self, item: T) -> None: self._GetItems().remove(item)
     @final
     def TryRemove(self, item: T) -> bool:
         try:
@@ -80,27 +74,21 @@ class Set[T: IHashableValue](Collection.Set[T]):
 
             return True
         
-        except KeyError:
-            return False
+        except KeyError: return False
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TryAsEnumerator(item for item in self._GetItems())
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(item for item in self._GetItems())
     
     @final
-    def Clear(self) -> None:
-        self._GetItems().clear()
+    def Clear(self) -> None: self._GetItems().clear()
     
-    def ToString(self) -> str:
-        return str(self._GetItems())
+    def ToString(self) -> str: return str(self._GetItems())
 
 @final
 class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
-        def updateReversed(func: IFunction[IList[T]]) -> None:
-            self.__reversed = func
-        def updateFixedSize(func: IFunction[IArray[T]]) -> None:
-            self.__fixedSize = func
+        def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
+        def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
         
         super().__init__()
 
@@ -115,27 +103,19 @@ class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.Co
     def __TryAdd(self, index: int, value: T) -> bool:
         return self.ValidateIndex(index) and self.__set.TryAdd(value)
     
-    def GetMutability(self) -> Mutability:
-        return Mutability.Mutable
-    def TryGetSourceMutability(self) -> None:
-        return None
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
+    def TryGetSourceMutability(self) -> None: return None
     
-    def GetCount(self) -> int:
-        return self.__items.GetCount()
+    def GetCount(self) -> int: return self.__items.GetCount()
     
-    def Contains(self, value: T|object) -> bool:
-        return self.__set.Contains(value)
+    def Contains(self, value: T|object) -> bool: return self.__set.Contains(value)
     
-    def Move(self, x: int, y: int) -> None:
-        self.__list.Move(x, y)
+    def Move(self, x: int, y: int) -> None: self.__list.Move(x, y)
     
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__list.FindFirstIndex(item, predicate)
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self.__list.FindLastIndex(item, predicate)
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindFirstIndex(item, predicate)
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindLastIndex(item, predicate)
     
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self.__list.TryGetValue(key)
+    def TryGetValue(self, key: int) -> INullable[T]: return self.__list.TryGetValue(key)
     
     def TrySetAt(self, key: int, value: T) -> bool:
         if self.__TryAdd(key, value):
@@ -146,8 +126,7 @@ class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.Co
         
         return False
     
-    def Add(self, item: T) -> None:
-        return self.__items.Add(item)
+    def Add(self, item: T) -> None: return self.__items.Add(item)
     
     def TryInsert(self, index: int, value: T) -> bool:
         if self.__TryAdd(index, value):
@@ -170,72 +149,53 @@ class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.Co
     @final
     def TryRemoveRange(self, index: int, count: int) -> bool:
         if self.ValidateIndex(index):
-            for i in range(count):
-                self.RemoveAt(index + i)
+            for i in range(count): self.RemoveAt(index + i)
 
             return True
         
         return False
     
     def TryRemoveAt(self, index: int) -> bool|None:
-        if index < 0:
-            return None
-        
-        if index >= self.GetCount():
-            return False
+        if index < 0: return None
+        if index >= self.GetCount(): return False
         
         self.__set.Remove(self.__list.GetAt(index))
         self.__list.RemoveAt(index)
         
         return True
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__list.TryGetEnumerator()
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
-        return self.__list.TryGetResumableEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__list.TryGetEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__list.TryGetResumableEnumerator()
     
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]:
-        return self.__list.GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self.__list.GetEnumeratorMonitor()
     
-    def Clear(self) -> None:
-        self.__items.Clear()
+    def Clear(self) -> None: self.__items.Clear()
     
-    def SliceAt(self, key: slice) -> IList[T]:
-        return self.__list.SliceAt(key)
+    def SliceAt(self, key: slice) -> IList[T]: return self.__list.SliceAt(key)
     
-    def ToString(self) -> str:
-        return self.__items.ToString()
+    def ToString(self) -> str: return self.__items.ToString()
     
-    def AsReadOnly(self) -> IEquatableTuple[T]:
-        return self.__items.AsReadOnly().AsTuple()
+    def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
+    def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
+    def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
     
-    def AsReversed(self) -> IList[T]:
-        return self.__reversed.GetValue()
-    
-    def AsFixedSize(self) -> IArray[T]:
-        return self.__fixedSize.GetValue()
-    
-    def insert(self, index: int, value: T) -> None:
-        self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
     @overload
     def __getitem__(self, index: slice) -> MutableSequence[T]: ...
     
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequence[T]:
-        return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequence[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
     @overload
     def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
     
-    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-        SetOrderedItems(self.__list, self.__innerSet, index, value) # type: ignore
+    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None: SetOrderedItems(self.__list, self.__innerSet, index, value) # type: ignore
     
-    def __delitem__(self, index: int|slice) -> None:
-        RemoveItems(self, index)
+    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, index)
 @final
 class _OrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IList[T]]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T], updater: Method[IFunction[IList[T]]]) -> None:
@@ -246,8 +206,7 @@ class _OrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IList[T]]):
         self.__set: ISet[T] = s
         self.__innerSet: set[T] = innerSet
     
-    def _GetValue(self) -> IList[T]:
-        return _OrderedSetList[T](self.__items, self.__list, self.__set, self.__innerSet)
+    def _GetValue(self) -> IList[T]: return _OrderedSetList[T](self.__items, self.__list, self.__set, self.__innerSet)
 
 class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceAbstract[TItem], IEquatableTuple[TItem], INotHashableValue, GenericConstraint[TCollection, ITuple[TItem]]):
     def __init__(self, items: TCollection) -> None:
@@ -256,90 +215,70 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceA
         self.__items: TCollection = items
     
     @final
-    def _GetContainer(self) -> TCollection:
-        return self.__items
+    def _GetContainer(self) -> TCollection: return self.__items
     
     @final
-    def GetMutability(self) -> Mutability:
-        return Mutability.ReadOnly
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     @final
-    def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetInnerContainer().GetCount()
+    def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
     
     @final
-    def Contains(self, value: TItem|object) -> bool:
-        return self._GetInnerContainer().Contains(value)
+    def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
     
     @staticmethod
     def _Equals(items: ITuple[TItem], item: object) -> bool:
         def equals(x: ITuple[TItem], y: ITuple[TItem]) -> bool:
             if x.GetCount() == y.GetCount():
                 for item in zip(x.AsIterable(), y.AsIterable()):
-                    if not item[0].Equals(item[1]):
-                        return False
+                    if not item[0].Equals(item[1]): return False
             
                 return True
             
             return False
-        def sequenceEquals(x: ITuple[TItem], y: Sequence[TItem]) -> bool:
-            return equals(x, CreateTuple(y))
+        def sequenceEquals(x: ITuple[TItem], y: Sequence[TItem]) -> bool: return equals(x, CreateTuple(y))
         
         def iterableEquals(x: ITuple[TItem], y: Iterable[TItem]) -> bool:
             _x: IEnumerator[TItem]|None = x.TryGetEnumerator()
 
-            if _x is None:
-                return False
+            if _x is None: return False
             
             _y: IEnumerator[TItem] = AsEnumerator(iter(y))
             
             for item in zip(_x.AsIterator(), _y.AsIterator()):
-                if not item[0].Equals(item[1]):
-                    return False
+                if not item[0].Equals(item[1]): return False
             
             return not (_x.MoveNext() or _y.MoveNext())
 
         return item is items or (isinstance(item, ITuple) and equals(items, item)) or (isinstance(item, Sequence) and sequenceEquals(items, item) or (isinstance(item, Iterable) and iterableEquals(items, item))) # pyright: ignore[reportUnknownArgumentType]
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return self._GetInnerContainer().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None:
-        return self._GetInnerContainer().TryGetResumableEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]:
-        return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
-    def ToString(self) -> str:
-        return self.ToString()
+    def ToString(self) -> str: return self.ToString()
 
 @final
 class _ReadOnlyOrderedSetReversedTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
     
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetContainer().FindLastIndex(item, predicate)
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetContainer().FindFirstIndex(item, predicate)
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
     
-    def Equals(self, item: object) -> bool:
-        return item is self or item.Equals(self) if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
+    def Equals(self, item: object) -> bool: return item is self or item.Equals(self) if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
     
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self._GetContainer().TryGetValue(self.ReverseIndex(key))
+    def TryGetValue(self, key: int) -> INullable[T]: return self._GetContainer().TryGetValue(self.ReverseIndex(key))
     
-    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
-        return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(self.ReverseKey(key)))
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(self.ReverseKey(key)))
     
-    def AsReversed(self) -> IEquatableTuple[T]:
-        return self._GetContainer()
+    def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
 @final
 class _ReadOnlyOrderedSetReversedTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
@@ -347,8 +286,7 @@ class _ReadOnlyOrderedSetReversedTupleUpdater[T: IHashableValue](ValueFunctionUp
 
         self.__items: IEquatableTuple[T] = items
     
-    def _GetValue(self) -> IEquatableTuple[T]:
-        return _ReadOnlyOrderedSetReversedTuple[T](self.__items.AsReversed())
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items.AsReversed())
 
 @final
 class _ReadOnlyOrderedSetTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
@@ -360,22 +298,16 @@ class _ReadOnlyOrderedSetTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T
 
         self.__reversed: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetContainer().FindFirstIndex(item, predicate)
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int:
-        return self._GetContainer().FindLastIndex(item, predicate)
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
     
-    def Equals(self, item: object) -> bool:
-        return item is self or self._Equals(self._GetContainer(), item)
+    def Equals(self, item: object) -> bool: return item is self or self._Equals(self._GetContainer(), item)
     
-    def TryGetValue(self, key: int) -> INullable[T]:
-        return self._GetContainer().TryGetValue(key)
+    def TryGetValue(self, key: int) -> INullable[T]: return self._GetContainer().TryGetValue(key)
     
-    def SliceAt(self, key: slice) -> IEquatableTuple[T]:
-        return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(key))
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(key))
     
-    def AsReversed(self) -> IEquatableTuple[T]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
 @final
 class _ReadOnlyOrderedSetTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
@@ -383,8 +315,7 @@ class _ReadOnlyOrderedSetTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IE
 
         self.__items: IOrderedSet[T] = items
     
-    def _GetValue(self) -> IEquatableTuple[T]:
-        return _ReadOnlyOrderedSetTuple[T](self.__items.AsList().AsReadOnly())
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple[T](self.__items.AsList().AsReadOnly())
 
 @final
 class _ReadOnlyOrderedSetList[T: IHashableValue](CountableEnumerable[T], IReadOnlyOrderedSet[T]):
@@ -393,24 +324,18 @@ class _ReadOnlyOrderedSetList[T: IHashableValue](CountableEnumerable[T], IReadOn
 
         self.__items: IOrderedSet[T] = items
     
-    def GetCount(self) -> int:
-        return self.__items.GetCount()
+    def GetCount(self) -> int: return self.__items.GetCount()
     
-    def Contains(self, value: T|object) -> bool:
-        return self.__items.Contains(value)
+    def Contains(self, value: T|object) -> bool: return self.__items.Contains(value)
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()
     
-    def ToString(self) -> str:
-        return self.__items.ToString()
+    def ToString(self) -> str: return self.__items.ToString()
 
     @final
-    def AsTuple(self) -> IEquatableTuple[T]:
-        return self.__items.AsTuple()
+    def AsTuple(self) -> IEquatableTuple[T]: return self.__items.AsTuple()
     
-    def AsContainer(self) -> Container[T]:
-        return self.__items.AsContainer()
+    def AsContainer(self) -> Container[T]: return self.__items.AsContainer()
 @final
 class _ReadOnlyOrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IReadOnlyOrderedSet[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IReadOnlyOrderedSet[T]]]) -> None:
@@ -418,18 +343,14 @@ class _ReadOnlyOrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IRe
 
         self.__items: IOrderedSet[T] = items
     
-    def _GetValue(self) -> IReadOnlyOrderedSet[T]:
-        return _ReadOnlyOrderedSetList[T](self.__items)
+    def _GetValue(self) -> IReadOnlyOrderedSet[T]: return _ReadOnlyOrderedSetList[T](self.__items)
 
 class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
     def __init__(self, items: IEnumerable[T]|None = None) -> None:
-        def updateReadOnly(func: IFunction[IReadOnlyOrderedSet[T]]) -> None:
-            self.__readOnly = func
+        def updateReadOnly(func: IFunction[IReadOnlyOrderedSet[T]]) -> None: self.__readOnly = func
         
-        def updateList(func: IFunction[IList[T]]) -> None:
-            self.__list = func
-        def updateTuple(func: IFunction[IEquatableTuple[T]]) -> None:
-            self.__tuple = func
+        def updateList(func: IFunction[IList[T]]) -> None: self.__list = func
+        def updateTuple(func: IFunction[IEquatableTuple[T]]) -> None: self.__tuple = func
         
         super().__init__()
 
@@ -446,16 +367,13 @@ class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
         self.__tuple: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetTupleUpdater[T](self, updateTuple) # type: ignore[no-redef]
 
         if items is not None:
-            for item in items.AsIterable():
-                self.Add(item)
+            for item in items.AsIterable(): self.Add(item)
     
     @final
-    def GetCount(self) -> int:
-        return self.__items.GetCount()
+    def GetCount(self) -> int: return self.__items.GetCount()
     
     @final
-    def Contains(self, value: T|object) -> bool:
-        return self.__set.Contains(value)
+    def Contains(self, value: T|object) -> bool: return self.__set.Contains(value)
     
     @final
     def TryAdd(self, item: T) -> bool:
@@ -480,16 +398,14 @@ class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
         return False
     
     @final
-    def TryRemove(self, item: T) -> bool:
-        return self.__items.TryRemove(item) and self.__set.TryRemove(item)
+    def TryRemove(self, item: T) -> bool: return self.__items.TryRemove(item) and self.__set.TryRemove(item)
     @final
     def Remove(self, item: T) -> None:
         self.__set.Remove(item)
         self.__items.Remove(item)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()
     
     @final
     def Clear(self) -> None:
@@ -497,24 +413,17 @@ class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
         self.__items.Clear()
     
     @final
-    def ToString(self) -> str:
-        return self.__items.ToString()
+    def ToString(self) -> str: return self.__items.ToString()
     
     @final
-    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
-        return self.__readOnly.GetValue()
-
-    @final
-    def AsTuple(self) -> IEquatableTuple[T]:
-        return self.__tuple.GetValue()
-
-    @final
-    def AsList(self) -> IList[T]:
-        return self.__list.GetValue()
+    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]: return self.__readOnly.GetValue()
     
     @final
-    def AsContainer(self) -> Container[T]:
-        return self.AsReadOnly().AsContainer()
+    def AsContainer(self) -> Container[T]: return self.AsReadOnly().AsContainer()
+    @final
+    def AsTuple(self) -> IEquatableTuple[T]: return self.__tuple.GetValue()
+    @final
+    def AsList(self) -> IList[T]: return self.__list.GetValue()
 
 class _ReadOnlyKeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]], IReadOnlyKeyedSet[TKey, TValue]):
     def __init__(self, items: IReadOnlyKeyedSet[TKey, TValue]) -> None:
@@ -527,20 +436,16 @@ class _ReadOnlyKeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple
         return self.__set
     
     @final
-    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
-        return self._GetItems().GetKeys()
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]: return self._GetItems().GetKeys()
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetItems().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetItems().IsEmpty()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetItems().GetCount()
+    def GetCount(self) -> int: return self._GetItems().GetCount()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[ITuple[TValue]]|None:
-        return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
+    def TryGetEnumerator(self) -> IEnumerator[ITuple[TValue]]|None: return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
 @final
 class _ReadOnlyKeyedSetUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyKeyedSet[TKey, TValue]]):
     def __init__(self, items: KeyedSet[TKey, TValue], updater: Method[IFunction[IReadOnlyKeyedSet[TKey, TValue]]]) -> None:
@@ -567,16 +472,13 @@ class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]]
         return self.__values
     
     @final
-    def IsEmpty(self) -> bool:
-        return self.GetCount() < 1
+    def IsEmpty(self) -> bool: return self.GetCount() < 1
     
     @final
-    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
-        return self.__keys
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]: return self.__keys
     
     @final
-    def GetCount(self) -> int:
-        return self._GetValues().GetCount()
+    def GetCount(self) -> int: return self._GetValues().GetCount()
     
     @final
     def TryAdd(self, values: ITuple[TValue]) -> bool:
@@ -588,16 +490,13 @@ class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]]
         return False
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[ITuple[TValue]]|None:
-        return self._GetValues().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[ITuple[TValue]]|None: return self._GetValues().TryGetEnumerator()
     
     @final
-    def Clear(self) -> None:
-        return self._GetValues().Clear()
+    def Clear(self) -> None: return self._GetValues().Clear()
 
     @final
-    def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
-        return self.__readOnly.GetValue()
+    def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]: return self.__readOnly.GetValue()
 
 @final
 class EnumerationKeyValuePair[TKey: EquatableProtocol, TValue](Abstract, IKeyValuePair[TKey, TValue]):
@@ -607,15 +506,12 @@ class EnumerationKeyValuePair[TKey: EquatableProtocol, TValue](Abstract, IKeyVal
         self.__item: tuple[TKey, TValue] = item
     
     @final
-    def IsKeyValuePair(self) -> bool:
-        return True
+    def IsKeyValuePair(self) -> bool: return True
     
     @final
-    def GetKey(self) -> TKey:
-        return self.__item[0]
+    def GetKey(self) -> TKey: return self.__item[0]
     @final
-    def GetValue(self) -> TValue:
-        return self.__item[1]
+    def GetValue(self) -> TValue: return self.__item[1]
 
     @final
     def _Equals(self, item: IKeyValuePair[TKey, TValue]|object) -> bool:
@@ -630,8 +526,7 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
         self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
         self.__current: INullable[IKeyValuePair[TKey, TValue]] = GetNullValue()
     
-    def IsResetSupported(self) -> bool:
-        return True
+    def IsResetSupported(self) -> bool: return True
     
     def _OnStarting(self) -> bool:
         if super()._OnStarting():
@@ -642,8 +537,7 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
         return False
     
     def _MoveNextOverride(self) -> bool:
-        if self.__iterator is None:
-            return False
+        if self.__iterator is None: return False
         
         if self.__iterator.MoveNext():
             self.__current = GetNullable(EnumerationKeyValuePair[TKey, TValue](self.__iterator.GetCurrent()))
@@ -652,8 +546,7 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
         
         return False
     
-    def _GetCurrent(self) -> IKeyValuePair[TKey, TValue]:
-        return self.__current.GetValue()
+    def _GetCurrent(self) -> IKeyValuePair[TKey, TValue]: return self.__current.GetValue()
     
     def _OnEnded(self) -> None:
         self.__iterator = None
@@ -664,8 +557,7 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
     def _OnStopped(self) -> None:
         pass
     
-    def _ResetOverride(self) -> bool:
-        return True
+    def _ResetOverride(self) -> bool: return True
 
 class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnumerable[TItem]):
     def __init__(self) -> None:
@@ -673,24 +565,20 @@ class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnume
     
     @abstractmethod
     def _GetDictionary(self) -> IDictionary[TKey, TValue]:
-        pass
+        ...
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetDictionary().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetDictionary().IsEmpty()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetDictionary().GetCount()
+    def GetCount(self) -> int: return self._GetDictionary().GetCount()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return TryAsEnumerator(self._TryGetIterator())
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryAsEnumerator(self._TryGetIterator())
 
 @final
 class _None(Singleton):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 # TODO: Should inherit from MutableMapping
 class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TValue]):
@@ -701,27 +589,21 @@ class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TVa
             self.__dic: Dictionary[_TKey, _TValue] = dic
         
         @final
-        def _GetDictionary(self) -> Dictionary[_TKey, _TValue]:
-            return self.__dic
+        def _GetDictionary(self) -> Dictionary[_TKey, _TValue]: return self.__dic
         
         @final
-        def _GetInnerDictionary(self) -> MutableMapping[_TKey, _TValue]:
-            return self._GetDictionary()._GetDictionary()
+        def _GetInnerDictionary(self) -> MutableMapping[_TKey, _TValue]: return self._GetDictionary()._GetDictionary()
     
     @final
     class _KeyEnumerable[_TKey: HashableProtocol, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
-        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
-            super().__init__(dic)
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None: super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[_TKey]|None:
-            return iter(self._GetInnerDictionary().keys())
+        def _TryGetIterator(self) -> Iterator[_TKey]|None: return iter(self._GetInnerDictionary().keys())
     @final
     class _ValueEnumerable[_TKey: HashableProtocol, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
-        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
-            super().__init__(dic)
+        def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None: super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[_TValue]|None:
-            return iter(self._GetInnerDictionary().values())
+        def _TryGetIterator(self) -> Iterator[_TValue]|None: return iter(self._GetInnerDictionary().values())
     
     __getInstance: Function[_None] = GetSingletonInstanceProvider(_None)
     
@@ -746,12 +628,10 @@ class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TVa
         return self.__dictionary
     
     @final
-    def GetCount(self) -> int:
-        return len(self._GetDictionary())
+    def GetCount(self) -> int: return len(self._GetDictionary())
     
     @final
-    def ContainsKey(self, key: TKey) -> bool:
-        return key in self._GetDictionary()
+    def ContainsKey(self, key: TKey) -> bool: return key in self._GetDictionary()
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
@@ -769,11 +649,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TVa
         return False
     
     @final
-    def GetKeys(self) -> ICountableEnumerable[TKey]:
-        return self.__keys
+    def GetKeys(self) -> ICountableEnumerable[TKey]: return self.__keys
     @final
-    def GetValues(self) -> ICountableEnumerable[TValue]:
-        return self.__values
+    def GetValues(self) -> ICountableEnumerable[TValue]: return self.__values
     
     @final
     def TryAdd(self, key: TKey, value: TValue) -> bool:
@@ -798,19 +676,15 @@ class Dictionary[TKey: HashableProtocol, TValue](Collection.Dictionary[TKey, TVa
 
         return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
     @final
-    def Remove(self, key: TKey) -> TValue:
-        return self._GetDictionary().pop(key)
+    def Remove(self, key: TKey) -> TValue: return self._GetDictionary().pop(key)
     
     @final
-    def Clear(self) -> None:
-        self._GetDictionary().clear()
+    def Clear(self) -> None: self._GetDictionary().clear()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]:
-        return DictionaryEnumerator[TKey, TValue](self._GetDictionary())
+    def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValue]]: return DictionaryEnumerator[TKey, TValue](self._GetDictionary())
     
-    def ToString(self) -> str:
-        return str(self._GetDictionary())
+    def ToString(self) -> str: return str(self._GetDictionary())
 
 def CreateSet[T: IHashableValue](items: set[T]|Iterable[T]) -> ISet[T]:
     return Set[T](items)
