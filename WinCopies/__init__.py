@@ -29,35 +29,30 @@ from types import TracebackType
 from typing import final, Literal, Self
 
 class IInterface:
-    def __init__(self) -> None:
-        pass
+    def __init__(self) -> None: pass
 
 class Abstract(ABC, IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IBooleanable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def ToBool(self) -> bool:
-        pass
+        ...
 class INullableBooleanable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def ToNullableBoolean(self) -> NullableBoolean:
-        pass
+        ...
     
     @abstractmethod
     def ToNullableBool(self) -> bool|None:
         return ToNullableBool(self.ToNullableBoolean())
 
 class BooleanableEnum(Enum):
-    def __bool__(self) -> bool:
-        return int(self.value) >= 0
+    def __bool__(self) -> bool: return int(self.value) >= 0
 
 class NullableBoolean(BooleanableEnum):
     BoolFalse = -1
@@ -71,24 +66,18 @@ class NullableBoolean(BooleanableEnum):
 
 def ToNullableBool(value: NullableBoolean) -> bool|None:
     match value:
-        case NullableBoolean.Null:
-            return None
-        case NullableBoolean.BoolFalse:
-            return False
-        case NullableBoolean.BoolTrue:
-            return True
+        case NullableBoolean.Null: return None
+        
+        case NullableBoolean.BoolFalse: return False
+        case NullableBoolean.BoolTrue: return True
     
     return ValueError(value)
 def ToNullableBoolean(value: bool|None) -> NullableBoolean:
     match value:
-        case True:
-            return NullableBoolean.BoolTrue
+        case True: return NullableBoolean.BoolTrue
+        case False: return NullableBoolean.BoolFalse
         
-        case False:
-            return NullableBoolean.BoolFalse
-        
-        case _:
-            return NullableBoolean.Null
+        case _: return NullableBoolean.Null
 
 class Endianness(Enum):
     Null = 0
@@ -107,15 +96,14 @@ class BitDepthLevel(Enum):
     Four = 64
 
 class IDisposableBase(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def Initialize(self) -> None:
         pass
     
     @abstractmethod
     def Dispose(self) -> None:
-        pass
+        ...
 class IDisposable(IDisposableBase):
     def __init__(self) -> None:
         super().__init__()
@@ -133,29 +121,23 @@ class IDisposable(IDisposableBase):
         return False
 
 class IStringable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def ToString(self) -> str:
-        pass
+        ...
 
     @final
-    def __str__(self) -> str:
-        return self.ToString()
+    def __str__(self) -> str: return self.ToString()
 
-def Not(value: bool|None) -> bool|None:
-    return None if value is None else not value
+def Not(value: bool|None) -> bool|None: return None if value is None else not value
 
 def TryConvertToInt(value: object) -> int|None:
-    try:
-        return int(value) # type: ignore
-    except ValueError:
-        return None
+    try: return int(value) # type: ignore
+    except ValueError: return None
 
 def ReadInt(message: str, errorMessage: str = "Invalid value; an integer is expected.") -> int:
-    def read() -> int|None:
-        return TryConvertToInt(input(message))
+    def read() -> int|None: return TryConvertToInt(input(message))
         
     value: int|None = read()
     
