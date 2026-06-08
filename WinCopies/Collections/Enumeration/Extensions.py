@@ -23,37 +23,32 @@ from WinCopies.Typing.Delegate import Converter, Function, NullableFunction
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class _ICookie[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def SetIterable(self, iterable: IEnumerable[T]) -> None:
-        pass
+        ...
     @abstractmethod
     def UnsetIterable(self) -> None:
-        pass
+        ...
 
 class _IToken[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetCurrent(self) -> T:
-        pass
+        ...
     
     @abstractmethod
     def MoveNext(self) -> bool:
-        pass
+        ...
 @final
 class _NullToken[T](Abstract, _IToken[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def GetCurrent(self) -> T:
-        raise GetEnumeratorInactiveError()
+    def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
     
-    def MoveNext(self) -> bool:
-        return False
+    def MoveNext(self) -> bool: return False
 @final
 class _Token[T](Abstract, _IToken[T]):
     def __init__(self, node: IDoublyLinkedNode[T]) -> None:
@@ -62,8 +57,7 @@ class _Token[T](Abstract, _IToken[T]):
 
         def moveNext() -> bool:
             def moveNext() -> bool:
-                if self.__node is None:
-                    return False
+                if self.__node is None: return False
                 
                 else:
                     self.__node = self.__node.GetNext()
@@ -82,8 +76,7 @@ class _Token[T](Abstract, _IToken[T]):
     def GetCurrent(self) -> T:
         node: IDoublyLinkedNode[T]|None = self.__node
 
-        if node is None:
-            raise GetEnumeratorInactiveError()
+        if node is None: raise GetEnumeratorInactiveError()
         
         return node.GetValue()
     
@@ -120,21 +113,17 @@ class _Enumerator[T](EnumeratorBase[T]):
 
         return None if first is None else _Enumerator[T](_AbstractEnumerator[T](enumerator), first)
     
-    def IsResetSupported(self) -> bool:
-        return True
+    def IsResetSupported(self) -> bool: return True
     
-    def _GetCurrent(self) -> T:
-        return self.__token.GetCurrent()
+    def _GetCurrent(self) -> T: return self.__token.GetCurrent()
     
     def _MoveNextOverride(self) -> bool:
-        if self.__token.MoveNext():
-            return True
+        if self.__token.MoveNext(): return True
         
         if self.__enumerator.MoveNext():
             token: _IToken[T]|None = self.__enumerator.GetCurrent()
 
-            if token is None:
-                return False
+            if token is None: return False
 
             self.__token = token
 
@@ -142,16 +131,13 @@ class _Enumerator[T](EnumeratorBase[T]):
         
         return False
     
-    def _OnStopped(self) -> None:
-        pass
-    def _OnEnded(self) -> None:
-        self.__token = _NullToken[T]()
+    def _OnStopped(self) -> None: pass
+    def _OnEnded(self) -> None: self.__token = _NullToken[T]()
     
     def _ResetOverride(self) -> bool:
         token: _IToken[T]|None = self.__enumerator.GetFirst()
 
-        if token is not None:
-            self.__token = token
+        if token is not None: self.__token = token
 
         return True
 
@@ -177,16 +163,14 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
     def _GetCurrent(self) -> T:
         items: IList[T]|None = self.__items
 
-        if items is None:
-            raise GetEnumeratorInactiveError()
+        if items is None: raise GetEnumeratorInactiveError()
 
         return items.GetLastValue()
     
     def __GetToken(self, func: Converter[IList[T], IDoublyLinkedNode[T]|None]) -> _IToken[T]|None:
         items: IList[T]|None = self.__items
 
-        if items is None:
-            return None
+        if items is None: return None
         
         node: IDoublyLinkedNode[T]|None = func(items)
 
@@ -211,20 +195,17 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
             value: T = self._GetContainer().GetCurrent()
             items: IList[T]|None = self.__items
 
-            if items is None:
-                return False
+            if items is None: return False
             
             items.AddLast(value)
 
             return True
         
-        if super()._MoveNextOverride():
-            return moveNext()
+        if super()._MoveNextOverride(): return moveNext()
         
         items: IList[T]|None = self.__items
 
-        if items is not None:
-            self.__builder.SetIterable(items)
+        if items is not None: self.__builder.SetIterable(items)
         
         return False
     
@@ -247,8 +228,7 @@ class _ItemEnumerable[T](Enumerable[T]):
 
         self.__enumerator: _AbstractionEnumerator[T] = _AbstractionEnumerator[T](builder, enumerator)
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__enumerator.GetItemEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__enumerator.GetItemEnumerator()
 
 @final
 class _Enumerable[T](Enumerable[T]):
@@ -280,10 +260,8 @@ class IterableBuilder[T](Enumerable[T]):
 
             self.__builder: IterableBuilder[_T] = builder
         
-        def SetIterable(self, iterable: IEnumerable[_T]) -> None:
-            return self.__builder._SetIterable(iterable)
-        def UnsetIterable(self) -> None:
-            return self.__builder._UnsetIterable()
+        def SetIterable(self, iterable: IEnumerable[_T]) -> None: return self.__builder._SetIterable(iterable)
+        def UnsetIterable(self) -> None: return self.__builder._UnsetIterable()
     
     def __init__(self, iterable: IEnumerable[T]) -> None:
         super().__init__()
@@ -306,5 +284,4 @@ class IterableBuilder[T](Enumerable[T]):
         self.__SetIterable(GetEmptyEnumerable())
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__iterable.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__iterable.TryGetEnumerator()

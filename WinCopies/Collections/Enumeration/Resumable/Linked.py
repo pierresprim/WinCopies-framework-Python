@@ -22,7 +22,7 @@ class _ICookie(ICookieBase[ILinkedNode], IRemovable):
     
     @abstractmethod
     def MoveToTop(self) -> None:
-        pass
+        ...
 
 class IResumableNodeEnumerationCursor(IResumableEnumerationCursor):
     def __init__(self) -> None:
@@ -30,13 +30,12 @@ class IResumableNodeEnumerationCursor(IResumableEnumerationCursor):
     
     @abstractmethod
     def TryGetNode(self) -> ILinkedNode|None:
-        pass
+        ...
     @final
     def GetNode(self) -> ILinkedNode:
         node: ILinkedNode|None = self.TryGetNode()
 
-        if node is None:
-            raise GetDisposedError()
+        if node is None: raise GetDisposedError()
         
         return node
 
@@ -50,14 +49,11 @@ class _ResumableNodeEnumerationCursor(Abstract, IResumableNodeEnumerationCursor)
             self.__node: INode = node
             self.__cookie: ICookie = cookie
         
-        def SetCursor(self, value: ILinkedNode) -> None:
-            return self.__cookie.SetCursor(value)
+        def SetCursor(self, value: ILinkedNode) -> None: return self.__cookie.SetCursor(value)
         
-        def MoveToTop(self) -> None:
-            self.__node.TryMoveToBottom()
+        def MoveToTop(self) -> None: self.__node.TryMoveToBottom()
         
-        def Remove(self) -> None:
-            self.__node.Remove()
+        def Remove(self) -> None: self.__node.Remove()
     
     def __init__(self, node: ILinkedNode) -> None:
         super().__init__()
@@ -68,22 +64,19 @@ class _ResumableNodeEnumerationCursor(Abstract, IResumableNodeEnumerationCursor)
     def _InitializeCookie(self, node: INode, cookie: ICookie) -> None:
         self.__cookie = _ResumableNodeEnumerationCursor._Cookie(node, cookie)
     
-    def TryGetNode(self) -> ILinkedNode|None:
-        return self.__node
+    def TryGetNode(self) -> ILinkedNode|None: return self.__node
     
     def Resume(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None:
-            raise GetDisposedError()
+        if cookie is None: raise GetDisposedError()
         
         cookie.SetCursor(self.GetNode())
     
     def MoveToTop(self) -> None:
         cookie: _ICookie|None = self.__cookie
         
-        if cookie is None:
-            raise GetDisposedError()
+        if cookie is None: raise GetDisposedError()
         
         cookie.MoveToTop()
     
@@ -103,18 +96,13 @@ class _NodeKey(Abstract, IHashable["_NodeKey"]):
 
         self.__node: ILinkedNode = node
     
-    def GetNode(self) -> ILinkedNode:
-        return self.__node
+    def GetNode(self) -> ILinkedNode: return self.__node
     
-    def Equals(self, item: _NodeKey|object) -> bool:
-        return isinstance(item, _NodeKey) and self.__node is item.GetNode()
-    
-    def Hash(self) -> int:
-        return id(self.__node)
+    def Equals(self, item: _NodeKey|object) -> bool: return isinstance(item, _NodeKey) and self.__node is item.GetNode()
+    def Hash(self) -> int: return id(self.__node)
 
 class IResumableNodeEnumerationCursorFactory[T: IResumableNodeEnumerationCursor](IKeyableObjectFactory[_NodeKey, T], IDefaultResumableEnumerationCursorFactory[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ResumableNodeEnumerationCursorFactory[T: IResumableNodeEnumerationCursor](KeyedDisposableObjectFactory[_NodeKey, T], IResumableNodeEnumerationCursorFactory[T]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__()
@@ -123,7 +111,7 @@ class ResumableNodeEnumerationCursorFactory[T: IResumableNodeEnumerationCursor](
     
     @abstractmethod
     def _InitializeCursorOverride(self, cursor: T, node: INode, cookie: ICookie) -> None:
-        pass
+        ...
     
     @final
     def _InitializeCursor(self, cursor: T, node: INode) -> None:
@@ -141,20 +129,17 @@ class ResumableNodeEnumerationCursorFactory[T: IResumableNodeEnumerationCursor](
         return node
     
     @final
-    def GetFirstCursor(self) -> T:
-        return self._GetItems().GetLastValue()
+    def GetFirstCursor(self) -> T: return self._GetItems().GetLastValue()
 
 @final
 class _ResumableEnumerationCursorFactory(ResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]):
-    def __init__(self, cookie: ICookie) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: ICookie) -> None: super().__init__(cookie)
     
     def _InitializeCursorOverride(self, cursor: _ResumableNodeEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
 class IDefaultResumableNodeEnumerator[T: ILinkedNode](IDefaultResumableEnumerator[T, ILinkedNode]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _CreateCursorFactory(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
@@ -162,14 +147,14 @@ class IDefaultResumableNodeEnumerator[T: ILinkedNode](IDefaultResumableEnumerato
 
     @abstractmethod
     def _GetCursors(self) -> IResumableNodeEnumerationCursorFactory[_ResumableNodeEnumerationCursor]:
-        pass
+        ...
     
     @abstractmethod
     def _GetCurrentNode(self) -> T:
-        pass
+        ...
     @abstractmethod
     def _SetCurrentNode(self, node: T) -> None:
-        pass
+        ...
     
     @final
     def _GetFirstCursor(self) -> IResumableEnumerationCursor:

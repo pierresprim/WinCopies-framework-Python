@@ -15,20 +15,18 @@ from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValu
 type ICookie = ICookieBase[int]
 
 class _ICookie(ICookieBase[int], IRemovable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def MoveToTop(self) -> None:
-        pass
+        ...
 
 class IResumableIncrementalEnumerationCursor(IExtendedComparable["IResumableIncrementalEnumerationCursor|int"], IResumableEnumerationCursor):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetIndex(self) -> int:
-        pass
+        ...
 
 @final
 class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnumerationCursor):
@@ -40,14 +38,11 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
             self.__node: INode = node
             self.__cookie: ICookie = cookie
         
-        def SetCursor(self, value: int) -> None:
-            return self.__cookie.SetCursor(value)
+        def SetCursor(self, value: int) -> None: return self.__cookie.SetCursor(value)
         
-        def MoveToTop(self) -> None:
-            self.__node.TryMoveToBottom()
+        def MoveToTop(self) -> None: self.__node.TryMoveToBottom()
         
-        def Remove(self) -> None:
-            self.__node.Remove()
+        def Remove(self) -> None: self.__node.Remove()
     
     def __init__(self, index: int) -> None:
         super().__init__()
@@ -67,27 +62,21 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
     def Resume(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None:
-            raise GetDisposedError()
+        if cookie is None: raise GetDisposedError()
 
         cookie.SetCursor(self.__index)
     
     def MoveToTop(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None:
-            raise GetDisposedError()
+        if cookie is None: raise GetDisposedError()
         
         cookie.MoveToTop()
     
-    def Equals(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool:
-        return self.__Compare(item, UnderlyingValueEquals)
+    def Equals(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool: return self.__Compare(item, UnderlyingValueEquals)
+    def Hash(self) -> int: return hash(self.GetIndex())
     
-    def CompareTo(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool|None:
-        return self.__Compare(item, CompareUnderlyingValue)
-    
-    def Hash(self) -> int:
-        return hash(self.GetIndex())
+    def CompareTo(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool|None: return self.__Compare(item, CompareUnderlyingValue)
     
     def Dispose(self) -> None:
         cookie: _ICookie|None = self.__cookie
@@ -99,8 +88,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
             self.__index = -1
 
 class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](ISortedObjectFactory[int, T], IDefaultResumableEnumerationCursorFactory[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](SortedDisposableObjectFactory[int, T], IResumableIncrementalEnumerationCursorFactory[T]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__()
@@ -109,7 +97,7 @@ class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnume
     
     @abstractmethod
     def _InitializeCursorOverride(self, cursor: T, node: INode, cookie: ICookie) -> None:
-        pass
+        ...
     
     @final
     def _InitializeCursor(self, cursor: T, node: INode) -> None:
@@ -131,8 +119,7 @@ class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnume
         return self._GetItems().GetLastValue()
 @final
 class _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
-    def __init__(self, cookie: ICookie) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: ICookie) -> None: super().__init__(cookie)
     
     def _InitializeCursorOverride(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
@@ -152,8 +139,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultResuma
         self._SetValue(value)
     
     @final
-    def SupportsMultipleCursors(self) -> bool:
-        return True
+    def SupportsMultipleCursors(self) -> bool: return True
     
     @final
     def _PlaceCursor(self) -> IResumableEnumerationCursor:

@@ -17,92 +17,85 @@ from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, Va
 from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 
 class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetEnumerator(self) -> IEnumerator[TEnumerationItems]:
-        pass
+        ...
     
     @abstractmethod
     def GetEnumerationItems(self, enumerationItems: TEnumerationItems) -> IEnumerable[TEnumerationItems]:
-        pass
+        ...
 
     @abstractmethod
     def MoveNext(self) -> bool:
-        pass
+        ...
     
     @abstractmethod
     def GetStackItem(self, item: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> TStackItems:
-        pass
+        ...
     @abstractmethod
     def GetStackItemAsEnumerator(self, item: TStackItems) -> IEnumerator[TEnumerationItems]:
-        pass
+        ...
     @abstractmethod
     def GetStackItemAsCookie(self, item: TStackItems) -> TCookie:
-        pass
+        ...
     
     @abstractmethod
     def Push(self, item: TStackItems) -> None:
-        pass
+        ...
 
     @abstractmethod
     def TryPeek(self) -> INullable[TStackItems]:
-        pass
+        ...
     
     @abstractmethod
     def TryPop(self) -> INullable[TStackItems]:
-        pass
+        ...
     
     @abstractmethod
     def OnEnteringSublevel(self, item: TEnumerationItems) -> bool|None:
-        pass
+        ...
     @abstractmethod
     def OnExitingSublevel(self, cookie: TCookie) -> bool|None:
-        pass
+        ...
     
     @abstractmethod
     def OnEnteringMainLevel(self, item: TEnumerationItems) -> bool|None:
-        pass
+        ...
     @abstractmethod
     def OnExitingMainLevel(self, cookie: TCookie) -> bool:
-        pass
+        ...
 
 class IRecursiveEnumerationDelegate[T](IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetOrder(self) -> EnumerationOrder:
-        pass
+        ...
 
     @abstractmethod
     def GetCurrent(self) -> T:
-        pass
+        ...
 
     @abstractmethod
     def MoveNext(self) -> bool:
-        pass
+        ...
 
 @final
 class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelegate[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def Initialize(self) -> None:
-        pass
+    def Initialize(self) -> None: pass
     
-    def GetOrder(self) -> EnumerationOrder:
-        return EnumerationOrder.Null
+    def GetOrder(self) -> EnumerationOrder: return EnumerationOrder.Null
     
-    def GetCurrent(self) -> T:
-        raise GetEnumeratorInactiveError()
+    def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
     
-    def MoveNext(self) -> bool:
-        return False
+    def MoveNext(self) -> bool: return False
     
-    def Dispose(self) -> None:
-        pass
+    def Dispose(self) -> None: pass
 class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abstract, IRecursiveEnumerationDelegate[TEnumerationItems]):
     def __init__(self, cookieProvider: Function[IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]]) -> None:
         super().__init__()
@@ -119,21 +112,20 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
         cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = self._GetCookie()
 
         cookie.Push(cookie.GetStackItem(currentItem, enumerator))
-    def _OnExitingLevel(self, enumerator: IEnumerator[TEnumerationItems]) -> None:
-        pass
+    def _OnExitingLevel(self, enumerator: IEnumerator[TEnumerationItems]) -> None: pass
     
     @final
     def __ProcessEnumerator(self, currentItem: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems], cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> NullableBoolean:
         while enumerator.MoveNext():
-            result: bool|None = cookie.OnEnteringSublevel(currentItem)
-            
-            if result is None:
-                return NullableBoolean.Null
-            
-            if result is True:
-                self._OnEnteringLevel(currentItem, enumerator)
+            match cookie.OnEnteringSublevel(currentItem):
+                case None: return NullableBoolean.Null
                 
-                return NullableBoolean.BoolTrue
+                case True:
+                    self._OnEnteringLevel(currentItem, enumerator)
+                    
+                    return NullableBoolean.BoolTrue
+                
+                case _: pass
         
         return NullableBoolean.BoolFalse
     
@@ -142,8 +134,7 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
         def getEnumerator(cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> DualResult[TEnumerationItems, IEnumerator[TEnumerationItems]]|None:
             enumerator: IEnumerator[TEnumerationItems]|None = self._GetCurrentEnumerator()
 
-            if enumerator is None:
-                return None
+            if enumerator is None: return None
             
             item: TEnumerationItems|None = enumerator.GetCurrent()
 
@@ -155,19 +146,16 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
         return NullableBoolean.BoolFalse if result is None else self.__ProcessEnumerator(result.GetKey(), result.GetValue(), cookie)
     
     def _Loop(self, result: INullable[TStackItems]) -> bool|None:
-        def moveNext(enumerator: IEnumerator[TEnumerationItems]) -> bool:
-            return enumerator.MoveNext()
+        def moveNext(enumerator: IEnumerator[TEnumerationItems]) -> bool: return enumerator.MoveNext()
         
-        def tryPop(cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> INullable[TStackItems]:
-            return cookie.TryPop()
+        def tryPop(cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> INullable[TStackItems]: return cookie.TryPop()
         
         def loop(cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> bool|None:
             nonlocal result
 
             loopResult: bool|None = cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))
 
-            if loopResult is None:
-                return False
+            if loopResult is None: return False
             
             while (result := tryPop(cookie)).HasValue():
                 if loopResult is True and moveNext(enumerator := cookie.GetStackItemAsEnumerator(result.GetValue())):
@@ -175,22 +163,19 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
 
                     return True
 
-                if (loopResult := cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))) is None:
-                    return False
+                if (loopResult := cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))) is None: return False
             
             return None
         
         cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems] = self._GetCookie()
         loopResult: bool|None = cookie.OnExitingSublevel(cookie.GetStackItemAsCookie(result.GetValue()))
         
-        if loopResult is None:
-            return False
+        if loopResult is None: return False
         
         enumerator: IEnumerator[TEnumerationItems]|None = None
         
         if loopResult is False:
-            if (result := tryPop(cookie)).HasValue():
-                return loop(cookie)
+            if (result := tryPop(cookie)).HasValue(): return loop(cookie)
         
         if (result := tryPop(cookie)).HasValue():
             if moveNext(enumerator := cookie.GetStackItemAsEnumerator(result.GetValue())):
@@ -204,7 +189,7 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
     
     @abstractmethod
     def _MoveNext(self) -> bool:
-        pass
+        ...
 
     @final
     def _UpdateMoveNext(self, func: Function[bool]) -> None:
@@ -226,14 +211,12 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
     def GetCurrent(self) -> TEnumerationItems:
         enumerator: IEnumerator[TEnumerationItems]|None = self.__currentEnumerator
 
-        if enumerator is None:
-            raise GetEnumeratorInactiveError()
+        if enumerator is None: raise GetEnumeratorInactiveError()
 
         return enumerator.GetCurrent()
     
     @final
-    def MoveNext(self) -> bool:
-        return False if self.__moveNext is None else self.__moveNext()
+    def MoveNext(self) -> bool: return False if self.__moveNext is None else self.__moveNext()
     
     def Dispose(self) -> None:
         self._GetCookie().Dispose()
@@ -248,8 +231,7 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
         
         self.__first: TStackItems|None = None
     
-    def GetOrder(self) -> EnumerationOrder:
-        return EnumerationOrder.FIFO
+    def GetOrder(self) -> EnumerationOrder: return EnumerationOrder.FIFO
     
     def _OnEnteringLevel(self, currentItem: TEnumerationItems, enumerator: IEnumerator[TEnumerationItems]) -> None:
         super()._OnEnteringLevel(currentItem, enumerator)
@@ -269,35 +251,29 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
         def moveNext(current: TEnumerationItems, currentEnumerator: IEnumerator[TEnumerationItems]|None, cookie: IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems]) -> bool:
             def moveNext() -> bool:
                 match self._TryEnterLevel():
-                    case NullableBoolean.BoolTrue:
-                        return True
-                    case NullableBoolean.Null:
-                        return False
-                    case _:
-                        pass
+                    case NullableBoolean.BoolTrue: return True
+                    case NullableBoolean.Null: return False
+                    
+                    case _: pass
                 
                 result: INullable[TStackItems] = cookie.TryPeek()
 
                 if result.HasValue():
-                    if cookie.GetStackItemAsEnumerator(result.GetValue()).MoveNext():
-                        return True
+                    if cookie.GetStackItemAsEnumerator(result.GetValue()).MoveNext(): return True
                     
                     loopResult: bool|None = self._Loop(result)
 
-                    if loopResult is not None:
-                        return loopResult
+                    if loopResult is not None: return loopResult
             
                 first: TStackItems|None = self.__first
 
-                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))):
-                    return False
+                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))): return False
 
                 self._UpdateMoveNext(self._MoveNext)
 
                 return self._MoveNext()
             
-            if currentEnumerator is None:
-                return False
+            if currentEnumerator is None: return False
             
             self.__first = cookie.GetStackItem(current, currentEnumerator)
             
@@ -313,16 +289,11 @@ class _FIFO[TEnumerationItems, TCookie, TStackItems](_RecursiveEnumerationDelega
         while cookie.MoveNext() and (current := (currentEnumerator := setCurrentEnumerator(enumerator)).GetCurrent()) is not None:
             match ToNullableBoolean(cookie.OnEnteringMainLevel(current)):
                 case NullableBoolean.BoolTrue:
-                    if moveNext(current, currentEnumerator, cookie):
-                        return True
-                    
-                    continue
+                    if moveNext(current, currentEnumerator, cookie): return True
                 
-                case NullableBoolean.Null:
-                    return False
+                case NullableBoolean.Null: return False
                 
-                case _:
-                    continue
+                case _: pass
         
         return False
     
@@ -337,15 +308,12 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
         
         self.__first: DualResult[T, IEnumerator[T]]|None = None
     
-    def GetOrder(self) -> EnumerationOrder:
-        return EnumerationOrder.LIFO
+    def GetOrder(self) -> EnumerationOrder: return EnumerationOrder.LIFO
     
     def _MoveNext(self) -> bool:
-        def tryEnterLevel() -> NullableBoolean:
-            return self._TryEnterLevel()
+        def tryEnterLevel() -> NullableBoolean: return self._TryEnterLevel()
         
-        def getEnumerator(value: INullable[DualResult[T, IEnumerator[T]]]) -> IEnumerator[T]:
-            return value.GetValue().GetValue()
+        def getEnumerator(value: INullable[DualResult[T, IEnumerator[T]]]) -> IEnumerator[T]: return value.GetValue().GetValue()
         
         def setCurrentEnumerator(value: IEnumerator[T]) -> IEnumerator[T]:
             self._SetCurrentEnumerator(value)
@@ -359,17 +327,15 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
 
                     match _result:
                         case NullableBoolean.BoolTrue:
-                            while _result == NullableBoolean.BoolTrue:
-                                _result = tryEnterLevel()
+                            while _result == NullableBoolean.BoolTrue: _result = tryEnterLevel()
                             
-                            if _result == NullableBoolean.Null:
-                                return False
+                            if _result == NullableBoolean.Null: return False
                             
                             self._SetCurrentEnumerator(getEnumerator(cookie.TryPeek()))
-                        case NullableBoolean.Null:
-                            return False
-                        case _:
-                            return None
+                        
+                        case NullableBoolean.Null: return False
+
+                        case _: return None
 
                     return True
                 
@@ -379,26 +345,21 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
                     loopResult: bool|None = None
 
                     if getEnumerator(result).MoveNext():
-                        if (loopResult := _tryEnterLevel()) is not None:
-                            return loopResult
+                        if (loopResult := _tryEnterLevel()) is not None: return loopResult
                     
-                    if (loopResult := self._Loop(result)) is False:
-                        return False
+                    if (loopResult := self._Loop(result)) is False: return False
                     
-                    if loopResult is True and (loopResult := _tryEnterLevel()) is not None:
-                        return loopResult
+                    if loopResult is True and (loopResult := _tryEnterLevel()) is not None: return loopResult
 
                 first: DualResult[T, IEnumerator[T]]|None = self.__first
 
-                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))):
-                    return False
+                if not (first is None or cookie.OnExitingMainLevel(cookie.GetStackItemAsCookie(first))): return False
 
                 self._UpdateMoveNext(self._MoveNext)
 
                 return self._MoveNext()
             
-            if currentEnumerator is None:
-                return None
+            if currentEnumerator is None: return None
             
             self.__first = cookie.GetStackItem(current, currentEnumerator)
 
@@ -406,19 +367,17 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
 
             match result:
                 case NullableBoolean.BoolTrue:
-                    while result == NullableBoolean.BoolTrue:
-                        result = tryEnterLevel()
+                    while result == NullableBoolean.BoolTrue: result = tryEnterLevel()
                     
-                    if result == NullableBoolean.Null:
-                        return False
+                    if result == NullableBoolean.Null: return False
                     
                     self._SetCurrentEnumerator(getEnumerator(cookie.TryPeek()))
                 
                     self._UpdateMoveNext(moveNext)
-                case NullableBoolean.Null:
-                    return False
-                case _:
-                    pass
+                
+                case NullableBoolean.Null: return False
+                
+                case _: pass
             
             return True
         
@@ -433,16 +392,13 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
                 case NullableBoolean.BoolTrue:
                     result = moveNext(current, currentEnumerator, cookie)
 
-                    if result is None:
-                        continue
+                    if result is None: continue
 
                     return result
                 
-                case NullableBoolean.Null:
-                    return False
+                case NullableBoolean.Null: return False
                 
-                case _:
-                    continue
+                case _: pass
         
         return False
     
@@ -452,32 +408,30 @@ class _LIFO[T](_RecursiveEnumerationDelegate[T, T, DualResult[T, IEnumerator[T]]
         self.__first = None
 
 class _IRecursiveEnumeratorBase[T, TCookie, TStackItems](IEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
-        pass
+        ...
     
     @abstractmethod
     def _GetCookie(self) -> IRecursiveEnumerationCookie[T, TCookie, TStackItems]:
-        pass
+        ...
 
 class _IDelegate[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetEnumerator(self) -> IEnumerator[T]:
-        pass
+        ...
 
     @abstractmethod
     def GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
-        pass
+        ...
 
     @abstractmethod
     def MoveNext(self) -> bool:
-        pass
+        ...
 @final
 class _Delegate[T](Abstract, _IDelegate[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]], enumerationItemsProvider: Converter[T, IEnumerable[T]], moveNextAction: Function[bool]) -> None:
@@ -487,40 +441,28 @@ class _Delegate[T](Abstract, _IDelegate[T]):
         self.__enumerationItemsProvider: Converter[T, IEnumerable[T]] = enumerationItemsProvider
         self.__moveNextAction: Function[bool] = moveNextAction
     
-    def GetEnumerator(self) -> IEnumerator[T]:
-        return self.__enumeratorProvider()
+    def GetEnumerator(self) -> IEnumerator[T]: return self.__enumeratorProvider()
 
-    def GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]:
-        return self.__enumerationItemsProvider(enumerationItems)
+    def GetEnumerationItems(self, enumerationItems: T) -> IEnumerable[T]: return self.__enumerationItemsProvider(enumerationItems)
     
-    def MoveNext(self) -> bool:
-        return self.__moveNextAction()
+    def MoveNext(self) -> bool: return self.__moveNextAction()
 
 @final
 class _NullRecursiveEnumerationHandler[TItem, TCookie](Abstract, IRecursiveEnumerationHandlerBase[TItem, TCookie]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
-    def OnStartingEnumeration(self) -> bool:
-        return True
+    def OnStartingEnumeration(self) -> bool: return True
     
-    def OnEnteringEnumerationLevel(self, item: TItem) -> None:
-        pass
-    def OnExitingEnumerationLevel(self, cookie: TCookie) -> None:
-        pass
+    def OnEnteringEnumerationLevel(self, item: TItem) -> None: pass
+    def OnExitingEnumerationLevel(self, cookie: TCookie) -> None: pass
     
-    def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None:
-        return True
-    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool:
-        return True
+    def OnEnteringMainEnumerationLevel(self, item: TItem) -> bool|None: return True
+    def OnExitingMainEnumerationLevel(self, cookie: TCookie) -> bool: return True
     
-    def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None:
-        return True
-    def OnExitingSubenumerationLevel(self, cookie: TCookie) -> bool|None:
-        return True
+    def OnEnteringSubenumerationLevel(self, item: TItem) -> bool|None: return True
+    def OnExitingSubenumerationLevel(self, cookie: TCookie) -> bool|None: return True
     
-    def OnStoppedEnumeration(self) -> None:
-        pass
+    def OnStoppedEnumeration(self) -> None: pass
 
 class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TItem], _IRecursiveEnumeratorBase[TItem, TCookie, TStackItems]):
     @final
@@ -532,40 +474,30 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
             self.__delegate: _IDelegate[_TItem] = delegate
             self.__enumerators: Stack[_TStackItems]|None = None
         
-        def Initialize(self) -> None:
-            self.__enumerators = Stack[_TStackItems]()
+        def Initialize(self) -> None: self.__enumerators = Stack[_TStackItems]()
 
-        def GetEnumerator(self) -> IEnumerator[_TItem]:
-            return self.__delegate.GetEnumerator()
+        def GetEnumerator(self) -> IEnumerator[_TItem]: return self.__delegate.GetEnumerator()
         
-        def GetEnumerationItems(self, enumerationItems: _TItem) -> IEnumerable[_TItem]:
-            return self.__delegate.GetEnumerationItems(enumerationItems)
+        def GetEnumerationItems(self, enumerationItems: _TItem) -> IEnumerable[_TItem]: return self.__delegate.GetEnumerationItems(enumerationItems)
         
-        def MoveNext(self) -> bool:
-            return self.__delegate.MoveNext()
+        def MoveNext(self) -> bool: return self.__delegate.MoveNext()
         
-        def GetStackItem(self, item: _TItem, enumerator: IEnumerator[_TItem]) -> _TStackItems:
-            return self.__enumerator._GetStackItem(item, enumerator)
-        def GetStackItemAsEnumerator(self, item: _TStackItems) -> IEnumerator[_TItem]:
-            return self.__enumerator._GetStackItemAsEnumerator(item)
-        def GetStackItemAsCookie(self, item: _TStackItems) -> _TCookie:
-            return self.__enumerator._GetStackItemAsCookie(item)
+        def GetStackItem(self, item: _TItem, enumerator: IEnumerator[_TItem]) -> _TStackItems: return self.__enumerator._GetStackItem(item, enumerator)
+        def GetStackItemAsEnumerator(self, item: _TStackItems) -> IEnumerator[_TItem]: return self.__enumerator._GetStackItemAsEnumerator(item)
+        def GetStackItemAsCookie(self, item: _TStackItems) -> _TCookie: return self.__enumerator._GetStackItemAsCookie(item)
         
         def Push(self, item: _TStackItems) -> None:
-            if self.__enumerators is None:
-                raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetEnumeratorInactiveError()
             
             self.__enumerators.Push(item)
 
         def TryPeek(self) -> INullable[_TStackItems]:
-            if self.__enumerators is None:
-                raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetEnumeratorInactiveError()
             
             return self.__enumerators.TryPeek()
 
         def TryPop(self) -> INullable[_TStackItems]:
-            if self.__enumerators is None:
-                raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetEnumeratorInactiveError()
             
             self.__enumerators.TryPop()
 
@@ -574,8 +506,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
         def OnEnteringSublevel(self, item: _TItem) -> bool|None:
             result: bool|None = self.__enumerator._OnEnteringSublevel(item)
 
-            if result is True:
-                self.__enumerator._OnEnteringLevel(item)
+            if result is True: self.__enumerator._OnEnteringLevel(item)
 
             return result
         def OnExitingSublevel(self, cookie: _TCookie) -> bool|None:
@@ -588,8 +519,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
         def OnEnteringMainLevel(self, item: _TItem) -> bool|None:
             result: bool|None = self.__enumerator._OnEnteringMainLevel(item)
             
-            if result is True:
-                self.__enumerator._OnEnteringLevel(item)
+            if result is True: self.__enumerator._OnEnteringLevel(item)
 
             return result
         def OnExitingMainLevel(self, cookie: _TCookie) -> bool:
@@ -617,13 +547,13 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
     
     @abstractmethod
     def _GetStackItem(self, item: TItem, enumerator: IEnumerator[TItem]) -> TStackItems:
-        pass
+        ...
     @abstractmethod
     def _GetStackItemAsEnumerator(self, item: TStackItems) -> IEnumerator[TItem]:
-        pass
+        ...
     @abstractmethod
     def _GetStackItemAsCookie(self, item: TStackItems) -> TCookie:
-        pass
+        ...
 
     def _OnStarting(self) -> bool:
         if super()._OnStarting() and self.__handler.OnStartingEnumeration():
@@ -649,23 +579,19 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
         return self.__handler.OnExitingMainEnumerationLevel(cookie)
     
     @final
-    def _GetCurrent(self) -> TItem:
-        return self.__moveNext.GetCurrent()
+    def _GetCurrent(self) -> TItem: return self.__moveNext.GetCurrent()
     
-    def _MoveNextOverride(self) -> bool:
-        return self.__moveNext.MoveNext()
+    def _MoveNextOverride(self) -> bool: return self.__moveNext.MoveNext()
     
     def _OnEnded(self) -> None:
         self.__moveNext.Dispose()
 
         super()._OnEnded()
     
-    def _OnStopped(self) -> None:
-        self.__handler.OnStoppedEnumeration()
+    def _OnStopped(self) -> None: self.__handler.OnStoppedEnumeration()
 
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
-    def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
-        super().__init__(enumerator, _FIFO[T, None, IEnumerator[T]](self._GetCookie), handler)
+    def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None: super().__init__(enumerator, _FIFO[T, None, IEnumerator[T]](self._GetCookie), handler)
     
     @final
     def _GetStackItem(self, item: T, enumerator: IEnumerator[T]) -> IEnumerator[T]:
@@ -680,14 +606,12 @@ class StackedRecursiveEnumerator[T](RecursiveEnumeratorBase[T, T, DualResult[T, 
     def __init__(self, enumerator: IEnumerator[T], enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> None:
         def getDelegate(enumerationOrder: EnumerationOrder, cookieProvider: Function[IRecursiveEnumerationCookie[T, T, DualResult[T, IEnumerator[T]]]]) -> IRecursiveEnumerationDelegate[T]|None:
             match enumerationOrder:
-                case EnumerationOrder.Null:
-                    return None
-                case EnumerationOrder.FIFO:
-                    return _FIFO[T, T, DualResult[T, IEnumerator[T]]](cookieProvider)
-                case EnumerationOrder.LIFO:
-                    return _LIFO[T](cookieProvider)
-                case _:
-                    raise ValueError(enumerationOrder)
+                case EnumerationOrder.Null: return None
+                
+                case EnumerationOrder.FIFO: return _FIFO[T, T, DualResult[T, IEnumerator[T]]](cookieProvider)
+                case EnumerationOrder.LIFO: return _LIFO[T](cookieProvider)
+                
+                case _: raise ValueError(enumerationOrder)
         
         super().__init__(enumerator, getDelegate(enumerationOrder, self._GetCookie), handler)
     
@@ -711,7 +635,7 @@ class _IEnumerator[T](IEnumerator[T]):
     
     @abstractmethod
     def _GetEnumerable(self) -> RecursivelyEnumerable[T]:
-        pass
+        ...
 
 class DefaultRecursiveEnumerator[T](RecursiveEnumerator[T], _IEnumerator[T]):
     def __init__(self, enumerable: RecursivelyEnumerable[T], enumerator: IEnumerator[T], converter: Converter[T, IEnumerable[T]], handler: IRecursiveEnumerationHandler[T]|None = None) -> None:
@@ -749,13 +673,11 @@ class _RecursivelyEnumerableUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
 
         self.__enumerable: IRecursivelyEnumerable[T] = enumerable
     
-    def _GetValue(self) -> IEnumerable[T]:
-        return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
+    def _GetValue(self) -> IEnumerable[T]: return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
 
 class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
     def __init__(self) -> None:
-        def update(func: IFunction[IEnumerable[T]]) -> None:
-            self.__recursive = func
+        def update(func: IFunction[IEnumerable[T]]) -> None: self.__recursive = func
         
         super().__init__()
     
@@ -763,11 +685,10 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
     
     @abstractmethod
     def _AsRecursivelyEnumerable(self, container: T) -> IEnumerable[T]:
-        pass
+        ...
 
     @final
-    def AsRecursivelyEnumerable(self) -> IEnumerable[T]:
-        return self.__recursive.GetValue()
+    def AsRecursivelyEnumerable(self) -> IEnumerable[T]: return self.__recursive.GetValue()
     
     def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None) -> IEnumerator[T]|None:
         return DefaultRecursiveEnumerator[T](self, enumerator, self._AsRecursivelyEnumerable, handler)
@@ -775,24 +696,19 @@ class RecursivelyEnumerable[T](Enumerable[T], IRecursivelyEnumerable[T]):
         return None if enumerationOrder == EnumerationOrder.Null else DefaultRecursiveStackedEnumerator[T](self, enumerator, self._AsRecursivelyEnumerable, enumerationOrder, handler)
 
     def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[T]|None = None) -> IEnumerator[T]|None:
-        if enumerationOrder == EnumerationOrder.Null:
-            return None
+        if enumerationOrder == EnumerationOrder.Null: return None
         
         enumerator: IEnumerator[T]|None = self.TryGetEnumerator()
 
-        if enumerator is None:
-            return None
+        if enumerator is None: return None
         
         match enumerationOrder:
-            case EnumerationOrder.FIFO:
-                return self._TryGetRecursiveEnumerator(enumerator, handler)
-            case EnumerationOrder.LIFO:
-                return self._TryGetRecursiveStackedEnumerator(enumerator, EnumerationOrder.LIFO, None if handler is None else handler.AsStackHandler())
-            case _:
-                raise ValueError(enumerationOrder)
+            case EnumerationOrder.FIFO: return self._TryGetRecursiveEnumerator(enumerator, handler)
+            case EnumerationOrder.LIFO: return self._TryGetRecursiveStackedEnumerator(enumerator, EnumerationOrder.LIFO, None if handler is None else handler.AsStackHandler())
+            
+            case _: raise ValueError(enumerationOrder)
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[T]|None = None) -> IEnumerator[T]|None:
-        if enumerationOrder == EnumerationOrder.Null:
-            return None
+        if enumerationOrder == EnumerationOrder.Null: return None
         
         enumerator: IEnumerator[T]|None = self.TryGetEnumerator()
 

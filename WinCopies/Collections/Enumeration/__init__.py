@@ -35,134 +35,114 @@ class EnumerationResult(Enum):
     Completed = 1
 
 class IEnumeratorBase(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def MoveNext(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def Stop(self) -> None:
-        pass
+        ...
     @abstractmethod
     def TryReset(self) -> bool|None:
-        pass
+        ...
     @abstractmethod
     def IsResetSupported(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def GetState(self) -> EnumerationState:
-        pass
+        ...
     @abstractmethod
     def GetResult(self) -> EnumerationResult:
-        pass
+        ...
     
     @final
     def IsStarted(self) -> bool:
         return self.GetState() == EnumerationState.Started
     @abstractmethod
     def HasProcessedItems(self) -> bool:
-        pass
+        ...
 class IEnumerator[T](IEnumeratorBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetCurrent(self) -> T:
-        pass
+        ...
 
     @abstractmethod
     def AsIterator(self) -> SystemIterator[T]:
-        pass
+        ...
 class IDisposableEnumerator[T](IEnumerator[T], IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def __next__(self) -> T:
-        if self.MoveNext():
-            return self.GetCurrent()
+        if self.MoveNext(): return self.GetCurrent()
         
         raise StopIteration
     
     @final
-    def AsIterator(self) -> SystemIterator[T]:
-        return self
+    def AsIterator(self) -> SystemIterator[T]: return self
     
     @final
-    def __iter__(self) -> SystemIterator[T]:
-        return self
+    def __iter__(self) -> SystemIterator[T]: return self
 
 class IEnumerableBase[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        pass
+        ...
     @final
     def GetEnumerator(self) -> IEnumerator[T]:
         return GetEnumerator(self.TryGetEnumerator())
 class IEnumerable[T](IEnumerableBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsIterable(self) -> SystemIterable[T]:
-        pass
+        ...
 
 class IEquatableEnumerable[T: IEquatableValue](IEnumerable[T], IEquatableValue):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IHashableEnumerable[T: IHashableValue](IEquatableEnumerable[T], IHashableValue):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ICountableEnumerable[T](IEnumerable[T], ICountable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IReversableEnumerable[T](IEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IEnumerable[T]:
-        pass
+        ...
 class IReversableCountableEnumerable[T](IReversableEnumerable[T], ICountableEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class _SystemIterable[T](SystemIterable[T], IEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def AsIterable(self) -> SystemIterable[T]:
-        return self
+    def AsIterable(self) -> SystemIterable[T]: return self
 
 class Enumerable[T](_SystemIterable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _TryGetIterator(self) -> SystemIterator[T]|None:
         return self.GetEnumerator().AsIterator()
     
     @final
-    def __iter__(self) -> SystemIterator[T]:
-        return GetIterator(self._TryGetIterator())
+    def __iter__(self) -> SystemIterator[T]: return GetIterator(self._TryGetIterator())
 
 class EquatableEnumerable[T: IEquatableValue](Enumerable[T], IEquatableEnumerable[T], INotHashableValue):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class HashableEnumerable[T: IHashableValue](Enumerable[T], IHashableEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 @final
 class _CountableEnumerableUpdater[T](ValueFunctionUpdater[ICountable]):
@@ -171,55 +151,40 @@ class _CountableEnumerableUpdater[T](ValueFunctionUpdater[ICountable]):
 
         self.__items: ICountableEnumerable[T] = items
     
-    def _GetValue(self) -> ICountable:
-        return CreateCountable(self.__items)
+    def _GetValue(self) -> ICountable: return CreateCountable(self.__items)
 
 class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     def __init__(self) -> None:
-        def update(func: IFunction[ICountable]) -> None:
-            self.__countable = func
+        def update(func: IFunction[ICountable]) -> None: self.__countable = func
         
         super().__init__()
         
         self.__countable: IFunction[ICountable] = _CountableEnumerableUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def AsSized(self) -> Sized:
-        return self.__countable.GetValue().AsSized()
+    def AsSized(self) -> Sized: return self.__countable.GetValue().AsSized()
 
 @final
 class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def GetCurrent(self) -> T:
-        raise GetEnumeratorInactiveError()
-    def MoveNext(self) -> bool:
-        return False
-    def Stop(self) -> None:
-        pass
-    def TryReset(self) -> bool|None:
-        return None
-    def IsResetSupported(self) -> bool:
-        return False
+    def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
+    def MoveNext(self) -> bool: return False
+    def Stop(self) -> None: pass
+    def TryReset(self) -> bool|None: return None
+    def IsResetSupported(self) -> bool: return False
     
-    def GetState(self) -> EnumerationState:
-        return EnumerationState.Ended
-    def GetResult(self) -> EnumerationResult:
-        return EnumerationResult.NoData
+    def GetState(self) -> EnumerationState: return EnumerationState.Ended
+    def GetResult(self) -> EnumerationResult: return EnumerationResult.NoData
     
-    def HasProcessedItems(self) -> bool:
-        return False
+    def HasProcessedItems(self) -> bool: return False
 @final
 class _EmptyEnumerable[T](_SystemIterable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def TryGetEnumerator(self) -> None:
-        return None
+    def TryGetEnumerator(self) -> None: return None
     
-    def __iter__(self) -> SystemIterator[T]:
-        return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
+    def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
@@ -236,8 +201,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def __MoveNext(self) -> bool:
-        if self._MoveNextOverride():
-            return True
+        if self._MoveNextOverride(): return True
 
         self.__SetCompletedMoveNext()
 
@@ -271,21 +235,21 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @abstractmethod
     def _GetCurrent(self) -> T:
-        pass
+        ...
     
     @abstractmethod
     def _MoveNextOverride(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def _ResetOverride(self) -> bool:
-        pass
+        ...
     def _OnStarting(self) -> bool:
         return True
     def _OnCompleted(self) -> None:
         pass
     @abstractmethod
     def _OnStopped(self) -> None:
-        pass
+        ...
     def _OnTerminated(self, completed: bool) -> None:
         pass
     def _OnEnded(self) -> None:
@@ -293,14 +257,12 @@ class EnumeratorBase[T](IteratorBase[T]):
 
     @final
     def GetCurrent(self) -> T:
-        if self.IsStarted():
-            return self._GetCurrent()
+        if self.IsStarted(): return self._GetCurrent()
         
         raise GetEnumeratorInactiveError()
 
     @final
-    def MoveNext(self) -> bool:
-        return self.__moveNextFunc()
+    def MoveNext(self) -> bool: return self.__moveNextFunc()
     
     @final
     def Stop(self) -> None:
@@ -311,12 +273,10 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def TryReset(self) -> bool|None:
-        def onReset() -> None:
-            self.__moveNextFunc = BoolFalse
+        def onReset() -> None: self.__moveNextFunc = BoolFalse
         
         if self.IsResetSupported():
-            if self.IsStarted():
-                self.Stop()
+            if self.IsStarted(): self.Stop()
             
             if self._ResetOverride():
                 self.__moveNextFunc = self.__MoveFirst
@@ -334,11 +294,9 @@ class EnumeratorBase[T](IteratorBase[T]):
         return None
     
     @final
-    def GetState(self) -> EnumerationState:
-        return self.__status
+    def GetState(self) -> EnumerationState: return self.__status
     @final
-    def GetResult(self) -> EnumerationResult:
-        return EnumerationResult.Running if self.GetState().value < EnumerationState.Ended.value else self.__result
+    def GetResult(self) -> EnumerationResult: return EnumerationResult.Running if self.GetState().value < EnumerationState.Ended.value else self.__result
     
     @final
     def HasProcessedItems(self) -> bool:
@@ -347,26 +305,23 @@ class EnumeratorBase[T](IteratorBase[T]):
         return self.__moveNextFunc == self.__MoveNext if result == EnumerationResult.Running else result != EnumerationResult.NoData
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _SetCurrentOverride(self, current: T) -> None:
-        pass
+        ...
     @abstractmethod
     def _UnsetCurrentOverride(self) -> None:
-        pass
+        ...
 
     @final
     def _SetCurrent(self, current: T) -> None:
-        if not self.IsStarted():
-            raise GetEnumeratorInactiveError()
+        if not self.IsStarted(): raise GetEnumeratorInactiveError()
         
         self._SetCurrentOverride(current)
     @final
     def _UnsetCurrent(self) -> None:
-        if self.IsStarted():
-            self._UnsetCurrentOverride()
+        if self.IsStarted(): self._UnsetCurrentOverride()
     
     def _OnEnded(self) -> None:
         self._UnsetCurrent()
@@ -380,19 +335,17 @@ class Enumerator[T](_EnumeratorBase[T]):
         self.__current: INullable[T] = GetNullValue()
     
     def _OnCurrentUpdating(self, old: INullable[T], new: T) -> None:
-        pass
+        ...
     def _OnCurrentReset(self, old: T) -> None:
-        pass
+        ...
     
     def _OnCurrentInvalidated(self, old: T) -> None:
-        pass
+        ...
     
     @final
-    def _TryGetCurrent(self) -> INullable[T]:
-        return self.__current
+    def _TryGetCurrent(self) -> INullable[T]: return self.__current
     @final
-    def _GetCurrent(self) -> T:
-        return self._TryGetCurrent().GetValue()
+    def _GetCurrent(self) -> T: return self._TryGetCurrent().GetValue()
     
     @final
     def _SetCurrentOverride(self, current: T) -> None:
@@ -400,8 +353,7 @@ class Enumerator[T](_EnumeratorBase[T]):
 
         self._OnCurrentUpdating(old, current)
 
-        if old.HasValue():
-            self._OnCurrentInvalidated(old.GetValue())
+        if old.HasValue(): self._OnCurrentInvalidated(old.GetValue())
         
         self.__current = GetNullable(current)
     @final
@@ -423,23 +375,20 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
         self.__current: T|None = None
     
     def _OnCurrentUpdating(self, old: T|None, new: T) -> None:
-        pass
+        ...
     def _OnCurrentReset(self, old: T) -> None:
-        pass
+        ...
     
     def _OnCurrentInvalidated(self, old: T) -> None:
-        pass
+        ...
     
     @final
-    def _TryGetCurrent(self) -> T|None:
-        return self.__current
+    def _TryGetCurrent(self) -> T|None: return self.__current
     @final
     def _GetCurrent(self) -> T:
         current: T|None = self.__current
 
-        if current is None:
-            raise ValueError()
-        
+        if current is None: raise ValueError()
         return current
     
     @final
@@ -448,16 +397,14 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
 
         self._OnCurrentUpdating(old, current)
 
-        if old is not None:
-            self._OnCurrentInvalidated(old)
+        if old is not None: self._OnCurrentInvalidated(old)
         
         self.__current = current
     @final
     def _UnsetCurrentOverride(self) -> None:
         old: T|None = self._TryGetCurrent()
 
-        if old is None:
-            return
+        if old is None: return
 
         self._OnCurrentReset(old)
         self._OnCurrentInvalidated(old)
@@ -475,8 +422,7 @@ class Iterator[T](Enumerator[T]):
         return self.__iterator
     
     @final
-    def IsResetSupported(self) -> bool:
-        return False
+    def IsResetSupported(self) -> bool: return False
     
     def _MoveNextOverride(self) -> bool:
         try:
@@ -488,11 +434,9 @@ class Iterator[T](Enumerator[T]):
 
             return False
     
-    def _OnStopped(self) -> None:
-        pass
+    def _OnStopped(self) -> None: pass
 
-    def _ResetOverride(self) -> bool:
-        return False
+    def _ResetOverride(self) -> bool: return False
 
 class IterableBase[T](Enumerable[T]):
     def __init__(self) -> None:
@@ -500,11 +444,10 @@ class IterableBase[T](Enumerable[T]):
     
     @abstractmethod
     def _TryGetIterator(self) -> SystemIterator[T]|None:
-        pass
+        ...
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TryAsEnumerator(self._TryGetIterator())
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
 class Iterable[T](IterableBase[T]):
     def __init__(self, iterable: SystemIterable[T]) -> None:
         super().__init__()
@@ -516,8 +459,7 @@ class Iterable[T](IterableBase[T]):
         return self.__iterable
     
     @final
-    def _TryGetIterator(self) -> SystemIterator[T]|None:
-        return iter(self._GetIterable())
+    def _TryGetIterator(self) -> SystemIterator[T]|None: return iter(self._GetIterable())
 
 class IteratorProvider[T](Enumerable[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]) -> None:
@@ -526,12 +468,10 @@ class IteratorProvider[T](Enumerable[T]):
         self.__iteratorProvider: Function[SystemIterator[T]|None] = iteratorProvider
     
     @final
-    def _TryGetIterator(self) -> SystemIterator[T]|None:
-        return GetIterator(self.__iteratorProvider())
+    def _TryGetIterator(self) -> SystemIterator[T]|None: return GetIterator(self.__iteratorProvider())
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return TryAsEnumerator(self._TryGetIterator())
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
 class EnumeratorProvider[T](Enumerable[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None) -> None:
         super().__init__()
@@ -539,12 +479,10 @@ class EnumeratorProvider[T](Enumerable[T]):
         self.__enumeratorProvider: Function[IEnumerator[T]|None]|None = enumeratorProvider
     
     @final
-    def _TryGetIterator(self) -> SystemIterator[T]|None:
-        return super()._TryGetIterator()
+    def _TryGetIterator(self) -> SystemIterator[T]|None: return super()._TryGetIterator()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -553,30 +491,22 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
         self.__enumerator: TEnumerator = enumerator
     
     @final
-    def _GetContainer(self) -> TEnumerator:
-        return self.__enumerator
+    def _GetContainer(self) -> TEnumerator: return self.__enumerator
     
     @final
-    def IsResetSupported(self) -> bool:
-        return self._GetContainer().IsResetSupported()
+    def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
-    def _MoveNextOverride(self) -> bool:
-        return self._GetContainer().MoveNext()
+    def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
     
-    def _OnStopped(self) -> None:
-        self._GetContainer().Stop()
+    def _OnStopped(self) -> None: self._GetContainer().Stop()
     
-    def _ResetOverride(self) -> bool:
-        return self._GetContainer().TryReset() is True
+    def _ResetOverride(self) -> bool: return self._GetContainer().TryReset() is True
 class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
-    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
 class AbstractEnumerator[T](Selector[T, T]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
-    def _GetCurrent(self) -> T:
-        return self._GetContainer().GetCurrent()
+    def _GetCurrent(self) -> T: return self._GetContainer().GetCurrent()
 
 class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self) -> None:
@@ -586,21 +516,19 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     
     @abstractmethod
     def _GetContainer(self) -> TEnumerator:
-        pass
+        ...
     
-    def _MoveNextOverride(self) -> bool:
-        return self._GetContainer().MoveNext()
+    def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
     
     @abstractmethod
     def _ResetOverride(self) -> bool:
-        pass
+        ...
     
     @final
     def __MoveNext(self) -> bool:
         if self._OnStarting():
             def moveNext() -> bool:
-                if self._MoveNextOverride():
-                    return True
+                if self._MoveNextOverride(): return True
                 
                 self.__moveNextFunc = BoolFalse
 
@@ -635,21 +563,19 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         pass
     @abstractmethod
     def _OnStopped(self) -> None:
-        pass
+        ...
 
     @abstractmethod
     def _GetCurrent(self) -> TOut:
-        pass
+        ...
     
     @final
     def GetCurrent(self) -> TOut:
-        if self.IsStarted():
-            return self._GetCurrent()
+        if self.IsStarted(): return self._GetCurrent()
         
         raise GetEnumeratorInactiveError()
     @final
-    def MoveNext(self) -> bool:
-        return self.__moveNextFunc()
+    def MoveNext(self) -> bool: return self.__moveNextFunc()
     @final
     def Stop(self) -> None:
         self._GetContainer().Stop()
@@ -658,8 +584,7 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     
     @final
     def TryReset(self) -> bool|None:
-        if self.IsStarted():
-            self.Stop()
+        if self.IsStarted(): self.Stop()
         
         result: bool|None = self._GetContainer().TryReset()
 
@@ -672,19 +597,15 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
         
         return result
     @final
-    def IsResetSupported(self) -> bool:
-        return self._GetContainer().IsResetSupported()
+    def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
     @final
-    def GetState(self) -> EnumerationState:
-        return self._GetContainer().GetState()
+    def GetState(self) -> EnumerationState: return self._GetContainer().GetState()
     @final
-    def GetResult(self) -> EnumerationResult:
-        return self._GetContainer().GetResult()
+    def GetResult(self) -> EnumerationResult: return self._GetContainer().GetResult()
     
     @final
-    def HasProcessedItems(self) -> bool:
-        return self._GetContainer().HasProcessedItems()
+    def HasProcessedItems(self) -> bool: return self._GetContainer().HasProcessedItems()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -693,11 +614,9 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_Abstra
         self.__enumerator: TEnumerator = enumerator
     
     @final
-    def _GetContainer(self) -> TEnumerator:
-        return self.__enumerator
+    def _GetContainer(self) -> TEnumerator: return self.__enumerator
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
-    def __init__(self, enumerator: IEnumerator[TIn]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
 
 class DelegateEnumerator[T](EnumeratorBase[T]):
     def __init__(self) -> None:
@@ -707,14 +626,13 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
     
     @abstractmethod
     def _OnMoveNext(self) -> Function[bool]|None:
-        pass
+        ...
     
     def _OnStarting(self) -> bool:
         def moveNext() -> bool:
             func: Function[bool]|None = self._OnMoveNext()
 
-            if func is None:
-                return False
+            if func is None: return False
             
             self.__moveNext = func
 
@@ -743,7 +661,7 @@ class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     
     @abstractmethod
     def _Convert(self, value: TIn) -> TOut:
-        pass
+        ...
     
     def _MoveNextOverride(self) -> bool:
         if super()._MoveNextOverride():
@@ -763,12 +681,10 @@ class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     def _OnStopped(self) -> None:
         pass
 
-    def _ResetOverride(self) -> bool:
-        return True
+    def _ResetOverride(self) -> bool: return True
     
     @final
-    def _GetCurrent(self) -> TOut:
-        return self.__current.GetValue()
+    def _GetCurrent(self) -> TOut: return self.__current.GetValue()
 class ConverterEnumerator[TIn, TOut](ConverterEnumeratorBase[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn], selector: Converter[TIn, TOut]) -> None:
         super().__init__(enumerator)
@@ -801,10 +717,9 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
     
     @abstractmethod
     def _GetMaxValue(self) -> int:
-        pass
+        ...
     
-    def IsResetSupported(self) -> bool:
-        return True
+    def IsResetSupported(self) -> bool: return True
     
     def _MoveNextOverride(self) -> bool:
         i: int = self.__i
@@ -820,8 +735,7 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
 
         return False
     
-    def _OnStopped(self) -> None:
-        self.__Reset()
+    def _OnStopped(self) -> None: self.__Reset()
     
     def _ResetOverride(self) -> bool:
         self.__Reset()
@@ -830,41 +744,29 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
 
 @final
 class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def IsResetSupported(self) -> bool:
-        return False
+    def IsResetSupported(self) -> bool: return False
     
-    def HasProcessedItems(self) -> bool:
-        raise GetDisposedError()
+    def HasProcessedItems(self) -> bool: raise GetDisposedError()
     
-    def GetCurrent(self) -> T:
-        raise GetDisposedError()
+    def GetCurrent(self) -> T: raise GetDisposedError()
     
-    def GetState(self) -> EnumerationState:
-        raise GetDisposedError()
-    def GetResult(self) -> EnumerationResult:
-        raise GetDisposedError()
+    def GetState(self) -> EnumerationState: raise GetDisposedError()
+    def GetResult(self) -> EnumerationResult: raise GetDisposedError()
     
-    def MoveNext(self) -> bool:
-        raise GetDisposedError()
+    def MoveNext(self) -> bool: raise GetDisposedError()
     
-    def TryReset(self) -> None:
-        return None
+    def TryReset(self) -> None: return None
     
-    def Stop(self) -> None:
-        pass
+    def Stop(self) -> None: pass
     
-    def Dispose(self) -> None:
-        pass
+    def Dispose(self) -> None: pass
 
-    def AsIterator(self) -> SystemIterator[T]:
-        raise GetDisposedError()
+    def AsIterator(self) -> SystemIterator[T]: raise GetDisposedError()
 
 class DisposableEnumeratorAbstract[T](Abstract, IDisposableEnumerator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @staticmethod
     def _GetDefaultDisposedEnumerator() -> IEnumerator[T]:
@@ -876,43 +778,34 @@ class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEn
         self.__enumerator: TEnumerator = enumerator
     
     @final
-    def _GetContainer(self) -> TEnumerator:
-        return self.__enumerator
+    def _GetContainer(self) -> TEnumerator: return self.__enumerator
     
     @abstractmethod
     def _GetDisposedEnumerator(self) -> TEnumerator:
-        pass
+        ...
     
     @final
-    def IsResetSupported(self) -> bool:
-        return self._GetInnerContainer().IsResetSupported()
+    def IsResetSupported(self) -> bool: return self._GetInnerContainer().IsResetSupported()
     
     @final
-    def HasProcessedItems(self) -> bool:
-        return self._GetInnerContainer().HasProcessedItems()
+    def HasProcessedItems(self) -> bool: return self._GetInnerContainer().HasProcessedItems()
     
     @final
-    def GetState(self) -> EnumerationState:
-        return self._GetInnerContainer().GetState()
+    def GetState(self) -> EnumerationState: return self._GetInnerContainer().GetState()
     @final
-    def GetResult(self) -> EnumerationResult:
-        return self._GetInnerContainer().GetResult()
+    def GetResult(self) -> EnumerationResult: return self._GetInnerContainer().GetResult()
     
     @final
-    def GetCurrent(self) -> TItem:
-        return self._GetInnerContainer().GetCurrent()
+    def GetCurrent(self) -> TItem: return self._GetInnerContainer().GetCurrent()
     
     @final
-    def MoveNext(self) -> bool:
-        return self._GetInnerContainer().MoveNext()
+    def MoveNext(self) -> bool: return self._GetInnerContainer().MoveNext()
     
     @final
-    def Stop(self) -> None:
-        return self._GetInnerContainer().Stop()
+    def Stop(self) -> None: return self._GetInnerContainer().Stop()
     
     @final
-    def TryReset(self) -> bool|None:
-        return self._GetInnerContainer().TryReset()
+    def TryReset(self) -> bool|None: return self._GetInnerContainer().TryReset()
     
     def Dispose(self) -> None:
         self._GetInnerContainer().Stop()
@@ -920,12 +813,10 @@ class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEn
         self.__enumerator = self._GetDisposedEnumerator()
     
     @final
-    def AsIterator(self) -> SystemIterator[TItem]:
-        return self._GetInnerContainer().AsIterator()
+    def AsIterator(self) -> SystemIterator[TItem]: return self._GetInnerContainer().AsIterator()
 @final
 class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
     def _GetDisposedEnumerator(self) -> IEnumerator[T]:
         return DisposableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
