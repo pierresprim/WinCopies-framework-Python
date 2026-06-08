@@ -15,15 +15,12 @@ class DirEntryNameInfo(Abstract, IBrowsableNameInfo):
         self.__entry: IDirEntry = entry
     
     @final
-    def GetName(self) -> str:
-        return self.__entry.GetName()
+    def GetName(self) -> str: return self.__entry.GetName()
     @final
-    def GetExtension(self) -> str:
-        return self.__entry.GetExtension()
+    def GetExtension(self) -> str: return self.__entry.GetExtension()
     
     @final
-    def GetFullName(self) -> str:
-        return self.__entry.GetFullName()
+    def GetFullName(self) -> str: return self.__entry.GetFullName()
 
 class DirEntryPathInfo(Abstract, IBrowsablePathInfo):
     def __init__(self, entry: IDirEntry) -> None:
@@ -33,24 +30,19 @@ class DirEntryPathInfo(Abstract, IBrowsablePathInfo):
         self.__nameInfo: IBrowsableNameInfo = DirEntryNameInfo(entry)
     
     @final
-    def GetDirectory(self) -> str:
-        return self.__entry.GetDirectory()
+    def GetDirectory(self) -> str: return self.__entry.GetDirectory()
     @final
-    def GetNameInfo(self) -> IBrowsableNameInfo:
-        return self.__nameInfo
+    def GetNameInfo(self) -> IBrowsableNameInfo: return self.__nameInfo
     
     @final
-    def GetPath(self) -> str:
-        return self.__entry.GetPath()
+    def GetPath(self) -> str: return self.__entry.GetPath()
     
     @final
-    def GetSeparator(self) -> str:
-        return pathsep
+    def GetSeparator(self) -> str: return pathsep
 
 @final
 class _BrowsableUpdater(BrowsableUpdater[IDirEntry]):
-    def __init__(self, items: IEnumerable[IDirEntry], updater: Method[IFunction[ISortedList[IExplorable]]]) -> None:
-        super().__init__(items, updater)
+    def __init__(self, items: IEnumerable[IDirEntry], updater: Method[IFunction[ISortedList[IExplorable]]]) -> None: super().__init__(items, updater)
     
     def _Select(self, item: IDirEntry) -> IExplorable:
         return BrowsableDirEntry(item)
@@ -70,5 +62,4 @@ class BrowsableDirEntry(Browsable[IDirEntry]):
         return _BrowsableUpdater(items, updater)
     
     @final
-    def GetPathInfo(self) -> IBrowsablePathInfo:
-        return self.__pathInfo
+    def GetPathInfo(self) -> IBrowsablePathInfo: return self.__pathInfo

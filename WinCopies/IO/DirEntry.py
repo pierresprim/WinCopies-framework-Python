@@ -18,20 +18,17 @@ from WinCopies.IO import IDirEntry, GetFileName, GetExtension, GetExtensionFromA
 from WinCopies.String import StringifyIfNone, SurroundWith
 
 class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _AsRecursivelyEnumerable(self, container: IDirEntry) -> IEnumerable[IDirEntry]:
         return container
     
     @final
-    def IsDirectory(self) -> bool:
-        return os.path.isdir(self.GetPath())
+    def IsDirectory(self) -> bool: return os.path.isdir(self.GetPath())
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[IterableDirEntry]|None:
-        return AsEnumerator(Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry))) if self.IsDirectory() else None
+    def TryGetEnumerator(self) -> IEnumerator[IterableDirEntry]|None: return AsEnumerator(Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry))) if self.IsDirectory() else None
 
 class SystemDirEntry(IterableDirEntry):
     def __init__(self, dirEntry: os.DirEntry[str]) -> None:
@@ -40,24 +37,19 @@ class SystemDirEntry(IterableDirEntry):
         self.__dirEntry: os.DirEntry[str] = dirEntry
     
     @final
-    def GetPath(self) -> str:
-        return self.__dirEntry.path
+    def GetPath(self) -> str: return self.__dirEntry.path
     
     @final
-    def GetDirectory(self) -> str:
-        return os.path.dirname(self.GetPath())
+    def GetDirectory(self) -> str: return os.path.dirname(self.GetPath())
     
     @final
-    def GetName(self) -> str:
-        return GetFileName(self.__dirEntry.name)
+    def GetName(self) -> str: return GetFileName(self.__dirEntry.name)
     
     @final
-    def GetExtension(self) -> str:
-        return GetExtension(self.GetPath())
+    def GetExtension(self) -> str: return GetExtension(self.GetPath())
     
     @final
-    def GetFullName(self) -> str:
-        return self.__dirEntry.name
+    def GetFullName(self) -> str: return self.__dirEntry.name
 
 class DirEntry(IterableDirEntry):
     def __init__(self, directory: str|None, name: str|None, extension: str|None) -> None:
@@ -87,21 +79,16 @@ class DirEntry(IterableDirEntry):
         return cls(entry.GetDirectory(), array[0], GetExtensionFromArray(array))
     
     @final
-    def GetPath(self) -> str:
-        return os.path.join(self.__directory, self.GetFullName())
+    def GetPath(self) -> str: return os.path.join(self.__directory, self.GetFullName())
     
     @final
-    def GetDirectory(self) -> str:
-        return self.__directory
+    def GetDirectory(self) -> str: return self.__directory
     
     @final
-    def GetName(self) -> str:
-        return self.__name
+    def GetName(self) -> str: return self.__name
     
     @final
-    def GetExtension(self) -> str:
-        return self.__extension
+    def GetExtension(self) -> str: return self.__extension
     
     @final
-    def GetFullName(self) -> str:
-        return SurroundWith(self.__name, None if self.__extension == '' else '.', self.__extension)
+    def GetFullName(self) -> str: return SurroundWith(self.__name, None if self.__extension == '' else '.', self.__extension)

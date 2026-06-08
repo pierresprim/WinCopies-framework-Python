@@ -11,32 +11,28 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 class IPoint(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetX(self) -> int:
-        pass
+        ...
     @abstractmethod
     def GetY(self) -> int:
-        pass
+        ...
 
-    def __str__(self) -> str:
-        return f"{self.GetX()};{self.GetY()}"
+    def __str__(self) -> str: return f"{self.GetX()};{self.GetY()}"
 class IPoint3D(IPoint):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Get2D(self) -> IPoint:
-        pass
+        ...
     
     @abstractmethod
     def GetZ(self) -> int:
-        pass
+        ...
 
-    def __str__(self) -> str:
-        return f"{super().__str__()};{self.GetZ()}"
+    def __str__(self) -> str: return f"{super().__str__()};{self.GetZ()}"
 
 @final
 class Point(Abstract, IPoint):
@@ -47,10 +43,8 @@ class Point(Abstract, IPoint):
 
             self.__value: int = value
         
-        def GetX(self) -> int:
-            return self.__value
-        def GetY(self) -> int:
-            return self.__value
+        def GetX(self) -> int: return self.__value
+        def GetY(self) -> int: return self.__value
     
     def __init__(self, x: int, y: int) -> None:
         super().__init__()
@@ -62,10 +56,8 @@ class Point(Abstract, IPoint):
     def Create(x: int, y: int) -> IPoint:
         return Point.__Point(x) if x == y else Point(x, y)
     
-    def GetX(self) -> int:
-        return self.__x
-    def GetY(self) -> int:
-        return self.__y
+    def GetX(self) -> int: return self.__x
+    def GetY(self) -> int: return self.__y
 
 @final
 class Point3D(Abstract, IPoint3D):
@@ -79,26 +71,21 @@ class Point3D(Abstract, IPoint3D):
     def Create(x: int, y: int, z: int) -> IPoint3D:
         return Point3D(Point.Create(x, y), z)
     
-    def Get2D(self) -> IPoint:
-        return self.__point
+    def Get2D(self) -> IPoint: return self.__point
     
-    def GetX(self) -> int:
-        return self.Get2D().GetX()
-    def GetY(self) -> int:
-        return self.Get2D().GetY()
-    def GetZ(self) -> int:
-        return self.__z
+    def GetX(self) -> int: return self.Get2D().GetX()
+    def GetY(self) -> int: return self.Get2D().GetY()
+    def GetZ(self) -> int: return self.__z
 
 class IRectangle(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetTopLeft(self) -> IPoint:
-        pass
+        ...
     @abstractmethod
     def GetBottomRight(self) -> IPoint:
-        pass
+        ...
     
     @final
     def GetX(self) -> int:
@@ -125,7 +112,5 @@ class Rectangle(Abstract, IRectangle):
     def FromCoordinates(x: int, y: int, width: int, height: int) -> IRectangle:
         return Rectangle(Point(x, y), Point(width, height))
     
-    def GetTopLeft(self) -> IPoint:
-        return self.__topLeft
-    def GetBottomRight(self) -> IPoint:
-        return self.__bottomRight
+    def GetTopLeft(self) -> IPoint: return self.__topLeft
+    def GetBottomRight(self) -> IPoint: return self.__bottomRight

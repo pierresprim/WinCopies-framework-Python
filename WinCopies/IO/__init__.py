@@ -28,31 +28,29 @@ class FileKind(Enum):
     Archive = 6
 
 class IDirEntry(IRecursivelyEnumerable['IDirEntry']):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetPath(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetDirectory(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetName(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetExtension(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetFullName(self) -> str:
-        pass
+        ...
     
     @abstractmethod
     def IsDirectory(self) -> bool:
-        pass
+        ...
 
-    def __str__(self) -> str:
-        return self.GetPath()
+    def __str__(self) -> str: return self.GetPath()
 
 def _TryGetFromArray(entry: Sequence[str]|None, index: int) -> str|None:
     return None if entry is None or len(entry) <= index else entry[index]
@@ -98,15 +96,13 @@ def TryCheckExtensionOf(path: str, *extensions: str) -> bool|None:
 
 def TryCreateDirectory(directory: str) -> bool|None:
     try:
-        if os.path.exists(directory):
-            return False
+        if os.path.exists(directory): return False
     
         os.mkdir(directory)
 
         return True
     
-    except FileExistsError:
-        return None
+    except FileExistsError: return None
 
 def TryCreateSubdirectory(directory: str, subdirectory: str) -> DualValueNullableBool[str]:
     directory = os.path.join(directory, subdirectory)
@@ -125,8 +121,7 @@ def TryRemoveDirectory(directory: str) -> bool|None:
         
         return False
     
-    except IOError:
-        return None
+    except IOError: return None
 
 def GetDirectoryPredicate() -> Predicate[os.DirEntry[AnyStr]]:
     return lambda entry: entry.is_dir()

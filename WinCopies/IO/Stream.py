@@ -42,69 +42,52 @@ class FileMode(Enum):
     
     def __str__(self) -> str:
         match self:
-            case FileMode.Read:
-                return 'r'
-            case FileMode.Write:
-                return 'w'
-            case FileMode.Append:
-                return 'a'
-            case FileMode.Create:
-                return 'x'
-            case _:
-                return ''
+            case FileMode.Read: return 'r'
+            case FileMode.Write: return 'w'
+            
+            case FileMode.Append: return 'a'
+            case FileMode.Create: return 'x'
+            
+            case _: return ''
     
     def ToString(self, fileType: FileType) -> str:
-        def getMode() -> str:
-            return str(self)
+        def getMode() -> str: return str(self)
         
-        def _getValue(mode: str, extension: str) -> str:
-            return f"{mode}{fileType}{extension}"
-        def getValue(mode: str) -> str:
-            return _getValue(mode, '')
-        def getValueExtended(mode: str) -> str:
-            return _getValue(mode, '+')
+        def _getValue(mode: str, extension: str) -> str: return f"{mode}{fileType}{extension}"
+        def getValue(mode: str) -> str: return _getValue(mode, '')
+        def getValueExtended(mode: str) -> str: return _getValue(mode, '+')
         
         match self:
-            case FileMode.Read:
-                return getValue(getMode())
-            case FileMode.Write:
-                return getValue(getMode())
-            case FileMode.ReadWrite:
-                return getValueExtended(str(FileMode.Read))
-            case FileMode.Truncate:
-                return getValueExtended(str(FileMode.Write))
-            case FileMode.Append:
-                return getValue(getMode())
-            case FileMode.AppendExtended:
-                return getValueExtended(str(FileMode.Append))
-            case FileMode.Create:
-                return getValue(getMode())
-            case FileMode.CreateExtended:
-                return getValueExtended(str(FileMode.Create))
-            case _:
-                return ''
+            case FileMode.Read: return getValue(getMode())
+            case FileMode.Write: return getValue(getMode())
+            
+            case FileMode.ReadWrite: return getValueExtended(str(FileMode.Read))
+            case FileMode.Truncate: return getValueExtended(str(FileMode.Write))
+            
+            case FileMode.Append: return getValue(getMode())
+            case FileMode.AppendExtended: return getValueExtended(str(FileMode.Append))
+            
+            case FileMode.Create: return getValue(getMode())
+            case FileMode.CreateExtended: return getValueExtended(str(FileMode.Create))
+            
+            case _: return ''
     
     @staticmethod
     def GetMode(fileMode: str) -> FileMode:
         match fileMode:
-            case 'r':
-                return FileMode.Read
-            case 'a':
-                return FileMode.Append
-            case 'w':
-                return FileMode.Write
-            case 'x':
-                return FileMode.Create
-            case 'r+':
-                return FileMode.ReadWrite
-            case 'w+':
-                return FileMode.Truncate
-            case 'a+':
-                return FileMode.AppendExtended
-            case 'x+':
-                return FileMode.CreateExtended
-            case _:
-                return FileMode.Null
+            case 'r': return FileMode.Read
+            case 'w': return FileMode.Write
+            
+            case 'a': return FileMode.Append
+            case 'x': return FileMode.Create
+            
+            case 'r+': return FileMode.ReadWrite
+            case 'w+': return FileMode.Truncate
+            
+            case 'a+': return FileMode.AppendExtended
+            case 'x+': return FileMode.CreateExtended
+            
+            case _: return FileMode.Null
 
 class FileType(Enum):
     Null = 0
@@ -113,22 +96,18 @@ class FileType(Enum):
                 
     def __str__(self) -> str:
         match self:
-            case FileType.Text:
-                return 't'
-            case FileType.Binary:
-                return 'b'
-            case _:
-                return ''
+            case FileType.Text: return 't'
+            case FileType.Binary: return 'b'
+            
+            case _: return ''
     
     @staticmethod
     def GetType(fileType: str) -> FileType:
         match fileType:
-            case 't':
-                return FileType.Text
-            case 'b':
-                return FileType.Binary
-            case _:
-                return FileType.Null
+            case 't': return FileType.Text
+            case 'b': return FileType.Binary
+            
+            case _: return FileType.Null
 
 class StreamPosition(Enum):
     Null = 0
@@ -138,14 +117,11 @@ class StreamPosition(Enum):
 
     def TryToInt(self) -> int|None:
         match self:
-            case StreamPosition.Start:
-                return SEEK_SET
-            case StreamPosition.Current:
-                return SEEK_CUR
-            case StreamPosition.End:
-                return SEEK_END
-            case _:
-                return None
+            case StreamPosition.Start: return SEEK_SET
+            case StreamPosition.Current: return SEEK_CUR
+            case StreamPosition.End: return SEEK_END
+            
+            case _: return None
     def ForceToInt(self) -> int:
         value: int|None = self.TryToInt()
 
@@ -164,343 +140,291 @@ class StreamProperties(Flag):
     Seekable = auto()
 
 class IAsStream[T: IOBase](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsStream(self) -> T:
-        pass
+        ...
 
 class IStream(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def IsOpen(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def Open(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def TryOpen(self) -> bool|None:
-        pass
+        ...
 
     @abstractmethod
     def Flush(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def Close(self) -> bool:
-        pass
+        ...
 
-    def Dispose(self) -> None:
-        self.Close()
+    def Dispose(self) -> None: self.Close()
 
 class IStreamObject(IStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetProperties(self) -> StreamProperties:
-        pass
+        ...
 
     @final
     def CheckProperty(self, property: StreamProperties) -> bool:
         return property in self.GetProperties()
 class ISeekable(IStreamObject):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetPosition(self) -> int|None:
-        pass
+        ...
     @abstractmethod
     def TrySetPosition(self, offset: int, whence: StreamPosition = StreamPosition.Start) -> bool:
-        pass
+        ...
 
 class IReader[T](IStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryRead(self, size: int) -> T|None:
-        pass
+        ...
     @abstractmethod
     def Read(self, size: int) -> T:
-        pass
+        ...
 class IWriter[T](IStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryWrite(self, value: T) -> int|None:
-        pass
+        ...
     @abstractmethod
     def Write(self, value: T) -> None:
-        pass
+        ...
 
 class IStreamReader[T](IReader[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReader(self) -> IOBase:
-        pass
+        ...
 class IStreamWriter[T](IWriter[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsWriter(self) -> IOBase:
-        pass
+        ...
 
 class IDataStreamAbstract[TIn, TOut](IReader[TOut], IWriter[TIn], IStreamObject):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryAsStreamReader(self) -> IStreamReader[TOut]|None:
-        pass
+        ...
     @abstractmethod
     def TryAsStreamWriter(self) -> IStreamWriter[TIn]|None:
-        pass
+        ...
     
     @abstractmethod
     def TryAsReader(self) -> IOBase|None:
-        pass
+        ...
     @abstractmethod
     def TryAsWriter(self) -> IOBase|None:
-        pass
+        ...
 class IDataStream[T](IDataStreamAbstract[T, T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ISeekableStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut], ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ISeekableStream[T](ISeekableStreamAbstract[T, T], IDataStream[T], ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ITextReader(IReader[str]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ITextWriter(IWriter[str]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def TryWriteLine(self, text: str, eol: str = '\n') -> int|None:
-        return self.TryWrite(text + eol)
+    def TryWriteLine(self, text: str, eol: str = '\n') -> int|None: return self.TryWrite(text + eol)
     def WriteLine(self, text: str) -> None:
-        if not self.TryWriteLine(text):
-            raise IOError()
+        if not self.TryWriteLine(text): raise IOError()
 
 class ITextStreamReader(ITextReader, IStreamReader[str]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReader(self) -> TextIOBase:
-        pass
+        ...
 class ITextStreamWriter(ITextWriter, IStreamWriter[str]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsWriter(self) -> TextIOBase:
-        pass
+        ...
 
 class IBinaryReader(IReader[bytes]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IBinaryWriter(IWriter[Buffer]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IBinaryStreamReader(IBinaryReader, IStreamReader[bytes]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReader(self) -> BufferedIOBase:
-        pass
+        ...
 class IBinaryStreamWriter(IBinaryWriter, IStreamWriter[Buffer]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsWriter(self) -> BufferedIOBase:
-        pass
+        ...
 
 class ITextStream(IDataStream[str], ITextReader, ITextWriter):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryAsStreamReader(self) -> ITextStreamReader|None:
-        pass
+        ...
     @abstractmethod
     def TryAsStreamWriter(self) -> ITextStreamWriter|None:
-        pass
+        ...
     
     @abstractmethod
     def TryAsReader(self) -> TextIOBase|None:
-        pass
+        ...
     @abstractmethod
     def TryAsWriter(self) -> TextIOBase|None:
-        pass
+        ...
 class IBinaryStream(IDataStreamAbstract[Buffer, bytes], IBinaryReader, IBinaryWriter):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryAsStreamReader(self) -> IBinaryStreamReader|None:
-        pass
+        ...
     @abstractmethod
     def TryAsStreamWriter(self) -> IBinaryStreamWriter|None:
-        pass
+        ...
     
     @abstractmethod
     def TryAsReader(self) -> BufferedIOBase|None:
-        pass
+        ...
     @abstractmethod
     def TryAsWriter(self) -> BufferedIOBase|None:
-        pass
+        ...
 
 class ISeekableTextReader(ITextReader, ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ISeekableTextWriter(ITextWriter, ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ISeekableBinaryReader(IBinaryReader, ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ISeekableBinaryWriter(IBinaryWriter, ISeekable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ISeekableTextStream(ISeekableStream[str], ITextStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ISeekableBinaryStream(ISeekableStreamAbstract[Buffer, bytes], IBinaryStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IExtendedStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryReadToEnd(self) -> TOut|None:
-        pass
+        ...
 class IExtendedStream[T](IExtendedStreamAbstract[T, T], IDataStream[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryReadToEnd(self) -> T|None:
-        pass
+        ...
 
 class ISeekableExtendedStreamAbstract[TIn, TOut](IExtendedStreamAbstract[TIn, TOut], ISeekableStreamAbstract[TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class ISeekableExtendedStream[T](ISeekableExtendedStreamAbstract[T, T], IExtendedStream[T], ISeekableStream[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IExtendedTextStream(IExtendedStream[str], ITextStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryReadLine(self, size: int|None) -> str|None:
-        pass
+        ...
 class IExtendedBinaryStream(IExtendedStreamAbstract[Buffer, bytes], IBinaryStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IExtendedSeekableTextStream(ISeekableExtendedStream[str], IExtendedTextStream, ISeekableTextStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IExtendedSeekableBinaryStream(ISeekableExtendedStreamAbstract[Buffer, bytes], IExtendedBinaryStream, ISeekableBinaryStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IFile(IStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetOpenType(self) -> FileType:
-        pass
+        ...
     
     @abstractmethod
     def OpenFile(self, fileMode: FileMode) -> bool:
-        pass
+        ...
     @abstractmethod
     def TryOpenFile(self, fileMode: FileMode) -> bool|None:
-        pass
+        ...
 
     @abstractmethod
     def GetPath(self) -> str:
-        pass
+        ...
     
     @abstractmethod
     def Delete(self) -> None:
-        pass
+        ...
 
 class IFileStreamAbstract[TIn, TOut](IDataStreamAbstract[TIn, TOut], IFile):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IFileStream[T](IFileStreamAbstract[T, T], IDataStream[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ITextFile(IFileStream[str], ITextStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IBinaryFile(IFileStreamAbstract[Buffer, bytes], IBinaryStream):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class StreamBase[T: ISeekable](IOBase, IDisposableBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetStream(self) -> T:
-        pass
+        ...
     
     @property
     @final
-    def closed(self) -> bool:
-        return not self._GetStream().IsOpen()
+    def closed(self) -> bool: return not self._GetStream().IsOpen()
     
     @final
-    def CheckProperty(self, property: StreamProperties) -> bool:
-        return property in self._GetStream().GetProperties()
+    def CheckProperty(self, property: StreamProperties) -> bool: return property in self._GetStream().GetProperties()
     
     @final
-    def fileno(self) -> int:
-        raise OSError("Invalid operation.")
+    def fileno(self) -> int: raise OSError("Invalid operation.")
     
     @final
-    def isatty(self) -> bool:
-        return False
+    def isatty(self) -> bool: return False
     
     @final
-    def seekable(self) -> bool:
-        return self.CheckProperty(StreamProperties.Seekable)
+    def seekable(self) -> bool: return self.CheckProperty(StreamProperties.Seekable)
     
     @final
-    def readable(self) -> bool:
-        return self.CheckProperty(StreamProperties.Readable)
+    def readable(self) -> bool: return self.CheckProperty(StreamProperties.Readable)
     @final
-    def writable(self) -> bool:
-        return self.CheckProperty(StreamProperties.Writable)
+    def writable(self) -> bool: return self.CheckProperty(StreamProperties.Writable)
     
     @final
     def tell(self) -> int:
@@ -509,21 +433,17 @@ class StreamBase[T: ISeekable](IOBase, IDisposableBase):
         return 0 if offset is None else offset
     @final
     def seek(self, offset: int, whence: int = 0) -> int:
-        if self._GetStream().TrySetPosition(offset, StreamPosition.TryFromInt(whence)):
-            return self.tell()
+        if self._GetStream().TrySetPosition(offset, StreamPosition.TryFromInt(whence)): return self.tell()
         
         raise OSError("Seek failed.")
     
     @final
-    def flush(self) -> None:
-        self._GetStream().Flush()
+    def flush(self) -> None: self._GetStream().Flush()
     
     @final
-    def close(self) -> None:
-        self._GetStream().Close()
+    def close(self) -> None: self._GetStream().Close()
     @final
-    def Dispose(self) -> None:
-        self._GetStream().Dispose()
+    def Dispose(self) -> None: self._GetStream().Dispose()
     
     @final
     def __exit__(self, exc_type: type[BaseException]|None, exc_val: BaseException|None, exc_tb: TracebackType|None) -> None:
@@ -532,8 +452,7 @@ class StreamBase[T: ISeekable](IOBase, IDisposableBase):
         self.Dispose()
 
 class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
     def read(self, size: int|None = -1) -> str:
@@ -553,13 +472,11 @@ class TextStreamBase[T: IExtendedSeekableTextStream](StreamBase[T], TextIOBase):
     def write(self, s: str) -> int:
         result: int|None = self._GetStream().TryWrite(s)
 
-        if result is None:
-            raise IOError("Write operation failed.")
+        if result is None: raise IOError("Write operation failed.")
         
         return result
 class BinaryStreamBase[T: IExtendedSeekableBinaryStream](StreamBase[T], BufferedIOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
     def read(self, size: int|None = -1) -> bytes:
@@ -573,45 +490,39 @@ class BinaryStreamBase[T: IExtendedSeekableBinaryStream](StreamBase[T], Buffered
     def write(self, b: Buffer) -> int:
         result: int|None = self._GetStream().TryWrite(b)
         
-        if result is None:
-            raise IOError("Write operation failed.")
+        if result is None: raise IOError("Write operation failed.")
         
         return result
 
 class IStreamCookie[T: IOBase](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetStream(self) -> T|None:
-        pass
+        ...
 
 class StreamAbstractBase[T: IOBase](IOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetInnerStream(self) -> T|None:
-        pass
+        ...
 class StreamAbstract[T: IOBase](IOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetStream(self) -> IStreamCookie[T]:
-        pass
+        ...
     @final
     def _GetInnerStream(self) -> T|None:
         return self._GetStream().GetStream()
     
     @property
     @final
-    def closed(self) -> bool:
-        return self._GetInnerStream() is None
+    def closed(self) -> bool: return self._GetInnerStream() is None
     
     @final
-    def fileno(self) -> int:
-        raise OSError("Invalid operation.")
+    def fileno(self) -> int: raise OSError("Invalid operation.")
     
     @final
     def isatty(self) -> bool:
@@ -629,16 +540,14 @@ class StreamAbstract[T: IOBase](IOBase):
     def tell(self) -> int:
         stream: T|None = self._GetInnerStream()
 
-        if stream is None:
-            raise OSError("Invalid operation.")
+        if stream is None: raise OSError("Invalid operation.")
 
         return stream.tell()
     @final
     def seek(self, offset: int, whence: int = 0) -> int:
         stream: T|None = self._GetInnerStream()
 
-        if stream is None:
-            raise OSError("Invalid operation.")
+        if stream is None: raise OSError("Invalid operation.")
 
         return stream.seek(offset, whence)
     
@@ -646,19 +555,16 @@ class StreamAbstract[T: IOBase](IOBase):
     def flush(self) -> None:
         stream: T|None = self._GetInnerStream()
 
-        if stream is not None:
-            stream.flush()
+        if stream is not None: stream.flush()
     
     @final
     def close(self) -> None:
         stream: T|None = self._GetInnerStream()
 
-        if stream is not None:
-            stream.close()
+        if stream is not None: stream.close()
 
 class ReaderAbstract[T: IOBase](StreamAbstractBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def readable(self) -> bool:
@@ -666,8 +572,7 @@ class ReaderAbstract[T: IOBase](StreamAbstractBase[T]):
 
         return stream is not None and stream.readable()
 class WriterAbstract[T: IOBase](StreamAbstractBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def writable(self) -> bool:
@@ -676,23 +581,18 @@ class WriterAbstract[T: IOBase](StreamAbstractBase[T]):
         return stream is not None and stream.writable()
 
 class Stream[T: IOBase](StreamAbstract[T], ReaderAbstract[T], WriterAbstract[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class Reader[T: IOBase](StreamAbstract[T], ReaderAbstract[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def writable(self) -> bool:
-        return False
+    def writable(self) -> bool: return False
 class Writer[T: IOBase](StreamAbstract[T], WriterAbstract[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def readable(self) -> bool:
-        return False
+    def readable(self) -> bool: return False
 
 class TextReaderAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
     def __init__(self) -> None:
@@ -710,21 +610,18 @@ class TextReaderAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
 
         return '' if stream is None else stream.readline(size)
 class TextWriterAbstract[T: TextIOBase](StreamAbstractBase[T], TextIOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
     def write(self, s: str) -> int:
         stream: T|None = self._GetInnerStream()
 
-        if stream is None:
-            raise IOError("Write operation failed.")
+        if stream is None: raise IOError("Write operation failed.")
         
         return stream.write(s)
 
 class BinaryReaderAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
     def read(self, size: int|None = -1) -> bytes:
@@ -732,15 +629,13 @@ class BinaryReaderAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOB
         
         return b'' if stream is None else stream.read(size)
 class BinaryWriterAbstract[T: BufferedIOBase](StreamAbstractBase[T], BufferedIOBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
     def write(self, b: Buffer) -> int:
         stream: T|None = self._GetInnerStream()
 
-        if stream is None:
-            raise IOError("Write operation failed.")
+        if stream is None: raise IOError("Write operation failed.")
         
         return stream.write(b)
 
@@ -755,8 +650,7 @@ class TextStreamReaderBase[T: TextIOBase](Reader[T], TextReaderAbstract[T]):
         return self.__cookie
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
-    def write(self, s: str) -> int:
-        raise OSError("Invalid operation.")
+    def write(self, s: str) -> int: raise OSError("Invalid operation.")
     
     @staticmethod
     def TryCreateReader(cookie: IStreamCookie[T]) -> TextStreamReaderBase[T]|None:
@@ -764,8 +658,7 @@ class TextStreamReaderBase[T: TextIOBase](Reader[T], TextReaderAbstract[T]):
 
         return TextStreamReaderBase[T](cookie) if stream is not None and stream.readable() else None
 class TextStreamReader(TextStreamReaderBase[TextIOBase]):
-    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None: super().__init__(cookie)
     
     @staticmethod
     def TryCreateReader(cookie: IStreamCookie[TextIOBase]) -> TextStreamReader|None:
@@ -784,12 +677,10 @@ class TextStreamWriterBase[T: TextIOBase](Writer[T], TextWriterAbstract[T]):
         return self.__cookie
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs TextIOBase (method)
-    def read(self, size: int|None = -1) -> str:
-        raise OSError("Invalid operation.")
+    def read(self, size: int|None = -1) -> str: raise OSError("Invalid operation.")
     
     @final
-    def readline(self, size: int = -1) -> str: # type: ignore[override]
-        raise OSError("Invalid operation.")
+    def readline(self, size: int = -1) -> str: raise OSError("Invalid operation.") # type: ignore[override]
     
     @staticmethod
     def TryCreateWriter(cookie: IStreamCookie[T]) -> TextStreamWriterBase[T]|None:
@@ -797,8 +688,7 @@ class TextStreamWriterBase[T: TextIOBase](Writer[T], TextWriterAbstract[T]):
 
         return TextStreamWriterBase[T](cookie) if stream is not None and stream.writable() else None
 class TextStreamWriter(TextStreamWriterBase[TextIOBase]):
-    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None: super().__init__(cookie)
     
     @staticmethod
     def TryCreateWriter(cookie: IStreamCookie[TextIOBase]) -> TextStreamWriter|None:
@@ -817,8 +707,7 @@ class BinaryStreamReaderBase[T: BufferedIOBase](Reader[T], BinaryReaderAbstract[
         return self.__cookie
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
-    def write(self, b: Buffer) -> int:
-        raise OSError("Invalid operation.")
+    def write(self, b: Buffer) -> int: raise OSError("Invalid operation.")
     
     @staticmethod
     def TryCreateReader(cookie: IStreamCookie[T]) -> BinaryStreamReaderBase[T]|None:
@@ -826,8 +715,7 @@ class BinaryStreamReaderBase[T: BufferedIOBase](Reader[T], BinaryReaderAbstract[
 
         return BinaryStreamReaderBase[T](cookie) if stream is not None and stream.readable() else None
 class BinaryStreamReader(BinaryStreamReaderBase[BufferedIOBase]):
-    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None: super().__init__(cookie)
     
     @staticmethod
     def TryCreateReader(cookie: IStreamCookie[BufferedIOBase]) -> BinaryStreamReader|None:
@@ -846,8 +734,7 @@ class BinaryStreamWriterBase[T: BufferedIOBase](Writer[T], BinaryWriterAbstract[
         return self.__cookie
     
     @final # type: ignore[misc] # Ambiguity IOBase (attribute) vs BufferedIOBase (method)
-    def read(self, size: int|None = -1) -> bytes:
-        raise OSError("Invalid operation.")
+    def read(self, size: int|None = -1) -> bytes: raise OSError("Invalid operation.")
     
     @staticmethod
     def TryCreateWriter(cookie: IStreamCookie[T]) -> BinaryStreamWriterBase[T]|None:
@@ -855,8 +742,7 @@ class BinaryStreamWriterBase[T: BufferedIOBase](Writer[T], BinaryWriterAbstract[
 
         return BinaryStreamWriterBase[T](cookie) if stream is not None and stream.writable() else None
 class BinaryStreamWriter(BinaryStreamWriterBase[BufferedIOBase]):
-    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None: super().__init__(cookie)
     
     @staticmethod
     def TryCreateWriter(cookie: IStreamCookie[BufferedIOBase]) -> BinaryStreamWriter|None:
@@ -874,8 +760,7 @@ class TextStreamAbstract[T: TextIOBase](Stream[T], TextReaderAbstract[T], TextWr
     def _GetStream(self) -> IStreamCookie[T]:
         return self.__cookie
 class TextStream(TextStreamAbstract[TextIOBase]):
-    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[TextIOBase]) -> None: super().__init__(cookie)
 
 class BinaryStreamAbstract[T: BufferedIOBase](Stream[T], BufferedIOBase):
     def __init__(self, cookie: IStreamCookie[T]) -> None:
@@ -897,13 +782,11 @@ class BinaryStreamAbstract[T: BufferedIOBase](Stream[T], BufferedIOBase):
     def write(self, b: Buffer) -> int:
         stream: T|None = self._GetInnerStream()
 
-        if stream is None:
-            raise IOError("Write operation failed.")
+        if stream is None: raise IOError("Write operation failed.")
         
         return stream.write(b)
 class BinaryStream(BinaryStreamAbstract[BufferedIOBase]):
-    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None:
-        super().__init__(cookie)
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase]) -> None: super().__init__(cookie)
 
 class FileBase[TIn, TOut](Abstract, IFileStreamAbstract[TIn, TOut]):
     def __init__(self, path: str) -> None:
@@ -912,72 +795,56 @@ class FileBase[TIn, TOut](Abstract, IFileStreamAbstract[TIn, TOut]):
         self.__path: str = path
     
     @final
-    def TryOpen(self) -> bool|None:
-        return self.TryOpenFile(FileMode.ReadWrite)
+    def TryOpen(self) -> bool|None: return self.TryOpenFile(FileMode.ReadWrite)
     @final
-    def Open(self) -> bool:
-        return self.OpenFile(FileMode.ReadWrite)
+    def Open(self) -> bool: return self.OpenFile(FileMode.ReadWrite)
     
     def TryOpenFile(self, fileMode: FileMode) -> bool|None:
-        try:
-            return self.OpenFile(fileMode)
-        except IOError:
-            return None
+        try: return self.OpenFile(fileMode)
+        except IOError: return None
 
     @final
-    def GetPath(self) -> str:
-        return self.__path
+    def GetPath(self) -> str: return self.__path
     
     @abstractmethod
     def _Read(self, size: int) -> TOut:
-        pass
+        ...
 
     @final
-    def TryRead(self, size: int) -> TOut|None:
-        return self._Read(size) if self.IsOpen() else None
+    def TryRead(self, size: int) -> TOut|None: return self._Read(size) if self.IsOpen() else None
     def Read(self, size: int) -> TOut:
         result: TOut|None = self.TryRead(size)
 
-        if result is None:
-            raise IOError()
+        if result is None: raise IOError()
         
         return result
     
     @abstractmethod
     def TryWrite(self, value: TIn) -> int|None:
-        pass
+        ...
     def Write(self, value: TIn) -> None:
-        if self.TryWrite(value) is None:
-            raise IOError()
+        if self.TryWrite(value) is None: raise IOError()
     
     @final
     def Delete(self) -> None:
-        if self.IsOpen():
-            self.Close()
+        if self.IsOpen(): self.Close()
             
-        if path.isfile(self.__path):            
-            remove(self.__path)
+        if path.isfile(self.__path): remove(self.__path)
 class File[T](FileBase[T, T], IFileStream[T]):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
+    def __init__(self, path: str) -> None: super().__init__(path)
 
 __ASK_PATH_MESSAGE: str = "Enter a path: "
 
 def TryInitializeAs(path: str, fileType: FileType) -> TextFile|BinaryFile|None:
     match fileType:
-        case FileType.Text:
-            return TextFile(path)
+        case FileType.Text: return TextFile(path)
+        case FileType.Binary: return BinaryFile(path)
         
-        case FileType.Binary:
-            return BinaryFile(path)
-        
-        case _:
-            return None
+        case _: return None
 def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType) -> TextFile|BinaryFile|None:
     stream: TextFile|BinaryFile|None = TryInitializeAs(path, fileType)
 
-    if stream is None:
-        return None
+    if stream is None: return None
     
     stream.OpenFile(fileMode)
 
@@ -985,19 +852,13 @@ def TryOpenAs(path: str, fileMode: FileMode, fileType: FileType) -> TextFile|Bin
 
 def __GetDelegate(fileType: FileType, path: str) -> Function[TextFile]|Function[BinaryFile]:
     match fileType:
-        case FileType.Text:
-            return lambda: TextFile(path)
-        case FileType.Binary:
-            return lambda: BinaryFile(path)
+        case FileType.Text: return lambda: TextFile(path)
+        case FileType.Binary: return lambda: BinaryFile(path)
 
-        case _:
-            # Invalid arguments; no initializer could be created.
-            raise ValueError(f"Wrong {FileType.__name__}.", fileType)
+        case _: raise ValueError(f"Wrong {FileType.__name__}.", fileType) # Invalid arguments; no initializer could be created.
 
 def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, message: str = __ASK_PATH_MESSAGE) -> TextFile|BinaryFile:
-    if validator is None:
-        # No path validator callback provided. Directly create file.
-        return GetFile(fileType, message)
+    if validator is None: return GetFile(fileType, message) # No path validator callback provided. Directly create file.
 
     def askPath() -> str|None:
         path: str = input(message)
@@ -1006,8 +867,7 @@ def TryGetFile(fileType: FileType, validator: Predicate[str]|None = None, messag
     
     path: str|None = askPath()
     
-    while path is None:
-        path = askPath()
+    while path is None: path = askPath()
     
     return __GetDelegate(fileType, path)()
 
@@ -1024,20 +884,15 @@ def TryCreate(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|
     
     if onError is None:
         # No IO error callback provided. Try only one time.
-        try:
-            return open()
-        
-        except IOError:
-            return None
+        try: return open()
+        except IOError: return None
     
     # IO error callback provided. Try until initializer validated or IO error callback invalidated.
     while True:
-        try:
-            return open()
+        try: return open()
         
         except IOError as e:
-            if onError(e):
-                continue
+            if onError(e): continue
 
             return None
 
@@ -1049,18 +904,14 @@ def Create(fileMode: FileMode, fileType: FileType, validator: Predicate[str]|Non
 
         return file
     
-    if onError is None:
-        # No IO error callback provided. Try only one time.
-        return open()
+    if onError is None: return open() # No IO error callback provided. Try only one time.
 
     # IO error callback provided. Try until initializer validated or IO error callback invalidated.
     while True:
-        try:
-            return open()
+        try: return open()
         
         except IOError as e:
-            if onError(e):
-                continue
+            if onError(e): continue
 
             raise e
 
@@ -1075,16 +926,15 @@ def GetFileInitializer(fileMode: FileMode, fileType: FileType, validator: Predic
     return lambda: Create(fileMode, fileType, validator, onError, message)
 
 class IStreamBaseAbstract[TStream: IOBase, TIn, TOut](IDataStreamAbstract[TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetStream(self) -> TStream|None:
-        pass
+        ...
 
     @abstractmethod
     def _GetExtraProperties(self) -> StreamProperties:
-        pass
+        ...
     
     @final
     def GetProperties(self) -> StreamProperties:
@@ -1092,25 +942,20 @@ class IStreamBaseAbstract[TStream: IOBase, TIn, TOut](IDataStreamAbstract[TIn, T
         properties: StreamProperties = StreamProperties.Null
 
         if stream is not None:
-            if stream.readable():
-                properties |= StreamProperties.Readable
-            if stream.writable():
-                properties |= StreamProperties.Writable
+            if stream.readable(): properties |= StreamProperties.Readable
+            if stream.writable(): properties |= StreamProperties.Writable
 
         return properties | self._GetExtraProperties()
 class IStreamBase[TStream: IOBase, TData](IStreamBaseAbstract[TStream, TData, TData], IDataStream[TData]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ISeekableStreamBaseAbstract[TStream: IOBase, TIn, TOut](IStreamBaseAbstract[TStream, TIn, TOut], ISeekableStreamAbstract[TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _GetExtraProperties(self) -> StreamProperties:
         stream: IOBase|None = self._GetStream()
 
-        if stream is None:
-            return StreamProperties.Null
+        if stream is None: return StreamProperties.Null
         
         properties: StreamProperties = self.GetProperties()
 
@@ -1125,8 +970,7 @@ class ISeekableStreamBaseAbstract[TStream: IOBase, TIn, TOut](IStreamBaseAbstrac
     def TrySetPosition(self, offset: int, whence: StreamPosition = StreamPosition.Start) -> bool:
         stream: TStream|None = self._GetStream()
 
-        if stream is None:
-            return False
+        if stream is None: return False
         
         if stream.seekable():
             stream.seek(offset, whence.ForceToInt())
@@ -1135,33 +979,28 @@ class ISeekableStreamBaseAbstract[TStream: IOBase, TIn, TOut](IStreamBaseAbstrac
         
         return False
 class ISeekableStreamBase[TStream: IOBase, TData](ISeekableStreamBaseAbstract[TStream, TData, TData], IStreamBase[TStream, TData], ISeekableStream[TData]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IStreamProviderCookieBase[TStream: IOBase, TIn, TOut](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetStream(self) -> IDataStreamAbstract[TIn, TOut]:
-        pass
+        ...
     @abstractmethod
     def GetHandle(self) -> TStream:
-        pass
+        ...
 class IStreamProviderCookie[TStream: IOBase, TData](IStreamProviderCookieBase[TStream, TData, TData]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetStream(self) -> IDataStream[TData]:
-        pass
+        ...
 
 class ITextStreamProviderCookie(IStreamProviderCookie[TextIOBase, str]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IBinaryStreamProviderCookie(IStreamProviderCookieBase[BufferedIOBase, Buffer, bytes]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class TextStreamProviderCookie(Abstract, ITextStreamProviderCookie):
     def __init__(self, stream: IDataStream[str], handle: TextIOBase) -> None:
@@ -1171,11 +1010,9 @@ class TextStreamProviderCookie(Abstract, ITextStreamProviderCookie):
         self.__handle: TextIOBase = handle
     
     @final
-    def GetStream(self) -> IDataStream[str]:
-        return self.__stream
+    def GetStream(self) -> IDataStream[str]: return self.__stream
     @final
-    def GetHandle(self) -> TextIOBase:
-        return self.__handle
+    def GetHandle(self) -> TextIOBase: return self.__handle
 
 class BinaryStreamProviderCookie(Abstract, IBinaryStreamProviderCookie):
     def __init__(self, stream: IDataStreamAbstract[Buffer, bytes], handle: BufferedIOBase) -> None:
@@ -1185,11 +1022,9 @@ class BinaryStreamProviderCookie(Abstract, IBinaryStreamProviderCookie):
         self.__handle: BufferedIOBase = handle
     
     @final
-    def GetStream(self) -> IDataStreamAbstract[Buffer, bytes]:
-        return self.__stream
+    def GetStream(self) -> IDataStreamAbstract[Buffer, bytes]: return self.__stream
     @final
-    def GetHandle(self) -> BufferedIOBase:
-        return self.__handle
+    def GetHandle(self) -> BufferedIOBase: return self.__handle
 
 class AbstractStreamBase[TStream: IOBase, TIn, TOut](Abstract, IStream):
     def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
@@ -1209,93 +1044,70 @@ class AbstractStreamBase[TStream: IOBase, TIn, TOut](Abstract, IStream):
         return self._GetCookie().GetHandle()
 
     @final
-    def IsOpen(self) -> bool:
-        return self._GetStream().IsOpen()
+    def IsOpen(self) -> bool: return self._GetStream().IsOpen()
 
     @final
-    def Open(self) -> bool:
-        return self._GetStream().Open()
+    def Open(self) -> bool: return self._GetStream().Open()
     @final
-    def TryOpen(self) -> bool|None:
-        return self._GetStream().TryOpen()
+    def TryOpen(self) -> bool|None: return self._GetStream().TryOpen()
     
     @final
-    def Flush(self) -> bool:
-        return self._GetStream().Flush()
+    def Flush(self) -> bool: return self._GetStream().Flush()
 
     @final
-    def Close(self) -> bool:
-        return self._GetStream().Close()
+    def Close(self) -> bool: return self._GetStream().Close()
 
-    def Dispose(self) -> None:
-        self._GetStream().Dispose()
+    def Dispose(self) -> None: self._GetStream().Dispose()
 class AbstractStream[TStream: IOBase, TData](AbstractStreamBase[TStream, TData, TData]):
-    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None: super().__init__(stream)
 
 class StreamReaderBase[TStream: IOBase, TIn, TOut](AbstractStreamBase[TStream, TIn, TOut], IStreamReader[TOut]):
-    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None: super().__init__(stream)
     
     @final
-    def TryRead(self, size: int) -> TOut|None:
-        return self._GetStream().TryRead(size)
+    def TryRead(self, size: int) -> TOut|None: return self._GetStream().TryRead(size)
     @final
     def Read(self, size: int) -> TOut:
         result: TOut|None = self.TryRead(size)
 
-        if result is None:
-            raise IOError()
+        if result is None: raise IOError()
         
         return result
 class StreamReader[TStream: IOBase, TData](StreamReaderBase[TStream, TData, TData]):
-    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None: super().__init__(stream)
 
 class StreamWriterBase[TStream: IOBase, TIn, TOut](AbstractStreamBase[TStream, TIn, TOut], IStreamWriter[TIn]):
-    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IStreamProviderCookieBase[TStream, TIn, TOut]) -> None: super().__init__(stream)
 
     @final
-    def TryWrite(self, value: TIn) -> int|None:
-        return self._GetStream().TryWrite(value)
+    def TryWrite(self, value: TIn) -> int|None: return self._GetStream().TryWrite(value)
     @final
     def Write(self, value: TIn) -> None:
-        if self.TryWrite(value) is None:
-            raise IOError()
+        if self.TryWrite(value) is None: raise IOError()
 class StreamWriter[TStream: IOBase, TData](StreamWriterBase[TStream, TData, TData]):
-    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IStreamProviderCookie[TStream, TData]) -> None: super().__init__(stream)
 
 class TextReader(StreamReader[TextIOBase, str], ITextStreamReader):
-    def __init__(self, stream: ITextStreamProviderCookie) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: ITextStreamProviderCookie) -> None: super().__init__(stream)
     
     @final
-    def AsReader(self) -> TextIOBase:
-        return self._GetHandle()
+    def AsReader(self) -> TextIOBase: return self._GetHandle()
 class TextWriter(StreamWriter[TextIOBase, str], ITextStreamWriter):
-    def __init__(self, stream: ITextStreamProviderCookie) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: ITextStreamProviderCookie) -> None: super().__init__(stream)
     
     @final
-    def AsWriter(self) -> TextIOBase:
-        return self._GetHandle()
+    def AsWriter(self) -> TextIOBase: return self._GetHandle()
 
 class BinaryReader(StreamReaderBase[BufferedIOBase, Buffer, bytes], IBinaryStreamReader):
-    def __init__(self, stream: IBinaryStreamProviderCookie) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IBinaryStreamProviderCookie) -> None: super().__init__(stream)
     
     @final
-    def AsReader(self) -> BufferedIOBase:
-        return self._GetHandle()
+    def AsReader(self) -> BufferedIOBase: return self._GetHandle()
 class BinaryWriter(StreamWriterBase[BufferedIOBase, Buffer, bytes], IBinaryStreamWriter):
-    def __init__(self, stream: IBinaryStreamProviderCookie) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IBinaryStreamProviderCookie) -> None: super().__init__(stream)
     
     @final
-    def AsWriter(self) -> BufferedIOBase:
-        return self._GetHandle()
+    def AsWriter(self) -> BufferedIOBase: return self._GetHandle()
 
 class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
     def __init__(self, cookie: IStreamCookie[TIn], updater: Method[IFunction[TOut]]) -> None:
@@ -1307,33 +1119,27 @@ class StreamUpdaterBase[TIn: IOBase, TOut](ValueFunctionUpdater[TOut]):
     def _GetCookie(self) -> IStreamCookie[TIn]:
         return self.__cookie
 class StreamUpdater[T: IOBase](StreamUpdaterBase[T, T]):
-    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None:
-        super().__init__(cookie, updater)
+    def __init__(self, cookie: IStreamCookie[T], updater: Method[IFunction[T]]) -> None: super().__init__(cookie, updater)
 
 class IStreamProvider[TStream: IStream, THandle: IOBase](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetStream(self) -> TStream:
-        pass
+        ...
     @abstractmethod
     def GetHandle(self) -> THandle:
-        pass
+        ...
 
 class ITextReaderProvider(IStreamProvider[ITextStreamReader, TextIOBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IBinaryReaderProvider(IStreamProvider[IBinaryStreamReader, BufferedIOBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ITextWriterProvider(IStreamProvider[ITextStreamWriter, TextIOBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IBinaryWriterProvider(IStreamProvider[IBinaryStreamWriter, BufferedIOBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class StreamProvider[TStream: IStream, THandle: IOBase](Abstract, IStreamProvider[TStream, THandle]):
     def __init__(self, stream: TStream) -> None:
@@ -1342,38 +1148,32 @@ class StreamProvider[TStream: IStream, THandle: IOBase](Abstract, IStreamProvide
         self.__stream: TStream = stream
     
     @final
-    def GetStream(self) -> TStream:
-        return self.__stream
+    def GetStream(self) -> TStream: return self.__stream
 
 class TextReaderProvider(StreamProvider[ITextStreamReader, TextIOBase], ITextReaderProvider):
-    def __init__(self, stream: ITextStreamReader) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: ITextStreamReader) -> None: super().__init__(stream)
+    
     @final
-    def GetHandle(self) -> TextIOBase:
-        return self.GetStream().AsReader()
+    def GetHandle(self) -> TextIOBase: return self.GetStream().AsReader()
 class TextWriterProvider(StreamProvider[ITextStreamWriter, TextIOBase], ITextWriterProvider):
-    def __init__(self, stream: ITextStreamWriter) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: ITextStreamWriter) -> None: super().__init__(stream)
+    
     @final
-    def GetHandle(self) -> TextIOBase:
-        return self.GetStream().AsWriter()
+    def GetHandle(self) -> TextIOBase: return self.GetStream().AsWriter()
 
 class BinaryReaderProvider(StreamProvider[IBinaryStreamReader, BufferedIOBase], IBinaryReaderProvider):
-    def __init__(self, stream: IBinaryStreamReader) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IBinaryStreamReader) -> None: super().__init__(stream)
+    
     @final
-    def GetHandle(self) -> BufferedIOBase:
-        return self.GetStream().AsReader()
+    def GetHandle(self) -> BufferedIOBase: return self.GetStream().AsReader()
 class BinaryWriterProvider(StreamProvider[IBinaryStreamWriter, BufferedIOBase], IBinaryWriterProvider):
-    def __init__(self, stream: IBinaryStreamWriter) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IBinaryStreamWriter) -> None: super().__init__(stream)
+    
     @final
-    def GetHandle(self) -> BufferedIOBase:
-        return self.GetStream().AsWriter()
+    def GetHandle(self) -> BufferedIOBase: return self.GetStream().AsWriter()
 
 class ReadOnlyUpdater[TStream: IStream, THandle: IOBase, TData](ValueFunctionUpdater[IStreamProvider[TStream, THandle]|None], IGenericConstraint[TStream, IStreamReader[TData]]):
-    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None:
-        super().__init__(updater)
+    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None: super().__init__(updater)
 
 class ReadOnlyTextUpdater(ReadOnlyUpdater[ITextStreamReader, TextIOBase, str]):
     def __init__(self, stream: IDataStream[str], cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]]) -> None:
@@ -1409,8 +1209,7 @@ class ReadOnlyBinaryUpdater(ReadOnlyUpdater[IBinaryStreamReader, BufferedIOBase,
         return None if reader is None else BinaryReaderProvider(BinaryReader(BinaryStreamProviderCookie(self.__stream, reader)))
 
 class WriteOnlyUpdater[TStream: IStream, THandle: IOBase, TData](ValueFunctionUpdater[IStreamProvider[TStream, THandle]|None], IGenericConstraint[TStream, IStreamWriter[TData]]):
-    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None:
-        super().__init__(updater)
+    def __init__(self, updater: Method[IFunction[IStreamProvider[TStream, THandle]|None]]) -> None: super().__init__(updater)
 
 class WriteOnlyTextUpdater(WriteOnlyUpdater[ITextStreamWriter, TextIOBase, str]):
     def __init__(self, stream: IDataStream[str], cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]]) -> None:
@@ -1464,7 +1263,7 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
     
     @abstractmethod
     def _Open(self, path: str, fileMode: str) -> TStream:
-        pass
+        ...
     
     @final
     def _GetStream(self) -> TStream|None:
@@ -1474,19 +1273,17 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
         return self.__cookie
     
     @final
-    def IsOpen(self) -> bool:
-        return self._GetStream() is not None
+    def IsOpen(self) -> bool: return self._GetStream() is not None
     
     @final
     def OpenFile(self, fileMode: FileMode) -> bool:
-        if not self.IsOpen():
-            self.__stream = self._Open(self.GetPath(), fileMode.ToString(self.GetOpenType()))
+        if not self.IsOpen(): self.__stream = self._Open(self.GetPath(), fileMode.ToString(self.GetOpenType()))
 
         return True
     
     @abstractmethod
     def _Write(self, stream: TStream, value: TIn) -> int:
-        pass
+        ...
     @final
     def TryWrite(self, value: TIn) -> int|None:
         stream: TStream|None = self._GetStream()
@@ -1497,8 +1294,7 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
     def Flush(self) -> bool:
         stream: TStream|None = self._GetStream()
 
-        if stream is None:
-            return False
+        if stream is None: return False
         
         stream.flush()
         
@@ -1508,8 +1304,7 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
     def Close(self) -> bool:
         stream: TStream|None = self._GetStream()
 
-        if stream is None:
-            return False
+        if stream is None: return False
         
         stream.close()
         self.__stream = None
@@ -1518,38 +1313,32 @@ class FileStreamBase[TStream: IOBase, TIn, TOut](FileBase[TIn, TOut], ISeekableS
     
     @abstractmethod
     def TryAsReader(self) -> TStream|None:
-        pass
+        ...
     @abstractmethod
     def TryAsWriter(self) -> TStream|None:
-        pass
+        ...
 class FileStream[TStream: IOBase, TData](FileStreamBase[TStream, TData, TData], ISeekableStreamBase[TStream, TData]):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
+    def __init__(self, path: str) -> None: super().__init__(path)
 
 @final
 class TextStreamUpdater(StreamUpdater[TextIOBase]):
-    def __init__(self, cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[TextIOBase]]) -> None:
-        super().__init__(cookie, updater)
+    def __init__(self, cookie: IStreamCookie[TextIOBase], updater: Method[IFunction[TextIOBase]]) -> None: super().__init__(cookie, updater)
     
     def _GetValue(self) -> TextIOBase:
         return TextStream(self._GetCookie())
 @final
 class BinaryStreamUpdater(StreamUpdater[BufferedIOBase]):
-    def __init__(self, cookie: IStreamCookie[BufferedIOBase], updater: Method[IFunction[BufferedIOBase]]) -> None:
-        super().__init__(cookie, updater)
+    def __init__(self, cookie: IStreamCookie[BufferedIOBase], updater: Method[IFunction[BufferedIOBase]]) -> None: super().__init__(cookie, updater)
     
     def _GetValue(self) -> BufferedIOBase:
         return BinaryStream(self._GetCookie())
 
 class TextFile(FileStream[TextIOBase, str], ITextFile):
     def __init__(self, path: str) -> None:
-        def update(func: IFunction[TextIOBase]) -> None:
-            self.__stream = func
+        def update(func: IFunction[TextIOBase]) -> None: self.__stream = func
         
-        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None:
-            self.__readOnly = func
-        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None:
-            self.__writeOnly = func
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None: self.__readOnly = func
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None: self.__writeOnly = func
         
         super().__init__(path)
         
@@ -1563,8 +1352,7 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
         return cast(TextIOBase, open(path, fileMode))
     
     @final
-    def GetOpenType(self) -> FileType:
-        return FileType.Text
+    def GetOpenType(self) -> FileType: return FileType.Text
     
     @final
     def _Read(self, size: int) -> str:
@@ -1576,8 +1364,7 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
         return stream.write(value)
     
     @final
-    def AsStream(self) -> TextIOBase:
-        return self.__stream.GetValue()
+    def AsStream(self) -> TextIOBase: return self.__stream.GetValue()
     
     @final
     def TryAsStreamReader(self) -> ITextStreamReader|None:
@@ -1603,13 +1390,10 @@ class TextFile(FileStream[TextIOBase, str], ITextFile):
 
 class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
     def __init__(self, path: str) -> None:
-        def update(func: IFunction[BufferedIOBase]) -> None:
-            self.__stream = func
+        def update(func: IFunction[BufferedIOBase]) -> None: self.__stream = func
         
-        def updateReadOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None]) -> None:
-            self.__readOnly = func
-        def updateWriteOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None]) -> None:
-            self.__writeOnly = func
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamReader, BufferedIOBase]|None]) -> None: self.__readOnly = func
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[IBinaryStreamWriter, BufferedIOBase]|None]) -> None: self.__writeOnly = func
         
         super().__init__(path)
         
@@ -1623,8 +1407,7 @@ class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
         return cast(BufferedIOBase, open(path, fileMode))
     
     @final
-    def GetOpenType(self) -> FileType:
-        return FileType.Binary
+    def GetOpenType(self) -> FileType: return FileType.Binary
     
     @final
     def _Read(self, size: int) -> bytes:
@@ -1636,8 +1419,7 @@ class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
         return stream.write(value)
     
     @final
-    def AsStream(self) -> BufferedIOBase:
-        return self.__stream.GetValue()
+    def AsStream(self) -> BufferedIOBase: return self.__stream.GetValue()
     
     @final
     def TryAsStreamReader(self) -> IBinaryStreamReader|None:
@@ -1662,12 +1444,11 @@ class BinaryFile(FileStreamBase[BufferedIOBase, Buffer, bytes], IBinaryFile):
         return None if cookie is None else cookie.GetHandle()
 
 class IMemoryTextStream(ITextStream, IStringable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryToString(self) -> str|None:
-        pass
+        ...
 class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO, str], IAsStream[TextIOBase]):
     @final
     class __Cookie(Abstract, IStreamCookie[TextIOBase]):
@@ -1676,17 +1457,13 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
 
             self.__stream: MemoryTextStream = stream
         
-        def GetStream(self) -> TextIOBase|None:
-            return self.__stream._GetStream()
+        def GetStream(self) -> TextIOBase|None: return self.__stream._GetStream()
     
     def __init__(self) -> None:
-        def update(func: IFunction[TextIOBase]) -> None:
-            self.__streamUpdater = func
+        def update(func: IFunction[TextIOBase]) -> None: self.__streamUpdater = func
         
-        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None:
-            self.__readOnly = func
-        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None:
-            self.__writeOnly = func
+        def updateReadOnlyStream(func: IFunction[IStreamProvider[ITextStreamReader, TextIOBase]|None]) -> None: self.__readOnly = func
+        def updateWriteOnlyStream(func: IFunction[IStreamProvider[ITextStreamWriter, TextIOBase]|None]) -> None: self.__writeOnly = func
         
         super().__init__()
 
@@ -1706,8 +1483,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return self.__cookie
     
     @final
-    def IsOpen(self) -> bool:
-        return self._GetStream() is not None
+    def IsOpen(self) -> bool: return self._GetStream() is not None
     
     @final
     def Open(self) -> bool:
@@ -1715,8 +1491,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
 
         return True
     @final
-    def TryOpen(self) -> bool|None:
-        return self.Open()
+    def TryOpen(self) -> bool|None: return self.Open()
     
     @final
     def TryRead(self, size: int) -> str|None:
@@ -1726,8 +1501,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
     def Read(self, size: int) -> str:
         result: str|None = self.TryRead(size)
 
-        if result is None:
-            raise IOError()
+        if result is None: raise IOError()
         
         return result
     
@@ -1738,8 +1512,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return None if stream is None else stream.write(value)
     @final
     def Write(self, value: str) -> None:
-        if self.TryWrite(value) is None:
-            raise IOError()
+        if self.TryWrite(value) is None: raise IOError()
     
     @final
     def TryToString(self) -> str|None:
@@ -1747,15 +1520,13 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
 
         return None if stream is None else stream.getvalue()
     @final
-    def ToString(self) -> str:
-        return StringifyIfNone(self.TryToString())
+    def ToString(self) -> str: return StringifyIfNone(self.TryToString())
     
     @final
     def Flush(self) -> bool:
         stream: StringIO|None = self._GetStream()
 
-        if stream is None:
-            return False
+        if stream is None: return False
         
         stream.flush()
 
@@ -1765,8 +1536,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
     def Close(self) -> bool:
         stream: StringIO|None = self._GetStream()
         
-        if stream is None:
-            return False
+        if stream is None: return False
         
         stream.close()
         self.__stream = None
@@ -1774,8 +1544,7 @@ class MemoryTextStream(Abstract, IMemoryTextStream, ISeekableStreamBase[StringIO
         return True
     
     @final
-    def AsStream(self) -> TextIOBase:
-        return self.__streamUpdater.GetValue()
+    def AsStream(self) -> TextIOBase: return self.__streamUpdater.GetValue()
     
     @final
     def TryAsStreamReader(self) -> ITextStreamReader|None:

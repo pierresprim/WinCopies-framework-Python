@@ -94,8 +94,7 @@ def HasItems(path: str) -> IterableScanResult:
         An IterableScanResult indicating whether the directory contains entries.
     """
     def parse(paths: Iterable[os.DirEntry[AnyStr]]) -> bool|None:
-        for _ in paths:
-            return True
+        for _ in paths: return True
 
         return None
 
@@ -219,23 +218,15 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]
     predicate: Predicate[os.DirEntry[str]] = lambda entry: TryCheckExtension(entry.path, extensions) == True
 
     match fileKind:
-        case FileKind.Null:
-            return predicate
+        case FileKind.Null: return predicate
 
-        case FileKind.Folder:
-            return GetAndAlsoPredicate(lambda value: value.is_dir(), predicate)
+        case FileKind.Folder: return GetAndAlsoPredicate(lambda value: value.is_dir(), predicate)
+        case FileKind.File: return GetAndAlsoPredicate(lambda value: value.is_file(), predicate)
 
-        case FileKind.File:
-            return GetAndAlsoPredicate(lambda value: value.is_file(), predicate)
+        case FileKind.Link: return GetAndAlsoPredicate(lambda value: value.is_symlink(), predicate)
+        case FileKind.Junction: return GetAndAlsoPredicate(lambda value: value.is_junction(), predicate)
 
-        case FileKind.Link:
-            return GetAndAlsoPredicate(lambda value: value.is_symlink(), predicate)
-
-        case FileKind.Junction:
-            return GetAndAlsoPredicate(lambda value: value.is_junction(), predicate)
-
-        case _:
-            raise ValueError("FileKind not supported.", fileKind)
+        case _: raise ValueError("FileKind not supported.", fileKind)
 def GetFindFromExtensionValuesPredicate(fileKind: FileKind, *extensions: str) -> Predicate[os.DirEntry[str]]:
     """Creates a predicate to find entries matching specified file kind and variadic extensions.
 
