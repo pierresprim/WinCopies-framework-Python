@@ -53,30 +53,23 @@ class _Events:
     @staticmethod
     def TryConvertToEvent(eventName: str) -> Event|None:
         match eventName:
-            case _Events.START_MAP:
-                return Event.StartMap
-            case _Events.END_MAP:
-                return Event.EndMap
-            case _Events.START_ARRAY:
-                return Event.StartArray
-            case _Events.END_ARRAY:
-                return Event.EndArray
-            case _Events.MAP_KEY:
-                return Event.MapKey
-            case _Events.NULL:
-                return Event.NullValue
-            case _Events.BOOLEAN:
-                return Event.Boolean
-            case _Events.INTEGER:
-                return Event.Integer
-            case _Events.DOUBLE:
-                return Event.Double
-            case _Events.NUMBER:
-                return Event.Number
-            case _Events.STRING:
-                return Event.String
-            case _:
-                return None
+            case _Events.START_MAP: return Event.StartMap
+            case _Events.END_MAP: return Event.EndMap
+            
+            case _Events.START_ARRAY: return Event.StartArray
+            case _Events.END_ARRAY: return Event.EndArray
+            
+            case _Events.MAP_KEY: return Event.MapKey
+            
+            case _Events.NULL: return Event.NullValue
+            
+            case _Events.BOOLEAN: return Event.Boolean
+            case _Events.INTEGER: return Event.Integer
+            case _Events.DOUBLE: return Event.Double
+            case _Events.NUMBER: return Event.Number
+            case _Events.STRING: return Event.String
+            
+            case _: return None
 
 class ValueType(Enum):
     NotApplicable = 0
@@ -93,65 +86,58 @@ class NodeAttributes(Flag):
     Dictionary = 2
 
 class INode(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetAttributes(self) -> NodeAttributes:
-        pass
+        ...
     
     @abstractmethod
     def GetPath(self) -> str:
-        pass
+        ...
 
     @abstractmethod
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
-        pass
+        ...
 
 class IArrayNode(INode):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        pass
+        ...
 class IDictionaryNode(INode):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        pass
+        ...
 
 class _BufferBase(Abstract):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
-        pass
+        ...
 class _Buffer[T](_BufferBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Initialize(self, items: T) -> None:
-        pass
+        ...
 
 class _ArrayBufferBase(_Buffer[ITuple[DualResult[object, ValueType]]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        pass
+        ...
 class _DictionaryBufferBase(_Buffer[IReadOnlyDictionary[IString, DualResult[object, ValueType]]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        pass
+        ...
 
 @final
 class _ArrayBuffer(_ArrayBufferBase):
@@ -160,11 +146,9 @@ class _ArrayBuffer(_ArrayBufferBase):
 
         self.__items: ITuple[DualResult[object, ValueType]]|None = None
     
-    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None:
-        self.__items = items
+    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None: self.__items = items
     
-    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        return self.__items
+    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return self.__items
 @final
 class _DictionaryBuffer(_DictionaryBufferBase):
     def __init__(self) -> None:
@@ -172,59 +156,49 @@ class _DictionaryBuffer(_DictionaryBufferBase):
 
         self.__items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None = None
     
-    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None:
-        self.__items = items
+    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None: self.__items = items
     
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
         items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None = self.TryGetItems()
 
         return None if items is None else items.GetValues()
     
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        return self.__items
+    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self.__items
 
 @final
 class _NullArrayBuffer(_ArrayBufferBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None:
-        raise GetDisposedError()
+    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None: raise GetDisposedError()
     
-    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        return None
+    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return None
 @final
 class _NullDictionaryBuffer(_DictionaryBufferBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None:
-        raise GetDisposedError()
+    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None: raise GetDisposedError()
     
-    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        return None
+    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return None
     
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        return None
+    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return None
 
 _arrayBuffer: _ArrayBufferBase = _NullArrayBuffer()
 _dictionaryBuffer: _DictionaryBufferBase = _NullDictionaryBuffer()
 
 class _HandlerBase(Abstract):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Append(self, key: str, value: DualResult[object, ValueType]) -> None:
-        pass
+        ...
     
     @abstractmethod
     def Flush(self) -> None:
-        pass
+        ...
 
     @abstractmethod
     def GetNode(self) -> INode:
-        pass
+        ...
 class _Handler[T: _BufferBase](_HandlerBase):
     def __init__(self) -> None:
         super().__init__()
@@ -233,7 +207,7 @@ class _Handler[T: _BufferBase](_HandlerBase):
     
     @abstractmethod
     def _CreateBuffer(self) -> T:
-        pass
+        ...
 
     @final
     def _GetBuffer(self) -> T:
@@ -250,12 +224,10 @@ class _Tuple(_Handler[_ArrayBuffer]):
         return _ArrayBuffer()
     
     @final
-    def Append(self, key: str, value: DualResult[object, ValueType]) -> None:
-        self.__items.Push(value)
+    def Append(self, key: str, value: DualResult[object, ValueType]) -> None: self.__items.Push(value)
     
     @final
-    def Flush(self) -> None:
-        self._GetBuffer().Initialize(Tuple[DualResult[object, ValueType]](self.__items.AsGenerator()))
+    def Flush(self) -> None: self._GetBuffer().Initialize(Tuple[DualResult[object, ValueType]](self.__items.AsGenerator()))
 class _Dictionary(_Handler[_DictionaryBuffer]):
     def __init__(self) -> None:
         super().__init__()
@@ -267,12 +239,10 @@ class _Dictionary(_Handler[_DictionaryBuffer]):
         return _DictionaryBuffer()
     
     @final
-    def Append(self, key: str, value: DualResult[object, ValueType]) -> None:
-        self.__items.Add(String(key), value)
+    def Append(self, key: str, value: DualResult[object, ValueType]) -> None: self.__items.Add(String(key), value)
     
     @final
-    def Flush(self) -> None:
-        self._GetBuffer().Initialize(self.__items.AsReadOnly())
+    def Flush(self) -> None: self._GetBuffer().Initialize(self.__items.AsReadOnly())
 
 @final
 class _RootTuple(_Tuple):
@@ -282,8 +252,7 @@ class _RootTuple(_Tuple):
         self.__root: IArrayNode = _RootArray(self._GetBuffer())
     
     @final
-    def GetNode(self) -> INode:
-        return self.__root
+    def GetNode(self) -> INode: return self.__root
 @final
 class _RootDictionary(_Dictionary):
     def __init__(self) -> None:
@@ -292,8 +261,7 @@ class _RootDictionary(_Dictionary):
         self.__root: INode = _Root(self._GetBuffer())
     
     @final
-    def GetNode(self) -> INode:
-        return self.__root
+    def GetNode(self) -> INode: return self.__root
 
 @final
 class _NodeTuple(_Tuple):
@@ -303,8 +271,7 @@ class _NodeTuple(_Tuple):
         self.__node: IArrayNode = _ArrayNode(path, self._GetBuffer())
     
     @final
-    def GetNode(self) -> INode:
-        return self.__node
+    def GetNode(self) -> INode: return self.__node
 @final
 class _NodeDictionary(_Dictionary):
     def __init__(self, path: str) -> None:
@@ -313,8 +280,7 @@ class _NodeDictionary(_Dictionary):
         self.__node: INode = _Node(path, self._GetBuffer())
     
     @final
-    def GetNode(self) -> INode:
-        return self.__node
+    def GetNode(self) -> INode: return self.__node
 
 class _NodeAbstract[T: _BufferBase](Abstract, INode):
     def __init__(self, buffer: T) -> None:
@@ -324,52 +290,42 @@ class _NodeAbstract[T: _BufferBase](Abstract, INode):
     
     @abstractmethod
     def _GetDefaultBuffer(self) -> T:
-        pass
+        ...
     
     @final
     def _GetBuffer(self) -> T:
         return self.__buffer
     
-    def Dispose(self) -> None:
-        self.__buffer = self._GetDefaultBuffer()
+    def Dispose(self) -> None: self.__buffer = self._GetDefaultBuffer()
 
 class _RootBase[T: _BufferBase](_NodeAbstract[T]):
-    def __init__(self, buffer: T) -> None:
-        super().__init__(buffer)
+    def __init__(self, buffer: T) -> None: super().__init__(buffer)
     
     @final
-    def GetPath(self) -> str:
-        return ''
+    def GetPath(self) -> str: return ''
 
 class _Root(_RootBase[_DictionaryBufferBase], IDictionaryNode):
-    def __init__(self, buffer: _DictionaryBufferBase) -> None:
-        super().__init__(buffer)
+    def __init__(self, buffer: _DictionaryBufferBase) -> None: super().__init__(buffer)
     
     @final
-    def GetAttributes(self) -> NodeAttributes:
-        return NodeAttributes.Root | NodeAttributes.Dictionary
+    def GetAttributes(self) -> NodeAttributes: return NodeAttributes.Root | NodeAttributes.Dictionary
     
     @final
-    def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetValues()
+    def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     @final
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetItems()
+    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
     
     @final
     def _GetDefaultBuffer(self) -> _DictionaryBufferBase:
         return _dictionaryBuffer
 class _RootArray(_RootBase[_ArrayBufferBase], IArrayNode):
-    def __init__(self, buffer: _ArrayBufferBase) -> None:
-        super().__init__(buffer)
+    def __init__(self, buffer: _ArrayBufferBase) -> None: super().__init__(buffer)
     
     @final
-    def GetAttributes(self) -> NodeAttributes:
-        return NodeAttributes.Root
+    def GetAttributes(self) -> NodeAttributes: return NodeAttributes.Root
     
     @final
-    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetValues()
+    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     
     @final
     def _GetDefaultBuffer(self) -> _ArrayBufferBase:
@@ -382,104 +338,86 @@ class _NodeBase[T: _BufferBase](_NodeAbstract[T]):
         self.__path: str = path
     
     @final
-    def IsRoot(self) -> bool:
-        return False
+    def IsRoot(self) -> bool: return False
     
     @final
-    def GetPath(self) -> str:
-        return self.__path
+    def GetPath(self) -> str: return self.__path
 
 class _Node(_NodeBase[_DictionaryBufferBase], IDictionaryNode):
-    def __init__(self, path: str, buffer: _DictionaryBuffer) -> None:
-        super().__init__(path, buffer)
+    def __init__(self, path: str, buffer: _DictionaryBuffer) -> None: super().__init__(path, buffer)
     
     @final
-    def GetAttributes(self) -> NodeAttributes:
-        return NodeAttributes.Dictionary
+    def GetAttributes(self) -> NodeAttributes: return NodeAttributes.Dictionary
     
     @final
-    def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetValues()
+    def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     @final
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetItems()
+    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
     
     @final
     def _GetDefaultBuffer(self) -> _DictionaryBufferBase:
         return _dictionaryBuffer
 class _ArrayNode(_NodeBase[_ArrayBufferBase], IArrayNode):
-    def __init__(self, path: str, buffer: _ArrayBufferBase) -> None:
-        super().__init__(path, buffer)
+    def __init__(self, path: str, buffer: _ArrayBufferBase) -> None: super().__init__(path, buffer)
     
     @final
-    def GetAttributes(self) -> NodeAttributes:
-        return NodeAttributes.Null
+    def GetAttributes(self) -> NodeAttributes: return NodeAttributes.Null
     
     @final
-    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
-        return self._GetBuffer().TryGetValues()
+    def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     
     @final
     def _GetDefaultBuffer(self) -> _ArrayBufferBase:
         return _arrayBuffer
 
 class _GeneratorAbstract(Abstract):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _GetResult(self, generator: _GeneratorAbstract, event: Event, updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]:
         updater(generator)
 
         return GetNullable(DualResult[INode|None, Event](generator.TryGetNode(), event))
     def _SetResult(self, key: str, value: object, event: Event, handler: _HandlerBase) -> None:
-        def append(value: DualResult[object, ValueType]) -> None:
-            handler.Append(key, value)
+        def append(value: DualResult[object, ValueType]) -> None: handler.Append(key, value)
+        
         def handle(value: object) -> None:
             def getType() -> ValueType:
                 match event:
-                    case Event.Boolean:
-                        return ValueType.Boolean
-                    case Event.Integer:
-                        return ValueType.Integer
-                    case Event.Double:
-                        return ValueType.Double
-                    case Event.Number:
-                        return ValueType.Number
-                    case Event.String:
-                        return ValueType.String
+                    case Event.Boolean: return ValueType.Boolean
+                    case Event.Integer: return ValueType.Integer
+                    case Event.Double: return ValueType.Double
+                    case Event.Number: return ValueType.Number
+                    case Event.String: return ValueType.String
                     
-                    case _:
-                        return ValueType.NotApplicable
+                    case _: return ValueType.NotApplicable
             
             valueType: ValueType = getType()
 
-            if valueType.value > ValueType.NotApplicable.value:
-                append(CreateDualResult(value, valueType))
+            if valueType.value > ValueType.NotApplicable.value: append(CreateDualResult(value, valueType))
         
         match event:
-            case Event.NullValue:
-                append(CreateDualResult(None, ValueType.Null))
-            case _:
-                handle(value)
+            case Event.NullValue: append(CreateDualResult(None, ValueType.Null))
+            
+            case _: handle(value)
 
     @abstractmethod
     def TryGetNode(self) -> INode|None:
-        pass
+        ...
 
     @abstractmethod
     def MoveNext(self, nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None:
-        pass
+        ...
     
     @abstractmethod
     def Start(self, path: str) -> _GeneratorAbstract:
-        pass
+        ...
     @abstractmethod
     def StartArray(self, path: str) -> _GeneratorAbstract:
-        pass
+        ...
 
     @abstractmethod
     def End(self) -> _GeneratorAbstract:
-        pass
+        ...
 
 class _GeneratorInitializer(_GeneratorAbstract):
     def __init__(self) -> None:
@@ -498,25 +436,20 @@ class _GeneratorInitializer(_GeneratorAbstract):
 
             return GetNullValue()
         
-        def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]:
-            return self._GetResult(generator, event, updater)
+        def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]: return self._GetResult(generator, event, updater)
         
         item: Item|None = nextItemProvider()
 
-        if item is None:
-            return None
+        if item is None: return None
         
         key: str = item.GetKey()
         event: Event = item.GetEvent()
         
         match event:
-            case Event.StartMap:
-                return getResult(self.Start(key), event)
-            case Event.StartArray:
-                return getResult(self.StartArray(key), event)
+            case Event.StartMap: return getResult(self.Start(key), event)
+            case Event.StartArray: return getResult(self.StartArray(key), event)
             
-            case Event.EndMap | Event.EndArray:
-                return GetNullable(CreateDualResult(None, event))
+            case Event.EndMap | Event.EndArray: return GetNullable(CreateDualResult(None, event))
             
             case _:
                 generator: _GeneratorBase = self.StartArray(key)
@@ -528,23 +461,18 @@ class _GeneratorInitializer(_GeneratorAbstract):
         return None
     
     @final
-    def TryGetNode(self) -> INode|None:
-        return None
+    def TryGetNode(self) -> INode|None: return None
     
     @final
-    def MoveNext(self, nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None:
-        return self.__moveNext(nextItemProvider, updater)
+    def MoveNext(self, nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None: return self.__moveNext(nextItemProvider, updater)
     
     @final
-    def Start(self, path: str) -> _GeneratorBase:
-        return _RootGenerator(self)
+    def Start(self, path: str) -> _GeneratorBase: return _RootGenerator(self)
     @final
-    def StartArray(self, path: str) -> _GeneratorBase:
-        return _RootArrayGenerator(self)
+    def StartArray(self, path: str) -> _GeneratorBase: return _RootArrayGenerator(self)
     
     @final
-    def End(self) -> _GeneratorAbstract:
-        return self
+    def End(self) -> _GeneratorAbstract: return self
 
 class _GeneratorBase(_GeneratorAbstract):
     def __init__(self, parent: _GeneratorAbstract) -> None:
@@ -554,45 +482,36 @@ class _GeneratorBase(_GeneratorAbstract):
 
     @abstractmethod
     def GetHandler(self) -> _HandlerBase:
-        pass
+        ...
 
     @final
-    def TryGetNode(self) -> INode:
-        return self.GetHandler().GetNode()
+    def TryGetNode(self) -> INode: return self.GetHandler().GetNode()
     
     @final
     def MoveNext(self, nextItemProvider: Function[Item|None], updater: Method[_GeneratorAbstract]) -> INullable[DualResult[INode|None, Event]]|None:
-        def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]:
-            return self._GetResult(generator, event, updater)
+        def getResult(generator: _GeneratorAbstract, event: Event) -> INullable[DualResult[INode|None, Event]]: return self._GetResult(generator, event, updater)
         
         item: Item|None = nextItemProvider()
 
-        if item is None:
-            return None
+        if item is None: return None
         
         key: str = item.GetKey()
         event: Event = item.GetEvent()
         
         match event:
-            case Event.StartMap:
-                return getResult(self.Start(key), event)
-            case Event.StartArray:
-                return getResult(self.StartArray(key), event)
+            case Event.StartMap: return getResult(self.Start(key), event)
+            case Event.StartArray: return getResult(self.StartArray(key), event)
             
-            case Event.EndMap | Event.EndArray:
-                return getResult(self.End(), event)
+            case Event.EndMap | Event.EndArray: return getResult(self.End(), event)
             
-            case _:
-                self._SetResult(key, item.GetValue(), event, self.GetHandler())
+            case _: self._SetResult(key, item.GetValue(), event, self.GetHandler())
         
         return GetNullValue()
     
     @final
-    def Start(self, path: str) -> _GeneratorAbstract:
-        return _NodeGenerator(path, self)
+    def Start(self, path: str) -> _GeneratorAbstract: return _NodeGenerator(path, self)
     @final
-    def StartArray(self, path: str) -> _GeneratorAbstract:
-        return _ArrayNodeGenerator(path, self)
+    def StartArray(self, path: str) -> _GeneratorAbstract: return _ArrayNodeGenerator(path, self)
     
     @final
     def End(self) -> _GeneratorAbstract:
@@ -608,22 +527,19 @@ class _RootGeneratorBase[T: _HandlerBase](_GeneratorBase):
     
     @abstractmethod
     def _CreateHandler(self) -> T:
-        pass
+        ...
 
     @final
-    def GetHandler(self) -> T:
-        return self.__handler
+    def GetHandler(self) -> T: return self.__handler
 
 class _RootGenerator(_RootGeneratorBase[_RootDictionary]):
-    def __init__(self, initializer: _GeneratorInitializer) -> None:
-        super().__init__(initializer)
+    def __init__(self, initializer: _GeneratorInitializer) -> None: super().__init__(initializer)
     
     @final
     def _CreateHandler(self) -> _RootDictionary:
         return _RootDictionary()
 class _RootArrayGenerator(_RootGeneratorBase[_RootTuple]):
-    def __init__(self, initializer: _GeneratorInitializer) -> None:
-        super().__init__(initializer)
+    def __init__(self, initializer: _GeneratorInitializer) -> None: super().__init__(initializer)
     
     @final
     def _CreateHandler(self) -> _RootTuple:
@@ -637,22 +553,19 @@ class _NodeGeneratorBase[T: _HandlerBase](_GeneratorBase):
     
     @abstractmethod
     def _CreateHandler(self, path: str) -> T:
-        pass
+        ...
 
     @final
-    def GetHandler(self) -> T:
-        return self.__handler
+    def GetHandler(self) -> T: return self.__handler
 
 class _NodeGenerator(_NodeGeneratorBase[_NodeDictionary]):
-    def __init__(self, path: str, parent: _GeneratorAbstract) -> None:
-        super().__init__(path, parent)
+    def __init__(self, path: str, parent: _GeneratorAbstract) -> None: super().__init__(path, parent)
     
     @final
     def _CreateHandler(self, path: str) -> _NodeDictionary:
         return _NodeDictionary(path)
 class _ArrayNodeGenerator(_NodeGeneratorBase[_NodeTuple]):
-    def __init__(self, path: str, parent: _GeneratorAbstract) -> None:
-        super().__init__(path, parent)
+    def __init__(self, path: str, parent: _GeneratorAbstract) -> None: super().__init__(path, parent)
     
     @final
     def _CreateHandler(self, path: str) -> _NodeTuple:
@@ -667,21 +580,17 @@ class Item(Abstract):
         self.__event: Event = event
     
     @final
-    def GetKey(self) -> str:
-        return self.__key
+    def GetKey(self) -> str: return self.__key
     @final
-    def GetValue(self) -> object:
-        return self.__value
+    def GetValue(self) -> object: return self.__value
+    
     @final
-    def GetEvent(self) -> Event:
-        return self.__event
+    def GetEvent(self) -> Event: return self.__event
 
 class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def __init__(self, enumerator: IEnumerator[Item]) -> None:
-        def getNext() -> Item|None:
-            return self._GetContainer().GetCurrent() if self.__MoveNextBase() else None
-        def update(generator: _GeneratorAbstract) -> None:
-            self.__generator = generator
+        def getNext() -> Item|None: return self._GetContainer().GetCurrent() if self.__MoveNextBase() else None
+        def update(generator: _GeneratorAbstract) -> None: self.__generator = generator
 
         super().__init__(enumerator)
 
@@ -699,15 +608,13 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def _GetCurrent(self) -> DualResult[INode|None, Event]:
         current: DualResult[INode|None, Event]|None = self.__current
 
-        if current is None:
-            raise GetEnumeratorInactiveError()
+        if current is None: raise GetEnumeratorInactiveError()
         
         return current
     
     def _OnStarting(self) -> bool:
         def moveNext() -> bool:
-            def getResult() -> INullable[DualResult[INode|None, Event]]|None:
-                return self.__generator.MoveNext(self.__nextItemProvider, self.__updater)
+            def getResult() -> INullable[DualResult[INode|None, Event]]|None: return self.__generator.MoveNext(self.__nextItemProvider, self.__updater)
             
             result: INullable[DualResult[INode|None, Event]]|None = getResult()
 
@@ -728,23 +635,18 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
         
         return False
     
-    def _MoveNextOverride(self) -> bool:
-        return self.__moveNext()
+    def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
-    def _OnEnded(self) -> None:
-        self.__current = None
-    def _OnStopped(self) -> None:
-        pass
+    def _OnEnded(self) -> None: self.__current = None
+    def _OnStopped(self) -> None: pass
     
-    def _ResetOverride(self) -> bool:
-        return self._GetContainer().TryReset() is True
+    def _ResetOverride(self) -> bool: return self._GetContainer().TryReset() is True
 
 def _Enumerate(stream: IStreamReader[bytes]) -> Generator[Item]:
     event: Event|None = None
 
     for item in parse(stream.AsReader()):
-        if (event := _Events.TryConvertToEvent(item[1])) is not None:
-            yield Item(str(item[0]), item[2], event)
+        if (event := _Events.TryConvertToEvent(item[1])) is not None: yield Item(str(item[0]), item[2], event)
 
 def GetNodeEnumerator(stream: IStreamReader[bytes]) -> IEnumerator[DualResult[INode|None, Event]]:
     return Enumerator(AsEnumerator(_Enumerate(stream)))
@@ -754,20 +656,16 @@ def Enumerate(stream: IStreamReader[bytes]) -> IEnumerable[DualResult[INode|None
 def GetGenerator(stream: IStreamReader[bytes], events: Events) -> Generator[IKeyValuePair[INode, Events]]:
     def tryGetEvent(event: Event) -> Events|None:
         match event:
-            case Event.StartMap | Event.StartArray:
-                return Events.Start
-            case Event.EndMap | Event.EndArray:
-                return Events.End
+            case Event.StartMap | Event.StartArray: return Events.Start
+            case Event.EndMap | Event.EndArray: return Events.End
             
-            case _:
-                return None
+            case _: return None
     
     node: INode|None = None
     event: Events|None = None
 
     for item in GetNodeEnumerator(stream).AsIterator():
-        if (event := tryGetEvent(item.GetValue())) is not None and (node := item.GetKey()) is not None and event in events:
-            yield CreateDualResult(node, event)
+        if (event := tryGetEvent(item.GetValue())) is not None and (node := item.GetKey()) is not None and event in events: yield CreateDualResult(node, event)
 def GetEnumerator(stream: IStreamReader[bytes], events: Events) -> IEnumerator[IKeyValuePair[INode, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
 def GetEnumerable(stream: IStreamReader[bytes], events: Events) -> IEnumerable[IKeyValuePair[INode, Events]]:
@@ -776,11 +674,9 @@ def GetEnumerable(stream: IStreamReader[bytes], events: Events) -> IEnumerable[I
 class Reader(BinaryDataReader[INode]):
     class _Enumerable(RecursivelyIteratorProvider[INode]):
         class _GeneratorProvider(ObjectGeneratorProvider[INode]):
-            def __init__(self) -> None:
-                super().__init__()
+            def __init__(self) -> None: super().__init__()
             
-            def DisposeItem(self, item: INode) -> None:
-                item.Dispose()
+            def DisposeItem(self, item: INode) -> None: item.Dispose()
         
         def __init__(self, stream: IStreamReader[bytes]) -> None:
             super().__init__()
@@ -795,8 +691,7 @@ class Reader(BinaryDataReader[INode]):
         def _GetItemsIterator(self, events: Events) -> Generator[IKeyValuePair[INode, Events]]:
             return GetGenerator(self.__stream, events)
     
-    def __init__(self, stream: IBinaryStreamReader) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: IBinaryStreamReader) -> None: super().__init__(stream)
     
     @final
     def _Parse(self, stream: IStreamReader[bytes]) -> IRecursivelyScannable[INode]:

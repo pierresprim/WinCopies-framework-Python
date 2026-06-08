@@ -47,8 +47,7 @@ def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     """
     string = string.replace(esc + esc, esc)
 
-    for arg in args:
-        string = string.replace(esc + arg, newEsc + arg)
+    for arg in args: string = string.replace(esc + arg, newEsc + arg)
 
     return string
 def ReplaceValues(string: str, esc: str, newEsc: str, *args: str) -> str:
@@ -364,8 +363,7 @@ def SplitAt(value: str, i: int) -> list[str]:
     """
     result: list[str]|None = TrySplitAt(value, i)
 
-    if result is None:
-        raise ValueError(f"Value out of range. Value length: {len(value)}; index: {i}.")
+    if result is None: raise ValueError(f"Value out of range. Value length: {len(value)}; index: {i}.")
 
     return result
 
