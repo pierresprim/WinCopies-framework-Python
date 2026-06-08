@@ -7,7 +7,7 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
-from WinCopies.Enum import EnumerateFieldNames
+from WinCopies.Enum import EnumerateFieldNames, TryConvertFromString
 from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
 from WinCopies.Serialization import TextDataReader
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
@@ -16,8 +16,7 @@ def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyVa
     event: Events|None = None
 
     for item in iterparse(stream.AsReader(), events=tuple(event.lower() for event in EnumerateFieldNames(events))):
-        if (event := Events.TryConvertFromString(item[0], lambda name, value: name is not None and name.lower() == value.lower())) is not None:
-            yield CreateDualResult(item[1], event)
+        if (event := TryConvertFromString(Events, item[0], lambda name, value: name is not None and name.lower() == value.lower())) is not None: yield CreateDualResult(item[1], event)
 def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKeyValuePair[Element, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
 def GetEnumerable(stream: ITextStreamReader, events: Events) -> IEnumerable[IKeyValuePair[Element, Events]]:
@@ -26,11 +25,9 @@ def GetEnumerable(stream: ITextStreamReader, events: Events) -> IEnumerable[IKey
 class Reader(TextDataReader[Element]):
     class _Enumerable(RecursivelyIteratorProvider[Element]):
         class _GeneratorProvider(ManagedGeneratorProvider[Element]):
-            def __init__(self) -> None:
-                super().__init__()
+            def __init__(self) -> None: super().__init__()
             
-            def DisposeItem(self, item: Element) -> None:
-                item.clear()
+            def DisposeItem(self, item: Element) -> None: item.clear()
         
         def __init__(self, stream: IStreamReader[str]) -> None:
             super().__init__()
@@ -49,8 +46,7 @@ class Reader(TextDataReader[Element]):
         def _GetItemsIterator(self, events: Events) -> Generator[IKeyValuePair[Element, Events]]:
             return GetGenerator(self._GetStream(), events)
     
-    def __init__(self, stream: ITextStreamReader) -> None:
-        super().__init__(stream)
+    def __init__(self, stream: ITextStreamReader) -> None: super().__init__(stream)
     
     @final
     def _Parse(self, stream: IStreamReader[str]) -> IRecursivelyScannable[Element]:
