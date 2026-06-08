@@ -10,75 +10,64 @@ from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
 type EventHandler[TSender, TArgs] = Callable[[TSender, TArgs], None]
 
 class ICancellableEvent(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Processed(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def Cancel(self) -> None:
-        pass
+        ...
 
 class INotifyableEventBase[T](ICancellableEvent):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetValue(self) -> T:
-        pass
+        ...
     @abstractmethod
     def SetValue(self, value: T) -> None:
-        pass
+        ...
 class INotifyableEvent(INotifyableEventBase[bool|None]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ICancellableEventArgs(ICancellableEvent):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class INotifyableEventArgsBase[T](ICancellableEventArgs, INotifyableEventBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class INotifyableEventArgs(INotifyableEventArgsBase[bool|None], INotifyableEvent):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IEvent(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Remove(self) -> None:
-        pass
+        ...
 
 class IReadOnlyEventManager[TSender, TArgs](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
-        pass
+        ...
 class IWriteOnlyEventManager[TSender, TArgs, TEvent](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
-        pass
+        ...
 
 class IEventManagerBase[TSender, TArgs, TEvent](IReadOnlyEventManager[TSender, TArgs], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
-        pass
+        ...
 class IEventManager[TSender, TArgs](IEventManagerBase[TSender, TArgs, IEvent]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class CancellableEventArgsBase[T](Abstract, ICancellableEventArgs):
     def __init__(self) -> None:
@@ -95,24 +84,21 @@ class CancellableEventArgsBase[T](Abstract, ICancellableEventArgs):
     
     @abstractmethod
     def _GetDefaultValue(self) -> T:
-        pass
+        ...
     @abstractmethod
     def _GetProcessedValue(self) -> T:
-        pass
+        ...
     @abstractmethod
     def _IsProcessed(self, value: T) -> bool:
-        pass
+        ...
     
     @final
-    def Processed(self) -> bool:
-        return self._IsProcessed(self._GetValue())
+    def Processed(self) -> bool: return self._IsProcessed(self._GetValue())
     
     @final
-    def Cancel(self) -> None:
-        self.__processed = self._GetProcessedValue()
+    def Cancel(self) -> None: self.__processed = self._GetProcessedValue()
 class CancellableEventArgs(CancellableEventArgsBase[bool], ICancellableEventArgs):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _GetDefaultValue(self) -> bool:
@@ -125,18 +111,14 @@ class CancellableEventArgs(CancellableEventArgsBase[bool], ICancellableEventArgs
         return value
 
 class NotifyableEventArgsBase[T](CancellableEventArgsBase[T], INotifyableEventArgsBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetValue(self) -> T:
-        return self._GetValue()
+    def GetValue(self) -> T: return self._GetValue()
     @final
-    def SetValue(self, value: T) -> None:
-        self._SetValue(value)
+    def SetValue(self, value: T) -> None: self._SetValue(value)
 class NotifyableEventArgs(NotifyableEventArgsBase[bool|None], INotifyableEventArgs):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _GetDefaultValue(self) -> bool|None:
@@ -156,8 +138,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
 
             self.__node: INode[EventHandler[_TSender, _TArgs]] = node
         
-        def Remove(self) -> None:
-            self.__node.Remove()
+        def Remove(self) -> None: self.__node.Remove()
     
     def __init__(self) -> None:
         super().__init__()
@@ -170,14 +151,12 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         return self.__events
     
     def _InvokeEvents(self, sender: TSender, args: TArgs, events: IEnumerableList[EventHandler[TSender, TArgs]]) -> bool:
-        for event in events.AsIterable():
-            event(sender, args)
+        for event in events.AsIterable(): event(sender, args)
         
         return True
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent:
-        return EventManager[TSender, TArgs].__Event(self.__cookies.AddLast(handler))
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> IEvent: return EventManager[TSender, TArgs].__Event(self.__cookies.AddLast(handler))
     
     @final
     def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
@@ -185,13 +164,11 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
 
         return None if events.IsEmpty() else self._InvokeEvents(sender, args, events)
 class CancellableEventManager[TSender, TArgs: ICancellableEvent](EventManager[TSender, TArgs]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _InvokeEvents(self, sender: TSender, args: TArgs, events: IEnumerableList[EventHandler[TSender, TArgs]]) -> bool:
         for event in events.AsIterable():
-            if args.Processed():
-                return False
+            if args.Processed(): return False
             
             event(sender, args)
         
@@ -208,27 +185,22 @@ class EventManagerAbstractor[TSender, TArgs, TEvent](Abstract):
         return self.__manager
 
 class ReadOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IReadOnlyEventManager[TSender, TArgs]):
-    def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]) -> None:
-        super().__init__(manager)
+    def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]) -> None: super().__init__(manager)
     
     @final
-    def Invoke(self, sender: TSender, args: TArgs) -> bool|None:
-        return self._GetEventManager().Invoke(sender, args)
+    def Invoke(self, sender: TSender, args: TArgs) -> bool|None: return self._GetEventManager().Invoke(sender, args)
 class WriteOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSender, TArgs, TEvent], IWriteOnlyEventManager[TSender, TArgs, TEvent]):
-    def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]) -> None:
-        super().__init__(manager)
+    def __init__(self, manager: IEventManagerBase[TSender, TArgs, TEvent]) -> None: super().__init__(manager)
     
     @final
-    def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent:
-        return self._GetEventManager().Add(handler)
+    def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent: return self._GetEventManager().Add(handler)
 
 class IEventMonitor(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AssertReentrancy(self) -> None:
-        pass
+        ...
 class EventMonitor(Abstract, IEventMonitor):
     def __init__(self) -> None:
         super().__init__()
@@ -237,13 +209,11 @@ class EventMonitor(Abstract, IEventMonitor):
     
     @final
     def AssertReentrancy(self) -> None:
-        if self.__monitor.IsBusy():
-            raise InvalidOperationError("No reentrancy allowed.")
+        if self.__monitor.IsBusy(): raise InvalidOperationError("No reentrancy allowed.")
     
     def _AddHandler[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent:
         self.__monitor.Initialize()
 
-        with self.__monitor:
-            return eventManager.Add(handler)
+        with self.__monitor: return eventManager.Add(handler)
         
         raise

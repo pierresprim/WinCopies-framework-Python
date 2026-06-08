@@ -11,15 +11,13 @@ from WinCopies.Typing.Delegate import Converter
 type NumericalValue = int|float|decimal
 
 class ErrorBase(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+    def __init__(self, *args: object) -> None: super().__init__(*args)
     
     @abstractmethod
     def GetMessage(self) -> str:
-        pass
+        ...
     
-    def __str__(self) -> str:
-        return self.GetMessage()
+    def __str__(self) -> str: return self.GetMessage()
 class Error(ErrorBase):
     def __init__(self, message: str, *args: object) -> None:
         super().__init__(message, *args)
@@ -27,12 +25,10 @@ class Error(ErrorBase):
         self.__message: str = message # 'args' can be reassigned after construction, so the message is kept here as a stable source for GetMessage().
     
     @final
-    def GetMessage(self) -> str:
-        return self.__message
+    def GetMessage(self) -> str: return self.__message
 
 class InvalidOperationError(Error):
-    def __init__(self, message: str, *args: object) -> None:
-        super().__init__(message, *args)
+    def __init__(self, message: str, *args: object) -> None: super().__init__(message, *args)
 
 def GetGenericError() -> InvalidOperationError:
     return InvalidOperationError("Could not perform the requested action.")
@@ -41,20 +37,17 @@ def GetDisposedError() -> InvalidOperationError:
     return InvalidOperationError("The current object has been disposed.")
 
 class IDisposable(IDisposableBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @final
-    def _Throw(self) -> None:
-        raise GetDisposedError()
+    def _Throw(self) -> None: raise GetDisposedError()
 
 class IDisposableInfo(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsDisposed(self) -> bool:
-        pass
+        ...
 
 class INullable[T]:
     __slots__ = ()
@@ -108,21 +101,16 @@ class _Nullable[T](_NullableValue[T]):
         
         self.__value: T = value
     
-    def HasValue(self) -> bool:
-        return True
-    def GetValue(self) -> T:
-        return self.__value
+    def HasValue(self) -> bool: return True
+    def GetValue(self) -> T: return self.__value
 @final
 class _NullValue[T](_NullableValue[T]):
     __slots__ = ()
     
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def HasValue(self) -> bool:
-        return False
-    def GetValue(self) -> T:
-        raise InvalidOperationError("No value available.")
+    def HasValue(self) -> bool: return False
+    def GetValue(self) -> T: raise InvalidOperationError("No value available.")
 
 __nullValue: _NullValue = _NullValue() # type: ignore
 
@@ -138,33 +126,28 @@ def GetNullableValue[T](value: T|None) -> INullable[T]:
     return GetNullValue() if value is None else GetNullable(value)
 
 class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetItem(self) -> T:
-        pass
+        ...
 
     @abstractmethod
     def IsDisposed(self) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def Dispose(self) -> _IDisposableProviderItem[T]:
-        pass
+        ...
 @final
 class _DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
-    def GetItem(self) -> T:
-        raise GetDisposedError()
+    def GetItem(self) -> T: raise GetDisposedError()
 
-    def IsDisposed(self) -> bool:
-        return True
+    def IsDisposed(self) -> bool: return True
 
-    def Dispose(self) -> _IDisposableProviderItem[T]:
-        return self
+    def Dispose(self) -> _IDisposableProviderItem[T]: return self
 
 __disposedItem = _DisposedItem() # type: ignore
 
@@ -175,11 +158,9 @@ class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProvider
 
         self.__item: T = item
     
-    def GetItem(self) -> T:
-        return self.__item
+    def GetItem(self) -> T: return self.__item
 
-    def IsDisposed(self) -> bool:
-        return self.__item.IsDisposed()
+    def IsDisposed(self) -> bool: return self.__item.IsDisposed()
     
     def Dispose(self) -> _IDisposableProviderItem[T]:
         self.__item.Dispose()
@@ -187,17 +168,15 @@ class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProvider
         return __disposedItem # pyright: ignore[reportUnknownVariableType]
 
 class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetItem(self) -> T:
-        pass
+        ...
     
     @final
     def GetItem(self) -> T:
-        if self.IsDisposed():
-            raise GetDisposedError()
+        if self.IsDisposed(): raise GetDisposedError()
         
         return self._GetItem()
     @final
@@ -214,12 +193,10 @@ class DisposableProvider[T: IDisposableInfo](Abstract, IDisposableProvider[T]):
         return self.__item.GetItem()
     
     @final
-    def IsDisposed(self) -> bool:
-        return self.__item.IsDisposed()
+    def IsDisposed(self) -> bool: return self.__item.IsDisposed()
     
     @final
-    def Dispose(self) -> None:
-        self.__item = self.__item.Dispose()
+    def Dispose(self) -> None: self.__item = self.__item.Dispose()
 
 def TryGetValueAs[TValue, TDefault](type: SystemType[TValue], value: object, default: TDefault) -> TValue|TDefault:
     return value if isinstance(value, type) else default
@@ -227,12 +204,11 @@ def TryGetAs[T](type: SystemType[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
 
 class IMonitor(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsBusy(self) -> bool:
-        pass
+        ...
 class Monitor(Abstract, IMonitor):
     def __init__(self) -> None:
         super().__init__()
@@ -240,21 +216,17 @@ class Monitor(Abstract, IMonitor):
         self.__isBusy: bool = False
     
     @final
-    def Initialize(self) -> None:
-        self.__isBusy = True
+    def Initialize(self) -> None: self.__isBusy = True
     
     @final
-    def IsBusy(self) -> bool:
-        return self.__isBusy
+    def IsBusy(self) -> bool: return self.__isBusy
     
     @final
-    def Dispose(self) -> None:
-        self.__isBusy = False
+    def Dispose(self) -> None: self.__isBusy = False
 
 class IEnum(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetEnumValue(self) -> Enum:
-        pass
+        ...

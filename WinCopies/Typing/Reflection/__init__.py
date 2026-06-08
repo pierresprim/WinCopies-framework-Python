@@ -24,19 +24,17 @@ type Setter[TClass, TValue] = Converter[TClass, IMethod[TValue]]
 type Property[TClass, TValue] = Converter[TClass, IStruct[TValue]]
 
 class IFunctionDecorator[TClass, TValue](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def __call__(self, obj: TClass) -> TValue:
-        pass
+        ...
 class IMethodDecorator[TClass, TValue](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def __call__(self, obj: TClass, value: TValue) -> None:
-        pass
+        ...
 
 class _FunctionDecoratorAbstract[T](Abstract):
     def __init__(self, func: T) -> None:
@@ -49,68 +47,56 @@ class _FunctionDecoratorAbstract[T](Abstract):
         return self.__func
 
 class IFunctionProvider[TClass, TValue, TProperty](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _AsFunction(self, func: TProperty) -> GetterBase[TClass, TValue]:
-        pass
+        ...
 
 class IGetterProvider[TClass, TValue](IFunctionProvider[TClass, TValue, GetterBase[TClass, TValue]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _AsFunction(self, func: GetterBase[TClass, TValue]) -> GetterBase[TClass, TValue]:
-        return func
+    def _AsFunction(self, func: GetterBase[TClass, TValue]) -> GetterBase[TClass, TValue]: return func
 class IPropertyProvider[TClass, TValue](IFunctionProvider[TClass, TValue, Property[TClass, TValue]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _AsFunction(self, func: Property[TClass, TValue]) -> GetterBase[TClass, TValue]:
-        return func
+    def _AsFunction(self, func: Property[TClass, TValue]) -> GetterBase[TClass, TValue]: return func
 
 class _FunctionDecoratorBase[TClass, TValue, TProperty](_FunctionDecoratorAbstract[TProperty], IFunctionDecorator[TClass, TValue], IFunctionProvider[TClass, TValue, TProperty]):
-    def __init__(self, func: TProperty) -> None:
-        super().__init__(func)
+    def __init__(self, func: TProperty) -> None: super().__init__(func)
     
     def _Invoke(self, obj: TClass) -> TValue:
         return self._AsFunction(self._GetFunc())(obj).GetValue()
     
     @final
-    def __call__(self, obj: TClass) -> TValue:
-        return self._Invoke(obj)
+    def __call__(self, obj: TClass) -> TValue: return self._Invoke(obj)
 
 class FunctionDecorator[TClass, TValue](_FunctionDecoratorBase[TClass, TValue, Property[TClass, TValue]], IPropertyProvider[TClass, TValue]):
-    def __init__(self, func: Property[TClass, TValue]) -> None:
-        super().__init__(func)
+    def __init__(self, func: Property[TClass, TValue]) -> None: super().__init__(func)
 
 class GetterDecorator[TClass, TValue](_FunctionDecoratorBase[TClass, TValue, Getter[TClass, TValue]], IGetterProvider[TClass, TValue]):
-    def __init__(self, func: Getter[TClass, TValue]) -> None:
-        super().__init__(func)
+    def __init__(self, func: Getter[TClass, TValue]) -> None: super().__init__(func)
 
 class SetterDecorator[TClass, TValue](_FunctionDecoratorAbstract[Setter[TClass, TValue]], IMethodDecorator[TClass, TValue]):
-    def __init__(self, func: Setter[TClass, TValue]) -> None:
-        super().__init__(func)
+    def __init__(self, func: Setter[TClass, TValue]) -> None: super().__init__(func)
     
     def _Invoke(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None:
         return self._GetFunc()(obj, *args, **kwargs).SetValue(value)
     
     @final
-    def __call__(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None:
-        self._Invoke(obj, value, *args, **kwargs)
+    def __call__(self, obj: TClass, value: TValue, *args: object, **kwargs: object) -> None: self._Invoke(obj, value, *args, **kwargs)
 
 def _None(_: Callable[[Any, Any, Any], None]) -> None:
     return None
 
 class IReadOnlyPropertyBase[TClass, TValue, TAccessor](IFunctionDecorator[TClass, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Get(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor:
-        pass
+        ...
     
     @overload
     def __get__(self, obj: TClass, objtype: type|None = None) -> TValue:
@@ -120,50 +106,41 @@ class IReadOnlyPropertyBase[TClass, TValue, TAccessor](IFunctionDecorator[TClass
         ...
     
     @final
-    def __get__(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor:
-        return self.Get(obj)
+    def __get__(self, obj: TClass|None, objtype: type|None = None) -> TValue|TAccessor: return self.Get(obj)
 class IReadOnlyProperty[TClass, TValue, TAccessor](IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     @_None
     def __set__(self, obj: TClass, value: TValue) -> None:
         pass
 class IProperty[TClass, TValue, TAccessor](IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Set(self, obj: TClass, value: TValue) -> None:
-        pass
+        ...
     
     @final
-    def __set__(self, obj: TClass, value: TValue) -> None:
-        self.Set(obj, value)
+    def __set__(self, obj: TClass, value: TValue) -> None: self.Set(obj, value)
 
 class _PropertyDecorator[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
-    def __init__(self, func: TProperty) -> None:
-        super().__init__(func)
+    def __init__(self, func: TProperty) -> None: super().__init__(func)
 
 class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IReadOnlyProperty[TClass, TValue, TAccessor], IGetterProvider[TClass, TValue]):
-    def __init__(self, func: GetterBase[TClass, TValue]) -> None:
-        super().__init__(func)
+    def __init__(self, func: GetterBase[TClass, TValue]) -> None: super().__init__(func)
 class PropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, Property[TClass, TValue]], IProperty[TClass, TValue, TAccessor], IPropertyProvider[TClass, TValue]):
-    def __init__(self, func: Property[TClass, TValue]) -> None:
-        super().__init__(func)
+    def __init__(self, func: Property[TClass, TValue]) -> None: super().__init__(func)
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
-    def getName(index: int) -> str:
-        return selector(path.abspath(frames[index].filename))
+    def getName(index: int) -> str: return selector(path.abspath(frames[index].filename))
     
     frames: List[FrameInfo] = stack()
     nextIndex: int = index + 1
 
     return getName(index) == getName(nextIndex) if len(frames) > nextIndex else None
 def __EnsureDirectCall(index: int, selector: Converter[int, bool|None]) -> None:
-    if not TryEnsureTrue(selector(index) == True):
-        raise ValueError(index)
+    if not TryEnsureTrue(selector(index) == True): raise ValueError(index)
 
 def __IsDirectModuleCall(index: int) -> bool|None:
     return __IsDirectCall(index, path.basename)
@@ -273,11 +250,8 @@ def TryIsModuleInPackage(module: ModuleType, package: ModuleType) -> bool|None:
     Returns:
         True if the module file is under the package directory, False otherwise, None if built-in module.
     """
-    try:
-        return IsModuleInPackage(module, package)
-    
-    except TypeError:
-        return None
+    try: return IsModuleInPackage(module, package)
+    except TypeError: return None
 
 def EnsureIsSubmodule(module: ModuleType, package: ModuleType) -> None:
     """Ensures a module is a submodule of a package.
@@ -327,8 +301,7 @@ def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType]|None:
     """
     moduleName: str|None = TryGetValue(TryGetModuleNameFromFrame(frame))
 
-    if moduleName is None:
-        return None
+    if moduleName is None: return None
 
     module: ModuleType|None = modules.get(moduleName)
 
@@ -344,8 +317,7 @@ def TryFindModuleFromFileName(fileName: str) -> ModuleType|None:
         The module if found, None otherwise.
     """
     for _, module in modules.items():
-        if hasattr(module, '__file__') and module.__file__ == fileName:
-            return module
+        if hasattr(module, '__file__') and module.__file__ == fileName: return module
 
     return None
 
@@ -358,14 +330,12 @@ def TryGetPackageNameFromFrame(frame: FrameType) -> str|None:
     Returns:
         The package name if found, None otherwise.
     """
-    def getValue(attributeName: str) -> object|None:
-        return frame.f_globals.get(f"__{attributeName}__")
+    def getValue(attributeName: str) -> object|None: return frame.f_globals.get(f"__{attributeName}__")
 
     # Try to get __package__ directly
     module: object|None = getValue("package")
 
-    if isinstance(module, str):
-        return module
+    if isinstance(module, str): return module
 
     # Fall back to module name parsing
     module = getValue("name")
@@ -384,27 +354,22 @@ def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> 
     """
     module: ModuleType|None = TryGetValue(TryGetModuleFromFrame(frame))
 
-    if module is None:
-        return False
+    if module is None: return False
 
-    if isinstance(package, str):
-        package = import_module(package)
+    if isinstance(package, str): package = import_module(package)
 
-    try:
-        return IsModuleInPackage(module, package)
+    try: return IsModuleInPackage(module, package)
 
     except (TypeError, ImportError):
         # Fallback to name checking
-        def getName(module: ModuleType) -> str:
-            return getattr(module, "__name__", '')
+        def getName(module: ModuleType) -> str: return getattr(module, "__name__", '')
 
         return IsSubmoduleFromNames(getName(module), getName(package))
 
 def __TryOnModuleNameFromFrame[T](frame: FrameType, func: Converter[str, T]) -> INullable[T]|None:
     result: INullable[str]|None = TryGetModuleNameFromFrame(frame)
 
-    if result is None:
-        return None
+    if result is None: return None
 
     value: str|None = result.TryGetValue()
 
@@ -457,8 +422,7 @@ def EnumerateFromCallStack() -> Generator[FrameInfo]:
     Yields:
         FrameInfo objects from the call stack.
     """
-    for frame in stack():
-        yield frame
+    for frame in stack(): yield frame
 
 def __CheckCallerPackage(targetPackage: ModuleType|str, index: int) -> bool:
     return TryIsModuleInPackageFromFrame(stack()[index].frame, targetPackage)
@@ -482,8 +446,7 @@ def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
     Raises:
         InvalidOperationError: If the caller is not from the target package.
     """
-    if not __CheckCallerPackage(targetPackage, 2):
-        raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
+    if not __CheckCallerPackage(targetPackage, 2): raise InvalidOperationError(f"This function can only be called from {targetPackage}.")
 
 def AreSameClass[T](x: Type[T], y: Type[T]) -> bool:
     return x is y
@@ -501,8 +464,7 @@ def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
         True if the class is a subclass of at least one type, False otherwise.
     """
     for type in types:
-        if issubclass(cls, type):
-            return True
+        if issubclass(cls, type): return True
 
     return False
 def IsSubclassOf[T](cls: Type[T], *types: Type[T]) -> bool:
@@ -551,8 +513,7 @@ def Implements[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
         True if the class is a subclass of all types, False otherwise.
     """
     for type in types:
-        if not issubclass(cls, type):
-            return False
+        if not issubclass(cls, type): return False
 
     return True
 def ImplementsAll[T](cls: Type[T], *types: Type[T]) -> bool:
@@ -601,8 +562,7 @@ def AreInstances(type: type, *values: object) -> bool:
         True if all values are instances of the type, False otherwise.
     """
     for value in values:
-        if not isinstance(value, type):
-            return False
+        if not isinstance(value, type): return False
 
     return True
 

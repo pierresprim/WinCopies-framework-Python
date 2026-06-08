@@ -23,8 +23,7 @@ def ImportModule(package: ModuleType|str) -> ModuleType:
 def EnumerateSubmodules(package: ModuleType|str, includePrivate: bool = False) -> Generator[ModuleInfo]:
     def enumerateSubmodules(package: ModuleType) -> Generator[ModuleInfo]:
         for moduleInfo in walk_packages(package.__path__, package.__name__ + '.'):
-            if includePrivate or not moduleInfo.name.split('.')[-1].startswith('_'):
-                yield moduleInfo
+            if includePrivate or not moduleInfo.name.split('.')[-1].startswith('_'): yield moduleInfo
     
     return enumerateSubmodules(ImportModule(package))
 
@@ -35,28 +34,20 @@ def TryEnumerateImports(module: ModuleType) -> Generator[str]|None:
         
         for node in walk(tree):
             if isinstance(node, Import):
-                for alias in node.names:
-                    yield alias.name
+                for alias in node.names: yield alias.name
             
             elif isinstance(node, ImportFrom):
                 moduleName: str = node.module or ''
 
-                for alias in node.names:
-                    yield f"{moduleName}.{alias.name}"
+                for alias in node.names: yield f"{moduleName}.{alias.name}"
     
-    try:
-        return enumerate()
-    
-    except (OSError, TypeError):
-        return None
+    try: return enumerate()
+    except (OSError, TypeError): return None
 
 def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
     imports: Generator[str]|None = TryEnumerateImports(module)
 
-    if imports is None:
-        return None
-
-    return any(imp.startswith(packageName) for imp in imports)
+    return None if imports is None else any(imp.startswith(packageName) for imp in imports)
 
 class PackageInspector(Abstract):
     def __init__(self, package: ModuleType|str) -> None:
@@ -64,99 +55,91 @@ class PackageInspector(Abstract):
 
         self.__package: ModuleType = ImportModule(package)
     
-    def GetName(self) -> str:
-        return self.__package.__name__
+    def GetName(self) -> str: return self.__package.__name__
     
-    def ContainsModule(self, module: ModuleType) -> bool:
-        return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module), self.GetName())
+    def ContainsModule(self, module: ModuleType) -> bool: return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module), self.GetName())
     
-    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfo]:
-        return EnumerateSubmodules(self.__package, includePrivate)
+    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfo]: return EnumerateSubmodules(self.__package, includePrivate)
     
     def TryFindModule(self, name: str) -> ModuleType|None:
         fullName: str = f"{self.GetName()}.{name}"
 
-        try:
-            return import_module(fullName)
-        except ImportError:
-            return None
+        try: return import_module(fullName)
+        except ImportError: return None
 
 class IFrameInspector(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetFrame(self) -> FrameType:
-        pass
+        ...
     
     @abstractmethod
     def GetFileName(self) -> str:
-        pass
+        ...
     
     @abstractmethod
     def TryGetModuleName(self) -> INullable[str]|None:
-        pass
+        ...
     
     @abstractmethod
     def TryGetPackageName(self) -> str|None:
-        pass
+        ...
     
     @abstractmethod
     def TryGetModule(self) -> ModuleType|None:
-        pass
+        ...
     
     @abstractmethod
     def TryGetPackage(self) -> ModuleType|None:
-        pass
+        ...
     
     @abstractmethod
     def IsInPackage(self, package: ModuleType|str) -> bool:
-        pass
+        ...
     
     @abstractmethod
     def GetFunctionName(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetLineNumber(self) -> int:
-        pass
+        ...
     
     @abstractmethod
     def HasModule(self) -> bool:
-        pass
+        ...
     @abstractmethod
     def HasPackage(self) -> bool:
-        pass
+        ...
     
     @abstractmethod
     def TryGetFunctionFullName(self) -> INullable[str]|None:
-        pass
+        ...
     
     @abstractmethod
     def TryIsMain(self) -> INullable[bool]|None:
-        pass
+        ...
     @abstractmethod
     def TryIsBuiltin(self) -> INullable[bool]|None:
-        pass
+        ...
 class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class __IFrameInfo(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetFrame(self) -> FrameType:
-        pass
+        ...
     @abstractmethod
     def GetFileName(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetFunction(self) -> str:
-        pass
+        ...
     @abstractmethod
     def GetLineNumber(self) -> int:
-        pass
+        ...
 
 @final
 class __FrameInfo(Abstract, __IFrameInfo):
@@ -165,47 +148,35 @@ class __FrameInfo(Abstract, __IFrameInfo):
 
         self.__frameInfo: FrameInfo = frameInfo
     
-    def GetFrame(self) -> FrameType:
-        return self.__frameInfo.frame
-    def GetFileName(self) -> str:
-        return self.__frameInfo.filename
-    def GetFunction(self) -> str:
-        return self.__frameInfo.function
-    def GetLineNumber(self) -> int:
-        return self.__frameInfo.lineno
+    def GetFrame(self) -> FrameType: return self.__frameInfo.frame
+    def GetFileName(self) -> str: return self.__frameInfo.filename
+    def GetFunction(self) -> str: return self.__frameInfo.function
+    def GetLineNumber(self) -> int: return self.__frameInfo.lineno
 @final
 class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
     class _IHandle(__IFrameInfo):
-        def __init__(self) -> None:
-            super().__init__()
+        def __init__(self) -> None: super().__init__()
         
         @abstractmethod
         def IsDisposed(self) -> bool:
-            pass
+            ...
         
         @abstractmethod
         def Dispose(self) -> __Traceback._IHandle:
-            pass
+            ...
     
     @final
     class _NullHandle(Abstract, _IHandle):
-        def __init__(self) -> None:
-            super().__init__()
+        def __init__(self) -> None: super().__init__()
         
-        def IsDisposed(self) -> bool:
-            return True
+        def IsDisposed(self) -> bool: return True
 
-        def GetFrame(self) -> FrameType:
-            raise GetDisposedError()
-        def GetFileName(self) -> str:
-            raise GetDisposedError()
-        def GetFunction(self) -> str:
-            raise GetDisposedError()
-        def GetLineNumber(self) -> int:
-            raise GetDisposedError()
+        def GetFrame(self) -> FrameType: raise GetDisposedError()
+        def GetFileName(self) -> str: raise GetDisposedError()
+        def GetFunction(self) -> str: raise GetDisposedError()
+        def GetLineNumber(self) -> int: raise GetDisposedError()
         
-        def Dispose(self) -> __Traceback._IHandle:
-            return self
+        def Dispose(self) -> __Traceback._IHandle: return self
     @final
     class _Handle(Abstract, _IHandle):
         def __init__(self, frame: FrameType, traceback: Traceback) -> None:
@@ -214,17 +185,12 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
             self.__frame: FrameType = frame
             self.__traceback: Traceback = traceback
         
-        def IsDisposed(self) -> bool:
-            return False
+        def IsDisposed(self) -> bool: return False
 
-        def GetFrame(self) -> FrameType:
-            return self.__frame
-        def GetFileName(self) -> str:
-            return self.__traceback.filename
-        def GetFunction(self) -> str:
-            return self.__traceback.function
-        def GetLineNumber(self) -> int:
-            return self.__traceback.lineno
+        def GetFrame(self) -> FrameType: return self.__frame
+        def GetFileName(self) -> str: return self.__traceback.filename
+        def GetFunction(self) -> str: return self.__traceback.function
+        def GetLineNumber(self) -> int: return self.__traceback.lineno
         
         def Dispose(self) -> __Traceback._IHandle:
             del self.__traceback
@@ -236,20 +202,14 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
 
         self.__handle: __Traceback._IHandle = __Traceback._Handle(frame, traceback)
     
-    def IsDisposed(self) -> bool:
-        return self.__handle.IsDisposed()
+    def IsDisposed(self) -> bool: return self.__handle.IsDisposed()
     
-    def GetFrame(self) -> FrameType:
-        return self.__handle.GetFrame()
-    def GetFileName(self) -> str:
-        return self.__handle.GetFileName()
-    def GetFunction(self) -> str:
-        return self.__handle.GetFunction()
-    def GetLineNumber(self) -> int:
-        return self.__handle.GetLineNumber()
+    def GetFrame(self) -> FrameType: return self.__handle.GetFrame()
+    def GetFileName(self) -> str: return self.__handle.GetFileName()
+    def GetFunction(self) -> str: return self.__handle.GetFunction()
+    def GetLineNumber(self) -> int: return self.__handle.GetLineNumber()
     
-    def Dispose(self) -> None:
-        self.__handle = self.__handle.Dispose()
+    def Dispose(self) -> None: self.__handle = self.__handle.Dispose()
 
 @final
 class __FrameInspector(Abstract, IFrameInspector):
@@ -258,44 +218,34 @@ class __FrameInspector(Abstract, IFrameInspector):
 
         self.__frameInfo: __IFrameInfo = frameInfo
     
-    def GetFrame(self) -> FrameType:
-        return self.__frameInfo.GetFrame()
+    def GetFrame(self) -> FrameType: return self.__frameInfo.GetFrame()
     
-    def GetFileName(self) -> str:
-        return self.__frameInfo.GetFileName()
+    def GetFileName(self) -> str: return self.__frameInfo.GetFileName()
     
-    def TryGetModuleName(self) -> INullable[str]|None:
-        return Reflection.TryGetModuleNameFromFrame(self.GetFrame())
+    def TryGetModuleName(self) -> INullable[str]|None: return Reflection.TryGetModuleNameFromFrame(self.GetFrame())
     
-    def TryGetPackageName(self) -> str|None:
-        return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
+    def TryGetPackageName(self) -> str|None: return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
     
     def TryGetModule(self) -> ModuleType|None:
-        def getResult() -> ModuleType|None:
-            return Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())
+        def getResult() -> ModuleType|None: return Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())
         
         module: INullable[ModuleType]|None = Reflection.TryGetModuleFromFrame(self.GetFrame())
 
-        if module is None:
-            return getResult()
+        if module is None: return getResult()
         
         result: ModuleType|None = module.TryGetValue()
 
-        if result is None:
-            return getResult()
+        if result is None: return getResult()
         
         return result
     
     def TryGetPackage(self) -> ModuleType|None:
         packageName: str|None = self.TryGetPackageName()
 
-        if packageName is None:
-            return None
+        if packageName is None: return None
 
-        try:
-            return import_module(packageName)
-        except ImportError:
-            return None
+        try: return import_module(packageName)
+        except ImportError: return None
     
     def IsInPackage(self, package: ModuleType|str) -> bool:
         return Reflection.TryIsModuleInPackageFromFrame(self.GetFrame(), package)
@@ -313,8 +263,7 @@ class __FrameInspector(Abstract, IFrameInspector):
     def TryGetFunctionFullName(self) -> INullable[str]|None:
         moduleName: INullable[str]|None = self.TryGetModuleName()
 
-        if moduleName is None:
-            return None
+        if moduleName is None: return None
 
         value: str|None = moduleName.TryGetValue()
 
@@ -338,12 +287,10 @@ class __DisposableFrameInspector(Abstract, IDisposableInfo):
         self.__frame: FrameType = frame
         self.__frameInspector: IFrameInspector|None = CreateFrameInspectorFromFrame(self.__frame)
     
-    def IsDisposed(self) -> bool:
-        return self.__frameInspector is None
+    def IsDisposed(self) -> bool: return self.__frameInspector is None
     
     def GetFrameInspector(self) -> IFrameInspector:
-        if self.__frameInspector is None or self.IsDisposed():
-            raise GetDisposedError()
+        if self.__frameInspector is None or self.IsDisposed(): raise GetDisposedError()
         
         return self.__frameInspector
     
@@ -361,47 +308,33 @@ class DisposableFrameInspector(Abstract, IDisposableFrameInspector):
     def __GetFrameInspector(self) -> IFrameInspector:
         return self.__frameInspector.GetItem().GetFrameInspector()
     
-    def GetFrame(self) -> FrameType:
-        return self.__GetFrameInspector().GetFrame()
+    def GetFrame(self) -> FrameType: return self.__GetFrameInspector().GetFrame()
     
-    def GetFileName(self) -> str:
-        return self.__GetFrameInspector().GetFileName()
+    def GetFileName(self) -> str: return self.__GetFrameInspector().GetFileName()
     
     def TryGetModuleName(self) -> INullable[str]|None:
         return self.__GetFrameInspector().TryGetModuleName()
     
-    def TryGetPackageName(self) -> str|None:
-        return self.__GetFrameInspector().TryGetPackageName()
+    def TryGetPackageName(self) -> str|None: return self.__GetFrameInspector().TryGetPackageName()
     
-    def TryGetModule(self) -> ModuleType|None:
-        return self.__GetFrameInspector().TryGetModule()
+    def TryGetModule(self) -> ModuleType|None: return self.__GetFrameInspector().TryGetModule()
     
-    def TryGetPackage(self) -> ModuleType|None:
-        return self.__GetFrameInspector().TryGetPackage()
+    def TryGetPackage(self) -> ModuleType|None: return self.__GetFrameInspector().TryGetPackage()
     
-    def IsInPackage(self, package: ModuleType|str) -> bool:
-        return self.__GetFrameInspector().IsInPackage(package)
+    def IsInPackage(self, package: ModuleType|str) -> bool: return self.__GetFrameInspector().IsInPackage(package)
     
-    def GetFunctionName(self) -> str:
-        return self.__GetFrameInspector().GetFunctionName()
-    def GetLineNumber(self) -> int:
-        return self.__GetFrameInspector().GetLineNumber()
+    def GetFunctionName(self) -> str: return self.__GetFrameInspector().GetFunctionName()
+    def GetLineNumber(self) -> int: return self.__GetFrameInspector().GetLineNumber()
     
-    def HasModule(self) -> bool:
-        return self.__GetFrameInspector().HasModule()
-    def HasPackage(self) -> bool:
-        return self.__GetFrameInspector().HasPackage()
+    def HasModule(self) -> bool: return self.__GetFrameInspector().HasModule()
+    def HasPackage(self) -> bool: return self.__GetFrameInspector().HasPackage()
     
-    def TryGetFunctionFullName(self) -> INullable[str]|None:
-        return self.__GetFrameInspector().TryGetFunctionFullName()
+    def TryGetFunctionFullName(self) -> INullable[str]|None: return self.__GetFrameInspector().TryGetFunctionFullName()
     
-    def TryIsMain(self) -> INullable[bool]|None:
-        return self.__GetFrameInspector().TryIsMain()
-    def TryIsBuiltin(self) -> INullable[bool]|None:
-        return self.__GetFrameInspector().TryIsBuiltin()
+    def TryIsMain(self) -> INullable[bool]|None: return self.__GetFrameInspector().TryIsMain()
+    def TryIsBuiltin(self) -> INullable[bool]|None: return self.__GetFrameInspector().TryIsBuiltin()
     
-    def Dispose(self) -> None:
-        self.__frameInspector.Dispose()
+    def Dispose(self) -> None: self.__frameInspector.Dispose()
 
 class FrameHierarchy(Abstract):
     def __init__(self, inspector: IFrameInspector) -> None:
@@ -433,8 +366,7 @@ class FrameHierarchy(Abstract):
             def tryGetHierarchy() -> INullable[IArray[str]]:
                 moduleName: str|None = tryGetModuleName(self.__inspector)
 
-                if moduleName is None:
-                    return GetNullValue()
+                if moduleName is None: return GetNullValue()
                 
                 hierarchy: Sequence[str] = moduleName.split('.')
                 parent: str|None = None
@@ -459,55 +391,49 @@ class MemberKind(Enum):
     Method = 3
 
 class ITypeInfo(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetType(self) -> type:
-        pass
+        ...
 
     @abstractmethod
     def GetFunctions(self) -> IArray[IFunctionInfo]:
-        pass
+        ...
 
 class IMemberInfo(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetName(self) -> str:
-        pass
+        ...
     
     @abstractmethod
     def GetKind(self) -> MemberKind:
-        pass
+        ...
 
     @abstractmethod
     def GetType(self) -> ITypeInfo:
-        pass
+        ...
 
 class IFunctionInfo(IMemberInfo):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetKind(self) -> MemberKind:
-        return MemberKind.Function
+    def GetKind(self) -> MemberKind: return MemberKind.Function
     
     @abstractmethod
     def Call(self, obj: object, *args: object, **kwargs: object) -> object:
-        pass
+        ...
 class IMethodInfo(IMemberInfo):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetKind(self) -> MemberKind:
-        return MemberKind.Method
+    def GetKind(self) -> MemberKind: return MemberKind.Method
     
     @abstractmethod
     def Call(self, *args: object, **kwargs: object) -> object:
-        pass
+        ...
 
 @final
 class _TypeUpdater[T](ValueFunctionUpdater[IArray[IFunctionInfo]]):
@@ -521,8 +447,7 @@ class _TypeUpdater[T](ValueFunctionUpdater[IArray[IFunctionInfo]]):
 
 class TypeInfo[T](Abstract, ITypeInfo):
     def __init__(self, type: Type[T]) -> None:
-        def update(func: IFunction[IArray[IFunctionInfo]]) -> None:
-            self.__functions = func
+        def update(func: IFunction[IArray[IFunctionInfo]]) -> None: self.__functions = func
         
         super().__init__()
 
@@ -530,12 +455,10 @@ class TypeInfo[T](Abstract, ITypeInfo):
         self.__functions: IFunction[IArray[IFunctionInfo]] = _TypeUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def GetType(self) -> Type[T]:
-        return self.__type
+    def GetType(self) -> Type[T]: return self.__type
     
     @final
-    def GetFunctions(self) -> IArray[IFunctionInfo]:
-        return self.__functions.GetValue()
+    def GetFunctions(self) -> IArray[IFunctionInfo]: return self.__functions.GetValue()
 
 class _Member[T](Abstract, IMemberInfo):
     def __init__(self, member: T, t: ITypeInfo) -> None:
@@ -548,16 +471,13 @@ class _Member[T](Abstract, IMemberInfo):
     def _GetMember(self) -> T:
         return self.__member
     
-    def GetType(self) -> ITypeInfo:
-        return self.__type
+    def GetType(self) -> ITypeInfo: return self.__type
 
 @final
 class _Function(_Member[FunctionType], IFunctionInfo):
     def __init__(self, member: FunctionType, t: ITypeInfo) -> None:
         super().__init__(member, t)
     
-    def GetName(self) -> str:
-        return self._GetMember().__name__
+    def GetName(self) -> str: return self._GetMember().__name__
     
-    def Call(self, obj: object, *args: object, **kwargs: object) -> object:
-        return self._GetMember()(obj, *args, **kwargs)
+    def Call(self, obj: object, *args: object, **kwargs: object) -> object: return self._GetMember()(obj, *args, **kwargs)
