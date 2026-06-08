@@ -3,12 +3,13 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from enum import Enum, Flag, auto
-from typing import final, Callable
+from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
+from WinCopies.Collections.Iteration import Select, WhereSelect
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing.Delegate import Function, NullablePredicate
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -17,23 +18,6 @@ class Events(Flag):
     Start = auto()
     End = auto()
 
-    @staticmethod
-    def TryConvertFromString(value: str, predicate: Callable[[str|None, str], bool]|None = None) -> Events|None:
-        def _predicate(name: str|None) -> bool:
-            return name is not None and name == value
-        
-        if predicate is None:
-            for event in Events:
-                if _predicate(event.name):
-                    return event
-        
-        else:
-            for event in Events:
-                if predicate(event.name, value):
-                    return event
-        
-        return None
-
 class LoopResult(Enum):
     Continue = 0
     Completed = 1
@@ -41,19 +25,18 @@ class LoopResult(Enum):
     ExitLevel = 3
 
 class IEnumerationDelegate[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetCurrent(self) -> IKeyValuePair[T, Events]:
-        pass
+        ...
     
     @abstractmethod
     def SetCurrent(self, value: IKeyValuePair[T, Events]) -> LoopResult:
-        pass
+        ...
     @abstractmethod
     def TrySetCurrent(self, item: IKeyValuePair[T, Events]|None) -> LoopResult:
-        pass
+        ...
 
 class EnumerationDelegate[T](Abstract, IEnumerationDelegate[T]):
     def __init__(self) -> None:
@@ -65,8 +48,7 @@ class EnumerationDelegate[T](Abstract, IEnumerationDelegate[T]):
     def GetCurrent(self) -> IKeyValuePair[T, Events]:
         current: IKeyValuePair[T, Events]|None = self.__current
 
-        if current is None:
-            raise GetEnumeratorInactiveError()
+        if current is None: raise GetEnumeratorInactiveError()
         
         return current
     
@@ -91,8 +73,7 @@ class EnumerationHandler[T](EnumerationDelegate[T]):
         def __OnEnteringLevel(self, item: _T) -> bool|None:
             result: bool|None = self.__handler.OnEnteringMainEnumerationLevel(item)
 
-            if result is None:
-                return None
+            if result is None: return None
 
             if result is True:
                 self.__onEnteringLevel = lambda item: self.__handler.OnEnteringSubenumerationLevel(item)
@@ -109,8 +90,7 @@ class EnumerationHandler[T](EnumerationDelegate[T]):
         def OnEnteringLevel(self, item: _T) -> bool|None:
             result: bool|None = self.__onEnteringLevel(item)
 
-            if result is None:
-                return None
+            if result is None: return None
             
             if result is True:
                 self.__handler.OnEnteringEnumerationLevel(item)
@@ -140,18 +120,15 @@ class EnumerationHandler[T](EnumerationDelegate[T]):
         self.__cookie: EnumerationHandler._EnumerationCookie[T] = EnumerationHandler._EnumerationCookie[T](handler)
     
     def SetCurrent(self, value: IKeyValuePair[T, Events]) -> LoopResult:
-        def getResult(result: bool|None, default: LoopResult) -> LoopResult:
-            return LoopResult.Continue if result is True else (LoopResult.Completed if result is None else default)
+        def getResult(result: bool|None, default: LoopResult) -> LoopResult: return LoopResult.Continue if result is True else (LoopResult.Completed if result is None else default)
 
         super().SetCurrent(value)
         
         match value.GetValue():
-            case Events.Start:
-                return getResult(self.__cookie.OnEnteringLevel(value.GetKey()), LoopResult.SkipChildren)
-            case Events.End:
-                return getResult(self.__cookie.OnExitingLevel(value.GetKey()), LoopResult.ExitLevel)
-            case _:
-                return LoopResult.Continue
+            case Events.Start: return getResult(self.__cookie.OnEnteringLevel(value.GetKey()), LoopResult.SkipChildren)
+            case Events.End: return getResult(self.__cookie.OnExitingLevel(value.GetKey()), LoopResult.ExitLevel)
+            
+            case _: return LoopResult.Continue
 
 class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
     def __init__(self, enumerator: IEnumerator[IKeyValuePair[T, Events]], handler: IRecursiveStackedEnumerationHandler[T]|None) -> None:
@@ -178,18 +155,13 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
     
     @final
     def __MoveNext(self) -> bool:
-        def moveNext() -> bool:
-            return enumerator.MoveNext()
-        def getCurrent() -> IKeyValuePair[T, Events]|None:
-            return enumerator.GetCurrent()
+        def moveNext() -> bool: return enumerator.MoveNext()
+        def getCurrent() -> IKeyValuePair[T, Events]|None: return enumerator.GetCurrent()
         
-        def isEvent(currentEvent: Events, event: Events) -> bool:
-            return currentEvent == event
-        def isEndEvent(currentEvent: Events) -> bool:
-            return isEvent(currentEvent, Events.End)
+        def isEvent(currentEvent: Events, event: Events) -> bool: return currentEvent == event
+        def isEndEvent(currentEvent: Events) -> bool: return isEvent(currentEvent, Events.End)
         
-        def updateMoveNext(value: int) -> None:
-            self.__moveNext = lambda: skip(value)
+        def updateMoveNext(value: int) -> None: self.__moveNext = lambda: skip(value)
         
         def loop() -> bool:
             if moveNext():
@@ -206,8 +178,7 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
 
                         return True
 
-                    case _:
-                        return result != LoopResult.Completed
+                    case _: return result != LoopResult.Completed
             
             return False
         
@@ -215,8 +186,7 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
             if moveNext():
                 current: IKeyValuePair[T, Events]|None = getCurrent()
 
-                if current is None:
-                    return False
+                if current is None: return False
                 
                 self.__ResetMoveNext()
                 currentEvent: Events = current.GetValue()
@@ -227,17 +197,14 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
                     return True
                 
                 while moveNext():
-                    if (current := getCurrent()) is None:
-                        return False
+                    if (current := getCurrent()) is None: return False
                     
-                    if isEvent(currentEvent := current.GetValue(), Events.Start):
-                        start += 1
+                    if isEvent(currentEvent := current.GetValue(), Events.Start): start += 1
                     
                     if isEndEvent(currentEvent):
                         start -= 1
 
-                        if start == 0:
-                            return loop()
+                        if start == 0: return loop()
             
             return False
         
@@ -245,8 +212,7 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
 
         return loop()
     
-    def _MoveNextOverride(self) -> bool:
-        return self.__moveNext()
+    def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
     def _OnStopped(self) -> None:
         super()._OnStopped()
@@ -259,40 +225,32 @@ class IGeneratorProvider[T](IInterface):
     
     @abstractmethod
     def GetIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Iterator[T]:
-        pass
+        ...
 
     @abstractmethod
     def GetFIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Iterator[T]:
-        pass
+        ...
     @abstractmethod
     def GetLIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Iterator[T]:
-        pass
+        ...
 
 class GeneratorProvider[T](Abstract, IGeneratorProvider[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @staticmethod
     def __Iterate(iterator: Iterator[IKeyValuePair[T, Events]], event: Events) -> Generator[T]:
-        for item in iterator:
-            if item.GetValue() == event:
-                yield item.GetKey()
+        return WhereSelect(iterator, lambda item: item.GetValue() == event, lambda item: item.GetKey())
     
-    def GetIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Iterator[T]:
-        for item in iterator:
-            yield item.GetKey()
+    def GetIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Iterator[T]: return Select(iterator, lambda item: item.GetKey())
     
-    def GetFIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
-        return GeneratorProvider[T].__Iterate(iterator, Events.Start)
-    def GetLIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
-        return GeneratorProvider[T].__Iterate(iterator, Events.End)
+    def GetFIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]: return GeneratorProvider[T].__Iterate(iterator, Events.Start)
+    def GetLIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]: return GeneratorProvider[T].__Iterate(iterator, Events.End)
 class ManagedGeneratorProvider[T](GeneratorProvider[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def DisposeItem(self, item: T) -> None:
-        pass
+        ...
     
     def GetIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
@@ -300,8 +258,7 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
         for item in iterator:
             yield (element := item.GetKey())
 
-            if item.GetValue() == Events.End:
-                self.DisposeItem(element)
+            if item.GetValue() == Events.End: self.DisposeItem(element)
     
     def GetFIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
@@ -310,11 +267,8 @@ class ManagedGeneratorProvider[T](GeneratorProvider[T]):
         for item in iterator:
             element = item.GetKey()
 
-            if (value := item.GetValue()) == Events.Start:
-                yield element
-            
-            elif value == Events.End:
-                self.DisposeItem(element)
+            if (value := item.GetValue()) == Events.Start: yield element
+            elif value == Events.End: self.DisposeItem(element)
     def GetLIFOIterator(self, iterator: Iterator[IKeyValuePair[T, Events]]) -> Generator[T]:
         element: T|None = None
 
@@ -327,8 +281,7 @@ class ObjectGeneratorProvider[T: IDisposable](ManagedGeneratorProvider[T]):
     def __init__(self) -> None:
         super().__init__()
     
-    def DisposeItem(self, item: T) -> None:
-        return item.Dispose()
+    def DisposeItem(self, item: T) -> None: return item.Dispose()
 
 class RecursivelyScannable[T](Abstract, IRecursivelyScannable[T]):
     def __init__(self) -> None:
@@ -336,25 +289,22 @@ class RecursivelyScannable[T](Abstract, IRecursivelyScannable[T]):
     
     @abstractmethod
     def _GetGeneratorProvider(self) -> IGeneratorProvider[T]:
-        pass
+        ...
     
     @abstractmethod
     def _GetItems(self, events: Events) -> Enumerable[IKeyValuePair[T, Events]]:
-        pass
+        ...
     
     @final
     def __GetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder, handler: IRecursiveStackedEnumerationHandler[T]|None) -> IEnumerator[T]|None:
         def getIterator() -> Iterator[T]|None:
-            def getGeneratorProvider() -> IGeneratorProvider[T]:
-                return self._GetGeneratorProvider()
+            def getGeneratorProvider() -> IGeneratorProvider[T]: return self._GetGeneratorProvider()
             
-            if enumerationOrder == EnumerationOrder.LIFO and handler is None:
-                return getGeneratorProvider().GetLIFOIterator(self._GetItems(Events.End).GetEnumerator().AsIterator())
+            if enumerationOrder == EnumerationOrder.LIFO and handler is None: return getGeneratorProvider().GetLIFOIterator(self._GetItems(Events.End).GetEnumerator().AsIterator())
             
             enumerator: IEnumerator[IKeyValuePair[T, Events]]|None = self._GetItems(Events.Start|Events.End).TryGetEnumerator()
             
-            if enumerator is None:
-                return None
+            if enumerator is None: return None
             
             enumerator = Enumerator[T](enumerator, handler)
             
@@ -378,7 +328,6 @@ class RecursivelyIteratorProvider[T](RecursivelyScannable[T]):
     
     @abstractmethod
     def _GetItemsIterator(self, events: Events) -> Iterator[IKeyValuePair[T, Events]]:
-        pass
+        ...
     @final
-    def _GetItems(self, events: Events) -> Enumerable[IKeyValuePair[T, Events]]:
-        return IteratorProvider[IKeyValuePair[T, Events]](lambda: self._GetItemsIterator(events))
+    def _GetItems(self, events: Events) -> Enumerable[IKeyValuePair[T, Events]]: return IteratorProvider[IKeyValuePair[T, Events]](lambda: self._GetItemsIterator(events))
