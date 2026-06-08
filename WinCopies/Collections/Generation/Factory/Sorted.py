@@ -15,8 +15,7 @@ from WinCopies.Typing.Comparison import IExtendedComparable, HashableComparableP
 from WinCopies.Typing.Object import WeakReference
 
 class ISortedNode[TKey, TValue](INode[TKey, TValue], IExtendedComparable['ISortedNode[TKey, TValue]|TKey']):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 @final
 class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
@@ -25,8 +24,7 @@ class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Nod
 
         self.__items: ISortedList[ISortedNode[TKey, TValue]] = items
     
-    def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None:
-        return CompareTo(self.GetKey(), ExtractKey(item))
+    def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None: return CompareTo(self.GetKey(), ExtractKey(item))
     
     def Remove(self) -> None:
         items: ISortedList[ISortedNode[TKey, TValue]] = self.__items
@@ -34,18 +32,16 @@ class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Nod
         items.RemoveAt(items.BisectLeft(self.GetKey(), GetKey))
 
 class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, TIn, TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def BisectLeft(self, key: TKey) -> int:
-        pass
+        ...
     @abstractmethod
     def BisectRight(self, key: TKey) -> int:
-        pass
+        ...
 class ISortedObjectFactory[TKey, TValue](ISortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
@@ -65,7 +61,7 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
     
     @abstractmethod
     def _GetKey(self, item: TOut) -> TKey:
-        pass
+        ...
     
     def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[WeakReference[TOut]]) -> IRemovable:
         items: ISortedList[ISortedNode[TKey, TOut]] = self._GetSortedItems()
@@ -76,8 +72,7 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         return CompositeRemovable[TOut](node, sortedNode)
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetSortedItems().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetSortedItems().IsEmpty()
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
@@ -92,24 +87,19 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
-    def BisectLeft(self, key: TKey) -> int:
-        return self._GetSortedItems().BisectLeft(key, GetKey)
+    def BisectLeft(self, key: TKey) -> int: return self._GetSortedItems().BisectLeft(key, GetKey)
     @final
-    def BisectRight(self, key: TKey) -> int:
-        return self._GetSortedItems().BisectRight(key, GetKey)
+    def BisectRight(self, key: TKey) -> int: return self._GetSortedItems().BisectRight(key, GetKey)
     
     def InvalidateObjects(self) -> None:
         super().InvalidateObjects()
         
         self._GetSortedItems().Clear()
 class SortedObjectFactory[TKey: HashableComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class SortedDisposableObjectFactory[TKey: HashableComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _Convert(self, item: TValue) -> TValue:
-        return item
+    def _Convert(self, item: TValue) -> TValue: return item

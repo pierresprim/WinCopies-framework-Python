@@ -12,90 +12,83 @@ from WinCopies.Delegates import BoolTrue, GetNotPredicate
 from WinCopies.Typing.Delegate import Function, Predicate, Converter as ConverterDelegate, Selector
 
 class IResumable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Resume(self) -> None:
-        pass
+        ...
 
 class IMovable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryMoveToTop(self) -> bool|None:
-        pass
+        ...
     @abstractmethod
     def TryMoveToBottom(self) -> bool|None:
-        pass
+        ...
 
 class IRemovable(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Remove(self) -> None:
-        pass
+        ...
 
 class INode(IMovable, IRemovable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IIterator[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Include(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
     @abstractmethod
     def Exclude(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
 
     @abstractmethod
     def IncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
     @abstractmethod
     def IncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
 
     @abstractmethod
     def DoIncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
     @abstractmethod
     def DoIncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
 
     @abstractmethod
     def ExcludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
     @abstractmethod
     def ExcludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        pass
+        ...
     
     @abstractmethod
     def WhereOfType[TResult](self, t: Type[TResult]) -> GeneratorCollection[TResult]:
-        pass
+        ...
 class INullableIterator[T](IIterator[T|None]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def WhereNotNone(self) -> GeneratorCollection[T]:
-        pass
+        ...
 
 class IteratorBase[T](Abstract, IIterator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetItems(self) -> Iterable[T]:
-        pass
+        ...
     
     @abstractmethod
     def _ProcessItem(self, item: T) -> bool:
-        pass
+        ...
     
     @final
     def Include(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
@@ -103,11 +96,9 @@ class IteratorBase[T](Abstract, IIterator[T]):
             if predicate(item):
                 yield item
 
-                if self._ProcessItem(item):
-                    break
+                if self._ProcessItem(item): break
     @final
-    def Exclude(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        return self.Include(GetNotPredicate(predicate))
+    def Exclude(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.Include(GetNotPredicate(predicate))
 
     @final
     def IncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
@@ -115,32 +106,26 @@ class IteratorBase[T](Abstract, IIterator[T]):
             if predicate(item):
                 yield item
 
-                if self._ProcessItem(item):
-                    break
+                if self._ProcessItem(item): break
 
-            else:
-                break
+            else: break
     @final
     def IncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
         for item in self._GetItems():
-            if predicate(item):
-                break
+            if predicate(item): break
 
             yield item
 
-            if self._ProcessItem(item):
-                break
+            if self._ProcessItem(item): break
     
     @final
     def DoIncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
         for item in self._GetItems():
             yield item
 
-            if self._ProcessItem(item) or predicate(item):
-                break
+            if self._ProcessItem(item) or predicate(item): break
     @final
-    def DoIncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        return self.DoIncludeUntil(GetNotPredicate(predicate))
+    def DoIncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.DoIncludeUntil(GetNotPredicate(predicate))
 
     @final
     def __Exclude(self, selector: Selector[IEnumerator[T]]) -> GeneratorCollection[T]:
@@ -152,15 +137,12 @@ class IteratorBase[T](Abstract, IIterator[T]):
         for item in TryEnumerate(getIterator(CreateIterable(self._GetItems()))):
             yield item
 
-            if self._ProcessItem(item):
-                break
+            if self._ProcessItem(item): break
     
     @final
-    def ExcludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        return self.__Exclude(lambda enumerator: ExcluerEnumerator(enumerator, predicate))
+    def ExcludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.__Exclude(lambda enumerator: ExcluerEnumerator(enumerator, predicate))
     @final
-    def ExcludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        return self.__Exclude(lambda enumerator: ExcluerUntilEnumerator(enumerator, predicate))
+    def ExcludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.__Exclude(lambda enumerator: ExcluerUntilEnumerator(enumerator, predicate))
     
     @final
     def WhereOfType[TResult](self, t: Type[TResult]) -> GeneratorCollection[TResult]:
@@ -182,8 +164,7 @@ class Iterator[T](IteratorBase[T]):
         return self.__items
 
 class NullableIteratorBase[T](IteratorBase[T|None], INullableIterator[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def WhereNotNone(self) -> GeneratorCollection[T]:
@@ -191,8 +172,7 @@ class NullableIteratorBase[T](IteratorBase[T|None], INullableIterator[T]):
             if item is not None:
                 yield item
 
-                if self._ProcessItem(item):
-                    break
+                if self._ProcessItem(item): break
 class NullableIterator[T](NullableIteratorBase[T]):
     def __init__(self, items: Iterable[T]) -> None:
         super().__init__()
@@ -204,12 +184,11 @@ class NullableIterator[T](NullableIteratorBase[T]):
         return self.__items
 
 class GeneratorBase[T: IRemovable](IteratorBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _OnItemProcessed(self, item: T) -> bool:
-        pass
+        ...
     
     @final
     def _ProcessItem(self, item: T) -> bool:
@@ -232,16 +211,15 @@ class Generator[T: IRemovable](GeneratorBase[T]):
         return self.__func()
 
 class ConverterBase[TIn, TOut](Abstract, IIterator[TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetItems(self) -> IIterator[TIn]:
-        pass
+        ...
 
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
-        pass
+        ...
 
     @final
     def _GetPredicate(self, predicate: Predicate[TOut]) -> Predicate[TIn]:
@@ -256,36 +234,27 @@ class ConverterBase[TIn, TOut](Abstract, IIterator[TOut]):
         return Select(converter(self._GetItems(), self._GetPredicate(predicate)), self._GetConverter())
     
     @final
-    def Include(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.Include(predicate), predicate)
+    def Include(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.Include(predicate), predicate)
     @final
-    def Exclude(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.Exclude(predicate), predicate)
+    def Exclude(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.Exclude(predicate), predicate)
 
     @final
-    def IncludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.IncludeWhile(predicate), predicate)
+    def IncludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.IncludeWhile(predicate), predicate)
     @final
-    def IncludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.IncludeUntil(predicate), predicate)
+    def IncludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.IncludeUntil(predicate), predicate)
 
     @final
-    def DoIncludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.DoIncludeWhile(predicate), predicate)
+    def DoIncludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.DoIncludeWhile(predicate), predicate)
     @final
-    def DoIncludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.DoIncludeUntil(predicate), predicate)
+    def DoIncludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.DoIncludeUntil(predicate), predicate)
 
     @final
-    def ExcludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.ExcludeWhile(predicate), predicate)
+    def ExcludeWhile(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.ExcludeWhile(predicate), predicate)
     @final
-    def ExcludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]:
-        return self._Select(lambda items, predicate: items.ExcludeUntil(predicate), predicate)
+    def ExcludeUntil(self, predicate: Predicate[TOut]) -> GeneratorCollection[TOut]: return self._Select(lambda items, predicate: items.ExcludeUntil(predicate), predicate)
     
     @final
-    def WhereOfType[TResult](self, t: type[TResult]) -> GeneratorCollection[TResult]:
-        return self._GetItems().WhereOfType(t)
+    def WhereOfType[TResult](self, t: type[TResult]) -> GeneratorCollection[TResult]: return self._GetItems().WhereOfType(t)
 class Converter[TIn, TOut](ConverterBase[TIn, TOut]):
     def __init__(self, items: IIterator[TIn]) -> None:
         super().__init__()
@@ -303,8 +272,7 @@ class DelegateConverterBase[TIn, TOut](ConverterBase[TIn, TOut]):
         self.__converter: ConverterDelegate[TIn, TOut] = converter
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
 class DelegateConverter[TIn, TOut](DelegateConverterBase[TIn, TOut]):
     def __init__(self, items: IIterator[TIn], converter: ConverterDelegate[TIn, TOut]) -> None:
         super().__init__(converter)

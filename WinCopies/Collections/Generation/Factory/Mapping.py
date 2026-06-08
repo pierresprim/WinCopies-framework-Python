@@ -23,8 +23,7 @@ class _KeyedNode[TKey: HashableProtocol, TValue: IDisposableBase](Abstract, IRem
         self.__key: TKey = key
         self.__items: IDictionary[TKey, ReferenceType[TValue]] = items
     
-    def Remove(self) -> None:
-        self.__items.TryRemove(self.__key)
+    def Remove(self) -> None: self.__items.TryRemove(self.__key)
 
 class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
@@ -36,8 +35,7 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
     def __TryGetValue(self, key: TKey) -> TOut|None:
         weakRefNullable: ReferenceType[TOut]|None = self._GetKeyedItems().TryGetValue(key).TryGetValue()
         
-        if weakRefNullable is None:
-            return None
+        if weakRefNullable is None: return None
         
         value: TOut|None = weakRefNullable()
         
@@ -60,8 +58,7 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
         items: IDictionary[TKey, ReferenceType[TOut]] = self._GetKeyedItems()
         key: TKey = self._GetKey(obj)
         
-        try:
-            items.Add(key, ref(obj))
+        try: items.Add(key, ref(obj))
         
         except KeyError:
             node.Remove()
@@ -71,16 +68,13 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
         return CompositeRemovable[TOut](node, _KeyedNode[TKey, TOut](key, items))
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetKeyedItems().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetKeyedItems().IsEmpty()
     
     @final
-    def TryGetValue(self, key: TKey) -> INullable[TOut]:
-        return GetNullableValue(self.__TryGetValue(key))
+    def TryGetValue(self, key: TKey) -> INullable[TOut]: return GetNullableValue(self.__TryGetValue(key))
     
     @final
-    def ContainsKey(self, key: TKey) -> bool:
-        return self.__TryGetValue(key) is not None
+    def ContainsKey(self, key: TKey) -> bool: return self.__TryGetValue(key) is not None
     
     def InvalidateObjects(self) -> None:
         super().InvalidateObjects()
@@ -88,12 +82,9 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
         self._GetKeyedItems().Clear()
 
 class KeyedObjectFactory[TKey: HashableProtocol, TValue](KeyedObjectFactoryBase[TKey, TValue, IDisposableBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class KeyedDisposableObjectFactory[TKey: HashableProtocol, TValue: IDisposableBase](KeyedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _Convert(self, item: TValue) -> TValue:
-        return item
+    def _Convert(self, item: TValue) -> TValue: return item

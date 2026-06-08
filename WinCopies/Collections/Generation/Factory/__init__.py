@@ -21,10 +21,10 @@ class CompositeRemovable[T: IDisposableBase](Abstract, IRemovable):
 
         self.__node: IRemovable = node
         self.__obj: IRemovable = obj
+        
         self.__remove: Action = remove # type: ignore[no-redef]
     
-    def Remove(self) -> None:
-        self.__remove()
+    def Remove(self) -> None: self.__remove()
 
 @final
 class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
@@ -37,8 +37,7 @@ class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
         def tryGetValue() -> INullable[T]|None:
             node: IDoublyLinkedNode[WeakReference[T]]|None = getNode()
 
-            if node is None:
-                return GetNullValue()
+            if node is None: return GetNullValue()
             
             item: T|None = node.GetValue().TryGetValue()
 
@@ -52,18 +51,14 @@ class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
         item: INullable[T]|None = tryGetValue()
 
         if item is None:
-            while self.__items.HasItems() and (item := tryGetValue()) is None:
-                pass
+            while self.__items.HasItems() and (item := tryGetValue()) is None: pass
         
         return GetNullValue() if item is None else item
     
-    def IsEmpty(self) -> bool:
-        return self.__items.IsEmpty()
+    def IsEmpty(self) -> bool: return self.__items.IsEmpty()
     
-    def TryGetFirst(self) -> INullable[T]:
-        return self.__TryGetValue(lambda: self.__items.GetFirst())
-    def TryGetLast(self) -> INullable[T]:
-        return self.__TryGetValue(lambda: self.__items.GetLast())
+    def TryGetFirst(self) -> INullable[T]: return self.__TryGetValue(lambda: self.__items.GetFirst())
+    def TryGetLast(self) -> INullable[T]: return self.__TryGetValue(lambda: self.__items.GetLast())
 @final
 class _ReadOnlyListUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[T]]):
     def __init__(self, items: IList[WeakReference[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
@@ -71,28 +66,24 @@ class _ReadOnlyListUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyLis
 
         self.__items: IList[WeakReference[T]] = items
     
-    def _GetValue(self) -> IReadOnlyList[T]:
-        return _ReadOnlyList[T](self.__items)
+    def _GetValue(self) -> IReadOnlyList[T]: return _ReadOnlyList[T](self.__items)
 
 class IObjectMonitor(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def InvalidateObjects(self) -> None:
-        pass
+        ...
 class IObjectFactory[T](IObjectMonitor):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def RegisterObject(self, item: T) -> None:
-        pass
+        ...
 
 class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn]):
     def __init__(self) -> None:
-        def update(func: IFunction[IReadOnlyList[TOut]]) -> None:
-            self.__readOnly = func
+        def update(func: IFunction[IReadOnlyList[TOut]]) -> None: self.__readOnly = func
         
         super().__init__()
 
@@ -128,7 +119,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
-        pass
+        ...
     
     @final
     def __Clear(self) -> None:
@@ -139,19 +130,14 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         self.__clear = NoAction
     
     @final
-    def RegisterObject(self, item: TIn) -> None:
-        self._Push(item)
+    def RegisterObject(self, item: TIn) -> None: self._Push(item)
     
-    def InvalidateObjects(self) -> None:
-        self.__clear()
+    def InvalidateObjects(self) -> None: self.__clear()
 class ObjectFactory[T](ObjectFactoryBase[T, IDisposableBase]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _Convert(self, item: T) -> T:
-        return item
+    def _Convert(self, item: T) -> T: return item
