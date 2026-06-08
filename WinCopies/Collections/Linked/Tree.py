@@ -15,20 +15,18 @@ from WinCopies.Typing.Delegate import IFunction, Method, NullableSelector, Value
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ITreeNode[T](INode[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetItems(self) -> ITree[T]:
-        pass
+        ...
 
 class ITree[T](IEnumerableListBase[T, ITreeNode[T]], IRecursivelyEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsNodeRecursivelyEnumerable(self) -> IRecursivelyEnumerable[ITreeNode[T]]:
-        pass
+        ...
 
 @final
 class _RecursivelyEnumerable[T](RecursivelyEnumerable[ITreeNode[T]]):
@@ -40,8 +38,7 @@ class _RecursivelyEnumerable[T](RecursivelyEnumerable[ITreeNode[T]]):
     def _AsRecursivelyEnumerable(self, container: ITreeNode[T]) -> IEnumerable[ITreeNode[T]]:
         return container.GetItems().AsNodeEnumerable()
     
-    def TryGetEnumerator(self) -> IEnumerator[ITreeNode[T]]|None:
-        return self.__tree.TryGetNodeEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[ITreeNode[T]]|None: return self.__tree.TryGetNodeEnumerator()
 
 @final
 class _RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
@@ -50,8 +47,7 @@ class _RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
 
         self.__tree: ITree[T] = tree
     
-    def _GetValue(self) -> IEnumerable[T]:
-        return EnumeratorProvider[T](lambda: self.__tree.TryGetRecursiveEnumerator())
+    def _GetValue(self) -> IEnumerable[T]: return EnumeratorProvider[T](lambda: self.__tree.TryGetRecursiveEnumerator())
 @final
 class _NodeRecursiveUpdater[T](ValueFunctionUpdater[IRecursivelyEnumerable[ITreeNode[T]]]):
     def __init__(self, tree: ITree[T], updater: Method[IFunction[IRecursivelyEnumerable[ITreeNode[T]]]]) -> None:
@@ -59,23 +55,20 @@ class _NodeRecursiveUpdater[T](ValueFunctionUpdater[IRecursivelyEnumerable[ITree
 
         self.__tree: ITree[T] = tree
     
-    def _GetValue(self) -> IRecursivelyEnumerable[ITreeNode[T]]:
-        return _RecursivelyEnumerable[T](self.__tree)
+    def _GetValue(self) -> IRecursivelyEnumerable[ITreeNode[T]]: return _RecursivelyEnumerable[T](self.__tree)
 
 class TreeValueEnumeratorBase[TItem, TNode](ConverterEnumeratorBase[TNode, TItem]):
-    def __init__(self, enumerator: IEnumerator[TNode]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[TNode]) -> None: super().__init__(enumerator)
     
     @abstractmethod
     def _AsNode(self, node: TNode) -> ITreeNode[TItem]:
-        pass
+        ...
 
     @final
     def _Convert(self, value: TNode) -> TItem:
         return self._AsNode(value).GetValue()
 class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
-    def __init__(self, enumerator: IEnumerator[ITreeNode[T]]) -> None:
-        super().__init__(enumerator)
+    def __init__(self, enumerator: IEnumerator[ITreeNode[T]]) -> None: super().__init__(enumerator)
     
     @final
     def _AsNode(self, node: ITreeNode[T]) -> ITreeNode[T]:
@@ -83,10 +76,8 @@ class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
 
 class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     def __init__(self) -> None:
-        def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None:
-            self.__recursive = func
-        def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None:
-            self.__nodeRecursive = func
+        def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None: self.__recursive = func
+        def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None: self.__nodeRecursive = func
         
         super().__init__()
     
@@ -102,18 +93,14 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]],
         return TreeNodeEnumerator[TItem](node)
     
     @final
-    def AsRecursivelyEnumerable(self) -> IEnumerable[TItem]:
-        return self.__recursive.GetValue()
+    def AsRecursivelyEnumerable(self) -> IEnumerable[TItem]: return self.__recursive.GetValue()
     @final
-    def AsNodeRecursivelyEnumerable(self) -> IRecursivelyEnumerable[ITreeNode[TItem]]:
-        return self.__nodeRecursive.GetValue()
+    def AsNodeRecursivelyEnumerable(self) -> IRecursivelyEnumerable[ITreeNode[TItem]]: return self.__nodeRecursive.GetValue()
     
     @final
-    def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
-        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveEnumerator(enumerationOrder, None if handler is None else RecursiveEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda item: item.GetValue())))
+    def TryGetRecursiveEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None: return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveEnumerator(enumerationOrder, None if handler is None else RecursiveEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda item: item.GetValue())))
     @final
-    def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None:
-        return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
+    def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None: return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
     
     @final
     def _GetResumableNodeEnumerator(self, node: ITreeNode[TItem]) -> IResumableEnumerator[ITreeNode[TItem]]:
@@ -148,16 +135,13 @@ class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], Tre
         return _TreeNode[T](value, self._GetList(), self._GetCookie(), previous, next)
     
     @final
-    def GetItems(self) -> ITree[T]:
-        return self.__items
+    def GetItems(self) -> ITree[T]: return self.__items
     
     @final
-    def GetList(self) -> ITree[T]|None:
-        return self._GetList()
+    def GetList(self) -> ITree[T]|None: return self._GetList()
 
 class Tree[T](TreeBase[T, _TreeNode[T]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _GetNodeAsClass(self, node: _TreeNode[T]) -> ITreeNode[T]:
@@ -182,22 +166,17 @@ class Tree[T](TreeBase[T, _TreeNode[T]]):
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
 
 class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
-    def __init__(self, node: ITreeNode[T]) -> None:
-        super().__init__(node)
+    def __init__(self, node: ITreeNode[T]) -> None: super().__init__(node)
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:
         return node.GetNext()
 class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]]):
-    def __init__(self, node: ITreeNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node, order)
+    def __init__(self, node: ITreeNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ITreeNode[T]]:
         match order:
-            case EnumerationOrder.FIFO:
-                return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO:
-                return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _:
-                raise ValueError()
+            case _: raise ValueError()
