@@ -18,33 +18,31 @@ from WinCopies.Collections.Linked.Node import ILinkedNode, ITwoWayLinkedNode, Li
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation, GenericConstraint
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class INode[T](ITwoWayLinkedNode[T], INodeBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetList(self) -> IReadWriteList[T]|None:
-        pass
+        ...
     
     @abstractmethod
     def GetPrevious(self) -> SelfType|None:
-        pass
+        ...
     @abstractmethod
     def GetNext(self) -> SelfType|None:
-        pass
+        ...
     
     @abstractmethod
     def SetPrevious(self, value: T) -> INode[T]:
-        pass
+        ...
     @abstractmethod
     def SetNext(self, value: T) -> INode[T]:
-        pass
+        ...
     
     @abstractmethod
     def RemoveNode(self) -> T:
-        pass
+        ...
 
     @final
     def Remove(self) -> None:
@@ -52,58 +50,56 @@ class INode[T](ITwoWayLinkedNode[T], INodeBase):
 
     @abstractmethod
     def RemoveRangeBefore(self, inclusive: bool = False) -> None:
-        pass
+        ...
     @abstractmethod
     def RemoveRangeAfter(self, inclusive: bool = False) -> None:
-        pass
+        ...
 class IDoublyLinkedNode[T](INode[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetList(self) -> IList[T]|None:
-        pass
+        ...
     
     @abstractmethod
     def GetPrevious(self) -> IDoublyLinkedNode[T]|None:
-        pass
+        ...
     @abstractmethod
     def GetNext(self) -> IDoublyLinkedNode[T]|None:
-        pass
+        ...
     
     @abstractmethod
     def SetPrevious(self, value: T) -> IDoublyLinkedNode[T]:
-        pass
+        ...
     @abstractmethod
     def SetNext(self, value: T) -> IDoublyLinkedNode[T]:
-        pass
+        ...
 class IDoublyLinkedNodeBase[TItem, TNode](INode[TItem]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _AsNode(self) -> TNode:
-        pass
+        ...
 
     @abstractmethod
     def _AsLinkedNode(self, node: TNode) -> IDoublyLinkedNodeBase[TItem, TNode]:
-        pass
+        ...
     def _TryAsLinkedNode(self, node: TNode|None) -> IDoublyLinkedNodeBase[TItem, TNode]|None:
         return None if node is None else self._AsLinkedNode(node)
     
     @abstractmethod
     def GetPrevious(self) -> IDoublyLinkedNodeBase[TItem, TNode]|None:
-        pass
+        ...
     @abstractmethod
     def GetNext(self) -> IDoublyLinkedNodeBase[TItem, TNode]|None:
-        pass
+        ...
     
     @abstractmethod
     def SetPrevious(self, value: TItem) -> IDoublyLinkedNodeBase[TItem, TNode]:
-        pass
+        ...
     @abstractmethod
     def SetNext(self, value: TItem) -> IDoublyLinkedNodeBase[TItem, TNode]:
-        pass
+        ...
     
     @final
     def SetPreviousNode(self, value: TItem) -> TNode:
@@ -120,33 +116,29 @@ class NodeBase[TItem, TNode](LinkedNode[TItem, TNode], IDoublyLinkedNodeBase[TIt
 
     @abstractmethod
     def _AsLinkedNode(self, node: TNode) -> NodeBase[TItem, TNode]:
-        pass
+        ...
     def _TryAsLinkedNode(self, node: TNode|None) -> NodeBase[TItem, TNode]|None:
         return None if node is None else self._AsLinkedNode(node)
     
     @final
-    def GetPreviousNode(self) -> TNode|None:
-        return self.__previous
-    def GetPrevious(self) -> NodeBase[TItem, TNode]|None:
-        return self._TryAsLinkedNode(self.GetPreviousNode())
+    def GetPreviousNode(self) -> TNode|None: return self.__previous
+    def GetPrevious(self) -> NodeBase[TItem, TNode]|None: return self._TryAsLinkedNode(self.GetPreviousNode())
     
-    def GetNext(self) -> NodeBase[TItem, TNode]|None:
-        return self._TryAsLinkedNode(self.GetNextNode())
+    def GetNext(self) -> NodeBase[TItem, TNode]|None: return self._TryAsLinkedNode(self.GetNextNode())
     
     @final
     def _SetPrevious(self, previous: TNode|None) -> None:
         self.__previous = previous
 
 class IReadOnlyList[T](IReadOnlyCollection):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetFirst(self) -> INullable[T]:
-        pass
+        ...
     @abstractmethod
     def TryGetLast(self) -> INullable[T]:
-        pass
+        ...
 
     @final
     def __TryGetValue[TDefault](self, default: TDefault, item: INullable[T]) -> T|TDefault:
@@ -174,23 +166,20 @@ class IReadOnlyList[T](IReadOnlyCollection):
         return self.TryGetLast().GetValue()
 
 class _IAbstractList[TItem, TNode](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetNodeAsInterface(self, node: TNode) -> IDoublyLinkedNodeBase[TItem, TNode]:
-        pass
+        ...
 class IAbstractNode[TNode, TNodeInterface](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetNodeAsClass(self, node: TNode) -> TNodeInterface:
-        pass
+        ...
 
 class IReadWriteList[T](IReadOnlyList[T], IClearable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @final
     def __TryGet(self, node: INode[T]|None) -> INullable[T]:
@@ -198,14 +187,14 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyList[T]:
-        pass
+        ...
     
     @abstractmethod
     def GetFirstNode(self) -> INode[T]|None:
-        pass
+        ...
     @abstractmethod
     def GetLastNode(self) -> INode[T]|None:
-        pass
+        ...
     
     @final
     def TryGetFirst(self) -> INullable[T]:
@@ -216,22 +205,20 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
     
     @abstractmethod
     def AddFirstNode(self, value: T) -> INode[T]:
-        pass
+        ...
     @abstractmethod
     def AddLastNode(self, value: T) -> INode[T]:
-        pass
+        ...
 
     @final
     def __AddItems(self, items: Iterable[T]|None, first: Converter[T, INode[T]]) -> bool:
-        if items is None:
-            return False
+        if items is None: return False
         
         node: INode[T] = None # type: ignore
         adder: Converter[T, INode[T]]|None = None
 
         def add(item: T) -> INode[T]:
-            def add(item: T) -> INode[T]:
-                return node.SetNext(item)
+            def add(item: T) -> INode[T]: return node.SetNext(item)
 
             nonlocal adder
 
@@ -241,8 +228,7 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
         
         adder = add
 
-        for item in items:
-            node = adder(item)
+        for item in items: node = adder(item)
         
         return True
 
@@ -261,10 +247,10 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
     
     @abstractmethod
     def TryRemoveFirst(self) -> INullable[T]:
-        pass
+        ...
     @abstractmethod
     def TryRemoveLast(self) -> INullable[T]:
-        pass
+        ...
     
     @final
     def __AsGenerator(self, func: Function[INullable[T]]) -> GeneratorBase[T]:
@@ -283,8 +269,7 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
         return self.__AsGenerator(self.TryRemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @final
     def __TryGet(self, node: TNode|None) -> INode[TItem]|None:
@@ -292,10 +277,10 @@ class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, I
     
     @abstractmethod
     def GetFirst(self) -> TNode|None:
-        pass
+        ...
     @abstractmethod
     def GetLast(self) -> TNode|None:
-        pass
+        ...
 
     @final
     def GetFirstNode(self) -> INode[TItem]|None:
@@ -306,10 +291,10 @@ class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, I
     
     @abstractmethod
     def AddFirst(self, value: TItem) -> TNode:
-        pass
+        ...
     @abstractmethod
     def AddLast(self, value: TItem) -> TNode:
-        pass
+        ...
 
     @final
     def AddFirstNode(self, value: TItem) -> INode[TItem]:
@@ -319,145 +304,130 @@ class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, I
         return self._AsContainer(self.AddLast(value))
 
 class IReadOnlyEnumerableListBase[T](IReadOnlyList[T], IEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReversableEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IReadOnlyEnumerableList[T]:
-        pass
+        ...
 
 class IReadWriteEnumerableListBase[T](IReadWriteList[T], IReadOnlyEnumerableListBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IReadWriteEnumerableList[T](IReadWriteEnumerableListBase[T], IReadOnlyEnumerableList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
-        pass
+        ...
     
     @abstractmethod
     def AsReversed(self) -> IReadWriteEnumerableList[T]:
-        pass
+        ...
 
 class IEnumerableListBase[TItem, TNode](IListBase[TItem, TNode], IReadWriteEnumerableListBase[TItem]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetNodeEnumerator(self) -> IEnumerator[TNode]|None:
-        pass
+        ...
     @final
     def GetNodeEnumerator(self) -> IEnumerator[TNode]:
         return GetEnumerator(self.TryGetNodeEnumerator())
     
     @abstractmethod
     def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[TNode]|None:
-        pass
+        ...
     @final
     def GetResumableNodeEnumerator(self) -> IResumableEnumerator[TNode]:
         return GetResumableEnumerator(self.TryGetResumableNodeEnumerator())
     
     @abstractmethod
     def AsNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        pass
+        ...
 
     @abstractmethod
     def AsNodeGenerator(self) -> IIterator[TNode]:
-        pass
+        ...
     @abstractmethod
     def AsGenerator(self) -> IIterator[TItem]:
-        pass
+        ...
 class IEnumerableList[TItem, TNode](IEnumerableListBase[TItem, TNode], IReadWriteEnumerableList[TItem]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IEnumerableList[TItem, TNode]:
-        pass
+        ...
 
 class IList[T](IEnumerableList[T, IDoublyLinkedNode[T]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IList[T]:
-        pass
+        ...
 
 class ICountableLinkedListNode[T](INode[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetList(self) -> ICountableList[T]|None:
-        pass
+        ...
 
 class IReadOnlyCountableList[T](IReadOnlyList[T], IReversableCountableEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IReadOnlyCountableEnumerableList[T](IReadOnlyCountableList[T], IReadOnlyEnumerableList[T], ICountableEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
-        pass
+        ...
 class IReadWriteCountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IReadWriteEnumerableList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IReadWriteCountableEnumerableList[T]:
-        pass
+        ...
 
 class ICountableList[T](IReadWriteCountableEnumerableList[T], IEnumerableList[T, ICountableLinkedListNode[T]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        pass
+        ...
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
-        pass
+        ...
     
     @abstractmethod
     def AsReversed(self) -> ICountableList[T]:
-        pass
+        ...
 
 class _INodeBase[TNode, TList](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetListAsSpecialized(self, l: TList) -> _IListCookie[TNode]:
-        pass
+        ...
     
     @abstractmethod
     def _SetFirst(self, cookie: INodeCookie[TNode], items: _IListCookie[TNode], node: TNode|None) -> None:
-        pass
+        ...
     @abstractmethod
     def _SetLast(self, cookie: INodeCookie[TNode], items: _IListCookie[TNode], node: TNode|None) -> None:
-        pass
+        ...
 
-class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
+class _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
     def __init__(self, value: TItem, l: TListInterface|None, previousNode: TNode|None, nextNode: TNode|None) -> None:
-        EnsureDirectModuleCall()
-        
         super().__init__(value, previousNode, nextNode)
 
         self.__list: TListInterface|None = l
 
     @abstractmethod
-    def _AsLinkedNode(self, node: TNode) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]:
-        pass
-    def _TryAsLinkedNode(self, node: TNode|None) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None:
+    def _AsLinkedNode(self, node: TNode) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]:
+        ...
+    def _TryAsLinkedNode(self, node: TNode|None) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None:
         return None if node is None else self._AsLinkedNode(node)
     
     @final
@@ -466,7 +436,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
     
     @abstractmethod
     def _CreateNode(self, value: TItem, previous: TNode|None, next: TNode|None) -> TNode:
-        pass
+        ...
 
     @final
     def _GetInnerList(self) -> TListInterface|None:
@@ -474,7 +444,7 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
     
     @abstractmethod
     def _GetListAsClass(self, l: TListInterface) -> TList:
-        pass
+        ...
     
     @final
     def _GetList(self) -> TList|None:
@@ -482,36 +452,33 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
 
         return None if l is None else self._GetListAsClass(l)
     
-    def GetPrevious(self) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None:
-        return self._TryAsLinkedNode(self.GetPreviousNode())
-    def GetNext(self) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None:
-        return self._TryAsLinkedNode(self.GetNextNode())
+    def GetPrevious(self) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None: return self._TryAsLinkedNode(self.GetPreviousNode())
+    def GetNext(self) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None: return self._TryAsLinkedNode(self.GetNextNode())
     
     @abstractmethod
     def _AddFirst(self, node: TNode, l: TListInterface) -> None:
-        pass
+        ...
     @abstractmethod
     def _AddLast(self, node: TNode, l: TListInterface) -> None:
-        pass
+        ...
     
     @abstractmethod
     def _UpdateFirst(self, node: TNode, l: TListInterface) -> None:
-        pass
+        ...
     @abstractmethod
     def _UpdateLast(self, node: TNode, l: TListInterface) -> None:
-        pass
+        ...
 
     @abstractmethod
     def _RemoveFirst(self, l: TListInterface) -> None:
-        pass
+        ...
     @abstractmethod
     def _RemoveLast(self, l: TListInterface) -> None:
-        pass
+        ...
     
     @final
     def _SetPreviousNode(self, value: TItem) -> TNode:
-        def getNode(previousNode: TNode|None) -> TNode:
-            return self._CreateNode(value, previousNode, self._AsNode())
+        def getNode(previousNode: TNode|None) -> TNode: return self._CreateNode(value, previousNode, self._AsNode())
         
         def tryAddFirst() -> TNode|None:
             def tryAdd(l: TListInterface) -> TNode|None:
@@ -531,19 +498,15 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
         previousNode: TNode|None = self.GetPreviousNode()
         newNode: TNode|None = tryAddFirst()
         
-        if newNode is None:
-            newNode = getNode(previousNode)
-
-        if previousNode is not None:
-            self._AsLinkedNode(previousNode)._SetNext(newNode)
+        if newNode is None: newNode = getNode(previousNode)
+        if previousNode is not None: self._AsLinkedNode(previousNode)._SetNext(newNode)
         
         self._SetPrevious(newNode)
 
         return newNode
     @final
     def _SetNextNode(self, value: TItem) -> TNode:
-        def getNode(nextNode: TNode|None) -> TNode:
-            return self._CreateNode(value, self._AsNode(), nextNode)
+        def getNode(nextNode: TNode|None) -> TNode: return self._CreateNode(value, self._AsNode(), nextNode)
         
         def tryAddLast() -> TNode|None:
             def tryAdd(l: TListInterface) -> TNode|None:
@@ -563,24 +526,19 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
         nextNode: TNode|None = self.GetNextNode()
         newNode: TNode|None = tryAddLast()
         
-        if newNode is None:
-            newNode = getNode(nextNode)
-
-        if nextNode is not None:
-            self._AsLinkedNode(nextNode)._SetPrevious(newNode)
+        if newNode is None: newNode = getNode(nextNode)
+        if nextNode is not None: self._AsLinkedNode(nextNode)._SetPrevious(newNode)
         
         self._SetNext(newNode)
 
         return newNode
     
-    def SetPrevious(self, value: TItem) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]:
-        return self._AsLinkedNode(self._SetPreviousNode(value))
-    def SetNext(self, value: TItem) -> DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]:
-        return self._AsLinkedNode(self._SetNextNode(value))
+    def SetPrevious(self, value: TItem) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]: return self._AsLinkedNode(self._SetPreviousNode(value))
+    def SetNext(self, value: TItem) -> _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]: return self._AsLinkedNode(self._SetNextNode(value))
     
     @final
     def SetPreviousItems(self, items: Iterable[TItem]|None) -> bool:
-        adder: Callable[[DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], TItem], TNode]|None = None
+        adder: Callable[[_DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], TItem], TNode]|None = None
 
         def add(node: IDoublyLinkedNodeBase[TItem, TNode], item: TItem) -> TNode:
             nonlocal adder
@@ -589,47 +547,41 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
 
             return node.SetPreviousNode(item)
 
-        if items is None:
-            return False
+        if items is None: return False
         
         adder = add
         node: IDoublyLinkedNodeBase[TItem, TNode] = self
         
-        for item in items:
-            node = self._AsLinkedNode(adder(node, item))
+        for item in items: node = self._AsLinkedNode(adder(node, item))
 
         return True
     @final
-    def SetPreviousValues(self, *values: TItem) -> bool:
-        return self.SetPreviousItems(values)
+    def SetPreviousValues(self, *values: TItem) -> bool: return self.SetPreviousItems(values)
     @final
     def SetNextItems(self, items: Iterable[TItem]|None) -> bool:
-        if items is None:
-            return False
+        if items is None: return False
         
-        node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface] = self
+        node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface] = self
         
-        for item in items:
-            node = node.SetNext(item)
+        for item in items: node = node.SetNext(item)
 
         return True
     @final
-    def SetNextValues(self, *values: TItem) -> bool:
-        return self.SetNextItems(values)
+    def SetNextValues(self, *values: TItem) -> bool: return self.SetNextItems(values)
     
     @final
-    def __RemoveFirst(self, node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], previousNode: TNode|None) -> None:
+    def __RemoveFirst(self, node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], previousNode: TNode|None) -> None:
         self._SetNext(None)
 
         node._SetPrevious(previousNode)
     @final
-    def __RemoveLast(self, node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], nextNode: TNode|None) -> None:
+    def __RemoveLast(self, node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], nextNode: TNode|None) -> None:
         self._SetPrevious(None)
 
         node._SetNext(nextNode)
     
     def RemoveNode(self) -> TItem:
-        def whenFirst(nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None) -> bool:
+        def whenFirst(nextNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None) -> bool:
             l: TListInterface|None = self._GetInnerList()
             
             if nextNode is None:
@@ -639,30 +591,26 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
                     return False
             
             else:
-                if l is not None:
-                    self._UpdateFirst(nextNode._AsNode(), l)
+                if l is not None: self._UpdateFirst(nextNode._AsNode(), l)
 
                 self.__RemoveFirst(nextNode, None)
             
             return True
-        def whenLast(previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
+        def whenLast(previousNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
             l: TListInterface|None = self._GetInnerList()
 
-            if l is not None:
-                self._UpdateLast(previousNode._AsNode(), l)
+            if l is not None: self._UpdateLast(previousNode._AsNode(), l)
             
             self.__RemoveLast(previousNode, None)
         
-        previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
-        nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
+        previousNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+        nextNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
 
         if previousNode is None:
-            if whenFirst(nextNode):
-                self._Unregister()
+            if whenFirst(nextNode): self._Unregister()
 
         else:
-            if nextNode is None:
-                whenLast(previousNode)
+            if nextNode is None: whenLast(previousNode)
 
             else:
                 self.__RemoveFirst(nextNode, previousNode._AsNode())
@@ -674,36 +622,33 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
     
     @final
     def RemoveRangeBefore(self, inclusive: bool = False) -> None:
-        def unregister(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
-            def enumerate(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
+        def unregister(node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
+            def enumerate(node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[_DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
                 yield node
 
-                _node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetPrevious()
+                _node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetPrevious()
 
                 while _node is not None:
                     yield node
 
                     _node = self.GetPrevious()
             
-            for _node in enumerate(node):
-                _node._Unregister()
+            for _node in enumerate(node): _node._Unregister()
 
-        previousNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+        previousNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
         
         if previousNode is None:
-            if inclusive:
-                self.Remove()
+            if inclusive: self.Remove()
             
             return
         
         l: TListInterface|None = self._GetInnerList()
 
         if inclusive:
-            node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
+            node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
 
             if node is None:
-                if l is not None:
-                    l.Clear()
+                if l is not None: l.Clear()
 
                 return
             
@@ -726,36 +671,33 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
         self.__RemoveLast(previousNode, None)
     @final
     def RemoveRangeAfter(self, inclusive: bool = False) -> None:
-        def unregister(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
-            def enumerate(node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
+        def unregister(node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> None:
+            def enumerate(node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]) -> GeneratorBase[_DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]]:
                 yield node
 
-                _node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetNext()
+                _node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = node.GetNext()
 
                 while _node is not None:
                     yield node
 
                     _node = self.GetNext()
             
-            for _node in enumerate(node):
-                _node._Unregister()
+            for _node in enumerate(node): _node._Unregister()
 
-        nextNode: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
+        nextNode: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetNext()
         
         if nextNode is None:
-            if inclusive:
-                self.Remove()
+            if inclusive: self.Remove()
             
             return
         
         l: TListInterface|None = self._GetInnerList()
 
         if inclusive:
-            node: DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
+            node: _DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface]|None = self.GetPrevious()
 
             if node is None:
-                if l is not None:
-                    l.Clear()
+                if l is not None: l.Clear()
 
                 return
             
@@ -778,11 +720,9 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Node
         self.__RemoveFirst(nextNode, None)
     
     @final
-    def Check(self, l: TList) -> bool:
-        return self._GetList() is l
+    def Check(self, l: TList) -> bool: return self._GetList() is l
     @final
-    def Ensure(self, l: TList) -> None:
-        EnsureTrue(self.Check(l))
+    def Ensure(self, l: TList) -> None: EnsureTrue(self.Check(l))
     
     @final
     def _Unregister(self) -> None:
@@ -795,45 +735,38 @@ class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyEnumerableListBase[TIte
         self.__items: TList = items
     
     @final
-    def _GetContainer(self) -> TList:
-        return self.__items
+    def _GetContainer(self) -> TList: return self.__items
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetInnerContainer().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetInnerContainer().IsEmpty()
     
     @final
-    def HasItems(self) -> bool:
-        return super().HasItems()
+    def HasItems(self) -> bool: return super().HasItems()
     
     @final
-    def TryGetFirst(self) -> INullable[TItem]:
-        return self._GetInnerContainer().TryGetFirst()
+    def TryGetFirst(self) -> INullable[TItem]: return self._GetInnerContainer().TryGetFirst()
     @final
-    def TryGetLast(self) -> INullable[TItem]:
-        return self._GetInnerContainer().TryGetLast()
+    def TryGetLast(self) -> INullable[TItem]: return self._GetInnerContainer().TryGetLast()
 
 class INodeCookie[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetFirst(self, items: _IListCookie[T]) -> T|None:
-        pass
+        ...
     @abstractmethod
     def GetLast(self, items: _IListCookie[T]) -> T|None:
-        pass
+        ...
     
     @abstractmethod
     def SetFirst(self, node: T|None, items: _IListCookie[T]) -> None:
-        pass
+        ...
     @abstractmethod
     def SetLast(self, node: T|None, items: _IListCookie[T]) -> None:
-        pass
+        ...
 
 class EnumerableListNodeBase[TNode, TList](_INodeBase[TNode, TList]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _SetFirst(self, cookie: INodeCookie[TNode], items: _IListCookie[TNode], node: TNode|None) -> None:
@@ -849,10 +782,8 @@ class _EnumerableListEnumerable[TItem, TNode: IRemovable](Enumerable[TNode], IRe
 
         self.__list: IEnumerableListBase[TItem, TNode] = l
     
-    def TryGetEnumerator(self) -> IEnumerator[TNode]|None:
-        return self.__list.TryGetNodeEnumerator()
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TNode]|None:
-        return self.__list.TryGetResumableNodeEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[TNode]|None: return self.__list.TryGetNodeEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TNode]|None: return self.__list.TryGetResumableNodeEnumerator()
 @final
 class _CountableEnumerableListEnumerable[T](Enumerable[ICountableLinkedListNode[T]], IResumableCountableEnumerable[ICountableLinkedListNode[T]]):
     def __init__(self, l: ICountableList[T]) -> None:
@@ -860,16 +791,12 @@ class _CountableEnumerableListEnumerable[T](Enumerable[ICountableLinkedListNode[
 
         self.__list: ICountableList[T] = l
     
-    def GetCount(self) -> int:
-        return self.__list.GetCount()
+    def GetCount(self) -> int: return self.__list.GetCount()
     
-    def TryGetEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None:
-        return self.__list.TryGetNodeEnumerator()
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None:
-        return self.__list.TryGetResumableNodeEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None: return self.__list.TryGetNodeEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None: return self.__list.TryGetResumableNodeEnumerator()
     
-    def AsSized(self) -> Sized:
-        return self.__list.AsSized()
+    def AsSized(self) -> Sized: return self.__list.AsSized()
 
 @final
 class _ReversedReadOnlyListUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IReadOnlyEnumerableList[TItem]]):
@@ -878,8 +805,7 @@ class _ReversedReadOnlyListUpdater[TItem, TNode: IRemovable](ValueFunctionUpdate
 
         self.__items: IEnumerableList[TItem, TNode] = items
     
-    def _GetValue(self) -> IReadOnlyEnumerableList[TItem]:
-        return _ReversedReadOnlyList[TItem, TNode](self.__items)
+    def _GetValue(self) -> IReadOnlyEnumerableList[TItem]: return _ReversedReadOnlyList[TItem, TNode](self.__items)
 @final
 class _ReversedReadOnlyCountableListUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumerableList[T]]):
     def __init__(self, items: ICountableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]) -> None:
@@ -887,33 +813,27 @@ class _ReversedReadOnlyCountableListUpdater[T](ValueFunctionUpdater[IReadOnlyCou
 
         self.__items: ICountableList[T] = items
     
-    def _GetValue(self) -> IReadOnlyCountableEnumerableList[T]:
-        return _ReversedReadOnlyCountableList[T](self.__items)
+    def _GetValue(self) -> IReadOnlyCountableEnumerableList[T]: return _ReversedReadOnlyCountableList[T](self.__items)
 
 class _ReadOnlyEnumerableListAbstractAbstract[TItem, TList](_ReadOnlyListBase[TItem, TList], Enumerable[TItem], IReadOnlyEnumerableListBase[TItem]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList) -> None: super().__init__(items)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        return TryCreateEnumerator(self._GetInnerContainer().TryGetEnumerator())
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryCreateEnumerator(self._GetInnerContainer().TryGetEnumerator())
 
 @final
 class _ReadOnlyEnumerableListAbstractBase[TItem, TNode: IRemovable](_ReadOnlyEnumerableListAbstractAbstract[TItem, IReadOnlyEnumerableListBase[TItem]], IGenericConstraintImplementation[IReadOnlyEnumerableListBase[TItem]]):
-    def __init__(self, items: IEnumerableListBase[TItem, TNode]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IEnumerableListBase[TItem, TNode]) -> None: super().__init__(items)
 @final
 class _ReadOnlyEnumerableList[TItem, TNode: IRemovable](_ReadOnlyEnumerableListAbstractAbstract[TItem, IReadOnlyEnumerableList[TItem]], Enumerable[TItem], IReadOnlyEnumerableList[TItem], IGenericConstraintImplementation[IReadOnlyEnumerableList[TItem]]):
     def __init__(self, items: IEnumerableList[TItem, TNode]) -> None:
-        def update(func: IFunction[IReadOnlyEnumerableList[TItem]]) -> None:
-            self.__reversed = func
+        def update(func: IFunction[IReadOnlyEnumerableList[TItem]]) -> None: self.__reversed = func
         
         super().__init__(items)
 
         self.__reversed: IFunction[IReadOnlyEnumerableList[TItem]] = _ReversedReadOnlyListUpdater[TItem, TNode](items, update) # type: ignore[no-redef]
     
-    def AsReversed(self) -> IReadOnlyEnumerableList[TItem]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> IReadOnlyEnumerableList[TItem]: return self.__reversed.GetValue()
 
 @final
 class _EnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IResumableEnumerable[TNode]]):
@@ -922,8 +842,7 @@ class _EnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IResumab
 
         self.__items: IEnumerableListBase[TItem, TNode] = items
     
-    def _GetValue(self) -> IResumableEnumerable[TNode]:
-        return _EnumerableListEnumerable[TItem, TNode](self.__items)
+    def _GetValue(self) -> IResumableEnumerable[TNode]: return _EnumerableListEnumerable[TItem, TNode](self.__items)
 @final
 class _CountableEnumerableUpdater[T](ValueFunctionUpdater[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]):
     def __init__(self, items: ICountableList[T], updater: Method[IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]]) -> None:
@@ -931,8 +850,7 @@ class _CountableEnumerableUpdater[T](ValueFunctionUpdater[IResumableCountableEnu
 
         self.__items: ICountableList[T] = items
     
-    def _GetValue(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        return _CountableEnumerableListEnumerable[T](self.__items)
+    def _GetValue(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return _CountableEnumerableListEnumerable[T](self.__items)
 
 @final
 class _ReadOnlyEnumerableUpdaterBase[TItem, TNode: IRemovable](ValueFunctionUpdater[IReadOnlyEnumerableListBase[TItem]]):
@@ -941,8 +859,7 @@ class _ReadOnlyEnumerableUpdaterBase[TItem, TNode: IRemovable](ValueFunctionUpda
 
         self.__items: IEnumerableListBase[TItem, TNode] = items
     
-    def _GetValue(self) -> IReadOnlyEnumerableListBase[TItem]:
-        return _ReadOnlyEnumerableListAbstractBase[TItem, TNode](self.__items)
+    def _GetValue(self) -> IReadOnlyEnumerableListBase[TItem]: return _ReadOnlyEnumerableListAbstractBase[TItem, TNode](self.__items)
 @final
 class _ReadOnlyEnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IReadOnlyEnumerableList[TItem]]):
     def __init__(self, items: IEnumerableList[TItem, TNode], updater: Method[IFunction[IReadOnlyEnumerableList[TItem]]]) -> None:
@@ -950,44 +867,37 @@ class _ReadOnlyEnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[
 
         self.__items: IEnumerableList[TItem, TNode] = items
     
-    def _GetValue(self) -> IReadOnlyEnumerableList[TItem]:
-        return _ReadOnlyEnumerableList[TItem, TNode](self.__items)
+    def _GetValue(self) -> IReadOnlyEnumerableList[TItem]: return _ReadOnlyEnumerableList[TItem, TNode](self.__items)
 
 class _IListCookie[T](IInterface):
     @final
     class _LinkedListCookie[_T](Abstract, INodeCookie[_T]):
-        def __init__(self) -> None:
-            super().__init__()
+        def __init__(self) -> None: super().__init__()
         
-        def GetFirst(self, items: _IListCookie[_T]) -> _T|None:
-            return items._GetFirst()
-        def GetLast(self, items: _IListCookie[_T]) -> _T|None:
-            return items._GetLast()
+        def GetFirst(self, items: _IListCookie[_T]) -> _T|None: return items._GetFirst()
+        def GetLast(self, items: _IListCookie[_T]) -> _T|None: return items._GetLast()
         
-        def SetFirst(self, node: _T|None, items: _IListCookie[_T]) -> None:
-            return items._SetFirst(node)
-        def SetLast(self, node: _T|None, items: _IListCookie[_T]) -> None:
-            return items._SetLast(node)
+        def SetFirst(self, node: _T|None, items: _IListCookie[_T]) -> None: return items._SetFirst(node)
+        def SetLast(self, node: _T|None, items: _IListCookie[_T]) -> None: return items._SetLast(node)
     
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _GetCookie(self) -> INodeCookie[T]:
         return _IListCookie._LinkedListCookie[T]()
     
     @abstractmethod
     def _GetFirst(self) -> T|None:
-        pass
+        ...
     @abstractmethod
     def _GetLast(self) -> T|None:
-        pass
+        ...
     
     @abstractmethod
     def _SetFirst(self, node: T|None) -> None:
-        pass
+        ...
     @abstractmethod
     def _SetLast(self, node: T|None) -> None:
-        pass
+        ...
 
 class _EnumerableList[TItem, TNode](Enumerable[TItem], _IListCookie[TNode]):
     @final
@@ -997,12 +907,10 @@ class _EnumerableList[TItem, TNode](Enumerable[TItem], _IListCookie[TNode]):
 
             self.__items: _EnumerableList[_T, _TNode] = items
         
-        def _GetValue(self) -> INodeCookie[_TNode]:
-            return self.__items._GetListCookie()
+        def _GetValue(self) -> INodeCookie[_TNode]: return self.__items._GetListCookie()
     
     def __init__(self) -> None:
-        def update(func: IFunction[INodeCookie[TNode]]) -> None:
-            self.__cookie = func
+        def update(func: IFunction[INodeCookie[TNode]]) -> None: self.__cookie = func
         
         super().__init__()
         
@@ -1016,16 +924,15 @@ class _EnumerableList[TItem, TNode](Enumerable[TItem], _IListCookie[TNode]):
         return self.__cookie.GetValue()
 
 class IValueCookie[TItem, TNode](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetItems(self) -> IEnumerableListBase[TItem, TNode]:
-        pass
+        ...
 
     @abstractmethod
     def GetValue(self, node: TNode) -> TItem:
-        pass
+        ...
 
 @final
 class _Generator[TItem, TNode: IRemovable](ConverterBase[TNode, TItem]):
@@ -1047,8 +954,7 @@ class _NodeGeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIter
 
         self.__items: IEnumerableListBase[TItem, TNode] = items
     
-    def _GetValue(self) -> IIterator[TNode]:
-        return Generator[TNode](self.__items.AsNodeEnumerable().AsIterable())
+    def _GetValue(self) -> IIterator[TNode]: return Generator[TNode](self.__items.AsNodeEnumerable().AsIterable())
 @final
 class _GeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIterator[TItem]]):
     def __init__(self, cookie: IValueCookie[TItem, TNode], updater: Method[IFunction[IIterator[TItem]]]) -> None:
@@ -1056,8 +962,7 @@ class _GeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIterator
 
         self.__cookie: IValueCookie[TItem, TNode] = cookie
     
-    def _GetValue(self) -> IIterator[TItem]:
-        return _Generator[TItem, TNode](self.__cookie)
+    def _GetValue(self) -> IIterator[TItem]: return _Generator[TItem, TNode](self.__cookie)
 
 class _EnumerableListAbstract[TItem, TNode](IEnumerableListBase[TItem, TNode]):
     @final
@@ -1067,14 +972,11 @@ class _EnumerableListAbstract[TItem, TNode](IEnumerableListBase[TItem, TNode]):
 
             self.__items: _EnumerableListAbstract[_TItem, _TNode] = items
         
-        def GetItems(self) -> IEnumerableListBase[_TItem, _TNode]:
-            return self.__items
+        def GetItems(self) -> IEnumerableListBase[_TItem, _TNode]: return self.__items
         
-        def GetValue(self, node: _TNode) -> _TItem:
-            return self.__items._GetValue(node)
+        def GetValue(self, node: _TNode) -> _TItem: return self.__items._GetValue(node)
     
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _GetValue(self, node: TNode) -> TItem:
@@ -1084,54 +986,46 @@ class _EnumerableListAbstract[TItem, TNode](IEnumerableListBase[TItem, TNode]):
         return _EnumerableListAbstract[TItem, TNode]._Cookie(self)
 
 class IEnumerableListCookieAbstract[TItem, TNode, TReadOnly](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetValueCookie(self) -> IValueCookie[TItem, TNode]:
-        pass
+        ...
     
     @abstractmethod
     def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        pass
+        ...
     @abstractmethod
     def GetReadOnly(self) -> TReadOnly:
-        pass
+        ...
     
     @abstractmethod
     def GetNodeGenerator(self) -> IIterator[TNode]:
-        pass
+        ...
     @abstractmethod
     def GetGenerator(self) -> IIterator[TItem]:
-        pass
+        ...
 class ICountableEnumerableListCookieAbstract[TItem, TNode, TReadOnly](IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetNodeEnumerable(self) -> IResumableCountableEnumerable[TNode]:
-        pass
+        ...
 
 class IEnumerableListCookieBase[TItem, TNode](IEnumerableListCookieAbstract[TItem, TNode, IReadOnlyEnumerableListBase[TItem]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IEnumerableListCookie[TItem, TNode](IEnumerableListCookieAbstract[TItem, TNode, IReadOnlyEnumerableList[TItem]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ICountableEnumerableListCookie[TItem, TNode](ICountableEnumerableListCookieAbstract[TItem, TNode, IReadOnlyCountableEnumerableList[TItem]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
     def __init__(self, items: TList, cookie: IValueCookie[TItem, TNode]) -> None:
-        def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None:
-            self.__readOnlyEnumerable = func
+        def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None: self.__readOnlyEnumerable = func
         
-        def updateNodeGenerator(func: IFunction[IIterator[TNode]]) -> None:
-            self.__nodeGenerator = func
-        def updateGenerator(func: IFunction[IIterator[TItem]]) -> None:
-            self.__generator = func
+        def updateNodeGenerator(func: IFunction[IIterator[TNode]]) -> None: self.__nodeGenerator = func
+        def updateGenerator(func: IFunction[IIterator[TItem]]) -> None: self.__generator = func
         
         super().__init__()
 
@@ -1144,32 +1038,27 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
     
     @abstractmethod
     def _CreateReadOnly(self, items: TList, action: Method[IFunction[TReadOnly]]) -> IFunction[TReadOnly]:
-        pass
+        ...
     
     @abstractmethod
     def _AsList(self, items: TList) -> IEnumerableListBase[TItem, TNode]:
-        pass
+        ...
     
     @final
-    def GetValueCookie(self) -> IValueCookie[TItem, TNode]:
-        return self.__cookie
+    def GetValueCookie(self) -> IValueCookie[TItem, TNode]: return self.__cookie
     
     @final
-    def GetReadOnly(self) -> TReadOnly:
-        return self.__readOnlyEnumerable.GetValue()
+    def GetReadOnly(self) -> TReadOnly: return self.__readOnlyEnumerable.GetValue()
     
     @final
-    def GetNodeGenerator(self) -> IIterator[TNode]:
-        return self.__nodeGenerator.GetValue()
+    def GetNodeGenerator(self) -> IIterator[TNode]: return self.__nodeGenerator.GetValue()
     @final
-    def GetGenerator(self) -> IIterator[TItem]:
-        return self.__generator.GetValue()
+    def GetGenerator(self) -> IIterator[TItem]: return self.__generator.GetValue()
 
 @final
 class _ReadOnlyEnumerableListAbstract[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableListBase[TItem, TNode], IReadOnlyEnumerableListBase[TItem]], IEnumerableListCookieBase[TItem, TNode]):
     def __init__(self, items: IEnumerableListBase[TItem, TNode], cookie: IValueCookie[TItem, TNode]) -> None:
-        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None:
-            self.__nodeEnumerable = func
+        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None: self.__nodeEnumerable = func
         
         super().__init__(items, cookie)
 
@@ -1181,13 +1070,11 @@ class _ReadOnlyEnumerableListAbstract[TItem, TNode: IRemovable](_EnumerableListB
     def _AsList(self, items: IEnumerableListBase[TItem, TNode]) -> IEnumerableListBase[TItem, TNode]:
         return items
     
-    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        return self.__nodeEnumerable.GetValue()
+    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]: return self.__nodeEnumerable.GetValue()
 @final
 class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableList[TItem, TNode], IReadOnlyEnumerableList[TItem]], IEnumerableListCookie[TItem, TNode]):
     def __init__(self, items: IEnumerableList[TItem, TNode], cookie: IValueCookie[TItem, TNode]) -> None:
-        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None:
-            self.__nodeEnumerable = func
+        def updateNodeEnumerable(func: IFunction[IResumableEnumerable[TNode]]) -> None: self.__nodeEnumerable = func
         
         super().__init__(items, cookie)
 
@@ -1199,8 +1086,7 @@ class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[
     def _AsList(self, items: IEnumerableList[TItem, TNode]) -> IEnumerableList[TItem, TNode]:
         return items
     
-    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]:
-        return self.__nodeEnumerable.GetValue()
+    def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]: return self.__nodeEnumerable.GetValue()
 
 class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie](_EnumerableList[TItem, TNode], _EnumerableListAbstract[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self, items: Iterable[TItem]|None) -> None:
@@ -1215,11 +1101,11 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
     
     @abstractmethod
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNodeInterface]) -> TCookie:
-        pass
+        ...
 
     @abstractmethod
     def _GetCookieAsEnumerationCookie(self, items: TCookie) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
-        pass
+        ...
 
     @final
     def _GetEnumerationCookie(self) -> TCookie:
@@ -1259,11 +1145,9 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return None if node is None else self._GetNodeAsClass(node)
 
     @final
-    def IsEmpty(self) -> bool:
-        return self.__first is None
+    def IsEmpty(self) -> bool: return self.__first is None
     @final
-    def HasItems(self) -> bool:
-        return super().HasItems()
+    def HasItems(self) -> bool: return super().HasItems()
     
     def _AddNode(self, value: TItem) -> TNode:
         node: TNode = self._CreateNode(value)
@@ -1285,33 +1169,29 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return self._GetNodeAsClass(self._AddNode(value) if node is None else self._GetNodeAsInterface(node).SetNextNode(value))
     
     @final
-    def GetFirst(self) -> TNodeInterface|None:
-        return self.__TryGetNodeAsClass(self._GetFirst())
+    def GetFirst(self) -> TNodeInterface|None: return self.__TryGetNodeAsClass(self._GetFirst())
     @final
-    def GetLast(self) -> TNodeInterface|None:
-        return self.__TryGetNodeAsClass(self._GetLast())
+    def GetLast(self) -> TNodeInterface|None: return self.__TryGetNodeAsClass(self._GetLast())
     
     @final
     def __TryRemove(self, node: TNode|None) -> INullable[TItem]:
         return GetNullValue() if node is None else GetNullable(self._GetNodeAsInterface(node).RemoveNode())
     
     @final
-    def TryRemoveFirst(self) -> INullable[TItem]:
-        return self.__TryRemove(self._GetFirst())
+    def TryRemoveFirst(self) -> INullable[TItem]: return self.__TryRemove(self._GetFirst())
     @final
-    def TryRemoveLast(self) -> INullable[TItem]:
-        return self.__TryRemove(self._GetLast())
+    def TryRemoveLast(self) -> INullable[TItem]: return self.__TryRemove(self._GetLast())
     
     @abstractmethod
     def _GetPreviousNode(self, node: TNode) -> TNode|None:
-        pass
+        ...
     @abstractmethod
     def _GetNextNode(self, node: TNode) -> TNode|None:
-        pass
+        ...
 
     @abstractmethod
     def _UnregisterNode(self, node: TNode) -> None:
-        pass
+        ...
     
     @final
     def Clear(self) -> None:
@@ -1323,18 +1203,17 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
 
                 node = self._GetNextNode(node)
         
-        for node in enumerate():
-            self._UnregisterNode(node)
+        for node in enumerate(): self._UnregisterNode(node)
 
         self.__first = None
         self.__last = None
     
     @abstractmethod
     def _GetNodeEnumerator(self, node: TNodeInterface) -> IEnumerator[TNodeInterface]:
-        pass
+        ...
     @abstractmethod
     def _GetResumableNodeEnumerator(self, node: TNodeInterface) -> IResumableEnumerator[TNodeInterface]:
-        pass
+        ...
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
@@ -1354,48 +1233,39 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TCookie
         return None if first is None else self._GetResumableNodeEnumerator(first)
 
     @final
-    def AsNodeGenerator(self) -> IIterator[TNodeInterface]:
-        return self._GetInnerCookie().GetNodeGenerator()
+    def AsNodeGenerator(self) -> IIterator[TNodeInterface]: return self._GetInnerCookie().GetNodeGenerator()
     @final
-    def AsGenerator(self) -> IIterator[TItem]:
-        return self._GetInnerCookie().GetGenerator()
+    def AsGenerator(self) -> IIterator[TItem]: return self._GetInnerCookie().GetGenerator()
 class EnumerableListAbstract[TItem, TNode, TNodeInterface: IRemovable, TEnumerable](_Enumerable[TItem, TNode, TNodeInterface, TEnumerable, IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]]):
-    def __init__(self, items: Iterable[TItem]|None = None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[TItem]|None = None) -> None: super().__init__(items)
     
     @final
     def _GetCookieAsEnumerationCookie(self, items: IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]:
         return items
     
     @final
-    def AsNodeEnumerable(self) -> IResumableEnumerable[TNodeInterface]:
-        return self._GetInnerCookie().GetNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableEnumerable[TNodeInterface]: return self._GetInnerCookie().GetNodeEnumerable()
 class EnumerableListBase[TItem, TNode, TNodeInterface: IRemovable](EnumerableListAbstract[TItem, TNode, TNodeInterface, IReadOnlyEnumerableListBase[TItem]]):
-    def __init__(self, items: Iterable[TItem]|None = None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[TItem]|None = None) -> None: super().__init__(items)
     
     @final
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNodeInterface]) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, IReadOnlyEnumerableListBase[TItem]]:
         return _ReadOnlyEnumerableListAbstract[TItem, TNodeInterface](self, cookie)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyEnumerableListBase[TItem]:
-        return self._AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyEnumerableListBase[TItem]: return self._AsReadOnly()
 class EnumerableList[TItem, TNode, TNodeInterface: IRemovable](EnumerableListAbstract[TItem, TNode, TNodeInterface, IReadOnlyEnumerableList[TItem]], IEnumerableList[TItem, TNodeInterface]):
-    def __init__(self, items: Iterable[TItem]|None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[TItem]|None) -> None: super().__init__(items)
     
     @final
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNodeInterface]) -> IEnumerableListCookieAbstract[TItem, TNodeInterface, IReadOnlyEnumerableList[TItem]]:
         return _ReadOnlyEnumerableListBase[TItem, TNodeInterface](self, cookie)
     
     @final
-    def AsReadOnly(self) -> IReadOnlyEnumerableList[TItem]:
-        return self._AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[TItem]: return self._AsReadOnly()
 
 class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem]], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
-    def __init__(self, items: Iterable[TItem]|None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[TItem]|None) -> None: super().__init__(items)
     
     @final
     def _AddNode(self, value: TItem) -> TNode:
@@ -1408,7 +1278,7 @@ class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TIte
     def _GetResumableNodeEnumerator(self, node: IDoublyLinkedNode[TItem]) -> IResumableEnumerator[IDoublyLinkedNode[TItem]]:
         return ResumableDoublyLinkedNodeEnumerator[TItem](node)
 
-class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface: IClearable](DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TNode, TListInterface], IAbstractNode[TNode, TNodeInterface]):
+class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, TListInterface: IClearable](_DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface], _INodeBase[TNode, TListInterface], IAbstractNode[TNode, TNodeInterface]):
     def __init__(self, value: TItem, l: TListInterface|None, cookie: INodeCookie[TNode], previousNode: TNode|None, nextNode: TNode|None) -> None:
         super().__init__(value, l, previousNode, nextNode)
 
@@ -1450,11 +1320,9 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
     def TryMoveToTop(self) -> bool|None:
         _l: TListInterface|None = self._GetInnerList()
 
-        if _l is None:
-            return False
+        if _l is None: return False
         
-        if self.GetPrevious() is None:
-            return None
+        if self.GetPrevious() is None: return None
         
         l: _IListCookie[TNode] = self._GetListAsSpecialized(_l)
         
@@ -1462,8 +1330,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
         
         node: TNode|None = self._GetCookie().GetFirst(l)
 
-        if node is None:
-            return False
+        if node is None: return False
         
         _node: TNode = self._AsNode()
 
@@ -1475,11 +1342,9 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
     def TryMoveToBottom(self) -> bool|None:
         _l: TListInterface|None = self._GetInnerList()
 
-        if _l is None:
-            return False
+        if _l is None: return False
         
-        if self.GetNext() is None:
-            return None
+        if self.GetNext() is None: return None
         
         l: _IListCookie[TNode] = self._GetListAsSpecialized(_l)
         
@@ -1487,8 +1352,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TNodeInterface: IRemovable, TList, 
         
         node: TNode|None = self._GetCookie().GetLast(l)
 
-        if node is None:
-            return False
+        if node is None: return False
         
         _node: TNode = self._AsNode()
         
@@ -1503,32 +1367,26 @@ class DoublyLinkedNode[TItem, TNode, TNodeInterface: IRemovable, TList, TListInt
 
     @abstractmethod
     def _AsLinkedNode(self, node: TNode) -> SelfType:
-        pass
+        ...
     def _TryAsLinkedNode(self, node: TNode|None) -> SelfType|None:
         return None if node is None else self._AsLinkedNode(node)
     
     @final
-    def GetPrevious(self) -> SelfType|None:
-        return self._TryAsLinkedNode(self.GetPreviousNode())
+    def GetPrevious(self) -> SelfType|None: return self._TryAsLinkedNode(self.GetPreviousNode())
     @final
-    def GetNext(self) -> SelfType|None:
-        return self._TryAsLinkedNode(self.GetNextNode())
+    def GetNext(self) -> SelfType|None: return self._TryAsLinkedNode(self.GetNextNode())
     
     @final
-    def SetPrevious(self, value: TItem) -> SelfType:
-        return self._AsLinkedNode(super()._SetPreviousNode(value))
+    def SetPrevious(self, value: TItem) -> SelfType: return self._AsLinkedNode(super()._SetPreviousNode(value))
     @final
-    def SetNext(self, value: TItem) -> SelfType:
-        return self._AsLinkedNode(super()._SetNextNode(value))
+    def SetNext(self, value: TItem) -> SelfType: return self._AsLinkedNode(super()._SetNextNode(value))
     
     @final
-    def RemoveNode(self) -> TItem:
-        return super().RemoveNode()
+    def RemoveNode(self) -> TItem: return super().RemoveNode()
 
 @final
 class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], ListBase[T, "_Node[T]"]], EnumerableListNodeBase["_Node[T]", ListBase[T, "_Node[T]"]], IGenericConstraintImplementation[IList[T]]):
-    def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, cookie: INodeCookie[_Node[T]], previousNode: SelfType|None, nextNode: SelfType|None) -> None:
-        super().__init__(value, l, cookie, previousNode, nextNode)
+    def __init__(self, value: T, l: ListBase[T, _Node[T]]|None, cookie: INodeCookie[_Node[T]], previousNode: SelfType|None, nextNode: SelfType|None) -> None: super().__init__(value, l, cookie, previousNode, nextNode)
     
     def _AsLinkedNode(self, node: _Node[T]) -> _Node[T]:
         return node
@@ -1547,8 +1405,7 @@ class _Node[T](DoublyLinkedNode[T, "_Node[T]", IDoublyLinkedNode[T], IList[T], L
     def _CreateNode(self, value: T, previous: SelfType|None, next: SelfType|None) -> _Node[T]:
         return _Node[T](value, self._GetInnerList(), self._GetCookie(), previous, next)
     
-    def GetList(self) -> IList[T]|None:
-        return self._GetList()
+    def GetList(self) -> IList[T]|None: return self._GetList()
 
 class _ReversedReadOnlyListAbstract[TItem, TNode: IRemovable, TList](Enumerable[TItem], IReadOnlyEnumerableList[TItem]):
     def __init__(self, items: TList) -> None:
@@ -1568,8 +1425,7 @@ class _ReversedReadOnlyListAbstract[TItem, TNode: IRemovable, TList](Enumerable[
         return self._AsList(self._GetInnerList())
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetList().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetList().IsEmpty()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
@@ -1578,45 +1434,36 @@ class _ReversedReadOnlyListAbstract[TItem, TNode: IRemovable, TList](Enumerable[
         return None if first is None else GetValueEnumeratorFromNode(first, EnumerationOrder.LIFO)
 
 class _ReversedReadOnlyListBase[TItem, TNode: IRemovable, TList](_ReversedReadOnlyListAbstract[TItem, TNode, TList]):
-    def __init__(self, items: TList) -> None:
-        super().__init__(items)
+    def __init__(self, items: TList) -> None: super().__init__(items)
     
     @final
-    def TryGetFirst(self) -> INullable[TItem]:
-        return self._GetList().TryGetLast()
+    def TryGetFirst(self) -> INullable[TItem]: return self._GetList().TryGetLast()
     @final
-    def TryGetLast(self) -> INullable[TItem]:
-        return self._GetList().TryGetFirst()
+    def TryGetLast(self) -> INullable[TItem]: return self._GetList().TryGetFirst()
 
 @final
 class _ReversedReadOnlyList[TItem, TNode: IRemovable](_ReversedReadOnlyListBase[TItem, TNode, IEnumerableList[TItem, TNode]]):
-    def __init__(self, items: IEnumerableList[TItem, TNode]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IEnumerableList[TItem, TNode]) -> None: super().__init__(items)
     
     def _AsList(self, items: IEnumerableList[TItem, TNode]) -> IEnumerableList[TItem, TNode]:
         return items
     
-    def AsReversed(self) -> IReadOnlyEnumerableList[TItem]:
-        return self._GetInnerList()
+    def AsReversed(self) -> IReadOnlyEnumerableList[TItem]: return self._GetInnerList()
 
 @final
 class _ReversedReadOnlyCountableListBase[T](_ReversedReadOnlyListBase[T, ICountableLinkedListNode[T], ICountableList[T]]):
-    def __init__(self, items: ICountableList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICountableList[T]) -> None: super().__init__(items)
     
-    def GetCount(self) -> int:
-        return self._GetInnerList().GetCount()
+    def GetCount(self) -> int: return self._GetInnerList().GetCount()
     
     def _AsList(self, items: ICountableList[T]) -> IEnumerableList[T, ICountableLinkedListNode[T]]:
         return items
     def _AsNode(self, node: ICountableLinkedListNode[T]) -> ILinkedNode[T]:
         return node
     
-    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self._GetInnerList()
+    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self._GetInnerList()
     
-    def AsSized(self) -> Sized:
-        return self._GetInnerList().AsSized()
+    def AsSized(self) -> Sized: return self._GetInnerList().AsSized()
 @final
 class _ReversedReadOnlyCountableList[T](Countable, IReadOnlyCountableEnumerableList[T]):
     def __init__(self, items: ICountableList[T]) -> None:
@@ -1624,25 +1471,18 @@ class _ReversedReadOnlyCountableList[T](Countable, IReadOnlyCountableEnumerableL
 
         self.__items: _ReversedReadOnlyCountableListBase[T] = _ReversedReadOnlyCountableListBase[T](items)
     
-    def IsEmpty(self) -> bool:
-        return self.__items.IsEmpty()
+    def IsEmpty(self) -> bool: return self.__items.IsEmpty()
     
-    def GetCount(self) -> int:
-        return self.__items.GetCount()
+    def GetCount(self) -> int: return self.__items.GetCount()
     
-    def TryGetFirst(self) -> INullable[T]:
-        return self.__items.TryGetFirst()
-    def TryGetLast(self) -> INullable[T]:
-        return self.__items.TryGetLast()
+    def TryGetFirst(self) -> INullable[T]: return self.__items.TryGetFirst()
+    def TryGetLast(self) -> INullable[T]: return self.__items.TryGetLast()
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()
     
-    def AsIterable(self) -> Iterable[T]:
-        return self.__items.AsIterable()
+    def AsIterable(self) -> Iterable[T]: return self.__items.AsIterable()
     
-    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self.__items.AsReversed()
+    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self.__items.AsReversed()
 
 class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_ReversedReadOnlyListAbstract[TItem, TNode, TList], _EnumerableListAbstract[TItem, TNode], IEnumerableList[TItem, TNode]):
     def __init__(self, items: TList) -> None:
@@ -1652,11 +1492,11 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_Re
     
     @abstractmethod
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, TNode]) -> TCookie:
-        pass
+        ...
 
     @abstractmethod
     def _GetCookieAsEnumerationCookie(self, items: TCookie) -> IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]:
-        pass
+        ...
 
     @final
     def _GetEnumerationCookie(self) -> TCookie:
@@ -1671,39 +1511,32 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_Re
     
     @abstractmethod
     def _GetNodeEnumerator(self, first: TNode) -> IEnumerator[TNode]:
-        pass
+        ...
     @abstractmethod
     def _GetResumableNodeEnumerator(self, first: TNode) -> IResumableEnumerator[TNode]:
-        pass
+        ...
     
     @final
     def _GetValueCookie(self) -> IValueCookie[TItem, TNode]:
         return self._GetInnerCookie().GetValueCookie()
     
     @final
-    def GetFirst(self) -> TNode|None:
-        return self._GetList().GetLast()
+    def GetFirst(self) -> TNode|None: return self._GetList().GetLast()
     @final
-    def GetLast(self) -> TNode|None:
-        return self._GetList().GetFirst()
+    def GetLast(self) -> TNode|None: return self._GetList().GetFirst()
     
     @final
-    def AddFirst(self, value: TItem) -> TNode:
-        return self._GetList().AddLast(value)
+    def AddFirst(self, value: TItem) -> TNode: return self._GetList().AddLast(value)
     @final
-    def AddLast(self, value: TItem) -> TNode:
-        return self._GetList().AddFirst(value)
+    def AddLast(self, value: TItem) -> TNode: return self._GetList().AddFirst(value)
     
     @final
-    def TryRemoveFirst(self) -> INullable[TItem]:
-        return self._GetList().TryRemoveLast()
+    def TryRemoveFirst(self) -> INullable[TItem]: return self._GetList().TryRemoveLast()
     @final
-    def TryRemoveLast(self) -> INullable[TItem]:
-        return self._GetList().TryRemoveFirst()
+    def TryRemoveLast(self) -> INullable[TItem]: return self._GetList().TryRemoveFirst()
     
     @final
-    def Clear(self) -> None:
-        return self._GetList().Clear()
+    def Clear(self) -> None: return self._GetList().Clear()
     
     @final
     def TryGetNodeEnumerator(self) -> IEnumerator[TNode]|None:
@@ -1717,16 +1550,13 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_Re
         return None if first is None else self._GetResumableNodeEnumerator(first)
 
     @final
-    def AsNodeGenerator(self) -> IIterator[TNode]:
-        return self._GetInnerCookie().GetNodeGenerator()
+    def AsNodeGenerator(self) -> IIterator[TNode]: return self._GetInnerCookie().GetNodeGenerator()
     @final
-    def AsGenerator(self) -> IIterator[TItem]:
-        return self._GetInnerCookie().GetGenerator()
+    def AsGenerator(self) -> IIterator[TItem]: return self._GetInnerCookie().GetGenerator()
 
 @final
 class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IReadOnlyEnumerableList[T], IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]], IList[T], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
-    def __init__(self, items: IList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: IList[T]) -> None: super().__init__(items)
     
     def _CreateEnumerationCookie(self, cookie: IValueCookie[T, IDoublyLinkedNode[T]]) -> IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]:
         return _ReadOnlyEnumerableListBase[T, IDoublyLinkedNode[T]](self, cookie)
@@ -1744,19 +1574,15 @@ class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IRea
     def _GetResumableNodeEnumerator(self, first: IDoublyLinkedNode[T]) -> IResumableEnumerator[IDoublyLinkedNode[T]]:
         return ResumableDoublyLinkedNodeEnumerator[T](first)
     
-    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]:
-        return self._AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]: return self._AsReadOnly()
     
-    def AsReversed(self) -> IList[T]:
-        return self._GetInnerList()
+    def AsReversed(self) -> IList[T]: return self._GetInnerList()
     
     @final
-    def AsNodeEnumerable(self) -> IResumableEnumerable[IDoublyLinkedNode[T]]:
-        return self._GetEnumerationCookie().GetNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableEnumerable[IDoublyLinkedNode[T]]: return self._GetEnumerationCookie().GetNodeEnumerable()
 @final
 class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T], ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, items: ICountableList[T]) -> None:
-        super().__init__(items)
+    def __init__(self, items: ICountableList[T]) -> None: super().__init__(items)
     
     def _CreateEnumerationCookie(self, cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]:
         return _ReadOnlyCountableEnumerableListBase[T](self._GetInnerList(), cookie)
@@ -1774,21 +1600,16 @@ class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNod
     def _GetResumableNodeEnumerator(self, first: ICountableLinkedListNode[T]) -> IResumableEnumerator[ICountableLinkedListNode[T]]:
         return ResumableCountableLinkedListNodeEnumerator[T](first)
     
-    def GetCount(self) -> int:
-        return self._GetInnerList().GetCount()
+    def GetCount(self) -> int: return self._GetInnerList().GetCount()
     
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self._AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]: return self._AsReadOnly()
     
-    def AsReversed(self) -> ICountableList[T]:
-        return self._GetInnerList()
+    def AsReversed(self) -> ICountableList[T]: return self._GetInnerList()
     
-    def AsSized(self) -> Sized:
-        return self._GetInnerList().AsSized()
+    def AsSized(self) -> Sized: return self._GetInnerList().AsSized()
     
     @final
-    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        return self._GetEnumerationCookie().GetNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self._GetEnumerationCookie().GetNodeEnumerable()
 
 @final
 class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
@@ -1797,13 +1618,11 @@ class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
 
         self.__items: IList[T] = items
     
-    def _GetValue(self) -> IList[T]:
-        return _ReversedList[T](self.__items)
+    def _GetValue(self) -> IList[T]: return _ReversedList[T](self.__items)
 
 class List[T](ListBase[T, _Node[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
-        def update(func: IFunction[IList[T]]) -> None:
-            self.__reversed = func
+        def update(func: IFunction[IList[T]]) -> None: self.__reversed = func
         
         super().__init__(items)
 
@@ -1832,55 +1651,47 @@ class List[T](ListBase[T, _Node[T]]):
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
     
     @final
-    def AsReversed(self) -> IList[T]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
 
 class CountableListProvider[T](Abstract, IClearable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetInnerItems(self) -> _CountableInnerList[T]:
-        pass
+        ...
 
     @abstractmethod
     def GetItems(self) -> ICountableList[T]:
-        pass
+        ...
 
     @abstractmethod
     def AsSized(self) -> Sized:
-        pass
+        ...
 
     @abstractmethod
     def OnAdded(self, node: ICountableLinkedListNode[T]) -> None:
-        pass
+        ...
     @abstractmethod
     def OnRemoved(self, value: T) -> None:
-        pass
+        ...
 
 @final
 class _ReadOnlyCountableEnumerableList[T](_ReadOnlyListBase[T, IReadOnlyCountableEnumerableList[T]], IReadOnlyCountableEnumerableList[T], IGenericConstraintImplementation[IReadOnlyCountableEnumerableList[T]]):
     def __init__(self, items: ICountableList[T]) -> None:
-        def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None:
-            self.__reversed = func
+        def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None: self.__reversed = func
         
         super().__init__(items)
 
         self.__items: CountableEnumerable[T] = CreateCountableEnumerable(items)
         self.__reversed: IFunction[IReadOnlyCountableEnumerableList[T]] = _ReversedReadOnlyCountableListUpdater[T](items, update) # type: ignore[no-redef]
     
-    def GetCount(self) -> int:
-        return self._GetContainer().GetCount()
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetContainer().TryGetEnumerator()
+    def GetCount(self) -> int: return self._GetContainer().GetCount()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetContainer().TryGetEnumerator()
     
-    def AsSized(self) -> Sized:
-        return self.__items.AsSized()
-    def AsIterable(self) -> Iterable[T]:
-        return self.__items.AsIterable()
+    def AsSized(self) -> Sized: return self.__items.AsSized()
+    def AsIterable(self) -> Iterable[T]: return self.__items.AsIterable()
     
-    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self.__reversed.GetValue()
 
 @final
 class _ReadOnlyCountableUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumerableList[T]]):
@@ -1889,14 +1700,12 @@ class _ReadOnlyCountableUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumer
 
         self.__items: ICountableList[T] = items
     
-    def _GetValue(self) -> IReadOnlyCountableEnumerableList[T]:
-        return _ReadOnlyCountableEnumerableList[T](self.__items)
+    def _GetValue(self) -> IReadOnlyCountableEnumerableList[T]: return _ReadOnlyCountableEnumerableList[T](self.__items)
 
 @final
 class _ReadOnlyCountableEnumerableListBase[T](_EnumerableListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T]], ICountableEnumerableListCookie[T, ICountableLinkedListNode[T]]):
     def __init__(self, items: ICountableList[T], cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> None:
-        def updateNodeEnumerable(func: IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]) -> None:
-            self.__nodeEnumerable = func
+        def updateNodeEnumerable(func: IFunction[IResumableCountableEnumerable[ICountableLinkedListNode[T]]]) -> None: self.__nodeEnumerable = func
         
         super().__init__(items, cookie)
 
@@ -1908,12 +1717,10 @@ class _ReadOnlyCountableEnumerableListBase[T](_EnumerableListBase[T, ICountableL
     def _AsList(self, items: ICountableList[T]) -> IEnumerableList[T, ICountableLinkedListNode[T]]:
         return items
     
-    def GetNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        return self.__nodeEnumerable.GetValue()
+    def GetNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self.__nodeEnumerable.GetValue()
 
 class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem], ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
-    def __init__(self, items: Iterable[TItem]|None) -> None:
-        super().__init__(items)
+    def __init__(self, items: Iterable[TItem]|None) -> None: super().__init__(items)
     
     @final
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, ICountableLinkedListNode[TItem]]) -> ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]:
@@ -1930,12 +1737,10 @@ class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinked
     def _GetResumableNodeEnumerator(self, node: ICountableLinkedListNode[TItem]) -> IResumableEnumerator[ICountableLinkedListNode[TItem]]:
         return ResumableCountableLinkedListNodeEnumerator[TItem](node)
     
-    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[TItem]]:
-        return self._GetEnumerationCookie().GetNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[TItem]]: return self._GetEnumerationCookie().GetNodeEnumerable()
     
     @final
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[TItem]:
-        return self._AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[TItem]: return self._AsReadOnly()
 
 @final
 class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]", ICountableLinkedListNode[T], ICountableList[T], CountableListProvider[T]], NodeBase[T, "_CountableListNode[T]"], EnumerableListNodeBase["_CountableListNode[T]", CountableListProvider[T]], ICountableLinkedListNode[T], IGenericConstraintImplementation[ICountableList[T]]):
@@ -1958,7 +1763,7 @@ class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]",
         return self
     
     @final
-    def _AsLinkedNode(self, node: _CountableListNode[T]) -> DoublyLinkedNodeBase[T, _CountableListNode[T], ICountableList[T], CountableListProvider[T]]:
+    def _AsLinkedNode(self, node: _CountableListNode[T]) -> _DoublyLinkedNodeBase[T, _CountableListNode[T], ICountableList[T], CountableListProvider[T]]:
         return node
     
     @final
@@ -1966,26 +1771,21 @@ class _CountableListNode[T](DoublyLinkedNodeAbstract[T, "_CountableListNode[T]",
         return _CountableListNode[T](value, self._GetInnerList(), self._GetCookie(), previous, next)
     
     @final
-    def GetList(self) -> ICountableList[T]|None:
-        return self._GetList()
+    def GetList(self) -> ICountableList[T]|None: return self._GetList()
     
     @final
-    def GetPrevious(self) -> _CountableListNode[T]|None:
-        return self.GetPreviousNode()
+    def GetPrevious(self) -> _CountableListNode[T]|None: return self.GetPreviousNode()
     @final
-    def GetNext(self) -> _CountableListNode[T]|None:
-        return self.GetNextNode()
+    def GetNext(self) -> _CountableListNode[T]|None: return self.GetNextNode()
     
     @final
     def _OnAdded(self, node: ICountableLinkedListNode[T]) -> None:
         l: CountableListProvider[T]|None = self._GetInnerList()
 
-        if l is not None:
-            l.OnAdded(node)
+        if l is not None: l.OnAdded(node)
     @final
     def _OnRemoved(self, l: CountableListProvider[T]|None, value: T) -> None:
-        if l is not None:
-            l.OnRemoved(value)
+        if l is not None: l.OnRemoved(value)
     
     @final
     def SetPrevious(self, value: T) -> _CountableListNode[T]:
@@ -2020,51 +1820,34 @@ class _ReversedCountableList[T](CountableEnumerable[T], _EnumerableListAbstract[
         self.__items: _ReversedCountableListBase[T] = _ReversedCountableListBase[T](items)
         self.__countable: ICountable = items
     
-    def IsEmpty(self) -> bool:
-        return self.__items.IsEmpty()
+    def IsEmpty(self) -> bool: return self.__items.IsEmpty()
     
-    def GetCount(self) -> int:
-        return self.__countable.GetCount()
+    def GetCount(self) -> int: return self.__countable.GetCount()
     
-    def GetFirst(self) -> ICountableLinkedListNode[T]|None:
-        return self.__items.GetFirst()
-    def GetLast(self) -> ICountableLinkedListNode[T]|None:
-        return self.__items.GetLast()
+    def GetFirst(self) -> ICountableLinkedListNode[T]|None: return self.__items.GetFirst()
+    def GetLast(self) -> ICountableLinkedListNode[T]|None: return self.__items.GetLast()
     
-    def AddFirst(self, value: T) -> ICountableLinkedListNode[T]:
-        return self.__items.AddFirst(value)
-    def AddLast(self, value: T) -> ICountableLinkedListNode[T]:
-        return self.__items.AddLast(value)
+    def AddFirst(self, value: T) -> ICountableLinkedListNode[T]: return self.__items.AddFirst(value)
+    def AddLast(self, value: T) -> ICountableLinkedListNode[T]: return self.__items.AddLast(value)
     
-    def TryRemoveFirst(self) -> INullable[T]:
-        return self.__items.TryRemoveFirst()
-    def TryRemoveLast(self) -> INullable[T]:
-        return self.__items.TryRemoveLast()
+    def TryRemoveFirst(self) -> INullable[T]: return self.__items.TryRemoveFirst()
+    def TryRemoveLast(self) -> INullable[T]: return self.__items.TryRemoveLast()
     
-    def Clear(self) -> None:
-        return self.__items.Clear()
+    def Clear(self) -> None: return self.__items.Clear()
     
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self.__items.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()
     
-    def TryGetNodeEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None:
-        return self.__items.TryGetNodeEnumerator()
-    def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None:
-        return self.__items.TryGetResumableNodeEnumerator()
+    def TryGetNodeEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None: return self.__items.TryGetNodeEnumerator()
+    def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None: return self.__items.TryGetResumableNodeEnumerator()
     
-    def AsReversed(self) -> ICountableList[T]:
-        return self.__items.AsReversed()
+    def AsReversed(self) -> ICountableList[T]: return self.__items.AsReversed()
     
-    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        return self.__items.AsNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self.__items.AsNodeEnumerable()
     
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self.__items.AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]: return self.__items.AsReadOnly()
 
-    def AsNodeGenerator(self) -> IIterator[ICountableLinkedListNode[T]]:
-        return self.__items.AsNodeGenerator()
-    def AsGenerator(self) -> IIterator[T]:
-        return self.__items.AsGenerator()
+    def AsNodeGenerator(self) -> IIterator[ICountableLinkedListNode[T]]: return self.__items.AsNodeGenerator()
+    def AsGenerator(self) -> IIterator[T]: return self.__items.AsGenerator()
 @final
 class _ReversedCountableUpdater[T](ValueFunctionUpdater[ICountableList[T]]):
     def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableList[T]]]) -> None:
@@ -2072,14 +1855,12 @@ class _ReversedCountableUpdater[T](ValueFunctionUpdater[ICountableList[T]]):
 
         self.__items: ICountableList[T] = items
     
-    def _GetValue(self) -> ICountableList[T]:
-        return _ReversedCountableList[T](self.__items)
+    def _GetValue(self) -> ICountableList[T]: return _ReversedCountableList[T](self.__items)
 
 @final
 class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     def __init__(self, l: CountableListProvider[T], items: Iterable[T]|None) -> None:
-        def update(func: IFunction[ICountableList[T]]) -> None:
-            self.__reversed = func
+        def update(func: IFunction[ICountableList[T]]) -> None: self.__reversed = func
         
         self.__items: CountableListProvider[T] = l
         self.__count: int = 0
@@ -2104,16 +1885,12 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
 
         return node
     
-    def AsSized(self) -> Sized:
-        return self.__items.AsSized()
+    def AsSized(self) -> Sized: return self.__items.AsSized()
     
-    def GetCount(self) -> int:
-        return self.__count
+    def GetCount(self) -> int: return self.__count
     
-    def Increment(self) -> None:
-        self.__count += 1
-    def Decrement(self) -> None:
-        self.__count -= 1
+    def Increment(self) -> None: self.__count += 1
+    def Decrement(self) -> None: self.__count -= 1
     
     @final
     def _GetPreviousNode(self, node: _CountableListNode[T]) -> _CountableListNode[T]|None:
@@ -2127,8 +1904,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
     
     @final
-    def AsReversed(self) -> ICountableList[T]:
-        return self.__reversed.GetValue()
+    def AsReversed(self) -> ICountableList[T]: return self.__reversed.GetValue()
 
 class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     @final
@@ -2138,22 +1914,16 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
 
             self.__items: CountableList[_T] = l
         
-        def GetInnerItems(self) -> _CountableInnerList[_T]:
-            return self.__items._GetItems()
+        def GetInnerItems(self) -> _CountableInnerList[_T]: return self.__items._GetItems()
         
-        def GetItems(self) -> ICountableList[_T]:
-            return self.__items
+        def GetItems(self) -> ICountableList[_T]: return self.__items
         
-        def Clear(self) -> None:
-            return self.GetItems().Clear()
+        def Clear(self) -> None: return self.GetItems().Clear()
         
-        def AsSized(self) -> Sized:
-            return self.GetItems().AsSized()
+        def AsSized(self) -> Sized: return self.GetItems().AsSized()
         
-        def OnAdded(self, node: ICountableLinkedListNode[_T]) -> None:
-            self.__items._OnAdded(node)
-        def OnRemoved(self, value: _T) -> None:
-            self.__items._OnRemoved(value)
+        def OnAdded(self, node: ICountableLinkedListNode[_T]) -> None: self.__items._OnAdded(node)
+        def OnRemoved(self, value: _T) -> None: self.__items._OnRemoved(value)
     
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__()
@@ -2173,125 +1943,92 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
         return self.__items
     
     @final
-    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]:
-        return self._GetItems().AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableList[T]: return self._GetItems().AsReadOnly()
     
     @final
-    def IsEmpty(self) -> bool:
-        return self._GetItems().IsEmpty()
+    def IsEmpty(self) -> bool: return self._GetItems().IsEmpty()
     
     @final
-    def GetCount(self) -> int:
-        return self._GetItems().GetCount()
+    def GetCount(self) -> int: return self._GetItems().GetCount()
     
     @final
-    def GetFirst(self) -> ICountableLinkedListNode[T]|None:
-        return self._GetItems().GetFirst()
+    def GetFirst(self) -> ICountableLinkedListNode[T]|None: return self._GetItems().GetFirst()
     @final
-    def GetLast(self) -> ICountableLinkedListNode[T]|None:
-        return self._GetItems().GetLast()
+    def GetLast(self) -> ICountableLinkedListNode[T]|None: return self._GetItems().GetLast()
     
     @final
-    def AddFirst(self, value: T) -> ICountableLinkedListNode[T]:
-        return self._GetItems().AddFirst(value)
+    def AddFirst(self, value: T) -> ICountableLinkedListNode[T]: return self._GetItems().AddFirst(value)
     @final
-    def AddLast(self, value: T) -> ICountableLinkedListNode[T]:
-        return self._GetItems().AddLast(value)
+    def AddLast(self, value: T) -> ICountableLinkedListNode[T]: return self._GetItems().AddLast(value)
     
     @final
-    def TryRemoveFirst(self) -> INullable[T]:
-        return self._GetItems().TryRemoveFirst()
+    def TryRemoveFirst(self) -> INullable[T]: return self._GetItems().TryRemoveFirst()
     @final
-    def TryRemoveLast(self) -> INullable[T]:
-        return self._GetItems().TryRemoveLast()
+    def TryRemoveLast(self) -> INullable[T]: return self._GetItems().TryRemoveLast()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        return self._GetItems().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetItems().TryGetEnumerator()
     
     @final
-    def TryGetNodeEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None:
-        return self._GetItems().TryGetNodeEnumerator()
+    def TryGetNodeEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None: return self._GetItems().TryGetNodeEnumerator()
     @final
-    def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None:
-        return self._GetItems().TryGetResumableNodeEnumerator()
+    def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None: return self._GetItems().TryGetResumableNodeEnumerator()
     
     @final
-    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]:
-        return self._GetItems().AsNodeEnumerable()
+    def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self._GetItems().AsNodeEnumerable()
     
     @final
-    def AsNodeGenerator(self) -> IIterator[ICountableLinkedListNode[T]]:
-        return self._GetItems().AsNodeGenerator()
+    def AsNodeGenerator(self) -> IIterator[ICountableLinkedListNode[T]]: return self._GetItems().AsNodeGenerator()
     @final
-    def AsGenerator(self) -> IIterator[T]:
-        return self._GetItems().AsGenerator()
+    def AsGenerator(self) -> IIterator[T]: return self._GetItems().AsGenerator()
     
     @final
-    def AsReversed(self) -> ICountableList[T]:
-        return self._GetItems().AsReversed()
+    def AsReversed(self) -> ICountableList[T]: return self._GetItems().AsReversed()
     
     @final
-    def Clear(self) -> None:
-        self._GetItems().Clear()
+    def Clear(self) -> None: self._GetItems().Clear()
 
 class DoublyLinkedNodeEnumerator[T](TwoWayNodeEnumeratorBase[IDoublyLinkedNode[T]]):
-    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node, order)
+    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[IDoublyLinkedNode[T]]:
         match order:
-            case EnumerationOrder.FIFO:
-                return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO:
-                return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _:
-                raise ValueError()
+            case _: raise ValueError()
 class CountableLinkedListNodeEnumerator[T](TwoWayNodeEnumeratorBase[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node, order)
+    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ICountableLinkedListNode[T]]:
         match order:
-            case EnumerationOrder.FIFO:
-                return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO:
-                return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _:
-                raise ValueError()
+            case _: raise ValueError()
 
 class ResumableDoublyLinkedNodeEnumerator[T](TwoWayResumableNodeEnumerator[IDoublyLinkedNode[T]]):
-    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node, order)
+    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[IDoublyLinkedNode[T]]:
         match order:
-            case EnumerationOrder.FIFO:
-                return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO:
-                return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _:
-                raise ValueError()
+            case _: raise ValueError()
 class ResumableCountableLinkedListNodeEnumerator[T](TwoWayResumableNodeEnumerator[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node, order)
+    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ICountableLinkedListNode[T]]:
         match order:
-            case EnumerationOrder.FIFO:
-                return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO:
-                return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
+            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _:
-                raise ValueError()
+            case _: raise ValueError()
 
 def CreateList[T](items: Iterable[T]|None = None) -> List[T]:
     return List[T](items)
