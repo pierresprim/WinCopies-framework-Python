@@ -5,20 +5,18 @@ from typing import final
 from WinCopies import IInterface
 
 class ITableNameFormater(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def FormatTableName(self, name: str) -> str:
-        pass
+        ...
 
 class IQueryBase[T](ITableNameFormater):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def GetQuery(self) -> T|None:
-        pass
+        ...
 
 class JoinType(Enum):
     Null = 0
@@ -27,12 +25,9 @@ class JoinType(Enum):
 
     @final
     def __str__(self) -> str:
-        def getName() -> str:
-            return self.name.upper()
+        def getName() -> str: return self.name.upper()
         
         match self:
-            case JoinType.Inner | JoinType.Outer:
-                return getName()
+            case JoinType.Inner | JoinType.Outer: return getName()
             
-            case _:
-                return ''
+            case _: return ''

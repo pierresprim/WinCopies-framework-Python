@@ -27,14 +27,15 @@ from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
 class QueryExceptionMapper(QueryExceptionMapperBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
         return QueryErrorKinds.ParameterLimitExceeded if isinstance(exception, sqlite3.OperationalError) and "too many sql variables" in str(exception).lower() else QueryErrorKinds.Null
 
 class QueryResultBase(Abstract):
     def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
+        super().__init__()
+        
         self.__cursor: sqlite3.Cursor = self.__ExecuteQuery(connection, query)
     
     @final
@@ -53,12 +54,10 @@ class QueryResultBase(Abstract):
         self._GetCursor().close()
 
 class __Query(QueryExceptionMapper, ITableNameFormater):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def FormatTableName(self, name: str) -> str:
-        return String.DoubleQuoteSurround(name)
+    def FormatTableName(self, name: str) -> str: return String.DoubleQuoteSurround(name)
 
 @final
 class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
@@ -69,8 +68,7 @@ class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelection
 
             self.__enumeratorUpdater: Action = enumeratorUpdater
         
-        def _OnEnded(self) -> None:
-            self.__enumeratorUpdater()
+        def _OnEnded(self) -> None: self.__enumeratorUpdater()
     
     @final
     class _FunctionUpdater(ValueFunctionUpdater[IEnumerator[Sequence[object]]|None]):
@@ -80,21 +78,17 @@ class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelection
             self.__cursor: sqlite3.Cursor = cursor
             self.__enumeratorUpdater: Action = enumeratorUpdater
         
-        def _GetValue(self) -> IEnumerator[Sequence[object]]:
-            return _ExecutionResult._Enumerator(self.__cursor, self.__enumeratorUpdater)
+        def _GetValue(self) -> IEnumerator[Sequence[object]]: return _ExecutionResult._Enumerator(self.__cursor, self.__enumeratorUpdater)
     
     def __init__(self, connection: sqlite3.Connection, query: QueryResult) -> None:
+        def updateFunction(func: IFunction[IEnumerator[Sequence[object]]|None]) -> None: self.__function = func
+        def resetFunction() -> None: self.__function = GetDefaultFunction()
+        
         super().__init__(connection, query)
-
-        def updateFunction(func: IFunction[IEnumerator[Sequence[object]]|None]) -> None:
-            self.__function = func
-        def resetFunction() -> None:
-            self.__function = GetDefaultFunction()
 
         self.__function = _ExecutionResult._FunctionUpdater(self._GetCursor(), updateFunction, resetFunction)
     
-    def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None:
-        return self.__function.GetValue()
+    def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None: return self.__function.GetValue()
 @final
 class _SelectionQuery(SelectionQueryBase, __Query):
     def __init__(self, connection: sqlite3.Connection, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
@@ -112,19 +106,15 @@ class _SelectionQuery(SelectionQueryBase, __Query):
 
 @final
 class _InsertionQueryExecutionResult(QueryResultBase, IInsertionQueryExecutionResult):
-    def __init__(self, cursor: sqlite3.Connection, query: QueryResult) -> None:
-        super().__init__(cursor, query)
+    def __init__(self, cursor: sqlite3.Connection, query: QueryResult) -> None: super().__init__(cursor, query)
     
-    def GetLastRowId(self) -> int:
-        return self._GetCursor().lastrowid # type: ignore
+    def GetLastRowId(self) -> int: return self._GetCursor().lastrowid # type: ignore
 
 class __InsertionQuery(__Query, InsertionQueryStatementProvider):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def _GetStatement(self, ignoreExisting: bool = False) -> str:
-        return InsertionQueryBase.GetStandardStatement(ignoreExisting)
+    def _GetStatement(self, ignoreExisting: bool = False) -> str: return InsertionQueryBase.GetStandardStatement(ignoreExisting)
 
 @final
 class _InsertionQuery(InsertionQueryBase, __InsertionQuery):
@@ -170,13 +160,9 @@ class Factory(QueryFactoryBase):
 
         self.__connection: sqlite3.Connection = connection
     
-    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery:
-        return _SelectionQuery(self.__connection, tables, columns, conditions)
+    def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery: return _SelectionQuery(self.__connection, tables, columns, conditions)
     
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
-        return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
-    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
-        return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery: return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
+    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery: return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
     
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
-        return _UpdateQuery(self.__connection, tableName, values, conditions)
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery: return _UpdateQuery(self.__connection, tableName, values, conditions)

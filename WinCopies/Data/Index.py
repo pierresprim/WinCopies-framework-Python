@@ -35,58 +35,50 @@ class IndexKind(Enum):
     ForeignKey = 4
 
 class IIndex(IStringable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetType(self) -> IndexType:
-        pass
+        ...
     
     @abstractmethod
     def GetName(self) -> str:
-        pass
+        ...
 
 class ISingleColumnIndex(IIndex):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetColumn(self) -> str:
-        pass
+        ...
 class IMultiColumnIndex(IIndex):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetColumns(self) -> IHashableTuple[IString]:
-        pass
+        ...
 
 class IKey(IIndex):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetType(self) -> IndexType:
-        return IndexType.Key
+    def GetType(self) -> IndexType: return IndexType.Key
     
     @abstractmethod
     def GetKeyType(self) -> KeyType:
-        pass
+        ...
 
 class ISingleColumnKey(IKey, ISingleColumnIndex):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IMultiColumnKey(IKey, IMultiColumnIndex):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IForeignKey(ISingleColumnKey):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetForeignKey(self) -> DualResult[str, str]:
-        pass
+        ...
 
 class Index(Abstract, IIndex):
     def __init__(self, name: str) -> None:
@@ -95,8 +87,7 @@ class Index(Abstract, IIndex):
         self.__name: str = name
     
     @final
-    def GetName(self) -> str:
-        return self.__name
+    def GetName(self) -> str: return self.__name
 
 class SingleColumnIndex(Index, ISingleColumnIndex):
     def __init__(self, name: str, columns: str) -> None:
@@ -105,8 +96,7 @@ class SingleColumnIndex(Index, ISingleColumnIndex):
         self.__columns: str = columns
     
     @final
-    def GetColumn(self) -> str:
-        return self.__columns
+    def GetColumn(self) -> str: return self.__columns
 class MultiColumnIndex(Index, IMultiColumnIndex):
     def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name)
@@ -114,31 +104,24 @@ class MultiColumnIndex(Index, IMultiColumnIndex):
         self.__columns: IHashableTuple[IString] = columns if isinstance(columns, IHashableTuple) else HashableTuple[IString](columns)
     
     @final
-    def GetColumns(self) -> IHashableTuple[IString]:
-        return self.__columns
+    def GetColumns(self) -> IHashableTuple[IString]: return self.__columns
 
 class NormalIndex(SingleColumnIndex):
-    def __init__(self, name: str, column: str) -> None:
-        super().__init__(name, column)
+    def __init__(self, name: str, column: str) -> None: super().__init__(name, column)
 
     @final
-    def GetType(self) -> IndexType:
-        return IndexType.Normal
+    def GetType(self) -> IndexType: return IndexType.Normal
 class UnicityIndex(MultiColumnIndex):
-    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
-        super().__init__(name, columns)
+    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None: super().__init__(name, columns)
     
     @final
-    def GetType(self) -> IndexType:
-        return IndexType.Unique
+    def GetType(self) -> IndexType: return IndexType.Unique
 
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
-    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
-        super().__init__(name, columns)
+    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None: super().__init__(name, columns)
     
     @final
-    def GetKeyType(self) -> KeyType:
-        return KeyType.Primary
+    def GetKeyType(self) -> KeyType: return KeyType.Primary
 class ForeignKey(SingleColumnIndex, IForeignKey):
     def __init__(self, name: str, column: str, foreignKey: DualResult[str, str]) -> None:
         super().__init__(name, column)
@@ -146,53 +129,47 @@ class ForeignKey(SingleColumnIndex, IForeignKey):
         self.__foreignKey: DualResult[str, str] = foreignKey
     
     @final
-    def GetKeyType(self) -> KeyType:
-        return KeyType.Foreign
+    def GetKeyType(self) -> KeyType: return KeyType.Foreign
     
     @final
-    def GetForeignKey(self) -> DualResult[str, str]:
-        return self.__foreignKey
+    def GetForeignKey(self) -> DualResult[str, str]: return self.__foreignKey
 
 class IIndexList[T: IIndex](IReadOnlyCollection[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Append(self, index: T) -> None:
-        pass
+        ...
 
 class IIndexCollection(IEnumerable[IIndex]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetPrimaryKey(self) -> IMultiColumnKey:
-        pass
+        ...
     @abstractmethod
     def GetForeignKeys(self) -> IIndexList[IForeignKey]:
-        pass
+        ...
     @abstractmethod
     def GetNormalIndices(self) -> IIndexList[ISingleColumnIndex]:
-        pass
+        ...
     @abstractmethod
     def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]:
-        pass
+        ...
 class IndexCollection(IterableBase[IIndex], IIndexCollection):
     @final
     class __Indices(Abstract):
         class __IByName(IHashable[IIndex]):
-            def __init__(self) -> None:
-                super().__init__()
+            def __init__(self) -> None: super().__init__()
             
             @abstractmethod
             def GetName(self) -> str:
-                pass
-            
-            def Hash(self) -> int:
-                return hash(self.GetName())
+                ...
             
             def Equals(self, item: IIndex|object) -> bool:
                 return isinstance(item, IIndex) and self.GetName() == item.GetName()
+            def Hash(self) -> int:
+                return hash(self.GetName())
         @final
         class __ByName(Abstract, __IByName):
             def __init__(self, index: IIndex) -> None:
@@ -200,8 +177,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
 
                 self.__index: IIndex = index
             
-            def GetName(self) -> str:
-                return self.__index.GetName()
+            def GetName(self) -> str: return self.__index.GetName()
         @final
         class __ByField(Abstract, __IByName):
             def __init__(self, index: ISingleColumnIndex) -> None:
@@ -209,8 +185,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
 
                 self.__index: ISingleColumnIndex = index
             
-            def GetName(self) -> str:
-                return self.__index.GetColumn()
+            def GetName(self) -> str: return self.__index.GetColumn()
         @final
         class __ByFields(Abstract, IHashable[IMultiColumnIndex]):
             def __init__(self, index: IMultiColumnIndex) -> None:
@@ -218,14 +193,10 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
 
                 self.__index: IMultiColumnIndex = index
             
-            def GetColumns(self) -> IHashableEnumerable[IString]:
-                return self.__index.GetColumns()
+            def GetColumns(self) -> IHashableEnumerable[IString]: return self.__index.GetColumns()
             
-            def Hash(self) -> int:
-                return self.GetColumns().Hash()
-            
-            def Equals(self, item: IMultiColumnIndex|object) -> bool:
-                return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
+            def Equals(self, item: IMultiColumnIndex|object) -> bool: return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
+            def Hash(self) -> int: return self.GetColumns().Hash()
         
         def __init__(self) -> None:
             super().__init__()
@@ -254,26 +225,21 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         
         @abstractmethod
         def _Validate(self, index: T) -> bool:
-            pass
+            ...
         
         @final
-        def IsEmpty(self) -> bool:
-            return self.__indices.IsEmpty()
+        def IsEmpty(self) -> bool: return self.__indices.IsEmpty()
         
         @final
-        def GetCount(self) -> int:
-            return self.__indices.GetCount()
+        def GetCount(self) -> int: return self.__indices.GetCount()
         
         @final
         def Append(self, index: T) -> None:
-            if self._Validate(index):
-                self._GetIndices().Push(index)
-            
+            if self._Validate(index): self._GetIndices().Push(index)
             else: raise KeyError()
         
         @final
-        def TryGetEnumerator(self) -> IEnumerator[T]|None:
-            return self.__indices.TryGetEnumerator()
+        def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__indices.TryGetEnumerator()
     
     @final
     class __SingleColumnIndexCollection[T: ISingleColumnIndex](_Collection[T]):
@@ -287,8 +253,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             return self.__collection.TryAddSingleColumnIndex(index)
         
         @final
-        def Contains(self, value: T|object) -> bool:
-            return isinstance(value, ISingleColumnIndex) and value in self._GetIndices().AsIterable() # type: ignore
+        def Contains(self, value: T|object) -> bool: return isinstance(value, ISingleColumnIndex) and value in self._GetIndices().AsIterable() # type: ignore
     @final
     class __MultiColumnIndexCollection(_Collection[IMultiColumnIndex]):
         def __init__(self, collection: IndexCollection.__Indices) -> None:
@@ -301,8 +266,7 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
             return self.__collection.TryAddMultiColumnIndex(index)
         
         @final
-        def Contains(self, value: IMultiColumnIndex|object) -> bool:
-            return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
+        def Contains(self, value: IMultiColumnIndex|object) -> bool: return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
     
     def __init__(self, primaryKey: IMultiColumnKey) -> None:
         super().__init__()
@@ -316,18 +280,13 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
         self.__primaryKey: IMultiColumnKey = primaryKey
     
     @final
-    def GetPrimaryKey(self) -> IMultiColumnKey:
-        return self.__primaryKey
+    def GetPrimaryKey(self) -> IMultiColumnKey: return self.__primaryKey
     @final
-    def GetForeignKeys(self) -> IIndexList[IForeignKey]:
-        return self.__foreignKeys
+    def GetForeignKeys(self) -> IIndexList[IForeignKey]: return self.__foreignKeys
     @final
-    def GetNormalIndices(self) -> IIndexList[ISingleColumnIndex]:
-        return self.__normalIndices
+    def GetNormalIndices(self) -> IIndexList[ISingleColumnIndex]: return self.__normalIndices
     @final
-    def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]:
-        return self.__unicityIndices
+    def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]: return self.__unicityIndices
     
     @final
-    def _TryGetIterator(self) -> Iterator[IIndex]|None:
-        return PrependItem(AppendIterableValues(self.GetUnicityIndices().AsIterable(), self.GetForeignKeys().AsIterable(), self.GetNormalIndices().AsIterable()), self.GetPrimaryKey())
+    def _TryGetIterator(self) -> Iterator[IIndex]|None: return PrependItem(AppendIterableValues(self.GetUnicityIndices().AsIterable(), self.GetForeignKeys().AsIterable(), self.GetNormalIndices().AsIterable()), self.GetPrimaryKey())

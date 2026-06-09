@@ -65,15 +65,12 @@ class _Connection(Abstract):
 class _Table(Table):
     @final
     class __Connection(Abstract, IDisposable):
-        def __init__(self, connection: _Connection) -> None:
-            self.__connection: _Connection|None = connection
+        def __init__(self, connection: _Connection) -> None: self.__connection: _Connection|None = connection
         
         def __GetConnection(self) -> _Connection:
             connection: _Connection|None = self.__connection
 
-            if connection is None:
-                raise GetDisposedError()
-            
+            if connection is None: raise GetDisposedError()
             return connection
         
         def GetConnection(self) -> IConnection:
@@ -85,14 +82,10 @@ class _Table(Table):
         def Execute(self, sql: str, values: Sequence[object]|None = None) -> None:
             connection: sqlite3.Connection = self.__GetConnection().GetInnerConnection()
 
-            if values is None:
-                connection.execute(sql)
-            
-            else:
-                connection.execute(sql, values)
+            if values is None: connection.execute(sql)
+            else: connection.execute(sql, values)
         
-        def Dispose(self) -> None:
-            self.__connection = None
+        def Dispose(self) -> None: self.__connection = None
     
     class FieldAttributes(Flag):
         Null = 0
@@ -134,45 +127,32 @@ class _Table(Table):
     def GetFields(self) -> IArray[IField]:
         def getFields() -> Generator[IField]:
             def getFieldType(fieldType: str) -> DualValueNullableInfo[FieldType, Enum]:
-                def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualValueNullableInfo[FieldType, Enum]:
-                    return CreateDualValueNullableInfo(fieldType, fieldMode)
+                def getResult(fieldType: FieldType, fieldMode: Enum|None) -> DualValueNullableInfo[FieldType, Enum]: return CreateDualValueNullableInfo(fieldType, fieldMode)
                 
                 match fieldType.upper():
-                    case "INTEGER" | "INT":
-                        return getResult(FieldType.Integer, IntegerMode.Long)
+                    case "INTEGER" | "INT": return getResult(FieldType.Integer, IntegerMode.Long)
+                    case "REAL" | "FLOAT" | "DOUBLE": return getResult(FieldType.Real, RealMode.Double)
+                    case "TEXT" | "VAR" | "VARCHAR": return getResult(FieldType.Text, TextMode.Text)
                     
-                    case "REAL" | "FLOAT" | "DOUBLE":
-                        return getResult(FieldType.Real, RealMode.Double)
+                    case '': return getResult(FieldType.Null, None)
                     
-                    case "TEXT" | "VAR" | "VARCHAR":
-                        return getResult(FieldType.Text, TextMode.Text)
-                    
-                    case '':
-                        return getResult(FieldType.Null, None)
-                    
-                    case _:
-                        raise NotImplementedError(f"The '{fieldType}' field type is not supported.")
+                    case _: raise NotImplementedError(f"The '{fieldType}' field type is not supported.")
             
             def getAttributes(attributes: _Table.FieldAttributes) -> FieldAttributes:
-                if attributes == _Table.FieldAttributes.Null:
-                    return FieldAttributes.Null
+                if attributes == _Table.FieldAttributes.Null: return FieldAttributes.Null
                 
-                def check(value: _Table.FieldAttributes) -> bool:
-                    return HasFlag(attributes, value)
+                def check(value: _Table.FieldAttributes) -> bool: return HasFlag(attributes, value)
                 
                 result: FieldAttributes = FieldAttributes.Null
                 
                 if check(_Table.FieldAttributes.PrimaryKey):
                     result = FieldAttributes.PrimaryKey
                     
-                    if check(_Table.FieldAttributes.Integer) and check(_Table.FieldAttributes.NoDefault):
-                        result |= FieldAttributes.AutoIncrement
+                    if check(_Table.FieldAttributes.Integer) and check(_Table.FieldAttributes.NoDefault): result |= FieldAttributes.AutoIncrement
                 
-                if check(_Table.FieldAttributes.Unique):
-                    result |= FieldAttributes.Unique
+                if check(_Table.FieldAttributes.Unique): result |= FieldAttributes.Unique
                 
-                if check(_Table.FieldAttributes.Nullable):
-                    result |= FieldAttributes.Nullable
+                if check(_Table.FieldAttributes.Nullable): result |= FieldAttributes.Nullable
                 
                 return result
             
@@ -217,8 +197,7 @@ class _Table(Table):
 
             columns: ISelectionQueryExecutionResult|None = executeQuery()
 
-            if columns is None:
-                return
+            if columns is None: return
             
             fieldFactory: IFieldFactory = self.__factoryProvider.GetFieldFactory()
             attributes: _Table.FieldAttributes|None = None
@@ -229,21 +208,16 @@ class _Table(Table):
 
                 attributes = _Table.FieldAttributes.Null
 
-                if result.GetKey() == FieldType.Integer:
-                    attributes |= _Table.FieldAttributes.Integer
-                if checkAttributeValue(row, 2):
-                    attributes |= _Table.FieldAttributes.PrimaryKey
-                if checkAttributeValue(row, 3):
-                    attributes |= _Table.FieldAttributes.NoDefault
-                if checkAttributeValue(row, 4):
-                    attributes |= _Table.FieldAttributes.Nullable
-                if checkAttributeValue(row, 5):
-                    attributes |= _Table.FieldAttributes.Unique
+                if result.GetKey() == FieldType.Integer: attributes |= _Table.FieldAttributes.Integer
+                
+                if checkAttributeValue(row, 2): attributes |= _Table.FieldAttributes.PrimaryKey
+                if checkAttributeValue(row, 3): attributes |= _Table.FieldAttributes.NoDefault
+                if checkAttributeValue(row, 4): attributes |= _Table.FieldAttributes.Nullable
+                if checkAttributeValue(row, 5): attributes |= _Table.FieldAttributes.Unique
 
                 yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
-            
-        if self.__fields is None:
-            self.__fields = self.__GetArray(getFields)
+        
+        if self.__fields is None: self.__fields = self.__GetArray(getFields)
         
         return self.__fields
 
@@ -253,29 +227,23 @@ class _Table(Table):
             def getIndices() -> Generator[IIndex]:
                 func: Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]|None = None
 
-                def checkIndexKind(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str) -> IIndex|None:
-                    return factory.GetNormalIndex(name, columnName) if kind == IndexKind.Normal else None
+                def checkIndexKind(factory: IIndexFactory, name: str, kind: IndexKind, columnName: str) -> IIndex|None: return factory.GetNormalIndex(name, columnName) if kind == IndexKind.Normal else None
                 
-                def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]:
-                    return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
+                def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]: return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
                 
                 def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: IList[str]) -> IIndex:
                     match kind:
-                        case IndexKind.Unique:
-                            return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
-                        case IndexKind.PrimaryKey:
-                            return factory.GetPrimaryKey(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
-                        case _:
-                            raise ValueError("The index kind is not valid.")
+                        case IndexKind.Unique: return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
+                        case IndexKind.PrimaryKey: return factory.GetPrimaryKey(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
+                        
+                        case _: raise ValueError("The index kind is not valid.")
                 
                 def _parse(factory: IIndexFactory, currentName: str, name: str, kind: IndexKind, columnName: str, columns: IList[str]) -> Generator[IIndex]|None:
                     nonlocal func
 
-                    def push() -> None:
-                        columns.Push(columnName)
+                    def push() -> None: columns.Push(columnName)
                     
-                    def _getIndex() -> IIndex:
-                        return getIndex(factory, currentName, kind, columns)
+                    def _getIndex() -> IIndex: return getIndex(factory, currentName, kind, columns)
                     
                     def getGenerator() -> Generator[IIndex]:
                         index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
@@ -306,8 +274,7 @@ class _Table(Table):
 
                     nonlocal func
 
-                    def getGenerator(index: IIndex) -> Generator[IIndex]:
-                        yield index
+                    def getGenerator(index: IIndex) -> Generator[IIndex]: yield index
 
                     index: IIndex|None = checkIndexKind(factory, name, kind, columnName)
 
@@ -361,8 +328,7 @@ class _Table(Table):
 
                 indices: ISelectionQueryExecutionResult|None = executeQuery()
 
-                if indices is None:
-                    return
+                if indices is None: return
                 
                 factory: IIndexFactory = self.__factoryProvider.GetIndexFactory()
                 oldIndexName: str = ''
@@ -373,20 +339,16 @@ class _Table(Table):
                 func = getParser()
 
                 for row in indices.AsIterable():
-                    if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None:
-                        oldIndexName = newIndexName
+                    if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None: oldIndexName = newIndexName
 
                     else:
-                        for index in result:
-                            yield index
+                        for index in result: yield index
                 
-                if columns.HasItems():
-                    yield getIndex(factory, newIndexName, indexKind, columns)
+                if columns.HasItems(): yield getIndex(factory, newIndexName, indexKind, columns)
             
             def getForeignKeys() -> Generator[IIndex]:
                 def executeQuery() -> ISelectionQueryExecutionResult|None:
-                    def getColumn(name: str) -> TableColumn:
-                        return TableColumn("fk", name)
+                    def getColumn(name: str) -> TableColumn: return TableColumn("fk", name)
                     
                     query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
@@ -408,26 +370,23 @@ class _Table(Table):
 
                 foreignKeys: ISelectionQueryExecutionResult|None = executeQuery()
 
-                if foreignKeys is None:
-                    return
+                if foreignKeys is None: return
                 
                 factory: IIndexFactory = self.__factoryProvider.GetIndexFactory()
 
-                for row in foreignKeys.AsIterable():
-                    yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
+                for row in foreignKeys.AsIterable(): yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
 
             return Append(getIndices(), getForeignKeys())
 
-        if self.__indices is None:
-            self.__indices = self.__GetArray(getIndices)
+        if self.__indices is None: self.__indices = self.__GetArray(getIndices)
         
         return self.__indices
     
-    def Remove(self) -> None:
-        self.__connection.Execute(f"DROP TABLE {self.GetName()}")
+    def Remove(self) -> None: self.__connection.Execute(f"DROP TABLE {self.GetName()}")
     
     def Dispose(self) -> None:
         self.__fields = None
+        
         self.__connection.Dispose()
 
 @final
@@ -442,11 +401,9 @@ class Connection(ConnectionBase, IDisposableInfo):
         def __GetLimit(self, value: int) -> int:
             return self.__connection.getlimit(value)
 
-        def GetMaxParameterCount(self) -> DualValueBool[int]|None:
-            return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
 
-        def GetMaxQuerySize(self) -> int|None:
-            return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+        def GetMaxQuerySize(self) -> int|None: return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
     
     @final
     class __FactoryProvider(Abstract, IFactoryProvider):
@@ -455,13 +412,10 @@ class Connection(ConnectionBase, IDisposableInfo):
 
             self.__connection: Connection = connection
         
-        def GetFieldFactory(self) -> IFieldFactory:
-            return FieldFactory(self.__connection)
-        def GetQueryFactory(self) -> IQueryFactory:
-            return Factory(self.__connection.__GetInnerConnection())
+        def GetFieldFactory(self) -> IFieldFactory: return FieldFactory(self.__connection)
+        def GetQueryFactory(self) -> IQueryFactory: return Factory(self.__connection.__GetInnerConnection())
         def GetIndexFactory(self) -> IIndexFactory:
-            if self.__connection.IsDisposed():
-                raise GetDisposedError()
+            if self.__connection.IsDisposed(): raise GetDisposedError()
             
             return IndexFactory(self.__connection)
     
@@ -474,8 +428,7 @@ class Connection(ConnectionBase, IDisposableInfo):
     def __GetConnection(self) -> _Connection:
         connection: _Connection|None = self.__connection
 
-        if connection is None:
-            raise GetDisposedError()
+        if connection is None: raise GetDisposedError()
         
         return connection
     def __GetInnerConnection(self) -> sqlite3.Connection:
@@ -517,11 +470,9 @@ class Connection(ConnectionBase, IDisposableInfo):
             MakeConjunctionSet(
                 CreateDualResult(Column("type"), CreateFieldParameterFromValue(Operator.Equals, "table")))).Execute()
 
-        if queryExecutionResult is None:
-            return
+        if queryExecutionResult is None: return
 
-        for row in queryExecutionResult.AsIterable():
-            yield str(row[0])
+        for row in queryExecutionResult.AsIterable(): yield str(row[0])
     
     @staticmethod
     def __EnsureFields(fields: Iterable[IField]) -> None:
@@ -547,8 +498,7 @@ class Connection(ConnectionBase, IDisposableInfo):
     def Commit(self) -> bool:
         connection: _Connection|None = self.__connection
 
-        if connection is None:
-            return False
+        if connection is None: return False
         
         connection.GetInnerConnection().commit()
 
@@ -557,11 +507,10 @@ class Connection(ConnectionBase, IDisposableInfo):
     def _CloseOverride(self) -> None:
         connection: _Connection|None = self.__connection
 
-        if connection is None:
-            return
+        if connection is None: return
         
         connection.GetInnerConnection().close()
+        
         self.__connection = None
     
-    def IsDisposed(self) -> bool:
-        return self.__connection is None
+    def IsDisposed(self) -> bool: return self.__connection is None

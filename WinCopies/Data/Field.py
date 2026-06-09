@@ -34,28 +34,26 @@ class FieldAttributes(Flag):
     Nullable = auto()
 
 class IField(IStringable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetName(self) -> str:
-        pass
+        ...
     
     @abstractmethod
     def GetType(self) -> FieldType:
-        pass
+        ...
 
     @abstractmethod
     def GetAttributes(self) -> FieldAttributes:
-        pass
+        ...
 
 class IModularField[T: Enum](IField):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetMode(self) -> T:
-        pass
+        ...
 
 class Field(Abstract, IField):
     def __init__(self, name: str, attribute: FieldAttributes) -> None:
@@ -65,12 +63,10 @@ class Field(Abstract, IField):
         self.__attribute: FieldAttributes = attribute
     
     @final
-    def GetName(self) -> str:
-        return self.__name
+    def GetName(self) -> str: return self.__name
     
     @final
-    def GetAttributes(self) -> FieldAttributes:
-        return self.__attribute
+    def GetAttributes(self) -> FieldAttributes: return self.__attribute
 
 class ModularField[T: Enum](Field):
     def __init__(self, name: str, attribute: FieldAttributes, mode: T) -> None:
@@ -79,45 +75,34 @@ class ModularField[T: Enum](Field):
         self.__mode: T = mode
     
     @final
-    def GetMode(self) -> T:
-        return self.__mode
+    def GetMode(self) -> T: return self.__mode
 
 class GenericField(Field):
-    def __init__(self, name: str, attribute: FieldAttributes) -> None:
-        super().__init__(name, attribute)
+    def __init__(self, name: str, attribute: FieldAttributes) -> None: super().__init__(name, attribute)
     
     @final
-    def GetType(self) -> FieldType:
-        return FieldType.Null
+    def GetType(self) -> FieldType: return FieldType.Null
 
 class BooleanField(Field):
-    def __init__(self, name: str, attribute: FieldAttributes) -> None:
-        super().__init__(name, attribute)
+    def __init__(self, name: str, attribute: FieldAttributes) -> None: super().__init__(name, attribute)
     
     @final
-    def GetType(self) -> FieldType:
-        return FieldType.Boolean
+    def GetType(self) -> FieldType: return FieldType.Boolean
 
 class IntegerField(ModularField[IntegerMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> None:
-        super().__init__(name, attribute, mode)
+    def __init__(self, name: str, attribute: FieldAttributes, mode: IntegerMode) -> None: super().__init__(name, attribute, mode)
     
     @final
-    def GetType(self) -> FieldType:
-        return FieldType.Integer
+    def GetType(self) -> FieldType: return FieldType.Integer
 
 class RealField(ModularField[RealMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode) -> None:
-        super().__init__(name, attribute, mode)
+    def __init__(self, name: str, attribute: FieldAttributes, mode: RealMode) -> None: super().__init__(name, attribute, mode)
     
     @final
-    def GetType(self) -> FieldType:
-        return FieldType.Real
+    def GetType(self) -> FieldType: return FieldType.Real
 
 class TextField(ModularField[TextMode]):
-    def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode) -> None:
-        super().__init__(name, attribute, mode)
+    def __init__(self, name: str, attribute: FieldAttributes, mode: TextMode) -> None: super().__init__(name, attribute, mode)
 
     @final
-    def GetType(self) -> FieldType:
-        return FieldType.Text
+    def GetType(self) -> FieldType: return FieldType.Text

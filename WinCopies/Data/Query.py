@@ -36,46 +36,40 @@ from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, IBranchSet, IJoin, TableParameterSet
 
 class IQueryLimits(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetMaxParameterCount(self) -> DualValueBool[int]|None:
-        pass
+        ...
 
     @abstractmethod
     def GetMaxQuerySize(self) -> int|None:
-        pass
+        ...
 class IMutableQueryLimits(IQueryLimits):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
-        pass
+        ...
 
 class IQueryExecutionResult(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetRowCount(self) -> int:
-        pass
+        ...
 
 class ISelectionQueryExecutionResult(IEnumerable[Sequence[object]], IQueryExecutionResult):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IInsertionQueryExecutionResult(IQueryExecutionResult):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetLastRowId(self) -> int:
-        pass
+        ...
 
 class IQuery[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](IQueryBase[TQueryResult]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @overload
     def Execute(self, guards: None = None) -> TQueryExecutionResult:
@@ -86,41 +80,37 @@ class IQuery[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](IQ
 
     @abstractmethod
     def Execute(self, guards: QueryErrorKinds|None = None) -> TQueryExecutionResult|QueryErrorKinds:
-        pass
+        ...
 
 class QueryProvider[T](Abstract, IQueryBase[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _Validate(self) -> str|None:
-        pass
+        ...
 class QueryExceptionMapper(Abstract):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
-        pass
+        ...
 class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](QueryProvider[TQueryResult], QueryExceptionMapper, IQuery[TQueryResult, TQueryExecutionResult]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetQueryOverride(self) -> TQueryResult:
-        pass
+        ...
 
     def GetQuery(self) -> TQueryResult:
         result: str|None = self._Validate()
         
-        if result is None:
-            return self._GetQueryOverride()
+        if result is None: return self._GetQueryOverride()
         
         raise InvalidOperationError(result)
     
     @abstractmethod
     def _Execute(self) -> TQueryExecutionResult:
-        pass
+        ...
     
     @overload
     def Execute(self, guards: None = None) -> TQueryExecutionResult:
@@ -131,141 +121,121 @@ class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None]
     
     @final
     def Execute(self, guards: QueryErrorKinds|None = None) -> TQueryExecutionResult|QueryErrorKinds:
-        def check(guards: QueryErrorKinds) -> bool:
-            return guards == QueryErrorKinds.Null
+        def check(guards: QueryErrorKinds) -> bool: return guards == QueryErrorKinds.Null
 
-        try:
-            return self._Execute()
+        try: return self._Execute()
         
         except Exception as e:
-            if guards is None or check(guards):
-                raise
+            if guards is None or check(guards): raise
 
             _guards: QueryErrorKinds = self._TryMapException(e)
 
-            if check(_guards) or not HasFlag(guards, _guards):
-                raise
+            if check(_guards) or not HasFlag(guards, _guards): raise
             
             return _guards
 class Query[T: IQueryExecutionResult](QueryBase[QueryResult, T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetQuery(self) -> QueryResult:
-        return super().GetQuery()
+    def GetQuery(self) -> QueryResult: return super().GetQuery()
 
 class INullableQueryBase(IQueryBase[QueryResult|None]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class INullableQuery[T: IQueryExecutionResult](INullableQueryBase, IQuery[QueryResult|None, T|None]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class NullableQueryProvider(QueryProvider[QueryResult|None]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _Prevalidate(self) -> bool:
-        pass
+        ...
 class NullableQuery[T: IQueryExecutionResult](NullableQueryProvider, QueryBase[QueryResult|None, T|None], INullableQuery[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def GetQuery(self) -> QueryResult|None:
-        return super().GetQuery() if self._Prevalidate() else None
+    def GetQuery(self) -> QueryResult|None: return super().GetQuery() if self._Prevalidate() else None
 
 class IConditionalQuery(IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetConditions(self) -> IConditionParameterSet|None:
-        pass
+        ...
 
 class ISelectionQueryBase(IConditionalQuery):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetTables(self) -> ITableParameterSet:
-        pass
+        ...
     
     @abstractmethod
     def GetConditions(self) -> IConditionParameterSet|None:
-        pass
+        ...
     @abstractmethod
     def SetConditions(self, conditions: IConditionParameterSet|None) -> None:
-        pass
+        ...
 
     @abstractmethod
     def GetSubqueries(self) -> IEnumerable[ISubselectionQuery]|None:
-        pass
+        ...
     @abstractmethod
     def SetSubqueries(self, subqueries: IEnumerable[ISubselectionQuery]|None) -> None:
-        pass
+        ...
 
 class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecutionResult]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetColumns(self) -> IColumnParameterSet[IFormattable]:
-        pass
+        ...
 
     @abstractmethod
     def GetJoins(self) -> ICollection[IJoin]:
-        pass
+        ...
     @abstractmethod
     def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
-        pass
+        ...
     @abstractmethod
     def GetOrdering(self) -> IDictionary[IColumn, Ordering]:
-        pass
+        ...
 class ISubselectionQuery(ISelectionQueryBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]:
-        pass
+        ...
 
 class IWriteQuery(IQuery[QueryResult, IInsertionQueryExecutionResult]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetTableName(self) -> str:
-        pass
+        ...
 
 class IInsertionQueryBase[T](IWriteQuery):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetItems(self) -> T:
-        pass
+        ...
 
 class IInsertionQuery(IInsertionQueryBase[IDictionary[IString, object]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 class IMultiInsertionQuery(IInsertionQueryBase[Iterable[Iterable[object]]]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetColumns(self) -> ICountableEnumerable[IString]:
-        pass
+        ...
 
 class IUpdateQuery(IWriteQuery, IConditionalQuery):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetValues(self) -> IDictionary[IString, object]:
-        pass
+        ...
 
 class SelectionQueryBase(Abstract, ISelectionQueryBase):
     def __init__(self, tables: ITableParameterSet|str, conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
@@ -283,22 +253,17 @@ class SelectionQueryBase(Abstract, ISelectionQueryBase):
         return self._PrevalidateQuery(self)
     
     @final
-    def GetTables(self) -> ITableParameterSet:
-        return self.__tables
+    def GetTables(self) -> ITableParameterSet: return self.__tables
     
     @final
-    def GetConditions(self) -> IConditionParameterSet|None:
-        return self.__conditions
+    def GetConditions(self) -> IConditionParameterSet|None: return self.__conditions
     @final
-    def SetConditions(self, conditions: IConditionParameterSet|None) -> None:
-        self.__conditions = conditions
+    def SetConditions(self, conditions: IConditionParameterSet|None) -> None: self.__conditions = conditions
     
     @final
-    def GetSubqueries(self) -> IEnumerable[ISubselectionQuery]|None:
-        return self.__subqueries
+    def GetSubqueries(self) -> IEnumerable[ISubselectionQuery]|None: return self.__subqueries
     @final
-    def SetSubqueries(self, subqueries: IEnumerable[ISubselectionQuery]|None) -> None:
-        self.__subqueries = subqueries
+    def SetSubqueries(self, subqueries: IEnumerable[ISubselectionQuery]|None) -> None: self.__subqueries = subqueries
 class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionResult], ISelectionQuery):
     @final
     class __Enumerable(RecursivelyEnumerable[ISubselectionQuery]):
@@ -309,8 +274,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
 
                 self.__query: ISubselectionQuery = query
             
-            def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
-                return TryGetEnumerator(self.__query.GetSubqueries())
+            def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None: return TryGetEnumerator(self.__query.GetSubqueries())
         
         @final
         class __Enumerator(DefaultRecursiveStackedEnumerator[ISubselectionQuery]):
@@ -348,8 +312,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], handler: IRecursiveEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None:
             return self._TryGetRecursiveStackedEnumerator(enumerator)
         
-        def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None:
-            return self.__queries.TryGetEnumerator()
+        def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None: return self.__queries.TryGetEnumerator()
     
     def __init__(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, conditions)
@@ -360,18 +323,14 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
         self.__columns: IColumnParameterSet[IFormattable] = columns
     
     @final
-    def GetColumns(self) -> IColumnParameterSet[IFormattable]:
-        return self.__columns
+    def GetColumns(self) -> IColumnParameterSet[IFormattable]: return self.__columns
 
     @final
-    def GetJoins(self) -> ICollection[IJoin]:
-        return self.__joins
+    def GetJoins(self) -> ICollection[IJoin]: return self.__joins
     @final
-    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
-        return self.__cases
+    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]: return self.__cases
     @final
-    def GetOrdering(self) -> IDictionary[IColumn, Ordering]:
-        return self.__ordering
+    def GetOrdering(self) -> IDictionary[IColumn, Ordering]: return self.__ordering
     
     @final
     def _GetQueryOverride(self) -> QueryResult|None:
@@ -395,8 +354,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             Returns:
             A boolean value indicating whether the query building initialization FAILED (for optimization reason).
             """
-            def getColumns() -> str:
-                return queryBuilder.Join(queryBuilder.ProcessColumns(self.GetColumns()))
+            def getColumns() -> str: return queryBuilder.Join(queryBuilder.ProcessColumns(self.GetColumns()))
             
             def getSubqueries() -> bool:
                 """
@@ -407,14 +365,12 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 """
                 subqueries: IEnumerable[ISubselectionQuery]|None = self.GetSubqueries()
 
-                if subqueries is None:
-                    return False # No subquery; continue query building.
+                if subqueries is None: return False # No subquery; continue query building.
                 
                 column: IKeyValuePair[IColumn, IFormattable]|None = None
                 
                 for query in SelectionQuery.__Enumerable(subqueries, queryBuilder).AsIterable():
-                    if not self._PrevalidateQuery(query):
-                        return True # A subquery failed to validate; cancel query building.
+                    if not self._PrevalidateQuery(query): return True # A subquery failed to validate; cancel query building.
                     
                     column = query.GetColumn()
                     
@@ -423,15 +379,13 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 return False # Process succeeded; continue query building.
             
             def addCases() -> None:
-                for case in self.GetCases().AsIterable():
-                    case.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
+                for case in self.GetCases().AsIterable(): case.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
             
             queryBuilder.Write(f"SELECT {getColumns()}")
 
             addCases()
 
-            if getSubqueries():
-                return True # Cancel query building.
+            if getSubqueries(): return True # Cancel query building.
             
             queryBuilder.Write(f" FROM {getTables(self)}")
 
@@ -443,15 +397,13 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             with (queryBuilder := SelectionQueryBuilder(self)):
                 queryBuilder.OpenStream()
 
-                if initQuery():
-                    return None
+                if initQuery(): return None
                 
                 queryBuilder.AddConditions(self.GetConditions())
                 
                 return queryBuilder.Build()
         
-        except:
-            raise
+        except: raise
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IFormattable], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__(tables, conditions, subqueries)
@@ -459,8 +411,7 @@ class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
         self.__column: IKeyValuePair[IColumn, IFormattable] = column
     
     @final
-    def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]:
-        return self.__column
+    def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]: return self.__column
 
 class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
     def __init__(self, tableName: str) -> None:
@@ -469,19 +420,16 @@ class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
         self.__tableName: str = tableName
     
     @final
-    def GetTableName(self) -> str:
-        return self.__tableName
+    def GetTableName(self) -> str: return self.__tableName
     @final
-    def GetFormattedTableName(self) -> str:
-        return self.FormatTableName(self.GetTableName())
+    def GetFormattedTableName(self) -> str: return self.FormatTableName(self.GetTableName())
 
 class InsertionQueryStatementProvider(Abstract):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetStatement(self, ignoreExisting: bool = False) -> str:
-        pass
+        ...
 class InsertionQueryBase[T](WriteQuery, IInsertionQueryBase[T], InsertionQueryStatementProvider):
     def __init__(self, tableName: str, items: T, ignoreExisting: bool = False) -> None:
         super().__init__(tableName)
@@ -490,16 +438,13 @@ class InsertionQueryBase[T](WriteQuery, IInsertionQueryBase[T], InsertionQuerySt
         self.__ignoreExisting: bool = ignoreExisting
     
     @final
-    def GetItems(self) -> T:
-        return self.__items
+    def GetItems(self) -> T: return self.__items
     
     @final
-    def GetIgnoreExisting(self) -> bool:
-        return self.__ignoreExisting
+    def GetIgnoreExisting(self) -> bool: return self.__ignoreExisting
 
 class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertionQuery):
-    def __init__(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None:
-        super().__init__(tableName, items, ignoreExisting)
+    def __init__(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None: super().__init__(tableName, items, ignoreExisting)
     
     @staticmethod
     def __GetStatement(onExisting: str) -> str:
@@ -517,8 +462,7 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
         args: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
 
         def getValues() -> DualResult[str, str]:
-            def join(values: Iterable[str]) -> str:
-                return ", ".join(values)
+            def join(values: Iterable[str]) -> str: return ", ".join(values)
 
             columns: IList[str] = Queue[str]()
 
@@ -542,13 +486,11 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
         self.__columns: ICountableEnumerable[IString] = columns
     
     @final
-    def GetColumns(self) -> ICountableEnumerable[IString]:
-        return self.__columns
+    def GetColumns(self) -> ICountableEnumerable[IString]: return self.__columns
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
-        def join(values: Iterable[str]) -> str:
-            return ", ".join(values)
+        def join(values: Iterable[str]) -> str: return ", ".join(values)
         
         globalArgs: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
         columns: ICountableEnumerable[IString] = self.GetColumns()
@@ -574,8 +516,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             result: str|None = getResult()
 
-            if result is None:
-                raise ValueError("Argument length mismatch.")
+            if result is None: raise ValueError("Argument length mismatch.")
             
             return result
         
@@ -589,12 +530,10 @@ class UpdateQuery(WriteQuery, IUpdateQuery):
         self.__conditions: IConditionParameterSet|None = conditions
     
     @final
-    def GetValues(self) -> IDictionary[IString, object]:
-        return self.__values
+    def GetValues(self) -> IDictionary[IString, object]: return self.__values
     
     @final
-    def GetConditions(self) -> IConditionParameterSet|None:
-        return self.__conditions
+    def GetConditions(self) -> IConditionParameterSet|None: return self.__conditions
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
