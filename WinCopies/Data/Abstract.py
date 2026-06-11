@@ -16,9 +16,11 @@ from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement, CreateFineRefinement
 from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandler, ICompletionHandler
 
+from WinCopies.Delegates import BoolFalse
+
 from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
-from WinCopies.Typing.Delegate import Method, NullableConverter, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Function, NullableConverter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
@@ -239,36 +241,11 @@ class IFactoryProvider(IInterface):
     def GetIndexFactory(self) -> IIndexFactory:
         ...
 
-class IConnection(IDisposable):
+class IDataBase(IDisposable):
     def __init__(self) -> None: super().__init__()
-
-    def Initialize(self) -> None: self.Open()
-    
-    @abstractmethod
-    def Open(self) -> bool:
-        ...
-
-    @abstractmethod
-    def FormatTableName(self, name: str) -> str:
-        ...
-
-    @abstractmethod
-    def GetQueryLimits(self) -> IQueryLimits:
-        ...
-    
-    @abstractmethod
-    def GetFactoryProvider(self) -> IFactoryProvider:
-        ...
     
     @abstractmethod
     def GetTableNames(self) -> Iterable[str]:
-        ...
-
-    @abstractmethod
-    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
-        ...
-    @abstractmethod
-    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         ...
 
     @abstractmethod
@@ -281,65 +258,14 @@ class IConnection(IDisposable):
     @abstractmethod
     def GetTables(self) -> IEnumerable[ITable]:
         ...
-    
-    @abstractmethod
-    def Commit(self) -> bool:
-        ...
 
     @abstractmethod
-    def Close(self) -> None:
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         ...
-
-    def Dispose(self) -> None: self.Close()
-class Connection(Abstract, IConnection):
-    @final
-    class __Factories(Abstract, IFactoryProvider):
-        class _Updater[T](ValueFunctionUpdater[T]):
-            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[T]]) -> None:
-                super().__init__(updater)
-
-                self.__provider: IFactoryProvider = provider
-            
-            @final
-            def _GetProvider(self) -> IFactoryProvider:
-                return self.__provider
-        
-        @final
-        class __Field(_Updater[IFieldFactory]):
-            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IFieldFactory]]) -> None: super().__init__(provider, updater)
-            
-            def _GetValue(self) -> IFieldFactory:
-                return self._GetProvider().GetFieldFactory()
-        @final
-        class __Query(_Updater[IQueryFactory]):
-            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IQueryFactory]]) -> None: super().__init__(provider, updater)
-            
-            def _GetValue(self) -> IQueryFactory:
-                return self._GetProvider().GetQueryFactory()
-        @final
-        class __Index(_Updater[IIndexFactory]):
-            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IIndexFactory]]) -> None: super().__init__(provider, updater)
-            
-            def _GetValue(self) -> IIndexFactory:
-                return self._GetProvider().GetIndexFactory()
-        
-        def __init__(self, provider: IFactoryProvider) -> None:
-            def updateField(func: IFunction[IFieldFactory]) -> None: self.__field = func
-            def updateQuery(func: IFunction[IQueryFactory]) -> None: self.__query = func
-            def updateIndex(func: IFunction[IIndexFactory]) -> None: self.__index = func
-            
-            super().__init__()
-
-            self.__field: IFunction[IFieldFactory] = Connection.__Factories.__Field(provider, updateField) # type: ignore[no-redef]
-            self.__query: IFunction[IQueryFactory] = Connection.__Factories.__Query(provider, updateQuery) # type: ignore[no-redef]
-            self.__index: IFunction[IIndexFactory] = Connection.__Factories.__Index(provider, updateIndex) # type: ignore[no-redef]
-
-        @final
-        def GetFieldFactory(self) -> IFieldFactory: return self.__field.GetValue()
-        @final
-        def GetQueryFactory(self) -> IQueryFactory: return self.__query.GetValue()
-        @final
-        def GetIndexFactory(self) -> IIndexFactory: return self.__index.GetValue()
+    @abstractmethod
+    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+        ...
+class DataBase(Abstract, IDataBase):
     @final
     class __NullTable(Abstract, ITable):
         def __init__(self) -> None: super().__init__()
@@ -362,15 +288,15 @@ class Connection(Abstract, IConnection):
         def Dispose(self) -> None: pass
     @final
     class __Table(Abstract, ITable):
-        def __init__(self, tableList: IList[Connection.__Table], table: ITable) -> None:
+        def __init__(self, tableList: IList[DataBase.__Table], table: ITable) -> None:
             EnsureDirectModuleCall()
 
             super().__init__()
             
-            self.__tableList: IList[Connection.__Table]|None = tableList
+            self.__tableList: IList[DataBase.__Table]|None = tableList
             self.__table: ITable = table
         
-        def Equals(self, item: ITable|object) -> bool: return isinstance(item, Connection.__Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
+        def Equals(self, item: ITable|object) -> bool: return isinstance(item, DataBase.__Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
         
         def GetName(self) -> str: return self.__table.GetName()
         def SetName(self, name: str) -> None: self.__table.SetName(name)
@@ -393,7 +319,369 @@ class Connection(Abstract, IConnection):
             self.__tableList.Remove(self)
             self.__tableList = None
             
-            self.__table = Connection._GetNullTable()
+            self.__table = DataBase._GetNullTable()
+    
+    __table: ITable = __NullTable()
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__tables: IList[DataBase.__Table] = List[DataBase.__Table]()
+
+    @staticmethod
+    def _GetNullTable() -> ITable:
+        return DataBase.__table
+    
+    @abstractmethod
+    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
+        ...
+    @abstractmethod
+    def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
+        ...
+    
+    @final
+    def __AddNewTable(self, table: ITable) -> ITable:
+        _table: DataBase.__Table = DataBase.__Table(self.__tables, table)
+        
+        self.__tables.Add(_table)
+
+        return _table
+    @final
+    def __AddTable(self, name: str) -> ITable:
+        return self.__AddNewTable(self._GetTable(name))
+
+    @final
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+        def addTable() -> ITable:
+            return self.__AddTable(name)
+        
+        def getTable(table: ITable|None) -> ITable: return addTable() if table is None else self.__AddNewTable(table)
+        def tryGetTable() -> ITable:
+            table: ITable|None = self.__TryGetTable(name)
+
+            return addTable() if table is None else table
+        
+        table: INullable[ITable]|None = self._TryCreateTableOverride(name, fields, indices)
+        
+        return tryGetTable() if table is None else getTable(table.TryGetValue())
+    @final
+    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable: return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
+    
+    @abstractmethod
+    def _GetTable(self, name: str) -> ITable:
+        ...
+
+    @final
+    def __TryGetTable(self, tableName: str) -> ITable|None:
+        return GetFirstItem(self.__tables.AsIterable(), lambda table: table.GetName() == tableName).TryGetValue()
+    
+    @final
+    def TryGetTable(self, name: str) -> ITable|None:
+        table: ITable|None = self.__TryGetTable(name)
+
+        return self.__AddTable(name) if table is None and name in self.GetTableNames() else table
+    
+    @final
+    def EnumerateTables(self) -> Generator[ITable]:
+        table: ITable|None = None
+        
+        for name in self.GetTableNames():
+            if (table := self.__TryGetTable(name)) is None: table = self.__AddTable(name)
+            
+            yield table
+    @final
+    def GetTables(self) -> IEnumerable[ITable]:
+        return IteratorProvider[ITable](self.EnumerateTables)
+    
+    def Dispose(self) -> None:
+        tables: IList[DataBase.__Table] = self.__tables
+
+        while tables.HasItems(): tables.GetAt(0).Dispose() # Need a custom iteration because DataBase.__Table.Dispose() removes the table from the cache.
+
+class ITransactionCookie(IDisposable):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def HasActiveTransaction(self) -> bool:
+        ...
+    
+    @abstractmethod
+    def CreateTransactionControl(self) -> ITransactionControl:
+        ...
+    
+    @abstractmethod
+    def NotifyTransactionBegan(self, control: ITransactionControl) -> None:
+        ...
+
+    @abstractmethod
+    def NotifyTransactionEnded(self) -> None:
+        ...
+class TransactionCookie(Abstract, ITransactionCookie):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__transactionControl: ITransactionControl|None = None
+    
+    @final
+    def HasActiveTransaction(self) -> bool: return self.__transactionControl is not None
+
+    @final
+    def NotifyTransactionBegan(self, control: ITransactionControl) -> None:
+        if self.HasActiveTransaction(): raise InvalidOperationError("A transaction is already active on this connection.")
+
+        self.__transactionControl = control
+
+    @final
+    def NotifyTransactionEnded(self) -> None: self.__transactionControl = None
+
+    def Dispose(self) -> None:
+        transactionControl: ITransactionControl|None = self.__transactionControl
+
+        if transactionControl is None: return
+
+        try: transactionControl.Rollback()
+        except Exception: pass
+        finally: self.__transactionControl = None
+
+class ITransactionControl(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def IsActive(self) -> bool:
+        ...
+
+    @abstractmethod
+    def Begin(self) -> bool:
+        ...
+    
+    @abstractmethod
+    def Commit(self) -> bool:
+        ...
+    @abstractmethod
+    def Rollback(self) -> bool:
+        ...
+class TransactionControl(Abstract, ITransactionControl):
+    def __init__(self, cookie: ITransactionCookie) -> None:
+        def notifyTransactionEnded() -> None: cookie.NotifyTransactionEnded()
+        def onEnded() -> None:
+            self.__commit = BoolFalse
+            self.__rollback = BoolFalse
+
+            notifyTransactionEnded()
+
+        def begin() -> bool:
+            cookie.NotifyTransactionBegan(self)
+
+            try:
+                self._BeginOverride()
+
+                self.__begin = BoolFalse
+
+                self.__commit = commit
+                self.__rollback = rollback
+
+                return True
+            
+            except BaseException:
+                notifyTransactionEnded()
+                
+                raise
+        
+        def commit() -> bool:
+            self._CommitOverride()
+
+            onEnded()
+
+            return True
+        def rollback() -> bool:
+            self._RollbackOverride()
+
+            onEnded()
+
+            return True
+
+        super().__init__()
+
+        self.__begin: Function[bool] = begin # type: ignore[no-redef]
+
+        self.__commit: Function[bool] = BoolFalse # type: ignore[no-redef]
+        self.__rollback: Function[bool] = BoolFalse # type: ignore[no-redef]
+    
+    @final
+    def IsActive(self) -> bool: return self.__commit == BoolFalse
+
+    @final
+    def Begin(self) -> bool: return self.__begin()
+
+    @final
+    def Commit(self) -> bool: return self.__commit()
+
+    @final
+    def Rollback(self) -> bool: return self.__rollback()
+
+    @abstractmethod
+    def _BeginOverride(self) -> None:
+        ...
+    
+    @abstractmethod
+    def _CommitOverride(self) -> None:
+        ...
+    @abstractmethod
+    def _RollbackOverride(self) -> None:
+        ...
+
+def GetConnectionClosedError() -> Exception:
+    return InvalidOperationError("The connection is closed.")
+
+class _IConnectionData(IDisposable):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetCursor(self) -> IDataBase:
+        ...
+
+    @abstractmethod
+    def GetTransactionCookie(self) -> ITransactionCookie:
+        ...
+
+    @abstractmethod
+    def GetFactories(self) -> IFactoryProvider:
+        ...
+    
+    @abstractmethod
+    def GetMutableQueryLimits(self) -> IMutableQueryLimits:
+        ...
+    @abstractmethod
+    def GetQueryLimits(self) -> IQueryLimits:
+        ...
+
+class IConnection(IDisposable):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def Initialize(self) -> None: self.Open()
+    
+    @abstractmethod
+    def IsOpen(self) -> bool:
+        ...
+    @abstractmethod
+    def Open(self) -> bool|None:
+        ...
+
+    @abstractmethod
+    def HasActiveTransaction(self) -> bool|None:
+        ...
+    @abstractmethod
+    def CreateTransactionControl(self) -> ITransactionControl:
+        ...
+
+    @abstractmethod
+    def FormatTableName(self, name: str) -> str:
+        ...
+
+    @abstractmethod
+    def GetQueryLimits(self) -> IQueryLimits:
+        ...
+    
+    @abstractmethod
+    def GetCursor(self) -> IDataBase:
+        ...
+    
+    @abstractmethod
+    def GetFactoryProvider(self) -> IFactoryProvider:
+        ...
+
+    @abstractmethod
+    def Close(self) -> None:
+        ...
+
+    def Dispose(self) -> None: self.Close()
+class Connection(Abstract, IConnection):
+    @final
+    class __Data(_IConnectionData):
+        @final
+        class __Factories(Abstract, IFactoryProvider):
+            class _Updater[T](ValueFunctionUpdater[T]):
+                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[T]]) -> None:
+                    super().__init__(updater)
+
+                    self.__provider: IFactoryProvider = provider
+                
+                @final
+                def _GetProvider(self) -> IFactoryProvider:
+                    return self.__provider
+            
+            @final
+            class __Field(_Updater[IFieldFactory]):
+                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IFieldFactory]]) -> None:
+                    super().__init__(provider, updater)
+                
+                def _GetValue(self) -> IFieldFactory: return self._GetProvider().GetFieldFactory()
+            @final
+            class __Query(_Updater[IQueryFactory]):
+                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IQueryFactory]]) -> None:
+                    super().__init__(provider, updater)
+                
+                def _GetValue(self) -> IQueryFactory: return self._GetProvider().GetQueryFactory()
+            @final
+            class __Index(_Updater[IIndexFactory]):
+                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IIndexFactory]]) -> None:
+                    super().__init__(provider, updater)
+                
+                def _GetValue(self) -> IIndexFactory: return self._GetProvider().GetIndexFactory()
+            
+            def __init__(self, provider: IFactoryProvider) -> None:
+                def updateField(func: IFunction[IFieldFactory]) -> None: self.__field = func
+                def updateQuery(func: IFunction[IQueryFactory]) -> None: self.__query = func
+                def updateIndex(func: IFunction[IIndexFactory]) -> None: self.__index = func
+                
+                super().__init__()
+
+                self.__field: IFunction[IFieldFactory] = Connection.__Data.__Factories.__Field(provider, updateField) # type: ignore[no-redef]
+                self.__query: IFunction[IQueryFactory] = Connection.__Data.__Factories.__Query(provider, updateQuery) # type: ignore[no-redef]
+                self.__index: IFunction[IIndexFactory] = Connection.__Data.__Factories.__Index(provider, updateIndex) # type: ignore[no-redef]
+
+            @final
+            def GetFieldFactory(self) -> IFieldFactory: return self.__field.GetValue()
+            @final
+            def GetQueryFactory(self) -> IQueryFactory: return self.__query.GetValue()
+            @final
+            def GetIndexFactory(self) -> IIndexFactory: return self.__index.GetValue()
+        
+        @final
+        class __QueryLimits(Abstract, IQueryLimits):
+            def __init__(self, queryLimits: IMutableQueryLimits) -> None:
+                super().__init__()
+
+                self.__queryLimits: IMutableQueryLimits = queryLimits
+
+            def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__queryLimits.GetMaxParameterCount()
+
+            def GetMaxQuerySize(self) -> int|None: return self.__queryLimits.GetMaxQuerySize()
+        
+        def __init__(self, cursor: IDataBase, cookie: ITransactionCookie, factories: IFactoryProvider, queryLimits: IMutableQueryLimits) -> None:
+            super().__init__()
+
+            self.__cursor: IDataBase = cursor
+            self.__cookie: ITransactionCookie = cookie
+
+            self.__factories: IFactoryProvider = Connection.__Data.__Factories(factories)
+
+            self.__mutableQueryLimits: IMutableQueryLimits = queryLimits
+            self.__queryLimits: IQueryLimits = Connection.__Data.__QueryLimits(queryLimits)
+        
+        def GetCursor(self) -> IDataBase: return self.__cursor
+        
+        def GetTransactionCookie(self) -> ITransactionCookie: return self.__cookie
+        
+        def GetFactories(self) -> IFactoryProvider: return self.__factories
+        
+        def GetMutableQueryLimits(self) -> IMutableQueryLimits: return self.__mutableQueryLimits
+        def GetQueryLimits(self) -> IQueryLimits: return self.__queryLimits
+        
+        def Dispose(self) -> None:
+            self.__cookie.Dispose()
+            self.__cursor.Dispose()
     
     @final
     class __MutableQueryLimits(Abstract, IMutableQueryLimits):
@@ -418,98 +706,64 @@ class Connection(Abstract, IConnection):
             maxParameterCount: DualValueBool[int]|None = self.__maxParameterCount
             
             return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
-    @final
-    class __QueryLimits(Abstract, IQueryLimits):
-        def __init__(self, queryLimits: IMutableQueryLimits) -> None:
-            super().__init__()
-
-            self.__queryLimits: IMutableQueryLimits = queryLimits
-
-        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__queryLimits.GetMaxParameterCount()
-
-        def GetMaxQuerySize(self) -> int|None: return self.__queryLimits.GetMaxQuerySize()
-    
-    __table: ITable = __NullTable()
-
-    @staticmethod
-    def _GetNullTable() -> ITable:
-        return Connection.__table
     
     def __init__(self) -> None:
         super().__init__()
 
-        self.__tables: List[Connection.__Table] = List[Connection.__Table]()
+        self.__data: _IConnectionData|None = None
+    
+    @final
+    def __GetData(self) -> _IConnectionData:
+        data: _IConnectionData|None = self.__data
 
-        self.__factories: Connection.__Factories = Connection.__Factories(self._CreateFactoryProvider())
+        if data is None: raise GetConnectionClosedError()
         
-        self.__mutableQueryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
-        self.__queryLimits: IQueryLimits = Connection.__QueryLimits(self.__mutableQueryLimits)
+        return data
+    
+    @abstractmethod
+    def _CreateTransactionCookie(self) -> ITransactionCookie:
+        ...
+
+    @abstractmethod
+    def _CreateCursor(self) -> IDataBase:
+        ...
+    
+    @final
+    def HasActiveTransaction(self) -> bool|None:
+        data: _IConnectionData|None = self.__data
+        
+        return None if data is None else data.GetTransactionCookie().HasActiveTransaction()
+    @final
+    def CreateTransactionControl(self) -> ITransactionControl: return self.__GetData().GetTransactionCookie().CreateTransactionControl()
+    
+    @final
+    def IsOpen(self) -> bool: return self.__data is not None
+    
+    @abstractmethod
+    def _Open(self, queryLimits: IMutableQueryLimits) -> bool:
+        ...
+    @final
+    def Open(self) -> bool|None:
+        if self.IsOpen():
+            return None
+        
+        queryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
+
+        if self._Open(queryLimits):
+            self.__data = Connection.__Data(self._CreateCursor(), self._CreateTransactionCookie(), self._CreateFactoryProvider(), queryLimits)
+
+            return True
+        
+        return False
     
     @abstractmethod
     def _CreateFactoryProvider(self) -> IFactoryProvider:
         ...
+    @final
+    def GetFactoryProvider(self) -> IFactoryProvider: return self.__GetData().GetFactories()
 
     @final
-    def GetFactoryProvider(self) -> IFactoryProvider: return self.__factories
-    
-    @abstractmethod
-    def _GetTable(self, name: str) -> ITable:
-        ...
-
-    @final
-    def __TryGetTable(self, tableName: str) -> ITable|None:
-        return GetFirstItem(self.__tables, lambda table: table.GetName() == tableName).TryGetValue()
-    
-    @final
-    def __AddNewTable(self, table: ITable) -> ITable:
-        _table: Connection.__Table = Connection.__Table(self.__tables, table)
-        
-        self.__tables.Add(_table)
-
-        return _table
-    @final
-    def __AddTable(self, name: str) -> ITable:
-        return self.__AddNewTable(self._GetTable(name))
-    
-    @abstractmethod
-    def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
-        ...
-    @abstractmethod
-    def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
-        ...
-
-    @final
-    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
-        def addTable() -> ITable: return self.__AddTable(name)
-        
-        def getTable(table: ITable|None) -> ITable: return addTable() if table is None else self.__AddNewTable(table)
-        def tryGetTable() -> ITable:
-            table: ITable|None = self.__TryGetTable(name)
-
-            return addTable() if table is None else table
-        
-        table: INullable[ITable]|None = self._TryCreateTableOverride(name, fields, indices)
-        
-        return tryGetTable() if table is None else getTable(table.TryGetValue())
-    @final
-    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable: return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
-    
-    @final
-    def TryGetTable(self, name: str) -> ITable|None:
-        table: ITable|None = self.__TryGetTable(name)
-
-        return self.__AddTable(name) if table is None and name in self.GetTableNames() else table
-    
-    @final
-    def EnumerateTables(self) -> Generator[ITable]:
-        table: ITable|None = None
-        
-        for name in self.GetTableNames():
-            if (table := self.__TryGetTable(name)) is None: table = self.__AddTable(name)
-            
-            yield table
-    @final
-    def GetTables(self) -> IEnumerable[ITable]: return IteratorProvider[ITable](self.EnumerateTables)
+    def GetCursor(self) -> IDataBase: return self.__GetData().GetCursor()
     
     @abstractmethod
     def _CreateQueryLimits(self) -> IQueryLimits:
@@ -517,9 +771,9 @@ class Connection(Abstract, IConnection):
     
     @final
     def _GetMutableQueryLimits(self) -> IMutableQueryLimits:
-        return self.__mutableQueryLimits
+        return self.__GetData().GetMutableQueryLimits()
     @final
-    def GetQueryLimits(self) -> IQueryLimits: return self.__queryLimits
+    def GetQueryLimits(self) -> IQueryLimits: return self.__GetData().GetQueryLimits()
     
     @abstractmethod
     def _CloseOverride(self) -> None:
@@ -527,6 +781,11 @@ class Connection(Abstract, IConnection):
     
     @final
     def Close(self) -> None:
-        for table in self.__tables: table.Dispose()
+        data: _IConnectionData|None = self.__data
+
+        if data is None: return
+        
+        data.Dispose()
+        self.__data = None
         
         self._CloseOverride()

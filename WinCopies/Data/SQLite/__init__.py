@@ -22,14 +22,14 @@ from WinCopies.Enum import HasFlag
 from WinCopies.String import DoubleQuoteSurround
 
 from WinCopies.Typing import IDisposableInfo, INullable, GetDisposedError
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
 from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 
 
 from WinCopies.Data import IOperand, IColumn, Column, TableColumn, Operator
-from WinCopies.Data.Abstract import IFactoryProvider, IConnection, ITable, Connection as ConnectionBase, Table
+from WinCopies.Data.Abstract import IFactoryProvider, IConnection, ITransactionCookie, ITransactionControl, IDataBase, ITable, Connection as ConnectionBase, TransactionCookie, TransactionControl, DataBase as DataBaseAbstract, Table
 from WinCopies.Data.Extensions import GetField
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, IIndexFactory
 from WinCopies.Data.Field import FieldType, FieldAttributes, IntegerMode, RealMode, TextMode, IField
@@ -43,23 +43,39 @@ from WinCopies.Data.SQLite.Factory import FieldFactory, IndexFactory
 from WinCopies.Data.SQLite.Query import Factory
 
 @final
-class _Connection(Abstract):
+class _Connection(Abstract, IDisposableInfo):
     def __init__(self, connection: Connection, innerCollection: sqlite3.Connection, queryLimits: IMutableQueryLimits) -> None:
         super().__init__()
 
-        self.__connection: IConnection = connection
-        self.__innerCollection: sqlite3.Connection = innerCollection
+        self.__connection: IConnection|None = connection
+        self.__innerConnection: sqlite3.Connection|None = innerCollection
 
         self.__queryLimits: IMutableQueryLimits = queryLimits
     
     def GetConnection(self) -> IConnection:
-        return self.__connection
+        connection: IConnection|None = self.__connection
+
+        if connection is None: raise GetDisposedError()
+        
+        return connection
     
     def GetInnerConnection(self) -> sqlite3.Connection:
-        return self.__innerCollection
+        innerConnection: sqlite3.Connection|None = self.__innerConnection
+
+        if innerConnection is None: raise GetDisposedError()
+        
+        return innerConnection
     
     def GetQueryLimits(self) -> IMutableQueryLimits:
         return self.__queryLimits
+    
+    def IsDisposed(self) -> bool: return self.__connection is None
+    
+    def Dispose(self) -> None:
+        self.GetInnerConnection().close()
+        
+        self.__innerConnection = None
+        self.__connection = None
 
 @final
 class _Table(Table):
@@ -71,6 +87,7 @@ class _Table(Table):
             connection: _Connection|None = self.__connection
 
             if connection is None: raise GetDisposedError()
+            
             return connection
         
         def GetConnection(self) -> IConnection:
@@ -111,14 +128,11 @@ class _Table(Table):
     def __GetArray[T](self, func: Function[Iterable[T]]) -> IArray[T]:
         return Array[T](func())
     
-    def _GetConnection(self) -> IConnection:
-        return self.__connection.GetConnection()
+    def _GetConnection(self) -> IConnection: return self.__connection.GetConnection()
     
-    def _GetQueryLimits(self) -> IMutableQueryLimits:
-        return self.__connection.GetQueryLimits()
+    def _GetQueryLimits(self) -> IMutableQueryLimits: return self.__connection.GetQueryLimits()
     
-    def GetName(self) -> str:
-        return self.__name
+    def GetName(self) -> str: return self.__name
     def SetName(self, name: str) -> None:
         connection: IConnection = self._GetConnection()
 
@@ -132,6 +146,7 @@ class _Table(Table):
                 match fieldType.upper():
                     case "INTEGER" | "INT": return getResult(FieldType.Integer, IntegerMode.Long)
                     case "REAL" | "FLOAT" | "DOUBLE": return getResult(FieldType.Real, RealMode.Double)
+                    
                     case "TEXT" | "VAR" | "VARCHAR": return getResult(FieldType.Text, TextMode.Text)
                     
                     case '': return getResult(FieldType.Null, None)
@@ -139,9 +154,9 @@ class _Table(Table):
                     case _: raise NotImplementedError(f"The '{fieldType}' field type is not supported.")
             
             def getAttributes(attributes: _Table.FieldAttributes) -> FieldAttributes:
-                if attributes == _Table.FieldAttributes.Null: return FieldAttributes.Null
-                
                 def check(value: _Table.FieldAttributes) -> bool: return HasFlag(attributes, value)
+                
+                if attributes == _Table.FieldAttributes.Null: return FieldAttributes.Null
                 
                 result: FieldAttributes = FieldAttributes.Null
                 
@@ -151,7 +166,6 @@ class _Table(Table):
                     if check(_Table.FieldAttributes.Integer) and check(_Table.FieldAttributes.NoDefault): result |= FieldAttributes.AutoIncrement
                 
                 if check(_Table.FieldAttributes.Unique): result |= FieldAttributes.Unique
-                
                 if check(_Table.FieldAttributes.Nullable): result |= FieldAttributes.Nullable
                 
                 return result
@@ -386,83 +400,27 @@ class _Table(Table):
     
     def Dispose(self) -> None:
         self.__fields = None
-        
         self.__connection.Dispose()
 
 @final
-class Connection(ConnectionBase, IDisposableInfo):
-    @final
-    class _QueryLimits(Abstract, IQueryLimits):
-        def __init__(self, connection: sqlite3.Connection) -> None:
-            super().__init__()
-
-            self.__connection: sqlite3.Connection = connection
-        
-        def __GetLimit(self, value: int) -> int:
-            return self.__connection.getlimit(value)
-
-        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
-
-        def GetMaxQuerySize(self) -> int|None: return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
-    
-    @final
-    class __FactoryProvider(Abstract, IFactoryProvider):
-        def __init__(self, connection: Connection) -> None:
-            super().__init__()
-
-            self.__connection: Connection = connection
-        
-        def GetFieldFactory(self) -> IFieldFactory: return FieldFactory(self.__connection)
-        def GetQueryFactory(self) -> IQueryFactory: return Factory(self.__connection.__GetInnerConnection())
-        def GetIndexFactory(self) -> IIndexFactory:
-            if self.__connection.IsDisposed(): raise GetDisposedError()
-            
-            return IndexFactory(self.__connection)
-    
-    def __init__(self, path: str) -> None:
+class _DataBase(DataBaseAbstract):
+    def __init__(self, connection: IFunction[_Connection]) -> None:
         super().__init__()
 
-        self.__path: str = path
-        self.__connection: _Connection|None = None
+        self.__connection: IFunction[_Connection] = connection
     
-    def __GetConnection(self) -> _Connection:
-        connection: _Connection|None = self.__connection
-
-        if connection is None: raise GetDisposedError()
-        
-        return connection
-    def __GetInnerConnection(self) -> sqlite3.Connection:
-        return self.__GetConnection().GetInnerConnection()
+    @staticmethod
+    def __EnsureFields(fields: Iterable[IField]) -> None:
+        EnsureOnlyOne(fields, lambda field: field.GetAttributes() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
     
-    def __GetTable(self, connection: _Connection, name: str) -> _Table:
-        return _Table(connection, name)
+    def __GetCursor(self) -> _Connection:
+        return self.__connection()
     
-    def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
-        connection.execute(f"CREATE TABLE {query}{self.FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
-    def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
-        self.__DoCreateTable(self.__GetInnerConnection(), "IF NOT EXISTS ", name, fields, indices)
-
-        return None
-    def __CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
-        connection: _Connection = self.__GetConnection()
-
-        self.__DoCreateTable(connection.GetInnerConnection(), '', name, fields, indices)
-
-        return self.__GetTable(connection, name)
-    
-    def _CreateQueryLimits(self) -> IQueryLimits:
-        return Connection._QueryLimits(self.__GetInnerConnection())
-    
-    def Open(self) -> bool:
-        self.__connection = _Connection(self, sqlite3.connect(self.__path, autocommit = False), self._GetMutableQueryLimits())
-
-        return True
-    
-    def FormatTableName(self, name: str) -> str:
-        return DoubleQuoteSurround(name)
+    def __GetConnection(self) -> IConnection:
+        return self.__GetCursor().GetConnection()
     
     def GetTableNames(self) -> Generator[str]:
-        queryExecutionResult: ISelectionQueryExecutionResult|None = self.GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
+        queryExecutionResult: ISelectionQueryExecutionResult|None = self.__GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(
                 String("sqlite_master")),
             MakeColumnParameterSet(
@@ -474,43 +432,158 @@ class Connection(ConnectionBase, IDisposableInfo):
 
         for row in queryExecutionResult.AsIterable(): yield str(row[0])
     
-    @staticmethod
-    def __EnsureFields(fields: Iterable[IField]) -> None:
-        EnsureOnlyOne(fields, lambda field: field.GetAttributes() == FieldAttributes.AutoIncrement, f"The '{FieldAttributes.AutoIncrement.name}' must be set to at most one field.")
-    
     def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
-        Connection.__EnsureFields(fields)
+        _DataBase.__EnsureFields(fields)
 
         self.__TryCreateTable(name, fields, indices)
 
         return None
     def _CreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
-        Connection.__EnsureFields(fields)
+        _DataBase.__EnsureFields(fields)
         
         return self.__CreateTable(name, fields, indices)
+    
+    def __GetTable(self, connection: _Connection, name: str) -> _Table:
+        return _Table(connection, name)
+    
+    def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
+        connection.execute(f"CREATE TABLE {query}{self.__GetConnection().FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
+    def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
+        self.__DoCreateTable(self.__GetCursor().GetInnerConnection(), "IF NOT EXISTS ", name, fields, indices)
+
+        return None
+    def __CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> ITable:
+        connection: _Connection = self.__GetCursor()
+
+        self.__DoCreateTable(connection.GetInnerConnection(), '', name, fields, indices)
+
+        return self.__GetTable(connection, name)
 
     def _GetTable(self, name: str) -> ITable:
-        return self.__GetTable(self.__GetConnection(), name)
-    
-    def _CreateFactoryProvider(self) -> IFactoryProvider:
-        return Connection.__FactoryProvider(self)
-    
-    def Commit(self) -> bool:
-        connection: _Connection|None = self.__connection
+        return self.__GetTable(self.__GetCursor(), name)
 
-        if connection is None: return False
+@final
+class Connection(ConnectionBase, IDisposableInfo):
+    @final
+    class __Struct(Abstract, IDisposableInfo):
+        @final
+        class __Function(Abstract, IFunction[_Connection]):
+            def __init__(self, struct: Connection.__Struct) -> None:
+                super().__init__()
+
+                self.__struct: Connection.__Struct = struct
+            
+            def GetValue(self) -> _Connection: return self.__struct._GetConnection()
         
-        connection.GetInnerConnection().commit()
+        def __init__(self) -> None:
+            super().__init__()
+
+            self.__struct: IStruct[_Connection|None] = Struct[_Connection|None](None)
+            self.__func: IFunction[_Connection] = Connection.__Struct.__Function(self)
+        
+        def __GetValue(self) -> _Connection|None:
+            return self.__struct.GetValue()
+        
+        def _GetConnection(self) -> _Connection:
+            connection: _Connection|None = self.__GetValue()
+
+            if connection is None: raise GetDisposedError()
+            
+            return connection
+        def GetConnection(self) -> IFunction[_Connection]:
+            return self.__func
+        
+        def SetConnection(self, connection: _Connection) -> None:
+            self.__struct.SetValue(connection)
+        
+        def IsDisposed(self) -> bool: return self.__GetValue() is None
+        def Dispose(self) -> None: self.__struct.SetValue(None)
+    @final
+    class _QueryLimits(Abstract, IQueryLimits):
+        def __init__(self, connection: Function[sqlite3.Connection]) -> None:
+            super().__init__()
+
+            self.__connection: Function[sqlite3.Connection] = connection
+        
+        def __GetLimit(self, value: int) -> int:
+            return self.__connection().getlimit(value)
+
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
+        def GetMaxQuerySize(self) -> int|None: return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+    
+    @final
+    class __FactoryProvider(Abstract, IFactoryProvider):
+        def __init__(self, connection: IFunction[_Connection]) -> None:
+            super().__init__()
+
+            self.__connection: IFunction[_Connection] = connection
+        
+        def __GetConnection(self) -> IConnection:
+            return self.__connection().GetConnection()
+        
+        def GetFieldFactory(self) -> IFieldFactory: return FieldFactory(self.__GetConnection())
+        def GetQueryFactory(self) -> IQueryFactory: return Factory(self.__connection().GetInnerConnection())
+        def GetIndexFactory(self) -> IIndexFactory: return IndexFactory(self.__GetConnection())
+    
+    @final
+    class __TransactionCookie(TransactionCookie):
+        @final
+        class __TransactionControl(TransactionControl):
+            def __init__(self, connection: sqlite3.Connection, cookie: ITransactionCookie) -> None:
+                super().__init__(cookie)
+
+                self.__connection: sqlite3.Connection = connection
+            
+            def __Execute(self, action: str) -> None:
+                self.__connection.execute(action)
+
+            def _BeginOverride(self) -> None: self.__Execute("BEGIN")
+            
+            def _CommitOverride(self) -> None: self.__Execute("COMMIT")
+            def _RollbackOverride(self) -> None: self.__Execute("ROLLBACK")
+        
+        def __init__(self, connection: Function[sqlite3.Connection]) -> None:
+            super().__init__()
+
+            self.__connection: Function[sqlite3.Connection]|None = connection
+        
+        def CreateTransactionControl(self) -> ITransactionControl:
+            connection: Function[sqlite3.Connection]|None = self.__connection
+
+            if connection is None: raise GetDisposedError()
+
+            return Connection.__TransactionCookie.__TransactionControl(connection(), self)
+        
+        def Dispose(self) -> None:
+            self.__connection = None
+
+            super().Dispose()
+    
+    def __init__(self, path: str) -> None:
+        super().__init__()
+
+        self.__path: str = path
+        self.__connection: Connection.__Struct = Connection.__Struct()
+    
+    def _CreateTransactionCookie(self) -> ITransactionCookie:
+        return Connection.__TransactionCookie(self.__GetInnerConnection())
+    
+    def __GetConnection(self) -> IFunction[_Connection]: return self.__connection.GetConnection()
+    def __GetInnerConnection(self) -> Function[sqlite3.Connection]: return lambda: self.__GetConnection()().GetInnerConnection()
+    
+    def _CreateCursor(self) -> IDataBase: return _DataBase(self.__GetConnection())
+    
+    def _CreateQueryLimits(self) -> IQueryLimits: return Connection._QueryLimits(self.__GetInnerConnection())
+    
+    def _Open(self, queryLimits: IMutableQueryLimits) -> bool:
+        self.__connection.SetConnection(_Connection(self, sqlite3.connect(self.__path, autocommit = True), queryLimits))
 
         return True
-
-    def _CloseOverride(self) -> None:
-        connection: _Connection|None = self.__connection
-
-        if connection is None: return
-        
-        connection.GetInnerConnection().close()
-        
-        self.__connection = None
     
-    def IsDisposed(self) -> bool: return self.__connection is None
+    def FormatTableName(self, name: str) -> str: return DoubleQuoteSurround(name)
+    
+    def _CreateFactoryProvider(self) -> IFactoryProvider: return Connection.__FactoryProvider(self.__GetConnection())
+    
+    def _CloseOverride(self) -> None: self.__connection.Dispose()
+    
+    def IsDisposed(self) -> bool: return self.__connection.IsDisposed()
