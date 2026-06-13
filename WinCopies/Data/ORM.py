@@ -1348,7 +1348,7 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
 
     for item in keyedSetsByType.AsIterable():
         hydrator: _Hydrator[Entity] = _Hydrator[Entity](item.GetKey().GetValue(), context)
-        table: ITable|None = context._GetConnection().TryGetTable(hydrator.GetDefaultTableName()) # pyright: ignore[reportPrivateUsage]
+        table: ITable|None = context._GetConnection().GetCursor().TryGetTable(hydrator.GetDefaultTableName()) # pyright: ignore[reportPrivateUsage]
         
         if table is None: raise ValueError("Unknown table.")
 
