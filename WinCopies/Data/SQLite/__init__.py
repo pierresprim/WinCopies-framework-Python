@@ -396,7 +396,7 @@ class _Table(Table):
         
         return self.__indices
     
-    def Remove(self) -> None: self.__connection.Execute(f"DROP TABLE {self.GetName()}")
+    def _Remove(self) -> None: self.__connection.Execute(f"DROP TABLE {self.GetName()}")
     
     def Dispose(self) -> None:
         self.__fields = None
@@ -416,11 +416,11 @@ class _DataBase(DataBaseAbstract):
     def __GetCursor(self) -> _Connection:
         return self.__connection()
     
-    def __GetConnection(self) -> IConnection:
+    def _GetConnection(self) -> IConnection:
         return self.__GetCursor().GetConnection()
     
     def GetTableNames(self) -> Generator[str]:
-        queryExecutionResult: ISelectionQueryExecutionResult|None = self.__GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
+        queryExecutionResult: ISelectionQueryExecutionResult|None = self._GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(
                 String("sqlite_master")),
             MakeColumnParameterSet(
@@ -447,7 +447,7 @@ class _DataBase(DataBaseAbstract):
         return _Table(connection, name)
     
     def __DoCreateTable(self, connection: sqlite3.Connection, query: str, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
-        connection.execute(f"CREATE TABLE {query}{self.__GetConnection().FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
+        connection.execute(f"CREATE TABLE {query}{self._GetConnection().FormatTableName(name)} ({", ".join(Select(Append(fields, indices), lambda item: item.ToString()))}) STRICT") # Fields must be quoted internally.
     def __TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> None:
         self.__DoCreateTable(self.__GetCursor().GetInnerConnection(), "IF NOT EXISTS ", name, fields, indices)
 

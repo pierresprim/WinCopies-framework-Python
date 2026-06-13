@@ -12,6 +12,7 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement, CreateFineRefinement
 from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandler, ICompletionHandler
@@ -73,7 +74,17 @@ class _SelectionHandler(Abstract, ISelectionHandler):
 
         return None if cursor is None else cursor.TryResume(newSize)
 
-class ITable(IEquatable['ITable'], IDisposable):
+class _ITransactionCheckable(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _CheckIfActiveTransaction(self) -> bool:
+        ...
+    @final
+    def _EnsureNoActiveTransaction(self) -> None:
+        if self._CheckIfActiveTransaction(): raise InvalidOperationError("DDL is not allowed while a transaction is active.")
+
+class ITable(IEquatable['ITable'], IRemovable, IDisposable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -114,10 +125,9 @@ class ITable(IEquatable['ITable'], IDisposable):
         return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
     
     @abstractmethod
-    def Remove(self) -> None:
+    def TryRemove(self) -> bool:
         ...
-
-class Table(Abstract, ITable, INotHashableValue):
+class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
     class _QueryFactory(Abstract, ITableQueryFactory):
         def __init__(self, table: Table) -> None:
             super().__init__()
@@ -168,6 +178,10 @@ class Table(Abstract, ITable, INotHashableValue):
         if self.__queryFactory is None: self.__queryFactory = Table._QueryFactory(self)
         
         return self.__queryFactory
+    
+    @final
+    def _CheckIfActiveTransaction(self) -> bool:
+        return self._GetConnection().CheckIfActiveTransaction()
     
     @final
     def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
@@ -228,6 +242,24 @@ class Table(Abstract, ITable, INotHashableValue):
     
     def Equals(self, item: ITable|object) -> bool: return item is self
 
+    @abstractmethod
+    def _Remove(self) -> None:
+        ...
+
+    @final
+    def Remove(self) -> None:
+        self._EnsureNoActiveTransaction()
+
+        self._Remove()
+    @final
+    def TryRemove(self) -> bool:
+        if self._CheckIfActiveTransaction():
+            return False
+        
+        self._Remove()
+
+        return True
+
 class IFactoryProvider(IInterface):
     def __init__(self) -> None: super().__init__()
 
@@ -260,12 +292,12 @@ class IDataBase(IDisposable):
         ...
 
     @abstractmethod
-    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable|None:
         ...
     @abstractmethod
     def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         ...
-class DataBase(Abstract, IDataBase):
+class DataBase(Abstract, IDataBase, _ITransactionCheckable):
     @final
     class __NullTable(Abstract, ITable):
         def __init__(self) -> None: super().__init__()
@@ -284,6 +316,7 @@ class DataBase(Abstract, IDataBase):
         def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDisposedError()
         
         def Remove(self) -> None: raise GetDisposedError()
+        def TryRemove(self) -> bool: return False
         
         def Dispose(self) -> None: pass
     @final
@@ -310,6 +343,7 @@ class DataBase(Abstract, IDataBase):
         def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: return self.__table.SelectByKeys(columns, keys)
         
         def Remove(self) -> None: self.__table.Remove()
+        def TryRemove(self) -> bool: return self.__table.TryRemove()
         
         def Dispose(self) -> None:
             if self.__tableList is None: return
@@ -327,6 +361,13 @@ class DataBase(Abstract, IDataBase):
         super().__init__()
 
         self.__tables: IList[DataBase.__Table] = List[DataBase.__Table]()
+    
+    @abstractmethod
+    def _GetConnection(self) -> IConnection:
+        ...
+    
+    @final
+    def _CheckIfActiveTransaction(self) -> bool: return self._GetConnection().CheckIfActiveTransaction()
 
     @staticmethod
     def _GetNullTable() -> ITable:
@@ -351,9 +392,8 @@ class DataBase(Abstract, IDataBase):
         return self.__AddNewTable(self._GetTable(name))
 
     @final
-    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
-        def addTable() -> ITable:
-            return self.__AddTable(name)
+    def TryCreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable|None:
+        def addTable() -> ITable: return self.__AddTable(name)
         
         def getTable(table: ITable|None) -> ITable: return addTable() if table is None else self.__AddNewTable(table)
         def tryGetTable() -> ITable:
@@ -361,11 +401,16 @@ class DataBase(Abstract, IDataBase):
 
             return addTable() if table is None else table
         
+        if self._CheckIfActiveTransaction(): return None
+        
         table: INullable[ITable]|None = self._TryCreateTableOverride(name, fields, indices)
         
         return tryGetTable() if table is None else getTable(table.TryGetValue())
     @final
-    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable: return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
+    def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
+        self._EnsureNoActiveTransaction()
+
+        return self.__AddNewTable(self._CreateTableOverride(name, fields, indices))
     
     @abstractmethod
     def _GetTable(self, name: str) -> ITable:
@@ -571,6 +616,10 @@ class IConnection(IDisposable):
     @abstractmethod
     def HasActiveTransaction(self) -> bool|None:
         ...
+    @final
+    def CheckIfActiveTransaction(self) -> bool:
+        return self.HasActiveTransaction() is True
+    
     @abstractmethod
     def CreateTransactionControl(self) -> ITransactionControl:
         ...
