@@ -113,16 +113,16 @@ class ITable(IEquatable['ITable'], IRemovable, IDisposable):
     def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None:
         ...
     
-    @final
+    @abstractmethod
     def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetInsertionQuery(items, ignoreExisting).Execute()
-    @final
-    def InsertMultiple(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetMultiInsertionQuery(columns, items, ignoreExisting).Execute()
+        ...
+    @abstractmethod
+    def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        ...
     
-    @final
+    @abstractmethod
     def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
-        return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
+        ...
     
     @abstractmethod
     def TryRemove(self) -> bool:
@@ -164,6 +164,10 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         super().__init__()
 
         self.__queryFactory: ITableQueryFactory|None = None
+    
+    @final
+    def _EnsureActiveTransaction(self) -> None:
+        if not self._CheckIfActiveTransaction(): raise InvalidOperationError("DML requires an active transaction.")
     
     @abstractmethod
     def _GetConnection(self) -> IConnection:
@@ -242,6 +246,23 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
     
     def Equals(self, item: ITable|object) -> bool: return item is self
 
+    @final
+    def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        self._EnsureActiveTransaction()
+        
+        return self.GetQueryFactory().GetInsertionQuery(items, ignoreExisting).Execute()
+    @final
+    def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult:
+        self._EnsureActiveTransaction()
+        
+        return self.GetQueryFactory().GetMultiInsertionQuery(columns, items, ignoreExisting).Execute()
+    
+    @final
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
+        self._EnsureActiveTransaction()
+        
+        return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
+
     @abstractmethod
     def _Remove(self) -> None:
         ...
@@ -313,6 +334,11 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         def GetIndices(self) -> IArray[IIndex]: raise GetDisposedError()
         
         def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDisposedError()
+
+        def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+        def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+
+        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDisposedError()
         
         def Remove(self) -> None: raise GetDisposedError()
         def TryRemove(self) -> bool: return False
@@ -340,6 +366,11 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         def GetFields(self) -> IArray[IField]: return self.__table.GetFields()
         
         def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: return self.__table.SelectByKeys(columns, keys)
+
+        def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.Insert(items, ignoreExisting)
+        def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.InsertMany(columns, items, ignoreExisting)
+
+        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
         
         def Remove(self) -> None: self.__table.Remove()
         def TryRemove(self) -> bool: return self.__table.TryRemove()
