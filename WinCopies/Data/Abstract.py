@@ -253,8 +253,7 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         self._Remove()
     @final
     def TryRemove(self) -> bool:
-        if self._CheckIfActiveTransaction():
-            return False
+        if self._CheckIfActiveTransaction(): return False
         
         self._Remove()
 
@@ -321,15 +320,15 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         def Dispose(self) -> None: pass
     @final
     class __Table(Abstract, ITable):
-        def __init__(self, tableList: IList[DataBase.__Table], table: ITable) -> None:
+        def __init__(self, tables: IList[DataBase.__Table], table: ITable) -> None:
             EnsureDirectModuleCall()
 
             super().__init__()
             
-            self.__tableList: IList[DataBase.__Table]|None = tableList
+            self.__tables: IList[DataBase.__Table]|None = tables
             self.__table: ITable = table
         
-        def Equals(self, item: ITable|object) -> bool: return isinstance(item, DataBase.__Table) and self.__tableList == item.__tableList and self.GetName() == item.GetName()
+        def Equals(self, item: ITable|object) -> bool: return isinstance(item, DataBase.__Table) and self.__tables == item.__tables and self.GetName() == item.GetName()
         
         def GetName(self) -> str: return self.__table.GetName()
         def SetName(self, name: str) -> None: self.__table.SetName(name)
@@ -346,12 +345,14 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         def TryRemove(self) -> bool: return self.__table.TryRemove()
         
         def Dispose(self) -> None:
-            if self.__tableList is None: return
+            tables: IList[DataBase.__Table]|None = self.__tables
+
+            if tables is None: return
             
             self.__table.Dispose()
 
-            self.__tableList.Remove(self)
-            self.__tableList = None
+            tables.Remove(self)
+            self.__tables = None
             
             self.__table = DataBase._GetNullTable()
     
@@ -553,14 +554,13 @@ class TransactionControl(Abstract, ITransactionControl):
         self.__rollback: Function[bool] = BoolFalse # type: ignore[no-redef]
     
     @final
-    def IsActive(self) -> bool: return self.__commit == BoolFalse
+    def IsActive(self) -> bool: return self.__commit != BoolFalse
 
     @final
     def Begin(self) -> bool: return self.__begin()
 
     @final
     def Commit(self) -> bool: return self.__commit()
-
     @final
     def Rollback(self) -> bool: return self.__rollback()
 
@@ -793,8 +793,7 @@ class Connection(Abstract, IConnection):
         ...
     @final
     def Open(self) -> bool|None:
-        if self.IsOpen():
-            return None
+        if self.IsOpen(): return None
         
         queryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
 
