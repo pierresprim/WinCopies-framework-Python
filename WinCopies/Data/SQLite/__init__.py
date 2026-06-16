@@ -540,7 +540,10 @@ class Connection(ConnectionBase, IDisposableInfo):
             def _BeginOverride(self) -> None: self.__Execute("BEGIN")
             
             def _CommitOverride(self) -> None: self.__Execute("COMMIT")
-            def _RollbackOverride(self) -> None: self.__Execute("ROLLBACK")
+            def _RollbackOverride(self) -> None:
+                if self.__connection.in_transaction: self.__Execute("ROLLBACK") # sqlite3_get_autocommit() instead of IsActive()
+                
+                # else: SQLite has already auto-reverted ; no exception
         
         def __init__(self, connection: Function[sqlite3.Connection]) -> None:
             super().__init__()
