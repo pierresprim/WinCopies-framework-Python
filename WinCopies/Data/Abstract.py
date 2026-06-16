@@ -571,10 +571,9 @@ class TransactionControl(Abstract, ITransactionControl):
 
             return True
         def rollback() -> bool:
-            self._RollbackOverride()
-
-            onEnded()
-
+            try: self._RollbackOverride()
+            finally: onEnded()
+            
             return True
 
         super().__init__()
