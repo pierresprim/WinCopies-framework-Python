@@ -26,7 +26,7 @@ if sys.version_info < _MIN_VERSION:
 from abc import abstractmethod, ABC
 from enum import Enum
 from types import TracebackType
-from typing import final, Literal, Self
+from typing import final, Self
 
 class IInterface:
     def __init__(self) -> None: pass
@@ -107,6 +107,9 @@ class IDisposableBase(IInterface):
 class IDisposable(IDisposableBase):
     def __init__(self) -> None:
         super().__init__()
+    
+    def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
+        return False
 
     @final
     def __enter__(self) -> Self:
@@ -115,10 +118,15 @@ class IDisposable(IDisposableBase):
         return self
     
     @final
-    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: TracebackType) -> Literal[False]:
+    def __exit__(self, exc_type: type[Exception]|None, exc_value: Exception|None, traceback: TracebackType|None) -> bool:
+        result: bool|None = self._OnExiting(exc_type, exc_value, traceback)
+
+        if result is None:
+            return False
+
         self.Dispose()
-        
-        return False
+
+        return result
 
 class IStringable(IInterface):
     def __init__(self) -> None: super().__init__()
