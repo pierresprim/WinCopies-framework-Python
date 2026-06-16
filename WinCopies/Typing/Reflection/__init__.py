@@ -124,12 +124,20 @@ class IProperty[TClass, TValue, TAccessor](IReadOnlyPropertyBase[TClass, TValue,
     @final
     def __set__(self, obj: TClass, value: TValue) -> None: self.Set(obj, value)
 
-class _PropertyDecorator[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
+class _PropertyDecoratorBase[TClass, TValue, TAccessor, TProperty](_FunctionDecoratorBase[TClass, TValue, TProperty], IReadOnlyPropertyBase[TClass, TValue, TAccessor]):
     def __init__(self, func: TProperty) -> None: super().__init__(func)
 
-class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IReadOnlyProperty[TClass, TValue, TAccessor], IGetterProvider[TClass, TValue]):
+class ReadOnlyPropertyDecoratorBase[TClass, TValue, TAccessor, TProperty](_PropertyDecoratorBase[TClass, TValue, TAccessor, TProperty], IReadOnlyProperty[TClass, TValue, TAccessor]):
+    def __init__(self, func: TProperty) -> None: super().__init__(func)
+class PropertyDecoratorBase[TClass, TValue, TAccessor, TProperty](_PropertyDecoratorBase[TClass, TValue, TAccessor, TProperty]):
+    def __init__(self, func: TProperty) -> None: super().__init__(func)
+
+class ReadOnlyGetterDecorator[TClass, TValue, TAccessor](ReadOnlyPropertyDecoratorBase[TClass, TValue, TAccessor, GetterBase[TClass, TValue]], IGetterProvider[TClass, TValue]):
     def __init__(self, func: GetterBase[TClass, TValue]) -> None: super().__init__(func)
-class PropertyDecorator[TClass, TValue, TAccessor](_PropertyDecorator[TClass, TValue, TAccessor, Property[TClass, TValue]], IProperty[TClass, TValue, TAccessor], IPropertyProvider[TClass, TValue]):
+class ReadOnlyPropertyDecorator[TClass, TValue, TAccessor](ReadOnlyPropertyDecoratorBase[TClass, TValue, TAccessor, Property[TClass, TValue]], IGetterProvider[TClass, TValue]):
+    def __init__(self, func: Property[TClass, TValue]) -> None: super().__init__(func)
+
+class PropertyDecorator[TClass, TValue, TAccessor](PropertyDecoratorBase[TClass, TValue, TAccessor, Property[TClass, TValue]], IProperty[TClass, TValue, TAccessor], IPropertyProvider[TClass, TValue]):
     def __init__(self, func: Property[TClass, TValue]) -> None: super().__init__(func)
 
 def __IsDirectCall(index: int, selector: Selector[str]) -> bool|None:
