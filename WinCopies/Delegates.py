@@ -257,6 +257,16 @@ def PredicateBool[T](obj: T, predicate: NullablePredicate[T]) -> bool:
 def GetBoolPredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
     return lambda obj: PredicateBool(obj, predicate)
 
+def PermissivePredicate[T](obj: T, predicate: NullablePredicate[T]) -> bool:
+    return predicate(obj) is not False
+def GetPermissivePredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
+    return lambda obj: PermissivePredicate(obj, predicate)
+
+def PredicateFalsy[T](obj: T, predicate: NullablePredicate[T]) -> bool:
+    return predicate(obj) is not True
+def GetFalsyPredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
+    return lambda obj: PredicateFalsy(obj, predicate)
+
 def __GetFunction(f1: Function[bool], f2: Function[bool], converter: EqualityComparison[Function[bool]]) -> Function[bool]:
     return lambda: converter(f1, f2)
 
