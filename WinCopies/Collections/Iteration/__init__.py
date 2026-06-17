@@ -357,6 +357,9 @@ def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Con
 def WhereOfType[T](t: Type[T], items: Iterable[object]) -> Generator[T]:
     for item in items:
         if isinstance(item, t): yield item
+def WhereNOTOfType[TItem, TRemoved](t: Type[TRemoved], items: Iterable[TItem]) -> Generator[TItem]:
+    for item in items:
+        if not isinstance(item, t): yield item
 
 def WhereOfTypeSelect[TIn, TOut](t: Type[TIn], items: Iterable[object], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     for item in items:
@@ -506,6 +509,22 @@ def GetFirstItemExclusive[T](items: Iterable[T], predicate: Predicate[T]) -> INu
     return GetNullValue()
 def TryGetFirstItemExclusive[T](items: Iterable[T]|None, predicate: Predicate[T]) -> INullable[T]|None:
     return None if items is None else GetFirstItemExclusive(items, predicate)
+
+def GetFirstNotNone[T](items: Iterable[T|None]) -> INullable[T]:
+    for item in WhereNotNone(items):
+        return GetNullable(item)
+    
+    return GetNullValue()
+def TryGetFirstNotNone[T](items: Iterable[T|None]|None) -> INullable[T]|None:
+    return None if items is None else GetFirstNotNone(items)
+
+def GetFirstOfType[T](t: Type[T], items: Iterable[object]) -> INullable[T]:
+    for item in WhereOfType(t, items):
+        return GetNullable(item)
+    
+    return GetNullValue()
+def TryGetFirstOfType[T](t: Type[T], items: Iterable[object]|None) -> INullable[T]|None:
+    return None if items is None else GetFirstOfType(t, items)
 
 def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T]) -> bool:
     """Checks if an iterable contains any items.
