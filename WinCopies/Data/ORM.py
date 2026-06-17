@@ -29,7 +29,7 @@ from WinCopies.Typing import IDisposable, InvalidOperationError
 from WinCopies.Typing.Delegate import Method, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
-from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecorator, PropertyDecorator
+from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyGetterDecorator, PropertyDecorator
 
 
 
@@ -891,7 +891,7 @@ class _IReadOnlyColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConf
 class _IColumn[TEntity: Entity, TValue, TDecorator, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase, TProperty](IProperty[TEntity, TValue, TParameter], _IReadOnlyColumnBase[TEntity, TValue, TDecorator, TConfig, TParameter, TProperty]):
     def __init__(self) -> None: super().__init__()
 
-class _ReadOnlyColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](ReadOnlyPropertyDecorator[TEntity, TValue, TParameter], _IReadOnlyColumn[TEntity, TValue, _ReadOnlyColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, GetterBase[TEntity, TValue]]):
+class _ReadOnlyColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](ReadOnlyGetterDecorator[TEntity, TValue, TParameter], _IReadOnlyColumn[TEntity, TValue, _ReadOnlyColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, GetterBase[TEntity, TValue]]):
     def __init__(self, func: GetterBase[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func)
 
