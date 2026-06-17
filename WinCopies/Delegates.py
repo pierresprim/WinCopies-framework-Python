@@ -252,10 +252,10 @@ def PredicateNot[T](obj: T, predicate: Predicate[T]) -> bool:
 def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
     return lambda obj: not predicate(obj)
 
-def PredicateBool[T](obj: T, predicate: NullablePredicate[T]) -> bool:
+def PredicateTruthy[T](obj: T, predicate: NullablePredicate[T]) -> bool:
     return predicate(obj) is True
-def GetBoolPredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
-    return lambda obj: PredicateBool(obj, predicate)
+def GetTruthyPredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
+    return lambda obj: PredicateTruthy(obj, predicate)
 
 def PermissivePredicate[T](obj: T, predicate: NullablePredicate[T]) -> bool:
     return predicate(obj) is not False
