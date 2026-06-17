@@ -3,10 +3,10 @@ from typing import Callable
 
 from WinCopies import Not
 from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
-from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
+from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate, GetBoolPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
-from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, IndexedValueAction, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Pairing import DualValueBool
 
 def While(func: Function[bool], action: Action) -> bool:
@@ -536,3 +536,78 @@ def TryDoForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bo
     return DoForEachItem(items, action) if firstAction() else None
 def TryDoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastAction: Function[bool]) -> bool|None:
     return (True if lastAction() else None) if DoForEachItem(items, action) else False
+
+def ForEachUntilThen[T](items: Iterable[T], predicate: NullablePredicate[T], action: Predicate[T]) -> bool|None:
+    _action: Predicate[T]
+
+    def process(item: T) -> bool:
+        nonlocal _action
+
+        match predicate(item):
+            case None: return False
+            case True: _action = action
+            case _: pass
+
+        return True
+    
+    _action = process
+
+    return ForEachItem(items, lambda item: _action(item))
+def DoForEachUntilThen[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
+    _action: Method[T]
+
+    def process(item: T) -> None:
+        nonlocal _action
+
+        if predicate(item): _action = action
+    
+    _action = process
+
+    return DoForEachItem(items, lambda item: _action(item))
+
+def ForEachUntilThenContinue[T](items: Iterable[T], predicate: NullablePredicate[T], action: Method[T]) -> bool|None:
+    _action: Predicate[T]
+
+    def process(item: T) -> bool:
+        nonlocal _action
+
+        match predicate(item):
+            case None: return False
+            case True:
+                action(item)
+
+                _action = GetBoolPredicate(predicate)
+            case _: pass
+
+        return True
+    
+    _action = process
+
+    return ForEachItem(items, lambda item: _action(item))
+def DoForEachUntilThenContinue[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
+    _action: Method[T]
+
+    def process(item: T) -> None:
+        def process(item: T) -> None:
+            predicate(item)
+
+        nonlocal _action
+
+        if predicate(item):
+            action(item)
+
+            _action = process
+    
+    _action = process
+
+    return DoForEachItem(items, lambda item: _action(item))
+
+def Scan[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
+    result: bool = False
+
+    def action(_: T) -> None:
+        nonlocal result
+
+        result = True
+
+    return result if DoForEachUntilThenContinue(items, predicate, action) else None
