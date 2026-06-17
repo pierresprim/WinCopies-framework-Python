@@ -190,7 +190,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     """
     return ForEachItem(values, predicate)
 
-def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool|None:
+def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     """Executes the given action for each item in items.
 
     Args:
@@ -198,16 +198,14 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool|None:
         action: A function to execute for each item.
 
     Returns:
-        - None if no item processed
-        - True if completed all values
-        - False if stopped early.
+        True if completed all values or False if the source was empty.
     """
     enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator(): action(entry)
     
     return enumerator.HasProcessedItems()
-def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
+def DoForEachArg[T](action: Method[T], *values: T) -> bool:
     """Executes the given action for each variadic value.
 
     Args:
@@ -215,9 +213,7 @@ def DoForEachArg[T](action: Method[T], *values: T) -> bool|None:
         *values: The values to iterate over.
 
     Returns:
-        - None if no value processed
-        - True if completed all values
-        - False if stopped early.
+        True if completed all values or False if the source was empty.
     """
     return DoForEachItem(values, action)
 
@@ -347,7 +343,9 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
         action: A function to execute for matching items.
 
     Returns:
-        None if no items, True if all items matched, False if at least one did not match.
+        - None if no items
+        - True if all items matched
+        - False if at least one did not match.
     """
     result: bool|None = None
     func: Method[T]|None = None
@@ -401,7 +399,9 @@ def ForEachButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|None:
         action: A predicate to execute for each item except the first.
 
     Returns:
-        None if no items processed, True if completed all items, False if stopped early.
+        - None if no items processed
+        - True if completed all items
+        - False if stopped early.
     """
     return __ForEachButFirst(items, action, ForEachItem, True)
 def ForEachUntilButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|None:
@@ -412,7 +412,9 @@ def ForEachUntilButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|No
         action: A predicate to execute for each item except the first.
 
     Returns:
-        None if no items processed, True if action matched, False if completed without match.
+        - None if no items processed
+        - True if action matched
+        - False if completed without match.
     """
     return __ForEachButFirst(items, action, ForEachItemUntil, False)
 
@@ -441,7 +443,9 @@ def ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Pr
         action: A predicate to execute for subsequent items.
 
     Returns:
-        None if no items processed, True if completed all items, False if stopped early.
+        - None if no items processed
+        - True if completed all items
+        - False if stopped early
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItem, True)
 def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
@@ -453,11 +457,13 @@ def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], actio
         action: A predicate to execute for subsequent items.
 
     Returns:
-        None if no items processed, True if action matched, False if completed without match or first action failed.
+        - None if no items processed
+        - True if action matched
+        - False if completed without match or first action failed
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
 
-def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool|None:
+def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
     """Executes the given action for all items except the first.
 
     Args:
@@ -465,9 +471,7 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool|None:
         action: A function to execute for each item except the first.
 
     Returns:
-        - None if no item processed
-        - True if completed all values
-        - False if stopped early.
+        True if completed all values or False if the source was empty.
     """
     _action: Method[T]
     
@@ -479,7 +483,7 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool|None:
     _action = __action
     
     return DoForEachItem(items, lambda item: _action(item))
-def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool|None:
+def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
     """Executes a special action for the first item, then a different one for the rest.
 
     Args:
@@ -488,9 +492,7 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
         action: A function to execute for subsequent items.
 
     Returns:
-        - None if no item processed
-        - True if completed all values
-        - False if stopped early.
+        True if completed all values or False if the source was empty.
     """
     _action: Method[T]
     
@@ -508,7 +510,7 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
 def ForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Predicate[T]) -> bool|None:
     return ForEachAndFirst(items, lambda item: firstAction() and action(item), action)
 
-def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool|None:
+def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool:
     _action: Method[T]
     
     def __action(item: T) -> None:
