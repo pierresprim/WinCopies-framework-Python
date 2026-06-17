@@ -1,6 +1,6 @@
 from typing import Any, Callable
 
-from WinCopies.Typing.Delegate import Action, Converter, Function, Method, Predicate, EqualityComparison, IndexedValueComparison
+from WinCopies.Typing.Delegate import Action, Converter, Function, Method, Predicate, NullablePredicate, EqualityComparison, IndexedValueComparison
 
 def Self[T](value: T) -> T:
     return value
@@ -251,6 +251,11 @@ def PredicateNot[T](obj: T, predicate: Predicate[T]) -> bool:
     return not predicate(obj)
 def GetNotPredicate[T](predicate: Predicate[T]) -> Predicate[T]:
     return lambda obj: not predicate(obj)
+
+def PredicateBool[T](obj: T, predicate: NullablePredicate[T]) -> bool:
+    return predicate(obj) is True
+def GetBoolPredicate[T](predicate: NullablePredicate[T]) -> Predicate[T]:
+    return lambda obj: PredicateBool(obj, predicate)
 
 def __GetFunction(f1: Function[bool], f2: Function[bool], converter: EqualityComparison[Function[bool]]) -> Function[bool]:
     return lambda: converter(f1, f2)
