@@ -3,7 +3,7 @@ from typing import Callable
 
 from WinCopies import Not
 from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
-from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate, GetTruthyPredicate,
+from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
@@ -576,7 +576,7 @@ def ForEachUntilThenContinue[T](items: Iterable[T], predicate: NullablePredicate
             case True:
                 action(item)
 
-                _action = GetTruthyPredicate(predicate)
+                _action = lambda item: predicate(item) is not None
             case _: pass
 
         return True
