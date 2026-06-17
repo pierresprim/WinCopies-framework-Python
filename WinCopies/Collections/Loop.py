@@ -6,6 +6,7 @@ from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
+from WinCopies.Typing import INullable, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Pairing import DualValueBool
 
@@ -611,3 +612,19 @@ def Scan[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
         result = True
 
     return result if DoForEachUntilThenContinue(items, predicate, action) else None
+def CancellableScan[T](items: Iterable[T], predicate: NullablePredicate[T]) -> INullable[bool]|None:
+    result: bool = False
+
+    def action(_: T) -> None:
+        nonlocal result
+
+        result = True
+
+    match ForEachUntilThenContinue(items, predicate, action):
+        case True:
+            return GetNullable(result)
+        case False:
+            return GetNullValue()
+        
+        case _:
+            return None
