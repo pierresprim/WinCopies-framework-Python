@@ -20,7 +20,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Select, SelectWhereNotNone, WhereOfType, WhereNOTOfType
+from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Select, SelectWhereNotNone, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly import IList as ILinkedList, CreateList
@@ -1665,7 +1665,7 @@ class _Persister(Abstract):
         
         row: IDictionary[IString, object] = Dictionary[IString, object]()
 
-        addColumns(WhereNOTOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable())) # type: ignore[type-abstract]
+        addColumns(WhereNotOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable())) # type: ignore[type-abstract]
         addColumns(cols.GetColumns().AsIterable())
 
         target: Entity|None = None

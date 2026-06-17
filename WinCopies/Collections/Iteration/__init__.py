@@ -357,7 +357,7 @@ def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Con
 def WhereOfType[T](t: Type[T], items: Iterable[object]) -> Generator[T]:
     for item in items:
         if isinstance(item, t): yield item
-def WhereNOTOfType[TItem, TRemoved](t: Type[TRemoved], items: Iterable[TItem]) -> Generator[TItem]:
+def WhereNotOfType[TItem, TRemoved](t: Type[TRemoved], items: Iterable[TItem]) -> Generator[TItem]:
     for item in items:
         if not isinstance(item, t): yield item
 
