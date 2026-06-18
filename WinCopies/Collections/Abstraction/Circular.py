@@ -1,8 +1,8 @@
 from collections.abc import Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies.Collections import Mutability
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import IResumableEnumeratorMonitor, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
 from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems

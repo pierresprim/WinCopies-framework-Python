@@ -6,7 +6,7 @@ from enum import Enum
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import Mutability
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import IResumableEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract

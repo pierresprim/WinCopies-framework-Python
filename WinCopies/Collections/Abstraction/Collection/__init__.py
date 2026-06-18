@@ -7,7 +7,8 @@ from heapq import merge
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections import Extensions, Mutability
+from WinCopies.Collections import Extensions
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, MutableSequence, Count

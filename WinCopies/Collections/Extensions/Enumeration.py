@@ -8,7 +8,8 @@ from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
-from WinCopies.Collections.Generation.Factory import IObjectFactory, ObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectFactory
+from WinCopies.Collections.Generation.Factory.Core import ObjectFactory
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 

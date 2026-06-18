@@ -5,9 +5,9 @@ from collections.abc import Iterable, Iterator, Sequence as SequenceBase, Mutabl
 from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IInterface, IStringable
-from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter, Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, ResumableEnumerableAbstract, Enumerator
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, IDictionary, ISet, Sequence, MutableSequence

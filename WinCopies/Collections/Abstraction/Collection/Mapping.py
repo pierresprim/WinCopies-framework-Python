@@ -5,9 +5,10 @@ from collections.abc import Container, Iterable, Iterator, Sequence, MutableSequ
 from typing import overload, final, SupportsIndex
 
 from WinCopies import Abstract
-from WinCopies.Collections import Enumeration, Mutability
+from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, CreateIterable, AsEnumerator, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, IResumableEnumeratorMonitor, IReadOnlyOrderedSet, IReadOnlyKeyedSet, ITuple, IEquatableTuple, IArray, IList, ISet, IOrderedSet, IKeyedSet, IDictionary, SequenceAbstract, MutableSequence

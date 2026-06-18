@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import final
 
-from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstract import Collection
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
 from WinCopies.Typing.Delegate import Converter

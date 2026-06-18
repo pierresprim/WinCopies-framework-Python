@@ -8,9 +8,8 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Mutability
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
-from WinCopies.Collections.Core import IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
+from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollection, IResumableEnumeratorMonitor, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IListBase, IList, ISortedList, IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
