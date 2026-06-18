@@ -152,7 +152,7 @@ class _DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
 
     def Dispose(self) -> _IDisposableProviderItem[T]: return self
 
-__disposedItem = _DisposedItem() # type: ignore
+_disposedItem = _DisposedItem() # type: ignore
 
 @final
 class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
@@ -168,7 +168,7 @@ class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProvider
     def Dispose(self) -> _IDisposableProviderItem[T]:
         self.__item.Dispose()
         
-        return __disposedItem # pyright: ignore[reportUnknownVariableType]
+        return _disposedItem # pyright: ignore[reportUnknownVariableType]
 
 class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
     def __init__(self) -> None: super().__init__()
