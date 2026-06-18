@@ -7,7 +7,7 @@ from WinCopies import IDisposableBase
 from WinCopies.Collections.Abstraction.Collection import SortedList
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Factory import ObjectFactoryBase, CompositeRemovable
+from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode
 from WinCopies.Typing import INullable, GetNullableValue

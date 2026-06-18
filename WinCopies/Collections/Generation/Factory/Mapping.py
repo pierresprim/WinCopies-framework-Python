@@ -8,7 +8,7 @@ from WinCopies import IDisposableBase, Abstract
 from WinCopies.Collections.Abstraction.Collection.Mapping import CreateDictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Factory import ObjectFactoryBase, CompositeRemovable
+from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory
 from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode
 from WinCopies.Typing import INullable, GetNullableValue
