@@ -43,8 +43,8 @@ from WinCopies.Typing.Delegate import EqualityComparison, Function, IndexedValue
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _counter(return_value: bool = True) -> tuple[Function[bool], int]:
-    """Returns a (func, calls) pair where calls[0] counts invocations."""
+def _counter(return_value: bool = True) -> tuple[Function[bool], Function[int]]:
+    """Returns a (func, calls) pair where calls counts invocations."""
 
     calls: int = 0
 
@@ -55,9 +55,9 @@ def _counter(return_value: bool = True) -> tuple[Function[bool], int]:
 
         return return_value
 
-    return func, calls
+    return func, lambda: calls
 
-def _predicate_counter(return_value: bool = True) -> tuple[Predicate[object], int]:
+def _predicate_counter(return_value: bool = True) -> tuple[Predicate[object], Function[int]]:
     """Returns a (predicate, calls) pair where calls[0] counts invocations."""
 
     calls = 0
@@ -69,7 +69,7 @@ def _predicate_counter(return_value: bool = True) -> tuple[Predicate[object], in
 
         return return_value
 
-    return pred, calls
+    return pred, lambda: calls
 
 # ---------------------------------------------------------------------------
 # Basic delegates
@@ -309,7 +309,7 @@ class TestRepeatAndAlso(unittest.TestCase):
         func, calls = _counter(False)
 
         self.assertFalse(RepeatAndAlso(2, func))
-        self.assertEqual(calls, 1) # Only one call due to short-circuit
+        self.assertEqual(calls(), 1) # Only one call due to short-circuit
 
     def test_n_two_second_false(self) -> None:
         """RepeatAndAlso(2, ...) returns False when second call is False."""
@@ -339,7 +339,7 @@ class TestRepeatAndAlso(unittest.TestCase):
         func, calls = _counter(False)
 
         self.assertFalse(RepeatAndAlso(3, func))
-        self.assertLess(calls, 3) # Short-circuit must have occurred
+        self.assertLess(calls(), 3) # Short-circuit must have occurred
 
     def test_get_repeat_and_also_matches_direct(self) -> None:
         """GetRepeatAndAlso returns a function producing the same result as RepeatAndAlso."""
@@ -377,7 +377,7 @@ class TestRepeatAnd(unittest.TestCase):
 
         RepeatAnd(2, func)
 
-        self.assertEqual(calls, 2)  # Both calls must happen
+        self.assertEqual(calls(), 2)  # Both calls must happen
 
     def test_n_three_all_true(self) -> None:
         """RepeatAnd(3, ...) returns True when all calls return True."""
@@ -391,7 +391,7 @@ class TestRepeatAnd(unittest.TestCase):
 
         RepeatAnd(3, func)
 
-        self.assertEqual(calls, 3)
+        self.assertEqual(calls(), 3)
 
     def test_get_repeat_and_matches_direct(self) -> None:
         """GetRepeatAnd returns a function producing the same result as RepeatAnd."""
@@ -428,7 +428,7 @@ class TestRepeatOrElse(unittest.TestCase):
         func, calls = _counter(True)
 
         self.assertTrue(RepeatOrElse(2, func))
-        self.assertEqual(calls, 1)  # Short-circuit
+        self.assertEqual(calls(), 1)  # Short-circuit
 
     def test_n_three_all_false(self) -> None:
         """RepeatOrElse(3, ...) returns False when all calls return False."""
@@ -441,7 +441,7 @@ class TestRepeatOrElse(unittest.TestCase):
         func, calls = _counter(True)
 
         self.assertTrue(RepeatOrElse(3, func))
-        self.assertLess(calls, 3)
+        self.assertLess(calls(), 3)
 
     def test_get_repeat_or_else_matches_direct(self) -> None:
         """GetRepeatOrElse returns a function producing the same result as RepeatOrElse."""
@@ -479,7 +479,7 @@ class TestRepeatOr(unittest.TestCase):
 
         RepeatOr(2, func)
 
-        self.assertEqual(calls, 2)
+        self.assertEqual(calls(), 2)
 
     def test_n_three_all_called_on_true(self) -> None:
         """RepeatOr(3, ...) calls func 3 times even if first is True."""
@@ -488,7 +488,7 @@ class TestRepeatOr(unittest.TestCase):
 
         RepeatOr(3, func)
 
-        self.assertEqual(calls, 3)
+        self.assertEqual(calls(), 3)
 
     def test_get_repeat_or_matches_direct(self) -> None:
         """GetRepeatOr returns a function producing the same result as RepeatOr."""
@@ -513,7 +513,7 @@ class TestPredicateCombination(unittest.TestCase):
         pred2, calls = _predicate_counter(True)
 
         self.assertFalse(PredicateAndAlso(5, lambda _: False, pred2))
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_get_and_also_predicate(self) -> None:
         """GetAndAlsoPredicate returns a predicate equivalent to PredicateAndAlso."""
@@ -535,7 +535,7 @@ class TestPredicateCombination(unittest.TestCase):
 
         PredicateAnd(5, lambda _: False, pred2)
 
-        self.assertEqual(calls, 1) # Both evaluated
+        self.assertEqual(calls(), 1) # Both evaluated
 
     def test_get_and_predicate(self) -> None:
         """GetAndPredicate returns a predicate equivalent to PredicateAnd."""
@@ -558,7 +558,7 @@ class TestPredicateCombination(unittest.TestCase):
         result = PredicateOrElse(5, lambda _: True, pred2)
 
         self.assertTrue(result)
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_get_or_else_predicate(self) -> None:
         """GetOrElsePredicate returns a predicate equivalent to PredicateOrElse."""
@@ -575,7 +575,7 @@ class TestPredicateCombination(unittest.TestCase):
 
         PredicateOr(5, lambda _: True, pred2)
 
-        self.assertEqual(calls, 1)
+        self.assertEqual(calls(), 1)
 
     def test_get_or_predicate(self) -> None:
         """GetOrPredicate returns a predicate equivalent to PredicateOr."""
@@ -599,7 +599,7 @@ class TestPredicateCombination(unittest.TestCase):
         result = PredicateNotAndAlso(5, lambda _: True, pred2)
 
         self.assertFalse(result)
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_get_not_and_also_predicate(self) -> None:
         """GetNotAndAlsoPredicate returns a predicate equivalent to PredicateNotAndAlso."""
@@ -622,7 +622,7 @@ class TestPredicateCombination(unittest.TestCase):
 
         PredicateNotAnd(5, lambda _: True, pred2)
 
-        self.assertEqual(calls, 1)
+        self.assertEqual(calls(), 1)
 
     def test_get_not_and_predicate(self) -> None:
         """GetNotAndPredicate returns a predicate equivalent to PredicateNotAnd."""
@@ -663,7 +663,7 @@ class TestFuncCombination(unittest.TestCase):
         f2, calls = _counter(True)
 
         self.assertFalse(FuncAndAlso(lambda: False, f2))
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_get_and_also_func(self) -> None:
         """GetAndAlsoFunc returns a function equivalent to FuncAndAlso."""
@@ -677,7 +677,7 @@ class TestFuncCombination(unittest.TestCase):
 
         FuncAnd(lambda: False, f2)
 
-        self.assertEqual(calls, 1)
+        self.assertEqual(calls(), 1)
 
     def test_func_and_both_false(self) -> None:
         """FuncAnd returns False when any function returns False."""
@@ -695,7 +695,7 @@ class TestFuncCombination(unittest.TestCase):
         f2, calls = _counter(False)
 
         self.assertTrue(FuncOrElse(lambda: True, f2))
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_func_or_else_both_false(self) -> None:
         """FuncOrElse returns False when both functions return False."""
@@ -714,7 +714,7 @@ class TestFuncCombination(unittest.TestCase):
 
         FuncOr(lambda: True, f2)
 
-        self.assertEqual(calls, 1)
+        self.assertEqual(calls(), 1)
 
     def test_get_or_func(self) -> None:
         """GetOrFunc returns a function equivalent to FuncOr."""
@@ -734,7 +734,7 @@ class TestFuncCombination(unittest.TestCase):
 
         FuncNotAndAlso(lambda: True, f2)
 
-        self.assertEqual(calls, 0)
+        self.assertEqual(calls(), 0)
 
     def test_get_not_and_also_func(self) -> None:
         """GetNotAndAlsoFunc returns a function equivalent to FuncNotAndAlso."""
@@ -748,7 +748,7 @@ class TestFuncCombination(unittest.TestCase):
 
         FuncNotAnd(lambda: True, f2)
 
-        self.assertEqual(calls, 1)
+        self.assertEqual(calls(), 1)
 
     def test_get_not_and_func(self) -> None:
         """GetNotAndFunc returns a function equivalent to FuncNotAnd."""
