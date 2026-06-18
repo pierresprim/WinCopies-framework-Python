@@ -5,13 +5,19 @@ from collections.abc import Sized, Iterable, Container
 from typing import overload, final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import Mutability, EmptyException
+from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import ReverseIndex, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
+from WinCopies.Typing.Enum import OrderedEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
 from WinCopies.Typing.Protocols import SupportsRichComparison
+
+class Mutability(OrderedEnum):
+    ReadOnly = 0
+    FixedSize = 1
+    Mutable = 2
 
 class IReadOnlyCollection(IInterface):
     def __init__(self) -> None: super().__init__()

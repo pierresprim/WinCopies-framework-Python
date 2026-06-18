@@ -5,17 +5,11 @@ from enum import Flag
 from typing import Callable
 
 from WinCopies import Abstract, BooleanableEnum, NullableBoolean
-from WinCopies.Enum import OrderedEnum
 from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate
 
 type ReadOnlyArray[T] = tuple[T, ...]
 type Generator[T] = GeneratorBase[T, None, None]
-
-class Mutability(OrderedEnum):
-    ReadOnly = 0
-    FixedSize = 1
-    Mutable = 2
 
 class EnumerationOrder(Flag):
     Null = 0

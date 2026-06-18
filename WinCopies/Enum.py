@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from enum import Enum, Flag
-from typing import Callable, Self as SelfType, Type
+from typing import Callable, Type
 
 from WinCopies.Assertion import EnsureEnum
 from WinCopies.Collections import Generator
@@ -10,26 +10,6 @@ from WinCopies.String import CommaJoin
 from WinCopies.Typing import IEnum, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate, Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
-from WinCopies.Typing.Reflection import AreFromSameClass
-
-class OrderedEnum(Enum):
-    def __lt__(self, other: SelfType) -> bool:
-        """Less than comparison."""
-
-        return self.value < other.value if AreFromSameClass(self, other) else NotImplemented
-    def __le__(self, other: SelfType) -> bool:
-        """Less than or equal comparison."""
-
-        return self.value <= other.value if AreFromSameClass(self, other) else NotImplemented
-    
-    def __gt__(self, other: SelfType) -> bool:
-        """Greater than comparison."""
-
-        return self.value > other.value if AreFromSameClass(self, other) else NotImplemented
-    def __ge__(self, other: SelfType) -> bool:
-        """Greater than or equal comparison."""
-
-        return self.value >= other.value if AreFromSameClass(self, other) else NotImplemented
 
 def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
     return obj in Select(e, selector)
