@@ -7,12 +7,12 @@ from typing import Callable, List as PyList
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Linked.Doubly import (
-    IReadOnlyList,
-    IReadWriteList,
+from WinCopies.Collections.Linked.Doubly import IReadOnlyList
+from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList
+from WinCopies.Collections.Linked.Doubly.Node import INode
+from WinCopies.Collections.Linked.Doubly.Welded import (
     IList,
     ICountableList,
-    INode,
     IDoublyLinkedNode,
     ICountableLinkedListNode,
     List,
@@ -109,7 +109,7 @@ def _assertNext(test: unittest.TestCase, l: IList[int], value: int, action: Call
 
 def _assertRemoveNode(test: unittest.TestCase, l: IList[int], value: int, converter: Converter[IList[int], IDoublyLinkedNode[int]|None]) -> None:
     def remove(node: IDoublyLinkedNode[int]) -> None:
-        removedValue = node.Remove()
+        removedValue = node.RemoveNode()
 
         test.assertEqual(removedValue, value)
         
@@ -618,7 +618,7 @@ class TestListNode(unittest.TestCase):
         
         l: IList[int] = self.__list
 
-        _assertNotNone(self, l.GetFirst(), lambda first: _assertNotNone(self, first.GetNext(), lambda middle: self.assertEqual(middle.Remove(), 2)))
+        _assertNotNone(self, l.GetFirst(), lambda first: _assertNotNone(self, first.GetNext(), lambda middle: self.assertEqual(middle.RemoveNode(), 2)))
 
         # Structure should be: 1 -> 3
         _assertNotNone(self, l.GetFirst(), assertEqual)
@@ -630,7 +630,7 @@ class TestListNode(unittest.TestCase):
 
         node: IDoublyLinkedNode[int] = l.AddLast(42)
 
-        self.assertEqual(node.Remove(), 42)
+        self.assertEqual(node.RemoveNode(), 42)
         
         _assertEmpty(self, l)
 

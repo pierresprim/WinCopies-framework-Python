@@ -5,7 +5,7 @@ from typing import Callable, final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import CreateTuple
-from WinCopies.Collections.Abstraction.Collection.Mapping import CreateSet
+from WinCopies.Collections.Abstraction.Mapping import CreateSet
 from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet

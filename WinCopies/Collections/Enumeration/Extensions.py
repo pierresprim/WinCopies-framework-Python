@@ -15,7 +15,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetEnumeratorInactiveError
-from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
+from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
 

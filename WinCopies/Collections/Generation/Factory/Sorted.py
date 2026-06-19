@@ -6,13 +6,11 @@ from typing import final
 from WinCopies import IDisposableBase
 from WinCopies.Collections.Abstraction.Collection import SortedList
 from WinCopies.Collections.Extensions import ISortedList
-from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
-from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import IExtendedComparable, HashableComparableProtocol, CompareTo
-from WinCopies.Typing.Object import WeakReference
 
 class ISortedNode[TKey, TValue](INode[TKey, TValue], IExtendedComparable['ISortedNode[TKey, TValue]|TKey']):
     def __init__(self) -> None: super().__init__()
@@ -63,13 +61,13 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
     def _GetKey(self, item: TOut) -> TKey:
         ...
     
-    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[WeakReference[TOut]]) -> IRemovable:
+    def _GetRemovable(self, obj: TOut, node: INodeBase) -> IRemovable:
         items: ISortedList[ISortedNode[TKey, TOut]] = self._GetSortedItems()
         sortedNode: _SortedNode[TKey, TOut] = _SortedNode[TKey, TOut](self._GetKey(obj), obj, items)
 
         items.Add(sortedNode)
 
-        return CompositeRemovable[TOut](node, sortedNode)
+        return CompositeRemovable(node, sortedNode)
     
     @final
     def IsEmpty(self) -> bool: return self._GetSortedItems().IsEmpty()

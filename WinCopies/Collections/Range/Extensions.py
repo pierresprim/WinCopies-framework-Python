@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from typing import SupportsIndex, overload
 
-from WinCopies.Collections.Abstraction.Collection.Mapping import Set
+from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList, ISet
 from WinCopies.Collections.Util import ReverseIndex
 from WinCopies.Typing.Comparison import IHashableValue

@@ -3,7 +3,8 @@ from typing import final, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerableList
-from WinCopies.Collections.Linked.Doubly import INode, IList, List
+from WinCopies.Collections.Linked.Doubly.Node import INode
+from WinCopies.Collections.Linked.Doubly.Welded import IList, List
 from WinCopies.Collections.Abstraction.Linked import EnumerableQueue
 from WinCopies.Typing import IMonitor, Monitor, InvalidOperationError
 

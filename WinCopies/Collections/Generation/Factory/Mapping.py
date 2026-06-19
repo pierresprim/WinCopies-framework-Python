@@ -5,15 +5,13 @@ from typing import final
 from weakref import ReferenceType, ref
 
 from WinCopies import IDisposableBase, Abstract
-from WinCopies.Collections.Abstraction.Collection.Mapping import CreateDictionary
+from WinCopies.Collections.Abstraction.Mapping import CreateDictionary
 from WinCopies.Collections.Extensions import IDictionary
-from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory
-from WinCopies.Collections.Linked.Doubly import IDoublyLinkedNode
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import HashableProtocol
-from WinCopies.Typing.Object import WeakReference
 
 @final
 class _KeyedNode[TKey: HashableProtocol, TValue: IDisposableBase](Abstract, IRemovable):
@@ -54,7 +52,7 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
     def _GetKey(self, item: TOut) -> TKey:
         pass
     
-    def _GetRemovable(self, obj: TOut, node: IDoublyLinkedNode[WeakReference[TOut]]) -> IRemovable:
+    def _GetRemovable(self, obj: TOut, node: INode) -> IRemovable:
         items: IDictionary[TKey, ReferenceType[TOut]] = self._GetKeyedItems()
         key: TKey = self._GetKey(obj)
         
@@ -65,7 +63,7 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
 
             raise
         
-        return CompositeRemovable[TOut](node, _KeyedNode[TKey, TOut](key, items))
+        return CompositeRemovable(node, _KeyedNode[TKey, TOut](key, items))
     
     @final
     def IsEmpty(self) -> bool: return self._GetKeyedItems().IsEmpty()

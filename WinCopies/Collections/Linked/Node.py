@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, Abstract
+from WinCopies.Collections.Generation import INode as INodeBase
 
 class INode(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -20,6 +21,10 @@ class ITwoWayNode(INode):
     @abstractmethod
     def GetNext(self) -> ITwoWayNode|None:
         ...
+
+class IReadWriteNode(ITwoWayNode, INodeBase):
+    def __init__(self) -> None:
+        super().__init__()
 
 class ILinkedNode[T](INode):
     def __init__(self) -> None: super().__init__()
@@ -42,6 +47,21 @@ class ITwoWayLinkedNode[T](ILinkedNode[T], ITwoWayNode):
         ...
     @abstractmethod
     def GetNext(self) -> ITwoWayLinkedNode[T]|None:
+        ...
+
+class IReadWriteLinkedNode[T](ITwoWayLinkedNode[T], IReadWriteNode):
+    def __init__(self) -> None:
+        super().__init__()
+
+class IReadWriteTwoWayLinkedNode[T](IReadWriteLinkedNode[T]):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def SetPrevious(self, value: T) -> IReadWriteTwoWayLinkedNode[T]:
+        ...
+    @abstractmethod
+    def SetNext(self, value: T) -> IReadWriteTwoWayLinkedNode[T]:
         ...
 
 class LinkedNodeAbstract[T](Abstract, ILinkedNode[T]):

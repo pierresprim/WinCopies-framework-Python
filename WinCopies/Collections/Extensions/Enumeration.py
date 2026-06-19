@@ -10,8 +10,11 @@ from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncre
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactory
+from WinCopies.Collections.Linked.Doubly import IReadWriteList
+from WinCopies.Collections.Linked.Doubly.Welded import List
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Typing.Object import WeakReference
 
 class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -113,6 +116,10 @@ class EnumeratorFactoryBase[TItem, TMonitor](ObjectFactory[IEnumerator[TItem]], 
         super().__init__()
 
         self.__monitor: IFunction[TMonitor] = self._CreateUpdater(update) # type: ignore[no-redef]
+    
+    @final
+    def _CreateItems(self) -> IReadWriteList[WeakReference[IDisposableBase]]:
+        return List[WeakReference[IDisposableBase]]()
     
     @abstractmethod
     def _CreateUpdater(self, updater: Method[IFunction[TMonitor]]) -> EnumeratorMonitorUpdater[TMonitor, IEnumeratorFactory[TItem]]:

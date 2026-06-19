@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import final
 
-from WinCopies.Collections.Abstract import Collection
+from WinCopies.Collections.Abstract import Collection, Mapping
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IArray, IList, ISet, IDictionary
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
@@ -79,7 +79,7 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
 
-class Set[TIn: IHashableValue, TOut: IHashableValue](Collection.Set[TIn, TOut]):
+class Set[TIn: IHashableValue, TOut: IHashableValue](Mapping.Set[TIn, TOut]):
     def __init__(self, items: ISet[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
@@ -93,7 +93,7 @@ class Set[TIn: IHashableValue, TOut: IHashableValue](Collection.Set[TIn, TOut]):
     def _ConvertBack(self, item: TOut) -> TIn:
         return self.__backConverter(item)
 
-class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Collection.Dictionary[TKey, TValueIn, TValueOut]):
+class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Mapping.Dictionary[TKey, TValueIn, TValueOut]):
     def __init__(self, items: IDictionary[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> None:
         super().__init__(items)
 

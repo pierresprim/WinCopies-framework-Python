@@ -12,7 +12,8 @@ from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple, CreateHashableTuple
-from WinCopies.Collections.Abstraction.Collection.Mapping import Set, Dictionary, CreateKeyedSet, CreateDictionary
+from WinCopies.Collections.Abstraction.Mapping import Set, Dictionary, CreateDictionary
+from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateKeyedSet
 from WinCopies.Collections.Core import ICountable, IReadOnlyIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
@@ -23,7 +24,7 @@ from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Select, SelectWhereNotNone, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableEnumerableQueue
-from WinCopies.Collections.Linked.Doubly import IList as ILinkedList, CreateList
+from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach, Scan
 
 from WinCopies.Delegates import GetTruthyPredicate

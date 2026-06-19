@@ -1,6 +1,6 @@
 from weakref import WeakKeyDictionary as WeakKeyDictionaryBase, WeakValueDictionary as WeakValueDictionaryBase
 
-from WinCopies.Collections.Abstraction.Collection.Mapping import Dictionary
+from WinCopies.Collections.Abstraction.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Typing.Comparison import HashableProtocol
 

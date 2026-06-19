@@ -11,7 +11,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IR
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement
 from WinCopies.Collections.Iteration.Loop import ForEach
-from WinCopies.Collections.Linked.Doubly import IList, List, IDoublyLinkedNode
+from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 from WinCopies.Collections.Util import Enumerate, MakeGenerator
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing.Delegate import Action, Function, Converter, IFunction, IStruct, ValueFunction, Struct

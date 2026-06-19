@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Iterable
 from typing import final, Self
 
 from WinCopies.Collections import EnumerationOrder
@@ -9,7 +10,10 @@ from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, 
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
-from WinCopies.Collections.Linked.Doubly import INode, IDoublyLinkedNodeBase, INodeCookie, IEnumerableListBase, NodeBase, EnumerableListNodeBase, DoublyLinkedNodeAbstract, EnumerableListBase
+from WinCopies.Collections.Linked.Doubly import IReadOnlyList
+from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
+from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, INode, NodeBase, DoublyLinkedNodeBase
+from WinCopies.Collections.Linked.Doubly.Welded import IEnumerableListBase, EnumerableListBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase
 from WinCopies.Typing.Delegate import IFunction, Method, NullableSelector, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
@@ -74,12 +78,12 @@ class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
     def _AsNode(self, node: ITreeNode[T]) -> ITreeNode[T]:
         return node
 
-class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
-    def __init__(self) -> None:
+class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], "_Tree[TItem]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
+    def __init__(self, items: Iterable[TItem]|None = None) -> None:
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None: self.__recursive = func
         def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None: self.__nodeRecursive = func
         
-        super().__init__()
+        super().__init__(items)
     
         self.__recursive: IFunction[IEnumerable[TItem]] = _RecursiveUpdater[TItem](self, updateRecursive) # type: ignore[no-redef]
         self.__nodeRecursive: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]] = _NodeRecursiveUpdater[TItem](self, updateNodeRecursive) # type: ignore[no-redef]
@@ -107,9 +111,9 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem]],
         return ResumableTreeNodeEnumerator[TItem](node)
 
 @final
-class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], TreeBase[T, "_TreeNode[T]"], TreeBase[T, "_TreeNode[T]"]], NodeBase[T, "_TreeNode[T]"], ITreeNode[T], EnumerableListNodeBase["_TreeNode[T]", TreeBase[T, "_TreeNode[T]"]], IGenericConstraintImplementation[IEnumerableListBase[T, ITreeNode[T]]]):
-    def __init__(self, value: T, l: TreeBase[T, _TreeNode[T]]|None, cookie: INodeCookie[_TreeNode[T]], previousNode: _TreeNode[T]|None, nextNode: _TreeNode[T]|None) -> None:
-        super().__init__(value, l, cookie, previousNode, nextNode)
+class _TreeNode[T](DoublyLinkedNodeBase[T, "_TreeNode[T]", TreeBase[T, "_TreeNode[T]"], TreeBase[T, "_TreeNode[T]"]], NodeBase[T, "_TreeNode[T]"], ITreeNode[T], ListNodeBase["_TreeNode[T]"], IGenericConstraintImplementation[IEnumerableListBase[T, ITreeNode[T]]]):
+    def __init__(self, value: T, l: TreeBase[T, _TreeNode[T]]|None, itemCookie: IListCookie[_TreeNode[T]], cookie: INodeCookie[_TreeNode[T]], previousNode: _TreeNode[T]|None, nextNode: _TreeNode[T]|None) -> None:
+        super().__init__(value, l, itemCookie, cookie, previousNode, nextNode)
 
         self.__items: ITree[T] = Tree[T]()
     
@@ -122,9 +126,6 @@ class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], Tre
     @final
     def _GetListAsClass(self, l: TreeBase[T, _TreeNode[T]]) -> TreeBase[T, _TreeNode[T]]:
         return l
-    @final
-    def _GetListAsSpecialized(self, l: TreeBase[T, _TreeNode[T]]) -> EnumerableListBase[T, _TreeNode[T], ITreeNode[T]]:
-        return l
     
     @final
     def _AsNode(self) -> _TreeNode[T]:
@@ -132,7 +133,7 @@ class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], Tre
     
     @final
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _TreeNode[T]:
-        return _TreeNode[T](value, self._GetList(), self._GetCookie(), previous, next)
+        return _TreeNode[T](value, self._GetList(), self._GetItemCookie(), self._GetCookie(), previous, next)
     
     @final
     def GetItems(self) -> ITree[T]: return self.__items
@@ -140,30 +141,45 @@ class _TreeNode[T](DoublyLinkedNodeAbstract[T, "_TreeNode[T]", ITreeNode[T], Tre
     @final
     def GetList(self) -> ITree[T]|None: return self._GetList()
 
-class Tree[T](TreeBase[T, _TreeNode[T]]):
-    def __init__(self) -> None: super().__init__()
+@final
+class _Tree[T](ListBase[T, _TreeNode[T], ITreeNode[T]], IGenericConstraintImplementation[ITreeNode[T]]):
+    def __init__(self, items: TreeBase[T, _TreeNode[T]], values: Iterable[T]|None = None) -> None:
+        super().__init__(values)
+
+        self.__items: TreeBase[T, _TreeNode[T]] = items
     
-    @final
+    def _CreateNode(self, value: T) -> _TreeNode[T]:
+        return _TreeNode[T](value, self.__items, self, self._GetCookie(), None, None)
+    
     def _GetNodeAsClass(self, node: _TreeNode[T]) -> ITreeNode[T]:
         return node
-    @final
-    def _GetNodeAsInterface(self, node: _TreeNode[T]) -> IDoublyLinkedNodeBase[T, _TreeNode[T]]:
+    def _GetNodeAsInterface(self, node: _TreeNode[T]) -> _TreeNode[T]:
         return node
     
-    @final
-    def _CreateNode(self, value: T) -> _TreeNode[T]:
-        return _TreeNode[T](value, self, self._GetCookie(), None, None)
-    
-    @final
     def _GetPreviousNode(self, node: _TreeNode[T]) -> _TreeNode[T]|None:
         return node.GetPreviousNode()
-    @final
     def _GetNextNode(self, node: _TreeNode[T]) -> _TreeNode[T]|None:
         return node.GetNextNode()
     
-    @final
     def _UnregisterNode(self, node: _TreeNode[T]) -> None:
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
+    
+    def AsReadOnly(self) -> IReadOnlyList[T]:
+        return self.__items.AsReadOnly()
+class Tree[T](TreeBase[T, _TreeNode[T]]):
+    def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(items)
+    
+    @final
+    def _CreateList(self, items: Iterable[T]|None) -> _Tree[T]:
+        return _Tree[T](self, items)
+
+    @final
+    def _GetItemsAsClass(self, items: _Tree[T]) -> ListBase[T, _TreeNode[T], ITreeNode[T]]:
+        return items
+
+    @final
+    def _GetNodeAsInterface(self, node: ITreeNode[T]) -> ITreeNode[T]:
+        return node
 
 class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
     def __init__(self, node: ITreeNode[T]) -> None: super().__init__(node)
