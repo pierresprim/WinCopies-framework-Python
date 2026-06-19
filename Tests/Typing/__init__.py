@@ -5,11 +5,11 @@ Unit tests for WinCopies.Typing module.
 import unittest
 
 from WinCopies.Typing import (
-    ErrorBase, Error, InvalidOperationError,
-    GetGenericError, GetDisposedError,
+    InvalidOperationError,
+    GetDisposedError,
     IDisposable, IDisposableInfo,
     INullable, GetNullable, GetNullValue,
-    TryGetValue, GetNullableValue, HasValue,
+    TryGetValue,
     DisposableProvider,
     Monitor,
     TryGetValueAs, TryGetAs,
@@ -37,72 +37,44 @@ class _ConcreteDisposableInfo(IDisposableInfo):
 
 
 # ---------------------------------------------------------------------------
-# ErrorBase / Error / InvalidOperationError
+# InvalidOperationError
 # ---------------------------------------------------------------------------
 
-class TestError(unittest.TestCase):
-    """Tests for Error and InvalidOperationError."""
+class TestInvalidOperationError(unittest.TestCase):
+    """Tests for InvalidOperationError."""
 
-    def test_get_message_returns_message(self) -> None:
-        """GetMessage returns the message passed to the constructor."""
+    def test_is_exception(self) -> None:
+        """InvalidOperationError is an Exception."""
 
-        self.assertEqual(Error("something failed").GetMessage(), "something failed")
+        self.assertIsInstance(InvalidOperationError("msg"), Exception)
 
-    def test_str_delegates_to_get_message(self) -> None:
-        """str() delegates to GetMessage()."""
-
-        self.assertEqual(str(Error("test message")), "test message")
-
-    def test_invalid_operation_error_is_error(self) -> None:
-        """InvalidOperationError is an instance of Error and ErrorBase."""
-
-        error = InvalidOperationError("cannot do this")
-
-        self.assertIsInstance(error, Error)
-        self.assertIsInstance(error, ErrorBase)
-
-    def test_invalid_operation_error_get_message(self) -> None:
-        """InvalidOperationError.GetMessage() returns the constructor message."""
-
-        self.assertEqual(InvalidOperationError("cannot do this").GetMessage(), "cannot do this")
-
-    def test_error_can_be_raised_and_caught(self) -> None:
-        """Error can be raised and caught as an Exception."""
-
-        with self.assertRaises(Error): raise Error("boom")
-
-    def test_invalid_operation_error_can_be_raised_and_caught(self) -> None:
-        """InvalidOperationError can be raised and caught as an Exception."""
+    def test_can_be_raised_and_caught(self) -> None:
+        """InvalidOperationError can be raised and caught."""
 
         with self.assertRaises(InvalidOperationError): raise InvalidOperationError("boom")
 
+    def test_message_accessible_via_str(self) -> None:
+        """The message passed to the constructor is accessible via str()."""
+
+        self.assertEqual(str(InvalidOperationError("something failed")), "something failed")
+
 
 # ---------------------------------------------------------------------------
-# GetGenericError / GetDisposedError
+# GetDisposedError
 # ---------------------------------------------------------------------------
 
-class TestErrorFactories(unittest.TestCase):
-    """Tests for GetGenericError and GetDisposedError."""
+class TestGetDisposedError(unittest.TestCase):
+    """Tests for GetDisposedError factory."""
 
-    def test_get_generic_error_returns_invalid_operation_error(self) -> None:
-        """GetGenericError returns an InvalidOperationError."""
-
-        self.assertIsInstance(GetGenericError(), InvalidOperationError)
-
-    def test_get_generic_error_has_non_empty_message(self) -> None:
-        """GetGenericError returns an error with a non-empty message."""
-
-        self.assertGreater(len(GetGenericError().GetMessage()), 0)
-
-    def test_get_disposed_error_returns_invalid_operation_error(self) -> None:
+    def test_returns_invalid_operation_error(self) -> None:
         """GetDisposedError returns an InvalidOperationError."""
 
         self.assertIsInstance(GetDisposedError(), InvalidOperationError)
 
-    def test_get_disposed_error_has_non_empty_message(self) -> None:
-        """GetDisposedError returns an error with a non-empty message."""
+    def test_message_mentions_disposed(self) -> None:
+        """GetDisposedError returns an error whose message references disposal."""
 
-        self.assertGreater(len(GetDisposedError().GetMessage()), 0)
+        self.assertIn("disposed", str(GetDisposedError()).lower())
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +95,7 @@ class TestIDisposableThrow(unittest.TestCase):
         try:
             _ConcreteDisposable()._Throw()
         except InvalidOperationError as e:
-            self.assertIn("disposed", e.GetMessage().lower())
+            self.assertIn("disposed", str(e).lower())
 
 
 # ---------------------------------------------------------------------------
@@ -238,60 +210,26 @@ class TestGetNullValue(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Free functions: TryGetValue, GetNullableValue, HasValue
+# TryGetValue free function
 # ---------------------------------------------------------------------------
 
-class TestFreeNullableFunctions(unittest.TestCase):
-    """Tests for TryGetValue, GetNullableValue, and HasValue free functions."""
+class TestTryGetValue(unittest.TestCase):
+    """Tests for the TryGetValue free function."""
 
-    # TryGetValue
-
-    def test_try_get_value_with_none_argument_returns_none(self) -> None:
-        """TryGetValue returns None when passed None (not an INullable)."""
+    def test_with_none_argument_returns_none(self) -> None:
+        """TryGetValue returns None when passed None."""
 
         self.assertIsNone(TryGetValue(None))
 
-    def test_try_get_value_with_nullable_returns_wrapped_value(self) -> None:
+    def test_with_nullable_returns_wrapped_value(self) -> None:
         """TryGetValue returns the wrapped value for a non-null INullable."""
 
         self.assertEqual(TryGetValue(GetNullable("x")), "x")
 
-    def test_try_get_value_with_null_nullable_returns_none(self) -> None:
+    def test_with_null_nullable_returns_none(self) -> None:
         """TryGetValue returns None for a null INullable."""
 
         self.assertIsNone(TryGetValue(GetNullValue()))
-
-    # GetNullableValue
-
-    def test_get_nullable_value_wraps_non_none(self) -> None:
-        """GetNullableValue wraps a non-None value in an INullable."""
-
-        result = GetNullableValue(10)
-
-        self.assertTrue(result.HasValue())
-        self.assertEqual(result.GetValue(), 10)
-
-    def test_get_nullable_value_with_none_returns_null(self) -> None:
-        """GetNullableValue returns a null INullable when passed None."""
-
-        self.assertFalse(GetNullableValue(None).HasValue())
-
-    # HasValue
-
-    def test_has_value_with_none_returns_false(self) -> None:
-        """HasValue returns False when passed None."""
-
-        self.assertFalse(HasValue(None))
-
-    def test_has_value_with_nullable_returns_true(self) -> None:
-        """HasValue returns True for a non-null INullable."""
-
-        self.assertTrue(HasValue(GetNullable(1)))
-
-    def test_has_value_with_null_value_returns_false(self) -> None:
-        """HasValue returns False for a null INullable."""
-
-        self.assertFalse(HasValue(GetNullValue()))
 
 
 # ---------------------------------------------------------------------------
