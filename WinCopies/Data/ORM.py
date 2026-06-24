@@ -1587,11 +1587,9 @@ class _EntityEnumerationData(Abstract):
 def _TryAdd(entity: IReference[Entity], data: _EntityEnumerationData) -> bool:
     e: Entity = entity.GetValue()
 
-    if _GetCookie(e).GetOrigin() == CookieOrigin.DataBase or data.GetContext()._IsInstancePersisted(e) or data.GetJournal().IsSeen(e): # pyright: ignore[reportPrivateUsage]
-        return False
+    if _GetCookie(e).GetOrigin() == CookieOrigin.DataBase or data.GetContext()._IsInstancePersisted(e) or data.GetJournal().IsSeen(e): return False # pyright: ignore[reportPrivateUsage]
     
-    if data.GetStack().TryAdd(entity):
-        return True
+    if data.GetStack().TryAdd(entity): return True
     
     raise ForeignKeyCycleError(type(e))
 
@@ -1753,7 +1751,7 @@ class ITransaction(IDisposable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def TryAdd(self, item: Entity) -> bool|None:
+    def TryAdd(self, item: Entity) -> bool:
         ...
     @abstractmethod
     def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
@@ -1826,8 +1824,8 @@ class _Transaction(Abstract, ITransaction):
         return None
 
     @final
-    def TryAdd(self, item: Entity) -> bool|None:
-        return self.__TryAdd(item, self.__persister.Persist)
+    def TryAdd(self, item: Entity) -> bool:
+        return self.__TryAdd(item, self.__persister.Persist) is True
     @final
     def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
         return self.__TryAdd(items, self.__persister.PersistRange)
