@@ -2072,6 +2072,17 @@ class DataContextBase(Abstract):
     
     @final
     def CreateTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Persister(self))
+    @final
+    def BeginTransaction(self) -> ITransaction:
+        transaction: ITransaction = self.CreateTransaction()
+
+        transaction.Begin()
+        
+        return transaction
+    
+    @final
+    def TryGetActiveTransaction(self) -> ITransaction|None:
+        return self.__transaction
 class DataContext(DataContextBase):
     def __init__(self, connection: IConnection) -> None:
         super().__init__()
