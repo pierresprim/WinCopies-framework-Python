@@ -27,17 +27,17 @@ from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList,
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach, Scan
 
-from WinCopies.Delegates import GetTruthyPredicate
+from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
 from WinCopies.Typing import IDisposable, Error, InvalidOperationError
-from WinCopies.Typing.Delegate import Method, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecoratorBase, PropertyDecorator
 
 
 
-from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, IOperand, ITableColumn, Operand, SetOperand
+from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, IOperand, ITableColumn, Operand, SetOperand, GetActiveTransactionError
 from WinCopies.Data.Abstract import IConnection, ITransactionControl, ITable
 from WinCopies.Data.Parameter import IFormattable, IParameter, FieldParameter
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
@@ -1747,7 +1747,7 @@ class _Persister(Abstract):
     def Promote(self, journal: _Journal) -> None:
         self.__context._MarkPersisted(journal.GetInserted()) # pyright: ignore[reportPrivateUsage]
 
-class ITransaction(IDisposable):
+class ITransaction(ITransactionControl, IDisposable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -1757,95 +1757,302 @@ class ITransaction(IDisposable):
     def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
         ...
 
+class _ITransaction(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
     @abstractmethod
-    def Rollback(self) -> None:
+    def IsActive(self) -> bool:
         ...
-class _Transaction(Abstract, ITransaction):
-    def __init__(self, control: ITransactionControl, persister: _Persister) -> None:
+
+    @abstractmethod
+    def Begin(self) -> bool:
+        ...
+
+    @abstractmethod
+    def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+        ...
+    @abstractmethod
+    def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None:
+        ...
+    
+    @abstractmethod
+    def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
+        ...
+    @abstractmethod
+    def Rollback(self) -> bool:
+        ...
+    
+    @abstractmethod
+    def OnExiting(self, exc: BaseException|None) -> bool:
+        ...
+    @abstractmethod
+    def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
+        ...
+
+class _TransactionAbstract(Abstract, _ITransaction):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def _OnExiting(self) -> None:
+        pass
+    
+    @final
+    def OnExiting(self, exc: BaseException|None) -> bool:
+        if exc is None: return False
+        
+        self._OnExiting()
+        
+        return True
+class _TransactionBase(_TransactionAbstract):
+    def __init__(self, control: ITransactionControl, journal: _Journal) -> None:
         super().__init__()
 
         self.__control: ITransactionControl = control
-        self.__persister: _Persister = persister
-        self.__journal: _Journal = _Journal()
-        self.__doomed: bool = False
+        self.__journal: _Journal = journal
     
     @final
-    def __Rollback(self) -> None:
-        try: self.__control.Rollback()
-        finally: self.__journal.Revert()
+    def _GetTransactionControl(self) -> ITransactionControl:
+        return self.__control
+    @final
+    def _GetJournal(self) -> _Journal:
+        return self.__journal
+    
+    @final
+    def _Commit(self) -> bool:
+        return self._GetTransactionControl().Commit()
+    @final
+    def _Rollback(self) -> bool:
+        try: return self._GetTransactionControl().Rollback()
+        finally: self._GetJournal().Revert()
 
     @final
-    def __EnsureOpen(self) -> None:
-        if not self.__control.IsActive(): raise InvalidOperationError("Transaction is already terminated.")
+    def IsActive(self) -> bool:
+        return self._GetTransactionControl().IsActive()
 
-    def Initialize(self) -> None: self.__control.Begin()
-    
-    def Dispose(self) -> None:
-        control: ITransactionControl = self.__control
+    @final
+    def Begin(self) -> bool: return self._GetTransactionControl().Begin()
 
-        if control.IsActive():
-            if self.__doomed:
-                self.__Rollback()
+    @final
+    def Rollback(self) -> bool: return self._Rollback() if self.IsActive() else False
 
-                return
-            
-            try: control.Commit()
-
-            except:
-                try: self.__Rollback()
-                except: pass
-
-                raise
-
-            self.__persister.Promote(self.__journal)
-
-    def _OnExiting(self, excType: type[BaseException]|None, exc: BaseException|None, traceback: TracebackType|None) -> bool|None:
-        if exc is None: return False
-        
+    @final
+    def _OnExiting(self) -> None:
         try:
-            if self.__control.IsActive(): self.__Rollback()
+            if self.IsActive(): self._Rollback()
         
         except: pass
+
+@final
+class _Transaction(Abstract, ITransaction):
+    @final
+    class __Active(_TransactionBase):
+        def __init__(self, control: ITransactionControl, persister: _Persister) -> None:
+            super().__init__(control, _Journal())
+
+            self.__persister: _Persister = persister
         
-        return None
+        def __GetTransaction(self, e: BaseException) -> tuple[BaseException, _ITransaction]:
+            return (e, _Transaction.__Doomed(self._GetTransactionControl(), self._GetJournal()))
+
+        def __Promote(self) -> None:
+            self.__persister.Promote(self._GetJournal())
+
+        def __TryAdd[T](self, item: T, action: Callable[[T, _Journal], bool|None]) -> bool|tuple[BaseException, _ITransaction]|None:
+            if self.IsActive():
+                try: return action(item, self._GetJournal())
+                except BaseException as e: return self.__GetTransaction(e)
+            
+            return None
+
+        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__persister.Persist)
+
+            return result if isinstance(result, tuple) else result is True
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return self.__TryAdd(items, self.__persister.PersistRange)
+
+        def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
+            try:
+                if self._Commit():
+                    self.__Promote()
+
+                    return True
+                
+                return False
+            
+            except BaseException as e:
+                return self.__GetTransaction(e)
+
+        def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
+            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction.__Disposed(), e)
+            
+            def commit() -> bool|BaseException:
+                try: return self._Commit()
+
+                except BaseException as e:
+                    try: self._Rollback()
+                    except: pass
+
+                    return e
+            
+            if self.IsActive():
+                result: bool|BaseException = commit()
+
+                if isinstance(result, BaseException): return getResult(result)
+                if result: self.__Promote()
+            
+            return getResult(None)
+    @final
+    class __Doomed(_TransactionBase):
+        def __init__(self, control: ITransactionControl, journal: _Journal) -> None: super().__init__(control, journal)
+
+        def __EnsureInactive(self) -> None:
+            if self.IsActive(): raise InvalidOperationError("Transaction is doomed.")
+        def __CheckIsActive(self) -> bool:
+            self.__EnsureInactive()
+
+            return False
+
+        def TryAdd(self, item: Entity) -> bool: return self.__CheckIsActive()
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
+            self.__EnsureInactive()
+
+            return None
+        
+        def Commit(self) -> bool: return self.__CheckIsActive()
+        
+        def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
+            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction.__Disposed(), e)
+            
+            if self.IsActive():
+                try: self._Rollback()
+                except BaseException as e: return getResult(e)
+            
+            return getResult(None)
+    @final
+    class __Disposed(_TransactionAbstract):
+        def __init__(self) -> None: super().__init__()
+
+        def IsActive(self) -> bool:
+            return False
+        
+        def Begin(self) -> bool:
+            return False
+        
+        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+            return False
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None:
+            return None
+        
+        def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
+            return False
+        def Rollback(self) -> bool:
+            return False
+        
+        def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
+            return (self, None)
     
-    @final
-    def __TryAdd[T](self, item: T, action: Callable[[T, _Journal], bool|None]) -> bool|None:
-        if self.__control.IsActive():
-            if self.__doomed: raise InvalidOperationError("Transaction is doomed.")
+    def __init__(self, cookie: _ITransactionCookie, control: ITransactionControl, persister: _Persister) -> None:
+        def tryInitialize() -> bool:
+            def dispose() -> None:
+                self.__dispose = NoAction
+                
+                cookie.Unregister()
 
-            try: return action(item, self.__journal)
+            self.__tryInitialize = BoolTrue
+            self.__dispose = dispose
 
-            except:
-                self.__doomed = True
+            return cookie.TryRegister(self)
 
-                raise
+        super().__init__()
+
+        self.__transaction: _ITransaction = _Transaction.__Active(control, persister)
         
-        return None
+        self.__tryInitialize: Function[bool] = tryInitialize # type: ignore[no-redef]
+        self.__dispose: Action = NoAction # type: ignore[no-redef]
+    
+    def __Process[T: bool|None](self, func: Converter[_ITransaction, T|tuple[BaseException, _ITransaction]]) -> T:
+        result: T|tuple[BaseException, _ITransaction] = func(self.__transaction)
 
-    @final
-    def TryAdd(self, item: Entity) -> bool:
-        return self.__TryAdd(item, self.__persister.Persist) is True
-    @final
-    def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
-        return self.__TryAdd(items, self.__persister.PersistRange)
+        if isinstance(result, tuple):
+            self.__transaction = result[1]
 
-    @final
-    def Rollback(self) -> None:
-        self.__EnsureOpen()
+            raise result[0]
+        
+        return result
+    
+    def Initialize(self) -> None:
+        if not self.__tryInitialize(): raise GetActiveTransactionError()
+    def Dispose(self) -> None:
+        result: tuple[_ITransaction, BaseException|None] = self.__transaction.Dispose()
+        
+        self.__dispose()
 
-        self.__Rollback()
+        self.__transaction = result[0]
+
+        e: BaseException|None = result[1]
+
+        if e is not None: raise e
+
+    def _OnExiting(self, excType: type[BaseException]|None, exc: BaseException|None, traceback: TracebackType|None) -> bool|None: return None if self.__transaction.OnExiting(exc) else False
+    
+    def IsActive(self) -> bool: return self.__transaction.IsActive()
+    
+    def Begin(self) -> bool:
+        return self.__tryInitialize() and self.__transaction.Begin()
+
+    def TryAdd(self, item: Entity) -> bool: return self.__Process(lambda transaction: transaction.TryAdd(item))
+    def TryAddRange(self, items: Iterable[Entity]) -> bool|None: return self.__Process(lambda transaction: transaction.TryAddRange(items))
+
+    def Commit(self) -> bool: return self.__Process(lambda transaction: transaction.Commit())
+    def Rollback(self) -> bool: return self.__transaction.Rollback()
+
+class _ITransactionCookie(IInterface):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def TryRegister(self, transaction: ITransaction) -> bool:
+        ...
+    @abstractmethod
+    def Unregister(self) -> None:
+        ...
 
 class DataContextBase(Abstract):
+    @final
+    class __Cookie(Abstract, _ITransactionCookie):
+        def __init__(self, context: DataContextBase) -> None:
+            super().__init__()
+
+            self.__context: DataContextBase = context
+        
+        def TryRegister(self, transaction: ITransaction) -> bool:
+            return self.__context._TryRegisterTransaction(transaction)
+        def Unregister(self) -> None:
+            self.__context._UnregisterTransaction()
+    
     def __init__(self) -> None:
         super().__init__()
 
         self.__items: IDictionary[IType[Entity], IEntityMapperBase[Entity]] = Dictionary[IType[Entity], IEntityMapperBase[Entity]]()
         self.__persisted: ISet[IReference[Entity]] = Set[IReference[Entity]]()
 
+        self.__transaction: ITransaction|None = None
+
     @abstractmethod
     def _GetConnection(self) -> IConnection:
         ...
+    
+    @final
+    def _TryRegisterTransaction(self, transaction: ITransaction|None) -> bool:
+        if self.__transaction is None:
+            self.__transaction = transaction
+
+            return True
+        
+        return False
+    @final
+    def _UnregisterTransaction(self) -> None:
+        self.__transaction = None
 
     @final
     def _IsInstancePersisted(self, entity: Entity) -> bool:
@@ -1864,7 +2071,7 @@ class DataContextBase(Abstract):
         return mapper
     
     @final
-    def _GetTransaction(self) -> ITransaction: return _Transaction(self._GetConnection().CreateTransactionControl(), _Persister(self))
+    def _GetTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Persister(self))
 class DataContext(DataContextBase):
     def __init__(self, connection: IConnection) -> None:
         super().__init__()

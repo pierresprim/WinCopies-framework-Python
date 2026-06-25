@@ -9,7 +9,7 @@ from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Extensions import IReadOnlySet
 from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
-from WinCopies.Typing import ErrorBase
+from WinCopies.Typing import ErrorBase, InvalidOperationError
 from WinCopies.Typing.Comparison import IHashable
 from WinCopies.Typing.Delegate import Method, Selector
 from WinCopies.Typing.Object import IValueItem
@@ -329,3 +329,5 @@ class QueryError(ErrorBase):
     
     @final
     def GetErrorKind(self) -> QueryErrorKinds: return self.__errorKind
+
+def GetActiveTransactionError() -> Exception: return InvalidOperationError("A transaction is already active on this connection.")

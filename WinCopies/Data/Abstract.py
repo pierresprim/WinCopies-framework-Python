@@ -28,7 +28,7 @@ from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 
 
-from WinCopies.Data import QueryErrorKinds, QueryError
+from WinCopies.Data import QueryErrorKinds, QueryError, GetActiveTransactionError
 from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFactory, IIndexFactory
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
@@ -504,7 +504,7 @@ class TransactionCookie(Abstract, ITransactionCookie):
 
     @final
     def NotifyTransactionBegan(self, control: ITransactionControl) -> None:
-        if self.HasActiveTransaction(): raise InvalidOperationError("A transaction is already active on this connection.")
+        if self.HasActiveTransaction(): raise GetActiveTransactionError()
 
         self.__transactionControl = control
 
