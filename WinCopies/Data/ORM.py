@@ -2071,7 +2071,7 @@ class DataContextBase(Abstract):
         return mapper
     
     @final
-    def _GetTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Persister(self))
+    def CreateTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Persister(self))
 class DataContext(DataContextBase):
     def __init__(self, connection: IConnection) -> None:
         super().__init__()
