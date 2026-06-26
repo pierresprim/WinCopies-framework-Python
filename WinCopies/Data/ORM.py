@@ -52,6 +52,17 @@ class DuplicateIdentityError(EntityInsertionError):
 class ForeignKeyCycleError(Error):
     def __init__(self, t: Type[Entity]) -> None: super().__init__(f"Foreign key cycle detected involving {t.__name__}.")
 
+class EntityNotPersistedError(Error):
+    def __init__(self, t: Type[Entity]) -> None: super().__init__(f"The entity of type {t.__name__} is not persisted and cannot be updated.")
+class UnpersistedReferenceError(Error):
+    def __init__(self, t: Type[Entity]) -> None: super().__init__(f"The entity references an unpersisted entity of type {t.__name__}; it must be persisted before the referencing entity can be updated.")
+class PrimaryKeyMutationError(Error):
+    def __init__(self, t: Type[Entity]) -> None: super().__init__(f"The primary key of an entity of type {t.__name__} cannot be mutated.")
+class RowVanishedError(Error):
+    def __init__(self, t: Type[Entity]) -> None: super().__init__(f"The row backing an entity of type {t.__name__} no longer exists in the database (database/memory invariant violation).")
+class UnresolvedRollbackError(Error):
+    def __init__(self) -> None: super().__init__("The data context has an unresolved rollback; call Reverse() or Retry() before performing any further database operation.")
+
 @final
 class _TableColumn(Abstract, ITableColumn):
     def __init__(self, columnName: str, tableName: str) -> None:
@@ -873,6 +884,17 @@ class ICookie(IInterface):
     def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
         ...
 
+    @abstractmethod
+    def GetDirtyColumns(self) -> IReadOnlySet[IString]:
+        ...
+
+    @abstractmethod
+    def _CommitChanges(self) -> None:
+        ...
+    @abstractmethod
+    def _RevertChanges(self) -> None:
+        ...
+
 def _GetCookie(obj: Entity) -> ICookie:
     return obj._GetCookie() # pyright: ignore[reportPrivateUsage]
 
@@ -1277,18 +1299,79 @@ class Entity(Abstract, IDisposable):
     
     @final
     class _AppCookie(_Cookie):
-        def __init__(self, entity: Entity) -> None: super().__init__(entity)
+        def __init__(self, entity: Entity) -> None:
+            super().__init__(entity)
+
+            self.__original: IDictionary[IString, Any]|None = None
 
         def GetOrigin(self) -> CookieOrigin:
             return CookieOrigin.Application
 
         def IsReady(self) -> bool: return True
-        
+
         def Seal(self) -> None:
             pass
-        
+
         def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T: return func(self._GetEntity()).GetValue()
         def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None: return func(self._GetEntity()).SetValue(value)
+
+        def __GetTrackedColumns(self) -> Iterable[IColumnAbstract]:
+            # Recompare scope: writable columns (settable after construction) + primary keys.
+            # Primary keys are tracked to detect a primary-key mutation performed by bypassing
+            # the read-only setter (direct struct reassignment); see the PK-drift guard.
+            cols: _Columns = _GetColumns(type(self._GetEntity()))
+
+            yield from cols.GetPrimaryKeys().AsIterable()
+
+            for column in cols.GetColumns().AsIterable():
+                if isinstance(column, IColumn): yield column
+
+            yield from cols.GetEntityColumns().AsIterable()
+            yield from cols.GetForeignKeys().AsIterable()
+
+        def __Snapshot(self) -> IDictionary[IString, Any]:
+            entity: Entity = self._GetEntity()
+            snapshot: IDictionary[IString, Any] = Dictionary[IString, Any]()
+
+            for column in self.__GetTrackedColumns(): snapshot.AddOrUpdate(String(column.GetColumnParameter().GetColumnName()), _GetEntityValue(entity, column))
+
+            return snapshot
+
+        def GetDirtyColumns(self) -> IReadOnlySet[IString]:
+            original: IDictionary[IString, Any]|None = self.__original
+
+            if original is None: raise InvalidOperationError("The entity is not attached; its baseline has not been established.")
+
+            entity: Entity = self._GetEntity()
+            dirty: ISet[IString] = Set[IString]()
+
+            for column in self.__GetTrackedColumns():
+                name: IString = String(column.GetColumnParameter().GetColumnName())
+
+                if _GetEntityValue(entity, column) != original.TryGetValue(name).GetValue(): dirty.Add(name)
+
+            return dirty
+
+        def _CommitChanges(self) -> None:
+            self.__original = self.__Snapshot()
+        def _RevertChanges(self) -> None:
+            original: IDictionary[IString, Any]|None = self.__original
+
+            if original is None: return
+
+            entity: Entity = self._GetEntity()
+            cols: _Columns = _GetColumns(type(entity))
+
+            # Rewrite the baseline into the writable structs. Primary keys are intentionally left
+            # out: they are read-only (their setter raises), and a drifted PK is an error state
+            # resolved by dooming the transaction, not by silent restoration.
+            def restore(column: IColumnAbstract) -> None: _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
+
+            for column in cols.GetColumns().AsIterable():
+                if isinstance(column, IColumn): restore(column)
+
+            for column in cols.GetEntityColumns().AsIterable(): restore(column)
+            for column in cols.GetForeignKeys().AsIterable(): restore(column)
     @final
     class _DBCookie(_Cookie):
         def __init__(self, entity: Entity) -> None:
@@ -1296,16 +1379,33 @@ class Entity(Abstract, IDisposable):
 
             self.__isReady: bool = False
             self.__values: IDictionary[IString, Any] = Dictionary[IString, Any]()
-        
+            self.__dirty: IDictionary[IString, Any] = Dictionary[IString, Any]()
+
         def GetOrigin(self) -> CookieOrigin:
             return CookieOrigin.DataBase
-        
+
         def IsReady(self) -> bool: return self.__isReady
-        
+
         def Seal(self) -> None: self.__isReady = True
-        
-        def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T: return cast(T, self.__values.TryGetValue(String(name)).GetValue())
-        def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None: self.__values.AddOrUpdate(String(name), value)
+
+        def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T:
+            key: IString = String(name)
+
+            return cast(T, (self.__dirty if self.__dirty.ContainsKey(key) else self.__values).TryGetValue(key).GetValue())
+        def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
+            # Pre-seal writes (hydration / identity set) establish the pristine row in __values;
+            # post-seal consumer mutations are recorded in the __dirty overlay.
+            (self.__dirty if self.__isReady else self.__values).AddOrUpdate(String(name), value)
+
+        def GetDirtyColumns(self) -> IReadOnlySet[IString]:
+            return Set[IString](self.__dirty.GetKeys().AsIterable())
+
+        def _CommitChanges(self) -> None:
+            for key in self.__dirty.GetKeys().AsIterable(): self.__values.AddOrUpdate(key, self.__dirty.TryGetValue(key).GetValue())
+
+            self.__dirty.Clear()
+        def _RevertChanges(self) -> None:
+            self.__dirty.Clear()
     
     __columns: IFunction[_Columns]
 
