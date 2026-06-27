@@ -511,9 +511,9 @@ class SortedList[T: ComparableProtocol](ListAbstract[T], Sequence[T], Collection
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_right(self.AsSequence(), item, key = converter)
     
     @final
-    def AddLeft(self, item: T) -> None: return insort_left(self._GetContainer(), item)
+    def AddLeft(self, item: T) -> None: insort_left(self._GetContainer(), item)
     @final
-    def Add(self, item: T) -> None: return insort_right(self._GetContainer(), item)
+    def Add(self, item: T) -> None: insort_right(self._GetContainer(), item)
     @final
     def AddRange(self, items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
     
