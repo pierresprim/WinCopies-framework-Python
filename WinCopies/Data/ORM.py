@@ -1303,18 +1303,18 @@ class Entity(Abstract, IDisposable):
             super().__init__(entity)
 
             self.__original: IDictionary[IString, Any]|None = None
-
+        
         def GetOrigin(self) -> CookieOrigin:
             return CookieOrigin.Application
-
+        
         def IsReady(self) -> bool: return True
-
+        
         def Seal(self) -> None:
             pass
-
+        
         def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T: return func(self._GetEntity()).GetValue()
         def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None: return func(self._GetEntity()).SetValue(value)
-
+        
         def __GetTrackedColumns(self) -> Iterable[IColumnAbstract]:
             # Recompare scope: writable columns (settable after construction) + primary keys.
             # Primary keys are tracked to detect a primary-key mutation performed by bypassing
@@ -1328,7 +1328,7 @@ class Entity(Abstract, IDisposable):
 
             yield from cols.GetEntityColumns().AsIterable()
             yield from cols.GetForeignKeys().AsIterable()
-
+        
         def __Snapshot(self) -> IDictionary[IString, Any]:
             entity: Entity = self._GetEntity()
             snapshot: IDictionary[IString, Any] = Dictionary[IString, Any]()
@@ -1336,7 +1336,7 @@ class Entity(Abstract, IDisposable):
             for column in self.__GetTrackedColumns(): snapshot.AddOrUpdate(String(column.GetColumnParameter().GetColumnName()), _GetEntityValue(entity, column))
 
             return snapshot
-
+        
         def GetDirtyColumns(self) -> IReadOnlySet[IString]:
             original: IDictionary[IString, Any]|None = self.__original
 
@@ -1351,7 +1351,7 @@ class Entity(Abstract, IDisposable):
                 if _GetEntityValue(entity, column) != original.TryGetValue(name).GetValue(): dirty.Add(name)
 
             return dirty
-
+        
         def _CommitChanges(self) -> None:
             self.__original = self.__Snapshot()
         def _RevertChanges(self) -> None:
@@ -1365,13 +1365,8 @@ class Entity(Abstract, IDisposable):
             # Rewrite the baseline into the writable structs. Primary keys are intentionally left
             # out: they are read-only (their setter raises), and a drifted PK is an error state
             # resolved by dooming the transaction, not by silent restoration.
-            def restore(column: IColumnAbstract) -> None: _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
-
-            for column in cols.GetColumns().AsIterable():
-                if isinstance(column, IColumn): restore(column)
-
-            for column in cols.GetEntityColumns().AsIterable(): restore(column)
-            for column in cols.GetForeignKeys().AsIterable(): restore(column)
+            for column in ConcatenateEnumerables(cols.GetColumns(), cols.GetEntityColumns(), cols.GetForeignKeys()):
+                _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
     @final
     class _DBCookie(_Cookie):
         def __init__(self, entity: Entity) -> None:
