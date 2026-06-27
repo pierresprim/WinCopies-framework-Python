@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator as IteratorCollection, Generator as GeneratorCollection
+from collections.abc import Iterable, Iterator as IteratorCollection
 from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
+from WinCopies.Collections import Generator as GeneratorCollection
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
