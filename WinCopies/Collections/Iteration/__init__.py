@@ -4,7 +4,7 @@ from typing import Callable, Type
 
 from WinCopies import NullableBoolean
 from WinCopies.Collections import Generator, IterationResult, IterableScanResult
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, CreateIterable, AsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, CreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotPredicate
@@ -41,7 +41,7 @@ def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
 def ConcatenateItems[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[T]:
-    return Concatenate(Select(collection, lambda items: None if items is None else items.AsIterable()))
+    return Concatenate(Select(collection, TryAsIterable))
 def ConcatenateEnumerables[T](*collection: IEnumerable[T]|None) -> Generator[T]:
     return ConcatenateItems(collection)
 
