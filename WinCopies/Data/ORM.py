@@ -21,7 +21,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Select, SelectWhereNotNone, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration import Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, SelectWhereNotNone, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
@@ -1304,13 +1304,11 @@ class Entity(Abstract, IDisposable):
 
             self.__original: IDictionary[IString, Any]|None = None
         
-        def GetOrigin(self) -> CookieOrigin:
-            return CookieOrigin.Application
+        def GetOrigin(self) -> CookieOrigin: return CookieOrigin.Application
         
         def IsReady(self) -> bool: return True
         
-        def Seal(self) -> None:
-            pass
+        def Seal(self) -> None: pass
         
         def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T: return func(self._GetEntity()).GetValue()
         def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None: return func(self._GetEntity()).SetValue(value)
@@ -1319,15 +1317,7 @@ class Entity(Abstract, IDisposable):
             # Recompare scope: writable columns (settable after construction) + primary keys.
             # Primary keys are tracked to detect a primary-key mutation performed by bypassing
             # the read-only setter (direct struct reassignment); see the PK-drift guard.
-            cols: _Columns = _GetColumns(type(self._GetEntity()))
-
-            yield from cols.GetPrimaryKeys().AsIterable()
-
-            for column in cols.GetColumns().AsIterable():
-                if isinstance(column, IColumn): yield column
-
-            yield from cols.GetEntityColumns().AsIterable()
-            yield from cols.GetForeignKeys().AsIterable()
+            yield from _GetColumns(type(self._GetEntity())).GetAllColumns()
         
         def __Snapshot(self) -> IDictionary[IString, Any]:
             entity: Entity = self._GetEntity()
@@ -1360,12 +1350,11 @@ class Entity(Abstract, IDisposable):
             if original is None: return
 
             entity: Entity = self._GetEntity()
-            cols: _Columns = _GetColumns(type(entity))
 
             # Rewrite the baseline into the writable structs. Primary keys are intentionally left
             # out: they are read-only (their setter raises), and a drifted PK is an error state
             # resolved by dooming the transaction, not by silent restoration.
-            for column in ConcatenateEnumerables(cols.GetColumns(), cols.GetEntityColumns(), cols.GetForeignKeys()):
+            for column in Exclude(_GetColumns(type(entity)).GetAllColumns(), lambda column: column.GetColumnParameter().GetColumnRole() == Role.PrimaryKey):
                 _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
     @final
     class _DBCookie(_Cookie):
@@ -2120,10 +2109,8 @@ class DataContextBase(Abstract):
 
             self.__context: DataContextBase = context
         
-        def TryRegister(self, transaction: ITransaction) -> bool:
-            return self.__context._TryRegisterTransaction(transaction)
-        def Unregister(self) -> None:
-            self.__context._UnregisterTransaction()
+        def TryRegister(self, transaction: ITransaction) -> bool: return self.__context._TryRegisterTransaction(transaction)
+        def Unregister(self) -> None: self.__context._UnregisterTransaction()
     
     def __init__(self) -> None:
         super().__init__()
