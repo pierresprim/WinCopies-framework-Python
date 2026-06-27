@@ -15,7 +15,7 @@ from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple,
 from WinCopies.Collections.Abstraction.Mapping import Set, Dictionary, CreateDictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateKeyedSet
 from WinCopies.Collections.Core import ICountable, IReadOnlyIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, IteratorProvider, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError, CreateIteratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
@@ -205,7 +205,7 @@ class _Expression(Abstract, IFieldParameterSetItem[ITableColumn, IParameter[IOpe
     def TryGetItems(self) -> IEnumerable[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None:
         expression: ICompositeExpressionNode[_IDataParameter, ConditionalOperator]|None = self.__expression.TryGetItems()
 
-        return None if expression is None else IteratorProvider[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]](lambda: Select(expression.AsIterable(), lambda expression: _Expression(expression, self.__tableName)))
+        return None if expression is None else CreateIteratorProvider(lambda: Select(expression.AsIterable(), lambda expression: _Expression(expression, self.__tableName)))
 
 def _GetEnumerable(enumerationItems: IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]) -> IEnumerable[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]:
     items: IEnumerable[IFieldParameterSetItem[ITableColumn, IParameter[IOperandValue]]]|None = enumerationItems.TryGetItems()
@@ -1075,7 +1075,7 @@ class _Columns(Abstract):
     def __init__(self, columns: Iterable[IColumnAbstract]) -> None:
         def checkRole(column: IColumnAbstract, role: Role) -> bool: return column.GetColumnParameter().GetColumnRole() == role
         def getPredicate(role: Role) -> Predicate[IColumnAbstract]: return lambda column: checkRole(column, role)
-        def concatenate(*columns: IEnumerable[IColumnAbstract]) -> Iterable[IColumnAbstract]: return ConcatenateIterables(Select(columns, lambda items: items.AsIterable()))
+        def concatenate(*columns: IEnumerable[IColumnAbstract]) -> Iterator[IColumnAbstract]: return ConcatenateIterables(Select(columns, lambda items: items.AsIterable()))
         
         def createTuple[T](t: Type[T], role: Role, columns: IIterator[IColumnAbstract]) -> ITuple[T]: return CreateTuple(WhereOfType(t, columns.Include(getPredicate(role))))
 
@@ -1091,7 +1091,7 @@ class _Columns(Abstract):
         self.__entityColumns: ITuple[IDefaultEntityColumn] = createTuple(IDefaultEntityColumn, Role.ForeignKey, __columns) # type: ignore[type-abstract]
         self.__columns: ITuple[IDefaultColumn] = CreateTuple(WhereOfType(IDefaultColumn, _columns.AsQueuedGenerator())) # type: ignore[type-abstract]
 
-        self.__allColumns: Iterable[IColumnAbstract] = concatenate(self.__primaryKeys, self.__columns, self.__entityColumns, self.__foreignKeys)
+        self.__allColumns: Iterable[IColumnAbstract] = CreateIteratorProvider(lambda: concatenate(self.__primaryKeys, self.__columns, self.__entityColumns, self.__foreignKeys))
     
     def GetPrimaryKeys(self) -> ITuple[IDefaultColumn]:
         return self.__primaryKeys
@@ -1509,7 +1509,7 @@ class _Hydrator[T: Entity](Abstract):
         return obj
 
     def Enumerate(self, results: Iterable[ISelectionQueryExecutionResult|None]) -> IEnumerable[T]:
-        return IteratorProvider[T](lambda: Select(ConcatenateItems(results), lambda row: self.__CreateEntity(iter(row))))
+        return CreateIteratorProvider(lambda: Select(ConcatenateItems(results), lambda row: self.__CreateEntity(iter(row))))
     def Iterate(self, *results: ISelectionQueryExecutionResult|None) -> IEnumerable[T]:
         return self.Enumerate(results)
 
