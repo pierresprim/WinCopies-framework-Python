@@ -23,7 +23,7 @@ from WinCopies.String import DoubleQuoteSurround
 
 from WinCopies.Typing import IDisposableInfo, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
-from WinCopies.Typing.Object import IEnumValue, String, CreateEnum
+from WinCopies.Typing.Object import IEnumValue, IString, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 
@@ -246,9 +246,11 @@ class _Table(Table):
                 def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]: return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
                 
                 def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: IList[str]) -> IIndex:
+                    def select(columns: IList[str]) -> Iterable[IString]: return Select(columns.AsGenerator(), lambda value: String(value))
+
                     match kind:
-                        case IndexKind.Unique: return factory.GetUnicityIndex(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
-                        case IndexKind.PrimaryKey: return factory.GetPrimaryKey(currentName, Select(columns.AsGenerator(), lambda value: String(value)))
+                        case IndexKind.Unique: return factory.GetUnicityIndex(currentName, select(columns))
+                        case IndexKind.PrimaryKey: return factory.GetPrimaryKey(currentName, select(columns))
                         
                         case _: raise ValueError("The index kind is not valid.")
                 

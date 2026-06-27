@@ -1,33 +1,83 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from bisect import bisect_left, bisect_right, insort_right
+from collections.abc import MutableSequence
 from typing import final
 
 from WinCopies import IDisposableBase
-from WinCopies.Collections.Abstraction.Collection import SortedList
-from WinCopies.Collections.Extensions import ISortedList
+from WinCopies.Collections.Core import IReadOnlyCollection, IClearable, Countable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
+from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import IExtendedComparable, HashableComparableProtocol, CompareTo
 
 class ISortedNode[TKey, TValue](INode[TKey, TValue], IExtendedComparable['ISortedNode[TKey, TValue]|TKey']):
     def __init__(self) -> None: super().__init__()
-
 @final
 class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
-    def __init__(self, key: TKey, obj: TValue, items: ISortedList[ISortedNode[TKey, TValue]]) -> None:
+    def __init__(self, key: TKey, obj: TValue, items: ISortedList[TKey, TValue]) -> None:
         super().__init__(key, obj)
 
-        self.__items: ISortedList[ISortedNode[TKey, TValue]] = items
+        self.__items: ISortedList[TKey, TValue] = items
     
     def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None: return CompareTo(self.GetKey(), ExtractKey(item))
     
     def Remove(self) -> None:
-        items: ISortedList[ISortedNode[TKey, TValue]] = self.__items
+        items: ISortedList[TKey, TValue] = self.__items
 
-        items.RemoveAt(items.BisectLeft(self.GetKey(), GetKey))
+        items.Remove(self.GetKey())
+
+class ISortedList[TKey, TValue](IReadOnlyCollection, IClearable):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    @abstractmethod
+    def BisectLeft(self, key: TKey) -> int:
+        ...
+    @abstractmethod
+    def BisectRight(self, key: TKey) -> int:
+        ...
+    
+    @abstractmethod
+    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
+        ...
+    
+    @abstractmethod
+    def Add(self, item: ISortedNode[TKey, TValue]) -> None:
+        ...
+    @abstractmethod
+    def Remove(self, key: TKey) -> None:
+        ...
+class SortedList[TKey: HashableComparableProtocol, TValue](Countable, ISortedList[TKey, TValue]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: MutableSequence[ISortedNode[TKey, TValue]] = list[ISortedNode[TKey, TValue]]()
+    
+    @final
+    def GetCount(self) -> int: return len(self.__items)
+    
+    @final
+    def IsEmpty(self) -> bool: return self.GetCount() < 1
+    
+    @final
+    def BisectLeft(self, key: TKey) -> int: return bisect_left(self.__items, key, key = GetKey)
+    @final
+    def BisectRight(self, key: TKey) -> int: return bisect_right(self.__items, key, key = GetKey)
+    
+    @final
+    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None: return TryGetAt(self.__items, self.BisectLeft(key))
+
+    @final
+    def Add(self, item: ISortedNode[TKey, TValue]) -> None: insort_right(self.__items, item)
+    @final
+    def Remove(self, key: TKey) -> None: self.__items.pop(self.BisectLeft(key))
+
+    @final
+    def Clear(self) -> None: return self.__items.clear()
 
 class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None: super().__init__()
@@ -45,16 +95,14 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
     def __init__(self) -> None:
         super().__init__()
 
-        self.__items: ISortedList[ISortedNode[TKey, TOut]] = SortedList[ISortedNode[TKey, TOut]]()
+        self.__items: ISortedList[TKey, TOut] = SortedList[TKey, TOut]()
     
     @final
     def __TryGetNode(self, key: TKey) -> ISortedNode[TKey, TOut]|None:
-        items: ISortedList[ISortedNode[TKey, TOut]] = self._GetSortedItems()
-
-        return items.TryGetValue(items.BisectLeft(key, GetKey)).TryGetValue()
+        return self._GetSortedItems().TryGetValue(key)
     
     @final
-    def _GetSortedItems(self) -> ISortedList[ISortedNode[TKey, TOut]]:
+    def _GetSortedItems(self) -> ISortedList[TKey, TOut]:
         return self.__items
     
     @abstractmethod
@@ -62,7 +110,7 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         ...
     
     def _GetRemovable(self, obj: TOut, node: INodeBase) -> IRemovable:
-        items: ISortedList[ISortedNode[TKey, TOut]] = self._GetSortedItems()
+        items: ISortedList[TKey, TOut] = self._GetSortedItems()
         sortedNode: _SortedNode[TKey, TOut] = _SortedNode[TKey, TOut](self._GetKey(obj), obj, items)
 
         items.Add(sortedNode)
@@ -85,9 +133,9 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
-    def BisectLeft(self, key: TKey) -> int: return self._GetSortedItems().BisectLeft(key, GetKey)
+    def BisectLeft(self, key: TKey) -> int: return self._GetSortedItems().BisectLeft(key)
     @final
-    def BisectRight(self, key: TKey) -> int: return self._GetSortedItems().BisectRight(key, GetKey)
+    def BisectRight(self, key: TKey) -> int: return self._GetSortedItems().BisectRight(key)
     
     def InvalidateObjects(self) -> None:
         super().InvalidateObjects()
