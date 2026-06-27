@@ -266,7 +266,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def IsEmpty(self) -> bool: return self.GetCount() == 0
+    def IsEmpty(self) -> bool: return self.GetCount() < 1
     
     @abstractmethod
     def GetMutability(self) -> Mutability:

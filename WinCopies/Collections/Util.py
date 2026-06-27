@@ -61,7 +61,7 @@ def ReverseIndex(index: int, length: int) -> int:
 def ReverseRangeStartIndex(index: int, count: int, totalLength: int) -> int:
     return GetIndex(ReverseIndex(index, totalLength), totalLength, -(count - 1))[0]
 
-def TryGetAt[T](l: Sequence[T], index: int, default: T|None = None) -> T|None:
+def TryGetAt[TValue, TDefault](l: Sequence[TValue], index: int, default: TDefault|None = None) -> TValue|TDefault|None:
     return l[index] if ValidateIndex(index, len(l)) else default
 def TryGetAtStr(l: Sequence[str], index: int) -> str:
     return StringifyIfNone(TryGetAt(l, index, ''))
