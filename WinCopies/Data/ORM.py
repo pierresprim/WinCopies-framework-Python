@@ -902,6 +902,11 @@ class ICookie(IInterface):
 def _GetCookie(obj: Entity) -> ICookie:
     return obj._GetCookie() # pyright: ignore[reportPrivateUsage]
 
+def _TryGetEntityContext(obj: Entity) -> DataContextBase|None:
+    return obj._TryGetContext() # pyright: ignore[reportPrivateUsage]
+def _SetEntityContext(obj: Entity, context: DataContextBase) -> None:
+    obj._SetContext(context) # pyright: ignore[reportPrivateUsage]
+
 class _ColumnDecoratorBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract, TProperty](Abstract, IFunctionProvider[TEntity, TValue, TProperty]):
     def __init__(self, parameter: TParameter, func: TProperty, setter: SetterBase[Entity, object]) -> None:
         super().__init__()
@@ -1245,11 +1250,12 @@ class IEntityMapper[T: Entity](IEntityMapperBase[T]):
     def Unregister(self, key: IEntityKey[IItem]) -> None: 
         ...
 class EntityMapper[T: Entity](Abstract, IEntityMapper[T]):
-    def __init__(self, t: Type[T]) -> None:
+    def __init__(self, t: Type[T], context: DataContextBase) -> None:
         super().__init__()
 
         self.__type: IType[T] = TypeObject[T](t)
         self.__items: IDictionary[IEntityKey[IItem], T] = Dictionary[IEntityKey[IItem], T]()
+        self.__context: DataContextBase = context
     
     @final
     def _GetItems(self) -> IDictionary[IEntityKey[IItem], T]:
@@ -1283,8 +1289,10 @@ class EntityMapper[T: Entity](Abstract, IEntityMapper[T]):
             t: Type[T] = self.AsKey().GetValue()
 
             self._GetItems().Add(key, entity := object.__new__(t))
-            
+
             entity._InitCookie() # pyright: ignore[reportPrivateUsage]
+
+            _SetEntityContext(entity, self.__context)
 
             _ProcessColumns(entity, Select(key.AsIterable(), lambda key: key.GetValue()), _GetPrimaryKeys(t).AsIterable())
 
@@ -1408,6 +1416,8 @@ class Entity(Abstract, IDisposable):
     
     __columns: IFunction[_Columns]
 
+    __context: DataContextBase|None = None
+
     def __init_subclass__(cls, **kwargs: object) -> None:
         def update(func: IFunction[_Columns]) -> None: cls.__columns = func
         
@@ -1432,7 +1442,14 @@ class Entity(Abstract, IDisposable):
     @final
     def _GetCookie(self) -> ICookie:
         return self.__cookie
-    
+
+    @final
+    def _TryGetContext(self) -> DataContextBase|None:
+        return self.__context
+    @final
+    def _SetContext(self, context: DataContextBase) -> None:
+        self.__context = context
+
     @final
     def IsReady(self) -> bool:
         return self._GetCookie().IsReady()
@@ -1640,11 +1657,13 @@ class _InsertionRecord[TEntity: Entity, TValue](Abstract, _IInsertionRecord):
         if generatedColumn is not None: generatedColumn._SetGeneratedValue(self.__entity, self.__oldValue) # pyright: ignore[reportPrivateUsage]
 
 class _Journal(Abstract):
-    def __init__(self) -> None:
+    def __init__(self, context: DataContextBase) -> None:
         super().__init__()
 
+        self.__context: DataContextBase = context
         self.__seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
         self.__ledger: IList[_IInsertionRecord] = Queue[_IInsertionRecord]()
+        self.__updated: ISet[IReference[Entity]] = Set[IReference[Entity]]()
 
     @final
     def IsSeen(self, entity: Entity) -> bool:
@@ -1656,14 +1675,25 @@ class _Journal(Abstract):
     @final
     def RecordInserted[TEntity: Entity, TValue](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = None, oldValue: TValue|None = None) -> None:
         self.__ledger.Push(_InsertionRecord[TEntity, TValue](mapper, key, entity, generatedColumn, oldValue))
+    @final
+    def RecordUpdated(self, entity: Entity) -> None:
+        self.__updated.TryAdd(DefaultReference[Entity](entity))
 
     @final
     def Revert(self) -> None:
         for record in self.__ledger.AsGenerator(): record.Revert()
 
+        # Update-records are leave-as-is: no in-memory revert. But an emitted-then-rolled-back
+        # update leaves the entity diverging from the database, so the context is armed to force
+        # an explicit resolution (Reverse/Retry) before any further database operation.
+        if self.__updated.GetCount() > 0: self.__context._ArmUnresolvedRollback(self.GetUpdated()) # pyright: ignore[reportPrivateUsage]
+
     @final
     def GetInserted(self) -> Iterable[Entity]:
         return Select(self.__ledger.AsGenerator(), lambda record: record.GetEntity())
+    @final
+    def GetUpdated(self) -> Iterable[Entity]:
+        return Select(self.__updated.AsIterable(), lambda reference: reference.GetValue())
 
 @final
 class _EntityEnumerationData(Abstract):
@@ -1715,19 +1745,7 @@ class _EntityEnumerable(RecursivelyEnumerable[IReference[Entity]]):
                 lambda edge: cast(Entity|None, _GetEntityValue(e, edge))),
             lambda e: DefaultReference[Entity](e)), GetTruthyPredicate(lambda entity: _TryAdd(entity, self.__data))))
 
-class _Persister(Abstract):
-    @final
-    class _EnumerationHandler(RecursiveStackedEnumerationHandler[IReference[Entity]]):
-        def __init__(self, onStack: ISet[IReference[Entity]]) -> None:
-            super().__init__()
-
-            self.__onStack: ISet[IReference[Entity]] = onStack
-        
-        def OnEnteringEnumerationLevel(self, item: IReference[Entity]) -> None:
-            pass
-        def OnExitingEnumerationLevel(self, cookie: IReference[Entity]) -> None:
-            self.__onStack.Remove(cookie)
-    
+class _Writer(Abstract):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__()
 
@@ -1735,6 +1753,65 @@ class _Persister(Abstract):
 
     @final
     def _GetContext(self) -> DataContextBase: return self.__context
+
+    @final
+    def _AssembleRow(self, e: Entity, cols: _Columns, selector: Predicate[IColumnAbstract]) -> IDictionary[IString, object]:
+        def __add(columnParameter: IColumnParameterAbstract|ITableColumn, value: object) -> None:
+            row.Add(String(columnParameter.GetColumnName()), value)
+
+        def _add(column: IColumnAbstract, value: object) -> None:
+            __add(column.GetColumnParameter(), value)
+
+        def addColumns(columns: Iterable[IDefaultColumn]) -> None:
+            for column in columns:
+                if selector(column): _add(column, _GetEntityValue(e, column))
+
+        def addColumn(columns: ITuple[ITableColumn], index: int, value: object) -> None:
+            __add(columns.GetAt(index), value)
+
+        def getRange(columns: ICountable) -> range:
+            return range(columns.GetCount())
+
+        row: IDictionary[IString, object] = Dictionary[IString, object]()
+
+        addColumns(WhereNotOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable())) # type: ignore[type-abstract]
+        addColumns(cols.GetColumns().AsIterable())
+
+        target: Entity|None = None
+
+        for entityColumn in cols.GetEntityColumns().AsIterable():
+            if selector(entityColumn):
+                target = cast(Entity|None, _GetEntityValue(e, entityColumn))
+
+                _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(type(target)).GetAt(0)))
+
+        for foreignKey in cols.GetForeignKeys().AsIterable():
+            if selector(foreignKey):
+                target = cast(Entity|None, _GetEntityValue(e, foreignKey))
+                columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(_GetDefaultTableName(type(e))) # pyright: ignore[reportPrivateUsage]
+
+                if target is None:
+                    for i in getRange(columns): addColumn(columns, i, None)
+
+                else:
+                    targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(type(target))
+
+                    for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
+
+        return row
+
+class _Adder(_Writer):
+    @final
+    class _EnumerationHandler(RecursiveStackedEnumerationHandler[IReference[Entity]]):
+        def __init__(self, onStack: ISet[IReference[Entity]]) -> None:
+            super().__init__()
+
+            self.__onStack: ISet[IReference[Entity]] = onStack
+
+        def OnEnteringEnumerationLevel(self, item: IReference[Entity]) -> None:
+            pass
+        def OnExitingEnumerationLevel(self, cookie: IReference[Entity]) -> None:
+            self.__onStack.Remove(cookie)
 
     @final
     def __GetAutoPrimaryKey(self, cols: _Columns) -> _IAutoPrimaryKey[Entity, object]|None:
@@ -1745,54 +1822,10 @@ class _Persister(Abstract):
         return CreateTuple(Select(cols.GetPrimaryKeys().AsIterable(), lambda pk: _GetEntityValue(e, pk)))
 
     @final
-    def __AssembleRow(self, e: Entity, cols: _Columns) -> IDictionary[IString, object]:
-        def __add(columnParameter: IColumnParameterAbstract|ITableColumn, value: object) -> None:
-            row.Add(String(columnParameter.GetColumnName()), value)
-        
-        def _add(column: IColumnAbstract, value: object) -> None:
-            __add(column.GetColumnParameter(), value)
-        
-        def addColumns(columns: Iterable[IDefaultColumn]) -> None:
-            for column in columns: _add(column, _GetEntityValue(e, column))
-        
-        def addColumn(columns: ITuple[ITableColumn], index: int, value: object) -> None:
-            __add(columns.GetAt(index), value)
-        
-        def getRange(columns: ICountable) -> range:
-            return range(columns.GetCount())
-        
-        row: IDictionary[IString, object] = Dictionary[IString, object]()
-
-        addColumns(WhereNotOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable())) # type: ignore[type-abstract]
-        addColumns(cols.GetColumns().AsIterable())
-
-        target: Entity|None = None
-
-        for entityColumn in cols.GetEntityColumns().AsIterable():
-            target = cast(Entity|None, _GetEntityValue(e, entityColumn))
-
-            _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(type(target)).GetAt(0)))
-
-        for foreignKey in cols.GetForeignKeys().AsIterable():
-            target = cast(Entity|None, _GetEntityValue(e, foreignKey))
-            columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(_GetDefaultTableName(type(e))) # pyright: ignore[reportPrivateUsage]
-
-            if target is None:
-                for i in getRange(columns): addColumn(columns, i, None)
-
-            else:
-                targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(type(target))
-
-                for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
-
-        return row
-
-    @final
     def __Persist(self, e: Entity, journal: _Journal, onStack: ISet[IReference[Entity]]) -> bool:
         def persist(ref: IReference[Entity]) -> bool:
-            handler: _Persister._EnumerationHandler = _Persister._EnumerationHandler(onStack)
-            
-            # try:
+            handler: _Adder._EnumerationHandler = _Adder._EnumerationHandler(onStack)
+
             for e in Select(_EntityEnumerable(ref.GetValue(), data).GetRecursiveStackedEnumerator(EnumerationOrder.LIFO, handler).AsIterator(), lambda e: e.GetValue()):
                 cols: _Columns = _GetColumns(type(e))
                 autoPrimaryKey: _IAutoPrimaryKey[Entity, object]|None = self.__GetAutoPrimaryKey(cols)
@@ -1800,7 +1833,7 @@ class _Persister(Abstract):
                 # Capture the placeholder BEFORE write-back.
                 oldValue: object|None = None if autoPrimaryKey is None else _GetEntityValue(e, autoPrimaryKey)
 
-                row: IDictionary[IString, object] = self.__AssembleRow(e, cols)
+                row: IDictionary[IString, object] = self._AssembleRow(e, cols, lambda _: True)
 
                 mapper: IEntityMapper[Entity] = context._GetMapper(type(e)) # pyright: ignore[reportPrivateUsage]
                 key: IEntityKey[IItem]|None = None
@@ -1814,7 +1847,7 @@ class _Persister(Abstract):
 
                 try:
                     if autoPrimaryKey is not None: autoPrimaryKey._SetGeneratedValue(e, result.GetLastRowId()) # pyright: ignore[reportPrivateUsage]
-                
+
                 finally: result.Dispose()
 
                 if key is None: key = mapper.GetKey(self.__GetPrimaryKeyValues(e, cols))
@@ -1825,11 +1858,8 @@ class _Persister(Abstract):
                 journal.RecordInserted(mapper, key, e, autoPrimaryKey, oldValue)
 
             return True
-            
-            # finally:
-                # onStack.Clear()
 
-        context: DataContextBase = self.__context
+        context: DataContextBase = self._GetContext()
         data: _EntityEnumerationData = _EntityEnumerationData(context, journal, onStack)
         ref: IReference[Entity] = DefaultReference[Entity](e)
 
@@ -1844,7 +1874,68 @@ class _Persister(Abstract):
 
     @final
     def Promote(self, journal: _Journal) -> None:
-        self.__context._MarkPersisted(journal.GetInserted()) # pyright: ignore[reportPrivateUsage]
+        context: DataContextBase = self._GetContext()
+        inserted: ILinkedList[Entity] = CreateList(journal.GetInserted())
+
+        # Promote pins the context handle on each freshly inserted entity (so it becomes a valid
+        # UPDATE target) and re-baselines its cookie, since the committed state is now the baseline.
+        for entity in inserted.AsIterable():
+            _SetEntityContext(entity, context)
+            _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
+
+        context._MarkPersisted(inserted.AsIterable()) # pyright: ignore[reportPrivateUsage]
+
+class _Updater(_Writer):
+    @final
+    def __BuildKeyConditions(self, entity: Entity, primaryKeys: ITuple[IDefaultColumn]) -> _IRoot:
+        def parameterFor(index: int) -> _IDataParameter:
+            primaryKey: IDefaultColumn = primaryKeys.GetAt(index)
+
+            return cast(_IDataParameter, cast(IColumnParameter[object], primaryKey.GetColumnParameter()).ToConditionParameter(Operator.Equals, _GetEntityValue(entity, primaryKey)))
+
+        root: _ValueRoot = _ValueRoot(parameterFor(0))
+
+        for i in range(1, primaryKeys.GetCount()): root.GetFirst().SetNext(ConditionalOperator.And, parameterFor(i))
+
+        return root
+
+    @final
+    def Update(self, entity: Entity, journal: _Journal) -> bool:
+        cols: _Columns = _GetColumns(type(entity))
+        dirty: IReadOnlySet[IString] = _GetCookie(entity).GetDirtyColumns()
+
+        primaryKeys: ITuple[IDefaultColumn] = cols.GetPrimaryKeys()
+        primaryKeyNames: ISet[IString] = Set[IString](Select(primaryKeys.AsIterable(), lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
+
+        for name in dirty.AsIterable():
+            if primaryKeyNames.Contains(name): raise PrimaryKeyMutationError(type(entity))
+
+        dirtyNonPrimaryKey: ISet[IString] = Set[IString](Exclude(dirty.AsIterable(), lambda name: primaryKeyNames.Contains(name)))
+
+        if dirtyNonPrimaryKey.GetCount() < 1: return False
+
+        for column in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
+            if dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())):
+                target: Entity|None = cast(Entity|None, _GetEntityValue(entity, column))
+
+                if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(type(target))
+
+        values: IDictionary[IString, object] = self._AssembleRow(entity, cols, lambda column: dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())))
+
+        result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), type(entity)).Update(values, TryCreateConditionSetFromConditions(_Set(self.__BuildKeyConditions(entity, primaryKeys), _GetDefaultTableName(type(entity)))))
+
+        try:
+            if result.GetRowCount() == 0: raise RowVanishedError(type(entity))
+
+        finally: result.Dispose()
+
+        journal.RecordUpdated(entity)
+
+        return True
+
+    @final
+    def Promote(self, journal: _Journal) -> None:
+        for entity in journal.GetUpdated(): _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
 
 class ITransaction(ITransactionControl, IDisposable):
     def __init__(self) -> None: super().__init__()
@@ -1854,6 +1945,10 @@ class ITransaction(ITransactionControl, IDisposable):
         ...
     @abstractmethod
     def TryAddRange(self, items: Iterable[Entity]) -> bool|None:
+        ...
+
+    @abstractmethod
+    def TryUpdate(self, item: Entity) -> bool:
         ...
 
 class _ITransaction(IInterface):
@@ -1873,7 +1968,10 @@ class _ITransaction(IInterface):
     @abstractmethod
     def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None:
         ...
-    
+    @abstractmethod
+    def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+        ...
+
     @abstractmethod
     def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
         ...
@@ -1945,29 +2043,35 @@ class _TransactionBase(_TransactionAbstract):
 class _Transaction(Abstract, ITransaction):
     @final
     class __Active(_TransactionBase):
-        def __init__(self, control: ITransactionControl, persister: _Persister) -> None:
-            super().__init__(control, _Journal())
+        def __init__(self, control: ITransactionControl, adder: _Adder, updater: _Updater) -> None:
+            super().__init__(control, _Journal(adder._GetContext())) # pyright: ignore[reportPrivateUsage]
 
-            self.__persister: _Persister = persister
-        
+            self.__adder: _Adder = adder
+            self.__updater: _Updater = updater
+
         def __GetTransaction(self, e: BaseException) -> tuple[BaseException, _ITransaction]:
             return (e, _Transaction.__Doomed(self._GetTransactionControl(), self._GetJournal()))
 
         def __Promote(self) -> None:
-            self.__persister.Promote(self._GetJournal())
+            self.__adder.Promote(self._GetJournal())
+            self.__updater.Promote(self._GetJournal())
 
         def __TryAdd[T](self, item: T, action: Callable[[T, _Journal], bool|None]) -> bool|tuple[BaseException, _ITransaction]|None:
             if self.IsActive():
                 try: return action(item, self._GetJournal())
                 except BaseException as e: return self.__GetTransaction(e)
-            
+
             return None
 
         def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
-            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__persister.Persist)
+            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__adder.Persist)
 
             return result if isinstance(result, tuple) else result is True
-        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return self.__TryAdd(items, self.__persister.PersistRange)
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return self.__TryAdd(items, self.__adder.PersistRange)
+        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__updater.Update)
+
+            return result if isinstance(result, tuple) else result is True
 
         def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
             try:
@@ -2016,7 +2120,8 @@ class _Transaction(Abstract, ITransaction):
             self.__EnsureInactive()
 
             return None
-        
+        def TryUpdate(self, item: Entity) -> bool: return self.__CheckIsActive()
+
         def Commit(self) -> bool: return self.__CheckIsActive()
         
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
@@ -2041,7 +2146,9 @@ class _Transaction(Abstract, ITransaction):
             return False
         def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None:
             return None
-        
+        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
+            return False
+
         def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
             return False
         def Rollback(self) -> bool:
@@ -2050,11 +2157,11 @@ class _Transaction(Abstract, ITransaction):
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
             return (self, None)
     
-    def __init__(self, cookie: _ITransactionCookie, control: ITransactionControl, persister: _Persister) -> None:
+    def __init__(self, cookie: _ITransactionCookie, control: ITransactionControl, adder: _Adder, updater: _Updater) -> None:
         def tryInitialize() -> bool:
             def dispose() -> None:
                 self.__dispose = NoAction
-                
+
                 cookie.Unregister()
 
             self.__tryInitialize = BoolTrue
@@ -2064,7 +2171,7 @@ class _Transaction(Abstract, ITransaction):
 
         super().__init__()
 
-        self.__transaction: _ITransaction = _Transaction.__Active(control, persister)
+        self.__transaction: _ITransaction = _Transaction.__Active(control, adder, updater)
         
         self.__tryInitialize: Function[bool] = tryInitialize # type: ignore[no-redef]
         self.__dispose: Action = NoAction # type: ignore[no-redef]
@@ -2101,6 +2208,7 @@ class _Transaction(Abstract, ITransaction):
 
     def TryAdd(self, item: Entity) -> bool: return self.__Process(lambda transaction: transaction.TryAdd(item))
     def TryAddRange(self, items: Iterable[Entity]) -> bool|None: return self.__Process(lambda transaction: transaction.TryAddRange(items))
+    def TryUpdate(self, item: Entity) -> bool: return self.__Process(lambda transaction: transaction.TryUpdate(item))
 
     def Commit(self) -> bool: return self.__Process(lambda transaction: transaction.Commit())
     def Rollback(self) -> bool: return self.__transaction.Rollback()
@@ -2135,6 +2243,9 @@ class DataContextBase(Abstract):
 
         self.__transaction: ITransaction|None = None
 
+        self.__unresolvedRollback: bool = False
+        self.__unresolved: ISet[IReference[Entity]] = Set[IReference[Entity]]()
+
     @abstractmethod
     def _GetConnection(self) -> IConnection:
         ...
@@ -2159,16 +2270,25 @@ class DataContextBase(Abstract):
         for entity in entities: self.__persisted.TryAdd(DefaultReference[Entity](entity))
 
     @final
+    def _ArmUnresolvedRollback(self, entities: Iterable[Entity]) -> None:
+        for entity in entities: self.__unresolved.TryAdd(DefaultReference[Entity](entity))
+
+        self.__unresolvedRollback = True
+    @final
+    def IsBlocked(self) -> bool:
+        return self.__unresolvedRollback
+
+    @final
     def _GetMapper[T: Entity](self, t: Type[T]) -> IEntityMapper[T]:
         _t: IType[T] = TypeObject[T](t)
         mapper: IEntityMapper[T]|None = cast(IEntityMapper[T]|None, self.__items.TryGetValue(_t).TryGetValue())
 
-        if mapper is None: self.__items.Add(_t, mapper := EntityMapper[T](t))
+        if mapper is None: self.__items.Add(_t, mapper := EntityMapper[T](t, self))
         
         return mapper
     
     @final
-    def CreateTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Persister(self))
+    def CreateTransaction(self) -> ITransaction: return _Transaction(DataContextBase.__Cookie(self), self._GetConnection().CreateTransactionControl(), _Adder(self), _Updater(self))
     @final
     def BeginTransaction(self) -> ITransaction:
         transaction: ITransaction = self.CreateTransaction()
