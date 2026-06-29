@@ -708,6 +708,10 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
 
 class IColumnAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def IsReadOnly(self) -> bool:
+        ...
     
     @abstractmethod
     def GetColumnParameter(self) -> IColumnParameterAbstract:
@@ -974,6 +978,9 @@ class _ReadOnlyColumnAbstract[TEntity: Entity, TValue, TConfig: IColumnConfigBas
     def _GetDecorator(self) -> _ReadOnlyColumnDecorator[TEntity, TValue, IColumnParameter[TValue]]: return self.__decorator
     
     @final
+    def IsReadOnly(self) -> bool: return True
+    
+    @final
     def Get(self, obj: TEntity|None, objtype: type|None = None) -> TValue|IColumnParameter[TValue]: return self._GetValue(obj)
     
     @final
@@ -986,7 +993,13 @@ class _AutoPrimaryKeyBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase](_
     def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func, config)
 
-class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](PropertyDecorator[TEntity, TValue, TParameter], _IColumn[TEntity, TValue, _ColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, Property[TEntity, TValue]]):
+class _ColumnAbstract[TEntity: Entity, TValue, TParameter](PropertyDecorator[TEntity, TValue, TParameter]):
+    def __init__(self, func: Property[TEntity, TValue]) -> None: super().__init__(func)
+    
+    @final
+    def IsReadOnly(self) -> bool: return False
+
+class _ColumnBase[TEntity: Entity, TValue, TConfig: IColumnConfigBase, TParameter: IColumnParameterBase](_ColumnAbstract[TEntity, TValue, TParameter], _IColumn[TEntity, TValue, _ColumnDecorator[TEntity, TValue, TParameter], TConfig, TParameter, Property[TEntity, TValue]]):
     def __init__(self, func: Property[TEntity, TValue], config: TConfig) -> None:
         super().__init__(func)
 
@@ -1038,7 +1051,7 @@ class _EntityColumn[TEntity: Entity, TValue: Entity](_ColumnBase[TEntity, TValue
     def _CreateParameter(self, func: Property[TEntity, TValue], config: IEntityColumnConfig[TValue]) -> IEntityColumnParameter[TValue]: return EntityColumnParameter[TEntity, TValue](func, config)
 
 @final
-class _ForeignKey[TEntity: Entity, TValue: Entity](PropertyDecorator[TEntity, TValue, IForeignKeyParameter[TValue]], IForeignKey[TEntity, TValue]):
+class _ForeignKey[TEntity: Entity, TValue: Entity](_ColumnAbstract[TEntity, TValue, IForeignKeyParameter[TValue]], IForeignKey[TEntity, TValue]):
     def __init__(self, func: Property[TEntity, TValue], config: IForeignKeyConfig[TValue]) -> None:
         super().__init__(func)
 
