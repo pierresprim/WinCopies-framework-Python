@@ -1330,7 +1330,9 @@ class Entity(Abstract, IDisposable):
             # Recompare scope: writable columns (settable after construction) + primary keys.
             # Primary keys are tracked to detect a primary-key mutation performed by bypassing
             # the read-only setter (direct struct reassignment); see the PK-drift guard.
-            yield from _GetColumns(type(self._GetEntity())).GetAllColumns()
+            return Exclude(
+                _GetColumns(type(self._GetEntity())).GetAllColumns(),
+                lambda column: column.IsReadOnly() and column.GetColumnParameter().GetColumnRole() != Role.PrimaryKey)
         
         def __Snapshot(self) -> IDictionary[IString, Any]:
             entity: Entity = self._GetEntity()
@@ -1367,7 +1369,7 @@ class Entity(Abstract, IDisposable):
             # Rewrite the baseline into the writable structs. Primary keys are intentionally left
             # out: they are read-only (their setter raises), and a drifted PK is an error state
             # resolved by dooming the transaction, not by silent restoration.
-            for column in Exclude(_GetColumns(type(entity)).GetAllColumns(), lambda column: column.GetColumnParameter().GetColumnRole() == Role.PrimaryKey):
+            for column in Exclude(_GetColumns(type(entity)).GetAllColumns(), lambda column: column.IsReadOnly()):
                 _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
     @final
     class _DBCookie(_Cookie):
