@@ -98,7 +98,7 @@ class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T
 def CreateFieldParameter[T](operand: IOperand[T]) -> FieldParameter[T]:
     return FieldParameter[T](operand)
 def CreateFieldParameterFromValue[T](operator: Operator, value: T) -> FieldParameter[T]:
-    return CreateFieldParameter(Operand(operator, value))
+    return CreateFieldParameter(Operand[T](operator, value))
 
 __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]

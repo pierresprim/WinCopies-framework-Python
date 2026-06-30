@@ -586,3 +586,5 @@ def EnumerateFunctions(t: type) -> Generator[KeyValuePair[str, FunctionType]]:
     return _EnumerateMembers(GetFunctions(t))
 def EnumerateMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
     return _EnumerateMembers(GetMethods(obj))
+
+def GetTypeName(value: object|type) -> str: return (value if isinstance(value, type) else type(value)).__name__
