@@ -541,7 +541,7 @@ class CompositeExpressionValueNode[TValue, TConnector](_CompositeExpressionNodeB
 class CompositeExpressionNode[TValue, TConnector](_CompositeExpressionNodeBase[TValue, TConnector]):
     def __init__(self, initial: ICompositeExpressionNode[TValue, TConnector]) -> None: super().__init__(_CompositeExpression[TValue, TConnector](self._GetCookie, None, initial, None))
 
-def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, *values: TValue) -> TRoot|None:
+def CreateCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, values: Iterable[TValue]) -> TRoot|None:
     set: TRoot|None = None
     action: Method[TValue]|None = None
 
@@ -560,3 +560,5 @@ def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converte
     for value in values: action(value)
     
     return set
+def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, *values: TValue) -> TRoot|None:
+    return CreateCompositeExpressionRoot(constructor, converter, connector, values)
