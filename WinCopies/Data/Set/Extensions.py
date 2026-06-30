@@ -279,33 +279,33 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
     def CreateFromNames(*tableNames: IString) -> ITableParameterSet:
         return TableParameterSet.Create(tableNames)
 
-class ConditionParameterSet[T: IColumn](IConditionParameterSet):
-    @final
-    class __Handler[_T: IColumn](RecursiveEnumerationHandler[IFieldConditionSetItem[_T]]):
-        def __init__(self, writer: IConditionalQueryWriter, action: Method[IFieldConditionSetItem[_T]], connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[_T]]]) -> None:
-            super().__init__()
+@final
+class _ConditionParameterSetHandler[T: IColumn](RecursiveEnumerationHandler[IFieldConditionSetItem[T]]):
+    def __init__(self, writer: IConditionalQueryWriter, action: Method[IFieldConditionSetItem[T]], connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[T]]]) -> None:
+        super().__init__()
 
-            self.__writer: IConditionalQueryWriter = writer
-            self.__action: Method[IFieldConditionSetItem[_T]] = action
-            self.__connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[_T]]] = connectorHandlerUpdater
-        
-        def OnEnteringEnumerationLevel(self, item: IFieldConditionSetItem[_T]) -> None:
-            def _action(item: IFieldConditionSetItem[_T]) -> None:
-                operator: ConditionalOperator|None = item.TryGetPreviousOperator()
-
-                if operator is not None: self.__writer.Write(str(operator))
-                
-                self.__action(item)
-            def action(item: IFieldConditionSetItem[_T]) -> None:
-                self.__action(item)
-
-                self.__connectorHandlerUpdater(_action)
-
-            self.__writer.Write('(')
-
-            self.__connectorHandlerUpdater(action)
-        def OnExitingEnumerationLevel(self, cookie: None) -> None: self.__writer.Write(')')
+        self.__writer: IConditionalQueryWriter = writer
+        self.__action: Method[IFieldConditionSetItem[T]] = action
+        self.__connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[T]]] = connectorHandlerUpdater
     
+    def OnEnteringEnumerationLevel(self, item: IFieldConditionSetItem[T]) -> None:
+        def _action(item: IFieldConditionSetItem[T]) -> None:
+            operator: ConditionalOperator|None = item.TryGetPreviousOperator()
+
+            if operator is not None: self.__writer.Write(str(operator))
+            
+            self.__action(item)
+        def action(item: IFieldConditionSetItem[T]) -> None:
+            self.__action(item)
+
+            self.__connectorHandlerUpdater(_action)
+
+        self.__writer.Write('(')
+
+        self.__connectorHandlerUpdater(action)
+    def OnExitingEnumerationLevel(self, cookie: None) -> None: self.__writer.Write(')')
+
+class ConditionParameterSet[T: IColumn](IConditionParameterSet):
     def __init__(self, set: IFieldConditionRecursivelyEnumerable[T]) -> None:
         super().__init__()
 
@@ -327,7 +327,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
 
             if (value := condition.TryGetFieldParameter()) is not None: write(value)
 
-        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler[T](writer, process, updateAction)).AsIterable(), action)
+        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = _ConditionParameterSetHandler[T](writer, process, updateAction)).AsIterable(), action)
 
 def CreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]) -> IConditionParameterSet:
     return ConditionParameterSet[T](set)
