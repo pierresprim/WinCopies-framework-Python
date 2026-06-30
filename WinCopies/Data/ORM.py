@@ -2080,7 +2080,7 @@ class _TransactionBase(_TransactionAbstract):
 @final
 class _Transaction(Abstract, ITransaction):
     @final
-    class __Active(_TransactionBase):
+    class _Active(_TransactionBase):
         def __init__(self, context: DataContextBase, control: ITransactionControl, adder: _Adder, updater: _Updater) -> None:
             super().__init__(control, _Journal(context))
             
@@ -2088,7 +2088,7 @@ class _Transaction(Abstract, ITransaction):
             self.__updater: _Updater = updater
         
         def __GetTransaction(self, e: BaseException) -> tuple[BaseException, _ITransaction]:
-            return (e, _Transaction.__Doomed(self._GetTransactionControl(), self._GetJournal()))
+            return (e, _Transaction._Doomed(self._GetTransactionControl(), self._GetJournal()))
         
         def __Promote(self) -> None:
             def promote(writer: _Writer) -> None: writer.Promote(self._GetJournal())
@@ -2127,7 +2127,7 @@ class _Transaction(Abstract, ITransaction):
                 return self.__GetTransaction(e)
         
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
-            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction.__Disposed(), e)
+            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction._Disposed(), e)
             
             def commit() -> bool|BaseException:
                 try: return self._Commit()
@@ -2147,7 +2147,7 @@ class _Transaction(Abstract, ITransaction):
             
             return getResult(None)
     @final
-    class __Doomed(_TransactionBase):
+    class _Doomed(_TransactionBase):
         def __init__(self, control: ITransactionControl, journal: _Journal) -> None: super().__init__(control, journal)
 
         def __EnsureInactive(self) -> None:
@@ -2168,7 +2168,7 @@ class _Transaction(Abstract, ITransaction):
         def Commit(self) -> bool: return self.__CheckIsActive()
         
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
-            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction.__Disposed(), e)
+            def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction._Disposed(), e)
             
             if self.IsActive():
                 try: self._Rollback()
@@ -2176,7 +2176,7 @@ class _Transaction(Abstract, ITransaction):
             
             return getResult(None)
     @final
-    class __Disposed(_TransactionAbstract):
+    class _Disposed(_TransactionAbstract):
         def __init__(self) -> None: super().__init__()
 
         def IsActive(self) -> bool: return False
@@ -2210,7 +2210,7 @@ class _Transaction(Abstract, ITransaction):
         context: DataContextBase = cookie.GetContext()
         
         self.__context: DataContextBase = context
-        self.__transaction: _ITransaction = _Transaction.__Active(context, control, adder, updater)
+        self.__transaction: _ITransaction = _Transaction._Active(context, control, adder, updater)
         
         self.__tryInitialize: Function[bool] = tryInitialize # type: ignore[no-redef]
         self.__dispose: Action = NoAction # type: ignore[no-redef]
@@ -2282,8 +2282,7 @@ class DataContextBase(Abstract):
 
             self.__context: DataContextBase = context
         
-        def GetContext(self) -> DataContextBase:
-            return self.__context
+        def GetContext(self) -> DataContextBase: return self.__context
         
         def TryRegister(self, transaction: ITransaction) -> bool: return self.GetContext()._TryRegisterTransaction(transaction)
         def Unregister(self) -> None: self.GetContext()._UnregisterTransaction()

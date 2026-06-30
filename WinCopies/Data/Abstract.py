@@ -317,82 +317,105 @@ class IDataBase(IDisposable):
     @abstractmethod
     def CreateTable(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None = None) -> ITable:
         ...
+
+@final
+class _NullTable(Abstract, ITable):
+    def __init__(self) -> None: super().__init__()
+    
+    def Equals(self, item: ITable|object) -> bool: return item is self or isinstance(item, ITable)
+    
+    def GetName(self) -> str: raise GetDisposedError()
+    def SetName(self, name: str) -> None: raise GetDisposedError()
+
+    def GetQueryFactory(self) -> ITableQueryFactory: raise GetDisposedError()
+    
+    def GetFields(self) -> IArray[IField]: raise GetDisposedError()
+
+    def GetIndices(self) -> IArray[IIndex]: raise GetDisposedError()
+    
+    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDisposedError()
+
+    def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+    def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+    
+    def Remove(self) -> None: raise GetDisposedError()
+    def TryRemove(self) -> bool: return False
+    
+    def Dispose(self) -> None: pass
+class _TableBase(Abstract, ITable):
+    def __init__(self, tables: IList[_TableBase], table: ITable) -> None:
+        EnsureDirectModuleCall()
+
+        super().__init__()
+        
+        self.__tables: IList[_TableBase]|None = tables
+        self.__table: ITable = table
+
+    @abstractmethod
+    def _GetNullTable(self) -> ITable:
+        ...
+    
+    @final
+    def Equals(self, item: ITable|object) -> bool: return isinstance(item, _TableBase) and self.__tables == item.__tables and self.GetName() == item.GetName()
+    
+    @final
+    def GetName(self) -> str: return self.__table.GetName()
+    @final
+    def SetName(self, name: str) -> None: self.__table.SetName(name)
+
+    @final
+    def GetQueryFactory(self) -> ITableQueryFactory: return self.__table.GetQueryFactory()
+
+    @final
+    def GetIndices(self) -> IArray[IIndex]: return self.__table.GetIndices()
+    
+    @final
+    def GetFields(self) -> IArray[IField]: return self.__table.GetFields()
+    
+    @final
+    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: return self.__table.SelectByKeys(columns, keys)
+
+    @final
+    def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.Insert(items, ignoreExisting)
+    @final
+    def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.InsertMany(columns, items, ignoreExisting)
+
+    @final
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
+    
+    @final
+    def Remove(self) -> None: self.__table.Remove()
+    @final
+    def TryRemove(self) -> bool: return self.__table.TryRemove()
+    
+    @final
+    def Dispose(self) -> None:
+        tables: IList[_TableBase]|None = self.__tables
+
+        if tables is None: return
+        
+        self.__table.Dispose()
+
+        tables.Remove(self)
+        self.__tables = None
+        
+        self.__table = self._GetNullTable()
+
 class DataBase(Abstract, IDataBase, _ITransactionCheckable):
     @final
-    class __NullTable(Abstract, ITable):
-        def __init__(self) -> None: super().__init__()
-        
-        def Equals(self, item: ITable|object) -> bool: return item is self or isinstance(item, ITable)
-        
-        def GetName(self) -> str: raise GetDisposedError()
-        def SetName(self, name: str) -> None: raise GetDisposedError()
+    class _Table(_TableBase):
+        def __init__(self, tables: IList[_TableBase], table: ITable) -> None: super().__init__(tables, table)
 
-        def GetQueryFactory(self) -> ITableQueryFactory: raise GetDisposedError()
-        
-        def GetFields(self) -> IArray[IField]: raise GetDisposedError()
-
-        def GetIndices(self) -> IArray[IIndex]: raise GetDisposedError()
-        
-        def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDisposedError()
-
-        def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
-        def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
-
-        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDisposedError()
-        
-        def Remove(self) -> None: raise GetDisposedError()
-        def TryRemove(self) -> bool: return False
-        
-        def Dispose(self) -> None: pass
-    @final
-    class __Table(Abstract, ITable):
-        def __init__(self, tables: IList[DataBase.__Table], table: ITable) -> None:
-            EnsureDirectModuleCall()
-
-            super().__init__()
-            
-            self.__tables: IList[DataBase.__Table]|None = tables
-            self.__table: ITable = table
-        
-        def Equals(self, item: ITable|object) -> bool: return isinstance(item, DataBase.__Table) and self.__tables == item.__tables and self.GetName() == item.GetName()
-        
-        def GetName(self) -> str: return self.__table.GetName()
-        def SetName(self, name: str) -> None: self.__table.SetName(name)
-
-        def GetQueryFactory(self) -> ITableQueryFactory: return self.__table.GetQueryFactory()
-
-        def GetIndices(self) -> IArray[IIndex]: return self.__table.GetIndices()
-        
-        def GetFields(self) -> IArray[IField]: return self.__table.GetFields()
-        
-        def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[IString, object]) -> Generator[ISelectionQueryExecutionResult]|None: return self.__table.SelectByKeys(columns, keys)
-
-        def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.Insert(items, ignoreExisting)
-        def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.InsertMany(columns, items, ignoreExisting)
-
-        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
-        
-        def Remove(self) -> None: self.__table.Remove()
-        def TryRemove(self) -> bool: return self.__table.TryRemove()
-        
-        def Dispose(self) -> None:
-            tables: IList[DataBase.__Table]|None = self.__tables
-
-            if tables is None: return
-            
-            self.__table.Dispose()
-
-            tables.Remove(self)
-            self.__tables = None
-            
-            self.__table = DataBase._GetNullTable()
+        def _GetNullTable(self) -> ITable: return DataBase._GetNullTable()
     
-    __table: ITable = __NullTable()
+    __table: ITable = _NullTable()
     
     def __init__(self) -> None:
         super().__init__()
 
-        self.__tables: IList[DataBase.__Table] = List[DataBase.__Table]()
+        self.__tables: IList[_TableBase] = List[_TableBase]()
     
     @abstractmethod
     def _GetConnection(self) -> IConnection:
@@ -414,7 +437,7 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
     
     @final
     def __AddNewTable(self, table: ITable) -> ITable:
-        _table: DataBase.__Table = DataBase.__Table(self.__tables, table)
+        _table: DataBase._Table = DataBase._Table(self.__tables, table)
         
         self.__tables.Add(_table)
 
@@ -471,7 +494,7 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         return IteratorProvider[ITable](self.EnumerateTables)
     
     def Dispose(self) -> None:
-        tables: IList[DataBase.__Table] = self.__tables
+        tables: IList[_TableBase] = self.__tables
 
         while tables.HasItems(): tables.GetAt(0).Dispose() # Need a custom iteration because DataBase.__Table.Dispose() removes the table from the cache.
 
@@ -675,116 +698,119 @@ class IConnection(IDisposable):
         ...
 
     def Dispose(self) -> None: self.Close()
-class Connection(Abstract, IConnection):
+
+@final
+class _Data(_IConnectionData):
     @final
-    class __Data(_IConnectionData):
-        @final
-        class __Factories(Abstract, IFactoryProvider):
-            class _Updater[T](ValueFunctionUpdater[T]):
-                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[T]]) -> None:
-                    super().__init__(updater)
+    class _Factories(Abstract, IFactoryProvider):
+        class _Updater[T](ValueFunctionUpdater[T]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[T]]) -> None:
+                super().__init__(updater)
 
-                    self.__provider: IFactoryProvider = provider
-                
-                @final
-                def _GetProvider(self) -> IFactoryProvider:
-                    return self.__provider
+                self.__provider: IFactoryProvider = provider
             
             @final
-            class __Field(_Updater[IFieldFactory]):
-                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IFieldFactory]]) -> None:
-                    super().__init__(provider, updater)
-                
-                def _GetValue(self) -> IFieldFactory: return self._GetProvider().GetFieldFactory()
-            @final
-            class __Query(_Updater[IQueryFactory]):
-                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IQueryFactory]]) -> None:
-                    super().__init__(provider, updater)
-                
-                def _GetValue(self) -> IQueryFactory: return self._GetProvider().GetQueryFactory()
-            @final
-            class __Index(_Updater[IIndexFactory]):
-                def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IIndexFactory]]) -> None:
-                    super().__init__(provider, updater)
-                
-                def _GetValue(self) -> IIndexFactory: return self._GetProvider().GetIndexFactory()
-            
-            def __init__(self, provider: IFactoryProvider) -> None:
-                def updateField(func: IFunction[IFieldFactory]) -> None: self.__field = func
-                def updateQuery(func: IFunction[IQueryFactory]) -> None: self.__query = func
-                def updateIndex(func: IFunction[IIndexFactory]) -> None: self.__index = func
-                
-                super().__init__()
-
-                self.__field: IFunction[IFieldFactory] = Connection.__Data.__Factories.__Field(provider, updateField) # type: ignore[no-redef]
-                self.__query: IFunction[IQueryFactory] = Connection.__Data.__Factories.__Query(provider, updateQuery) # type: ignore[no-redef]
-                self.__index: IFunction[IIndexFactory] = Connection.__Data.__Factories.__Index(provider, updateIndex) # type: ignore[no-redef]
-
-            @final
-            def GetFieldFactory(self) -> IFieldFactory: return self.__field.GetValue()
-            @final
-            def GetQueryFactory(self) -> IQueryFactory: return self.__query.GetValue()
-            @final
-            def GetIndexFactory(self) -> IIndexFactory: return self.__index.GetValue()
+            def _GetProvider(self) -> IFactoryProvider:
+                return self.__provider
         
         @final
-        class __QueryLimits(Abstract, IQueryLimits):
-            def __init__(self, queryLimits: IMutableQueryLimits) -> None:
-                super().__init__()
-
-                self.__queryLimits: IMutableQueryLimits = queryLimits
-
-            def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__queryLimits.GetMaxParameterCount()
-
-            def GetMaxQuerySize(self) -> int|None: return self.__queryLimits.GetMaxQuerySize()
+        class _Field(_Updater[IFieldFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IFieldFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IFieldFactory: return self._GetProvider().GetFieldFactory()
+        @final
+        class _Query(_Updater[IQueryFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IQueryFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IQueryFactory: return self._GetProvider().GetQueryFactory()
+        @final
+        class _Index(_Updater[IIndexFactory]):
+            def __init__(self, provider: IFactoryProvider, updater: Method[IFunction[IIndexFactory]]) -> None:
+                super().__init__(provider, updater)
+            
+            def _GetValue(self) -> IIndexFactory: return self._GetProvider().GetIndexFactory()
         
-        def __init__(self, cursor: IDataBase, cookie: ITransactionCookie, factories: IFactoryProvider, queryLimits: IMutableQueryLimits) -> None:
+        def __init__(self, provider: IFactoryProvider) -> None:
+            def updateField(func: IFunction[IFieldFactory]) -> None: self.__field = func
+            def updateQuery(func: IFunction[IQueryFactory]) -> None: self.__query = func
+            def updateIndex(func: IFunction[IIndexFactory]) -> None: self.__index = func
+            
             super().__init__()
 
-            self.__cursor: IDataBase = cursor
-            self.__cookie: ITransactionCookie = cookie
+            self.__field: IFunction[IFieldFactory] = _Data._Factories._Field(provider, updateField) # type: ignore[no-redef]
+            self.__query: IFunction[IQueryFactory] = _Data._Factories._Query(provider, updateQuery) # type: ignore[no-redef]
+            self.__index: IFunction[IIndexFactory] = _Data._Factories._Index(provider, updateIndex) # type: ignore[no-redef]
 
-            self.__factories: IFactoryProvider = Connection.__Data.__Factories(factories)
-
-            self.__mutableQueryLimits: IMutableQueryLimits = queryLimits
-            self.__queryLimits: IQueryLimits = Connection.__Data.__QueryLimits(queryLimits)
-        
-        def GetCursor(self) -> IDataBase: return self.__cursor
-        
-        def GetTransactionCookie(self) -> ITransactionCookie: return self.__cookie
-        
-        def GetFactories(self) -> IFactoryProvider: return self.__factories
-        
-        def GetMutableQueryLimits(self) -> IMutableQueryLimits: return self.__mutableQueryLimits
-        def GetQueryLimits(self) -> IQueryLimits: return self.__queryLimits
-        
-        def Dispose(self) -> None:
-            self.__cookie.Dispose()
-            self.__cursor.Dispose()
+        @final
+        def GetFieldFactory(self) -> IFieldFactory: return self.__field.GetValue()
+        @final
+        def GetQueryFactory(self) -> IQueryFactory: return self.__query.GetValue()
+        @final
+        def GetIndexFactory(self) -> IIndexFactory: return self.__index.GetValue()
     
     @final
-    class __MutableQueryLimits(Abstract, IMutableQueryLimits):
-        def __init__(self, queryLimits: IQueryLimits) -> None:
+    class _QueryLimits(Abstract, IQueryLimits):
+        def __init__(self, queryLimits: IMutableQueryLimits) -> None:
             super().__init__()
 
-            self.__maxParameterCount: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
-            self.__maxQuerySize: int|None = queryLimits.GetMaxQuerySize()
+            self.__queryLimits: IMutableQueryLimits = queryLimits
 
-        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__maxParameterCount
+        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__queryLimits.GetMaxParameterCount()
 
-        def GetMaxQuerySize(self) -> int|None: return self.__maxQuerySize
+        def GetMaxQuerySize(self) -> int|None: return self.__queryLimits.GetMaxQuerySize()
+    
+    def __init__(self, cursor: IDataBase, cookie: ITransactionCookie, factories: IFactoryProvider, queryLimits: IMutableQueryLimits) -> None:
+        super().__init__()
+
+        self.__cursor: IDataBase = cursor
+        self.__cookie: ITransactionCookie = cookie
+
+        self.__factories: IFactoryProvider = _Data._Factories(factories)
+
+        self.__mutableQueryLimits: IMutableQueryLimits = queryLimits
+        self.__queryLimits: IQueryLimits = _Data._QueryLimits(queryLimits)
+    
+    def GetCursor(self) -> IDataBase: return self.__cursor
+    
+    def GetTransactionCookie(self) -> ITransactionCookie: return self.__cookie
+    
+    def GetFactories(self) -> IFactoryProvider: return self.__factories
+    
+    def GetMutableQueryLimits(self) -> IMutableQueryLimits: return self.__mutableQueryLimits
+    def GetQueryLimits(self) -> IQueryLimits: return self.__queryLimits
+    
+    def Dispose(self) -> None:
+        self.__cookie.Dispose()
+        self.__cursor.Dispose()
+
+@final
+class _MutableQueryLimits(Abstract, IMutableQueryLimits):
+    def __init__(self, queryLimits: IQueryLimits) -> None:
+        super().__init__()
+
+        self.__maxParameterCount: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
+        self.__maxQuerySize: int|None = queryLimits.GetMaxQuerySize()
+
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__maxParameterCount
+
+    def GetMaxQuerySize(self) -> int|None: return self.__maxQuerySize
+    
+    def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
+        def update(result: bool) -> bool:
+            self.__maxParameterCount = CreateDualValueBool(size, result)
+
+            return result
+
+        if safe: return update(True)
         
-        def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
-            def update(result: bool) -> bool:
-                self.__maxParameterCount = CreateDualValueBool(size, result)
+        maxParameterCount: DualValueBool[int]|None = self.__maxParameterCount
+        
+        return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
 
-                return result
-
-            if safe: return update(True)
-            
-            maxParameterCount: DualValueBool[int]|None = self.__maxParameterCount
-            
-            return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
+class Connection(Abstract, IConnection):
+    
     
     def __init__(self) -> None:
         super().__init__()
@@ -825,10 +851,10 @@ class Connection(Abstract, IConnection):
     def Open(self) -> bool|None:
         if self.IsOpen(): return None
         
-        queryLimits: IMutableQueryLimits = Connection.__MutableQueryLimits(self._CreateQueryLimits())
+        queryLimits: IMutableQueryLimits = _MutableQueryLimits(self._CreateQueryLimits())
 
         if self._Open(queryLimits):
-            self.__data = Connection.__Data(self._CreateCursor(), self._CreateTransactionCookie(), self._CreateFactoryProvider(), queryLimits)
+            self.__data = _Data(self._CreateCursor(), self._CreateTransactionCookie(), self._CreateFactoryProvider(), queryLimits)
 
             return True
         

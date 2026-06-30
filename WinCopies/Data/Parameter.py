@@ -103,7 +103,7 @@ def CreateFieldParameterFromValue[T](operator: Operator, value: T) -> FieldParam
 __nullProvider: IFunction[FieldParameter[None]]
 __notNullProvider: IFunction[FieldParameter[None]]
 
-class __NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
+class _NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -111,7 +111,7 @@ class __NullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"])
         __nullProvider = ValueFunction(FieldParameter[None](GetNullOperand()))
         
         return __nullProvider()
-class __NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
+class _NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]"]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -120,8 +120,8 @@ class __NotNullProviderFunctionUpdater(Abstract, IFunction["FieldParameter[None]
         
         return __notNullProvider()
 
-__nullProvider = __NullProviderFunctionUpdater()
-__notNullProvider = __NotNullProviderFunctionUpdater()
+__nullProvider = _NullProviderFunctionUpdater()
+__notNullProvider = _NotNullProviderFunctionUpdater()
 
 def GetNullFieldParameter() -> FieldParameter[None]:
     return __nullProvider.GetValue()

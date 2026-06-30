@@ -465,120 +465,120 @@ class _DataBase(DataBaseAbstract):
         return self.__GetTable(self.__GetCursor(), name)
 
 @final
+class _Struct(Abstract, IDisposableInfo):
+    @final
+    class _Function(Abstract, IFunction[_Connection]):
+        def __init__(self, struct: _Struct) -> None:
+            super().__init__()
+
+            self.__struct: _Struct = struct
+        
+        def GetValue(self) -> _Connection: return self.__struct._GetConnection()
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__struct: IStruct[_Connection|None] = Struct[_Connection|None](None)
+        self.__func: IFunction[_Connection] = _Struct._Function(self)
+    
+    def __GetValue(self) -> _Connection|None:
+        return self.__struct.GetValue()
+    
+    def _GetConnection(self) -> _Connection:
+        connection: _Connection|None = self.__GetValue()
+
+        if connection is None: raise GetDisposedError()
+        
+        return connection
+    def GetConnection(self) -> IFunction[_Connection]:
+        return self.__func
+    
+    def SetConnection(self, connection: _Connection) -> None:
+        self.__struct.SetValue(connection)
+    
+    def IsDisposed(self) -> bool: return self.__GetValue() is None
+    def Dispose(self) -> None: self.__struct.SetValue(None)
+@final
+class _QueryLimits(Abstract, IQueryLimits):
+    def __init__(self, connection: Function[sqlite3.Connection]) -> None:
+        super().__init__()
+
+        self.__connection: Function[sqlite3.Connection] = connection
+    
+    def __GetLimit(self, value: int) -> int:
+        return self.__connection().getlimit(value)
+
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None: return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
+    def GetMaxQuerySize(self) -> int|None: return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
+
+@final
+class _FactoryProvider(Abstract, IFactoryProvider):
+    def __init__(self, connection: IFunction[_Connection]) -> None:
+        super().__init__()
+
+        self.__connection: IFunction[_Connection] = connection
+    
+    def __GetConnection(self) -> IConnection:
+        return self.__connection().GetConnection()
+    
+    def GetFieldFactory(self) -> IFieldFactory: return FieldFactory(self.__GetConnection())
+    def GetQueryFactory(self) -> IQueryFactory: return Factory(self.__connection().GetInnerConnection())
+    def GetIndexFactory(self) -> IIndexFactory: return IndexFactory(self.__GetConnection())
+
+@final
+class _TransactionCookie(TransactionCookie):
+    @final
+    class _TransactionControl(TransactionControl):
+        def __init__(self, connection: sqlite3.Connection, cookie: ITransactionCookie) -> None:
+            super().__init__(cookie)
+
+            self.__connection: sqlite3.Connection = connection
+        
+        def __Execute(self, action: str) -> None:
+            self.__connection.execute(action)
+
+        def _BeginOverride(self) -> None: self.__Execute("BEGIN")
+        
+        def _CommitOverride(self) -> None: self.__Execute("COMMIT")
+        def _RollbackOverride(self) -> None:
+            if self.__connection.in_transaction: self.__Execute("ROLLBACK") # sqlite3_get_autocommit() instead of IsActive()
+            
+            # else: SQLite has already auto-reverted ; no exception
+    
+    def __init__(self, connection: Function[sqlite3.Connection]) -> None:
+        super().__init__()
+
+        self.__connection: Function[sqlite3.Connection]|None = connection
+    
+    def CreateTransactionControl(self) -> ITransactionControl:
+        connection: Function[sqlite3.Connection]|None = self.__connection
+
+        if connection is None: raise GetDisposedError()
+
+        return _TransactionCookie._TransactionControl(connection(), self)
+    
+    def Dispose(self) -> None:
+        self.__connection = None
+
+        super().Dispose()
+
+@final
 class Connection(ConnectionBase, IDisposableInfo):
-    @final
-    class __Struct(Abstract, IDisposableInfo):
-        @final
-        class __Function(Abstract, IFunction[_Connection]):
-            def __init__(self, struct: Connection.__Struct) -> None:
-                super().__init__()
-
-                self.__struct: Connection.__Struct = struct
-            
-            def GetValue(self) -> _Connection: return self.__struct._GetConnection()
-        
-        def __init__(self) -> None:
-            super().__init__()
-
-            self.__struct: IStruct[_Connection|None] = Struct[_Connection|None](None)
-            self.__func: IFunction[_Connection] = Connection.__Struct.__Function(self)
-        
-        def __GetValue(self) -> _Connection|None:
-            return self.__struct.GetValue()
-        
-        def _GetConnection(self) -> _Connection:
-            connection: _Connection|None = self.__GetValue()
-
-            if connection is None: raise GetDisposedError()
-            
-            return connection
-        def GetConnection(self) -> IFunction[_Connection]:
-            return self.__func
-        
-        def SetConnection(self, connection: _Connection) -> None:
-            self.__struct.SetValue(connection)
-        
-        def IsDisposed(self) -> bool: return self.__GetValue() is None
-        def Dispose(self) -> None: self.__struct.SetValue(None)
-    @final
-    class _QueryLimits(Abstract, IQueryLimits):
-        def __init__(self, connection: Function[sqlite3.Connection]) -> None:
-            super().__init__()
-
-            self.__connection: Function[sqlite3.Connection] = connection
-        
-        def __GetLimit(self, value: int) -> int:
-            return self.__connection().getlimit(value)
-
-        def GetMaxParameterCount(self) -> DualValueBool[int]|None: return CreateDualValueBool(self.__GetLimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER), True)
-        def GetMaxQuerySize(self) -> int|None: return self.__GetLimit(sqlite3.SQLITE_LIMIT_SQL_LENGTH)
-    
-    @final
-    class __FactoryProvider(Abstract, IFactoryProvider):
-        def __init__(self, connection: IFunction[_Connection]) -> None:
-            super().__init__()
-
-            self.__connection: IFunction[_Connection] = connection
-        
-        def __GetConnection(self) -> IConnection:
-            return self.__connection().GetConnection()
-        
-        def GetFieldFactory(self) -> IFieldFactory: return FieldFactory(self.__GetConnection())
-        def GetQueryFactory(self) -> IQueryFactory: return Factory(self.__connection().GetInnerConnection())
-        def GetIndexFactory(self) -> IIndexFactory: return IndexFactory(self.__GetConnection())
-    
-    @final
-    class __TransactionCookie(TransactionCookie):
-        @final
-        class __TransactionControl(TransactionControl):
-            def __init__(self, connection: sqlite3.Connection, cookie: ITransactionCookie) -> None:
-                super().__init__(cookie)
-
-                self.__connection: sqlite3.Connection = connection
-            
-            def __Execute(self, action: str) -> None:
-                self.__connection.execute(action)
-
-            def _BeginOverride(self) -> None: self.__Execute("BEGIN")
-            
-            def _CommitOverride(self) -> None: self.__Execute("COMMIT")
-            def _RollbackOverride(self) -> None:
-                if self.__connection.in_transaction: self.__Execute("ROLLBACK") # sqlite3_get_autocommit() instead of IsActive()
-                
-                # else: SQLite has already auto-reverted ; no exception
-        
-        def __init__(self, connection: Function[sqlite3.Connection]) -> None:
-            super().__init__()
-
-            self.__connection: Function[sqlite3.Connection]|None = connection
-        
-        def CreateTransactionControl(self) -> ITransactionControl:
-            connection: Function[sqlite3.Connection]|None = self.__connection
-
-            if connection is None: raise GetDisposedError()
-
-            return Connection.__TransactionCookie.__TransactionControl(connection(), self)
-        
-        def Dispose(self) -> None:
-            self.__connection = None
-
-            super().Dispose()
-    
     def __init__(self, path: str) -> None:
         super().__init__()
 
         self.__path: str = path
-        self.__connection: Connection.__Struct = Connection.__Struct()
+        self.__connection: _Struct = _Struct()
     
     def _CreateTransactionCookie(self) -> ITransactionCookie:
-        return Connection.__TransactionCookie(self.__GetInnerConnection())
+        return _TransactionCookie(self.__GetInnerConnection())
     
     def __GetConnection(self) -> IFunction[_Connection]: return self.__connection.GetConnection()
     def __GetInnerConnection(self) -> Function[sqlite3.Connection]: return lambda: self.__GetConnection()().GetInnerConnection()
     
     def _CreateCursor(self) -> IDataBase: return _DataBase(self.__GetConnection())
     
-    def _CreateQueryLimits(self) -> IQueryLimits: return Connection._QueryLimits(self.__GetInnerConnection())
+    def _CreateQueryLimits(self) -> IQueryLimits: return _QueryLimits(self.__GetInnerConnection())
     
     def _Open(self, queryLimits: IMutableQueryLimits) -> bool:
         self.__connection.SetConnection(_Connection(self, sqlite3.connect(self.__path, autocommit = True), queryLimits))
@@ -587,7 +587,7 @@ class Connection(ConnectionBase, IDisposableInfo):
     
     def FormatTableName(self, name: str) -> str: return DoubleQuoteSurround(name)
     
-    def _CreateFactoryProvider(self) -> IFactoryProvider: return Connection.__FactoryProvider(self.__GetConnection())
+    def _CreateFactoryProvider(self) -> IFactoryProvider: return _FactoryProvider(self.__GetConnection())
     
     def _CloseOverride(self) -> None: self.__connection.Dispose()
     

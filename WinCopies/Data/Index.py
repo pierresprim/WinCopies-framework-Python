@@ -156,126 +156,127 @@ class IIndexCollection(IEnumerable[IIndex]):
     @abstractmethod
     def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]:
         ...
-class IndexCollection(IterableBase[IIndex], IIndexCollection):
-    @final
-    class __Indices(Abstract):
-        class __IByName(IHashable[IIndex]):
-            def __init__(self) -> None: super().__init__()
-            
-            @abstractmethod
-            def GetName(self) -> str:
-                ...
-            
-            def Equals(self, item: IIndex|object) -> bool:
-                return isinstance(item, IIndex) and self.GetName() == item.GetName()
-            def Hash(self) -> int:
-                return hash(self.GetName())
-        @final
-        class __ByName(Abstract, __IByName):
-            def __init__(self, index: IIndex) -> None:
-                super().__init__()
 
-                self.__index: IIndex = index
-            
-            def GetName(self) -> str: return self.__index.GetName()
-        @final
-        class __ByField(Abstract, __IByName):
-            def __init__(self, index: ISingleColumnIndex) -> None:
-                super().__init__()
-
-                self.__index: ISingleColumnIndex = index
-            
-            def GetName(self) -> str: return self.__index.GetColumn()
-        @final
-        class __ByFields(Abstract, IHashable[IMultiColumnIndex]):
-            def __init__(self, index: IMultiColumnIndex) -> None:
-                super().__init__()
-
-                self.__index: IMultiColumnIndex = index
-            
-            def GetColumns(self) -> IHashableEnumerable[IString]: return self.__index.GetColumns()
-            
-            def Equals(self, item: IMultiColumnIndex|object) -> bool: return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
-            def Hash(self) -> int: return self.GetColumns().Hash()
-        
-        def __init__(self) -> None:
-            super().__init__()
-
-            self.__byName: IOrderedSet[IndexCollection.__Indices.__ByName] = OrderedSet[IndexCollection.__Indices.__ByName]()
-            self.__byField: IOrderedSet[IndexCollection.__Indices.__ByField] = OrderedSet[IndexCollection.__Indices.__ByField]()
-            self.__byFields: IOrderedSet[IndexCollection.__Indices.__ByFields] = OrderedSet[IndexCollection.__Indices.__ByFields]()
-        
-        def __TryAddIndex(self, index: IIndex) -> bool:
-            return self.__byName.TryAdd(IndexCollection.__Indices.__ByName(index))
-        
-        def TryAddSingleColumnIndex(self, index: ISingleColumnIndex) -> bool:
-            return self.__TryAddIndex(index) and self.__byField.TryAdd(IndexCollection.__Indices.__ByField(index))
-        def TryAddMultiColumnIndex(self, index: IMultiColumnIndex) -> bool:
-            return self.__TryAddIndex(index) and self.__byFields.TryAdd(IndexCollection.__Indices.__ByFields(index))
-    
-    class _Collection[T: IIndex](ReadOnlyCollection[T], IIndexList[T]):
-        def __init__(self) -> None:
-            super().__init__()
-
-            self.__indices: ICountableEnumerableList[T] = CountableEnumerableQueue[T]()
-        
-        @final
-        def _GetIndices(self) -> ICountableEnumerableList[T]:
-            return self.__indices
+@final
+class _Indices(Abstract):
+    class _IByName(IHashable[IIndex]):
+        def __init__(self) -> None: super().__init__()
         
         @abstractmethod
-        def _Validate(self, index: T) -> bool:
+        def GetName(self) -> str:
             ...
         
-        @final
-        def IsEmpty(self) -> bool: return self.__indices.IsEmpty()
+        def Equals(self, item: IIndex|object) -> bool:
+            return isinstance(item, IIndex) and self.GetName() == item.GetName()
+        def Hash(self) -> int:
+            return hash(self.GetName())
+    @final
+    class _ByName(Abstract, _IByName):
+        def __init__(self, index: IIndex) -> None:
+            super().__init__()
+
+            self.__index: IIndex = index
         
-        @final
-        def GetCount(self) -> int: return self.__indices.GetCount()
+        def GetName(self) -> str: return self.__index.GetName()
+    @final
+    class _ByField(Abstract, _IByName):
+        def __init__(self, index: ISingleColumnIndex) -> None:
+            super().__init__()
+
+            self.__index: ISingleColumnIndex = index
         
-        @final
-        def Append(self, index: T) -> None:
-            if self._Validate(index): self._GetIndices().Push(index)
-            else: raise KeyError()
+        def GetName(self) -> str: return self.__index.GetColumn()
+    @final
+    class _ByFields(Abstract, IHashable[IMultiColumnIndex]):
+        def __init__(self, index: IMultiColumnIndex) -> None:
+            super().__init__()
+
+            self.__index: IMultiColumnIndex = index
         
-        @final
-        def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__indices.TryGetEnumerator()
+        def GetColumns(self) -> IHashableEnumerable[IString]: return self.__index.GetColumns()
+        
+        def Equals(self, item: IMultiColumnIndex|object) -> bool: return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
+        def Hash(self) -> int: return self.GetColumns().Hash()
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__byName: IOrderedSet[_Indices._ByName] = OrderedSet[_Indices._ByName]()
+        self.__byField: IOrderedSet[_Indices._ByField] = OrderedSet[_Indices._ByField]()
+        self.__byFields: IOrderedSet[_Indices._ByFields] = OrderedSet[_Indices._ByFields]()
+    
+    def __TryAddIndex(self, index: IIndex) -> bool:
+        return self.__byName.TryAdd(_Indices._ByName(index))
+    
+    def TryAddSingleColumnIndex(self, index: ISingleColumnIndex) -> bool:
+        return self.__TryAddIndex(index) and self.__byField.TryAdd(_Indices._ByField(index))
+    def TryAddMultiColumnIndex(self, index: IMultiColumnIndex) -> bool:
+        return self.__TryAddIndex(index) and self.__byFields.TryAdd(_Indices._ByFields(index))
+
+class _Collection[T: IIndex](ReadOnlyCollection[T], IIndexList[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__indices: ICountableEnumerableList[T] = CountableEnumerableQueue[T]()
     
     @final
-    class __SingleColumnIndexCollection[T: ISingleColumnIndex](_Collection[T]):
-        def __init__(self, collection: IndexCollection.__Indices) -> None:
-            super().__init__()
-            
-            self.__collection: IndexCollection.__Indices = collection
-        
-        @final
-        def _Validate(self, index: ISingleColumnIndex) -> bool:
-            return self.__collection.TryAddSingleColumnIndex(index)
-        
-        @final
-        def Contains(self, value: T|object) -> bool: return isinstance(value, ISingleColumnIndex) and value in self._GetIndices().AsIterable() # type: ignore
-    @final
-    class __MultiColumnIndexCollection(_Collection[IMultiColumnIndex]):
-        def __init__(self, collection: IndexCollection.__Indices) -> None:
-            super().__init__()
-            
-            self.__collection: IndexCollection.__Indices = collection
-        
-        @final
-        def _Validate(self, index: IMultiColumnIndex) -> bool:
-            return self.__collection.TryAddMultiColumnIndex(index)
-        
-        @final
-        def Contains(self, value: IMultiColumnIndex|object) -> bool: return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
+    def _GetIndices(self) -> ICountableEnumerableList[T]:
+        return self.__indices
     
+    @abstractmethod
+    def _Validate(self, index: T) -> bool:
+        ...
+    
+    @final
+    def IsEmpty(self) -> bool: return self.__indices.IsEmpty()
+    
+    @final
+    def GetCount(self) -> int: return self.__indices.GetCount()
+    
+    @final
+    def Append(self, index: T) -> None:
+        if self._Validate(index): self._GetIndices().Push(index)
+        else: raise KeyError()
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__indices.TryGetEnumerator()
+
+@final
+class _SingleColumnIndexCollection[T: ISingleColumnIndex](_Collection[T]):
+    def __init__(self, collection: _Indices) -> None:
+        super().__init__()
+        
+        self.__collection: _Indices = collection
+    
+    @final
+    def _Validate(self, index: ISingleColumnIndex) -> bool:
+        return self.__collection.TryAddSingleColumnIndex(index)
+    
+    @final
+    def Contains(self, value: T|object) -> bool: return isinstance(value, ISingleColumnIndex) and value in self._GetIndices().AsIterable() # type: ignore
+@final
+class _MultiColumnIndexCollection(_Collection[IMultiColumnIndex]):
+    def __init__(self, collection: _Indices) -> None:
+        super().__init__()
+        
+        self.__collection: _Indices = collection
+    
+    @final
+    def _Validate(self, index: IMultiColumnIndex) -> bool:
+        return self.__collection.TryAddMultiColumnIndex(index)
+    
+    @final
+    def Contains(self, value: IMultiColumnIndex|object) -> bool: return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
+
+class IndexCollection(IterableBase[IIndex], IIndexCollection):
     def __init__(self, primaryKey: IMultiColumnKey) -> None:
         super().__init__()
 
-        indices: IndexCollection.__Indices = IndexCollection.__Indices()
+        indices: _Indices = _Indices()
         
-        self.__normalIndices: IndexCollection.__SingleColumnIndexCollection[ISingleColumnIndex] = IndexCollection.__SingleColumnIndexCollection[ISingleColumnIndex](indices)
-        self.__foreignKeys: IndexCollection.__SingleColumnIndexCollection[IForeignKey] = IndexCollection.__SingleColumnIndexCollection[IForeignKey](indices)
-        self.__unicityIndices: IndexCollection.__MultiColumnIndexCollection = IndexCollection.__MultiColumnIndexCollection(indices)
+        self.__normalIndices: _SingleColumnIndexCollection[ISingleColumnIndex] = _SingleColumnIndexCollection[ISingleColumnIndex](indices)
+        self.__foreignKeys: _SingleColumnIndexCollection[IForeignKey] = _SingleColumnIndexCollection[IForeignKey](indices)
+        self.__unicityIndices: _MultiColumnIndexCollection = _MultiColumnIndexCollection(indices)
 
         self.__primaryKey: IMultiColumnKey = primaryKey
     

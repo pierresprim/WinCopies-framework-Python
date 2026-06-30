@@ -31,7 +31,7 @@ class INodeCookie[T](IInterface):
 
 class IListCookie[T](IInterface):
     @final
-    class __LinkedListCookie[_T](Abstract, INodeCookie[_T]):
+    class _LinkedListCookie[_T](Abstract, INodeCookie[_T]):
         def __init__(self) -> None: super().__init__()
         
         def GetFirst(self, items: IListCookie[_T]) -> _T|None: return items._GetFirst()
@@ -43,7 +43,7 @@ class IListCookie[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     def _CreateCookie(self) -> INodeCookie[T]:
-        return IListCookie.__LinkedListCookie[T]()
+        return IListCookie._LinkedListCookie[T]()
     @abstractmethod
     def _GetCookie(self) -> INodeCookie[T]:
         ...

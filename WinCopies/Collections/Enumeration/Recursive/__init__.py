@@ -234,7 +234,7 @@ class RecursiveStackedEnumerationHandlerConverter[TIn, TOut](RecursiveStackedEnu
     def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
 
 @final
-class __RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
+class _RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
     def __init__(self, enumerable: IRecursivelyScannableBase[T], updater: Method[IFunction[IEnumerable[T]]]) -> None:
         super().__init__(updater)
 
@@ -242,7 +242,7 @@ class __RecursiveUpdater[T](ValueFunctionUpdater[IEnumerable[T]]):
     
     def _GetValue(self) -> IEnumerable[T]: return EnumeratorProvider[T](lambda: self.__enumerable.TryGetRecursiveEnumerator())
 @final
-class __IterableUpdater[T](ValueFunctionUpdater[Iterable[T]]):
+class _IterableUpdater[T](ValueFunctionUpdater[Iterable[T]]):
     def __init__(self, enumerable: IRecursivelyEnumerableBase[T], updater: Method[IFunction[Iterable[T]]]) -> None:
         super().__init__(updater)
 
@@ -256,7 +256,7 @@ class RecursivelyScannableProvider[T](Abstract):
         
         super().__init__()
 
-        self.__recursive: IFunction[IEnumerable[T]] = __RecursiveUpdater[T](enumerable, updateRecursive) # type: ignore[no-redef]
+        self.__recursive: IFunction[IEnumerable[T]] = _RecursiveUpdater[T](enumerable, updateRecursive) # type: ignore[no-redef]
     
     @final
     def AsRecursivelyEnumerable(self) -> IEnumerable[T]: return self.__recursive.GetValue()
@@ -266,7 +266,7 @@ class RecursivelyIterableProvider[T](RecursivelyScannableProvider[T]):
         
         super().__init__(enumerable)
 
-        self.__iterable: IFunction[Iterable[T]] = __IterableUpdater[T](enumerable, updateIterable) # type: ignore[no-redef]
+        self.__iterable: IFunction[Iterable[T]] = _IterableUpdater[T](enumerable, updateIterable) # type: ignore[no-redef]
     
     @final
     def AsIterable(self) -> Iterable[T]: return self.__iterable.GetValue()
