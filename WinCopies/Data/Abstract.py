@@ -786,45 +786,54 @@ class _Data(_IConnectionData):
         self.__cursor.Dispose()
 
 @final
+class __MutableQueryLimitData(Abstract, IQueryLimits):
+    def __init__(self, queryLimits: IQueryLimits) -> None:
+        super().__init__()
+
+        self.__maxParameterCount: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
+        self.__maxQuerySize: int|None = queryLimits.GetMaxQuerySize()
+
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__maxParameterCount
+    def GetMaxQuerySize(self) -> int|None: return self.__maxQuerySize
+
+    def UpdateParameterCount(self, value: DualValueBool[int]|None) -> None:
+        self.__maxParameterCount = value
+@final
+class _MutableQueryLimitsUpdater(ValueFunctionUpdater[__MutableQueryLimitData]):
+    def __init__(self, queryLimits: IQueryLimits, updater: Method[IFunction[__MutableQueryLimitData]]) -> None:
+        super().__init__(updater)
+
+        self.__queryLimits: IQueryLimits = queryLimits
+    
+    def _GetValue(self) -> __MutableQueryLimitData: return __MutableQueryLimitData(self.__queryLimits)
+
+@final
 class _MutableQueryLimits(Abstract, IMutableQueryLimits):
     def __init__(self, queryLimits: IQueryLimits) -> None:
+        def update(func: IFunction[__MutableQueryLimitData]) -> None:
+            self.__queryLimits = func
+
         super().__init__()
 
         # Deferred snapshot: the source limits read from the live connection, which is not yet
         # established when Open() builds this object (Open() opens the connection afterwards).
-        self.__source: IQueryLimits|None = queryLimits
-        self.__maxParameterCount: DualValueBool[int]|None = None
-        self.__maxQuerySize: int|None = None
+        self.__queryLimits: IFunction[__MutableQueryLimitData] = _MutableQueryLimitsUpdater(queryLimits, update) # type: ignore[no-redef]
+    
+    def __GetQueryLimitData(self) -> __MutableQueryLimitData:
+        return self.__queryLimits.GetValue()
 
-    def __EnsureInitialized(self) -> None:
-        source: IQueryLimits|None = self.__source
-
-        if source is not None:
-            self.__maxParameterCount = source.GetMaxParameterCount()
-            self.__maxQuerySize = source.GetMaxQuerySize()
-            self.__source = None
-
-    def GetMaxParameterCount(self) -> DualValueBool[int]|None:
-        self.__EnsureInitialized()
-
-        return self.__maxParameterCount
-
-    def GetMaxQuerySize(self) -> int|None:
-        self.__EnsureInitialized()
-
-        return self.__maxQuerySize
-
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__GetQueryLimitData().GetMaxParameterCount()
+    def GetMaxQuerySize(self) -> int|None: return self.__GetQueryLimitData().GetMaxQuerySize()
+    
     def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
-        self.__EnsureInitialized()
-
         def update(result: bool) -> bool:
-            self.__maxParameterCount = CreateDualValueBool(size, result)
+            self.__GetQueryLimitData().UpdateParameterCount(CreateDualValueBool(size, result))
 
             return result
 
         if safe: return update(True)
         
-        maxParameterCount: DualValueBool[int]|None = self.__maxParameterCount
+        maxParameterCount: DualValueBool[int]|None = self.__GetQueryLimitData().GetMaxParameterCount()
         
         return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
 
