@@ -256,13 +256,13 @@ class FieldConditionNodeSet[T: IColumn](FieldParameterNodeSet[T, IParameter[IOpe
 class FieldConditionSet[T: IColumn](FieldParameterSet[T, IParameter[IOperandValue]], IFieldConditionSet[T]):
     def __init__(self, initialValue: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> None: super().__init__(initialValue)
 
-def __MakeFieldParameterSet[T: IColumn](conditionalOperator: ConditionalOperator, conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
+def __CreateFieldParameterSet[T: IColumn](conditionalOperator: ConditionalOperator, conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
     return MakeCompositeExpressionRoot(lambda condition: FieldConditionSet[T](condition), Self, conditionalOperator, *conditions)
 
 def CreateFieldParameterConjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
-    return __MakeFieldParameterSet(ConditionalOperator.And, conditions)
+    return __CreateFieldParameterSet(ConditionalOperator.And, conditions)
 def CreateFieldParameterDisjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
-    return __MakeFieldParameterSet(ConditionalOperator.Or, conditions)
+    return __CreateFieldParameterSet(ConditionalOperator.Or, conditions)
 
 def MakeFieldParameterConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
     return CreateFieldParameterConjunctionSet(conditions)
@@ -312,7 +312,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
         self.__set: IFieldConditionRecursivelyEnumerable[T] = set
     
     @final
-    def Render(self, writer: IConditionalQueryWriter) -> None:
+    def Render(self, writer: IConditionalQueryWriter) -> bool:
         value: IKeyValuePair[T, IParameter[IOperandValue]|None]|None = None
         action: Method[IFieldConditionSetItem[T]] = lambda _: None
 
@@ -327,7 +327,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
 
             if (value := condition.TryGetFieldParameter()) is not None: write(value)
 
-        for condition in self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler[T](writer, process, updateAction)).AsIterable(): action(condition)
+        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = ConditionParameterSet.__Handler[T](writer, process, updateAction)).AsIterable(), action)
 
 def CreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]) -> IConditionParameterSet:
     return ConditionParameterSet[T](set)
@@ -367,7 +367,7 @@ class BranchSetBase[T: IValueProvider](Abstract, IBranchSet[T]):
         ...
     
     @final
-    def Render(self, writer: ISelectionQueryWriter) -> None:
+    def Render(self, writer: ISelectionQueryWriter) -> bool:
         def getColumnName() -> str:
             columnName: str = StringifyIfNone(self._GetColumn())
 
@@ -378,6 +378,8 @@ class BranchSetBase[T: IValueProvider](Abstract, IBranchSet[T]):
         self._WriteConditions(writer)
         
         writer.Write(f" ELSE {writer.JoinParameters(MakeSequence(self.GetDefault().GetUnderlyingValue()))} END AS {writer.FormatTableName(self.GetAlias())}")
+
+        return True
 class BranchSet[T: IValueProvider](BranchSetBase[T]):
     def __init__(self, alias: str, defaultValue: T) -> None:
         super().__init__(alias)

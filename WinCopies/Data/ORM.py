@@ -1914,11 +1914,13 @@ class _Updater(_Writer):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__(context)
     
-    def __BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet|None:
-        return CreateConjunctionSet(
-            Select(
-                primaryKeys,
-                lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
+    def __BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet:
+        conditions: IConditionParameterSet|None = CreateConjunctionSet(Select(primaryKeys, lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
+
+        if conditions is None:
+            raise InvalidOperationError("No primary key found.")
+        
+        return conditions
 
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         cols: _Columns = _GetColumns(entity)

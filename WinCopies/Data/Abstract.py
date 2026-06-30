@@ -121,7 +121,7 @@ class ITable(IEquatable['ITable'], IRemovable, IDisposable):
         ...
     
     @abstractmethod
-    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult:
         ...
     
     @abstractmethod
@@ -158,7 +158,7 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         def GetMultiInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery: return self._GetFactory().GetMultiInsertionQuery(self._GetTableName(), columns, items, ignoreExisting)
         
         @final
-        def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery: return self._GetFactory().GetUpdateQuery(self._GetTableName(), values, conditions)
+        def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery: return self._GetFactory().GetUpdateQuery(self._GetTableName(), values, conditions)
     
     def __init__(self) -> None:
         super().__init__()
@@ -258,7 +258,7 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         return self.GetQueryFactory().GetMultiInsertionQuery(columns, items, ignoreExisting).Execute()
     
     @final
-    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IInsertionQueryExecutionResult:
+    def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult:
         self._EnsureActiveTransaction()
         
         return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
@@ -370,7 +370,7 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
         def Insert(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.Insert(items, ignoreExisting)
         def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: return self.__table.InsertMany(columns, items, ignoreExisting)
 
-        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
+        def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
         
         def Remove(self) -> None: self.__table.Remove()
         def TryRemove(self) -> bool: return self.__table.TryRemove()

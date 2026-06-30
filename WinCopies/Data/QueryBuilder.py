@@ -42,7 +42,7 @@ class IConditionalQueryWriter(IQueryBuilder):
         ...
     
     @abstractmethod
-    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None:
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> bool:
         ...
 
     @abstractmethod
@@ -94,7 +94,7 @@ class IParameterSetBase[T: IConditionalQueryWriter](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def Render(self, writer: T) -> None:
+    def Render(self, writer: T) -> bool:
         ...
 
 class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
@@ -186,7 +186,7 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str: return self._GetBuilder().JoinOperands(items)
     
     @final
-    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None: return self._GetBuilder().AddConditions(conditions)
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> bool: return self._GetBuilder().AddConditions(conditions)
     
     @final
     def ProcessConditionValue(self, conditionKey: IColumn, conditionValue: IArgument|None) -> str: return self._GetBuilder().ProcessConditionValue(conditionKey, conditionValue)
@@ -236,10 +236,10 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
         return self.__args
     
     @final
-    def _RenderConditions[T: IConditionalQueryWriter](self, prefix: str, conditions: IParameterSetBase[T]|None, func: Callable[[str, Self], T]) -> None:
-        if conditions is None: return
+    def _RenderConditions[T: IConditionalQueryWriter](self, prefix: str, conditions: IParameterSetBase[T]|None, func: Callable[[str, Self], T]) -> bool:
+        if conditions is None: return False
         
-        conditions.Render(func(prefix, self))
+        return conditions.Render(func(prefix, self))
     
     @final
     def OpenStream(self) -> None: self.__stream.Open()
@@ -291,7 +291,7 @@ class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str: return ConditionalQueryBuilder.Join(Select(items, lambda operand: operand.Format(self)))
     
     @final
-    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> None: self._RenderConditions(" WHERE ", conditions, GetPrefixedConditionalQueryWriter)
+    def AddConditions(self, conditions: IParameterSetBase[IConditionalQueryWriter]|None) -> bool: return self._RenderConditions(" WHERE ", conditions, GetPrefixedConditionalQueryWriter)
     
     @final
     def ProcessConditionValue(self, conditionKey: IColumn, conditionValue: IArgument|None) -> str:

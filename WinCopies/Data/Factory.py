@@ -72,7 +72,7 @@ class IQueryFactory(IQueryFactoryBase):
         ...
     
     @abstractmethod
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
         ...
 
 class ITableQueryFactory(IQueryFactoryBase):
@@ -90,7 +90,7 @@ class ITableQueryFactory(IQueryFactoryBase):
         ...
     
     @abstractmethod
-    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery:
+    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
         ...
 
 class QueryFactory(Abstract, IQueryFactory):

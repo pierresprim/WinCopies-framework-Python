@@ -516,17 +516,17 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
         return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.IgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CreateCountableEnumerable(globalArgs))
 
 class UpdateQuery(WriteQuery, IUpdateQuery):
-    def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> None:
         super().__init__(tableName)
 
         self.__values: IDictionary[IString, object] = values
-        self.__conditions: IConditionParameterSet|None = conditions
+        self.__conditions: IConditionParameterSet = conditions
     
     @final
     def GetValues(self) -> IDictionary[IString, object]: return self.__values
     
     @final
-    def GetConditions(self) -> IConditionParameterSet|None: return self.__conditions
+    def GetConditions(self) -> IConditionParameterSet: return self.__conditions
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
@@ -540,8 +540,9 @@ class UpdateQuery(WriteQuery, IUpdateQuery):
 
             queryBuilder.Write(f"UPDATE {self.GetFormattedTableName()} SET {Select(self.GetValues().AsIterable(), lambda item: addValue(queryBuilder, item))}")
             
-            queryBuilder.AddConditions(self.GetConditions())
+            if queryBuilder.AddConditions(self.GetConditions()):
+                return queryBuilder.Build()
             
-            return queryBuilder.Build()
+            raise InvalidOperationError("No condition given.")
         
         raise MemoryError()

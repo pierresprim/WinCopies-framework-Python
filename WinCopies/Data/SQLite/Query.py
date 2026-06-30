@@ -142,7 +142,7 @@ class _MultiInsertionQuery(MultiInsertionQueryBase, __InsertionQuery):
         return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class _UpdateQuery(UpdateQueryBase, __Query):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> None:
+    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> None:
         super().__init__(tableName, values, conditions)
 
         self.__connection = connection
@@ -165,4 +165,4 @@ class Factory(QueryFactoryBase):
     def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery: return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
     def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery: return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
     
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet|None) -> IUpdateQuery: return _UpdateQuery(self.__connection, tableName, values, conditions)
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery: return _UpdateQuery(self.__connection, tableName, values, conditions)
