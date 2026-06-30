@@ -1822,6 +1822,10 @@ class _Writer(Abstract):
         return row
     
     @abstractmethod
+    def Persist(self, entity: Entity, journal: _Journal) -> bool:
+        ...
+    
+    @abstractmethod
     def Promote(self, journal: _Journal) -> None:
         ...
 
@@ -1916,7 +1920,7 @@ class _Updater(_Writer):
                 primaryKeys,
                 lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
 
-    def Update(self, entity: Entity, journal: _Journal) -> bool:
+    def Persist(self, entity: Entity, journal: _Journal) -> bool:
         cols: _Columns = _GetColumns(entity)
         dirty: Iterable[IString] = _GetCookie(entity).GetDirtyColumns().AsIterable()
 
@@ -2075,17 +2079,17 @@ class _Transaction(Abstract, ITransaction):
                 except BaseException as e: return self.__GetTransaction(e)
             
             return None
+        def __TryPersist(self, item: Entity, writer: _Writer) -> bool|tuple[BaseException, _ITransaction]:
+            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, writer.Persist)
+            
+            return result if isinstance(result, tuple) else result is True
         
         def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
-            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__adder.Persist)
-
-            return result if isinstance(result, tuple) else result is True
+            return self.__TryPersist(item, self.__adder)
         def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return self.__TryAdd(items, self.__adder.PersistRange)
 
         def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]:
-            result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, self.__updater.Update)
-
-            return result if isinstance(result, tuple) else result is True
+            return self.__TryPersist(item, self.__updater)
         
         def Commit(self) -> bool|tuple[BaseException, _ITransaction]:
             try:
