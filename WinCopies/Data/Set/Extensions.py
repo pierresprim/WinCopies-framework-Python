@@ -13,7 +13,7 @@ from WinCopies.Collections.Abstraction.Mapping import Dictionary
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
-from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, MakeCompositeExpressionRoot
+from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, CreateCompositeExpressionRoot
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
@@ -257,7 +257,7 @@ class FieldConditionSet[T: IColumn](FieldParameterSet[T, IParameter[IOperandValu
     def __init__(self, initialValue: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> None: super().__init__(initialValue)
 
 def __CreateFieldParameterSet[T: IColumn](conditionalOperator: ConditionalOperator, conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
-    return MakeCompositeExpressionRoot(lambda condition: FieldConditionSet[T](condition), Self, conditionalOperator, *conditions)
+    return CreateCompositeExpressionRoot(lambda condition: FieldConditionSet[T](condition), Self, conditionalOperator, conditions)
 
 def CreateFieldParameterConjunctionSet[T: IColumn](conditions: Iterable[IKeyValuePair[T, IParameter[IOperandValue]|None]]) -> IFieldConditionSet[T]|None:
     return __CreateFieldParameterSet(ConditionalOperator.And, conditions)
