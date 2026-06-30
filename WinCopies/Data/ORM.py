@@ -1219,6 +1219,9 @@ def __ProcessColumns[TColumn: IColumnAbstract](obj: Entity, columns: Iterable[TC
 def _ProcessColumns[TColumn: IColumnAbstract](obj: Entity, row: Iterable[object], columns: Iterable[TColumn]) -> None:
     __ProcessColumns(obj, columns, row, lambda args: args[1])
 
+def _EnsureNoUnresolvedRollbackError(context: DataContextBase) -> None:
+    if context.IsBlocked(): raise UnresolvedRollbackError()
+
 class IEntityMapperBase[T: Entity](IInterface):
     def __init__(self) -> None: super().__init__()
     
@@ -1417,7 +1420,7 @@ class Entity(Abstract, IDisposable):
             self.__dirty.Clear()
     
     __columns: IFunction[_Columns]
-
+    
     def __init_subclass__(cls, **kwargs: object) -> None:
         def update(func: IFunction[_Columns]) -> None: cls.__columns = func
         
@@ -1427,9 +1430,9 @@ class Entity(Abstract, IDisposable):
     
     def __init__(self) -> None:
         super().__init__()
-
+        
         self.__cookie: Entity._Cookie = Entity._AppCookie(self)
-
+    
     @classmethod
     @final
     def _GetColumns(cls) -> _Columns:
@@ -1442,7 +1445,7 @@ class Entity(Abstract, IDisposable):
     @final
     def _GetCookie(self) -> ICookie:
         return self.__cookie
-
+    
     @final
     def _TryGetContext(self) -> DataContextBase|None:
         return self.__cookie._TryGetContext() # pyright: ignore[reportPrivateUsage]
@@ -1453,28 +1456,29 @@ class Entity(Abstract, IDisposable):
         cookie._SetContext(context) # pyright: ignore[reportPrivateUsage]
 
         return cookie
-
+    
     @final
     def IsReady(self) -> bool:
         return self._GetCookie().IsReady()
-
+    
     @final
     def TryUpdate(self) -> bool:
         context: DataContextBase|None = self._TryGetContext()
-
+        
         if context is None: raise EntityNotPersistedError(self)
-        if context.IsBlocked(): raise UnresolvedRollbackError()
-
+        
+        _EnsureNoUnresolvedRollbackError(context)
+        
         transaction: ITransaction|None = context.TryGetActiveTransaction()
-
+        
         if transaction is None: raise InvalidOperationError("UPDATE requires an active transaction.")
-
+        
         return transaction.TryUpdate(self)
-
+    
     @final
     def _Initialize(self) -> None:
         self.__cookie.Seal()
-
+    
     def Dispose(self) -> None:
         pass
 
@@ -1589,8 +1593,6 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
     return None if fresh.GetCount() < 1 else fresh.AsIterable()
 
 def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool:
-    if context.IsBlocked(): raise UnresolvedRollbackError()
-
     def validate(item: Entity) -> None:
         if not item.IsReady(): raise InvalidOperationError(f"{item} is not ready.")
     
@@ -1600,6 +1602,8 @@ def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, m
         maxDepth -= 1
 
         return maxDepth > 0
+    
+    _EnsureNoUnresolvedRollbackError(context)
     
     if items is None or maxDepth < 1 or (items := __InitializeStubs(DoForEachItem(items, validate), context)) is None: return False
     
@@ -1626,7 +1630,7 @@ class EntityCollection[T: Entity](Abstract):
 
     @final
     def __Run(self, query: ISelectionQuery) -> IEnumerable[T]:
-        if self.__context.IsBlocked(): raise UnresolvedRollbackError()
+        _EnsureNoUnresolvedRollbackError(self.__context)
 
         return self.__hydrator.Iterate(query.Execute())
     
@@ -2203,24 +2207,26 @@ class _Transaction(Abstract, ITransaction):
         
         super().__init__()
         
-        self.__context: DataContextBase = cookie.GetContext()
-        self.__transaction: _ITransaction = _Transaction.__Active(self.__context, control, adder, updater)
-
+        context: DataContextBase = cookie.GetContext()
+        
+        self.__context: DataContextBase = context
+        self.__transaction: _ITransaction = _Transaction.__Active(context, control, adder, updater)
+        
         self.__tryInitialize: Function[bool] = tryInitialize # type: ignore[no-redef]
         self.__dispose: Action = NoAction # type: ignore[no-redef]
     
     def __Process[T: bool|None](self, func: Converter[_ITransaction, T|tuple[BaseException, _ITransaction]]) -> T:
         result: T|tuple[BaseException, _ITransaction] = func(self.__transaction)
-
+        
         if isinstance(result, tuple):
             self.__transaction = result[1]
-
+            
             raise result[0]
-
+        
         return result
-    def __ProcessWrite[T: bool|None](self, func: Converter[_ITransaction, T|tuple[BaseException, _ITransaction]]) -> T:
-        if self.__context.IsBlocked(): raise UnresolvedRollbackError()
-
+    def __Write[T: bool|None](self, func: Converter[_ITransaction, T|tuple[BaseException, _ITransaction]]) -> T:
+        _EnsureNoUnresolvedRollbackError(self.__context)
+        
         return self.__Process(func)
     
     def Initialize(self) -> None:
@@ -2243,9 +2249,9 @@ class _Transaction(Abstract, ITransaction):
     def Begin(self) -> bool:
         return self.__tryInitialize() and self.__transaction.Begin()
 
-    def TryAdd(self, item: Entity) -> bool: return self.__ProcessWrite(lambda transaction: transaction.TryAdd(item))
-    def TryAddRange(self, items: Iterable[Entity]) -> bool|None: return self.__ProcessWrite(lambda transaction: transaction.TryAddRange(items))
-    def TryUpdate(self, item: Entity) -> bool: return self.__ProcessWrite(lambda transaction: transaction.TryUpdate(item))
+    def TryAdd(self, item: Entity) -> bool: return self.__Write(lambda transaction: transaction.TryAdd(item))
+    def TryAddRange(self, items: Iterable[Entity]) -> bool|None: return self.__Write(lambda transaction: transaction.TryAddRange(items))
+    def TryUpdate(self, item: Entity) -> bool: return self.__Write(lambda transaction: transaction.TryUpdate(item))
 
     def Commit(self) -> bool: return self.__Process(lambda transaction: transaction.Commit())
     def Rollback(self) -> bool: return self.__transaction.Rollback()
@@ -2339,18 +2345,18 @@ class DataContextBase(Abstract):
 
         if unresolved is None: return True
 
+        self.__unresolved = None
+
         # Resolution exit: re-emit the diverging updates in a fresh transaction. The block is
         # cleared up front so the re-emission is not itself gated; on any failure the rolled-back
         # transaction is re-armed with the full set (its own journal would only re-arm the subset
         # it managed to record before failing).
-        entities: ITuple[Entity] = CreateTuple(Select(unresolved.AsIterable(), lambda reference: reference.GetValue()))
-
-        self.__unresolved = None
+        entities: Iterable[Entity] = CreateTuple(Select(unresolved.AsIterable(), lambda reference: reference.GetValue())).AsIterable()
 
         transaction: ITransaction = self.BeginTransaction()
 
         try:
-            for entity in entities.AsIterable(): transaction.TryUpdate(entity)
+            for entity in entities: transaction.TryUpdate(entity)
 
             transaction.Dispose()
 
@@ -2358,7 +2364,7 @@ class DataContextBase(Abstract):
             try: transaction.Dispose()
             except BaseException: pass
 
-            self._ArmUnresolvedRollback(entities.AsIterable())
+            self._ArmUnresolvedRollback(entities)
 
             return False
 
