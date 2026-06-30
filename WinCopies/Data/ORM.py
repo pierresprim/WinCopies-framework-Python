@@ -904,8 +904,8 @@ def _GetCookie(obj: Entity) -> ICookie:
 
 def _TryGetEntityContext(obj: Entity) -> DataContextBase|None:
     return obj._TryGetContext() # pyright: ignore[reportPrivateUsage]
-def _SetEntityContext(obj: Entity, context: DataContextBase) -> None:
-    obj._SetContext(context) # pyright: ignore[reportPrivateUsage]
+def _SetEntityContext(obj: Entity, context: DataContextBase) -> ICookie:
+    return obj._SetContext(context) # pyright: ignore[reportPrivateUsage]
 
 class _ColumnDecoratorBase[TEntity: Entity, TValue, TParameter: IColumnParameterAbstract, TProperty](Abstract, IFunctionProvider[TEntity, TValue, TProperty]):
     def __init__(self, parameter: TParameter, func: TProperty, setter: SetterBase[Entity, object]) -> None:
@@ -1309,10 +1309,18 @@ class Entity(Abstract, IDisposable):
             super().__init__()
 
             self.__entity: Entity = entity
+            self.__context: DataContextBase|None = None # This field is declared here to ensure the reference exists, no matter which initialization path is used.
         
         @final
         def _GetEntity(self) -> Entity:
             return self.__entity
+        
+        @final
+        def _TryGetContext(self) -> DataContextBase|None:
+            return self.__context
+        @final
+        def _SetContext(self, context: DataContextBase) -> None:
+            self.__context = context
         
         @abstractmethod
         def Seal(self) -> None:
@@ -1410,8 +1418,6 @@ class Entity(Abstract, IDisposable):
     
     __columns: IFunction[_Columns]
 
-    __context: DataContextBase|None = None
-
     def __init_subclass__(cls, **kwargs: object) -> None:
         def update(func: IFunction[_Columns]) -> None: cls.__columns = func
         
@@ -1439,10 +1445,14 @@ class Entity(Abstract, IDisposable):
 
     @final
     def _TryGetContext(self) -> DataContextBase|None:
-        return self.__context
+        return self.__cookie._TryGetContext() # pyright: ignore[reportPrivateUsage]
     @final
-    def _SetContext(self, context: DataContextBase) -> None:
-        self.__context = context
+    def _SetContext(self, context: DataContextBase) -> ICookie:
+        cookie: Entity._Cookie = self.__cookie
+
+        cookie._SetContext(context) # pyright: ignore[reportPrivateUsage]
+
+        return cookie
 
     @final
     def IsReady(self) -> bool:
@@ -1804,6 +1814,9 @@ class _Adder(_Writer):
         def OnExitingEnumerationLevel(self, cookie: IReference[Entity]) -> None:
             self.__onStack.Remove(cookie)
     
+    def __init__(self, context: DataContextBase) -> None:
+        super().__init__(context)
+
     def __GetAutoPrimaryKey(self, cols: _Columns) -> _IAutoPrimaryKey[Entity, object]|None:
         return cast(_IAutoPrimaryKey[Entity, object]|None, GetFirstOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable()).TryGetValue()) # type: ignore[type-abstract]
 
@@ -1872,7 +1885,9 @@ class _Adder(_Writer):
 
 @final
 class _Updater(_Writer):
-    @final
+    def __init__(self, context: DataContextBase) -> None:
+        super().__init__(context)
+    
     def __BuildKeyConditions(self, entity: Entity, primaryKeys: ITuple[IDefaultColumn]) -> _IRoot:
         def parameterFor(index: int) -> _IDataParameter:
             primaryKey: IDefaultColumn = primaryKeys.GetAt(index)
@@ -2027,8 +2042,8 @@ class _TransactionBase(_TransactionAbstract):
 class _Transaction(Abstract, ITransaction):
     @final
     class __Active(_TransactionBase):
-        def __init__(self, control: ITransactionControl, adder: _Adder, updater: _Updater) -> None:
-            super().__init__(control, _Journal(adder._GetContext())) # pyright: ignore[reportPrivateUsage]
+        def __init__(self, context: DataContextBase, control: ITransactionControl, adder: _Adder, updater: _Updater) -> None:
+            super().__init__(control, _Journal(context))
             
             self.__adder: _Adder = adder
             self.__updater: _Updater = updater
@@ -2153,7 +2168,7 @@ class _Transaction(Abstract, ITransaction):
         
         super().__init__()
         
-        self.__transaction: _ITransaction = _Transaction.__Active(control, adder, updater)
+        self.__transaction: _ITransaction = _Transaction.__Active(cookie.GetContext(), control, adder, updater)
         
         self.__tryInitialize: Function[bool] = tryInitialize # type: ignore[no-redef]
         self.__dispose: Action = NoAction # type: ignore[no-redef]
@@ -2200,6 +2215,10 @@ class _ITransactionCookie(IInterface):
         super().__init__()
     
     @abstractmethod
+    def GetContext(self) -> DataContextBase:
+        ...
+    
+    @abstractmethod
     def TryRegister(self, transaction: ITransaction) -> bool:
         ...
     @abstractmethod
@@ -2217,8 +2236,11 @@ class DataContextBase(Abstract):
 
             self.__context: DataContextBase = context
         
-        def TryRegister(self, transaction: ITransaction) -> bool: return self.__context._TryRegisterTransaction(transaction)
-        def Unregister(self) -> None: self.__context._UnregisterTransaction()
+        def GetContext(self) -> DataContextBase:
+            return self.__context
+        
+        def TryRegister(self, transaction: ITransaction) -> bool: return self.GetContext()._TryRegisterTransaction(transaction)
+        def Unregister(self) -> None: self.GetContext()._UnregisterTransaction()
     
     def __init__(self) -> None:
         super().__init__()
