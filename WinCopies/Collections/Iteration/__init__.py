@@ -343,8 +343,12 @@ def SelectWhere[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, 
     """
     result: TOut|None = None
 
-    for item in TryEnumerate(items):
-        if predicate(result := converter(item)): yield result
+    return (result for item in TryEnumerate(items) if predicate(result := converter(item)))
+
+def Match[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut], predicate: Callable[[TIn, TOut], bool]) -> Generator[TOut]:
+    result: TOut|None = None
+
+    return (result for item in TryEnumerate(items) if predicate(item, result := converter(item)))
 
 def WhereNotNone[T](items: Iterable[T|None]|None) -> Generator[T]:
     return (item for item in TryEnumerate(items) if item is not None)
@@ -355,15 +359,12 @@ def WhereNotNoneSelect[TIn, TOut](items: Iterable[TIn|None]|None, converter: Con
     return (converter(item) for item in TryEnumerate(items) if item is not None)
 
 def WhereOfType[T](t: Type[T], items: Iterable[object]) -> Generator[T]:
-    for item in items:
-        if isinstance(item, t): yield item
+    return (item for item in items if isinstance(item, t))
 def WhereNotOfType[TItem, TRemoved](t: Type[TRemoved], items: Iterable[TItem]) -> Generator[TItem]:
-    for item in items:
-        if not isinstance(item, t): yield item
+    return (item for item in items if not isinstance(item, t))
 
 def WhereOfTypeSelect[TIn, TOut](t: Type[TIn], items: Iterable[object], converter: Converter[TIn, TOut]) -> Generator[TOut]:
-    for item in items:
-        if isinstance(item, t): yield converter(item)
+    return (converter(item) for item in items if isinstance(item, t))
 
 def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Includes only items that match a given predicate.
