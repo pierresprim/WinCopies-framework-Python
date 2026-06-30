@@ -412,8 +412,13 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TList, 
     def __init__(self, items: Iterable[TItem]|None) -> None:
         super().__init__()
 
-        self.__items: TList = self._CreateList(items)
+        # Build the backing list empty first so __items and __cookie are both in place before any
+        # population: the welded add path consults the owner list (GetLast -> _GetItems), so
+        # populating during construction would read __items before it is assigned.
+        self.__items: TList = self._CreateList(None)
         self.__cookie: TCookie = self._CreateEnumerationCookie(super()._GetValueCookie())
+
+        if items is not None: self.AddLastItems(items)
     
     @abstractmethod
     def _CreateList(self, items: Iterable[TItem]|None) -> TList:

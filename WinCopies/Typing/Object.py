@@ -587,7 +587,7 @@ class Finalizer(Abstract, IRemovable):
         
         super().__init__()
 
-        finalizer: finalize[Any, object] = finalize[Any, object](obj, action)
+        finalizer: finalize[Any, object] = finalize(obj, action)
 
         self.__remove: Action = remove # type: ignore[no-redef]
     
