@@ -790,14 +790,33 @@ class _MutableQueryLimits(Abstract, IMutableQueryLimits):
     def __init__(self, queryLimits: IQueryLimits) -> None:
         super().__init__()
 
-        self.__maxParameterCount: DualValueBool[int]|None = queryLimits.GetMaxParameterCount()
-        self.__maxQuerySize: int|None = queryLimits.GetMaxQuerySize()
+        # Deferred snapshot: the source limits read from the live connection, which is not yet
+        # established when Open() builds this object (Open() opens the connection afterwards).
+        self.__source: IQueryLimits|None = queryLimits
+        self.__maxParameterCount: DualValueBool[int]|None = None
+        self.__maxQuerySize: int|None = None
 
-    def GetMaxParameterCount(self) -> DualValueBool[int]|None: return self.__maxParameterCount
+    def __EnsureInitialized(self) -> None:
+        source: IQueryLimits|None = self.__source
 
-    def GetMaxQuerySize(self) -> int|None: return self.__maxQuerySize
-    
+        if source is not None:
+            self.__maxParameterCount = source.GetMaxParameterCount()
+            self.__maxQuerySize = source.GetMaxQuerySize()
+            self.__source = None
+
+    def GetMaxParameterCount(self) -> DualValueBool[int]|None:
+        self.__EnsureInitialized()
+
+        return self.__maxParameterCount
+
+    def GetMaxQuerySize(self) -> int|None:
+        self.__EnsureInitialized()
+
+        return self.__maxQuerySize
+
     def UpdateParameterCount(self, size: int, safe: bool) -> bool|None:
+        self.__EnsureInitialized()
+
         def update(result: bool) -> bool:
             self.__maxParameterCount = CreateDualValueBool(size, result)
 

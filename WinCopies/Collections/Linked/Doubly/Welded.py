@@ -790,10 +790,11 @@ class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
 @final
 class _List[T](ListAbstract[T, _Node[T], IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
     def __init__(self, items: List[T], values: Iterable[T]|None = None) -> None:
+        # __items must exist before super().__init__ populates the list, since _CreateNode reads it.
+        self.__items: List[T] = items
+
         super().__init__(values)
 
-        self.__items: List[T] = items
-    
     def _CreateNode(self, value: T) -> _Node[T]:
         return _Node[T](value, self.__items, self, self._GetCookie(), None, None)
     
