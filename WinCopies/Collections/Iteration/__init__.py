@@ -527,26 +527,35 @@ def GetFirstOfType[T](t: Type[T], items: Iterable[object]) -> INullable[T]:
 def TryGetFirstOfType[T](t: Type[T], items: Iterable[object]|None) -> INullable[T]|None:
     return None if items is None else GetFirstOfType(t, items)
 
-def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T]) -> bool:
-    """Checks if an iterable contains any items.
-
-    Args:
-        items: The items to check.
-
-    Returns:
-        None if items is None, True if any items exist, False otherwise.
-    """
+def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: Predicate[T]|None = None) -> bool:
     def any(length: int) -> bool: return length > 0
     
-    match items:
-        case ICountableEnumerable(): return any(items.GetCount())
-        case Collection(): return any(len(items))
-        
-        case Iterable():
-            for _ in items: return True
+    def _any(items: ICountableEnumerable[T]) -> bool: return any(items.GetCount())
+    def __any(items: Collection[T]) -> bool: return any(len(items))
 
-            return False
-def CheckIfAny[T](items: Iterable[T]|None) -> bool|None:
+    def parse(items: Iterable[T], predicate: Predicate[T]) -> bool:
+        for _ in Include(items, predicate): return True
+
+        return False
+
+    if predicate is None:
+        match items:
+            case ICountableEnumerable(): return _any(items)
+            case Collection(): return __any(items)
+            
+            case Iterable():
+                for _ in items: return True
+
+                return False
+    
+    else:
+        match items:
+            case ICountableEnumerable(): return _any(items) and parse(items.AsIterable(), predicate)
+            case Collection(): return __any(items) and parse(items, predicate)
+            
+            case Iterable():
+                return parse(items, predicate)
+def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) -> bool|None:
     """Checks if an iterable contains any items.
 
     Args:
@@ -555,7 +564,7 @@ def CheckIfAny[T](items: Iterable[T]|None) -> bool|None:
     Returns:
         True if any items exist, False otherwise.
     """
-    return None if items is None else Any(items)
+    return None if items is None else Any(items, predicate)
 
 def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> IterationResult:
     """Validates that exactly one or no item matches a predicate.
