@@ -34,7 +34,7 @@ class IFormattable(IArgument):
 class IParameter[T](IEnumerable[T], IFormattable):
     def __init__(self) -> None: super().__init__()
 
-class __IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOperand, IKeyValuePair[TKey, Operator]]):
+class _IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOperand, IKeyValuePair[TKey, Operator]]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -45,11 +45,11 @@ class __IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOpe
     def _GetContainer(self) -> TOperand:
         return self.GetOperand()
 
-class __IColumnParameterBase[TKey, TOperand: IOperandValue](IParameter[TOperand], __IColumnParameterGenericConstraint[TKey, TOperand]):
+class _IColumnParameterBase[TKey, TOperand: IOperandValue](IParameter[TOperand], _IColumnParameterGenericConstraint[TKey, TOperand]):
     def __init__(self) -> None: super().__init__()
-class IColumnParameter(__IColumnParameterBase[IColumn, IColumnOperand]):
+class IColumnParameter(_IColumnParameterBase[IColumn, IColumnOperand]):
     def __init__(self) -> None: super().__init__()
-class IFieldParameter[T](__IColumnParameterBase[T, IOperand[T]]):
+class IFieldParameter[T](_IColumnParameterBase[T, IOperand[T]]):
     def __init__(self) -> None: super().__init__()
 
 @final
@@ -62,7 +62,7 @@ class Parameter(Enumerable[None], IParameter[None]):
     
     def TryGetEnumerator(self) -> None: return None
 
-class __ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand], __IColumnParameterBase[TKey, TOperand]):
+class _ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand], _IColumnParameterBase[TKey, TOperand]):
     def __init__(self, operand: TOperand) -> None:
         super().__init__()
 
@@ -79,7 +79,7 @@ class __ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand
     
     @final
     def _TryGetIterator(self) -> Generator[TOperand]: yield self._GetContainer()
-class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnParameter, IGenericConstraintImplementation[IColumnOperand]):
+class ColumnParameter(_ColumnParameterBase[IColumn, IColumnOperand], IColumnParameter, IGenericConstraintImplementation[IColumnOperand]):
     def __init__(self, operand: IColumnOperand) -> None: super().__init__(operand)
     
     @staticmethod
@@ -92,7 +92,7 @@ class ColumnParameter(__ColumnParameterBase[IColumn, IColumnOperand], IColumnPar
     @staticmethod
     def CreateForTableColumn(operator: Operator, tableName: str, columnName: str) -> ColumnParameter:
         return ColumnParameter.Create(operator, TableColumn(tableName, columnName))
-class FieldParameter[T](__ColumnParameterBase[T, IOperand[T]], IFieldParameter[T], IGenericConstraintImplementation[IOperand[T]]):
+class FieldParameter[T](_ColumnParameterBase[T, IOperand[T]], IFieldParameter[T], IGenericConstraintImplementation[IOperand[T]]):
     def __init__(self, operand: IOperand[T]) -> None: super().__init__(operand)
 
 def CreateFieldParameter[T](operand: IOperand[T]) -> FieldParameter[T]:

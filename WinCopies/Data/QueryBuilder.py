@@ -116,7 +116,7 @@ class IJoinBase[T: IParameterSetBase[ISelectionQueryWriter]](IInterface):
     def GetConditions(self) -> T|None:
         ...
 
-class __IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
+class _IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -127,7 +127,7 @@ class __IConditionalQueryWriterCookie[T: IConditionalQueryWriter](IInterface):
     def Write(self, value: str) -> None:
         ...
 
-class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
+class _ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, _IConditionalQueryWriterCookie[T]):
     def __init__(self, prefix: str, writer: T) -> None:
         def write(value: str) -> None:
             def write(value: str) -> None: self.__builder.Write(value)
@@ -146,7 +146,7 @@ class __ConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __ICo
 
     @final
     def Write(self, value: str) -> None: return self.__write(value)
-class __NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, __IConditionalQueryWriterCookie[T]):
+class _NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, _IConditionalQueryWriterCookie[T]):
     def __init__(self, writer: T) -> None:
         super().__init__()
 
@@ -158,11 +158,11 @@ class __NullConditionalQueryWriterCookie[T: IConditionalQueryWriter](Abstract, _
     @final
     def Write(self, value: str) -> None: pass
 
-class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
+class _ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditionalQueryWriter):
     def __init__(self, prefix: str, writer: T) -> None:
         super().__init__()
         
-        self.__builder: __IConditionalQueryWriterCookie[T] = __ConditionalQueryWriterCookie[T](prefix, writer)
+        self.__builder: _IConditionalQueryWriterCookie[T] = _ConditionalQueryWriterCookie[T](prefix, writer)
     
     @final
     def _GetBuilder(self) -> T:
@@ -199,9 +199,9 @@ class __ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditiona
 
         builder.Dispose()
 
-        self.__builder = __NullConditionalQueryWriterCookie[T](builder)
+        self.__builder = _NullConditionalQueryWriterCookie[T](builder)
 @final
-class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
+class _SelectionQueryWriter(_ConditionalQueryWriter[ISelectionQueryWriter], ISelectionQueryWriter):
     def __init__(self, prefix: str, writer: ISelectionQueryWriter) -> None: super().__init__(prefix, writer)
 
     def AddTable(self, name: str, parameter: ITableParameter[object]|None) -> str: return self._GetBuilder().AddTable(name, parameter)
@@ -211,9 +211,9 @@ class __SelectionQueryWriter(__ConditionalQueryWriter[ISelectionQueryWriter], IS
     def AddOrdering(self, ordering: IDictionary[IColumn, Ordering]) -> None: return self._GetBuilder().AddOrdering(ordering)
 
 def GetPrefixedConditionalQueryWriter(prefix: str, writer: IConditionalQueryWriter) -> IConditionalQueryWriter:
-    return __ConditionalQueryWriter(prefix, writer)
+    return _ConditionalQueryWriter(prefix, writer)
 def GetPrefixedSelectionQueryWriter(prefix: str, writer: ISelectionQueryWriter) -> ISelectionQueryWriter:
-    return __SelectionQueryWriter(prefix, writer)
+    return _SelectionQueryWriter(prefix, writer)
 
 class ConditionalQueryBuilder(Abstract, IConditionalQueryBuilder):
     def __init__(self, query: IQueryBase[object]) -> None:
