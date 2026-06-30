@@ -14,7 +14,7 @@ from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple, CreateHashableTuple
 from WinCopies.Collections.Abstraction.Mapping import Set, Dictionary, CreateSet, CreateDictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateKeyedSet
-from WinCopies.Collections.Core import ICountable, IReadOnlyIndexable
+from WinCopies.Collections.Core import ICountable, IContainer, IReadOnlyIndexable
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError, CreateIteratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, RecursiveEnumerator, StackedRecursiveEnumerator
@@ -1742,6 +1742,31 @@ class _EntityEnumerable(RecursivelyEnumerable[IReference[Entity]]):
                 lambda edge: cast(Entity|None, _GetEntityValue(e, edge))),
             lambda e: DefaultReference[Entity](e)), GetTruthyPredicate(lambda entity: _TryAdd(entity, self.__data))))
 
+def _Contains(items: IContainer[IString], column: IColumnAbstract) -> bool: return items.Contains(String(column.GetColumnParameter().GetColumnName()))
+
+class _IColumnSelector(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def SelectColumns[T: IColumnAbstract](self, items: Iterable[T]) -> Iterable[T]:
+        ...
+
+@final
+class _DefaultColumnSelector(Abstract, _IColumnSelector):
+    def __init__(self) -> None: super().__init__()
+
+    def SelectColumns[T: IColumnAbstract](self, items: Iterable[T]) -> Iterable[T]: return items
+@final
+class _UpdaterColumnSelector(Abstract, _IColumnSelector):
+    def __init__(self, dirtyNonPrimaryKey: IContainer[IString]) -> None:
+        super().__init__()
+
+        self.__dirtyNonPrimaryKey: IContainer[IString] = dirtyNonPrimaryKey
+
+    def SelectColumns[T: IColumnAbstract](self, items: Iterable[T]) -> Iterable[T]: return Include(items, lambda column: _Contains(self.__dirtyNonPrimaryKey, column))
+
+_defaultColumnSelector: _IColumnSelector = _DefaultColumnSelector()
+
 class _Writer(Abstract):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__()
@@ -1753,15 +1778,14 @@ class _Writer(Abstract):
         return self.__context
 
     @final
-    def _AssembleRow(self, e: Entity, cols: _Columns, selector: Predicate[IColumnAbstract]) -> IDictionary[IString, object]:
+    def _AssembleRow(self, e: Entity, cols: _Columns, columnSelector: _IColumnSelector) -> IDictionary[IString, object]:
         def __add(columnParameter: IColumnParameterAbstract|ITableColumn, value: object) -> None:
             row.Add(String(columnParameter.GetColumnName()), value)
 
         def _add(column: IColumnAbstract, value: object) -> None: __add(column.GetColumnParameter(), value)
 
         def addColumns(columns: Iterable[IDefaultColumn]) -> None:
-            for column in columns:
-                if selector(column): _add(column, _GetEntityValue(e, column))
+            for column in columnSelector.SelectColumns(columns): _add(column, _GetEntityValue(e, column))
 
         def addColumn(columns: ITuple[ITableColumn], index: int, value: object) -> None:
             __add(columns.GetAt(index), value)
@@ -1775,24 +1799,22 @@ class _Writer(Abstract):
 
         target: Entity|None = None
 
-        for entityColumn in cols.GetEntityColumns().AsIterable():
-            if selector(entityColumn):
-                target = cast(Entity|None, _GetEntityValue(e, entityColumn))
+        for entityColumn in columnSelector.SelectColumns(cols.GetEntityColumns().AsIterable()):
+            target = cast(Entity|None, _GetEntityValue(e, entityColumn))
 
-                _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(target).GetAt(0)))
+            _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(target).GetAt(0)))
 
-        for foreignKey in cols.GetForeignKeys().AsIterable():
-            if selector(foreignKey):
-                target = cast(Entity|None, _GetEntityValue(e, foreignKey))
-                columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(GetTypeName(e)) # pyright: ignore[reportPrivateUsage]
+        for foreignKey in columnSelector.SelectColumns(cols.GetForeignKeys().AsIterable()):
+            target = cast(Entity|None, _GetEntityValue(e, foreignKey))
+            columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(GetTypeName(e)) # pyright: ignore[reportPrivateUsage]
 
-                if target is None:
-                    for i in getRange(columns): addColumn(columns, i, None)
+            if target is None:
+                for i in getRange(columns): addColumn(columns, i, None)
 
-                else:
-                    targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(target)
+            else:
+                targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(target)
 
-                    for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
+                for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
 
         return row
     
@@ -1834,7 +1856,7 @@ class _Adder(_Writer):
                 # Capture the placeholder BEFORE write-back.
                 oldValue: object|None = None if autoPrimaryKey is None else _GetEntityValue(e, autoPrimaryKey)
 
-                row: IDictionary[IString, object] = self._AssembleRow(e, cols, lambda _: True)
+                row: IDictionary[IString, object] = self._AssembleRow(e, cols, _defaultColumnSelector)
 
                 mapper: IEntityMapper[Entity] = context._GetMapper(type(e)) # pyright: ignore[reportPrivateUsage]
                 key: IEntityKey[IItem]|None = None
@@ -1907,10 +1929,10 @@ class _Updater(_Writer):
 
         if dirtyNonPrimaryKey.IsEmpty(): return False
 
-        for target in WhereSelect(ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()), lambda column: dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())), lambda column: cast(Entity|None, _GetEntityValue(entity, column))):
+        for target in WhereSelect(ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()), lambda column: _Contains(dirtyNonPrimaryKey, column), lambda column: cast(Entity|None, _GetEntityValue(entity, column))):
             if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(target)
 
-        values: IDictionary[IString, object] = self._AssembleRow(entity, cols, lambda column: dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())))
+        values: IDictionary[IString, object] = self._AssembleRow(entity, cols, _UpdaterColumnSelector(dirtyNonPrimaryKey))
         result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, self.__BuildKeyConditions(entity, primaryKeys))
 
         try:
