@@ -23,7 +23,7 @@ from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySe
 from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Any as HasAny, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
-from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableEnumerableQueue
+from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach, Scan
 
@@ -1666,9 +1666,12 @@ class _Journal(Abstract):
 
         self.__context: DataContextBase = context
         self.__seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
-        self.__ledger: IList[_IInsertionRecord] = Queue[_IInsertionRecord]()
+        self.__ledger: IEnumerableList[_IInsertionRecord] = EnumerableQueue[_IInsertionRecord]()
         self.__updated: ISet[IReference[Entity]] = Set[IReference[Entity]]()
     
+    def __Enumerate[T](self, items: IEnumerable[T], selector: Converter[T, Entity]) -> Iterable[Entity]:
+        return Select(items.AsIterable(), selector)
+
     def IsSeen(self, entity: Entity) -> bool:
         return self.__seen.Contains(DefaultReference[Entity](entity))
     def MarkSeen(self, entity: Entity) -> None:
@@ -1685,12 +1688,12 @@ class _Journal(Abstract):
         # Update-records are leave-as-is: no in-memory revert. But an emitted-then-rolled-back
         # update leaves the entity diverging from the database, so the context is armed to force
         # an explicit resolution (Reverse/Retry) before any further database operation.
-        if self.__updated.HasItems(): self.__context._ArmUnresolvedRollback(self.GetUpdated()) # pyright: ignore[reportPrivateUsage]
+        if self.__updated.HasItems(): self.__context._ArmUnresolvedRollback(self.IterateUpdated()) # pyright: ignore[reportPrivateUsage]
 
-    def GetInserted(self) -> Iterable[Entity]:
-        return Select(self.__ledger.AsGenerator(), lambda record: record.GetEntity())
-    def GetUpdated(self) -> Iterable[Entity]:
-        return Select(self.__updated.AsIterable(), lambda reference: reference.GetValue())
+    def IterateInserted(self) -> Iterable[Entity]:
+        return self.__Enumerate(self.__ledger, lambda record: record.GetEntity())
+    def IterateUpdated(self) -> Iterable[Entity]:
+        return self.__Enumerate(self.__updated, lambda reference: reference.GetValue())
 
 @final
 class _EntityEnumerationData(Abstract):
@@ -1895,15 +1898,12 @@ class _Adder(_Writer):
 
     def Promote(self, journal: _Journal) -> None:
         context: DataContextBase = self._GetContext()
-        inserted: ILinkedList[Entity] = CreateList(journal.GetInserted())
 
         # Promote pins the context handle on each freshly inserted entity (so it becomes a valid
         # UPDATE target) and re-baselines its cookie, since the committed state is now the baseline.
-        for entity in inserted.AsIterable():
-            _SetEntityContext(entity, context)
-            _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
-
-        context._MarkPersisted(inserted.AsIterable()) # pyright: ignore[reportPrivateUsage]
+        for entity in journal.IterateInserted(): _SetEntityContext(entity, context)._CommitChanges() # pyright: ignore[reportPrivateUsage]
+        
+        context._MarkPersisted(journal.IterateInserted()) # pyright: ignore[reportPrivateUsage]
 
 @final
 class _Updater(_Writer):
@@ -1945,7 +1945,7 @@ class _Updater(_Writer):
         return True
 
     def Promote(self, journal: _Journal) -> None:
-        for entity in journal.GetUpdated(): _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
+        for entity in journal.IterateUpdated(): _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
 
 class ITransaction(ITransactionControl, IDisposable):
     def __init__(self) -> None: super().__init__()
