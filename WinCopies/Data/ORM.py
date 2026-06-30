@@ -21,7 +21,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Any as HasAny, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration import Any as HasAny, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
@@ -32,17 +32,17 @@ from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 from WinCopies.Typing import IDisposable, Error, InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
-from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
+from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecoratorBase, PropertyDecorator, GetTypeName
 
 
 
 from WinCopies.Data import Operator, ConditionalOperator, IOperandValue, IOperand, ITableColumn, Operand, SetOperand, GetActiveTransactionError
 from WinCopies.Data.Abstract import IConnection, ITransactionControl, ITable
-from WinCopies.Data.Parameter import IFormattable, IParameter, FieldParameter
+from WinCopies.Data.Parameter import IFormattable, IParameter, FieldParameter, CreateFieldParameterFromValue
 from WinCopies.Data.Query import ISelectionQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet, IFieldConditionRecursivelyEnumerable, IFieldParameterSetItem
-from WinCopies.Data.Set.Extensions import TableParameterSet, CreateColumnParameterSet, TryCreateConditionSetFromConditions
+from WinCopies.Data.Set.Extensions import IConditionParameterSet, TableParameterSet, CreateColumnParameterSet, TryCreateConditionSetFromConditions, CreateConjunctionSet
 
 class EntityInsertionError(Error):
     def __init__(self, message: str) -> None: super().__init__(message)
@@ -1888,24 +1888,18 @@ class _Updater(_Writer):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__(context)
     
-    def __BuildKeyConditions(self, entity: Entity, primaryKeys: ITuple[IDefaultColumn]) -> _IRoot:
-        def parameterFor(index: int) -> _IDataParameter:
-            primaryKey: IDefaultColumn = primaryKeys.GetAt(index)
-
-            return cast(_IDataParameter, cast(IColumnParameter[object], primaryKey.GetColumnParameter()).ToConditionParameter(Operator.Equals, _GetEntityValue(entity, primaryKey)))
-
-        root: _ValueRoot = _ValueRoot(parameterFor(0))
-
-        for i in range(1, primaryKeys.GetCount()): root.GetFirst().SetNext(ConditionalOperator.And, parameterFor(i))
-
-        return root
+    def __BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet|None:
+        return CreateConjunctionSet(
+            Select(
+                primaryKeys,
+                lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
 
     def Update(self, entity: Entity, journal: _Journal) -> bool:
         cols: _Columns = _GetColumns(entity)
         dirty: Iterable[IString] = _GetCookie(entity).GetDirtyColumns().AsIterable()
 
-        primaryKeys: ITuple[IDefaultColumn] = cols.GetPrimaryKeys()
-        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys.AsIterable(), lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
+        primaryKeys: Iterable[IDefaultColumn] = cols.GetPrimaryKeys().AsIterable()
+        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys, lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
 
         if HasAny(dirty, primaryKeyNames.Contains): raise PrimaryKeyMutationError(entity)
 
@@ -1913,15 +1907,11 @@ class _Updater(_Writer):
 
         if dirtyNonPrimaryKey.IsEmpty(): return False
 
-        for column in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
-            if dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())):
-                target: Entity|None = cast(Entity|None, _GetEntityValue(entity, column))
-
-                if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(type(target))
+        for target in WhereSelect(ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()), lambda column: dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())), lambda column: cast(Entity|None, _GetEntityValue(entity, column))):
+            if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(target)
 
         values: IDictionary[IString, object] = self._AssembleRow(entity, cols, lambda column: dirtyNonPrimaryKey.Contains(String(column.GetColumnParameter().GetColumnName())))
-        
-        result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, TryCreateConditionSetFromConditions(_Set(self.__BuildKeyConditions(entity, primaryKeys), GetTypeName(entity))))
+        result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, self.__BuildKeyConditions(entity, primaryKeys))
 
         try:
             if result.GetRowCount() == 0: raise RowVanishedError(entity)
