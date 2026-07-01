@@ -394,10 +394,10 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             queryBuilder.OpenStream()
 
             if initQuery(): return None
-            
+
             queryBuilder.AddConditions(self.GetConditions())
-        
-        return queryBuilder.Build()
+
+            return queryBuilder.Build()
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IFormattable], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__(tables, conditions, subqueries)
@@ -539,8 +539,10 @@ class UpdateQuery(WriteQuery, IUpdateQuery):
         with (queryBuilder := ConditionalQueryBuilder(self)):
             queryBuilder.OpenStream()
 
-            queryBuilder.Write(f"UPDATE {self.GetFormattedTableName()} SET {Select(self.GetValues().AsIterable(), lambda item: addValue(queryBuilder, item))}")
-            
+            assignments: str = ", ".join(Select(self.GetValues().AsIterable(), lambda item: addValue(queryBuilder, item)))
+
+            queryBuilder.Write(f"UPDATE {self.GetFormattedTableName()} SET {assignments}")
+
             if queryBuilder.AddConditions(self.GetConditions()):
                 return queryBuilder.Build()
             

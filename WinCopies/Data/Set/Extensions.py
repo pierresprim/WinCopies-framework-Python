@@ -327,7 +327,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
 
             if (value := condition.TryGetFieldParameter()) is not None: write(value)
 
-        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = _ConditionParameterSetHandler[T](writer, process, updateAction)).AsIterable(), action)
+        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = _ConditionParameterSetHandler[T](writer, process, updateAction)).AsIterable(), lambda item: action(item))
 
 def CreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]) -> IConditionParameterSet:
     return ConditionParameterSet[T](set)

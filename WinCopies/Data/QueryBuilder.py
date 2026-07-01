@@ -175,8 +175,8 @@ class _ConditionalQueryWriter[T: IConditionalQueryWriter](Abstract, IConditional
     def OpenStream(self) -> None: self._GetBuilder().OpenStream()
 
     @final
-    def Write(self, value: str) -> None: return self._GetBuilder().Write(value)
-    
+    def Write(self, value: str) -> None: return self.__builder.Write(value)
+
     @final
     def GetParameter(self, arg: object|None) -> str: return self._GetBuilder().GetParameter(arg)
     

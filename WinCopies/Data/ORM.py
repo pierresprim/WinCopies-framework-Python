@@ -1212,12 +1212,12 @@ def _GetEntityValue(obj: Entity, column: IColumnAbstract) -> object:
 def _SetEntityValue(obj: Entity, column: IColumnAbstract, value: object) -> None:
     column._SetEntityValue(obj, value) # pyright: ignore[reportPrivateUsage]
 
-def __ProcessColumns[TColumn: IColumnAbstract](obj: Entity, columns: Iterable[TColumn], row: Iterable[object], converter: Converter[tuple[TColumn, object], object]) -> None:
+def _ProcessColumnsCore[TColumn: IColumnAbstract](obj: Entity, columns: Iterable[TColumn], row: Iterable[object], converter: Converter[tuple[TColumn, object], object]) -> None:
     def setValue(args: tuple[TColumn, object]) -> None: _SetEntityValue(obj, args[0], converter(args))
 
     DoForEach(zip(columns, row), setValue)
 def _ProcessColumns[TColumn: IColumnAbstract](obj: Entity, row: Iterable[object], columns: Iterable[TColumn]) -> None:
-    __ProcessColumns(obj, columns, row, lambda args: args[1])
+    _ProcessColumnsCore(obj, columns, row, lambda args: args[1])
 
 def _EnsureNoUnresolvedRollbackError(context: DataContextBase) -> None:
     if context.IsBlocked(): raise UnresolvedRollbackError()
@@ -1541,7 +1541,7 @@ class _Hydrator[T: Entity](Abstract):
         if obj.IsReady(): return obj
         
         _ProcessColumns(obj, row, data.GetColumns())
-        __ProcessColumns(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
+        _ProcessColumnsCore(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
 
         for fk in data.GetForeignKeys(): _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
 
