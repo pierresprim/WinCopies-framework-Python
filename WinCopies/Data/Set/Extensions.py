@@ -289,20 +289,16 @@ class _ConditionParameterSetHandler[T: IColumn](RecursiveEnumerationHandler[IFie
         self.__connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[T]]] = connectorHandlerUpdater
     
     def OnEnteringEnumerationLevel(self, item: IFieldConditionSetItem[T]) -> None:
-        def _action(item: IFieldConditionSetItem[T]) -> None:
-            operator: ConditionalOperator|None = item.TryGetPreviousOperator()
+        # The recursive enumeration fires an enter/exit level around every item (see
+        # RecursiveEnumeratorBase), so each condition is its own level; the connector to the
+        # previous sibling is carried by the item itself and is written before its parentheses.
+        operator: ConditionalOperator|None = item.TryGetPreviousOperator()
 
-            if operator is not None: self.__writer.Write(str(operator))
-            
-            self.__action(item)
-        def action(item: IFieldConditionSetItem[T]) -> None:
-            self.__action(item)
-
-            self.__connectorHandlerUpdater(_action)
+        if operator is not None: self.__writer.Write(f" {operator} ")
 
         self.__writer.Write('(')
 
-        self.__connectorHandlerUpdater(action)
+        self.__connectorHandlerUpdater(self.__action)
     def OnExitingEnumerationLevel(self, cookie: None) -> None: self.__writer.Write(')')
 
 class ConditionParameterSet[T: IColumn](IConditionParameterSet):
