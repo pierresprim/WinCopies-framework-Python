@@ -21,7 +21,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Any as HasAny, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
@@ -1876,8 +1876,9 @@ class _Adder(_Writer):
     def __Persist(self, e: Entity, journal: _Journal, onStack: ISet[IReference[Entity]]) -> bool:
         def persist(ref: IReference[Entity]) -> bool:
             handler: _Adder._EnumerationHandler = _Adder._EnumerationHandler(onStack)
-            
-            for e in Select(_EntityEnumerable(ref.GetValue(), data).GetRecursiveStackedEnumerator(EnumerationOrder.LIFO, handler).AsIterator(), lambda e: e.GetValue()):
+            entity: Entity = ref.GetValue()
+
+            for e in AppendItem(Select(_EntityEnumerable(entity, data).GetRecursiveStackedEnumerator(EnumerationOrder.LIFO, handler).AsIterator(), lambda e: e.GetValue()), entity):
                 cols: _Columns = _GetColumns(e)
                 autoPrimaryKey: _IAutoPrimaryKey[Entity, object]|None = self.__GetAutoPrimaryKey(cols)
 
