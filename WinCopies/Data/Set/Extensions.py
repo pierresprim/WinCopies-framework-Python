@@ -281,12 +281,10 @@ class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITabl
 
 @final
 class _ConditionParameterSetHandler[T: IColumn](RecursiveEnumerationHandler[IFieldConditionSetItem[T]]):
-    def __init__(self, writer: IConditionalQueryWriter, action: Method[IFieldConditionSetItem[T]], connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[T]]]) -> None:
+    def __init__(self, writer: IConditionalQueryWriter) -> None:
         super().__init__()
 
         self.__writer: IConditionalQueryWriter = writer
-        self.__action: Method[IFieldConditionSetItem[T]] = action
-        self.__connectorHandlerUpdater: Method[Method[IFieldConditionSetItem[T]]] = connectorHandlerUpdater
     
     def OnEnteringEnumerationLevel(self, item: IFieldConditionSetItem[T]) -> None:
         # The recursive enumeration fires an enter/exit level around every item (see
@@ -297,8 +295,6 @@ class _ConditionParameterSetHandler[T: IColumn](RecursiveEnumerationHandler[IFie
         if operator is not None: self.__writer.Write(f" {operator} ")
 
         self.__writer.Write('(')
-
-        self.__connectorHandlerUpdater(self.__action)
     def OnExitingEnumerationLevel(self, cookie: None) -> None: self.__writer.Write(')')
 
 class ConditionParameterSet[T: IColumn](IConditionParameterSet):
@@ -310,12 +306,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
     @final
     def Render(self, writer: IConditionalQueryWriter) -> bool:
         value: IKeyValuePair[T, IParameter[IOperandValue]|None]|None = None
-        action: Method[IFieldConditionSetItem[T]] = lambda _: None
 
-        def updateAction(_action: Method[IFieldConditionSetItem[T]]) -> None:
-            nonlocal action
-
-            action = _action
         def process(condition: IFieldConditionSetItem[T]) -> None:
             def write(value: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> None: writer.Write(writer.ProcessConditionValue(value.GetKey(), value.GetValue()))
 
@@ -323,7 +314,7 @@ class ConditionParameterSet[T: IColumn](IConditionParameterSet):
 
             if (value := condition.TryGetFieldParameter()) is not None: write(value)
 
-        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = _ConditionParameterSetHandler[T](writer, process, updateAction)).AsIterable(), lambda item: action(item))
+        return DoForEachItem(self.__set.GetRecursiveEnumerable(handler = _ConditionParameterSetHandler[T](writer)).AsIterable(), process)
 
 def CreateConditionSetFromConditions[T: IColumn](set: IFieldConditionRecursivelyEnumerable[T]) -> IConditionParameterSet:
     return ConditionParameterSet[T](set)
