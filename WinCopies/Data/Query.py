@@ -390,17 +390,15 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
 
             return False # Continue query rendering.
         
-        result: QueryResult|None = None
-
         with (queryBuilder := SelectionQueryBuilder(self)):
             queryBuilder.OpenStream()
 
             if not initQuery():
                 queryBuilder.AddConditions(self.GetConditions())
 
-                result = queryBuilder.Build()
+                return queryBuilder.Build()
 
-        return result
+        return None
 class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     def __init__(self, tables: ITableParameterSet, column: IKeyValuePair[IColumn, IFormattable], conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__(tables, conditions, subqueries)
