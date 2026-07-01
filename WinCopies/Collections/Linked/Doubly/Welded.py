@@ -415,13 +415,13 @@ class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TList, 
         # Build the backing list empty first so __items and __cookie are both in place before any
         # population: the welded add path consults the owner list (GetLast -> _GetItems), so
         # populating during construction would read __items before it is assigned.
-        self.__items: TList = self._CreateList(None)
+        self.__items: TList = self._CreateList()
         self.__cookie: TCookie = self._CreateEnumerationCookie(super()._GetValueCookie())
 
-        if items is not None: self.AddLastItems(items)
+        self.AddLastItems(items)
     
     @abstractmethod
-    def _CreateList(self, items: Iterable[TItem]|None) -> TList:
+    def _CreateList(self) -> TList:
         ...
     
     @final
@@ -794,11 +794,11 @@ class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
 
 @final
 class _List[T](ListAbstract[T, _Node[T], IDoublyLinkedNode[T]], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
-    def __init__(self, items: List[T], values: Iterable[T]|None = None) -> None:
+    def __init__(self, items: List[T]) -> None:
         # __items must exist before super().__init__ populates the list, since _CreateNode reads it.
         self.__items: List[T] = items
 
-        super().__init__(values)
+        super().__init__()
 
     def _CreateNode(self, value: T) -> _Node[T]:
         return _Node[T](value, self.__items, self, self._GetCookie(), None, None)
@@ -831,8 +831,8 @@ class List[T](ListBase[T, _Node[T]]):
         self.__reversed: IFunction[IList[T]] = _ReversedUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _CreateList(self, items: Iterable[T]|None) -> ListAbstract[T, _Node[T], IDoublyLinkedNode[T]]:
-        return _List[T](self, items)
+    def _CreateList(self) -> ListAbstract[T, _Node[T], IDoublyLinkedNode[T]]:
+        return _List[T](self)
     
     @final
     def _GetNodeAsInterface(self, node: IDoublyLinkedNode[T]) -> ILinkedNode[T]:
@@ -963,12 +963,12 @@ class _CountableListNode[T](DoublyLinkedNodeBase[T, "_CountableListNode[T]", ICo
 
 @final
 class _CountableInnerListBase[T](ListAbstract[T, _CountableListNode[T], ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, items: CountableList[T], l: CountableListProvider[T], values: Iterable[T]|None) -> None:
+    def __init__(self, items: CountableList[T], l: CountableListProvider[T]) -> None:
         self.__items: CountableList[T] = items
         self.__cookie: CountableListProvider[T] = l
         self.__count: int = 0
 
-        super().__init__(values)
+        super().__init__()
     
     def _GetNodeAsClass(self, node: _CountableListNode[T]) -> ICountableLinkedListNode[T]:
         return node
@@ -1086,8 +1086,8 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
 
         self.__reversed: IFunction[ICountableList[T]] = _ReversedCountableUpdater[T](self, update) # type: ignore[no-redef]
     
-    def _CreateList(self, items: Iterable[T]|None) -> _CountableInnerListBase[T]:
-        return _CountableInnerListBase[T](self.__items, self.__cookie, items)
+    def _CreateList(self) -> _CountableInnerListBase[T]:
+        return _CountableInnerListBase[T](self.__items, self.__cookie)
     
     def _GetItemsAsClass(self, items: _CountableInnerListBase[T]) -> ListAbstract[T, _CountableListNode[T], ICountableLinkedListNode[T]]:
         return items
