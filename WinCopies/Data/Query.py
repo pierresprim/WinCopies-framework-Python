@@ -82,6 +82,13 @@ class IQuery[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](IQ
     def Execute(self, guards: QueryErrorKinds|None = None) -> TQueryExecutionResult|QueryErrorKinds:
         ...
 
+class _IQuery[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _GetQueryOverride(self) -> T:
+        ...
+
 class QueryProvider[T](Abstract, IQueryBase[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -94,12 +101,8 @@ class QueryExceptionMapper(Abstract):
     @abstractmethod
     def _TryMapException(self, exception: Exception) -> QueryErrorKinds:
         ...
-class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](QueryProvider[TQueryResult], QueryExceptionMapper, IQuery[TQueryResult, TQueryExecutionResult]):
+class QueryBase[TQueryResult, TQueryExecutionResult: IQueryExecutionResult|None](QueryProvider[TQueryResult], QueryExceptionMapper, IQuery[TQueryResult, TQueryExecutionResult], _IQuery[TQueryResult]):
     def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def _GetQueryOverride(self) -> TQueryResult:
-        ...
 
     def GetQuery(self) -> TQueryResult:
         result: str|None = self._Validate()
@@ -207,14 +210,19 @@ class ISubselectionQuery(ISelectionQueryBase):
     def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]:
         ...
 
-class IWriteQuery(IQuery[QueryResult, IInsertionQueryExecutionResult]):
+class IWriteQueryAbstract[T: IQueryExecutionResult](IQuery[QueryResult, T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetTableName(self) -> str:
         ...
+    @abstractmethod
+    def GetFormattedTableName(self) -> str:
+        ...
+class IWriteQueryBase(IWriteQueryAbstract[IInsertionQueryExecutionResult]):
+    def __init__(self) -> None: super().__init__()
 
-class IInsertionQueryBase[T](IWriteQuery):
+class IInsertionQueryBase[T](IWriteQueryBase):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -230,7 +238,10 @@ class IMultiInsertionQuery(IInsertionQueryBase[Iterable[Iterable[object]]]):
     def GetColumns(self) -> ICountableEnumerable[IString]:
         ...
 
-class IUpdateQuery(IWriteQuery, IConditionalQuery):
+class IWriteQuery(IWriteQueryAbstract[IQueryExecutionResult], IConditionalQuery):
+    def __init__(self) -> None: super().__init__()
+
+class IUpdateQuery(IWriteQueryBase, IConditionalQuery):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -408,7 +419,7 @@ class SubselectionQuery(SelectionQueryBase, ISubselectionQuery):
     @final
     def GetColumn(self) -> IKeyValuePair[IColumn, IFormattable]: return self.__column
 
-class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
+class WriteQueryAbstract[T: IQueryExecutionResult](Query[T], IWriteQueryAbstract[T]):
     def __init__(self, tableName: str) -> None:
         super().__init__()
 
@@ -418,6 +429,10 @@ class WriteQuery(Query[IInsertionQueryExecutionResult], IWriteQuery):
     def GetTableName(self) -> str: return self.__tableName
     @final
     def GetFormattedTableName(self) -> str: return self.FormatTableName(self.GetTableName())
+class WriteQueryBase(WriteQueryAbstract[IInsertionQueryExecutionResult], IWriteQueryBase):
+    def __init__(self, tableName: str) -> None: super().__init__(tableName)
+class WriteQuery(WriteQueryAbstract[IQueryExecutionResult], IWriteQuery):
+    def __init__(self, tableName: str) -> None: super().__init__(tableName)
 
 class InsertionQueryStatementProvider(Abstract):
     def __init__(self) -> None: super().__init__()
@@ -425,7 +440,7 @@ class InsertionQueryStatementProvider(Abstract):
     @abstractmethod
     def _GetStatement(self, ignoreExisting: bool = False) -> str:
         ...
-class InsertionQueryBase[T](WriteQuery, IInsertionQueryBase[T], InsertionQueryStatementProvider):
+class InsertionQueryBase[T](WriteQueryBase, IInsertionQueryBase[T], InsertionQueryStatementProvider):
     def __init__(self, tableName: str, items: T, ignoreExisting: bool = False) -> None:
         super().__init__(tableName)
 
@@ -517,7 +532,41 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
         
         return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.IgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CreateCountableEnumerable(globalArgs))
 
-class UpdateQuery(WriteQuery, IUpdateQuery):
+class _IWriteQuery[T: IQueryExecutionResult](IWriteQueryAbstract[T], IQueryBase[QueryResult], _IQuery[QueryResult], IConditionalQuery):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetStatement(self) -> str:
+        ...
+
+    @abstractmethod
+    def _GetValues(self, queryBuilder: IConditionalQueryBuilder) -> str|None:
+        ...
+    
+    @final
+    def _GetQueryOverride(self) -> QueryResult:
+        def write(value: str) -> None: queryBuilder.Write(value)
+
+        def tryAppendValues() -> None:
+            assignments: str|None = self._GetValues(queryBuilder)
+
+            if assignments is not None:
+                write(' '); write(assignments)
+
+        with (queryBuilder := ConditionalQueryBuilder(self)):
+            queryBuilder.OpenStream()
+
+            write(f"{self._GetStatement()} {self.GetFormattedTableName()}")
+
+            tryAppendValues()
+
+            if queryBuilder.AddConditions(self.GetConditions()): return queryBuilder.Build()
+            
+            raise InvalidOperationError("No condition given.")
+        
+        raise MemoryError()
+
+class UpdateQuery(WriteQueryBase, IUpdateQuery, _IWriteQuery[IInsertionQueryExecutionResult]):
     def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> None:
         super().__init__(tableName)
 
@@ -525,28 +574,36 @@ class UpdateQuery(WriteQuery, IUpdateQuery):
         self.__conditions: IConditionParameterSet = conditions
     
     @final
-    def GetValues(self) -> IDictionary[IString, object]: return self.__values
+    def _GetStatement(self) -> str: return "UPDATE"
     
     @final
-    def GetConditions(self) -> IConditionParameterSet: return self.__conditions
-    
-    @final
-    def _GetQueryOverride(self) -> QueryResult:
-        def addValue(queryBuilder: IConditionalQueryBuilder, item: IKeyValuePair[IString, object]) -> str:
+    def _GetValues(self, queryBuilder: IConditionalQueryBuilder) -> str|None:
+        def addValue(item: IKeyValuePair[IString, object]) -> str:
             queryBuilder.GetParameter(item.GetValue())
 
             return self.FormatTableName(item.GetKey().ToString()) + " = ?"
         
-        with (queryBuilder := ConditionalQueryBuilder(self)):
-            queryBuilder.OpenStream()
+        assignments: str = ", ".join(Select(self.GetValues().AsIterable(), addValue))
 
-            assignments: str = ", ".join(Select(self.GetValues().AsIterable(), lambda item: addValue(queryBuilder, item)))
+        return f"SET {assignments}"
+    
+    @final
+    def GetValues(self) -> IDictionary[IString, object]: return self.__values
+    
+    @final
+    def GetConditions(self) -> IConditionParameterSet: return self.__conditions
 
-            queryBuilder.Write(f"UPDATE {self.GetFormattedTableName()} SET {assignments}")
+class DeletionQuery(WriteQuery, _IWriteQuery[IQueryExecutionResult]):
+    def __init__(self, tableName: str, conditions: IConditionParameterSet) -> None:
+        super().__init__(tableName)
 
-            if queryBuilder.AddConditions(self.GetConditions()):
-                return queryBuilder.Build()
-            
-            raise InvalidOperationError("No condition given.")
-        
-        raise MemoryError()
+        self.__conditions: IConditionParameterSet = conditions
+    
+    @final
+    def _GetStatement(self) -> str: return "DELETE FROM"
+
+    @final
+    def _GetValues(self, queryBuilder: IConditionalQueryBuilder) -> str|None: return None
+    
+    @final
+    def GetConditions(self) -> IConditionParameterSet: return self.__conditions

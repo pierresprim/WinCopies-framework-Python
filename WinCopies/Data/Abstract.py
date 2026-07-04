@@ -6,6 +6,7 @@ from typing import final, NoReturn
 
 
 
+from Data.Query import IWriteQuery
 from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator
@@ -33,7 +34,7 @@ from WinCopies.Data.Factory import IFieldFactory, IQueryFactory, ITableQueryFact
 from WinCopies.Data.Field import IField
 from WinCopies.Data.Index import IIndex
 from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.Query import IQueryLimits, IMutableQueryLimits, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
+from WinCopies.Data.Query import IQueryLimits, IMutableQueryLimits, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery, IQueryExecutionResult, ISelectionQueryExecutionResult, IInsertionQueryExecutionResult
 from WinCopies.Data.Set import IColumnParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet
 
@@ -125,6 +126,10 @@ class ITable(IEquatable['ITable'], IRemovable, IDisposable):
         ...
     
     @abstractmethod
+    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult:
+        ...
+    
+    @abstractmethod
     def TryRemove(self) -> bool:
         ...
 class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
@@ -159,6 +164,9 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         
         @final
         def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery: return self._GetFactory().GetUpdateQuery(self._GetTableName(), values, conditions)
+
+        @final
+        def GetDeletionQuery(self, conditions: IConditionParameterSet) -> IWriteQuery: return self._GetFactory().GetDeletionQuery(self._GetTableName(), conditions)
     
     def __init__(self) -> None:
         super().__init__()
@@ -262,6 +270,12 @@ class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
         self._EnsureActiveTransaction()
         
         return self.GetQueryFactory().GetUpdateQuery(values, conditions).Execute()
+    
+    @final
+    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult:
+        self._EnsureActiveTransaction()
+
+        return self.GetQueryFactory().GetDeletionQuery(conditions).Execute()
 
     @abstractmethod
     def _Remove(self) -> None:
@@ -339,6 +353,8 @@ class _NullTable(Abstract, ITable):
     def InsertMany(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
 
     def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+
+    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult: raise GetDisposedError()
     
     def Remove(self) -> None: raise GetDisposedError()
     def TryRemove(self) -> bool: return False
@@ -384,6 +400,9 @@ class _TableBase(Abstract, ITable):
 
     @final
     def Update(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IInsertionQueryExecutionResult: return self.__table.Update(values, conditions)
+
+    @final
+    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult: return self.__table.Delete(conditions)
     
     @final
     def Remove(self) -> None: self.__table.Remove()

@@ -23,7 +23,7 @@ from WinCopies.Data import Operator, ConditionalOperator, IColumn, IOperandValue
 from WinCopies.Data.Field import FieldAttributes, GenericField, BooleanField, IntegerField, RealField, TextField, IntegerMode, RealMode, TextMode
 from WinCopies.Data.Index import ISingleColumnIndex, IMultiColumnIndex, IMultiColumnKey, IForeignKey
 from WinCopies.Data.Parameter import IFormattable, IParameter, CreateFieldParameter, CreateFieldParameterFromValue
-from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery
+from WinCopies.Data.Query import ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IWriteQuery, IUpdateQuery
 from WinCopies.Data.Set import IColumnParameterSet, ITableParameterSet
 from WinCopies.Data.Set.Extensions import IConditionParameterSet, FieldConditionNodeSet, AsColumns, MakeConjunctionSet, CreateConditionSet
 
@@ -74,6 +74,10 @@ class IQueryFactory(IQueryFactoryBase):
     @abstractmethod
     def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
         ...
+    
+    @abstractmethod
+    def GetDeletionQuery(self, tableName: str, conditions: IConditionParameterSet) -> IWriteQuery:
+        ...
 
 class ITableQueryFactory(IQueryFactoryBase):
     def __init__(self) -> None: super().__init__()
@@ -91,6 +95,10 @@ class ITableQueryFactory(IQueryFactoryBase):
     
     @abstractmethod
     def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
+        ...
+    
+    @abstractmethod
+    def GetDeletionQuery(self, conditions: IConditionParameterSet) -> IWriteQuery:
         ...
 
 class QueryFactory(Abstract, IQueryFactory):
