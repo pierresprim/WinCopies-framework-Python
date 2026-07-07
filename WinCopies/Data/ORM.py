@@ -1864,11 +1864,23 @@ class _Writer(Abstract):
                 for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
 
         return row
-    
+
+    @final
+    def _BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet:
+        # Shared by _Updater (WHERE of the UPDATE) and _Deleter (WHERE of the DELETE): a conjunction
+        # of (pk = <current value>) equalities. The current PK value equals the baseline here (drift
+        # is excluded upstream), so this WHERE targets exactly the persisted row.
+        conditions: IConditionParameterSet|None = CreateConjunctionSet(Select(primaryKeys, lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
+
+        if conditions is None:
+            raise InvalidOperationError("No primary key found.")
+
+        return conditions
+
     @abstractmethod
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         ...
-    
+
     @abstractmethod
     def Promote(self, journal: _Journal) -> None:
         ...
@@ -1958,14 +1970,6 @@ class _Adder(_Writer):
 class _Updater(_Writer):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__(context)
-    
-    def __BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet:
-        conditions: IConditionParameterSet|None = CreateConjunctionSet(Select(primaryKeys, lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
-
-        if conditions is None:
-            raise InvalidOperationError("No primary key found.")
-        
-        return conditions
 
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         cols: _Columns = _GetColumns(entity)
@@ -1984,7 +1988,7 @@ class _Updater(_Writer):
             if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(target)
 
         values: IDictionary[IString, object] = self._AssembleRow(entity, cols, _UpdaterColumnSelector(dirtyNonPrimaryKey))
-        result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, self.__BuildKeyConditions(entity, primaryKeys))
+        result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, self._BuildKeyConditions(entity, primaryKeys))
 
         try:
             if result.GetRowCount() == 0: raise RowVanishedError(entity)
