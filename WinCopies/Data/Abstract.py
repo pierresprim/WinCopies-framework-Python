@@ -6,7 +6,7 @@ from typing import final, NoReturn
 
 
 
-from Data.Query import IWriteQuery
+from WinCopies.Data.Query import IWriteQuery
 from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator

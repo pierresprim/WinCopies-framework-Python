@@ -5,7 +5,7 @@ from typing import final
 
 import sqlite3
 
-from Data.Query import IWriteQuery
+from WinCopies.Data.Query import IWriteQuery
 from WinCopies import String, Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
