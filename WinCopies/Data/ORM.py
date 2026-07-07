@@ -62,6 +62,8 @@ class RowVanishedError(Error):
     def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The row backing an entity of type {GetTypeName(value)} no longer exists in the database (database/memory invariant violation).")
 class UnresolvedRollbackError(Error):
     def __init__(self) -> None: super().__init__("The data context has an unresolved rollback; call Reverse() or Retry() before performing any further database operation.")
+class DeletedEntityError(Error):
+    def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The entity of type {GetTypeName(value)} has been deleted and can no longer be used.")
 
 @final
 class _TableColumn(Abstract, ITableColumn):
@@ -1313,18 +1315,29 @@ class Entity(Abstract, IDisposable):
 
             self.__entity: Entity = entity
             self.__context: DataContextBase|None = None # This field is declared here to ensure the reference exists, no matter which initialization path is used.
-        
+            self.__deleted: bool = False # Tombstone flag; declared here so the reference exists on both initialization paths, like __context.
+
         @final
         def _GetEntity(self) -> Entity:
             return self.__entity
-        
+
         @final
         def _TryGetContext(self) -> DataContextBase|None:
             return self.__context
         @final
         def _SetContext(self, context: DataContextBase) -> None:
             self.__context = context
-        
+
+        @final
+        def _IsDeleted(self) -> bool:
+            return self.__deleted
+        @final
+        def _MarkDeleted(self) -> None:
+            self.__deleted = True
+        @final
+        def _UnmarkDeleted(self) -> None:
+            self.__deleted = False
+
         @abstractmethod
         def Seal(self) -> None:
             ...
@@ -1456,7 +1469,17 @@ class Entity(Abstract, IDisposable):
         cookie._SetContext(context) # pyright: ignore[reportPrivateUsage]
 
         return cookie
-    
+
+    @final
+    def _IsDeleted(self) -> bool:
+        return self.__cookie._IsDeleted() # pyright: ignore[reportPrivateUsage]
+    @final
+    def _MarkDeleted(self) -> None:
+        self.__cookie._MarkDeleted() # pyright: ignore[reportPrivateUsage]
+    @final
+    def _UnmarkDeleted(self) -> None:
+        self.__cookie._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
+
     @final
     def IsReady(self) -> bool:
         return self._GetCookie().IsReady()
