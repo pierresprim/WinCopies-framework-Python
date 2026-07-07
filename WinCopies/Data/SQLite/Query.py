@@ -5,7 +5,8 @@ from typing import final
 
 import sqlite3
 
-from Data.Query import IWriteQuery
+
+
 from WinCopies import String, Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
@@ -18,7 +19,7 @@ from WinCopies.Data import QueryErrorKinds
 from WinCopies.Data.Factory import QueryFactory as QueryFactoryBase
 from WinCopies.Data.Misc import ITableNameFormater
 from WinCopies.Data.Parameter import IFormattable
-from WinCopies.Data.Query import (ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery,
+from WinCopies.Data.Query import (IWriteQuery, ISelectionQuery, IInsertionQuery, IMultiInsertionQuery, IUpdateQuery,
                                   SelectionQuery, InsertionQuery, MultiInsertionQuery, UpdateQuery, DeletionQuery,
                                   InsertionQueryStatementProvider,
                                   ISelectionQueryExecutionResult, IInsertionQueryExecutionResult,
