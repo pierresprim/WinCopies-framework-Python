@@ -19,27 +19,38 @@ from WinCopies.Data.SQLite import Connection
 class Item(Entity):
     def __init__(self, quantity: int) -> None:
         super().__init__()
+
         self.__id: IStruct[int] = Struct[int](0)
         self.__quantity: IStruct[int] = Struct[int](quantity)
+    
     def Dispose(self) -> None: pass
+
     @autoPrimaryKeyConfig()
     def Id(self) -> IStruct[int]: return self.__id
+
     @columnConfig()
     def Quantity(self) -> IStruct[int]: return self.__quantity
+    
     def _SetIdRaw(self, v: int) -> None: self.__id.SetValue(v)   # test-only: bypass the read-only PK
 class Items(EntityCollection[Item]):
     def __init__(self, c: DataContextBase) -> None: super().__init__(c)
+
     def _GetType(self) -> type[Item]: return Item
 
 class Line(Entity):
     def __init__(self, o: int, l: int, q: int) -> None:
         super().__init__()
+
         self.__o: IStruct[int] = Struct[int](o); self.__l: IStruct[int] = Struct[int](l); self.__q: IStruct[int] = Struct[int](q)
+    
     def Dispose(self) -> None: pass
+
     @primaryKeyConfig()
     def OrderId(self) -> IStruct[int]: return self.__o
+
     @primaryKeyConfig()
     def LineId(self) -> IStruct[int]: return self.__l
+
     @columnConfig()
     def Quantity(self) -> IStruct[int]: return self.__q
 class Lines(EntityCollection[Line]):
@@ -49,27 +60,37 @@ class Lines(EntityCollection[Line]):
 class Category(Entity):
     def __init__(self, name: str) -> None:
         super().__init__()
+
         self.__id: IStruct[int] = Struct[int](0); self.__name: IStruct[str] = Struct[str](name)
+    
     def Dispose(self) -> None: pass
+
     @autoPrimaryKeyConfig()
     def Id(self) -> IStruct[int]: return self.__id
+
     @columnConfig()
     def Name(self) -> IStruct[str]: return self.__name
 
 class Product(Entity):
-    def __init__(self, price: int, category: "Category") -> None:
+    def __init__(self, price: int, category: Category) -> None:
         super().__init__()
+
         self.__id: IStruct[int] = Struct[int](0); self.__price: IStruct[int] = Struct[int](price)
         self.__category: IStruct[Category] = Struct[Category](category)
+    
     def Dispose(self) -> None: pass
+
     @autoPrimaryKeyConfig()
     def Id(self) -> IStruct[int]: return self.__id
+
     @columnConfig()
     def Price(self) -> IStruct[int]: return self.__price
+
     @entityColumnConfig(Category)
     def Category(self) -> IStruct["Category"]: return self.__category
 class Products(EntityCollection[Product]):
     def __init__(self, c: DataContextBase) -> None: super().__init__(c)
+
     def _GetType(self) -> type[Product]: return Product
 
 # ------------------------------------------------------------------ helpers
@@ -117,12 +138,11 @@ def scenario(name: str, fn: Action) -> None:
         traceback.print_exc()
 
 def expect_raises(exc_type: type[Exception], fn: Action) -> None:
-    try:
-        fn()
-    except exc_type:
-        return
-    except BaseException as e:
-        raise AssertionError(f"expected {exc_type.__name__}, got {type(e).__name__}: {e}")
+    try: fn()
+    except exc_type: return
+
+    except BaseException as e: raise AssertionError(f"expected {exc_type.__name__}, got {type(e).__name__}: {e}")
+
     raise AssertionError(f"expected {exc_type.__name__}, nothing raised")
 
 # ------------------------------------------------------------------ scenarios
@@ -147,37 +167,87 @@ def s_simple() -> None:
     assert rows == [(1, 20)], rows
 
 def s_noop_clean() -> None:
-    conn = make_conn(); create_item_table(conn); ctx = DataContext(conn)
+    conn = make_conn()
+
+    create_item_table(conn)
+
+    ctx = DataContext(conn)
+
     it = insert_item(ctx, 10)
-    tx = ctx.BeginTransaction(); assert it.TryUpdate() is False, "clean entity must be a no-op"; tx.Dispose()
+    tx = ctx.BeginTransaction()
+    
+    assert it.TryUpdate() is False, "clean entity must be a no-op"
+    
+    tx.Dispose()
 
 def s_noop_roundtrip() -> None:
     # mutate then restore the original value -> value-recompare sees no net change -> no-op
-    conn = make_conn(); create_item_table(conn); ctx = DataContext(conn)
+    conn = make_conn()
+    
+    create_item_table(conn)
+    
+    ctx = DataContext(conn)
+    
     it = insert_item(ctx, 10)
-    it.Quantity = 20; it.Quantity = 10
-    tx = ctx.BeginTransaction(); assert it.TryUpdate() is False, "round-trip to baseline must be a no-op"; tx.Dispose()
+    it.Quantity = 20
+    it.Quantity = 10
+    
+    tx = ctx.BeginTransaction()
+    
+    assert it.TryUpdate() is False, "round-trip to baseline must be a no-op"
+    
+    tx.Dispose()
 
 def s_rebaseline() -> None:
     # after a committed update, a second no-op returns False, and a new mutation updates again
-    conn = make_conn(); create_item_table(conn); ctx = DataContext(conn)
+    conn = make_conn()
+    
+    create_item_table(conn)
+    
+    ctx = DataContext(conn)
+    
     it = insert_item(ctx, 10)
     it.Quantity = 20
-    tx = ctx.BeginTransaction(); assert it.TryUpdate() is True; tx.Dispose()
-    tx = ctx.BeginTransaction(); assert it.TryUpdate() is False, "committed update must rebaseline"; tx.Dispose()
+    
+    tx = ctx.BeginTransaction()
+    assert it.TryUpdate() is True
+    tx.Dispose()
+    
+    tx = ctx.BeginTransaction()
+    assert it.TryUpdate() is False, "committed update must rebaseline"
+    tx.Dispose()
+    
     it.Quantity = 30
-    tx = ctx.BeginTransaction(); assert it.TryUpdate() is True; tx.Dispose()
+    
+    tx = ctx.BeginTransaction()
+    assert it.TryUpdate() is True
+    tx.Dispose()
+    
     rows = [(r.Id, r.Quantity) for r in Items(DataContext(conn)).Select().AsIterable()]
+    
     assert rows == [(1, 30)], rows
 
 def s_composite() -> None:
-    conn = make_conn(); ff = conn.GetFactoryProvider().GetFieldFactory()
+    conn = make_conn()
+    ff = conn.GetFactoryProvider().GetFieldFactory()
+    
     conn.GetCursor().CreateTable("Line", [col(ff, "OrderId"), col(ff, "LineId"), col(ff, "Quantity")], None)
+
     ctx = DataContext(conn)
-    ln = Line(10, 5, 100); tx = ctx.BeginTransaction(); assert tx.TryAdd(ln) is True; tx.Dispose()
+    ln = Line(10, 5, 100)
+    
+    tx = ctx.BeginTransaction()
+    assert tx.TryAdd(ln) is True
+    tx.Dispose()
+    
     ln.Quantity = 200
-    tx = ctx.BeginTransaction(); assert ln.TryUpdate() is True; tx.Dispose()
+    
+    tx = ctx.BeginTransaction()
+    assert ln.TryUpdate() is True
+    tx.Dispose()
+    
     rows = [(r.OrderId, r.LineId, r.Quantity) for r in Lines(DataContext(conn)).Select().AsIterable()]
+    
     assert rows == [(10, 5, 200)], rows
 
 def s_pk_drift() -> None:
@@ -195,6 +265,7 @@ def s_not_persisted() -> None:
 
 def s_row_vanished() -> None:
     path = tempfile.mkstemp(suffix=".db")[1]
+
     try:
         conn = make_conn(path); create_item_table(conn); ctx = DataContext(conn)
         it = insert_item(ctx, 10)
