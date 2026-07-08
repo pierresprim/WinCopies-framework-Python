@@ -20,11 +20,9 @@ from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHan
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
-from WinCopies.Collections.Generation import IIterator
 from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
-from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach, Scan
 
 from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
@@ -1097,19 +1095,19 @@ class _Columns(Abstract):
         def getPredicate(role: Role) -> Predicate[IColumnAbstract]: return lambda column: checkRole(column, role)
         def concatenate(*columns: IEnumerable[IColumnAbstract]) -> Iterator[IColumnAbstract]: return ConcatenateIterables(Select(columns, lambda items: items.AsIterable()))
         
-        def createTuple[T](t: Type[T], role: Role, columns: IIterator[IColumnAbstract]) -> ITuple[T]: return CreateTuple(WhereOfType(t, columns.Include(getPredicate(role))))
-
         super().__init__()
 
-        _columns: ILinkedList[IColumnAbstract] = CreateList(columns)
-        __columns: IIterator[IColumnAbstract] = _columns.AsGenerator()
+        # Classify each column NON-destructively by (type, role) over the materialized, re-iterable
+        # list; iterating the whole list per bucket preserves declaration order (mandatory: composite-PK
+        # order drives the identity key and the UPDATE/DELETE WHERE). The four buckets are disjoint.
+        # IDefaultColumn matches plain columns and primary keys only; entity columns and foreign keys are
+        # sibling types (distinct runtime classes), so they are picked by their own WhereOfType.
+        allColumns: ITuple[IColumnAbstract] = CreateTuple(columns)
 
-        # The order of parsing is mandatory to get consistent set.
-
-        self.__primaryKeys: ITuple[IDefaultColumn] = createTuple(IDefaultColumn, Role.PrimaryKey, __columns) # type: ignore[type-abstract]
-        self.__foreignKeys: ITuple[IDefaultForeignKey] = CreateTuple(__columns.WhereOfType(IDefaultForeignKey)) # type: ignore[type-abstract]
-        self.__entityColumns: ITuple[IDefaultEntityColumn] = createTuple(IDefaultEntityColumn, Role.ForeignKey, __columns) # type: ignore[type-abstract]
-        self.__columns: ITuple[IDefaultColumn] = CreateTuple(WhereOfType(IDefaultColumn, _columns.AsQueuedGenerator())) # type: ignore[type-abstract]
+        self.__primaryKeys: ITuple[IDefaultColumn] = CreateTuple(Include(WhereOfType(IDefaultColumn, allColumns.AsIterable()), getPredicate(Role.PrimaryKey))) # type: ignore[type-abstract]
+        self.__foreignKeys: ITuple[IDefaultForeignKey] = CreateTuple(WhereOfType(IDefaultForeignKey, allColumns.AsIterable())) # type: ignore[type-abstract]
+        self.__entityColumns: ITuple[IDefaultEntityColumn] = CreateTuple(Include(WhereOfType(IDefaultEntityColumn, allColumns.AsIterable()), getPredicate(Role.ForeignKey))) # type: ignore[type-abstract]
+        self.__columns: ITuple[IDefaultColumn] = CreateTuple(Exclude(WhereOfType(IDefaultColumn, allColumns.AsIterable()), getPredicate(Role.PrimaryKey))) # type: ignore[type-abstract]
 
         self.__allColumns: Iterable[IColumnAbstract] = CreateIteratorProvider(lambda: concatenate(self.__primaryKeys, self.__columns, self.__entityColumns, self.__foreignKeys))
     
@@ -1207,7 +1205,24 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
     
     def __init__(self, key: T) -> None: super().__init__(key, EntityKey[T]._Enumerable(self))
 class CompositeEntityKey[T: IValueItem](EntityKeyBase[IHashableTuple[T]], IEntityKey[IHashableTuple[T]]):
-    def __init__(self, keys: IHashableTuple[T]) -> None: super().__init__(keys, self.GetValue())
+    # keys is both the underlying value and the enumerable (an IHashableTuple is an IEnumerable of its
+    # items). Passing self.GetValue() here read __key before EntityKeyBase.__init__ had set it.
+    def __init__(self, keys: IHashableTuple[T]) -> None: super().__init__(keys, keys)
+
+    # Value equality/hash over the primary-key items (each an IValueItem with value semantics, like the
+    # single-column EntityKey). The inherited EntityKeyBase behaviour delegates to the underlying
+    # IHashableTuple, whose Equals is identity-based (self is item) -> two logically equal composite
+    # keys never match and the identity map misses. This override keeps that scoped to the ORM key.
+    @final
+    def Equals(self, item: object) -> bool:
+        if not isinstance(item, IEntityKey): return False
+
+        selfItems: list[IValueItem] = list(self.AsIterable())
+        otherItems: list[IValueItem] = list(item.AsIterable())
+
+        return len(selfItems) == len(otherItems) and all(a.Equals(b) for a, b in zip(selfItems, otherItems))
+    @final
+    def Hash(self) -> int: return hash(tuple(item.Hash() for item in self.AsIterable()))
 
 def _GetEntityValue(obj: Entity, column: IColumnAbstract) -> object:
     return column._GetEntityValue(obj) # pyright: ignore[reportPrivateUsage]
