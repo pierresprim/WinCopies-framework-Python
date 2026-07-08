@@ -1669,18 +1669,20 @@ class EntityCollection[T: Entity](Abstract):
 
         return self.__Run(query)
 
-class _IInsertionRecord(IInterface):
+class _IReversibleRecord(IInterface):
+    # Defining trait is Revert (not the insertion): both the INSERT record and the DELETE record
+    # implement it, and the ledger sweeps them polymorphically to undo a rolled-back transaction.
     def __init__(self) -> None:
         super().__init__()
-    
+
     @abstractmethod
     def GetEntity(self) -> Entity:
         ...
-    
+
     @abstractmethod
     def Revert(self) -> None:
         ...
-class _InsertionRecord[TEntity: Entity, TValue](Abstract, _IInsertionRecord):
+class _InsertionRecord[TEntity: Entity, TValue](Abstract, _IReversibleRecord):
     def __init__(self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem],
                  entity: TEntity, generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = None,
                  oldValue: TValue|None = None) -> None:
@@ -1703,6 +1705,32 @@ class _InsertionRecord[TEntity: Entity, TValue](Abstract, _IInsertionRecord):
 
         if generatedColumn is not None: generatedColumn._SetGeneratedValue(self.__entity, self.__oldValue) # pyright: ignore[reportPrivateUsage]
 
+class _DeletionRecord[TEntity: Entity](Abstract, _IReversibleRecord):
+    # Strict mirror of _InsertionRecord: the revert-family record for a committed-deleted entity.
+    def __init__(self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, wasPersisted: bool, context: DataContextBase) -> None:
+        super().__init__()
+
+        self.__mapper: IEntityMapper[TEntity] = mapper
+        self.__key: IEntityKey[IItem] = key
+        self.__entity: TEntity = entity
+        self.__wasPersisted: bool = wasPersisted
+        self.__context: DataContextBase = context
+
+    @final
+    def GetEntity(self) -> Entity: return self.__entity
+
+    @final
+    def Revert(self) -> None:
+        # Capture-and-restore (not a blind re-apply): undo the framework mutation the DELETE emission
+        # posted (identity-map removal + tombstone), so post-rollback memory is live again.
+        self.__mapper.Register(self.__key, self.__entity)
+
+        self.__entity._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
+
+        # wasPersisted gates the persisted-set restoration: a DB-origin delete was never in
+        # __persisted, so re-marking it unconditionally would be wrong.
+        if self.__wasPersisted: self.__context._MarkPersisted((self.__entity,)) # pyright: ignore[reportPrivateUsage]
+
 @final
 class _Journal(Abstract):
     def __init__(self, context: DataContextBase) -> None:
@@ -1710,7 +1738,8 @@ class _Journal(Abstract):
 
         self.__context: DataContextBase = context
         self.__seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
-        self.__ledger: IEnumerableList[_IInsertionRecord] = EnumerableQueue[_IInsertionRecord]()
+        # Unified revert-family ledger: carries both inserts and deletes; Revert sweeps it to undo them.
+        self.__ledger: IEnumerableList[_IReversibleRecord] = EnumerableQueue[_IReversibleRecord]()
         self.__updated: ISet[IReference[Entity]] = Set[IReference[Entity]]()
     
     def __Enumerate[T](self, items: IEnumerable[T], selector: Converter[T, Entity]) -> Iterable[Entity]:
@@ -1723,6 +1752,8 @@ class _Journal(Abstract):
 
     def RecordInserted[TEntity: Entity, TValue](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = None, oldValue: TValue|None = None) -> None:
         self.__ledger.Push(_InsertionRecord[TEntity, TValue](mapper, key, entity, generatedColumn, oldValue))
+    def RecordDeleted[TEntity: Entity](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, wasPersisted: bool) -> None:
+        self.__ledger.Push(_DeletionRecord[TEntity](mapper, key, entity, wasPersisted, self.__context))
     def RecordUpdated(self, entity: Entity) -> None:
         self.__updated.TryAdd(DefaultReference[Entity](entity))
 
@@ -1735,7 +1766,10 @@ class _Journal(Abstract):
         if self.__updated.HasItems(): self.__context._ArmUnresolvedRollback(self.IterateUpdated()) # pyright: ignore[reportPrivateUsage]
 
     def IterateInserted(self) -> Iterable[Entity]:
-        return self.__Enumerate(self.__ledger, lambda record: record.GetEntity())
+        # The ledger now holds deletes too; the adder-promote consumer must see inserts only, else it
+        # would pin a handle/baseline on a tombstoned entity. Filter to _InsertionRecord, widening to
+        # the base record type (GetEntity is all the consumer needs) to keep the element type known.
+        return Select(cast(Iterable[_IReversibleRecord], WhereOfType(_InsertionRecord, self.__ledger.AsIterable())), lambda record: record.GetEntity())
     def IterateUpdated(self) -> Iterable[Entity]:
         return self.__Enumerate(self.__updated, lambda reference: reference.GetValue())
 
