@@ -11,7 +11,7 @@ from WinCopies.Collections.Core import ICountable, IClearable, Countable
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, GetResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
-from WinCopies.Collections.Generation import IRemovable, IIterator, Generator, ConverterBase
+from WinCopies.Collections.Generation import IRemovable, IIterator, DefaultGenerator, ConverterBase
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList, IListBase, ListNodeBase, ListBase as ListAbstract
 from WinCopies.Collections.Linked.Doubly.Node import INodeCookie, INode, IDoublyLinkedNode as IDoublyLinkedNodeAbstract, IDoublyLinkedNodeBase, IListCookie, NodeBase, DoublyLinkedNodeAbstract, DoublyLinkedNodeBase, DoublyLinkedNode
@@ -274,7 +274,7 @@ class _NodeGeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIter
 
         self.__items: IEnumerableListBase[TItem, TNode] = items
     
-    def _GetValue(self) -> IIterator[TNode]: return Generator[TNode](self.__items.AsNodeEnumerable().AsIterable())
+    def _GetValue(self) -> IIterator[TNode]: return DefaultGenerator[TNode](self.__items.AsNodeEnumerable().AsIterable())
 @final
 class _GeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIterator[TItem]]):
     def __init__(self, cookie: IValueCookie[TItem, TNode], updater: Method[IFunction[IIterator[TItem]]]) -> None:

@@ -6,7 +6,7 @@ from typing import final, Callable, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
-from WinCopies.Collections import Generator as GeneratorBase
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IClearable
 from WinCopies.Collections.Linked.Doubly import IReadWriteList
 from WinCopies.Collections.Linked.Node import IReadWriteTwoWayLinkedNode, LinkedNode
@@ -371,7 +371,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
     @final
     def RemoveRangeBefore(self, inclusive: bool = False) -> None:
         def unregister(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> None:
-            def enumerate(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]]:
+            def enumerate(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> Generator[DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]]:
                 yield node
 
                 _node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]|None = node.GetPrevious()
@@ -420,7 +420,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
     @final
     def RemoveRangeAfter(self, inclusive: bool = False) -> None:
         def unregister(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> None:
-            def enumerate(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> GeneratorBase[DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]]:
+            def enumerate(node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> Generator[DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]]:
                 yield node
 
                 _node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]|None = node.GetNext()

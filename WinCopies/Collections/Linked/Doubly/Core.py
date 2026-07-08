@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from typing import final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import Generator as GeneratorBase
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Linked.Doubly import IReadWriteList as IReadWriteListBase
 from WinCopies.Collections.Linked.Doubly.Node import INodeBase, INode, IDoublyLinkedNodeBase, INodeCookie, IListCookie
@@ -45,7 +45,7 @@ class IReadWriteList[T](IReadWriteListBase[T]):
         ...
     
     @final
-    def __AsGenerator(self, func: Function[INullable[T]]) -> GeneratorBase[T]:
+    def __AsGenerator(self, func: Function[INullable[T]]) -> Generator[T]:
         result: INullable[T] = func()
 
         while result.HasValue():
@@ -54,10 +54,10 @@ class IReadWriteList[T](IReadWriteListBase[T]):
             result = func()
     
     @final
-    def AsQueuedGenerator(self) -> GeneratorBase[T]:
+    def AsQueuedGenerator(self) -> Generator[T]:
         return self.__AsGenerator(self.TryRemoveFirst)
     @final
-    def AsStackedGenerator(self) -> GeneratorBase[T]:
+    def AsStackedGenerator(self) -> Generator[T]:
         return self.__AsGenerator(self.TryRemoveLast)
 
 class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
@@ -193,7 +193,7 @@ class ListBase[TItem, TNode, TNodeInterface: IRemovable](Abstract, IListBase[TIt
     
     @final
     def Clear(self) -> None:
-        def enumerate() -> GeneratorBase[TNode]:
+        def enumerate() -> Generator[TNode]:
             node: TNode|None = self._GetFirst()
 
             while node is not None:

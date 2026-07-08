@@ -9,7 +9,7 @@ from WinCopies.Collections import Generator as GeneratorCollection
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
-from WinCopies.Delegates import BoolTrue, GetNotPredicate
+from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing.Delegate import Function, Predicate, Converter as ConverterDelegate, Selector
 
 class IResumable(IInterface):
@@ -184,7 +184,7 @@ class NullableIterator[T](NullableIteratorBase[T]):
     def _GetItems(self) -> Iterable[T]:
         return self.__items
 
-class GeneratorBase[T: IRemovable](IteratorBase[T]):
+class GeneratorAbstract[T: IRemovable](IteratorBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -196,20 +196,42 @@ class GeneratorBase[T: IRemovable](IteratorBase[T]):
         item.Remove()
 
         return self._OnItemProcessed(item)
-class Generator[T: IRemovable](GeneratorBase[T]):
-    def __init__(self, items: Iterable[T], func: Function[bool]|None = None) -> None:
+class GeneratorBase[T: IRemovable](GeneratorAbstract[T]):
+    def __init__(self, items: Iterable[T]) -> None:
         super().__init__()
 
         self.__items: Iterable[T] = items
-        self.__func: Function[bool] = BoolTrue if func is None else func
     
     @final
     def _GetItems(self) -> Iterable[T]:
         return self.__items
+
+class Generator[T: IRemovable](GeneratorBase[T]):
+    def __init__(self, items: Iterable[T], func: Function[bool]) -> None:
+        super().__init__(items)
+
+        self.__func: Function[bool] = func
     
     @final
     def _OnItemProcessed(self, item: T) -> bool:
         return self.__func()
+class ExtendedGenerator[T: IRemovable](GeneratorBase[T]):
+    def __init__(self, items: Iterable[T], predicate: Predicate[T]) -> None:
+        super().__init__(items)
+
+        self.__predicate: Predicate[T] = predicate
+    
+    @final
+    def _OnItemProcessed(self, item: T) -> bool:
+        return self.__predicate(item)
+
+class DefaultGenerator[T: IRemovable](GeneratorBase[T]):
+    def __init__(self, items: Iterable[T]) -> None:
+        super().__init__(items)
+    
+    @final
+    def _OnItemProcessed(self, item: T) -> bool:
+        return False
 
 class ConverterBase[TIn, TOut](Abstract, IIterator[TOut]):
     def __init__(self) -> None: super().__init__()
