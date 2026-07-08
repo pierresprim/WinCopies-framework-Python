@@ -1495,9 +1495,21 @@ class Entity(Abstract, IDisposable):
         transaction: ITransaction|None = context.TryGetActiveTransaction()
         
         if transaction is None: raise InvalidOperationError("UPDATE requires an active transaction.")
-        
+
         return transaction.TryUpdate(self)
-    
+
+    @final
+    def Delete(self) -> None:
+        # Ordered checks (C2). Uses the context handle (_TryGetContext), not _IsInstancePersisted:
+        # a DB-origin entity is deletable but absent from __persisted. Mirror of TryUpdate.
+        if self._IsDeleted(): raise DeletedEntityError(self)             # 1. tombstone terminal (handle kept -> context alone can't tell)
+        context: DataContextBase|None = self._TryGetContext()
+        if context is None: raise EntityNotPersistedError(self)          # 2. not attached (transient, or inserted-not-promoted)
+        _EnsureNoUnresolvedRollbackError(context)                        # 3. inherited block gate (C1: DELETE respects it, never arms it)
+        transaction: ITransaction|None = context.TryGetActiveTransaction()
+        if transaction is None: raise InvalidOperationError("DELETE requires an active transaction.") # 4.
+        transaction.Delete(self)
+
     @final
     def _Initialize(self) -> None:
         self.__cookie.Seal()
