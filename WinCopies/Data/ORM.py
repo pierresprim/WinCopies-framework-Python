@@ -24,10 +24,11 @@ from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatena
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
 from WinCopies.Collections.Loop import DoForEachItem as DoForEach, Scan
+from WinCopies.Collections.Util import MakeSequence
 
 from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
-from WinCopies.Typing import IDisposable, Error, InvalidOperationError
+from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
@@ -1330,29 +1331,29 @@ class Entity(Abstract, IDisposable):
 
             self.__entity: Entity = entity
             self.__context: DataContextBase|None = None # This field is declared here to ensure the reference exists, no matter which initialization path is used.
-            self.__deleted: bool = False # Tombstone flag; declared here so the reference exists on both initialization paths, like __context.
-
+            self.__isDeleted: IMonitor = Monitor() # Tombstone flag; declared here so the reference exists on both initialization paths, like __context.
+        
         @final
         def _GetEntity(self) -> Entity:
             return self.__entity
-
+        
         @final
         def _TryGetContext(self) -> DataContextBase|None:
             return self.__context
         @final
         def _SetContext(self, context: DataContextBase) -> None:
             self.__context = context
-
+        
         @final
         def _IsDeleted(self) -> bool:
-            return self.__deleted
+            return self.__isDeleted.IsBusy()
         @final
         def _MarkDeleted(self) -> None:
-            self.__deleted = True
+            self.__isDeleted.Initialize()
         @final
         def _UnmarkDeleted(self) -> None:
-            self.__deleted = False
-
+            self.__isDeleted.Dispose()
+        
         @abstractmethod
         def Seal(self) -> None:
             ...
@@ -1484,7 +1485,7 @@ class Entity(Abstract, IDisposable):
         cookie._SetContext(context) # pyright: ignore[reportPrivateUsage]
 
         return cookie
-
+    
     @final
     def _IsDeleted(self) -> bool:
         return self.__cookie._IsDeleted() # pyright: ignore[reportPrivateUsage]
@@ -1494,7 +1495,7 @@ class Entity(Abstract, IDisposable):
     @final
     def _UnmarkDeleted(self) -> None:
         self.__cookie._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
-
+    
     @final
     def IsReady(self) -> bool:
         return self._GetCookie().IsReady()
@@ -1510,19 +1511,26 @@ class Entity(Abstract, IDisposable):
         transaction: ITransaction|None = context.TryGetActiveTransaction()
         
         if transaction is None: raise InvalidOperationError("UPDATE requires an active transaction.")
-
+        
         return transaction.TryUpdate(self)
-
+    
     @final
     def Delete(self) -> None:
         # Ordered checks (C2). Uses the context handle (_TryGetContext), not _IsInstancePersisted:
         # a DB-origin entity is deletable but absent from __persisted. Mirror of TryUpdate.
+
         if self._IsDeleted(): raise DeletedEntityError(self)             # 1. tombstone terminal (handle kept -> context alone can't tell)
+        
         context: DataContextBase|None = self._TryGetContext()
+        
         if context is None: raise EntityNotPersistedError(self)          # 2. not attached (transient, or inserted-not-promoted)
+        
         _EnsureNoUnresolvedRollbackError(context)                        # 3. inherited block gate (C1: DELETE respects it, never arms it)
+        
         transaction: ITransaction|None = context.TryGetActiveTransaction()
+        
         if transaction is None: raise InvalidOperationError("DELETE requires an active transaction.") # 4.
+        
         transaction.Delete(self)
 
     @final
@@ -1696,67 +1704,89 @@ class EntityCollection[T: Entity](Abstract):
 
         return self.__Run(query)
 
+class _RecordType(Enum):
+    Null = 0
+    Insert = 1
+    Delete = 2
+
 class _IReversibleRecord(IInterface):
     # Defining trait is Revert (not the insertion): both the INSERT record and the DELETE record
     # implement it, and the ledger sweeps them polymorphically to undo a rolled-back transaction.
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
+    @abstractmethod
+    def GetRecordType(self) -> _RecordType:
+        ...
+    
     @abstractmethod
     def GetEntity(self) -> Entity:
         ...
-
+    
     @abstractmethod
     def Revert(self) -> None:
         ...
-class _InsertionRecord[TEntity: Entity, TValue](Abstract, _IReversibleRecord):
+
+class _ReversibleRecord[T: Entity](Abstract, _IReversibleRecord):
+    def __init__(self, mapper: IEntityMapper[T], key: IEntityKey[IItem], entity: T) -> None:
+        super().__init__()
+
+        self.__mapper: IEntityMapper[T] = mapper
+        self.__key: IEntityKey[IItem] = key
+        self.__entity: T = entity
+    
+    @final
+    def _GetMapper(self) -> IEntityMapper[T]:
+        return self.__mapper
+    
+    @final
+    def _GetKey(self) -> IEntityKey[IItem]:
+        return self.__key
+
+    @final
+    def GetEntity(self) -> T: return self.__entity
+
+class _InsertionRecord[TEntity: Entity, TValue](_ReversibleRecord[TEntity]):
     def __init__(self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem],
                  entity: TEntity, generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = None,
                  oldValue: TValue|None = None) -> None:
-        super().__init__()
+        super().__init__(mapper, key, entity)
 
-        self.__mapper: IEntityMapper[TEntity] = mapper
-        self.__key: IEntityKey[IItem] = key
-        self.__entity: TEntity = entity
         self.__generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = generatedColumn
         self.__oldValue = oldValue
 
     @final
-    def GetEntity(self) -> Entity: return self.__entity
+    def GetRecordType(self) -> _RecordType: return _RecordType.Insert
 
     @final
     def Revert(self) -> None:
-        self.__mapper.Unregister(self.__key)
+        self._GetMapper().Unregister(self._GetKey())
 
         generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = self.__generatedColumn
 
         if generatedColumn is not None: generatedColumn._SetGeneratedValue(self.__entity, self.__oldValue) # pyright: ignore[reportPrivateUsage]
 
-class _DeletionRecord[TEntity: Entity](Abstract, _IReversibleRecord):
+class _DeletionRecord[T: Entity](_ReversibleRecord[T]):
     # Strict mirror of _InsertionRecord: the revert-family record for a committed-deleted entity.
-    def __init__(self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, wasPersisted: bool, context: DataContextBase) -> None:
-        super().__init__()
+    def __init__(self, mapper: IEntityMapper[T], key: IEntityKey[IItem], entity: T, wasPersisted: bool, context: DataContextBase) -> None:
+        super().__init__(mapper, key, entity)
 
-        self.__mapper: IEntityMapper[TEntity] = mapper
-        self.__key: IEntityKey[IItem] = key
-        self.__entity: TEntity = entity
         self.__wasPersisted: bool = wasPersisted
         self.__context: DataContextBase = context
 
     @final
-    def GetEntity(self) -> Entity: return self.__entity
+    def GetRecordType(self) -> _RecordType: return _RecordType.Delete
 
     @final
     def Revert(self) -> None:
         # Capture-and-restore (not a blind re-apply): undo the framework mutation the DELETE emission
         # posted (identity-map removal + tombstone), so post-rollback memory is live again.
-        self.__mapper.Register(self.__key, self.__entity)
+        self._GetMapper().Register(self._GetKey(), self.GetEntity())
 
         self.__entity._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
 
         # wasPersisted gates the persisted-set restoration: a DB-origin delete was never in
         # __persisted, so re-marking it unconditionally would be wrong.
-        if self.__wasPersisted: self.__context._MarkPersisted((self.__entity,)) # pyright: ignore[reportPrivateUsage]
+        if self.__wasPersisted: self.__context._MarkPersisted(MakeSequence(self.__entity)) # pyright: ignore[reportPrivateUsage]
 
 @final
 class _Journal(Abstract):
@@ -1765,13 +1795,9 @@ class _Journal(Abstract):
 
         self.__context: DataContextBase = context
         self.__seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
-        # Unified revert-family ledger: carries both inserts and deletes; Revert sweeps it to undo them.
-        self.__ledger: IEnumerableList[_IReversibleRecord] = EnumerableQueue[_IReversibleRecord]()
+        self.__ledger: IEnumerableList[_IReversibleRecord] = EnumerableQueue[_IReversibleRecord]() # Unified revert-family ledger: carries both inserts and deletes; Revert sweeps it to undo them.
         self.__updated: ISet[IReference[Entity]] = Set[IReference[Entity]]()
     
-    def __Enumerate[T](self, items: IEnumerable[T], selector: Converter[T, Entity]) -> Iterable[Entity]:
-        return Select(items.AsIterable(), selector)
-
     def IsSeen(self, entity: Entity) -> bool:
         return self.__seen.Contains(DefaultReference[Entity](entity))
     def MarkSeen(self, entity: Entity) -> None:
@@ -1779,10 +1805,10 @@ class _Journal(Abstract):
 
     def RecordInserted[TEntity: Entity, TValue](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = None, oldValue: TValue|None = None) -> None:
         self.__ledger.Push(_InsertionRecord[TEntity, TValue](mapper, key, entity, generatedColumn, oldValue))
-    def RecordDeleted[TEntity: Entity](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, wasPersisted: bool) -> None:
-        self.__ledger.Push(_DeletionRecord[TEntity](mapper, key, entity, wasPersisted, self.__context))
     def RecordUpdated(self, entity: Entity) -> None:
         self.__updated.TryAdd(DefaultReference[Entity](entity))
+    def RecordDeleted[TEntity: Entity](self, mapper: IEntityMapper[TEntity], key: IEntityKey[IItem], entity: TEntity, wasPersisted: bool) -> None:
+        self.__ledger.Push(_DeletionRecord[TEntity](mapper, key, entity, wasPersisted, self.__context))
 
     def Revert(self) -> None:
         for record in self.__ledger.AsGenerator(): record.Revert()
@@ -1796,9 +1822,9 @@ class _Journal(Abstract):
         # The ledger now holds deletes too; the adder-promote consumer must see inserts only, else it
         # would pin a handle/baseline on a tombstoned entity. Filter to _InsertionRecord, widening to
         # the base record type (GetEntity is all the consumer needs) to keep the element type known.
-        return Select(cast(Iterable[_IReversibleRecord], WhereOfType(_InsertionRecord, self.__ledger.AsIterable())), lambda record: record.GetEntity())
+        return WhereSelect(self.__ledger.AsIterable(), lambda record: record.GetRecordType() == _RecordType.Insert, lambda record: record.GetEntity())
     def IterateUpdated(self) -> Iterable[Entity]:
-        return self.__Enumerate(self.__updated, lambda reference: reference.GetValue())
+        return Select(self.__updated.AsIterable(), lambda reference: reference.GetValue())
 
 @final
 class _EntityEnumerationData(Abstract):
@@ -1881,7 +1907,7 @@ class _UpdaterColumnSelector(Abstract, _IColumnSelector):
 
 _defaultColumnSelector: _IColumnSelector = _DefaultColumnSelector()
 
-class _Writer(Abstract):
+class _WriterBase(Abstract):
     def __init__(self, context: DataContextBase) -> None:
         super().__init__()
 
@@ -1931,7 +1957,7 @@ class _Writer(Abstract):
                 for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
 
         return row
-
+    
     @final
     def _BuildKeyConditions(self, entity: Entity, primaryKeys: Iterable[IDefaultColumn]) -> IConditionParameterSet:
         # Shared by _Updater (WHERE of the UPDATE) and _Deleter (WHERE of the DELETE): a conjunction
@@ -1939,15 +1965,16 @@ class _Writer(Abstract):
         # is excluded upstream), so this WHERE targets exactly the persisted row.
         conditions: IConditionParameterSet|None = CreateConjunctionSet(Select(primaryKeys, lambda primaryKey: CreateDualResult(primaryKey.GetColumnParameter()._AsColumn(GetTypeName(entity)), CreateFieldParameterFromValue(Operator.Equals, _GetEntityValue(entity, primaryKey))))) # pyright: ignore[reportPrivateUsage]
 
-        if conditions is None:
-            raise InvalidOperationError("No primary key found.")
+        if conditions is None: raise InvalidOperationError("No primary key found.")
 
         return conditions
-
+    
     @abstractmethod
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         ...
-
+class _Writer(_WriterBase):
+    def __init__(self, context: DataContextBase) -> None: super().__init__(context)
+    
     @abstractmethod
     def Promote(self, journal: _Journal) -> None:
         ...
@@ -2070,25 +2097,23 @@ class _Updater(_Writer):
         for entity in journal.IterateUpdated(): _GetCookie(entity)._CommitChanges() # pyright: ignore[reportPrivateUsage]
 
 @final
-class _Deleter(_Writer):
+class _Deleter(_WriterBase):
     # Much simpler than _Updater: no SET dirty-tracking, no row assembly, no FK-target check. The
     # cookie substrate (App/DB) is out of play; the only new state is the cookie tombstone.
-    def __init__(self, context: DataContextBase) -> None:
-        super().__init__(context)
+    def __init__(self, context: DataContextBase) -> None: super().__init__(context)
 
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
-        cols: _Columns = _GetColumns(entity)
-        primaryKeys: ITuple[IDefaultColumn] = cols.GetPrimaryKeys()
+        primaryKeys: Iterable[IDefaultColumn] = _GetColumns(entity).GetPrimaryKeys().AsIterable()
 
         # PK-drift guard (D1): the sole use of dirty-tracking in DELETE. A drifted PK (App-origin
         # struct bypass) would aim the WHERE at the wrong row; refuse it. DB-origin PKs are not
         # driftable. The WHERE is then built from the current PK, which here equals the baseline.
-        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys.AsIterable(), lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
+        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys, lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
 
         if HasAny(_GetCookie(entity).GetDirtyColumns().AsIterable(), primaryKeyNames.Contains): raise PrimaryKeyMutationError(entity)
 
         context: DataContextBase = self._GetContext()
-        result: IQueryExecutionResult = _GetTable(context, entity).Delete(self._BuildKeyConditions(entity, primaryKeys.AsIterable()))
+        result: IQueryExecutionResult = _GetTable(context, entity).Delete(self._BuildKeyConditions(entity, primaryKeys))
 
         try:
             # DB<->memory invariant (C5), identical to UPDATE: 0 rows means the row vanished
@@ -2100,7 +2125,7 @@ class _Deleter(_Writer):
 
         # Mark at emission: the entity still functions (= would lie); act immediately.
         mapper: IEntityMapper[Entity] = context._GetMapper(type(entity)) # pyright: ignore[reportPrivateUsage]
-        key: IEntityKey[IItem] = mapper.GetKey(CreateTuple(Select(primaryKeys.AsIterable(), lambda primaryKey: _GetEntityValue(entity, primaryKey))))
+        key: IEntityKey[IItem] = mapper.GetKey(CreateTuple(Select(primaryKeys, lambda primaryKey: _GetEntityValue(entity, primaryKey))))
 
         # Captured before unmarking: True for App-origin-promoted, False for DB-origin (never in __persisted).
         wasPersisted: bool = context._IsInstancePersisted(entity) # pyright: ignore[reportPrivateUsage]
@@ -2113,14 +2138,6 @@ class _Deleter(_Writer):
         journal.RecordDeleted(mapper, key, entity, wasPersisted)
 
         return True
-
-    def Promote(self, journal: _Journal) -> None:
-        # Documented no-op: the effect is already posted at emission (Persist); commit simply does not
-        # revert it. Essential asymmetry with _Adder.Promote, whose notions (handle, baseline,
-        # persisted) are post-commit; DELETE has none. An active promote "finalizing" the removal
-        # would clobber the override of a future re-insertion — the inertia is what makes composition
-        # correct.
-        pass
 
 class ITransaction(ITransactionControl, IDisposable):
     def __init__(self) -> None: super().__init__()
@@ -2239,20 +2256,19 @@ class _Transaction(Abstract, ITransaction):
     class _Active(_TransactionBase):
         def __init__(self, context: DataContextBase, control: ITransactionControl, adder: _Adder, updater: _Updater, deleter: _Deleter) -> None:
             super().__init__(control, _Journal(context))
-
+            
             self.__adder: _Adder = adder
             self.__updater: _Updater = updater
             self.__deleter: _Deleter = deleter
-
+        
         def __GetTransaction(self, e: BaseException) -> tuple[BaseException, _ITransaction]:
             return (e, _Transaction._Doomed(self._GetTransactionControl(), self._GetJournal()))
-
+        
         def __Promote(self) -> None:
             def promote(writer: _Writer) -> None: writer.Promote(self._GetJournal())
 
             promote(self.__adder)
             promote(self.__updater)
-            promote(self.__deleter) # no-op (documented), kept for structural uniformity of the three writers
         
         def __TryAdd[T](self, item: T, action: Callable[[T, _Journal], bool|None]) -> bool|tuple[BaseException, _ITransaction]|None:
             if self.IsActive():
@@ -2260,7 +2276,7 @@ class _Transaction(Abstract, ITransaction):
                 except BaseException as e: return self.__GetTransaction(e)
             
             return None
-        def __TryPersist(self, item: Entity, writer: _Writer) -> bool|tuple[BaseException, _ITransaction]:
+        def __TryPersist(self, item: Entity, writer: _WriterBase) -> bool|tuple[BaseException, _ITransaction]:
             result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, writer.Persist)
             
             return result if isinstance(result, tuple) else result is True
@@ -2325,18 +2341,18 @@ class _Transaction(Abstract, ITransaction):
             return None
         
         def TryUpdate(self, item: Entity) -> bool: return self.__CheckIsActive()
-
+        
         def Delete(self, item: Entity) -> bool: return self.__CheckIsActive()
-
+        
         def Commit(self) -> bool: return self.__CheckIsActive()
-
+        
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]:
             def getResult(e: BaseException|None) -> tuple[_ITransaction, BaseException|None]: return (_Transaction._Disposed(), e)
-
+            
             if self.IsActive():
                 try: self._Rollback()
                 except BaseException as e: return getResult(e)
-
+            
             return getResult(None)
     @final
     class _Disposed(_TransactionAbstract):
@@ -2350,9 +2366,9 @@ class _Transaction(Abstract, ITransaction):
         def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return None
 
         def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: return False
-
+        
         def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: return False
-
+        
         def Commit(self) -> bool|tuple[BaseException, _ITransaction]: return False
         def Rollback(self) -> bool: return False
         
@@ -2362,18 +2378,18 @@ class _Transaction(Abstract, ITransaction):
         def tryInitialize() -> bool:
             def dispose() -> None:
                 self.__dispose = NoAction
-
+                
                 cookie.Unregister()
-
+            
             self.__tryInitialize = BoolTrue
             self.__dispose = dispose
-
+            
             return cookie.TryRegister(self)
-
+        
         super().__init__()
-
+        
         context: DataContextBase = cookie.GetContext()
-
+        
         self.__context: DataContextBase = context
         self.__transaction: _ITransaction = _Transaction._Active(context, control, adder, updater, deleter)
         
