@@ -4,21 +4,23 @@ from abc import abstractmethod
 from bisect import bisect_left, bisect_right, insort_left, insort_right
 from collections.abc import Iterable, Sequence, MutableSequence as MutableSequenceBase
 from heapq import merge
-from typing import overload, final, SupportsIndex
+from typing import cast, overload, final, SupportsIndex
 
-from WinCopies import IInterface, IStringable, Abstract
+from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
-from WinCopies.Collections.Core import Mutability
+from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
+from WinCopies.Collections.Iteration import Zip
+from WinCopies.Collections.Loop import ForEachItem
 from WinCopies.Collections.Util import FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, ComparableProtocol
 from WinCopies.Typing.Delegate import IFunction, IStruct, Converter, EqualityComparison, Handle
-from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
 
@@ -53,6 +55,19 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Collection.Tu
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> TItem|Sequence[TItem]: return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
+class _IEquatableTuple[T: IEquatableValue](IEquatableTuple[T], IContainer[Sequence[T]]):
+    def __init__(self) -> None: super().__init__()
+    
+    def Equals(self, item: object) -> bool:
+        if self is item: return True
+        
+        match item:
+            case _IEquatableTuple(): return self._GetContainer() == item._GetContainer()
+            case IEquatableTuple(): return self.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(self, cast(IEquatableTuple[IEquatableValue], item)), lambda item: item.GetKey().Equals(item.GetValue())))
+            case IEquatableTupleBase(): return item.Equals(self)
+            
+            case _: return False
+
 class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         mutability: Mutability|None = None
@@ -77,7 +92,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     def SliceAt(self, key: slice) -> ITuple[T]: return Tuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str: return str(self._GetContainer())
-class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(MakeSequence(items))
     
     @final
@@ -88,10 +103,8 @@ class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.E
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return EquatableTuple[T](self._GetContainer()[key])
     
-    def Equals(self, item: object) -> bool: return self is item
-    
     def ToString(self) -> str: return str(self._GetContainer())
-class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(MakeSequence(items))
     
     @final
@@ -100,7 +113,6 @@ class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.Has
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[T]: return HashableTuple[T](self._GetContainer()[key])
     
-    def Equals(self, item: object) -> bool: return self is item
     def Hash(self) -> int: return hash(self._GetContainer())
     
     def ToString(self) -> str: return str(self._GetContainer())

@@ -1136,21 +1136,26 @@ class _EntityUpdater(ValueFunctionUpdater[_Columns]):
     @final
     def _GetValue(self) -> _Columns: return _Columns(WhereOfType(IColumnAbstract, self.__type.__dict__.values())) # type: ignore[type-abstract]
 
-class IEntityKey[T: IItem](IItemObject[T, 'IEntityKey[T]|T'], IEnumerable[IValueItem]):
+class IEntityKeyBase(IEnumerable[IValueItem]):
+    def __init__(self) -> None: super().__init__()
+class IEntityKey[T: IItem](IItemObject[T, 'IEntityKey[T]|T'], IEntityKeyBase):
     def __init__(self) -> None: super().__init__()
 
 class EntityKeyBase[T: IItem](Abstract, IEntityKey[T]):
-    def __init__(self, key: T, enumerable: IEnumerable[IValueItem]) -> None:
+    def __init__(self, key: T) -> None:
         super().__init__()
 
         self.__key: T = key
-        self.__enumerable: IEnumerable[IValueItem] = enumerable
+    
+    @abstractmethod
+    def _GetItems(self) -> IEnumerable[IValueItem]:
+        ...
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[IValueItem]|None: return self.__enumerable.TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[IValueItem]|None: return self._GetItems().TryGetEnumerator()
     
     @final
-    def AsIterable(self) -> Iterable[IValueItem]: return self.__enumerable.AsIterable()
+    def AsIterable(self) -> Iterable[IValueItem]: return self._GetItems().AsIterable()
     
     @final
     def GetValue(self) -> T: return self.__key
@@ -1206,26 +1211,18 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
         
         def TryGetEnumerator(self) -> IEnumerator[_T]|None: return EntityKey[_T]._Enumerable._Enumerator(self.__key)
     
-    def __init__(self, key: T) -> None: super().__init__(key, EntityKey[T]._Enumerable(self))
+    def __init__(self, key: T) -> None: super().__init__(key)
+
+    @final
+    def _GetItems(self) -> IEnumerable[IValueItem]:
+        return EntityKey[T]._Enumerable(self)
 class CompositeEntityKey[T: IValueItem](EntityKeyBase[IHashableTuple[T]], IEntityKey[IHashableTuple[T]]):
     # keys is both the underlying value and the enumerable (an IHashableTuple is an IEnumerable of its
     # items). Passing self.GetValue() here read __key before EntityKeyBase.__init__ had set it.
-    def __init__(self, keys: IHashableTuple[T]) -> None: super().__init__(keys, keys)
+    def __init__(self, keys: IHashableTuple[T]) -> None: super().__init__(keys)
 
-    # Value equality/hash over the primary-key items (each an IValueItem with value semantics, like the
-    # single-column EntityKey). The inherited EntityKeyBase behaviour delegates to the underlying
-    # IHashableTuple, whose Equals is identity-based (self is item) -> two logically equal composite
-    # keys never match and the identity map misses. This override keeps that scoped to the ORM key.
     @final
-    def Equals(self, item: object) -> bool:
-        if not isinstance(item, IEntityKey): return False
-
-        selfItems: list[IValueItem] = list(self.AsIterable())
-        otherItems: list[IValueItem] = list(item.AsIterable())
-
-        return len(selfItems) == len(otherItems) and all(a.Equals(b) for a, b in zip(selfItems, otherItems))
-    @final
-    def Hash(self) -> int: return hash(tuple(item.Hash() for item in self.AsIterable()))
+    def _GetItems(self) -> IEnumerable[IValueItem]: return self.GetValue()
 
 def _GetEntityValue(obj: Entity, column: IColumnAbstract) -> object:
     return column._GetEntityValue(obj) # pyright: ignore[reportPrivateUsage]

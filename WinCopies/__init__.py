@@ -138,6 +138,11 @@ class IStringable(IInterface):
     @final
     def __str__(self) -> str: return self.ToString()
 
+def IsTrue(value: bool|None) -> bool: return value is not False
+
+def IsTruthy(value: bool|None) -> bool: return value is True
+def IsFalsy(value: bool|None) -> bool: return value is not True
+
 def Not(value: bool|None) -> bool|None: return None if value is None else not value
 
 def TryConvertToInt(value: object) -> int|None:

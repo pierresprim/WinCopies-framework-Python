@@ -228,7 +228,7 @@ def __MakeList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
     return items if isinstance(items, MutableSequence) else list[T](items)
 
 def MakeTuple[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]:
-    return tuple[T, ...]() if items is None else __MakeTuple(items)
+    return MakeSequence() if items is None else __MakeTuple(items)
 def TryMakeTuple[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]|None:
     return None if items is None else __MakeTuple(items)
 

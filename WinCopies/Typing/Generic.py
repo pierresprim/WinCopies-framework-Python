@@ -29,12 +29,16 @@ class IGenericSpecializedConstraint[TContainer, TInterface, TSpecialized](IGener
     def _TryAsSpecialized(self, container: TContainer|None) -> TSpecialized|None:
         return None if container is None else self._AsSpecialized(container)
 
-class GenericConstraint[TContainer, TInterface](IGenericConstraint[TContainer, TInterface]):
+class IContainer[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetContainer(self) -> TContainer:
+    def _GetContainer(self) -> T:
         ...
+
+class GenericConstraint[TContainer, TInterface](IContainer[TContainer], IGenericConstraint[TContainer, TInterface]):
+    def __init__(self) -> None: super().__init__()
+    
     @final
     def _GetInnerContainer(self) -> TInterface:
         return self._AsContainer(self._GetContainer())
