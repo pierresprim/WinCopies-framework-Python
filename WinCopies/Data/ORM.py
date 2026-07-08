@@ -1762,7 +1762,7 @@ class _InsertionRecord[TEntity: Entity, TValue](_ReversibleRecord[TEntity]):
 
         generatedColumn: _IAutoPrimaryKey[TEntity, TValue]|None = self.__generatedColumn
 
-        if generatedColumn is not None: generatedColumn._SetGeneratedValue(self.__entity, self.__oldValue) # pyright: ignore[reportPrivateUsage]
+        if generatedColumn is not None: generatedColumn._SetGeneratedValue(self.GetEntity(), self.__oldValue) # pyright: ignore[reportPrivateUsage]
 
 class _DeletionRecord[T: Entity](_ReversibleRecord[T]):
     # Strict mirror of _InsertionRecord: the revert-family record for a committed-deleted entity.
@@ -1781,11 +1781,11 @@ class _DeletionRecord[T: Entity](_ReversibleRecord[T]):
         # posted (identity-map removal + tombstone), so post-rollback memory is live again.
         self._GetMapper().Register(self._GetKey(), self.GetEntity())
 
-        self.__entity._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
+        self.GetEntity()._UnmarkDeleted() # pyright: ignore[reportPrivateUsage]
 
         # wasPersisted gates the persisted-set restoration: a DB-origin delete was never in
         # __persisted, so re-marking it unconditionally would be wrong.
-        if self.__wasPersisted: self.__context._MarkPersisted(MakeSequence(self.__entity)) # pyright: ignore[reportPrivateUsage]
+        if self.__wasPersisted: self.__context._MarkPersisted(MakeSequence(self.GetEntity())) # pyright: ignore[reportPrivateUsage]
 
 @final
 class _Journal(Abstract):
