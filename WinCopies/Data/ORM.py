@@ -1806,6 +1806,12 @@ class _EntityEnumerationData(Abstract):
 def _TryAdd(entity: IReference[Entity], data: _EntityEnumerationData) -> bool:
     e: Entity = entity.GetValue()
 
+    # Tombstone is terminal: any re-insertion (root or FK-target) raises. This guard MUST stay at the
+    # head: a deleted DB-origin entity would otherwise be silently skipped by the DataBase-origin
+    # branch below (return False) instead of raising. Placed here it covers both substrates and both
+    # call-sites (root __Persist + _EntityEnumerable FK edge). This is the only line INSERT gains.
+    if e._IsDeleted(): raise DeletedEntityError(e) # pyright: ignore[reportPrivateUsage]
+
     if _GetCookie(e).GetOrigin() == CookieOrigin.DataBase or data.GetContext()._IsInstancePersisted(e) or data.GetJournal().IsSeen(e): return False # pyright: ignore[reportPrivateUsage]
     
     if data.GetStack().TryAdd(entity): return True
