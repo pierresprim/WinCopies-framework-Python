@@ -110,8 +110,7 @@ class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TIte
         else: raise IDefaultResumableEnumerator._GetException("resume")
 
 class IResumableEnumerable[T](IEnumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
@@ -119,6 +118,8 @@ class IResumableEnumerable[T](IEnumerable[T]):
     @final
     def GetResumableEnumerator(self) -> IResumableEnumerator[T]:
         return GetResumableEnumerator(self.TryGetResumableEnumerator())
+class ResumableEnumerable[T](Enumerable[T], IResumableEnumerable[T]):
+    def __init__(self) -> None: super().__init__()
 
 class IResumableCountableEnumerable[T](IResumableEnumerable[T], ICountableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -182,9 +183,6 @@ class _EmptyEnumerable[T](Iterable[T], IResumableEnumerable[T]):
     def AsIterable(self) -> Iterable[T]: return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
     
     def __iter__(self) -> Iterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
-
-class ResumableEnumerable[T](Enumerable[T], IResumableEnumerable[T]):
-    def __init__(self) -> None: super().__init__()
 
 class ResumableEnumeratorProvider[T](EnumeratorProvider[T], IResumableEnumerable[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> None:

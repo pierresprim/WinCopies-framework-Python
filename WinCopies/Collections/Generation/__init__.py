@@ -6,7 +6,7 @@ from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import GetNotPredicate
@@ -155,10 +155,10 @@ class IteratorBase[T](Abstract, IIterator[T]):
 
                 self._ProcessItem(item)
 class Iterator[T](IteratorBase[T]):
-    def __init__(self, items: Iterable[T]) -> None:
+    def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: Iterable[T] = items
+        self.__items: Iterable[T] = GetIterable(items)
     
     @final
     def _GetItems(self) -> Iterable[T]:
@@ -175,10 +175,10 @@ class NullableIteratorBase[T](IteratorBase[T|None], INullableIterator[T]):
 
                 if self._ProcessItem(item): break
 class NullableIterator[T](NullableIteratorBase[T]):
-    def __init__(self, items: Iterable[T]) -> None:
+    def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: Iterable[T] = items
+        self.__items: Iterable[T] = GetIterable(items)
     
     @final
     def _GetItems(self) -> Iterable[T]:
@@ -187,20 +187,23 @@ class NullableIterator[T](NullableIteratorBase[T]):
 class GeneratorAbstract[T: IRemovable](IteratorBase[T]):
     def __init__(self) -> None: super().__init__()
     
+    def _OnItemProcessing(self, item: T) -> None:
+        pass
     @abstractmethod
     def _OnItemProcessed(self, item: T) -> bool:
         ...
     
-    @final
     def _ProcessItem(self, item: T) -> bool:
+        self._OnItemProcessing(item)
+
         item.Remove()
 
         return self._OnItemProcessed(item)
 class GeneratorBase[T: IRemovable](GeneratorAbstract[T]):
-    def __init__(self, items: Iterable[T]) -> None:
+    def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: Iterable[T] = items
+        self.__items: Iterable[T] = GetIterable(items)
     
     @final
     def _GetItems(self) -> Iterable[T]:
@@ -226,7 +229,7 @@ class ExtendedGenerator[T: IRemovable](GeneratorBase[T]):
         return self.__predicate(item)
 
 class DefaultGenerator[T: IRemovable](GeneratorBase[T]):
-    def __init__(self, items: Iterable[T]) -> None:
+    def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__(items)
     
     @final

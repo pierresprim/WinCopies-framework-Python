@@ -23,8 +23,7 @@ class ITwoWayNode(INode):
         ...
 
 class IReadWriteNode(ITwoWayNode, INodeBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class ILinkedNode[T](INode):
     def __init__(self) -> None: super().__init__()
@@ -71,11 +70,9 @@ class LinkedNodeAbstract[T](Abstract, ILinkedNode[T]):
         self.__value: T = value
     
     @final
-    def GetValue(self) -> T:
-        return self.__value
+    def GetValue(self) -> T: return self.__value
     @final
-    def SetValue(self, value: T) -> None:
-        self.__value = value
+    def SetValue(self, value: T) -> None: self.__value = value
 class LinkedNodeBase[TItem, TNode](LinkedNodeAbstract[TItem]):
     def __init__(self, value: TItem) -> None:
         super().__init__(value)

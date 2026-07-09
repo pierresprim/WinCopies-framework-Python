@@ -17,6 +17,8 @@ class EnumerationOrder(Flag):
     LIFO = 2
     Both = 3
 
+def GetInvalidEnumerationOrderError(order: EnumerationOrder) -> Exception: return ValueError("Unknown enumeration order.", order)
+
 class IterableScanResult(BooleanableEnum):
     DoesNotExist = -2
     Empty = -1
