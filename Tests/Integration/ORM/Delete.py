@@ -10,14 +10,17 @@ update+delete rollback.
 """
 import os, sqlite3, tempfile, traceback
 
+from collections.abc import Iterable
+
 from WinCopies.Typing.Delegate import Action, IStruct, Struct
 from WinCopies.Data.Abstract import IConnection, IDataBase
 from WinCopies.Data.Factory import IFieldFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, TextMode, IntegerField, TextField
-from WinCopies.Data.ORM import (ITransaction, DataContextBase, DataContext, Entity, EntityCollection,
+from WinCopies.Data.ORM import (ITransaction, DataContextBase, DataContext, Entity, EntityCollection, IColumnAbstract,
                                 autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig,
                                 PrimaryKeyMutationError, RowVanishedError, UnresolvedRollbackError,
-                                EntityNotPersistedError, DeletedEntityError, InvalidOperationError)
+                                EntityNotPersistedError, DeletedEntityError, InvalidOperationError,
+                                _GetColumns) # pyright: ignore[reportPrivateUsage]
 from WinCopies.Data.SQLite import Connection
 
 # ------------------------------------------------------------------ entities
@@ -100,6 +103,54 @@ class Products(EntityCollection[Product]):
     def __init__(self, c: DataContextBase) -> None: super().__init__(c)
 
     def _GetType(self) -> type[Product]: return Product
+
+class Supplier(Entity):
+    def __init__(self, name: str) -> None:
+        super().__init__()
+
+        self.__id: IStruct[int] = Struct[int](0); self.__name: IStruct[str] = Struct[str](name)
+
+    def Dispose(self) -> None: pass
+
+    @autoPrimaryKeyConfig()
+    def Id(self) -> IStruct[int]: return self.__id
+
+    @columnConfig()
+    def Name(self) -> IStruct[str]: return self.__name
+
+# Multi-cardinality entity: composite PK (2), plain columns (2), entity columns (2). Exercises the
+# non-destructive column classification with >=2 members in three buckets at once (see 12.2 report §5).
+class LineItem(Entity):
+    def __init__(self, o: int, l: int, q: int, d: int, cat: Category, sup: Supplier) -> None:
+        super().__init__()
+
+        self.__o: IStruct[int] = Struct[int](o); self.__l: IStruct[int] = Struct[int](l)
+        self.__q: IStruct[int] = Struct[int](q); self.__d: IStruct[int] = Struct[int](d)
+        self.__cat: IStruct[Category] = Struct[Category](cat); self.__sup: IStruct[Supplier] = Struct[Supplier](sup)
+
+    def Dispose(self) -> None: pass
+
+    @primaryKeyConfig()
+    def OrderId(self) -> IStruct[int]: return self.__o
+
+    @primaryKeyConfig()
+    def LineId(self) -> IStruct[int]: return self.__l
+
+    @columnConfig()
+    def Qty(self) -> IStruct[int]: return self.__q
+
+    @columnConfig()
+    def Discount(self) -> IStruct[int]: return self.__d
+
+    @entityColumnConfig(Category)
+    def Cat(self) -> IStruct["Category"]: return self.__cat
+
+    @entityColumnConfig(Supplier)
+    def Sup(self) -> IStruct["Supplier"]: return self.__sup
+class LineItems(EntityCollection[LineItem]):
+    def __init__(self, c: DataContextBase) -> None: super().__init__(c)
+
+    def _GetType(self) -> type[LineItem]: return LineItem
 
 # ------------------------------------------------------------------ helpers
 def delete(e: Entity) -> Action:
@@ -355,6 +406,39 @@ def s_mixed_tx() -> None:
     rows = dict(item_rows(conn))
     assert rows.get(2) == 20, f"e2's row must remain present, rows={rows}"
 
+def s_multi_cardinality() -> None:
+    # Locks in the non-destructive column classification with >=2 members in three buckets at once:
+    # composite PK (OrderId, LineId), plain columns (Qty, Discount), entity columns (Cat, Sup). A
+    # regressed generator would misfile the 2nd of a bucket (e.g. Sup landing among plain columns),
+    # which would then bind an Entity object as a scalar at INSERT. Direct classification check +
+    # insert/delete round-trip.
+    def names(items: Iterable[IColumnAbstract]) -> list[str]: return sorted(c.GetColumnParameter().GetColumnName() for c in items)
+
+    conn = make_conn()
+    ff = conn.GetFactoryProvider().GetFieldFactory()
+    db = conn.GetCursor()
+
+    db.CreateTable("Category", [pk(ff, "Id"), txt(ff, "Name")], None)
+    db.CreateTable("Supplier", [pk(ff, "Id"), txt(ff, "Name")], None)
+    db.CreateTable("LineItem", [col(ff, "OrderId"), col(ff, "LineId"), col(ff, "Qty"), col(ff, "Discount"), col(ff, "Cat"), col(ff, "Sup")], None)
+
+    cols = _GetColumns(LineItem)
+    assert names(cols.GetPrimaryKeys().AsIterable()) == ["LineId", "OrderId"], names(cols.GetPrimaryKeys().AsIterable())
+    assert names(cols.GetColumns().AsIterable()) == ["Discount", "Qty"], names(cols.GetColumns().AsIterable())
+    assert names(cols.GetEntityColumns().AsIterable()) == ["Cat", "Sup"], names(cols.GetEntityColumns().AsIterable())
+
+    ctx = DataContext(conn)
+    cat = Category("A"); sup = Supplier("S")
+    tx = ctx.BeginTransaction(); assert tx.TryAdd(cat) is True; assert tx.TryAdd(sup) is True; tx.Dispose()
+
+    li = LineItem(10, 5, 100, 3, cat, sup)
+    tx = ctx.BeginTransaction(); assert tx.TryAdd(li) is True; tx.Dispose()   # insert asserts assembly of both entity columns
+
+    tx = ctx.BeginTransaction(); li.Delete(); tx.Dispose()                    # composite WHERE hit the real row (else RowVanishedError)
+    assert is_deleted(li)
+    assert not is_persisted(ctx, li)
+    assert [(r.OrderId, r.LineId) for r in LineItems(DataContext(conn)).Select().AsIterable()] == [], "row must be gone"
+
 # ------------------------------------------------------------------ run
 for name, fn in (
     ("simple delete persists", s_simple),
@@ -371,7 +455,8 @@ for name, fn in (
     ("re-insert rejected: root (App-origin)", s_reinsert_root_app),
     ("re-insert rejected: root (DB-origin, head guard)", s_reinsert_root_db_origin),
     ("re-insert rejected: FK target", s_reinsert_fk_target),
-    ("mixed update+delete rollback", s_mixed_tx)):
+    ("mixed update+delete rollback", s_mixed_tx),
+    ("multi-cardinality classification (2 PK / 2 col / 2 entcol)", s_multi_cardinality)):
 
     scenario(name, fn)
 
