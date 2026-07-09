@@ -187,15 +187,11 @@ class NullableIterator[T](NullableIteratorBase[T]):
 class GeneratorAbstract[T: IRemovable](IteratorBase[T]):
     def __init__(self) -> None: super().__init__()
     
-    def _OnItemProcessing(self, item: T) -> None:
-        pass
     @abstractmethod
     def _OnItemProcessed(self, item: T) -> bool:
         ...
     
     def _ProcessItem(self, item: T) -> bool:
-        self._OnItemProcessing(item)
-
         item.Remove()
 
         return self._OnItemProcessed(item)

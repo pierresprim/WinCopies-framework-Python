@@ -282,20 +282,39 @@ class _NodeGenerator[TItem, TNode: IRemovable](GeneratorAbstract[TNode]):
         super().__init__()
 
         self.__cookie: IValueCookie[TItem, TNode] = cookie
-        self.__current: TNode|None = cookie.GetItems().GetFirst()
     
     @final
     def _GetItems(self) -> Iterable[TNode]:
-        current: TNode|None = None
+        # TODO: should throw if the list is modified during enumeration
 
-        while (current := self.__current) is not None: yield current
+        current: TNode|None = self.__cookie.GetItems().GetFirst()
+
+        while current is not None:
+            next: TNode|None = self.__cookie.GetNextNode(current)
+            
+            yield current
+            
+            current = next
     
     @final
-    def _OnItemProcessing(self, item: TNode) -> None:
-        # TODO: should throw if the list is modified during enumeration
-        self.__current = self.__cookie.GetNextNode(item)
-    @final
     def _OnItemProcessed(self, item: TNode) -> bool: return False
+
+@final
+class _NodeGeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIterator[TNode]]):
+    def __init__(self, cookie: IValueCookie[TItem, TNode], updater: Method[IFunction[IIterator[TNode]]]) -> None:
+        super().__init__(updater)
+
+        self.__cookie: IValueCookie[TItem, TNode] = cookie
+    
+    def _GetValue(self) -> IIterator[TNode]: return _NodeGenerator[TItem, TNode](self.__cookie)
+@final
+class _GeneratorUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IIterator[TItem]]):
+    def __init__(self, cookie: IValueCookie[TItem, TNode], updater: Method[IFunction[IIterator[TItem]]]) -> None:
+        super().__init__(updater)
+
+        self.__cookie: IValueCookie[TItem, TNode] = cookie
+    
+    def _GetValue(self) -> IIterator[TItem]: return _Generator[TItem, TNode](self.__cookie)
 
 class _EnumerableListAbstract[TItem, TNode](IEnumerableListBase[TItem, TNode]):
     @final
@@ -365,18 +384,20 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
     def __init__(self, items: TList, cookie: IValueCookie[TItem, TNode]) -> None:
         def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None: self.__readOnlyEnumerable = func
         
+        def updateNodeGenerator(func: IFunction[IIterator[TNode]]) -> None: self.__nodeGenerator = func
+        def updateGenerator(func: IFunction[IIterator[TItem]]) -> None: self.__generator = func
+        
         super().__init__()
 
         self.__cookie: IValueCookie[TItem, TNode] = cookie
 
         self.__readOnlyEnumerable: IFunction[TReadOnly] = self._CreateReadOnly(items, updateReadOnlyEnumerable) # type: ignore[no-redef]
+        
+        self.__nodeGenerator: IFunction[IIterator[TNode]] = _NodeGeneratorUpdater[TItem, TNode](cookie, updateNodeGenerator) # type: ignore[no-redef]
+        self.__generator: IFunction[IIterator[TItem]] = _GeneratorUpdater[TItem, TNode](cookie, updateGenerator) # type: ignore[no-redef]
     
     @abstractmethod
     def _CreateReadOnly(self, items: TList, action: Method[IFunction[TReadOnly]]) -> IFunction[TReadOnly]:
-        ...
-    
-    @abstractmethod
-    def _AsList(self, items: TList) -> IEnumerableListBase[TItem, TNode]:
         ...
     
     @final
@@ -386,9 +407,9 @@ class _EnumerableListBase[TItem, TNode: IRemovable, TList, TReadOnly](Abstract, 
     def GetReadOnly(self) -> TReadOnly: return self.__readOnlyEnumerable.GetValue()
     
     @final
-    def GetNodeGenerator(self) -> IIterator[TNode]: return _NodeGenerator[TItem, TNode](self.GetValueCookie())
+    def GetNodeGenerator(self) -> IIterator[TNode]: return self.__nodeGenerator.GetValue()
     @final
-    def GetGenerator(self) -> IIterator[TItem]: return _Generator[TItem, TNode](self.GetValueCookie())
+    def GetGenerator(self) -> IIterator[TItem]: return self.__generator.GetValue()
 
 @final
 class _ReadOnlyEnumerableListAbstract[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableListBase[TItem, TNode], IReadOnlyEnumerableListBase[TItem]], IEnumerableListCookieBase[TItem, TNode]):
@@ -402,9 +423,6 @@ class _ReadOnlyEnumerableListAbstract[TItem, TNode: IRemovable](_EnumerableListB
     def _CreateReadOnly(self, items: IEnumerableListBase[TItem, TNode], action: Method[IFunction[IReadOnlyEnumerableListBase[TItem]]]) -> IFunction[IReadOnlyEnumerableListBase[TItem]]:
         return _ReadOnlyEnumerableUpdaterBase[TItem, TNode](items, action)
     
-    def _AsList(self, items: IEnumerableListBase[TItem, TNode]) -> IEnumerableListBase[TItem, TNode]:
-        return items
-    
     def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]: return self.__nodeEnumerable.GetValue()
 @final
 class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[TItem, TNode, IEnumerableList[TItem, TNode], IReadOnlyEnumerableList[TItem]], IEnumerableListCookie[TItem, TNode]):
@@ -417,9 +435,6 @@ class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[
     
     def _CreateReadOnly(self, items: IEnumerableList[TItem, TNode], action: Method[IFunction[IReadOnlyEnumerableList[TItem]]]) -> IFunction[IReadOnlyEnumerableList[TItem]]:
         return _ReadOnlyEnumerableUpdater[TItem, TNode](items, action)
-    
-    def _AsList(self, items: IEnumerableList[TItem, TNode]) -> IEnumerableList[TItem, TNode]:
-        return items
     
     def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]: return self.__nodeEnumerable.GetValue()
 
@@ -944,9 +959,6 @@ class _ReadOnlyCountableEnumerableListBase[T](_EnumerableListBase[T, ICountableL
     
     def _CreateReadOnly(self, items: ICountableList[T], action: Method[IFunction[IReadOnlyCountableEnumerableList[T]]]) -> IFunction[IReadOnlyCountableEnumerableList[T]]:
         return _ReadOnlyCountableUpdater[T](items, action)
-    
-    def _AsList(self, items: ICountableList[T]) -> IEnumerableList[T, ICountableLinkedListNode[T]]:
-        return items
     
     def GetNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self.__nodeEnumerable.GetValue()
 
