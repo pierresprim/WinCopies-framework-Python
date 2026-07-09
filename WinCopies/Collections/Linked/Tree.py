@@ -170,8 +170,8 @@ class Tree[T](TreeBase[T, _TreeNode[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(items)
     
     @final
-    def _CreateList(self, items: Iterable[T]|None) -> _Tree[T]:
-        return _Tree[T](self, items)
+    def _CreateList(self) -> _Tree[T]:
+        return _Tree[T](self)
 
     @final
     def _GetItemsAsClass(self, items: _Tree[T]) -> ListBase[T, _TreeNode[T], ITreeNode[T]]:
