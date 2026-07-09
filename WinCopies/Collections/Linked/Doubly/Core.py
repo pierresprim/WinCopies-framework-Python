@@ -46,6 +46,7 @@ class IReadWriteList[T](IReadWriteListBase[T]):
     
     @final
     def __AsGenerator(self, func: Function[INullable[T]]) -> Generator[T]:
+        # TODO: should throw if the list is modified during enumeration
         result: INullable[T] = func()
 
         while result.HasValue():

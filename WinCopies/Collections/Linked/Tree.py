@@ -92,6 +92,8 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], 
     def __TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ITreeNode[TItem]]|None) -> IEnumerator[TItem]|None:
         return None if enumerator is None else TreeValueEnumerator[TItem](enumerator)
     
+    def _GetNextNode(self, node: ITreeNode[TItem]) -> ITreeNode[TItem]|None: return node.GetNext()
+    
     @final
     def _GetNodeEnumerator(self, node: ITreeNode[TItem]) -> IEnumerator[ITreeNode[TItem]]:
         return TreeNodeEnumerator[TItem](node)
