@@ -501,7 +501,10 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
         
         push(first, newNode)
 
-        self._SetUpdater(lambda first, _newNode: push(newNode, _newNode))
+        # Route the next append back through __Push (not the bare push closure) so the updater keeps
+        # advancing to the newest tail; otherwise every push past the 2nd node overwrites the 2nd
+        # node's link, collapsing the queue to [head, 2nd, last].
+        self._SetUpdater(lambda first, _newNode: self.__Push(newNode, _newNode))
 
     @abstractmethod
     def _UnsetLast(self) -> None:
