@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator, Sized
-from typing import final, Callable, Self
+from typing import final, Self
 
 from WinCopies import IInterface, Abstract
 
@@ -361,6 +361,10 @@ class ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericCons
 
 class AbstractList[T](Abstract, IReadOnlyList[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _TryGetNode(self, cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
+        return None if cookie is None else cookie.GetNode()
     
     @abstractmethod
     def _GetFirstCookie(self) -> INodeCookie[T]|None:
@@ -368,21 +372,22 @@ class AbstractList[T](Abstract, IReadOnlyList[T]):
     
     @final
     def _GetFirst(self) -> SinglyLinkedNode[T]|None:
-        cookie: INodeCookie[T]|None = self._GetFirstCookie()
-
-        return None if cookie is None else cookie.GetNode()
+        return self._TryGetNode(self._GetFirstCookie())
     @abstractmethod
     def _SetFirst(self, node: INodeCookie[T]) -> None:
         ...
 class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+    def _GetLastCookie(self) -> INodeCookie[T]|None:
         ...
+    
+    @final
+    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+        return self._TryGetNode(self._GetLastCookie())
     @abstractmethod
-    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+    def _SetLast(self, node: INodeCookie[T]) -> None:
         ...
 
 class ListBase[T](AbstractList[T], IList[T]):
@@ -492,42 +497,24 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
 class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
     def __init__(self) -> None: super().__init__()
     
-    @final
-    def __Push(self, first: INodeCookie[T], newNode: INodeCookie[T]) -> None:
-        def push(previousNode: INodeCookie[T], newNode: INodeCookie[T]) -> None:
-            previousNode.SetNext(newNode.GetNode())
-
-            self._SetLast(newNode.GetNode())
-        
-        push(first, newNode)
-
-        # Route the next append back through __Push (not the bare push closure) so the updater keeps
-        # advancing to the newest tail; otherwise every push past the 2nd node overwrites the 2nd
-        # node's link, collapsing the queue to [head, 2nd, last].
-        self._SetUpdater(lambda first, _newNode: self.__Push(newNode, _newNode))
-
     @abstractmethod
     def _UnsetLast(self) -> None:
         ...
     
     @final
-    def _CreateUpdater(self) -> Callable[[INodeCookie[T], INodeCookie[T]], None]:
-        return lambda first, newNode: self.__Push(first, newNode)
-    
-    @abstractmethod
-    def _GetUpdater(self) -> Callable[[INodeCookie[T], INodeCookie[T]], None]:
-        ...
-    @abstractmethod
-    def _SetUpdater(self, updater: Callable[[INodeCookie[T], INodeCookie[T]], None]) -> None:
-        ...
-    
-    @final
     def _Push(self, value: T, first: INodeCookie[T]) -> None:
-        self._GetUpdater()(first, SinglyLinkedNode[T].CreateCookie(value, None))
+        def getLast() -> INodeCookie[T]:
+            cookie: INodeCookie[T]|None = self._GetLastCookie()
+
+            return first if cookie is None else cookie
+
+        newNode: INodeCookie[T] = SinglyLinkedNode[T].CreateCookie(value, None)
+
+        getLast().SetNext(newNode.GetNode())
+
+        self._SetLast(newNode)
     
-    def _OnCleared(self) -> None:
-        self._UnsetLast()
-        self._SetUpdater(self._CreateUpdater())
+    def _OnCleared(self) -> None: self._UnsetLast()
 class StackBase[T](ListBase[T], IStack[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -562,29 +549,18 @@ class Queue[T](List[T], QueueBase[T]):
         
         super().__init__()
 
-        self.__last: SinglyLinkedNode[T]|None = None
+        self.__last: INodeCookie[T]|None = None
         self.__readOnly: IFunction[IReadOnlyQueue[T]] = ReadOnlyQueueUpdater[T](self, update) # type: ignore[no-redef]
-        self.__updater: Callable[[INodeCookie[T], INodeCookie[T]], None] = self._CreateUpdater()
 
         self.TryPushItems(items)
     
     @final
-    def _GetUpdater(self) -> Callable[[INodeCookie[T], INodeCookie[T]], None]:
-        return self.__updater
+    def _GetLastCookie(self) -> INodeCookie[T]|None: return self.__last
     @final
-    def _SetUpdater(self, updater: Callable[[INodeCookie[T], INodeCookie[T]], None]) -> None:
-        self.__updater = updater
+    def _SetLast(self, node: INodeCookie[T]) -> None: self.__last = node
     
     @final
-    def _GetLast(self) -> SinglyLinkedNode[T]|None:
-        return self.__last
-    @final
-    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
-        self.__last = node
-    
-    @final
-    def _UnsetLast(self) -> None:
-        self.__last = None
+    def _UnsetLast(self) -> None: self.__last = None
     
     @final
     def AsReadOnly(self) -> IReadOnlyQueue[T]: return self.__readOnly.GetValue()
@@ -614,18 +590,9 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
         super().__init__()
 
         self.__first: INodeCookie[T]|None = None
-        self.__last: SinglyLinkedNode[T]|None = None
-
-        self.__updater: Callable[[INodeCookie[T], INodeCookie[T]], None] = self._CreateUpdater()
+        self.__last: INodeCookie[T]|None = None
 
         self.TryPushItems(items)
-    
-    @final
-    def _GetUpdater(self) -> Callable[[INodeCookie[T], INodeCookie[T]], None]:
-        return self.__updater
-    @final
-    def _SetUpdater(self, updater: Callable[[INodeCookie[T], INodeCookie[T]], None]) -> None:
-        self.__updater = updater
     
     @final
     def _GetFirstCookie(self) -> INodeCookie[T]|None:
@@ -639,15 +606,12 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
         self.__first = None
     
     @final
-    def _GetLast(self) -> SinglyLinkedNode[T]|None:
-        return self.__last
+    def _GetLastCookie(self) -> INodeCookie[T]|None: return self.__last
     @final
-    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
-        self.__last = node
+    def _SetLast(self, node: INodeCookie[T]) -> None: self.__last = node
     
     @final
-    def _UnsetLast(self) -> None:
-        self.__last = None
+    def _UnsetLast(self) -> None: self.__last = None
 class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
