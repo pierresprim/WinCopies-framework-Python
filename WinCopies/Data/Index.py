@@ -6,7 +6,7 @@ from enum import Enum
 from typing import final
 
 from WinCopies import IStringable, Abstract
-from WinCopies.Collections.Abstraction.Collection import HashableTuple
+from WinCopies.Collections.Abstraction.Collection import CreateHashableTuple
 from WinCopies.Collections.Abstraction.Mapping.Extensions import OrderedSet
 from WinCopies.Collections.Enumeration import IEnumerable, IHashableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple, IOrderedSet, ReadOnlyCollection
@@ -101,7 +101,7 @@ class MultiColumnIndex(Index, IMultiColumnIndex):
     def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
         super().__init__(name)
 
-        self.__columns: IHashableTuple[IString] = columns if isinstance(columns, IHashableTuple) else HashableTuple[IString](columns)
+        self.__columns: IHashableTuple[IString] = columns if isinstance(columns, IHashableTuple) else CreateHashableTuple(columns)
     
     @final
     def GetColumns(self) -> IHashableTuple[IString]: return self.__columns

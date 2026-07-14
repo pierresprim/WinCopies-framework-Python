@@ -577,3 +577,22 @@ def CreateSortedList[T: ComparableProtocol](items: Iterable[T]) -> ISortedList[T
     return SortedList[T](items)
 def MakeSortedList[T: ComparableProtocol](*items: T) -> ISortedList[T]:
     return CreateSortedList(items)
+
+
+
+def GetTuple[T](items: ITuple[T]|Sequence[T]|Iterable[T]) -> ITuple[T]:
+    return items if isinstance(items, ITuple) else CreateTuple(items)
+def GetEquatableTuple[T: IEquatableValue](items: IEquatableTuple[T]|Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+    return items if isinstance(items, IEquatableTuple) else CreateEquatableTuple(items)
+def GetHashableTuple[T: IHashableValue](items: IHashableTuple[T]|Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
+    return items if isinstance(items, IHashableTuple) else CreateHashableTuple(items)
+
+def GetArray[T](items: IArray[T]|MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
+    return items if isinstance(items, IArray) else CreateArray(items)
+
+def GetList[T](items: IList[T]|MutableSequenceBase[T]|Iterable[T]|None = None) -> IList[T]:
+    return items if isinstance(items, IList) else CreateList(items)
+def GetSizedList[T](items: ISizedList[T]|MutableSequenceBase[T]) -> ISizedList[T]:
+    return items if isinstance(items, ISizedList) else CreateSizedList(items)
+def GetSortedList[T: ComparableProtocol](items: ISortedList[T]|Iterable[T]) -> ISortedList[T]:
+    return items if isinstance(items, ISortedList) else CreateSortedList(items)

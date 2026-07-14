@@ -7,6 +7,7 @@ from typing import final, overload, Self, SupportsIndex
 from WinCopies import IStringable
 from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWayConverter
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
+from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -51,10 +52,10 @@ class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, 
     def __getitem__(self, index: SupportsIndex|slice) -> TOut|SequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]], IGenericConstraintImplementation[ITuple[TIn]]):
-    def __init__(self, items: ITuple[TIn]) -> None:
+    def __init__(self, items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: ITuple[TIn] = items
+        self.__items: ITuple[TIn] = GetTuple(items)
     
     @final
     def _GetContainer(self) -> ITuple[TIn]: return self.__items
@@ -65,10 +66,10 @@ class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]],
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
-    def __init__(self, items: IEquatableTuple[TIn]) -> None:
+    def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IEquatableTuple[TIn] = items
+        self.__items: IEquatableTuple[TIn] = GetEquatableTuple(items)
     
     @final
     def _GetContainer(self) -> IEquatableTuple[TIn]: return self.__items
@@ -81,10 +82,10 @@ class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](TupleBase[TIn,
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 class HashableTuple[TIn: IHashableValue, TOut: IHashableValue](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
-    def __init__(self, items: IHashableTuple[TIn]) -> None:
+    def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IHashableTuple[TIn] = items
+        self.__items: IHashableTuple[TIn] = GetHashableTuple(items)
     
     @final
     def _GetContainer(self) -> IHashableTuple[TIn]: return self.__items
@@ -111,10 +112,10 @@ class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequenc
     def __init__(self) -> None: super().__init__()
 
 class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayCollection[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
-    def __init__(self, items: IArray[TIn]) -> None:
+    def __init__(self, items: IArray[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IArray[TIn] = items
+        self.__items: IArray[TIn] = GetArray(items)
     
     @final
     def _GetContainer(self) -> IArray[TIn]: return self.__items
@@ -129,10 +130,10 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayCollection[TOut],
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
 class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
-    def __init__(self, items: IList[TIn]) -> None:
+    def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IList[TIn] = items
+        self.__items: IList[TIn] = GetList(items)
     
     @final
     def _GetContainer(self) -> IList[TIn]: return self.__items

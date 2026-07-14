@@ -272,3 +272,8 @@ def MakeSet[T: IHashableValue](*items: T) -> ISet[T]:
 
 def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return Dictionary[TKey, TValue](dictionary)
+
+def GetSet[T: IHashableValue](items: ISet[T]|set[T]|Iterable[T]) -> ISet[T]:
+    return items if isinstance(items, ISet) else CreateSet(items)
+def GetDictionary[TKey: IHashableValue, TValue](dictionary: IDictionary[TKey, TValue]|MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+    return dictionary if isinstance(dictionary, IDictionary) else CreateDictionary(dictionary)
