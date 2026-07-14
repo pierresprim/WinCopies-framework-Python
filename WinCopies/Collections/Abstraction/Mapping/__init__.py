@@ -242,8 +242,7 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     @final
     def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
-        if self.TryAdd(key, value):
-            return True
+        if self.TryAdd(key, value): return True
         
         self.__SetAt(key, value)
 

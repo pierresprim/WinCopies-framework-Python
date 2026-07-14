@@ -119,6 +119,9 @@ class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Selector[TValueIn, T
     def TryAdd(self, key: TKey, value: TValueOut) -> bool: return self._GetItems().TryAdd(key, self._ConvertBack(value))
     
     @final
+    def AddOrUpdate(self, key: TKey, value: TValueOut) -> bool: return self._GetItems().AddOrUpdate(key, self._ConvertBack(value))
+    
+    @final
     def Remove(self, key: TKey) -> TValueOut: return self._Convert(self._GetItems().Remove(key))
     
     @final
