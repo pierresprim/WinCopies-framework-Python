@@ -54,7 +54,7 @@ class ForeignKeyCycleError(Error):
     def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"Foreign key cycle detected involving {GetTypeName(value)}.")
 
 class EntityNotPersistedError(Error):
-    def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The entity of type {GetTypeName(value)} is not persisted and cannot be updated.")
+    def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The entity of type {GetTypeName(value)} is not persisted.")
 class UnpersistedReferenceError(Error):
     def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The entity references an unpersisted entity of type {GetTypeName(value)}; it must be persisted before the referencing entity can be updated.")
 class PrimaryKeyMutationError(Error):
@@ -2002,7 +2002,7 @@ class _Adder(_Writer):
         return CreateTuple(Select(cols.GetPrimaryKeys().AsIterable(), lambda pk: _GetEntityValue(e, pk)))
     
     def __Persist(self, e: Entity, journal: _Journal, onStack: ISet[IReference[Entity]]) -> bool:
-        def persist(ref: IReference[Entity]) -> bool:
+        def persist(ref: IReference[Entity]) -> None:
             handler: _Adder._EnumerationHandler = _Adder._EnumerationHandler(onStack)
             entity: Entity = ref.GetValue()
 
@@ -2036,14 +2036,17 @@ class _Adder(_Writer):
 
                 journal.MarkSeen(e)
                 journal.RecordInserted(mapper, key, e, autoPrimaryKey, oldValue)
-
-            return True
         
         context: DataContextBase = self._GetContext()
         data: _EntityEnumerationData = _EntityEnumerationData(context, journal, onStack)
         ref: IReference[Entity] = DefaultReference[Entity](e)
         
-        return persist(ref) if _TryAdd(ref, data) else False
+        if _TryAdd(ref, data):
+            persist(ref)
+
+            return True
+        
+        return False
     
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         return self.__Persist(entity, journal, Set[IReference[Entity]]())

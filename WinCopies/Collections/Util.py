@@ -214,7 +214,7 @@ def MakeSequence[T](*items: T) -> ReadOnlyArray[T]:
 def MakeGenerator[T](*items: T) -> Generator[T]:
     return Enumerate(items)
 
-def CreateList[T](count: int, value: T|None = None) -> list[T|None]:
+def MakeList[T](count: int, value: T|None = None) -> list[T|None]:
     return [value] * count
     
 def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T]|None) -> int:
@@ -222,17 +222,26 @@ def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T
 
     return -1 if result is None else result
 
-def __MakeTuple[T](items: Sequence[T]|Iterable[T]) -> Sequence[T]:
-    return items if isinstance(items, Sequence) else tuple[T, ...](items)
-def __MakeList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
+def __CreateReadOnlyArray[T](items: Sequence[T]|Iterable[T]) -> ReadOnlyArray[T]:
+    return tuple[T, ...](items)
+def __CreateSequence[T](items: Sequence[T]|Iterable[T]) -> Sequence[T]:
+    return items if isinstance(items, Sequence) else __CreateReadOnlyArray(items)
+def __CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ReadOnlyArray[T]:
+    return items if isinstance(items, tuple) else __CreateReadOnlyArray(items)
+def __CreateList[T](items: MutableSequence[T]|Iterable[T]) -> MutableSequence[T]:
     return items if isinstance(items, MutableSequence) else list[T](items)
 
-def MakeTuple[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]:
-    return MakeSequence() if items is None else __MakeTuple(items)
-def TryMakeTuple[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]|None:
-    return None if items is None else __MakeTuple(items)
+def CreateSequence[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]:
+    return MakeSequence() if items is None else __CreateSequence(items)
+def TryCreateSequence[T](items: Sequence[T]|Iterable[T]|None) -> Sequence[T]|None:
+    return None if items is None else __CreateSequence(items)
 
-def MakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]:
-    return list[T]() if items is None else __MakeList(items)
-def TryMakeList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
-    return None if items is None else __MakeList(items)
+def CreateTuple[T](items: Sequence[T]|Iterable[T]|None) -> ReadOnlyArray[T]:
+    return MakeSequence() if items is None else __CreateTuple(items)
+def TryCreateTuple[T](items: Sequence[T]|Iterable[T]|None) -> ReadOnlyArray[T]|None:
+    return None if items is None else __CreateTuple(items)
+
+def CreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]:
+    return list[T]() if items is None else __CreateList(items)
+def TryCreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
+    return None if items is None else __CreateList(items)

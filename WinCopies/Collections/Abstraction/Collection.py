@@ -16,7 +16,7 @@ from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, Resuma
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Iteration import Zip
 from WinCopies.Collections.Loop import ForEachItem
-from WinCopies.Collections.Util import FindIndex, MakeTuple as MakeSequence, MakeList as MakeMutableSequence, Move
+from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, ComparableProtocol
 from WinCopies.Typing.Delegate import IFunction, IStruct, Converter, EqualityComparison, Handle
@@ -93,7 +93,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     
     def ToString(self) -> str: return str(self._GetContainer())
 class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
-    def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(MakeSequence(items))
+    def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -105,7 +105,7 @@ class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.E
     
     def ToString(self) -> str: return str(self._GetContainer())
 class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
-    def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(MakeSequence(items))
+    def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
     def TryGetSourceMutability(self) -> None: return None
@@ -176,7 +176,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__items: MutableSequenceBase[T] = MakeMutableSequence(items)
+        self.__items: MutableSequenceBase[T] = CreateMutableSequence(items)
     
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]: return self.__items

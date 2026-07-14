@@ -11,7 +11,7 @@ from WinCopies import String, Abstract
 from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
 from WinCopies.Collections.Extensions import IDictionary
-from WinCopies.Collections.Util import MakeList
+from WinCopies.Collections.Util import CreateList
 from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 
@@ -42,7 +42,7 @@ class QueryResultBase(Abstract):
     
     @final
     def __ExecuteQuery(self, connection: sqlite3.Connection, query: QueryResult) -> sqlite3.Cursor:
-        return connection.execute(query.GetKey(), MakeList(TryAsIterable(query.GetValue())))
+        return connection.execute(query.GetKey(), CreateList(TryAsIterable(query.GetValue())))
     
     @final
     def _GetCursor(self) -> sqlite3.Cursor:
