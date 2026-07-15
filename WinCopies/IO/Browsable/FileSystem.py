@@ -5,10 +5,16 @@ from WinCopies import Abstract
 from WinCopies.Collections.Enumeration import IEnumerable
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.IO import IDirEntry
-from WinCopies.IO.Browsable import BrowsableUpdater, IBrowsableNameInfo, IBrowsablePathInfo, IExplorable, Browsable
+from WinCopies.IO.Browsable import BrowsableUpdater, IBrowsableInfo, IBrowsableNameInfo, IBrowsablePathInfo, IExplorable, Browsable
 from WinCopies.Typing.Delegate import IFunction, Method
 
-class DirEntryNameInfo(Abstract, IBrowsableNameInfo):
+class BrowsableInfo(Abstract, IBrowsableInfo):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def GetSeparator(self) -> str: return pathsep
+
+class DirEntryNameInfo(BrowsableInfo, IBrowsableNameInfo):
     def __init__(self, entry: IDirEntry) -> None:
         super().__init__()
 
@@ -22,7 +28,7 @@ class DirEntryNameInfo(Abstract, IBrowsableNameInfo):
     @final
     def GetFullName(self) -> str: return self.__entry.GetFullName()
 
-class DirEntryPathInfo(Abstract, IBrowsablePathInfo):
+class DirEntryPathInfo(BrowsableInfo, IBrowsablePathInfo):
     def __init__(self, entry: IDirEntry) -> None:
         super().__init__()
 
@@ -36,16 +42,12 @@ class DirEntryPathInfo(Abstract, IBrowsablePathInfo):
     
     @final
     def GetPath(self) -> str: return self.__entry.GetPath()
-    
-    @final
-    def GetSeparator(self) -> str: return pathsep
 
 @final
 class _BrowsableUpdater(BrowsableUpdater[IDirEntry]):
     def __init__(self, items: IEnumerable[IDirEntry], updater: Method[IFunction[ISortedList[IExplorable]]]) -> None: super().__init__(items, updater)
     
-    def _Select(self, item: IDirEntry) -> IExplorable:
-        return BrowsableDirEntry(item)
+    def _Select(self, item: IDirEntry) -> IExplorable: return BrowsableDirEntry(item)
 
 class BrowsableDirEntry(Browsable[IDirEntry]):
     def __init__(self, entry: IDirEntry) -> None:
@@ -54,12 +56,10 @@ class BrowsableDirEntry(Browsable[IDirEntry]):
         self.__pathInfo: IBrowsablePathInfo = DirEntryPathInfo(entry)
     
     @final
-    def _AsContainer(self, container: IDirEntry) -> IEnumerable[IDirEntry]:
-        return container
+    def _AsContainer(self, container: IDirEntry) -> IEnumerable[IDirEntry]: return container
     
     @final
-    def _CreateUpdater(self, items: IEnumerable[IDirEntry], updater: Method[IFunction[ISortedList[IExplorable]]]) -> BrowsableUpdater[IDirEntry]:
-        return _BrowsableUpdater(items, updater)
+    def _CreateUpdater(self, items: IEnumerable[IDirEntry], updater: Method[IFunction[ISortedList[IExplorable]]]) -> BrowsableUpdater[IDirEntry]: return _BrowsableUpdater(items, updater)
     
     @final
     def GetPathInfo(self) -> IBrowsablePathInfo: return self.__pathInfo

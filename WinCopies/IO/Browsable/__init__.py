@@ -36,6 +36,10 @@ def TryGetFullName(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object
 class IBrowsableInfo(IComparableObject["IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo"], IStringable):
     def __init__(self) -> None: super().__init__()
 
+    @abstractmethod
+    def GetSeparator(self) -> str:
+        ...
+
 class IBrowsableNameInfo(IBrowsableInfo):
     def __init__(self) -> None: super().__init__()
     
@@ -89,10 +93,6 @@ class IBrowsablePathInfo(IBrowsableInfo):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def GetSeparator(self) -> str:
-        ...
-
-    @abstractmethod
     def GetDirectory(self) -> str:
         ...
     @abstractmethod
@@ -142,6 +142,9 @@ class IBrowsable(IBrowsableInfo):
     @abstractmethod
     def GetPathInfo(self) -> IBrowsablePathInfo:
         ...
+    
+    @final
+    def GetSeparator(self) -> str: return self.GetPathInfo().GetSeparator()
     
     def Equals(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool:
         def getPathInfo() -> IBrowsablePathInfo: return self.GetPathInfo()
@@ -196,8 +199,7 @@ class BrowsableUpdater[T](ValueFunctionUpdater[ISortedList[IExplorable]]):
     def _Select(self, item: T) -> IExplorable:
         ...
     
-    def _GetValue(self) -> ISortedList[IExplorable]:
-        return SortedList[IExplorable](Select(self.__items.AsIterable(), lambda item: self._Select(item)))
+    def _GetValue(self) -> ISortedList[IExplorable]: return SortedList[IExplorable](Select(self.__items.AsIterable(), lambda item: self._Select(item)))
 
 class BrowsableAbstract[T](RecursivelyEnumerable[IExplorable], IExplorableObject[T]):
     def __init__(self, innerObject: T) -> None:
@@ -235,5 +237,5 @@ class BrowsableBase[TIn, TOut](BrowsableAbstract[TIn], IGenericConstraint[TIn, I
     @final
     def _GetItems(self) -> ISortedList[IExplorable]:
         return self.__items.GetValue()
-class Browsable[T](BrowsableBase[T, T], IExplorableObject[T], IGenericConstraint[T, IEnumerable[T]]):
+class Browsable[T](BrowsableBase[T, T], IExplorableObject[T]):
     def __init__(self, innerObject: T) -> None: super().__init__(innerObject)
