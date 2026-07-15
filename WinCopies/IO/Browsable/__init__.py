@@ -50,7 +50,7 @@ class IBrowsableNameInfo(IBrowsableInfo):
     def GetExtension(self) -> str:
         ...
 
-    def GetFullName(self) -> str: return f"{self.GetName()}.{self.GetExtension()}"
+    def GetFullName(self) -> str: return f"{self.GetName()}{self.GetSeparator()}{self.GetExtension()}"
     
     def Equals(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool:
         return String.TryAreEqual(self.GetFullName(), TryGetFullName(item))
