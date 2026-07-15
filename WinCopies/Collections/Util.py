@@ -1,4 +1,5 @@
 from collections.abc import Iterable, Sequence, MutableSequence
+from typing import overload
 
 from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator
@@ -53,6 +54,13 @@ def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
 def GetLastIndex[T](l: Sequence[T]) -> int:
     return len(l) - 1
 
+def GetLastItem[T](l: Sequence[T]) -> T:
+    return l[-1]
+def TryGetLastItem[T](l: Sequence[T]) -> INullable[T]:
+    index: int = GetLastIndex(l)
+
+    return GetNullValue() if index < 0 else GetNullable(l[index])
+
 def ReverseIndexFromLast(index: int, lastIndex: int) -> int:
     return lastIndex - index
 def ReverseIndex(index: int, length: int) -> int:
@@ -89,6 +97,22 @@ def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFals
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
 def TryGetItem[TIn, TOut](l: Sequence[TIn], index: int, ifTrue: Converter[TIn, TOut], ifFalse: Function[TOut]) -> TOut:
     return ifTrue(l[index]) if ValidateIndex(index, len(l)) else ifFalse()
+
+@overload
+def SliceFromSecond[T](l: MutableSequence[T]) -> MutableSequence[T]: ...
+@overload
+def SliceFromSecond[T](l: Sequence[T]) -> Sequence[T]: ...
+
+def SliceFromSecond[T](l: MutableSequence[T]|Sequence[T]) -> MutableSequence[T]|Sequence[T]:
+    return l[1:]
+
+@overload
+def SliceToPenultimate[T](l: MutableSequence[T]) -> MutableSequence[T]: ...
+@overload
+def SliceToPenultimate[T](l: Sequence[T]) -> Sequence[T]: ...
+
+def SliceToPenultimate[T](l: MutableSequence[T]|Sequence[T]) -> MutableSequence[T]|Sequence[T]:
+    return l[:-1]
 
 def GetIndexOf[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None, predicate: EqualityComparison[T]|None = None) -> DualNullableValueInfo[int, int]|None:
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]: return DualNullableValueInfo[int, int](value, info)
