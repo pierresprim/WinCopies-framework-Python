@@ -2,26 +2,27 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
+from collections.abc import Sequence
 from enum import Enum
 from importlib import import_module
 from inspect import FrameInfo, Traceback, getframeinfo, getsource
-from pkgutil import ModuleInfo, walk_packages
+from pkgutil import ModuleInfo as ModuleInfoBase, walk_packages
 from sys import modules
 from types import ModuleType, FrameType, FunctionType
-from typing import Sequence, Type, final
+from typing import Type, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Abstraction.Collection import Array
+from WinCopies.Collections.Extensions import IArray
 from WinCopies.Typing import Reflection, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
 
-def EnumerateSubmodules(package: ModuleType|str, includePrivate: bool = False) -> Generator[ModuleInfo]:
-    def enumerateSubmodules(package: ModuleType) -> Generator[ModuleInfo]:
+def EnumerateSubmodules(package: ModuleType|str, includePrivate: bool = False) -> Generator[ModuleInfoBase]:
+    def enumerateSubmodules(package: ModuleType) -> Generator[ModuleInfoBase]:
         for moduleInfo in walk_packages(package.__path__, package.__name__ + '.'):
             if includePrivate or not moduleInfo.name.split('.')[-1].startswith('_'): yield moduleInfo
     
@@ -49,7 +50,7 @@ def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
 
     return None if imports is None else any(imp.startswith(packageName) for imp in imports)
 
-class PackageInspector(Abstract):
+class ModuleInfo(Abstract):
     def __init__(self, package: ModuleType|str) -> None:
         super().__init__()
 
@@ -59,7 +60,7 @@ class PackageInspector(Abstract):
     
     def ContainsModule(self, module: ModuleType) -> bool: return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module), self.GetName())
     
-    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfo]: return EnumerateSubmodules(self.__package, includePrivate)
+    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfoBase]: return EnumerateSubmodules(self.__package, includePrivate)
     
     def TryFindModule(self, name: str) -> ModuleType|None:
         fullName: str = f"{self.GetName()}.{name}"
@@ -125,7 +126,7 @@ class IFrameInspector(IInterface):
 class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
     def __init__(self) -> None: super().__init__()
 
-class __IFrameInfo(IInterface):
+class _IFrameInfo(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -142,7 +143,7 @@ class __IFrameInfo(IInterface):
         ...
 
 @final
-class __FrameInfo(Abstract, __IFrameInfo):
+class __FrameInfo(Abstract, _IFrameInfo):
     def __init__(self, frameInfo: FrameInfo) -> None:
         super().__init__()
 
@@ -153,8 +154,8 @@ class __FrameInfo(Abstract, __IFrameInfo):
     def GetFunction(self) -> str: return self.__frameInfo.function
     def GetLineNumber(self) -> int: return self.__frameInfo.lineno
 @final
-class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
-    class _IHandle(__IFrameInfo):
+class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
+    class _IHandle(_IFrameInfo):
         def __init__(self) -> None: super().__init__()
         
         @abstractmethod
@@ -213,10 +214,10 @@ class __Traceback(Abstract, __IFrameInfo, IDisposableInfo):
 
 @final
 class __FrameInspector(Abstract, IFrameInspector):
-    def __init__(self, frameInfo: __IFrameInfo) -> None:
+    def __init__(self, frameInfo: _IFrameInfo) -> None:
         super().__init__()
 
-        self.__frameInfo: __IFrameInfo = frameInfo
+        self.__frameInfo: _IFrameInfo = frameInfo
     
     def GetFrame(self) -> FrameType: return self.__frameInfo.GetFrame()
     

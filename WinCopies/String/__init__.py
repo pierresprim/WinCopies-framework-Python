@@ -347,7 +347,7 @@ def TrySplitAt(value: str, i: int) -> list[str]|None:
         None if the index is invalid, a list with the original string if index is 0,
         otherwise a list with two parts.
     """
-    return None if i < 0 or len(value) <= i else ([value] if i == 0 else [value[0:i - 1], value[i:]])
+    return None if i < 0 or len(value) <= i else ([value] if i == 0 else [value[:i - 1], value[i:]])
 def SplitAt(value: str, i: int) -> list[str]:
     """Splits a string at a specific index.
 
