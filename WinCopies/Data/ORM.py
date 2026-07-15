@@ -1656,7 +1656,7 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
 
     return None if fresh.GetCount() < 1 else fresh.AsIterable()
 
-def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool:
+def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, maxDepth: int = 1) -> bool|None:
     def validate(item: Entity) -> None:
         if not item.IsReady(): raise InvalidOperationError(f"{item} is not ready.")
     
@@ -1669,7 +1669,9 @@ def TryInitializeStubs(items: Iterable[Entity]|None, context: DataContextBase, m
     
     _EnsureNoUnresolvedRollbackError(context)
     
-    if items is None or maxDepth < 1 or (items := __InitializeStubs(DoForEachItem(items, validate), context)) is None: return False
+    if items is None: return None
+    
+    if maxDepth < 1 or (items := __InitializeStubs(DoForEachItem(items, validate), context)) is None: return False
     
     while check() and (items := __InitializeStubs(items, context)) is not None: pass
     
@@ -2366,18 +2368,18 @@ class _Transaction(Abstract, ITransaction):
     @final
     class _Disposed(_TransactionAbstract):
         def __init__(self) -> None: super().__init__()
-
+        
         def IsActive(self) -> bool: return False
         
         def Begin(self) -> bool: raise GetDisposedError()
-
+        
         def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
         def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: raise GetDisposedError()
-
+        
         def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
-
+        
         def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
-
+        
         def Commit(self) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
         def Rollback(self) -> bool: return False
         
