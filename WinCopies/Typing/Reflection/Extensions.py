@@ -9,12 +9,14 @@ from inspect import FrameInfo, Traceback, getframeinfo, getsource
 from pkgutil import ModuleInfo as ModuleInfoBase, walk_packages
 from sys import modules
 from types import ModuleType, FrameType, FunctionType
-from typing import Type, final
+from typing import Protocol, Type, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
+from WinCopies.Collections.Util import GetLastItem
+from WinCopies.String import TrySplit, SplitFromLast
 from WinCopies.Typing import Reflection, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 
@@ -50,20 +52,59 @@ def TryImportsFromPackage(module: ModuleType, packageName: str) -> bool|None:
 
     return None if imports is None else any(imp.startswith(packageName) for imp in imports)
 
+class LoaderProtocol(Protocol):
+    def load_module(self, fullname: str, /) -> ModuleType: ...
+
 class ModuleInfo(Abstract):
-    def __init__(self, package: ModuleType|str) -> None:
+    def __init__(self, module: ModuleType|str) -> None:
         super().__init__()
 
-        self.__package: ModuleType = ImportModule(package)
+        self.__module: ModuleType = ImportModule(module)
     
-    def GetName(self) -> str: return self.__package.__name__
+    @final
+    def SplitFromLast(self) -> Sequence[str]:
+        return SplitFromLast(self.GetPath(), '.')
+
+    @final
+    def _GetModule(self) -> ModuleType:
+        return self.__module
+
+    @final
+    def GetPath(self) -> str:
+        return self._GetModule().__name__
+
+    @final
+    def GetPackageName(self) -> str|None:
+        path: Sequence[str]|None = TrySplit(self.GetPath(), '.')
+
+        return None if path is None or len(path) < 2 else path[0]
     
-    def ContainsModule(self, module: ModuleType) -> bool: return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module), self.GetName())
+    @final
+    def GetDirectory(self) -> str:
+        return self.SplitFromLast()[0]
     
-    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfoBase]: return EnumerateSubmodules(self.__package, includePrivate)
+    @final
+    def GetName(self) -> str:
+        return GetLastItem(self.SplitFromLast())
+    
+    @final
+    def TryGetFile(self) -> str|None:
+        return self._GetModule().__file__
+    
+    @final
+    def GetLoader(self) -> LoaderProtocol|None:
+        return self._GetModule().__loader__
+    
+    @final
+    def TryGetDoc(self) -> str|None:
+        return self._GetModule().__doc__
+    
+    def ContainsModule(self, module: ModuleType|ModuleInfo) -> bool: return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module if isinstance(module, ModuleType) else module._GetModule()), self.GetPath())
+    
+    def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfoBase]: return EnumerateSubmodules(self.__module, includePrivate)
     
     def TryFindModule(self, name: str) -> ModuleType|None:
-        fullName: str = f"{self.GetName()}.{name}"
+        fullName: str = f"{self.GetPath()}.{name}"
 
         try: return import_module(fullName)
         except ImportError: return None
