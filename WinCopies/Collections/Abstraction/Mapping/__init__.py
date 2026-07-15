@@ -11,8 +11,6 @@ from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Decorators import Singleton, GetSingletonInstanceProvider
-from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
 
 class Set[T: IHashableValue](Mapping.Set[T]):
@@ -156,8 +154,13 @@ class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnume
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryAsEnumerator(self._TryGetIterator())
 
 @final
-class _None(Singleton):
+class __None(Abstract):
     def __init__(self) -> None: super().__init__()
+
+__none: __None = __None()
+
+def _GetNoneInstance() -> __None:
+    return __none
 
 # TODO: Should inherit from MutableMapping
 class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue]):
@@ -184,12 +187,6 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
         
         def _TryGetIterator(self) -> Iterator[_TValue]|None: return iter(self._GetInnerDictionary().values())
     
-    __getInstance: Function[_None] = GetSingletonInstanceProvider(_None)
-    
-    @staticmethod
-    def __GetNoneInstance() -> _None:
-        return Dictionary[TKey, TValue].__getInstance() # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType,reportAttributeAccessIssue]
-    
     def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None) -> None:
         super().__init__()
 
@@ -214,9 +211,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        result: TValue|_None = self._GetDictionary().get(key, Dictionary[TKey, TValue].__getInstance()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType,reportAttributeAccessIssue]
+        result: TValue|__None = self._GetDictionary().get(key, _GetNoneInstance())
 
-        return GetNullValue() if isinstance(result, _None) else GetNullable(result)
+        return GetNullValue() if isinstance(result, __None) else GetNullable(result)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
@@ -250,9 +247,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     @final
     def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        result: TValue|_None = self._GetDictionary().pop(key, Dictionary.__GetNoneInstance())
+        result: TValue|__None = self._GetDictionary().pop(key, _GetNoneInstance())
 
-        return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
+        return CreateDualValueBool(defaultValue, False) if isinstance(result, __None) else CreateDualValueBool(result, True)
     @final
     def Remove(self, key: TKey) -> TValue: return self._GetDictionary().pop(key)
     
