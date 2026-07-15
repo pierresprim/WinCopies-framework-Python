@@ -30,7 +30,7 @@ from WinCopies.Collections.Util import MakeSequence
 
 from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
-from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError
+from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
@@ -65,6 +65,13 @@ class UnresolvedRollbackError(Error):
     def __init__(self) -> None: super().__init__("The data context has an unresolved rollback; call Reverse() or Retry() before performing any further database operation.")
 class DeletedEntityError(Error):
     def __init__(self, value: Type[Entity]|Entity) -> None: super().__init__(f"The entity of type {GetTypeName(value)} has been deleted and can no longer be used.")
+
+# Error reporting contract (two channels):
+#   Return channel (True / False / None): outcome of an operation that could run.
+#     True  = done ; False = nothing moved (legitimate no-op) ; None = empty input only.
+#   Exception channel (raise): any failure (misuse guard, operational, commit) or
+#     non-live object (disposed -> GetDisposedError ; doomed / not-active -> InvalidOperationError).
+#   Invariant: one fact, one channel — identical response via Entity.* and ITransaction.*.
 
 @final
 class _TableColumn(Abstract, ITableColumn):
@@ -2276,8 +2283,8 @@ class _Transaction(Abstract, ITransaction):
             if self.IsActive():
                 try: return action(item, self._GetJournal())
                 except BaseException as e: return self.__GetTransaction(e)
-            
-            return None
+
+            raise InvalidOperationError("The operation requires an active transaction.")
         def __TryPersist(self, item: Entity, writer: _WriterBase) -> bool|tuple[BaseException, _ITransaction]:
             result: bool|tuple[BaseException, _ITransaction]|None = self.__TryAdd(item, writer.Persist)
             
@@ -2362,16 +2369,16 @@ class _Transaction(Abstract, ITransaction):
 
         def IsActive(self) -> bool: return False
         
-        def Begin(self) -> bool: return False
-        
-        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: return False
-        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: return None
+        def Begin(self) -> bool: raise GetDisposedError()
 
-        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: return False
-        
-        def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: return False
-        
-        def Commit(self) -> bool|tuple[BaseException, _ITransaction]: return False
+        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: raise GetDisposedError()
+
+        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+
+        def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+
+        def Commit(self) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
         def Rollback(self) -> bool: return False
         
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]: return (self, None)
@@ -2530,7 +2537,7 @@ class DataContextBase(Abstract):
     def Retry(self) -> bool:
         unresolved: ISet[IReference[Entity]]|None = self.__unresolved
 
-        if unresolved is None: return True
+        if unresolved is None: return False
 
         self.__unresolved = None
 
@@ -2553,7 +2560,7 @@ class DataContextBase(Abstract):
 
             self._ArmUnresolvedRollback(entities)
 
-            return False
+            raise
 
         return True
 
