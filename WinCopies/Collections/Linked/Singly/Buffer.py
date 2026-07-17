@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryC
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import TryGetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase, SinglyLinkedNode
+from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
@@ -149,7 +149,7 @@ class AbstractBuffer[T](AbstractList[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _OnSetFirst(self, first: INodeCookie[T], last: SinglyLinkedNode[T]) -> None:
+    def _OnSetFirst(self, first: INodeCookie[T], last: INodeCookie[T]) -> None:
         ...
 
 class ReadOnlyBuffer[T](ReadOnlyListBase[T, IBuffer[T]], IReadOnlyBuffer[T], IGenericConstraintImplementation[IBuffer[T]]):
@@ -178,7 +178,7 @@ class BufferBase[T](AbstractBuffer[T], IBufferBase):
         if result is None: return None
         if result[1] is None: return False
         
-        self._OnSetFirst(result[1], result[0].GetNode())
+        self._OnSetFirst(result[1], result[0])
         
         return True
 
@@ -188,13 +188,13 @@ class Buffer[T](BufferBase[T], IBuffer[T]):
 class AbstractBufferedQueue[T](AbstractBuffer[T], AbstractQueue[T]):
     def __init__(self) -> None: super().__init__()
     
-    def _OnSetFirst(self, first: INodeCookie[T], last: SinglyLinkedNode[T]) -> None:
+    def _OnSetFirst(self, first: INodeCookie[T], last: INodeCookie[T]) -> None:
         self._SetFirst(first)
         self._SetLast(last)
 class AbstractBufferedStack[T](AbstractBuffer[T]):
     def __init__(self) -> None: super().__init__()
     
-    def _OnSetFirst(self, first: INodeCookie[T], last: SinglyLinkedNode[T]) -> None:
+    def _OnSetFirst(self, first: INodeCookie[T], last: INodeCookie[T]) -> None:
         self._SetFirst(first)
 
 @final
@@ -222,7 +222,7 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
         super().__init__()
 
         self.__first: INodeCookie[T]|None = None
-        self.__last: SinglyLinkedNode[T]|None = None
+        self.__last: INodeCookie[T]|None = None
 
         self.__readOnly: IFunction[IReadOnlyBufferedQueue[T]] = _ReadOnlyBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
         self.__updater: Callable[[INodeCookie[T], INodeCookie[T]], None] = self._GetUpdater()
@@ -248,10 +248,10 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
         self.__first = None
     
     @final
-    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+    def _GetLastCookie(self) -> INodeCookie[T]|None:
         return self.__last
     @final
-    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+    def _SetLast(self, node: INodeCookie[T]) -> None:
         self.__last = node
     
     @final
@@ -288,10 +288,10 @@ class IBufferedQueueCookie[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetLast(self) -> SinglyLinkedNode[T]|None:
+    def GetLast(self) -> INodeCookie[T]|None:
         ...
     @abstractmethod
-    def SetLast(self, node: SinglyLinkedNode[T]) -> None:
+    def SetLast(self, node: INodeCookie[T]) -> None:
         ...
 
 class IBufferedQueueList[T](IBufferedList[T]):
@@ -342,8 +342,8 @@ class _CookieBufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueue
 
             self.__buffer: _CookieBufferedQueue[_T] = buffer
 
-        def GetLast(self) -> SinglyLinkedNode[_T]|None: return self.__buffer._GetLastNode()
-        def SetLast(self, node: SinglyLinkedNode[_T]) -> None: self.__buffer._SetLastNode(node)
+        def GetLast(self) -> INodeCookie[_T]|None: return self.__buffer._GetLastNode()
+        def SetLast(self, node: INodeCookie[_T]) -> None: self.__buffer._SetLastNode(node)
     
     @final
     class __Updater[_T](ValueFunctionUpdater[IBufferedQueueCookie[_T]]):
@@ -361,10 +361,10 @@ class _CookieBufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueue
         return _CookieBufferedQueue[T].__Updater(self, updater)
     
     @final
-    def _GetLastNode(self) -> SinglyLinkedNode[T]|None:
-        return self._GetLast()
+    def _GetLastNode(self) -> INodeCookie[T]|None:
+        return self._GetLastCookie()
     @final
-    def _SetLastNode(self, node: SinglyLinkedNode[T]) -> None:
+    def _SetLastNode(self, node: INodeCookie[T]) -> None:
         self._SetLast(node)
 
 class _IBufferedQueue[T](IBufferedQueue[T], IBufferedQueueList[T]):
@@ -476,10 +476,10 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], 
         return self._GetContainer().GetQueueCookie()
     
     @final
-    def _GetLast(self) -> SinglyLinkedNode[T]|None:
+    def _GetLastCookie(self) -> INodeCookie[T]|None:
         return self._GetQueueCookie().GetLast()
     @final
-    def _SetLast(self, node: SinglyLinkedNode[T]) -> None:
+    def _SetLast(self, node: INodeCookie[T]) -> None:
         self._GetQueueCookie().SetLast(node)
     
     @final
