@@ -3,13 +3,64 @@ import sys
 from abc import abstractmethod
 from argparse import ArgumentParser as ArgumentParserBase, Namespace, RawDescriptionHelpFormatter
 from enum import Enum
-from typing import final, cast
+from typing import final, cast, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Application import IDescription, Description
 from WinCopies.Application.Logging import ILogger, Logger
+from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Linked.Singly import IReadOnlyEnumerableList, IEnumerableList, CreateEnumerableQueue
+from WinCopies.Collections.Util import MakeSequence
 from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Object import PrimitiveType
+
+class IParameterDescription(IDescription):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def HasKey(self) -> bool: ...
+
+    @abstractmethod
+    def GetType(self) -> PrimitiveType: ...
+
+class ParameterDescriptionAbstract(Abstract, IParameterDescription):
+    def __init__(self, description: IDescription) -> None:
+        super().__init__()
+
+        self.__description: IDescription = description
+    
+    @final
+    def GetName(self) -> str: return self.__description.GetName()
+    @final
+    def GetDescription(self) -> str: return self.__description.GetDescription()
+class ParameterDescriptionBase(ParameterDescriptionAbstract):
+    def __init__(self, description: IDescription, type: PrimitiveType) -> None:
+        super().__init__(description)
+
+        self.__type: PrimitiveType = type
+    
+    @final
+    def GetType(self) -> PrimitiveType: return self.__type
+
+class ParameterDescription(ParameterDescriptionBase):
+    def __init__(self, description: IDescription, type: PrimitiveType) -> None: super().__init__(description, type)
+
+    @final
+    def HasKey(self) -> bool: return False
+class KeyedParameterDescription(ParameterDescriptionBase):
+    def __init__(self, description: IDescription, type: PrimitiveType) -> None: super().__init__(description, type)
+
+    @final
+    def HasKey(self) -> bool: return True
+
+class Flag(ParameterDescriptionAbstract):
+    def __init__(self, description: IDescription) -> None: super().__init__(description)
+
+    @final
+    def HasKey(self) -> bool: return True
+
+    @final
+    def GetType(self) -> PrimitiveType: return PrimitiveType.Null
 
 class IDelegate(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -77,13 +128,34 @@ __falseAction: IFlagAction = _FalseAction()
 def GetTrueAction() -> IFlagAction: return __trueAction
 def GetFalseAction() -> IFlagAction: return __falseAction
 
-class StoreAction(Action):
+def GetAction(value: bool) -> IFlagAction: return GetTrueAction() if value else GetFalseAction()
+
+class IStoreAction(IAction):
     def __init__(self) -> None: super().__init__()
 
     @final
     def GetActionKind(self) -> ActionKind: return ActionKind.Store
 
-__storeAction: IAction = StoreAction()
+    @abstractmethod
+    def GetArgumentCount(self) -> int: ...
+
+class _DefaultStoreAction(Action, IStoreAction):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def GetArgumentCount(self) -> int: return 1
+class StoreAction(Action, IStoreAction):
+    def __init__(self, count: int) -> None:
+        if count < 1: raise ValueError()
+
+        super().__init__()
+
+        self.__count: int = count
+    
+    @final
+    def GetArgumentCount(self) -> int: return self.__count
+
+__storeAction: IAction = _DefaultStoreAction()
 
 def GetDefaultStoreAction() -> IAction: return __storeAction
 
@@ -94,25 +166,25 @@ class IParameter(IInterface):
     def GetKind(self) -> ParameterKind: ...
 
     @abstractmethod
-    def GetDescription(self) -> IDescription: ...
+    def GetDescription(self) -> IParameterDescription: ...
 
     @abstractmethod
     def GetAction(self) -> IAction: ...
 class Parameter(Abstract, IParameter):
-    def __init__(self, description: IDescription, action: IAction) -> None:
+    def __init__(self, description: IParameterDescription, action: IAction) -> None:
         super().__init__()
 
-        self.__description: IDescription = description
+        self.__description: IParameterDescription = description
         self.__action: IAction = action
 
     @final
-    def GetDescription(self) -> IDescription: return self.__description
+    def GetDescription(self) -> IParameterDescription: return self.__description
 
     @final
     def GetAction(self) -> IAction: return self.__action
 
 class PositionalParameter(Parameter):
-    def __init__(self, description: IDescription) -> None:
+    def __init__(self, description: IParameterDescription) -> None:
         if description.GetName().startswith('-'): raise ValueError()
 
         super().__init__(description, GetDefaultStoreAction())
@@ -120,7 +192,7 @@ class PositionalParameter(Parameter):
     @final
     def GetKind(self) -> ParameterKind: return ParameterKind.Positional
 class OptionalParameter(Parameter):
-    def __init__(self, description: IDescription, action: IAction) -> None: super().__init__(description, action)
+    def __init__(self, description: IParameterDescription, action: IAction) -> None: super().__init__(description, action)
 
     @final
     def GetKind(self) -> ParameterKind: return ParameterKind.Optional
@@ -132,9 +204,12 @@ class ICommand(IInterface):
     def GetParameters(self) -> IReadOnlyEnumerableList[IParameter]: ...
 
     @abstractmethod
-    def AddPositional(self, description: IDescription) -> None: ...
+    def AddPositional(self, description: IParameterDescription) -> None: ...
+    
     @abstractmethod
-    def AddOptional(self, description: IDescription, action: IAction) -> None: ...
+    def AddOptional(self, description: IParameterDescription, action: IStoreAction) -> None: ...
+    @abstractmethod
+    def AddFlag(self, description: Flag, value: bool) -> None: ...
 class ISubcommand(ICommand):
     def __init__(self) -> None: super().__init__()
 
@@ -149,16 +224,26 @@ class Command(Abstract, ICommand):
         super().__init__()
 
         self.__params: IEnumerableList[IParameter] = CreateEnumerableQueue()
+    
+    @final
+    def __Push(self, description: IParameterDescription, action: IAction) -> None:
+        self.__params.Push(OptionalParameter(description, action))
 
     @final
     def GetParameters(self) -> IReadOnlyEnumerableList[IParameter]: return self.__params.AsReadOnly()
 
     @final
-    def AddPositional(self, description: IDescription) -> None:
+    def AddPositional(self, description: IParameterDescription) -> None:
+        if description.HasKey(): raise ValueError("A positional parameter cannot have a key.")
+
         self.__params.Push(PositionalParameter(description))
+    
     @final
-    def AddOptional(self, description: IDescription, action: IAction) -> None:
-        self.__params.Push(OptionalParameter(description, action))
+    def AddOptional(self, description: IParameterDescription, action: IStoreAction) -> None:
+        self.__Push(description, action)
+    @final
+    def AddFlag(self, description: IDescription, value: bool) -> None:
+        self.__Push(Flag(description), GetAction(value))
 class Subcommand(Command, ISubcommand):
     def __init__(self, delegate: IDelegate) -> None:
         super().__init__()
@@ -172,25 +257,39 @@ class Subcommand(Command, ISubcommand):
     def GetDelegate(self) -> Converter[Namespace, int]: return self.__delegate.Run
 
 def _AddCommand(parser: ArgumentParserBase, command: ICommand) -> None:
-    description: IDescription|None = None
+    description: IParameterDescription|None = None
     
-    def add(prefix: str = '') -> None:
+    def add(optional: bool) -> None:
         nonlocal description
 
-        def getActionName(action: IAction) -> str:
+        def add(nameOrFlags: ReadOnlyArray[str], action: Callable[[ReadOnlyArray[str], str], None], help: str) -> None:
+            action(nameOrFlags, help)
+
+        def getNameOrFlags(name: str, hasKey: bool) -> ReadOnlyArray[str]:
+            def _getName(prefix: str, name: str) -> str: return prefix + name
+            def getName() -> str: return _getName("--", name)
+
+            return ((_getName('-', name[0]), getName()) if hasKey else MakeSequence(getName())) if optional else MakeSequence(name)
+        def getAction(action: IAction, type: PrimitiveType) -> Callable[[ReadOnlyArray[str], str], None]:
+            def getAction[T](action: Callable[[ReadOnlyArray[str], str], T]) -> Callable[[ReadOnlyArray[str], str], None]:
+                def callAction(nameOrFlags: ReadOnlyArray[str], help: str) -> None:
+                    action(nameOrFlags, help)
+                
+                return callAction
+
             match action.GetActionKind():
-                case ActionKind.Flag: return f"store_{"true" if cast(IFlagAction, action).GetValue() else "false"}"
-                case ActionKind.Store: return "store"
+                case ActionKind.Flag: return getAction(lambda nameOrFlags, help: parser.add_argument(*nameOrFlags, action=f"store_{"true" if cast(IFlagAction, action).GetValue() else "false"}", help=help))
+                case ActionKind.Store: return getAction(lambda nameOrFlags, help: parser.add_argument(*nameOrFlags, action="store", type=type.Map(), nargs=cast(IStoreAction, action).GetArgumentCount(), help=help))
 
                 case _:
                     raise ValueError()
         
-        parser.add_argument(prefix + (description := param.GetDescription()).GetName(), action=getActionName(param.GetAction()), help=description.GetDescription())
+        add(getNameOrFlags((description := param.GetDescription()).GetName(), description.HasKey()), getAction(param.GetAction(), description.GetType()), description.GetDescription())
     
     for param in command.GetParameters().AsIterable():
         match param.GetKind():
-            case ParameterKind.Positional: add()
-            case ParameterKind.Optional: add("--")
+            case ParameterKind.Positional: add(False)
+            case ParameterKind.Optional: add(True)
 
             case _: raise ValueError()
 
@@ -259,7 +358,7 @@ class Application(Abstract):
         
         command: Command = Command()
 
-        command.AddOptional(Description("verbose", "Verbose mode (debug logging)"), GetTrueAction())
+        command.AddFlag(Description("verbose", "Verbose mode (debug logging)"), True)
 
         self.__parser: IArgumentParser = self._CreateParser(command)
     
