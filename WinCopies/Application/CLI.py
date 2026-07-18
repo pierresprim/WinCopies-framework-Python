@@ -207,7 +207,7 @@ class ICommand(IInterface):
     def AddPositional(self, description: IParameterDescription) -> None: ...
     
     @abstractmethod
-    def AddOptional(self, description: IParameterDescription, action: IStoreAction) -> None: ...
+    def AddOptional(self, description: IParameterDescription, action: IStoreAction|None = None) -> None: ...
     @abstractmethod
     def AddFlag(self, description: Flag, value: bool) -> None: ...
 class ISubcommand(ICommand):
@@ -239,8 +239,8 @@ class Command(Abstract, ICommand):
         self.__params.Push(PositionalParameter(description))
     
     @final
-    def AddOptional(self, description: IParameterDescription, action: IStoreAction) -> None:
-        self.__Push(description, action)
+    def AddOptional(self, description: IParameterDescription, action: IStoreAction|None = None) -> None:
+        self.__Push(description, GetDefaultStoreAction() if action is None else action)
     @final
     def AddFlag(self, description: IDescription, value: bool) -> None:
         self.__Push(Flag(description), GetAction(value))
