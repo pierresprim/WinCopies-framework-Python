@@ -864,7 +864,7 @@ def columnConfig(name: str|None = None) -> _ColumnConfigDecorator:
 
 def primaryKeyConfig(name: str|None = None) -> _PrimaryKeyConfigDecorator:
     return _PrimaryKeyConfigDecorator(PrimaryKeyConfig(name))
-def autoPrimaryKeyConfig(name: str | None = None) -> _AutoPrimaryKeyConfigDecorator:
+def autoPrimaryKeyConfig(name: str|None = None) -> _AutoPrimaryKeyConfigDecorator:
     return _AutoPrimaryKeyConfigDecorator(PrimaryKeyConfig(name))
 
 def entityColumnConfig[T: Entity](t: Type[T], name: str|None = None) -> _EntityColumnConfigDecorator[T]:
