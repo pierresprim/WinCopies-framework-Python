@@ -557,6 +557,32 @@ class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self) -> None: super().__init__()
 
+class PrimitiveType(Enum):
+    Null = 0
+    Bool = 1
+    Integer = 2
+    Floating = 3
+    Decimal = 4
+    String = 5
+    Bytes = 6
+
+    def TryMap(self) -> type|None:
+        match self:
+            case PrimitiveType.Bool: return bool
+            case PrimitiveType.Integer: return int
+            case PrimitiveType.Floating: return float
+            case PrimitiveType.Decimal: return decimal
+            case PrimitiveType.String: return str
+            case PrimitiveType.Bytes: return bytes
+
+            case _: return None
+    def Map(self) -> type:
+        result: type|None = self.TryMap()
+
+        if result is None: raise ValueError(f"{self.name} is not supported.")
+
+        return result
+
 def TryMap(obj: object) -> IValueItem|None:
     match obj:
         case bool(): return GetTrueObject() if obj else GetFalseObject()
@@ -574,7 +600,7 @@ def TryMap(obj: object) -> IValueItem|None:
 def Map(obj: object) -> IValueItem:
     result: IValueItem|None = TryMap(obj)
 
-    if result is None: raise ValueError(f"{type(obj)} is not supported or is not primitive.")
+    if result is None: raise ValueError(f"{type(obj)} is not supported.")
 
     return result
 
