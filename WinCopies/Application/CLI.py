@@ -191,7 +191,7 @@ class PositionalParameter(Parameter):
 
     @final
     def GetKind(self) -> ParameterKind: return ParameterKind.Positional
-class OptionalParameter(Parameter):
+class NonRequiredParameter(Parameter):
     def __init__(self, description: IParameterDescription, action: IAction) -> None: super().__init__(description, action)
 
     @final
@@ -207,7 +207,7 @@ class ICommand(IInterface):
     def AddPositional(self, description: IParameterDescription) -> None: ...
     
     @abstractmethod
-    def AddOptional(self, description: IParameterDescription, action: IStoreAction|None = None) -> None: ...
+    def AddNonRequired(self, description: IParameterDescription, action: IStoreAction|None = None) -> None: ...
     @abstractmethod
     def AddFlag(self, description: Flag, value: bool) -> None: ...
 class ISubcommand(ICommand):
@@ -226,8 +226,11 @@ class Command(Abstract, ICommand):
         self.__params: IEnumerableList[IParameter] = CreateEnumerableQueue()
     
     @final
+    def __PushParameter(self, parameter: IParameter) -> None:
+        self.__params.Push(parameter)
+    @final
     def __Push(self, description: IParameterDescription, action: IAction) -> None:
-        self.__params.Push(OptionalParameter(description, action))
+        self.__PushParameter(NonRequiredParameter(description, action))
 
     @final
     def GetParameters(self) -> IReadOnlyEnumerableList[IParameter]: return self.__params.AsReadOnly()
@@ -236,10 +239,10 @@ class Command(Abstract, ICommand):
     def AddPositional(self, description: IParameterDescription) -> None:
         if description.HasKey(): raise ValueError("A positional parameter cannot have a key.")
 
-        self.__params.Push(PositionalParameter(description))
+        self.__PushParameter(PositionalParameter(description))
     
     @final
-    def AddOptional(self, description: IParameterDescription, action: IStoreAction|None = None) -> None:
+    def AddNonRequired(self, description: IParameterDescription, action: IStoreAction|None = None) -> None:
         self.__Push(description, GetDefaultStoreAction() if action is None else action)
     @final
     def AddFlag(self, description: IDescription, value: bool) -> None:
