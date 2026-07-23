@@ -14,7 +14,7 @@ from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual
 from WinCopies.Typing import NumericalValue, IDisposable, INullable, IEnum
 from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable, CompareTo
 from WinCopies.Typing.Delegate import Action, NullableFunction
-from WinCopies.Typing.Reflection import IsOf
+from WinCopies.Typing.Reflection import IsOf, GetType, GetTypeName
 
 class IItem(IHashableValue, IStringable):
     def __init__(self) -> None: super().__init__()
@@ -568,7 +568,7 @@ class PrimitiveType(Enum):
     String = 5
     Bytes = 6
 
-    def TryMap(self) -> type|None:
+    def TryMap(self) -> TypeBase[PrimitiveValue]|None:
         match self:
             case PrimitiveType.Bool: return bool
             case PrimitiveType.Integer: return int
@@ -578,8 +578,8 @@ class PrimitiveType(Enum):
             case PrimitiveType.Bytes: return bytes
 
             case _: return None
-    def Map(self) -> type:
-        result: type|None = self.TryMap()
+    def Map(self) -> TypeBase[PrimitiveValue]:
+        result: TypeBase[PrimitiveValue]|None = self.TryMap()
 
         if result is None: raise ValueError(f"{self.name} is not supported.")
 
