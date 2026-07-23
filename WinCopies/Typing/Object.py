@@ -585,6 +585,26 @@ class PrimitiveType(Enum):
 
         return result
 
+    @staticmethod
+    def TryMapFromType[T: PrimitiveValue](t: TypeBase[T]|T) -> PrimitiveType:
+        _t: TypeBase[T] = GetType(t)
+
+        if _t == bool: return PrimitiveType.Bool
+        if _t == int: return PrimitiveType.Integer
+        if _t == float: return PrimitiveType.Floating
+        if _t == decimal: return PrimitiveType.Decimal
+        if _t == str: return PrimitiveType.String
+        if _t == bytes: return PrimitiveType.Bytes
+
+        return PrimitiveType.Null
+    @staticmethod
+    def MapFromType[T: PrimitiveValue](t: TypeBase[T]|T) -> PrimitiveType:
+        result: PrimitiveType = PrimitiveType.TryMapFromType(t)
+
+        if result == PrimitiveType.Null: raise ValueError(f"{GetTypeName(t)} is not supported.")
+
+        return result
+
 def TryMap(obj: object) -> IValueItem|None:
     match obj:
         case bool(): return GetTrueObject() if obj else GetFalseObject()
