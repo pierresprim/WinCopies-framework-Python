@@ -557,6 +557,8 @@ class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
 class IDisposableObject[T](IDisposable, IObject[T]):
     def __init__(self) -> None: super().__init__()
 
+type PrimitiveValue = bool|NumericalValue|str|bytes
+
 class PrimitiveType(Enum):
     Null = 0
     Bool = 1
