@@ -172,6 +172,8 @@ class IParameter(IInterface):
     def GetAction(self) -> IAction: ...
 class Parameter(Abstract, IParameter):
     def __init__(self, description: IParameterDescription, action: IAction) -> None:
+        if description.GetName().startswith('-'): raise ValueError()
+
         super().__init__()
 
         self.__description: IParameterDescription = description
@@ -184,10 +186,7 @@ class Parameter(Abstract, IParameter):
     def GetAction(self) -> IAction: return self.__action
 
 class PositionalParameter(Parameter):
-    def __init__(self, description: IParameterDescription) -> None:
-        if description.GetName().startswith('-'): raise ValueError()
-
-        super().__init__(description, GetDefaultStoreAction())
+    def __init__(self, description: IParameterDescription) -> None: super().__init__(description, GetDefaultStoreAction())
 
     @final
     def GetKind(self) -> ParameterKind: return ParameterKind.Positional
