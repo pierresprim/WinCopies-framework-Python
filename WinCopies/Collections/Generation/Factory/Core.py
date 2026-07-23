@@ -14,7 +14,7 @@ from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
-from WinCopies.Typing.Object import IWeakReferenceRegister, WeakReference, CreateWeakReferenceRegister
+from WinCopies.Typing.Object import IWeakReferenceRegister, IWeakReference, CreateWeakReferenceRegister
 
 class CompositeRemovable(Abstract, IRemovable):
     def __init__(self, node: IRemovable, obj: IRemovable) -> None:
@@ -34,28 +34,28 @@ class CompositeRemovable(Abstract, IRemovable):
     def Remove(self) -> None: self.__remove()
 
 @final
-class _ReadOnlyListBase[T: IDisposableBase](Abstract, IReadOnlyList[WeakReference[T]]):
-    def __init__(self, items: IReadWriteList[WeakReference[T]]) -> None:
+class _ReadOnlyListBase[T: IDisposableBase](Abstract, IReadOnlyList[IWeakReference[T]]):
+    def __init__(self, items: IReadWriteList[IWeakReference[T]]) -> None:
         super().__init__()
 
-        self.__items: IReadWriteList[WeakReference[T]] = items
+        self.__items: IReadWriteList[IWeakReference[T]] = items
     
     def IsEmpty(self) -> bool: return self.__items.IsEmpty()
     
-    def TryGetFirst(self) -> INullable[WeakReference[T]]: return self.__items.TryGetFirst()
-    def TryGetLast(self) -> INullable[WeakReference[T]]: return self.__items.TryGetLast()
+    def TryGetFirst(self) -> INullable[IWeakReference[T]]: return self.__items.TryGetFirst()
+    def TryGetLast(self) -> INullable[IWeakReference[T]]: return self.__items.TryGetLast()
 @final
 class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
-    def __init__(self, items: IReadWriteList[WeakReference[T]]) -> None:
+    def __init__(self, items: IReadWriteList[IWeakReference[T]]) -> None:
         super().__init__()
 
-        self.__items: IReadWriteList[WeakReference[T]] = items
+        self.__items: IReadWriteList[IWeakReference[T]] = items
     
     def IsEmpty(self) -> bool: return self.__items.IsEmpty()
     
-    def __TryGetValue(self, getNode: Function[IReadWriteLinkedNode[WeakReference[T]]|None]) -> INullable[T]:
+    def __TryGetValue(self, getNode: Function[IReadWriteLinkedNode[IWeakReference[T]]|None]) -> INullable[T]:
         def tryGetValue() -> INullable[T]|None:
-            node: IReadWriteLinkedNode[WeakReference[T]]|None = getNode()
+            node: IReadWriteLinkedNode[IWeakReference[T]]|None = getNode()
 
             if node is None: return GetNullValue()
             
@@ -79,37 +79,37 @@ class _ReadOnlyList[T: IDisposableBase](Abstract, IReadOnlyList[T]):
     def TryGetLast(self) -> INullable[T]: return self.__TryGetValue(lambda: self.__items.GetLastNode())
 
 @final
-class _ReadOnlyListBaseUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[WeakReference[T]]]):
-    def __init__(self, items: IReadWriteList[WeakReference[T]], updater: Method[IFunction[IReadOnlyList[WeakReference[T]]]]) -> None:
+class _ReadOnlyListBaseUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[IWeakReference[T]]]):
+    def __init__(self, items: IReadWriteList[IWeakReference[T]], updater: Method[IFunction[IReadOnlyList[IWeakReference[T]]]]) -> None:
         super().__init__(updater)
 
-        self.__items: IReadWriteList[WeakReference[T]] = items
+        self.__items: IReadWriteList[IWeakReference[T]] = items
     
-    def _GetValue(self) -> IReadOnlyList[WeakReference[T]]: return _ReadOnlyListBase[T](self.__items)
+    def _GetValue(self) -> IReadOnlyList[IWeakReference[T]]: return _ReadOnlyListBase[T](self.__items)
 @final
 class _ReadOnlyListUpdater[T: IDisposableBase](ValueFunctionUpdater[IReadOnlyList[T]]):
-    def __init__(self, items: IReadWriteList[WeakReference[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
+    def __init__(self, items: IReadWriteList[IWeakReference[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None:
         super().__init__(updater)
 
-        self.__items: IReadWriteList[WeakReference[T]] = items
+        self.__items: IReadWriteList[IWeakReference[T]] = items
     
     def _GetValue(self) -> IReadOnlyList[T]: return _ReadOnlyList[T](self.__items)
 
 @final
-class _List[T: IDisposableBase](ListBase[WeakReference[T], "_Node[T]", IDoublyLinkedNode[WeakReference[T]]], IGenericConstraintImplementation[IDoublyLinkedNode[WeakReference[T]]]):
+class _List[T: IDisposableBase](ListBase[IWeakReference[T], "_Node[T]", IDoublyLinkedNode[IWeakReference[T]]], IGenericConstraintImplementation[IDoublyLinkedNode[IWeakReference[T]]]):
     def __init__(self) -> None:
-        def update(func: IFunction[IReadOnlyList[WeakReference[T]]]) -> None: self.__readOnly = func
+        def update(func: IFunction[IReadOnlyList[IWeakReference[T]]]) -> None: self.__readOnly = func
         
         super().__init__()
 
-        self.__readOnly: IFunction[IReadOnlyList[WeakReference[T]]] = _ReadOnlyListBaseUpdater[T](self, update) # type: ignore[no-redef]
+        self.__readOnly: IFunction[IReadOnlyList[IWeakReference[T]]] = _ReadOnlyListBaseUpdater[T](self, update) # type: ignore[no-redef]
     
-    def _CreateNode(self, value: WeakReference[T]) -> _Node[T]:
+    def _CreateNode(self, value: IWeakReference[T]) -> _Node[T]:
         return _Node[T](value, self, self, self._GetCookie(), None, None)
     
-    def _GetNodeAsClass(self, node: _Node[T]) -> IDoublyLinkedNode[WeakReference[T]]:
+    def _GetNodeAsClass(self, node: _Node[T]) -> IDoublyLinkedNode[IWeakReference[T]]:
         return node
-    def _GetNodeAsInterface(self, node: _Node[T]) -> IDoublyLinkedNodeBase[WeakReference[T], _Node[T]]:
+    def _GetNodeAsInterface(self, node: _Node[T]) -> IDoublyLinkedNodeBase[IWeakReference[T], _Node[T]]:
         return node
     
     def _GetPreviousNode(self, node: _Node[T]) -> _Node[T]|None:
@@ -120,26 +120,26 @@ class _List[T: IDisposableBase](ListBase[WeakReference[T], "_Node[T]", IDoublyLi
     def _UnregisterNode(self, node: _Node[T]) -> None:
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
     
-    def AsReadOnly(self) -> IReadOnlyList[WeakReference[T]]:
+    def AsReadOnly(self) -> IReadOnlyList[IWeakReference[T]]:
         return self.__readOnly.GetValue()
 
 @final
-class _Node[T: IDisposableBase](DoublyLinkedNode[WeakReference[T], "_Node[T]", IReadWriteList[WeakReference[T]], _List[T]], ListNodeBase["_Node[T]"], IDoublyLinkedNode[WeakReference[T]], IGenericConstraintImplementation[IReadWriteList[WeakReference[T]]]):
-    def __init__(self, value: WeakReference[T], l: _List[T]|None, itemCookie: IListCookie[_Node[T]], cookie: INodeCookie[_Node[T]], previousNode: Self|None, nextNode: Self|None) -> None: super().__init__(value, l, itemCookie, cookie, previousNode, nextNode)
+class _Node[T: IDisposableBase](DoublyLinkedNode[IWeakReference[T], "_Node[T]", IReadWriteList[IWeakReference[T]], _List[T]], ListNodeBase["_Node[T]"], IDoublyLinkedNode[IWeakReference[T]], IGenericConstraintImplementation[IReadWriteList[IWeakReference[T]]]):
+    def __init__(self, value: IWeakReference[T], l: _List[T]|None, itemCookie: IListCookie[_Node[T]], cookie: INodeCookie[_Node[T]], previousNode: Self|None, nextNode: Self|None) -> None: super().__init__(value, l, itemCookie, cookie, previousNode, nextNode)
     
     def _AsLinkedNode(self, node: _Node[T]) -> _Node[T]:
         return node
     
-    def _GetListAsClass(self, l: _List[T]) -> IReadWriteList[WeakReference[T]]:
+    def _GetListAsClass(self, l: _List[T]) -> IReadWriteList[IWeakReference[T]]:
         return l
     
     def _AsNode(self) -> _Node[T]:
         return self
     
-    def _CreateNode(self, value: WeakReference[T], previous: Self|None, next: Self|None) -> _Node[T]:
+    def _CreateNode(self, value: IWeakReference[T], previous: Self|None, next: Self|None) -> _Node[T]:
         return _Node[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
     
-    def GetList(self) -> IReadWriteList[WeakReference[T]]|None: return self._GetList()
+    def GetList(self) -> IReadWriteList[IWeakReference[T]]|None: return self._GetList()
 
 class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn]):
     def __init__(self) -> None:
@@ -147,7 +147,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         
         super().__init__()
 
-        self.__items: IReadWriteList[WeakReference[TOut]] = _List[TOut]()
+        self.__items: IReadWriteList[IWeakReference[TOut]] = _List[TOut]()
 
         self.__push: ConverterDelegate[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
@@ -183,7 +183,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     
     @final
     def __Clear(self) -> None:
-        cookie: WeakReference[TOut]|None = None
+        cookie: IWeakReference[TOut]|None = None
 
         while (cookie := self.__items.TryRemoveFirst().TryGetValue()) is not None:
             cookie.Invalidate()

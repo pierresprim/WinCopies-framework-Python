@@ -659,24 +659,32 @@ class IWeakReferenceRegister[T: IDisposableBase](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetCookie(self) -> WeakReference[T]:
+    def GetCookie(self) -> _WeakReference[T]:
         ...
     
     @abstractmethod
     def RegisterNode(self, node: IRemovable) -> None:
         ...
 
+class IWeakReference[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def TryGetValue(self) -> T|None: ...
+    
+    @abstractmethod
+    def Invalidate(self) -> None: ...
 @final
-class WeakReference[T: IDisposableBase](Abstract):
+class _WeakReference[T: IDisposableBase](Abstract, IWeakReference[T]):
     @final
     class _Register[_T: IDisposableBase](Abstract, IWeakReferenceRegister[_T]):
-        def __init__(self, obj: _T, cookie: WeakReference[_T]) -> None:
+        def __init__(self, obj: _T, cookie: _WeakReference[_T]) -> None:
             super().__init__()
 
             self.__obj: _T = obj
-            self.__weakReference: WeakReference[_T] = cookie
+            self.__weakReference: _WeakReference[_T] = cookie
         
-        def GetCookie(self) -> WeakReference[_T]: return self.__weakReference
+        def GetCookie(self) -> _WeakReference[_T]: return self.__weakReference
         
         def RegisterNode(self, node: IRemovable) -> None: self.__weakReference._RegisterNode(self.__obj, node)
     
@@ -700,7 +708,7 @@ class WeakReference[T: IDisposableBase](Abstract):
 
     @staticmethod
     def _CreateRegister(obj: T) -> IWeakReferenceRegister[T]:
-        return WeakReference._Register[T](obj, WeakReference[T]())
+        return _WeakReference._Register[T](obj, _WeakReference[T]())
 
 def CreateWeakReferenceRegister[T: IDisposableBase](obj: T) -> IWeakReferenceRegister[T]:
-    return WeakReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]
+    return _WeakReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]
