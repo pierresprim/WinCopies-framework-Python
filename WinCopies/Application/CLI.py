@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import sys
 
 from abc import abstractmethod
 from argparse import ArgumentParser as ArgumentParserBase, Namespace, RawDescriptionHelpFormatter
 from enum import Enum
-from typing import final, cast, Callable
+from typing import final, cast, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Application import IDescription, Description
@@ -12,7 +14,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Linked.Singly import IReadOnlyEnumerableList, IEnumerableList, CreateEnumerableQueue
 from WinCopies.Collections.Util import MakeSequence
 from WinCopies.Typing.Delegate import Converter
-from WinCopies.Typing.Object import PrimitiveType
+from WinCopies.Typing.Object import PrimitiveType, PrimitiveValue
 
 class IParameterDescription(IDescription):
     def __init__(self) -> None: super().__init__()
@@ -52,6 +54,35 @@ class KeyedParameterDescription(ParameterDescriptionBase):
 
     @final
     def HasKey(self) -> bool: return True
+
+class StoredParameterDescriptionBase[T: PrimitiveValue](ParameterDescriptionAbstract):
+    def __init__(self, description: IDescription, action: IOptionalAction[T]) -> None:
+        super().__init__(description)
+
+        self.__action: IOptionalAction[T] = action
+
+    @final
+    def GetAction(self) -> IOptionalAction[T]:
+        return self.__action
+    
+    @final
+    def GetType(self) -> PrimitiveType: return PrimitiveType.TryMapFromType(self.GetAction().GetArgumentType())
+
+class StoredParameterDescription[T: PrimitiveValue](StoredParameterDescriptionBase[T]):
+    def __init__(self, description: IDescription, action: IOptionalAction[T]) -> None: super().__init__(description, action)
+
+    @final
+    def HasKey(self) -> bool: return False
+class KeyedStoredParameterDescription[T: PrimitiveValue](StoredParameterDescriptionBase[T]):
+    def __init__(self, description: IDescription, action: IOptionalAction[T]) -> None: super().__init__(description, action)
+
+    @final
+    def HasKey(self) -> bool: return True
+
+def CreateOptionalParameterDescription[T: PrimitiveValue](description: IDescription, default: T, keyed: bool = False) -> StoredParameterDescriptionBase[T]:
+    return (KeyedStoredParameterDescription[T] if keyed else StoredParameterDescription[T])(description, OptionalAction[T](default))
+def CreateOptionalParameter[T: PrimitiveValue](description: IDescription, default: T, keyed: bool = False) -> OptionalParameter[T]:
+    return OptionalParameter[T](CreateOptionalParameterDescription(description, default, keyed))
 
 class Flag(ParameterDescriptionAbstract):
     def __init__(self, description: IDescription) -> None: super().__init__(description)
@@ -137,14 +168,42 @@ class IStoreAction(IAction):
     def GetActionKind(self) -> ActionKind: return ActionKind.Store
 
     @abstractmethod
-    def GetArgumentCount(self) -> int: ...
+    def IsRequired(self) -> bool: ...
 
-class _DefaultStoreAction(Action, IStoreAction):
+    @abstractmethod
+    def GetArgumentCount(self) -> int: ...
+class IOptionalAction[T: PrimitiveValue](IStoreAction):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsRequired(self) -> bool: return False
+    
+    @final
+    def GetArgumentCount(self) -> int: return 1
+
+    @abstractmethod
+    def GetDefaultArgument(self) -> T: ...
+    @abstractmethod
+    def GetArgumentType(self) -> Type[T]: ...
+
+class _StoreAction(Action, IStoreAction):
     def __init__(self) -> None: super().__init__()
     
     @final
     def GetArgumentCount(self) -> int: return 1
-class StoreAction(Action, IStoreAction):
+
+@final
+class _DefaultStoreAction(_StoreAction):
+    def __init__(self) -> None: super().__init__()
+
+    def IsRequired(self) -> bool: return False
+@final
+class _DefaultRequiredAction(_StoreAction):
+    def __init__(self) -> None: super().__init__()
+
+    def IsRequired(self) -> bool: return True
+
+class StoreActionBase(Action, IStoreAction):
     def __init__(self, count: int) -> None:
         if count < 1: raise ValueError()
 
@@ -155,9 +214,32 @@ class StoreAction(Action, IStoreAction):
     @final
     def GetArgumentCount(self) -> int: return self.__count
 
+class StoreAction(StoreActionBase):
+    def __init__(self, count: int) -> None: super().__init__(count)
+
+    @final
+    def IsRequired(self) -> bool: return False
+class RequiredAction(StoreActionBase):
+    def __init__(self, count: int) -> None: super().__init__(count)
+
+    @final
+    def IsRequired(self) -> bool: return True
+class OptionalAction[T: PrimitiveValue](Action, IOptionalAction[T]):
+    def __init__(self, default: T) -> None:
+        super().__init__()
+
+        self.__default: T = default
+
+    @final
+    def GetDefaultArgument(self) -> T: return self.__default
+    @final
+    def GetArgumentType(self) -> Type[T]: return type(self.GetDefaultArgument())
+
 __storeAction: IAction = _DefaultStoreAction()
+__requiredAction: IAction = _DefaultRequiredAction()
 
 def GetDefaultStoreAction() -> IAction: return __storeAction
+def GetDefaultRequiredAction() -> IAction: return __requiredAction
 
 class IParameter(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -195,6 +277,20 @@ class NonRequiredParameter(Parameter):
 
     @final
     def GetKind(self) -> ParameterKind: return ParameterKind.Optional
+class OptionalParameter[T: PrimitiveValue](Abstract, IParameter):
+    def __init__(self, description: StoredParameterDescriptionBase[T]) -> None:
+        super().__init__()
+
+        self.__description: StoredParameterDescriptionBase[T] = description
+
+    @final
+    def GetKind(self) -> ParameterKind: return ParameterKind.Optional
+
+    @final
+    def GetDescription(self) -> IParameterDescription: return self.__description
+
+    @final
+    def GetAction(self) -> IAction: return self.__description.GetAction()
 
 class ICommand(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -207,6 +303,9 @@ class ICommand(IInterface):
     
     @abstractmethod
     def AddNonRequired(self, description: IParameterDescription, action: IStoreAction|None = None) -> None: ...
+    @abstractmethod
+    def AddOptional(self, description: IDescription, default: PrimitiveValue, keyed: bool = False) -> None: ...
+
     @abstractmethod
     def AddFlag(self, description: Flag, value: bool) -> None: ...
 class ISubcommand(ICommand):
@@ -244,6 +343,10 @@ class Command(Abstract, ICommand):
     def AddNonRequired(self, description: IParameterDescription, action: IStoreAction|None = None) -> None:
         self.__Push(description, GetDefaultStoreAction() if action is None else action)
     @final
+    def AddOptional(self, description: IDescription, default: PrimitiveValue, keyed: bool = False) -> None:
+        self.__PushParameter(CreateOptionalParameter(description, default, keyed))
+    
+    @final
     def AddFlag(self, description: IDescription, value: bool) -> None:
         self.__Push(Flag(description), GetAction(value))
 class Subcommand(Command, ISubcommand):
@@ -272,16 +375,23 @@ def _AddCommand(parser: ArgumentParserBase, command: ICommand) -> None:
             def getName() -> str: return _getName("--", name)
 
             return ((_getName('-', name[0]), getName()) if hasKey else MakeSequence(getName())) if optional else MakeSequence(name)
-        def getAction(action: IAction, type: PrimitiveType) -> Callable[[ReadOnlyArray[str], str], None]:
+        def getAction(action: IAction, t: PrimitiveType) -> Callable[[ReadOnlyArray[str], str], None]:
             def getAction[T](action: Callable[[ReadOnlyArray[str], str], T]) -> Callable[[ReadOnlyArray[str], str], None]:
-                def callAction(nameOrFlags: ReadOnlyArray[str], help: str) -> None:
-                    action(nameOrFlags, help)
+                def callAction(nameOrFlags: ReadOnlyArray[str], help: str) -> None: action(nameOrFlags, help)
                 
                 return callAction
 
             match action.GetActionKind():
                 case ActionKind.Flag: return getAction(lambda nameOrFlags, help: parser.add_argument(*nameOrFlags, action=f"store_{"true" if cast(IFlagAction, action).GetValue() else "false"}", help=help))
-                case ActionKind.Store: return getAction(lambda nameOrFlags, help: parser.add_argument(*nameOrFlags, action="store", type=type.Map(), nargs=cast(IStoreAction, action).GetArgumentCount(), help=help))
+                case ActionKind.Store:
+                    def addArgument(nameOrFlags: ReadOnlyArray[str], actionName: str, action: IStoreAction, t: type, help: str) -> None:
+                        if isinstance(action, IOptionalAction):
+                            parser.add_argument(*nameOrFlags, action=actionName, type=t, default=action.GetDefaultArgument(), nargs=1, help=help)
+
+                        else:
+                            parser.add_argument(*nameOrFlags, action=actionName, type=t, nargs=action.GetArgumentCount(), required=action.IsRequired(), help=help)
+                    
+                    return lambda nameOrFlags, help: addArgument(nameOrFlags, "store", cast(IStoreAction, action), t.Map(), help)
 
                 case _:
                     raise ValueError()
