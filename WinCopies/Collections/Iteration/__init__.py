@@ -40,9 +40,19 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
 def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
-def ConcatenateItems[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[T]:
-    return Concatenate(Select(collection, TryAsIterable))
-def ConcatenateEnumerables[T](*collection: IEnumerable[T]|None) -> Generator[T]:
+def TryAsIterables[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[Iterable[T]|None]:
+    return Select(collection, TryAsIterable)
+def AsIterables[T](collection: Iterable[IEnumerable[T]]|None) -> Generator[Iterable[T]]:
+    return Select(collection, lambda collection: collection.AsIterable())
+
+def TryConcatenateItems[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[T]:
+    return Concatenate(TryAsIterables(collection))
+def ConcatenateItems[T](collection: Iterable[IEnumerable[T]]|None) -> Generator[T]:
+    return Concatenate(AsIterables(collection))
+
+def TryConcatenateEnumerables[T](*collection: IEnumerable[T]|None) -> Generator[T]:
+    return TryConcatenateItems(collection)
+def ConcatenateEnumerables[T](*collection: IEnumerable[T]) -> Generator[T]:
     return ConcatenateItems(collection)
 
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
