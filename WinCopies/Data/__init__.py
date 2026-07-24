@@ -10,9 +10,8 @@ from WinCopies.Collections.Extensions import IReadOnlySet
 from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import ErrorBase, InvalidOperationError
-from WinCopies.Typing.Comparison import IHashable
+from WinCopies.Typing.Comparison import IHashable, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Selector
-from WinCopies.Typing.Object import IValueItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater
@@ -190,7 +189,7 @@ class IOperandValue(IInterface):
 class IOperand[T](IOperandValue, IOperandItem[T]):
     def __init__(self) -> None: super().__init__()
 
-class ISetOperand[T: IValueItem](IOperand[IReadOnlySet[T]]):
+class ISetOperand[T: HashableProtocol](IOperand[IReadOnlySet[T]]):
     def __init__(self) -> None: super().__init__()
 
 class IColumnOperand(IOperand[IColumn]):
@@ -254,7 +253,7 @@ class Operand[T](_Operand[T]):
     @final
     def Format(self, builder: IQueryBuilder) -> str: return builder.GetParameter(self.GetKey())
 
-class SetOperand[T: IValueItem](_OperandBase[IReadOnlySet[T]], ISetOperand[T]):
+class SetOperand[T: HashableProtocol](_OperandBase[IReadOnlySet[T]], ISetOperand[T]):
     def __init__(self, value: IReadOnlySet[T]) -> None: super().__init__(value)
     
     @final
@@ -264,7 +263,7 @@ class SetOperand[T: IValueItem](_OperandBase[IReadOnlySet[T]], ISetOperand[T]):
     def Format(self, builder: IQueryBuilder) -> str:
         action: Method[T]|None = None
 
-        def _process(arg: T) -> None: builder.GetParameter(arg.GetUnderlyingValue())
+        def _process(arg: T) -> None: builder.GetParameter(arg)
         
         def process(arg: T) -> None:
             def process(arg: T) -> None:

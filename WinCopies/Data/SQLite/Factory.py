@@ -13,7 +13,6 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Enum import HasFlag
 from WinCopies.String import CommaJoin
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 from WinCopies.Typing.Reflection import EnsureDirectPackageCall, EnsureCallerPackage
 
@@ -152,13 +151,13 @@ class IndexFactory(Abstract, IIndexFactory):
         
         @final
         def _GetStringColumns(self) -> str:
-            return f"({CommaJoin(Select(self.GetColumns().AsIterable(), lambda columnName: self._FormatTableName(columnName.ToString())))})"
+            return f"({CommaJoin(Select(self.GetColumns().AsIterable(), lambda columnName: self._FormatTableName(columnName)))})"
         
         def ToString(self) -> str:
             return f"{self._GetHeader()} {self._GetStringColumns()}"
     @final
     class __UnicityIndex(UnicityIndex, _MultiColumnIndex):
-        def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
+        def __init__(self, name: str, columns: IHashableTuple[str]|Iterable[str], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -175,7 +174,7 @@ class IndexFactory(Abstract, IIndexFactory):
             return f"{self.GetKeyType().name.upper()} {IndexType.Key.name.upper()}"
     @final
     class __PrimaryKey(PrimaryKey, _MultiColumnIndex, _Key):
-        def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString], connection: IConnection) -> None:
+        def __init__(self, name: str, columns: IHashableTuple[str]|Iterable[str], connection: IConnection) -> None:
             super().__init__(name, columns)
 
             self.__connection: IConnection = connection
@@ -208,10 +207,10 @@ class IndexFactory(Abstract, IIndexFactory):
         return self.__connection
     
     @final
-    def GetPrimaryKey(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnKey: return IndexFactory.__PrimaryKey(name, columns, self._GetConnection())
+    def GetPrimaryKey(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> IMultiColumnKey: return IndexFactory.__PrimaryKey(name, columns, self._GetConnection())
     @final
     def GetForeignKey(self, name: str, column: str, foreignKey: DualResult[str, str]) -> IForeignKey: return IndexFactory.__ForeignKey(name, column, foreignKey, self._GetConnection())
     @final
     def GetNormalIndex(self, name: str, column: str) -> ISingleColumnIndex: raise InvalidOperationError("Not supported.")
     @final
-    def GetUnicityIndex(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex: return IndexFactory.__UnicityIndex(name, columns, self._GetConnection())
+    def GetUnicityIndex(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> IMultiColumnIndex: return IndexFactory.__UnicityIndex(name, columns, self._GetConnection())

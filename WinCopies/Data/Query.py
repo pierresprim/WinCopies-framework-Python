@@ -22,8 +22,8 @@ from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList,
 from WinCopies.Enum import HasFlag
 
 from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Converter
-from WinCopies.Typing.Object import IValueItem, IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, DualValueBool
 
 
@@ -198,7 +198,7 @@ class ISelectionQuery(ISelectionQueryBase, INullableQuery[ISelectionQueryExecuti
     def GetJoins(self) -> ICollection[IJoin]:
         ...
     @abstractmethod
-    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]:
+    def GetCases(self) -> ICollection[IBranchSet[HashableProtocol]]:
         ...
     @abstractmethod
     def GetOrdering(self) -> IDictionary[IColumn, Ordering]:
@@ -229,13 +229,13 @@ class IInsertionQueryBase[T](IWriteQueryBase):
     def GetItems(self) -> T:
         ...
 
-class IInsertionQuery(IInsertionQueryBase[IDictionary[IString, object]]):
+class IInsertionQuery(IInsertionQueryBase[IDictionary[str, object]]):
     def __init__(self) -> None: super().__init__()
 class IMultiInsertionQuery(IInsertionQueryBase[Iterable[Iterable[object]]]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetColumns(self) -> ICountableEnumerable[IString]:
+    def GetColumns(self) -> ICountableEnumerable[str]:
         ...
 
 class IWriteQuery(IWriteQueryAbstract[IQueryExecutionResult], IConditionalQuery):
@@ -245,14 +245,14 @@ class IUpdateQuery(IWriteQueryBase, IConditionalQuery):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetValues(self) -> IDictionary[IString, object]:
+    def GetValues(self) -> IDictionary[str, object]:
         ...
 
 class SelectionQueryBase(Abstract, ISelectionQueryBase):
     def __init__(self, tables: ITableParameterSet|str, conditions: IConditionParameterSet|None, subqueries: IEnumerable[ISubselectionQuery]|None = None) -> None:
         super().__init__()
     
-        self.__tables: ITableParameterSet = tables if isinstance(tables, ITableParameterSet) else TableParameterSet.CreateFromNames(String(tables))
+        self.__tables: ITableParameterSet = tables if isinstance(tables, ITableParameterSet) else TableParameterSet.CreateFromNames(tables)
         self.__conditions: IConditionParameterSet|None = conditions
         self.__subqueries: IEnumerable[ISubselectionQuery]|None = subqueries
     
@@ -325,7 +325,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     def __init__(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None) -> None:
         super().__init__(tables, conditions)
 
-        self.__cases: ICollection[IBranchSet[IValueItem]] = List[IBranchSet[IValueItem]]()
+        self.__cases: ICollection[IBranchSet[HashableProtocol]] = List[IBranchSet[HashableProtocol]]()
         self.__joins: ICollection[IJoin] = List[IJoin]()
         self.__ordering: IDictionary[IColumn, Ordering] = Dictionary[IColumn, Ordering]()
         self.__columns: IColumnParameterSet[IFormattable] = columns
@@ -336,7 +336,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
     @final
     def GetJoins(self) -> ICollection[IJoin]: return self.__joins
     @final
-    def GetCases(self) -> ICollection[IBranchSet[IValueItem]]: return self.__cases
+    def GetCases(self) -> ICollection[IBranchSet[HashableProtocol]]: return self.__cases
     @final
     def GetOrdering(self) -> IDictionary[IColumn, Ordering]: return self.__ordering
     
@@ -353,7 +353,7 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             The concatenated SQL formatted tables and routine calls with their alias.
             """
             
-            return queryBuilder.Join(queryBuilder.AddTable(table.GetKey().ToString(), table.GetValue()) for table in query.GetTables().AsIterable())
+            return queryBuilder.Join(queryBuilder.AddTable(table.GetKey(), table.GetValue()) for table in query.GetTables().AsIterable())
         
         def initQuery() -> bool:
             """
@@ -453,8 +453,8 @@ class InsertionQueryBase[T](WriteQueryBase, IInsertionQueryBase[T], InsertionQue
     @final
     def IgnoreExisting(self) -> bool: return self.__ignoreExisting
 
-class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertionQuery):
-    def __init__(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None: super().__init__(tableName, items, ignoreExisting)
+class InsertionQuery(InsertionQueryBase[IDictionary[str, object]], IInsertionQuery):
+    def __init__(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> None: super().__init__(tableName, items, ignoreExisting)
     
     @staticmethod
     def __GetStatement(onExisting: str) -> str:
@@ -476,8 +476,8 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
 
             columns: IList[str] = Queue[str]()
 
-            def addValue(item: IKeyValuePair[IString, object]) -> str:
-                columns.Push(self.FormatTableName(item.GetKey().ToString()))
+            def addValue(item: IKeyValuePair[str, object]) -> str:
+                columns.Push(self.FormatTableName(item.GetKey()))
                 args.Push(item.GetValue())
 
                 return '?'
@@ -490,20 +490,20 @@ class InsertionQuery(InsertionQueryBase[IDictionary[IString, object]], IInsertio
         
         return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.IgnoreExisting())} {self.GetFormattedTableName()} ({result.GetKey()}) VALUES ({result.GetValue()})", CreateCountableEnumerable(args))
 class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMultiInsertionQuery):
-    def __init__(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
+    def __init__(self, tableName: str, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, items, ignoreExisting)
 
-        self.__columns: ICountableEnumerable[IString] = columns
+        self.__columns: ICountableEnumerable[str] = columns
     
     @final
-    def GetColumns(self) -> ICountableEnumerable[IString]: return self.__columns
+    def GetColumns(self) -> ICountableEnumerable[str]: return self.__columns
     
     @final
     def _GetQueryOverride(self) -> QueryResult:
         def join(values: Iterable[str]) -> str: return ", ".join(values)
         
         globalArgs: ICountableEnumerableList[object] = CountableEnumerableQueue[object]()
-        columns: ICountableEnumerable[IString] = self.GetColumns()
+        columns: ICountableEnumerable[str] = self.GetColumns()
 
         def getArguments(values: Iterable[object]) -> str:
             def getResult() -> str|None:
@@ -530,7 +530,7 @@ class MultiInsertionQuery(InsertionQueryBase[Iterable[Iterable[object]]], IMulti
             
             return result
         
-        return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.IgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column.ToString())))}) VALUES {join(Select(self.GetItems(), getArguments))}", CreateCountableEnumerable(globalArgs))
+        return DualResult[str, ICountableEnumerable[object]|None](f"{self._GetStatement(self.IgnoreExisting())} {self.GetFormattedTableName()} ({join(Select(columns.AsIterable(), lambda column: self.FormatTableName(column)))}) VALUES {join(Select(self.GetItems(), getArguments))}", CreateCountableEnumerable(globalArgs))
 
 class _IWriteQuery[T: IQueryExecutionResult](IWriteQueryAbstract[T], IQueryBase[QueryResult], _IQuery[QueryResult], IConditionalQuery):
     def __init__(self) -> None: super().__init__()
@@ -567,10 +567,10 @@ class _IWriteQuery[T: IQueryExecutionResult](IWriteQueryAbstract[T], IQueryBase[
         raise MemoryError()
 
 class UpdateQuery(WriteQueryBase, IUpdateQuery, _IWriteQuery[IInsertionQueryExecutionResult]):
-    def __init__(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> None:
+    def __init__(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet) -> None:
         super().__init__(tableName)
 
-        self.__values: IDictionary[IString, object] = values
+        self.__values: IDictionary[str, object] = values
         self.__conditions: IConditionParameterSet = conditions
     
     @final
@@ -578,17 +578,17 @@ class UpdateQuery(WriteQueryBase, IUpdateQuery, _IWriteQuery[IInsertionQueryExec
     
     @final
     def _GetValues(self, queryBuilder: IConditionalQueryBuilder) -> str|None:
-        def addValue(item: IKeyValuePair[IString, object]) -> str:
+        def addValue(item: IKeyValuePair[str, object]) -> str:
             queryBuilder.GetParameter(item.GetValue())
 
-            return self.FormatTableName(item.GetKey().ToString()) + " = ?"
+            return self.FormatTableName(item.GetKey()) + " = ?"
         
         assignments: str = ", ".join(Select(self.GetValues().AsIterable(), addValue))
 
         return f"SET {assignments}"
     
     @final
-    def GetValues(self) -> IDictionary[IString, object]: return self.__values
+    def GetValues(self) -> IDictionary[str, object]: return self.__values
     
     @final
     def GetConditions(self) -> IConditionParameterSet: return self.__conditions

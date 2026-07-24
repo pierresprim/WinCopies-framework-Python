@@ -18,7 +18,6 @@ from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
 from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Delegate import Function, Method
-from WinCopies.Typing.Object import IString, String
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 from ijson import parse
@@ -110,7 +109,7 @@ class IDictionaryNode(INode):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None:
         ...
 
 class _BufferBase(Abstract):
@@ -132,11 +131,11 @@ class _ArrayBufferBase(_Buffer[ITuple[DualResult[object, ValueType]]]):
     @abstractmethod
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None:
         ...
-class _DictionaryBufferBase(_Buffer[IReadOnlyDictionary[IString, DualResult[object, ValueType]]]):
+class _DictionaryBufferBase(_Buffer[IReadOnlyDictionary[str, DualResult[object, ValueType]]]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None:
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None:
         ...
 
 @final
@@ -154,16 +153,16 @@ class _DictionaryBuffer(_DictionaryBufferBase):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None = None
+        self.__items: IReadOnlyDictionary[str, DualResult[object, ValueType]]|None = None
     
-    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None: self.__items = items
+    def Initialize(self, items: IReadOnlyDictionary[str, DualResult[object, ValueType]]) -> None: self.__items = items
     
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None:
-        items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None = self.TryGetItems()
+        items: IReadOnlyDictionary[str, DualResult[object, ValueType]]|None = self.TryGetItems()
 
         return None if items is None else items.GetValues()
     
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self.__items
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None: return self.__items
 
 @final
 class _NullArrayBuffer(_ArrayBufferBase):
@@ -176,11 +175,11 @@ class _NullArrayBuffer(_ArrayBufferBase):
 class _NullDictionaryBuffer(_DictionaryBufferBase):
     def __init__(self) -> None: super().__init__()
     
-    def Initialize(self, items: IReadOnlyDictionary[IString, DualResult[object, ValueType]]) -> None: raise GetDisposedError()
+    def Initialize(self, items: IReadOnlyDictionary[str, DualResult[object, ValueType]]) -> None: raise GetDisposedError()
     
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return None
     
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return None
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None: return None
 
 _arrayBuffer: _ArrayBufferBase = _NullArrayBuffer()
 _dictionaryBuffer: _DictionaryBufferBase = _NullDictionaryBuffer()
@@ -232,14 +231,14 @@ class _Dictionary(_Handler[_DictionaryBuffer]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__items: IDictionary[IString, DualResult[object, ValueType]] = Dictionary[IString, DualResult[object, ValueType]]()
+        self.__items: IDictionary[str, DualResult[object, ValueType]] = Dictionary[str, DualResult[object, ValueType]]()
     
     @final
     def _CreateBuffer(self) -> _DictionaryBuffer:
         return _DictionaryBuffer()
     
     @final
-    def Append(self, key: str, value: DualResult[object, ValueType]) -> None: self.__items.Add(String(key), value)
+    def Append(self, key: str, value: DualResult[object, ValueType]) -> None: self.__items.Add(key, value)
     
     @final
     def Flush(self) -> None: self._GetBuffer().Initialize(self.__items.AsReadOnly())
@@ -313,7 +312,7 @@ class _Root(_RootBase[_DictionaryBufferBase], IDictionaryNode):
     @final
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     @final
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
     
     @final
     def _GetDefaultBuffer(self) -> _DictionaryBufferBase:
@@ -352,7 +351,7 @@ class _Node(_NodeBase[_DictionaryBufferBase], IDictionaryNode):
     @final
     def TryGetValues(self) -> ICountableEnumerable[DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetValues()
     @final
-    def TryGetItems(self) -> IReadOnlyDictionary[IString, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
+    def TryGetItems(self) -> IReadOnlyDictionary[str, DualResult[object, ValueType]]|None: return self._GetBuffer().TryGetItems()
     
     @final
     def _GetDefaultBuffer(self) -> _DictionaryBufferBase:

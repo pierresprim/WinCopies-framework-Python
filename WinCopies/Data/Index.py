@@ -13,7 +13,6 @@ from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Typing.Comparison import IHashable
-from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import DualResult
 
 class IndexType(Enum):
@@ -55,7 +54,7 @@ class IMultiColumnIndex(IIndex):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetColumns(self) -> IHashableTuple[IString]:
+    def GetColumns(self) -> IHashableTuple[str]:
         ...
 
 class IKey(IIndex):
@@ -98,13 +97,13 @@ class SingleColumnIndex(Index, ISingleColumnIndex):
     @final
     def GetColumn(self) -> str: return self.__columns
 class MultiColumnIndex(Index, IMultiColumnIndex):
-    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None:
+    def __init__(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> None:
         super().__init__(name)
 
-        self.__columns: IHashableTuple[IString] = columns if isinstance(columns, IHashableTuple) else CreateHashableTuple(columns)
+        self.__columns: IHashableTuple[str] = columns if isinstance(columns, IHashableTuple) else CreateHashableTuple(columns)
     
     @final
-    def GetColumns(self) -> IHashableTuple[IString]: return self.__columns
+    def GetColumns(self) -> IHashableTuple[str]: return self.__columns
 
 class NormalIndex(SingleColumnIndex):
     def __init__(self, name: str, column: str) -> None: super().__init__(name, column)
@@ -112,13 +111,13 @@ class NormalIndex(SingleColumnIndex):
     @final
     def GetType(self) -> IndexType: return IndexType.Normal
 class UnicityIndex(MultiColumnIndex):
-    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None: super().__init__(name, columns)
+    def __init__(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> None: super().__init__(name, columns)
     
     @final
     def GetType(self) -> IndexType: return IndexType.Unique
 
 class PrimaryKey(MultiColumnIndex, IMultiColumnKey):
-    def __init__(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> None: super().__init__(name, columns)
+    def __init__(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> None: super().__init__(name, columns)
     
     @final
     def GetKeyType(self) -> KeyType: return KeyType.Primary
@@ -193,7 +192,7 @@ class _Indices(Abstract):
 
             self.__index: IMultiColumnIndex = index
         
-        def GetColumns(self) -> IHashableEnumerable[IString]: return self.__index.GetColumns()
+        def GetColumns(self) -> IHashableEnumerable[str]: return self.__index.GetColumns()
         
         def Equals(self, item: IMultiColumnIndex|object) -> bool: return isinstance(item, IMultiColumnIndex) and self.GetColumns().Equals(item.GetColumns())
         def Hash(self) -> int: return self.GetColumns().Hash()

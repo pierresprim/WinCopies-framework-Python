@@ -24,8 +24,8 @@ from WinCopies.Delegates import Self
 from WinCopies.String import StringifyIfNone
 
 from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Method, Selector, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Object import IValueProvider, IValueItem, IBoolean, IString, GetFalseObject
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 
@@ -39,7 +39,7 @@ from WinCopies.Data.Set import IFieldParameterSetItem, IFieldConditionSetItemAli
 class IConditionParameterSet(IParameterSetBase[IConditionalQueryWriter]):
     def __init__(self) -> None: super().__init__()
 
-class IBranchSet[T: IValueProvider](IParameterSetBase[ISelectionQueryWriter]):
+class IBranchSet[T: HashableProtocol](IParameterSetBase[ISelectionQueryWriter]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -50,7 +50,7 @@ class IBranchSet[T: IValueProvider](IParameterSetBase[ISelectionQueryWriter]):
     def GetDefault(self) -> T:
         ...
 
-class ICaseSet[TKey: IValueItem, TValue](IBranchSet[TKey]):
+class ICaseSet[TKey: HashableProtocol, TValue](IBranchSet[TKey]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -114,18 +114,18 @@ class ExistenceQuery(IExistenceQuery):
     @final
     def SetConditions(self, conditions: IConditionParameterSet|None) -> None: self.__conditions = conditions
 
-class IExistenceSet(IBranchSet[IBoolean]):
+class IExistenceSet(IBranchSet[bool]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetQuery(self) -> IExistenceQuery:
         ...
 
-class IMatchSet[T: IValueItem](ICaseSet[T, T]):
+class IMatchSet[T: HashableProtocol](ICaseSet[T, T]):
     def __init__(self) -> None: super().__init__()
-class IConditionSet[TKey: IValueItem, TValue](ICaseSet[TKey, IParameter[IOperand[TValue]]]):
+class IConditionSet[TKey: HashableProtocol, TValue](ICaseSet[TKey, IParameter[IOperand[TValue]]]):
     def __init__(self) -> None: super().__init__()
-class IIfSet[T: IValueItem](ICaseSet[T, IConditionParameterSet]):
+class IIfSet[T: HashableProtocol](ICaseSet[T, IConditionParameterSet]):
     def __init__(self) -> None: super().__init__()
 
 class ParameterSet[T](Dictionary[IColumn, T], IParameterSet[T]):
@@ -269,14 +269,14 @@ def MakeFieldParameterConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, I
 def MakeFieldParameterDisjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IFieldConditionSet[T]|None:
     return CreateFieldParameterDisjunctionSet(conditions)
 
-class TableParameterSet(Dictionary[IString, ITableParameter[object]|None], ITableParameterSet):
-    def __init__(self, dictionary: dict[IString, ITableParameter[object]|None]|None = None) -> None: super().__init__(dictionary)
+class TableParameterSet(Dictionary[str, ITableParameter[object]|None], ITableParameterSet):
+    def __init__(self, dictionary: dict[str, ITableParameter[object]|None]|None = None) -> None: super().__init__(dictionary)
     
     @staticmethod
-    def Create(tableNames: Iterable[IString]) -> ITableParameterSet:
-        return TableParameterSet(dict[IString, None].fromkeys(tableNames))
+    def Create(tableNames: Iterable[str]) -> ITableParameterSet:
+        return TableParameterSet(dict[str, None].fromkeys(tableNames))
     @staticmethod
-    def CreateFromNames(*tableNames: IString) -> ITableParameterSet:
+    def CreateFromNames(*tableNames: str) -> ITableParameterSet:
         return TableParameterSet.Create(tableNames)
 
 @final
@@ -336,7 +336,7 @@ def MakeConjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOpe
 def MakeDisjunctionSet[T: IColumn](*conditions: IKeyValuePair[T, IParameter[IOperandValue]|None]) -> IConditionParameterSet|None:
     return CreateDisjunctionSet(conditions)
 
-class BranchSetBase[T: IValueProvider](Abstract, IBranchSet[T]):
+class BranchSetBase[T: HashableProtocol](Abstract, IBranchSet[T]):
     def __init__(self, alias: str) -> None:
         super().__init__()
 
@@ -364,10 +364,10 @@ class BranchSetBase[T: IValueProvider](Abstract, IBranchSet[T]):
         
         self._WriteConditions(writer)
         
-        writer.Write(f" ELSE {writer.JoinParameters(MakeSequence(self.GetDefault().GetUnderlyingValue()))} END AS {writer.FormatTableName(self.GetAlias())}")
+        writer.Write(f" ELSE {writer.JoinParameters(MakeSequence(self.GetDefault()))} END AS {writer.FormatTableName(self.GetAlias())}")
 
         return True
-class BranchSet[T: IValueProvider](BranchSetBase[T]):
+class BranchSet[T: HashableProtocol](BranchSetBase[T]):
     def __init__(self, alias: str, defaultValue: T) -> None:
         super().__init__(alias)
 
@@ -376,7 +376,7 @@ class BranchSet[T: IValueProvider](BranchSetBase[T]):
     @final
     def GetDefault(self) -> T: return self.__defaultValue
 
-class ExistenceSet(BranchSetBase[IBoolean], IExistenceSet):
+class ExistenceSet(BranchSetBase[bool], IExistenceSet):
     def __init__(self, alias: str, query: IExistenceQuery) -> None:
         super().__init__(alias)
 
@@ -398,12 +398,12 @@ class ExistenceSet(BranchSetBase[IBoolean], IExistenceSet):
         writer.Write(") THEN 1")
     
     @final
-    def GetDefault(self) -> IBoolean: return GetFalseObject()
+    def GetDefault(self) -> bool: return False
     
     @final
     def GetQuery(self) -> IExistenceQuery: return self.__query
 
-class CaseSet[TKey: IValueItem, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
+class CaseSet[TKey: HashableProtocol, TValue](BranchSet[TKey], ICaseSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, conditions: IDictionary[TKey, TValue]|None = None) -> None:
         super().__init__(alias, defaultValue)
 
@@ -421,7 +421,7 @@ class CaseSet[TKey: IValueItem, TValue](BranchSet[TKey], ICaseSet[TKey, TValue])
 
             self._RenderValue(item.GetValue(), writer)
 
-            writer.Write(f" THEN {writer.JoinParameters(MakeSequence(item.GetKey().GetUnderlyingValue()))}")
+            writer.Write(f" THEN {writer.JoinParameters(MakeSequence(item.GetKey()))}")
 
         if not DoForEachItem(self.GetConditions().AsIterable(), render): raise ValueError("No condition given.")
     
@@ -431,7 +431,7 @@ class CaseSet[TKey: IValueItem, TValue](BranchSet[TKey], ICaseSet[TKey, TValue])
     @final
     def GetConditions(self) -> IDictionary[TKey, TValue]: return self.__conditions
 
-class MatchSet[T: IValueItem](CaseSet[T, T], IMatchSet[T]):
+class MatchSet[T: HashableProtocol](CaseSet[T, T], IMatchSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, T]|None = None) -> None: super().__init__(alias, defaultValue, column, dictionary)
     
     @final
@@ -442,14 +442,14 @@ class MatchSet[T: IValueItem](CaseSet[T, T], IMatchSet[T]):
     def _RenderValue(self, value: T, writer: ISelectionQueryWriter) -> None:
         writer.Write(writer.JoinParameters(MakeSequence(value)))
 
-class ConditionalSet[TKey: IValueItem, TValue](CaseSet[TKey, TValue]):
+class ConditionalSet[TKey: HashableProtocol, TValue](CaseSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, dictionary: IDictionary[TKey, TValue]|None = None) -> None: super().__init__(alias, defaultValue, column, dictionary)
     
     @final
     def _GetColumn(self) -> None:
         return None
 
-class ConditionSet[TKey: IValueItem, TValue](ConditionalSet[TKey, IParameter[IOperand[TValue]]], IConditionSet[TKey, TValue]):
+class ConditionSet[TKey: HashableProtocol, TValue](ConditionalSet[TKey, IParameter[IOperand[TValue]]], IConditionSet[TKey, TValue]):
     def __init__(self, alias: str, defaultValue: TKey, column: IColumn, dictionary: IDictionary[TKey, IParameter[IOperand[TValue]]]|None = None) -> None: super().__init__(alias, defaultValue, column, dictionary)
     
     @final
@@ -471,7 +471,7 @@ class ConditionSet[TKey: IValueItem, TValue](ConditionalSet[TKey, IParameter[IOp
             for argument in arguments: yield func(argument)
         
         writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinOperands(getArgument(value.AsIterable()))))
-class IfSet[T: IValueItem](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):
+class IfSet[T: HashableProtocol](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):
     def __init__(self, alias: str, defaultValue: T, column: IColumn, dictionary: IDictionary[T, IConditionParameterSet]|None = None) -> None: super().__init__(alias, defaultValue, column, dictionary)
     
     @final

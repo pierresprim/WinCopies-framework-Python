@@ -12,7 +12,6 @@ from WinCopies.Collections.Expression import ICompositeExpression
 from WinCopies.Collections.Extensions import IDictionary
 
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Pairing import IKeyValuePair, TryGetKey, TryGetValue
 
 
@@ -72,5 +71,5 @@ class IFieldParameterSet[TColumn: IColumn, TParameter: IParameter[IOperandValue]
 class IFieldConditionSet[T: IColumn](IFieldParameterSet[T, IParameter[IOperandValue]]):
     def __init__(self) -> None: super().__init__()
 
-class ITableParameterSet(IDictionary[IString, ITableParameter[object]|None]):
+class ITableParameterSet(IDictionary[str, ITableParameter[object]|None]):
     def __init__(self) -> None: super().__init__()

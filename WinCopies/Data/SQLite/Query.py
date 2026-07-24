@@ -12,7 +12,6 @@ from WinCopies.Collections import Enumeration
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Util import CreateList
-from WinCopies.Typing.Object import IString
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 
 from WinCopies.Data import QueryErrorKinds
@@ -119,7 +118,7 @@ class _InsertionQueryBase(_Query, InsertionQueryStatementProvider):
 
 @final
 class _InsertionQuery(InsertionQuery, _InsertionQueryBase):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> None:
+    def __init__(self, connection: sqlite3.Connection, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, items, ignoreExisting)
 
         self.__connection = connection
@@ -129,7 +128,7 @@ class _InsertionQuery(InsertionQuery, _InsertionQueryBase):
     def _Execute(self) -> IInsertionQueryExecutionResult: return _InsertionQueryExecutionResult(self.__connection, self.GetQuery())
 @final
 class _MultiInsertionQuery(MultiInsertionQuery, _InsertionQueryBase):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
+    def __init__(self, connection: sqlite3.Connection, tableName: str, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> None:
         super().__init__(tableName, columns, items, ignoreExisting)
 
         self.__connection = connection
@@ -140,7 +139,7 @@ class _MultiInsertionQuery(MultiInsertionQuery, _InsertionQueryBase):
 
 @final
 class _UpdateQuery(UpdateQuery, _Query):
-    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> None:
+    def __init__(self, connection: sqlite3.Connection, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet) -> None:
         super().__init__(tableName, values, conditions)
 
         self.__connection = connection
@@ -169,9 +168,9 @@ class Factory(QueryFactoryBase):
     
     def GetSelectionQuery(self, tables: ITableParameterSet|str, columns: IColumnParameterSet[IFormattable], conditions: IConditionParameterSet|None = None) -> ISelectionQuery: return _SelectionQuery(self.__connection, tables, columns, conditions)
     
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery: return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
-    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery: return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery: return _InsertionQuery(self.__connection, tableName, items, ignoreExisting)
+    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery: return _MultiInsertionQuery(self.__connection, tableName, columns, items, ignoreExisting)
     
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery: return _UpdateQuery(self.__connection, tableName, values, conditions)
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet) -> IUpdateQuery: return _UpdateQuery(self.__connection, tableName, values, conditions)
 
     def GetDeletionQuery(self, tableName: str, conditions: IConditionParameterSet) -> IWriteQuery: return _DeletionQuery(self.__connection, tableName, conditions)

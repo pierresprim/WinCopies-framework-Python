@@ -10,11 +10,11 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, ExpandItems
-from WinCopies.Collections.Iteration.Batch import Batch, IHandler
+from WinCopies.Collections.Iteration.Batch import IHandler, Batch
 from WinCopies.Collections.Util import MakeGenerator
 
+from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Converter
-from WinCopies.Typing.Object import IValueItem, IString, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 
@@ -52,10 +52,10 @@ class IQueryFactoryBase(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[str, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
         ...
     @final
-    def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]:
+    def BuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[str, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]:
         return TryGenerate(self.TryBuildConditionsByKeys(keys, maxParameterCount, handler))
 class IQueryFactory(IQueryFactoryBase):
     def __init__(self) -> None: super().__init__()
@@ -65,14 +65,14 @@ class IQueryFactory(IQueryFactoryBase):
         ...
 
     @abstractmethod
-    def GetInsertionQuery(self, tableName: str, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, tableName: str, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
         ...
     @abstractmethod
-    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, tableName: str, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         ...
     
     @abstractmethod
-    def GetUpdateQuery(self, tableName: str, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
+    def GetUpdateQuery(self, tableName: str, values: IDictionary[str, object], conditions: IConditionParameterSet) -> IUpdateQuery:
         ...
     
     @abstractmethod
@@ -87,14 +87,14 @@ class ITableQueryFactory(IQueryFactoryBase):
         ...
 
     @abstractmethod
-    def GetInsertionQuery(self, items: IDictionary[IString, object], ignoreExisting: bool = False) -> IInsertionQuery:
+    def GetInsertionQuery(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQuery:
         ...
     @abstractmethod
-    def GetMultiInsertionQuery(self, columns: ICountableEnumerable[IString], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
+    def GetMultiInsertionQuery(self, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IMultiInsertionQuery:
         ...
     
     @abstractmethod
-    def GetUpdateQuery(self, values: IDictionary[IString, object], conditions: IConditionParameterSet) -> IUpdateQuery:
+    def GetUpdateQuery(self, values: IDictionary[str, object], conditions: IConditionParameterSet) -> IUpdateQuery:
         ...
     
     @abstractmethod
@@ -105,22 +105,22 @@ class QueryFactory(Abstract, IQueryFactory):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[IString, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
+    def TryBuildConditionsByKeys(self, keys: IReadOnlyKeyedSet[str, object], maxParameterCount: int|None = None, handler: IHandler|None = None) -> Generator[IConditionParameterSet]|None:
         def process() -> Generator[IConditionParameterSet]:
-            def getColumns() -> ITuple[IColumn]: return CreateTuple(AsColumns(Select(keys.GetKeys().AsIterable(), lambda column: column.GetValue())))
+            def getColumns() -> ITuple[IColumn]: return CreateTuple(AsColumns(keys.GetKeys().AsIterable()))
             
             def onSinglePrimaryKey(columns: ITuple[IColumn], values: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
-                def process(column: IColumn, values: Iterable[IValueItem]) -> IConditionParameterSet|None: return MakeConjunctionSet(CreateDualResult(column, CreateFieldParameter(SetOperand[IValueItem](CreateSet(values)))))
+                def process(column: IColumn, values: Iterable[HashableProtocol]) -> IConditionParameterSet|None: return MakeConjunctionSet(CreateDualResult(column, CreateFieldParameter(SetOperand[HashableProtocol](CreateSet(values)))))
                 
-                conditionSet: IConditionParameterSet|None = process(GetFirst(columns.AsIterable()).GetValue(), Select(values, lambda items: Map(items.GetAt(0))))
+                conditionSet: IConditionParameterSet|None = process(GetFirst(columns.AsIterable()).GetValue(), Select(values, lambda items: items.GetAt(0)))
 
                 return MakeGenerator() if conditionSet is None else MakeGenerator(conditionSet)
             def onCompositePrimaryKey(columns: ITuple[IColumn], values: Iterable[ITuple[object]]) -> Generator[IConditionParameterSet]:
-                def process(columns: Iterable[IColumn], iterator: Generator[Iterable[IValueItem]]) -> IConditionParameterSet:
-                    def processItems(columns: Iterable[IColumn], values: Iterable[IValueItem]) -> Generator[IKeyValuePair[IColumn, IParameter[IOperandValue]|None]]:
+                def process(columns: Iterable[IColumn], iterator: Generator[Iterable[HashableProtocol]]) -> IConditionParameterSet:
+                    def processItems(columns: Iterable[IColumn], values: Iterable[HashableProtocol]) -> Generator[IKeyValuePair[IColumn, IParameter[IOperandValue]|None]]:
                         for items in zip(columns, values): yield CreateDualResult(items[0], CreateFieldParameterFromValue(Operator.Equals, items[1]))
                     
-                    def process(columns: Iterable[IColumn], values: Iterable[IValueItem]) -> ICompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator]:
+                    def process(columns: Iterable[IColumn], values: Iterable[HashableProtocol]) -> ICompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator]:
                         iterator: Generator[IKeyValuePair[IColumn, IParameter[IOperandValue]|None]] = processItems(columns, values)
                         first: IKeyValuePair[IColumn, IParameter[IOperandValue]|None] = GetFirst(iterator).GetValue()
                         node: ICompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator] = CompositeExpressionNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator](CompositeExpressionValueNode[IKeyValuePair[IColumn, IParameter[IOperandValue]|None], ConditionalOperator](first))
@@ -135,7 +135,7 @@ class QueryFactory(Abstract, IQueryFactory):
 
                     return CreateConditionSet(root)
                 
-                yield process(columns.AsIterable(), Select(values, lambda items: Select(items.AsIterable(), lambda value: Map(value))))
+                yield process(columns.AsIterable(), Select(values, lambda items: items.AsIterable()))
             
             def getProcessor() -> Converter[Iterable[ITuple[object]], Generator[IConditionParameterSet]]:
                 processor: Callable[[ITuple[IColumn], Iterable[ITuple[object]]], Generator[IConditionParameterSet]] = onSinglePrimaryKey if pkCount == 1 else onCompositePrimaryKey
@@ -157,7 +157,7 @@ class IIndexFactory(IInterface):
         super().__init__()
     
     @abstractmethod
-    def GetPrimaryKey(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnKey:
+    def GetPrimaryKey(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> IMultiColumnKey:
         ...
     @abstractmethod
     def GetForeignKey(self, name: str, column: str, foreignKey: DualResult[str, str]) -> IForeignKey:
@@ -166,5 +166,5 @@ class IIndexFactory(IInterface):
     def GetNormalIndex(self, name: str, column: str) -> ISingleColumnIndex:
         ...
     @abstractmethod
-    def GetUnicityIndex(self, name: str, columns: IHashableTuple[IString]|Iterable[IString]) -> IMultiColumnIndex:
+    def GetUnicityIndex(self, name: str, columns: IHashableTuple[str]|Iterable[str]) -> IMultiColumnIndex:
         ...

@@ -23,7 +23,6 @@ from WinCopies.String import DoubleQuoteSurround
 
 from WinCopies.Typing import IDisposableInfo, INullable, GetDisposedError
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
-from WinCopies.Typing.Object import IEnumValue, IString, String, CreateEnum
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 
@@ -178,7 +177,7 @@ class _Table(Table):
             def executeQuery() -> ISelectionQueryExecutionResult|None:
                 query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                     TableParameterSet({
-                        String("PRAGMA_TABLE_INFO"): TableParameter[str](
+                        "PRAGMA_TABLE_INFO": TableParameter[str](
                             't', MakeTableValueIterable(self.GetName()))}),
                     ColumnParameterSet[IFormattable]({
                         Column("name"): None,
@@ -246,11 +245,11 @@ class _Table(Table):
                 def getParser() -> Callable[[IIndexFactory, str, str, IndexKind, str, IList[str]], Generator[IIndex]|None]: return lambda factory, currentName, name, kind, columnName, columns: parse(factory, name, kind, columnName, columns)
                 
                 def getIndex(factory: IIndexFactory, currentName: str, kind: IndexKind, columns: IList[str]) -> IIndex:
-                    def select(columns: IList[str]) -> Iterable[IString]: return Select(columns.AsGenerator(), lambda value: String(value))
+                    def select() -> Iterable[str]: return columns.AsGenerator()
 
                     match kind:
-                        case IndexKind.Unique: return factory.GetUnicityIndex(currentName, select(columns))
-                        case IndexKind.PrimaryKey: return factory.GetPrimaryKey(currentName, select(columns))
+                        case IndexKind.Unique: return factory.GetUnicityIndex(currentName, select())
+                        case IndexKind.PrimaryKey: return factory.GetPrimaryKey(currentName, select())
                         
                         case _: raise ValueError("The index kind is not valid.")
                 
@@ -306,7 +305,7 @@ class _Table(Table):
                 def executeQuery() -> ISelectionQueryExecutionResult|None:
                     query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
-                            String("PRAGMA_INDEX_LIST"): TableParameter(
+                            "PRAGMA_INDEX_LIST": TableParameter(
                                 "il", MakeTableValueIterable(self.GetName()))}),
                         MakeColumnParameterSet(
                             TableColumn("il", "name"),
@@ -319,13 +318,13 @@ class _Table(Table):
                             CreateDualResult(TableColumn("il", "name"), GetNotNullFieldParameter())))
                     
                     query.GetCases().Add(
-                        ConditionSet[IEnumValue[IndexKind], str](
+                        ConditionSet[IndexKind, str](
                             "index_type",
-                            CreateEnum(IndexKind.Normal),
+                            IndexKind.Normal,
                             TableColumn("il", "origin"),
-                            Dictionary[IEnumValue[IndexKind], IParameter[IOperand[str]]]({
-                                CreateEnum(IndexKind.PrimaryKey): CreateFieldParameterFromValue(Operator.Equals, "pk"),
-                                CreateEnum(IndexKind.Unique): CreateFieldParameterFromValue(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
+                            Dictionary[IndexKind, IParameter[IOperand[str]]]({
+                                IndexKind.PrimaryKey: CreateFieldParameterFromValue(Operator.Equals, "pk"),
+                                IndexKind.Unique: CreateFieldParameterFromValue(Operator.Equals, "u")}))) # TODO: or il."unique" = 1
                     
                     query.GetJoins().Add(
                         Join(
@@ -368,7 +367,7 @@ class _Table(Table):
                     
                     query: ISelectionQuery = self.__GetQueryFactory().GetSelectionQuery(
                         TableParameterSet({
-                            String("PRAGMA_FOREIGN_KEY_LIST"): TableParameter(
+                            "PRAGMA_FOREIGN_KEY_LIST": TableParameter(
                                 "fk", MakeTableValueIterable(self.GetName()))}),
                         MakeColumnParameterSet(
                             getColumn("id"),
@@ -424,7 +423,7 @@ class _DataBase(DataBaseAbstract):
     def GetTableNames(self) -> Generator[str]:
         queryExecutionResult: ISelectionQueryExecutionResult|None = self._GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery(
             TableParameterSet.CreateFromNames(
-                String("sqlite_master")),
+                "sqlite_master"),
             MakeColumnParameterSet(
                 Column("name")),
             MakeConjunctionSet(

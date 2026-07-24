@@ -21,7 +21,7 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation import IIterator
-from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, ConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, TryConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList
@@ -32,7 +32,7 @@ from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
 from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError, GetDisposedError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, Reference, DefaultReference, IString, String, IType, Type as TypeObject, Map
+from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, IType, Reference, DefaultReference, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecoratorBase, PropertyDecorator, GetTypeName
 
@@ -899,7 +899,7 @@ class ICookie(IInterface):
         ...
 
     @abstractmethod
-    def GetDirtyColumns(self) -> IReadOnlySet[IString]:
+    def GetDirtyColumns(self) -> IReadOnlySet[str]:
         ...
 
     @abstractmethod
@@ -1369,7 +1369,7 @@ class Entity(Abstract, IDisposable):
         def __init__(self, entity: Entity) -> None:
             super().__init__(entity)
 
-            self.__original: IDictionary[IString, Any]|None = None
+            self.__original: IDictionary[str, Any]|None = None
         
         def GetOrigin(self) -> CookieOrigin: return CookieOrigin.Application
         
@@ -1388,27 +1388,27 @@ class Entity(Abstract, IDisposable):
                 _GetColumns(self._GetEntity()).GetAllColumns(),
                 lambda column: column.IsReadOnly() and column.GetColumnParameter().GetColumnRole() != Role.PrimaryKey)
         
-        def __Snapshot(self) -> IDictionary[IString, Any]:
+        def __Snapshot(self) -> IDictionary[str, Any]:
             entity: Entity = self._GetEntity()
-            snapshot: IDictionary[IString, Any] = Dictionary[IString, Any]()
+            snapshot: IDictionary[str, Any] = Dictionary[str, Any]()
 
-            for column in self.__GetTrackedColumns(): snapshot.AddOrUpdate(String(column.GetColumnParameter().GetColumnName()), _GetEntityValue(entity, column))
+            for column in self.__GetTrackedColumns(): snapshot.AddOrUpdate(column.GetColumnParameter().GetColumnName(), _GetEntityValue(entity, column))
 
             return snapshot
         
-        def GetDirtyColumns(self) -> IReadOnlySet[IString]:
-            original: IDictionary[IString, Any]|None = self.__original
+        def GetDirtyColumns(self) -> IReadOnlySet[str]:
+            original: IDictionary[str, Any]|None = self.__original
 
             if original is None: raise InvalidOperationError("The entity is not attached; its baseline has not been established.")
 
             entity: Entity = self._GetEntity()
             
-            return CreateSet(Match(self.__GetTrackedColumns(), lambda column: String(column.GetColumnParameter().GetColumnName()), lambda column, name: _GetEntityValue(entity, column) != original.TryGetValue(name).GetValue()))
+            return CreateSet(Match(self.__GetTrackedColumns(), lambda column: column.GetColumnParameter().GetColumnName(), lambda column, name: _GetEntityValue(entity, column) != original.TryGetValue(name).GetValue()))
         
         def _CommitChanges(self) -> None:
             self.__original = self.__Snapshot()
         def _RevertChanges(self) -> None:
-            original: IDictionary[IString, Any]|None = self.__original
+            original: IDictionary[str, Any]|None = self.__original
 
             if original is None: return
 
@@ -1418,15 +1418,15 @@ class Entity(Abstract, IDisposable):
             # out: they are read-only (their setter raises), and a drifted PK is an error state
             # resolved by dooming the transaction, not by silent restoration.
             for column in Exclude(_GetColumns(entity).GetAllColumns(), lambda column: column.IsReadOnly()):
-                _SetEntityValue(entity, column, original.TryGetValue(String(column.GetColumnParameter().GetColumnName())).GetValue())
+                _SetEntityValue(entity, column, original.TryGetValue(column.GetColumnParameter().GetColumnName()).GetValue())
     @final
     class _DBCookie(_Cookie):
         def __init__(self, entity: Entity) -> None:
             super().__init__(entity)
 
             self.__isReady: bool = False
-            self.__values: IDictionary[IString, Any] = Dictionary[IString, Any]()
-            self.__dirty: IDictionary[IString, Any] = Dictionary[IString, Any]()
+            self.__values: IDictionary[str, Any] = Dictionary[str, Any]()
+            self.__dirty: IDictionary[str, Any] = Dictionary[str, Any]()
 
         def GetOrigin(self) -> CookieOrigin:
             return CookieOrigin.DataBase
@@ -1436,15 +1436,13 @@ class Entity(Abstract, IDisposable):
         def Seal(self) -> None: self.__isReady = True
 
         def GetValue[T](self, name: str, func: GetterBase[Entity, T]) -> T:
-            key: IString = String(name)
-
-            return cast(T, (self.__dirty if self.__dirty.ContainsKey(key) else self.__values).TryGetValue(key).GetValue())
+            return cast(T, (self.__dirty if self.__dirty.ContainsKey(name) else self.__values).TryGetValue(name).GetValue())
         def SetValue[T](self, name: str, func: SetterBase[Entity, T], value: T) -> None:
             # Pre-seal writes (hydration / identity set) establish the pristine row in __values;
             # post-seal consumer mutations are recorded in the __dirty overlay.
-            (self.__dirty if self.__isReady else self.__values).AddOrUpdate(String(name), value)
+            (self.__dirty if self.__isReady else self.__values).AddOrUpdate(name, value)
 
-        def GetDirtyColumns(self) -> IReadOnlySet[IString]:
+        def GetDirtyColumns(self) -> IReadOnlySet[str]:
             return CreateSet(self.__dirty.GetKeys().AsIterable())
 
         def _CommitChanges(self) -> None:
@@ -1614,7 +1612,7 @@ class _Hydrator[T: Entity](Abstract):
         return obj
 
     def Enumerate(self, results: Iterable[ISelectionQueryExecutionResult|None]) -> IEnumerable[T]:
-        return CreateIteratorProvider(lambda: Select(ConcatenateItems(results), lambda row: self.__CreateEntity(iter(row))))
+        return CreateIteratorProvider(lambda: Select(TryConcatenateItems(results), lambda row: self.__CreateEntity(iter(row))))
     def Iterate(self, *results: ISelectionQueryExecutionResult|None) -> IEnumerable[T]:
         return self.Enumerate(results)
 
@@ -1623,17 +1621,17 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
         def getPKs() -> Iterable[IDefaultColumn]: return pks.AsIterable()
         
         t: IType[Entity] = TypeObject[Entity](type(stub))
-        ks: IKeyedSet[IString, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
+        ks: IKeyedSet[str, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
         pks: ITuple[IDefaultColumn] = _GetPrimaryKeys(t.GetValue())
 
         if ks is None:
-            ks = CreateKeyedSet(Select(getPKs(), lambda name: String(name.GetColumnParameter().GetColumnName())))
+            ks = CreateKeyedSet(Select(getPKs(), lambda name: name.GetColumnParameter().GetColumnName()))
 
             keyedSetsByType.Add(t, ks)
         
         ks.TryAdd(CreateTuple(Select(getPKs(), lambda pk: _GetEntityValue(stub, pk))))
 
-    keyedSetsByType: IDictionary[IType[Entity], IKeyedSet[IString, object]] = Dictionary[IType[Entity], IKeyedSet[IString, object]]()
+    keyedSetsByType: IDictionary[IType[Entity], IKeyedSet[str, object]] = Dictionary[IType[Entity], IKeyedSet[str, object]]()
     seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
 
     for parent in items:
@@ -1691,7 +1689,7 @@ class EntityCollection[T: Entity](Abstract):
     @final
     def __GetSelectionQuery(self) -> ISelectionQuery:
         return self.__context._GetConnection().GetFactoryProvider().GetQueryFactory().GetSelectionQuery( # pyright: ignore[reportPrivateUsage]
-            TableParameterSet.CreateFromNames(String(self.__hydrator.GetDefaultTableName())),
+            TableParameterSet.CreateFromNames(self.__hydrator.GetDefaultTableName()),
             self.__hydrator.GetSelectionColumnSet())
 
     @final
@@ -1890,7 +1888,7 @@ class _EntityEnumerable(RecursivelyEnumerable[IReference[Entity]]):
                 lambda edge: cast(Entity|None, _GetEntityValue(e, edge))),
             lambda e: DefaultReference[Entity](e)), GetTruthyPredicate(lambda entity: _TryAdd(entity, self.__data))))
 
-def _Contains(items: IContainer[IString], column: IColumnAbstract) -> bool: return items.Contains(String(column.GetColumnParameter().GetColumnName()))
+def _Contains(items: IContainer[str], column: IColumnAbstract) -> bool: return items.Contains(column.GetColumnParameter().GetColumnName())
 
 class _IColumnSelector(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -1906,10 +1904,10 @@ class _DefaultColumnSelector(Abstract, _IColumnSelector):
     def SelectColumns[T: IColumnAbstract](self, items: Iterable[T]) -> Iterable[T]: return items
 @final
 class _UpdaterColumnSelector(Abstract, _IColumnSelector):
-    def __init__(self, dirtyNonPrimaryKey: IContainer[IString]) -> None:
+    def __init__(self, dirtyNonPrimaryKey: IContainer[str]) -> None:
         super().__init__()
 
-        self.__dirtyNonPrimaryKey: IContainer[IString] = dirtyNonPrimaryKey
+        self.__dirtyNonPrimaryKey: IContainer[str] = dirtyNonPrimaryKey
 
     def SelectColumns[T: IColumnAbstract](self, items: Iterable[T]) -> Iterable[T]: return Include(items, lambda column: _Contains(self.__dirtyNonPrimaryKey, column))
 
@@ -1926,9 +1924,9 @@ class _WriterBase(Abstract):
         return self.__context
 
     @final
-    def _AssembleRow(self, e: Entity, cols: _Columns, columnSelector: _IColumnSelector) -> IDictionary[IString, object]:
+    def _AssembleRow(self, e: Entity, cols: _Columns, columnSelector: _IColumnSelector) -> IDictionary[str, object]:
         def __add(columnParameter: IColumnParameterAbstract|ITableColumn, value: object) -> None:
-            row.Add(String(columnParameter.GetColumnName()), value)
+            row.Add(columnParameter.GetColumnName(), value)
 
         def _add(column: IColumnAbstract, value: object) -> None: __add(column.GetColumnParameter(), value)
 
@@ -1940,7 +1938,7 @@ class _WriterBase(Abstract):
 
         def getRange(columns: ICountable) -> range: return range(columns.GetCount())
 
-        row: IDictionary[IString, object] = Dictionary[IString, object]()
+        row: IDictionary[str, object] = Dictionary[str, object]()
 
         addColumns(WhereNotOfType(_IAutoPrimaryKey, cols.GetPrimaryKeys().AsIterable())) # type: ignore[type-abstract]
         addColumns(cols.GetColumns().AsIterable())
@@ -2022,7 +2020,7 @@ class _Adder(_Writer):
                 # Capture the placeholder BEFORE write-back.
                 oldValue: object|None = None if autoPrimaryKey is None else _GetEntityValue(e, autoPrimaryKey)
 
-                row: IDictionary[IString, object] = self._AssembleRow(e, cols, _defaultColumnSelector)
+                row: IDictionary[str, object] = self._AssembleRow(e, cols, _defaultColumnSelector)
 
                 mapper: IEntityMapper[Entity] = context._GetMapper(type(e)) # pyright: ignore[reportPrivateUsage]
                 key: IEntityKey[IItem]|None = None
@@ -2078,21 +2076,21 @@ class _Updater(_Writer):
 
     def Persist(self, entity: Entity, journal: _Journal) -> bool:
         cols: _Columns = _GetColumns(entity)
-        dirty: Iterable[IString] = _GetCookie(entity).GetDirtyColumns().AsIterable()
+        dirty: Iterable[str] = _GetCookie(entity).GetDirtyColumns().AsIterable()
 
         primaryKeys: Iterable[IDefaultColumn] = cols.GetPrimaryKeys().AsIterable()
-        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys, lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
+        primaryKeyNames: ISet[str] = CreateSet(Select(primaryKeys, lambda primaryKey: primaryKey.GetColumnParameter().GetColumnName()))
 
         if HasAny(dirty, primaryKeyNames.Contains): raise PrimaryKeyMutationError(entity)
 
-        dirtyNonPrimaryKey: ISet[IString] = CreateSet(Exclude(dirty, lambda name: primaryKeyNames.Contains(name)))
+        dirtyNonPrimaryKey: ISet[str] = CreateSet(Exclude(dirty, lambda name: primaryKeyNames.Contains(name)))
 
         if dirtyNonPrimaryKey.IsEmpty(): return False
 
         for target in WhereSelect(ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()), lambda column: _Contains(dirtyNonPrimaryKey, column), lambda column: cast(Entity|None, _GetEntityValue(entity, column))):
             if target is not None and _TryGetEntityContext(target) is None: raise UnpersistedReferenceError(target)
 
-        values: IDictionary[IString, object] = self._AssembleRow(entity, cols, _UpdaterColumnSelector(dirtyNonPrimaryKey))
+        values: IDictionary[str, object] = self._AssembleRow(entity, cols, _UpdaterColumnSelector(dirtyNonPrimaryKey))
         result: IInsertionQueryExecutionResult = _GetTable(self._GetContext(), entity).Update(values, self._BuildKeyConditions(entity, primaryKeys))
 
         try:
@@ -2119,7 +2117,7 @@ class _Deleter(_WriterBase):
         # PK-drift guard (D1): the sole use of dirty-tracking in DELETE. A drifted PK (App-origin
         # struct bypass) would aim the WHERE at the wrong row; refuse it. DB-origin PKs are not
         # driftable. The WHERE is then built from the current PK, which here equals the baseline.
-        primaryKeyNames: ISet[IString] = CreateSet(Select(primaryKeys, lambda primaryKey: String(primaryKey.GetColumnParameter().GetColumnName())))
+        primaryKeyNames: ISet[str] = CreateSet(Select(primaryKeys, lambda primaryKey: primaryKey.GetColumnParameter().GetColumnName()))
 
         if HasAny(_GetCookie(entity).GetDirtyColumns().AsIterable(), primaryKeyNames.Contains): raise PrimaryKeyMutationError(entity)
 
