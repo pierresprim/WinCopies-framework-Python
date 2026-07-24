@@ -12,7 +12,6 @@ from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnly
 from WinCopies.Typing import INullable, GetNullValue
 from WinCopies.Typing.Delegate import IFunction, Converter
 from WinCopies.Typing.Generic import GenericConstraint
-from WinCopies.Typing.Object import IEnumValue, CreateEnum
 
 class PriorityLevel(Enum):
     Lowest = -4
@@ -225,7 +224,7 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
     
     @final
     def Clear(self) -> None: self._GetItems().Clear()
-class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
+class PriorityItemList[T](PriorityItemListBase[T, PriorityLevel]):
     @final
     class _Function[_T](Abstract, IFunction[IList[_T]]):
         def __init__(self, items: PriorityItemList[_T]) -> None:
@@ -245,7 +244,7 @@ class PriorityItemList[T](PriorityItemListBase[T, IEnumValue[PriorityLevel]]):
         ...
     
     @final
-    def _Convert(self, level: IEnumValue[PriorityLevel]) -> int: return level.GetUnderlyingValue() - PriorityLevel.Lowest.value
+    def _Convert(self, level: PriorityLevel) -> int: return level.value - PriorityLevel.Lowest.value
 
 class PriorityItemQueue[T](PriorityItemList[T]):
     def __init__(self) -> None: super().__init__()
@@ -321,11 +320,11 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     
     @final
     def Clear(self) -> None: self._GetItems().Clear()
-class PriorityList[T](PriorityListBase[T, IEnumValue[PriorityLevel]]):
+class PriorityList[T](PriorityListBase[T, PriorityLevel]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def GetNormalLevel(self) -> IEnumValue[PriorityLevel]: return CreateEnum(PriorityLevel.Normal)
+    def GetNormalLevel(self) -> PriorityLevel: return PriorityLevel.Normal
 
 class PriorityQueue[T](PriorityList[T], IQueue[T]):
     def __init__(self) -> None:
@@ -336,7 +335,7 @@ class PriorityQueue[T](PriorityList[T], IQueue[T]):
         self.__readOnly: IFunction[IReadOnlyQueue[T]] = ReadOnlyQueueUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _CreateDictionary(self) -> IPriorityItemList[T, IEnumValue[PriorityLevel]]: return PriorityItemQueue[T]()
+    def _CreateDictionary(self) -> IPriorityItemList[T, PriorityLevel]: return PriorityItemQueue[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyQueue[T]: return self.__readOnly.GetValue()
@@ -349,7 +348,7 @@ class PriorityStack[T](PriorityList[T], IStack[T]):
         self.__readOnly: IFunction[IReadOnlyStack[T]] = ReadOnlyStackUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _CreateDictionary(self) -> IPriorityItemList[T, IEnumValue[PriorityLevel]]: return PriorityItemStack[T]()
+    def _CreateDictionary(self) -> IPriorityItemList[T, PriorityLevel]: return PriorityItemStack[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyStack[T]: return self.__readOnly.GetValue()

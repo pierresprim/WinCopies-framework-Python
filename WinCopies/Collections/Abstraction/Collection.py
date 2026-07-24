@@ -4,7 +4,7 @@ from abc import abstractmethod
 from bisect import bisect_left, bisect_right, insort_left, insort_right
 from collections.abc import Iterable, Sequence, MutableSequence as MutableSequenceBase
 from heapq import merge
-from typing import cast, overload, final, SupportsIndex
+from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
@@ -18,7 +18,7 @@ from WinCopies.Collections.Iteration import Zip
 from WinCopies.Collections.Loop import ForEachItem
 from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, ComparableProtocol
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol, ComparableProtocol
 from WinCopies.Typing.Delegate import IFunction, IStruct, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsRichComparison
@@ -55,7 +55,7 @@ class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Collection.Tu
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> TItem|Sequence[TItem]: return self._GetInnerContainer()[int(index) if isinstance(index, SupportsIndex) else index]
 
-class _IEquatableTuple[T: IEquatableValue](IEquatableTuple[T], IContainer[Sequence[T]]):
+class _IEquatableTuple[T: EquatableProtocol](IEquatableTuple[T], IContainer[Sequence[T]]):
     def __init__(self) -> None: super().__init__()
     
     def Equals(self, item: object) -> bool:
@@ -63,7 +63,7 @@ class _IEquatableTuple[T: IEquatableValue](IEquatableTuple[T], IContainer[Sequen
         
         match item:
             case _IEquatableTuple(): return self._GetContainer() == item._GetContainer()
-            case IEquatableTuple(): return self.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(self, cast(IEquatableTuple[IEquatableValue], item)), lambda item: item.GetKey().Equals(item.GetValue())))
+            case IEquatableTuple(): return self.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(self, item), lambda item: item.GetKey() == item.GetValue()))
             case IEquatableTupleBase(): return item.Equals(self)
             
             case _: return False
@@ -92,7 +92,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     def SliceAt(self, key: slice) -> ITuple[T]: return Tuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str: return str(self._GetContainer())
-class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: EquatableProtocol](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
@@ -104,7 +104,7 @@ class EquatableTuple[T: IEquatableValue](TupleBase[T, Sequence[T]], Collection.E
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return EquatableTuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str: return str(self._GetContainer())
-class HashableTuple[T: IHashableValue](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
@@ -545,14 +545,14 @@ def CreateTuple[T](items: Sequence[T]|Iterable[T]) -> ITuple[T]:
 def MakeTuple[T](*items: T) -> ITuple[T]:
     return CreateTuple(items)
 
-def CreateEquatableTuple[T: IEquatableValue](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+def CreateEquatableTuple[T: EquatableProtocol](items: Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
     return EquatableTuple[T](items)
-def MakeEquatableTuple[T: IEquatableValue](*items: T) -> IEquatableTuple[T]:
+def MakeEquatableTuple[T: EquatableProtocol](*items: T) -> IEquatableTuple[T]:
     return CreateEquatableTuple(items)
 
-def CreateHashableTuple[T: IHashableValue](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
+def CreateHashableTuple[T: HashableProtocol](items: Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
     return HashableTuple[T](items)
-def MakeHashableTuple[T: IHashableValue](*items: T) -> IHashableTuple[T]:
+def MakeHashableTuple[T: HashableProtocol](*items: T) -> IHashableTuple[T]:
     return CreateHashableTuple(items)
 
 def CreateArray[T](items: MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:
@@ -582,9 +582,9 @@ def MakeSortedList[T: ComparableProtocol](*items: T) -> ISortedList[T]:
 
 def GetTuple[T](items: ITuple[T]|Sequence[T]|Iterable[T]) -> ITuple[T]:
     return items if isinstance(items, ITuple) else CreateTuple(items)
-def GetEquatableTuple[T: IEquatableValue](items: IEquatableTuple[T]|Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
+def GetEquatableTuple[T: EquatableProtocol](items: IEquatableTuple[T]|Sequence[T]|Iterable[T]) -> IEquatableTuple[T]:
     return items if isinstance(items, IEquatableTuple) else CreateEquatableTuple(items)
-def GetHashableTuple[T: IHashableValue](items: IHashableTuple[T]|Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
+def GetHashableTuple[T: HashableProtocol](items: IHashableTuple[T]|Sequence[T]|Iterable[T]) -> IHashableTuple[T]:
     return items if isinstance(items, IHashableTuple) else CreateHashableTuple(items)
 
 def GetArray[T](items: IArray[T]|MutableSequenceBase[T]|Iterable[T]) -> IArray[T]:

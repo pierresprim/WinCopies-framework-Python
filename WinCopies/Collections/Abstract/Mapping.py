@@ -13,11 +13,11 @@ from WinCopies.Collections.Extensions import IDictionary, ISet
 from WinCopies.Collections.Extensions.Mapping import Set as SetBase, Dictionary as DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
 
-class Set[TIn: IHashableValue, TOut: IHashableValue](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
+class Set[TIn: HashableProtocol, TOut: HashableProtocol](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
     def __init__(self, items: ISet[TIn]|set[TIn]|Iterable[TIn]) -> None: super().__init__(GetSet(items))
     
     @final
@@ -53,7 +53,7 @@ class _ICookie[TIn, TOut](IInterface):
     def Convert(self, item: TIn) -> TOut: ...
 
 @final
-class _ValueEnumerable[TKey: IHashableValue, TValueIn, TValueOut](CountableEnumerable[TValueOut]):
+class _ValueEnumerable[TKey: HashableProtocol, TValueIn, TValueOut](CountableEnumerable[TValueOut]):
     def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]) -> None:
         super().__init__()
 
@@ -67,7 +67,7 @@ class _ValueEnumerable[TKey: IHashableValue, TValueIn, TValueOut](CountableEnume
     
     def TryGetEnumerator(self) -> IEnumerator[TValueOut]|None: return TryAsEnumerator(self._TryGetIterator())
 @final
-class _Enumerator[TKey: IEquatableValue, TValueIn, TValueOut](Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
+class _Enumerator[TKey: EquatableProtocol, TValueIn, TValueOut](Enumerator[IKeyValuePair[TKey, TValueIn], IKeyValuePair[TKey, TValueOut]]):
     def __init__(self, dictionary: _ICookie[TValueIn, TValueOut], enumerator: IEnumerator[IKeyValuePair[TKey, TValueIn]]) -> None:
         super().__init__(enumerator)
 
@@ -76,9 +76,9 @@ class _Enumerator[TKey: IEquatableValue, TValueIn, TValueOut](Enumerator[IKeyVal
     def _Convert(self, item: IKeyValuePair[TKey, TValueIn]) -> IKeyValuePair[TKey, TValueOut]:
         return KeyValuePair[TKey, TValueOut](item.GetKey(), self.__dictionary.Convert(item.GetValue()))
 
-class Dictionary[TKey: IHashableValue, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], DictionaryBase[TKey, TValueOut]):
+class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], DictionaryBase[TKey, TValueOut]):
     @final
-    class _Cookie[_TKey: IHashableValue, T, U](_ICookie[T, U]):
+    class _Cookie[_TKey: HashableProtocol, T, U](_ICookie[T, U]):
         def __init__(self, dic: Dictionary[_TKey, T, U]) -> None:
             super().__init__()
 

@@ -19,7 +19,7 @@ from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollecti
 from WinCopies.Collections.Util import FindIndex
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue
+from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsRichComparison
@@ -249,7 +249,7 @@ class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
 @final
-class _ReversedEquatableTuple[T: IEquatableValue](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], INotHashableValue, IGenericConstraintImplementation[IEquatableTuple[T]]):
+class _ReversedEquatableTuple[T: EquatableProtocol](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], INotHashableValue, IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], factory: IResumableEnumeratorFactory[T]) -> None: super().__init__(items, factory)
     
     @final
@@ -264,7 +264,7 @@ class _ReversedEquatableTuple[T: IEquatableValue](_Reversed[T, IEquatableTuple[T
 
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
 @final
-class _ReversedHashableTuple[T: IHashableValue](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
+class _ReversedHashableTuple[T: HashableProtocol](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
     def __init__(self, items: IHashableTuple[T], factory: IResumableEnumeratorFactory[T]) -> None: super().__init__(items, factory)
     
     def _SliceAt(self, key: slice) -> IHashableTuple[T]:
@@ -277,7 +277,7 @@ class _ReversedHashableTuple[T: IHashableValue](_Reversed[T, IHashableTuple[T]],
 
     def AsReversed(self) -> IHashableTuple[T]: return self._GetContainer()
 @final
-class _ReversedEquatableTupleUpdater[T: IEquatableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
+class _ReversedEquatableTupleUpdater[T: EquatableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, array: IEquatableTuple[T], factory: IResumableEnumeratorFactory[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -286,7 +286,7 @@ class _ReversedEquatableTupleUpdater[T: IEquatableValue](ValueFunctionUpdater[IE
     
     def _GetValue(self) -> IEquatableTuple[T]: return _ReversedEquatableTuple[T](self.__array, self.__factory)
 @final
-class _ReversedHashableTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IHashableTuple[T]]):
+class _ReversedHashableTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IHashableTuple[T]]):
     def __init__(self, array: IHashableTuple[T], factory: IResumableEnumeratorFactory[T], updater: Method[IFunction[IHashableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -321,7 +321,7 @@ class TupleCollection[T](_TupleCollection[T]):
 class Tuple[T](TupleCollection[T], TupleBase[T]):
     def __init__(self) -> None: super().__init__()
 
-class EquatableTupleCollection[T: IEquatableValue](_TupleCollection[T], IEquatableTuple[T], INotHashableValue):
+class EquatableTupleCollection[T: EquatableProtocol](_TupleCollection[T], IEquatableTuple[T], INotHashableValue):
     def __init__(self) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__reversed = func
         
@@ -331,10 +331,10 @@ class EquatableTupleCollection[T: IEquatableValue](_TupleCollection[T], IEquatab
     
     @final
     def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
-class EquatableTuple[T: IEquatableValue](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
+class EquatableTuple[T: EquatableProtocol](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
     def __init__(self) -> None: super().__init__()
 
-class HashableTupleCollection[T: IHashableValue](_TupleCollection[T], IHashableTuple[T]):
+class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None: self.__reversed = func
         
@@ -344,7 +344,7 @@ class HashableTupleCollection[T: IHashableValue](_TupleCollection[T], IHashableT
     
     @final
     def AsReversed(self) -> IHashableTuple[T]: return self.__reversed.GetValue()
-class HashableTuple[T: IHashableValue](HashableTupleCollection[T], TupleBase[T], IHashableTuple[T]):
+class HashableTuple[T: HashableProtocol](HashableTupleCollection[T], TupleBase[T], IHashableTuple[T]):
     def __init__(self) -> None: super().__init__()
 
 @final

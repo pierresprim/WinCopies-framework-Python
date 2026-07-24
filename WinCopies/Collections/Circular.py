@@ -6,7 +6,7 @@ from WinCopies import IStringable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class ICircularTuple[T](ITuple[T]):
@@ -19,9 +19,9 @@ class ICircularTuple[T](ITuple[T]):
     @final
     def GetCircularIndex(self, index: int) -> int:
         return self.GetIndex(index, self.GetStart())[0]
-class ICircularEquatableTuple[T: IEquatableValue](ICircularTuple[T], IEquatableTuple[T]):
+class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatableTuple[T]):
     def __init__(self) -> None: super().__init__()
-class ICircularHashableTuple[T: IHashableValue](ICircularTuple[T], IHashableTuple[T]):
+class ICircularHashableTuple[T: HashableProtocol](ICircularTuple[T], IHashableTuple[T]):
     def __init__(self) -> None: super().__init__()
 class ICircularArray[T](ICircularTuple[T], IArray[T]):
     def __init__(self) -> None: super().__init__()
@@ -80,14 +80,14 @@ class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintI
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(self._GetKey(key))
-class CircularEquatableTuple[T: IEquatableValue](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
+class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
     def Equals(self, item: object) -> bool: return self is item
-class CircularHashableTuple[T: IHashableValue](CircularBase[T, IHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
+class CircularHashableTuple[T: HashableProtocol](CircularBase[T, IHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
     def __init__(self, items: IHashableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final

@@ -5,7 +5,7 @@ from typing import final
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 
 def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
     yield from iterable
@@ -24,7 +24,7 @@ class _Enumerable[T](Enumerable[T]):
     
     def TryGetEnumerator(self) -> IEnumerator[T] | None: return self._GetEnumerable().TryGetEnumerator()
 
-class _EquatableEnumerable[T: IEquatableValue](EquatableEnumerable[T]):
+class _EquatableEnumerable[T: EquatableProtocol](EquatableEnumerable[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
         super().__init__()
 
@@ -39,7 +39,7 @@ class _EquatableEnumerable[T: IEquatableValue](EquatableEnumerable[T]):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
-class _HashableEnumerable[T: IHashableValue](HashableEnumerable[T]):
+class _HashableEnumerable[T: HashableProtocol](HashableEnumerable[T]):
     def __init__(self, enumerable: IHashableEnumerable[T]) -> None:
         super().__init__()
 
@@ -103,14 +103,14 @@ def CreateEnumerable[T](enumerable: IEnumerable[T]) -> Enumerable[T]:
 def TryCreateEnumerable[T](enumerable: IEnumerable[T]|None) -> Enumerable[T]|None:
     return None if enumerable is None else CreateEnumerable(enumerable)
 
-def CreateEquatableEnumerable[T: IEquatableValue](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerable[T]:
+def CreateEquatableEnumerable[T: EquatableProtocol](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerable[T]:
     return enumerable if type(enumerable) == _EquatableEnumerable[T] else _EquatableEnumerable[T](enumerable)
-def TryCreateEquatableEnumerable[T: IEquatableValue](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
+def TryCreateEquatableEnumerable[T: EquatableProtocol](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
     return None if enumerable is None else CreateEquatableEnumerable(enumerable)
 
-def CreateHashableEnumerable[T: IHashableValue](enumerable: IHashableEnumerable[T]) -> HashableEnumerable[T]:
+def CreateHashableEnumerable[T: HashableProtocol](enumerable: IHashableEnumerable[T]) -> HashableEnumerable[T]:
     return enumerable if type(enumerable) == _HashableEnumerable[T] else _HashableEnumerable[T](enumerable)
-def TryCreateHashableEnumerable[T: IHashableValue](enumerable: IHashableEnumerable[T]|None) -> HashableEnumerable[T]|None:
+def TryCreateHashableEnumerable[T: HashableProtocol](enumerable: IHashableEnumerable[T]|None) -> HashableEnumerable[T]|None:
     return None if enumerable is None else CreateHashableEnumerable(enumerable)
 
 def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> CountableEnumerable[T]:

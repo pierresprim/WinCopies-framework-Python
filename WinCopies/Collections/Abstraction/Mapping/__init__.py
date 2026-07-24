@@ -10,10 +10,10 @@ from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator,
 from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IHashableValue, EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
 
-class Set[T: IHashableValue](Mapping.Set[T]):
+class Set[T: HashableProtocol](Mapping.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
         super().__init__()
 
@@ -261,15 +261,15 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     def ToString(self) -> str: return str(self._GetDictionary())
 
-def CreateSet[T: IHashableValue](items: set[T]|Iterable[T]) -> ISet[T]:
+def CreateSet[T: HashableProtocol](items: set[T]|Iterable[T]) -> ISet[T]:
     return Set[T](items)
-def MakeSet[T: IHashableValue](*items: T) -> ISet[T]:
+def MakeSet[T: HashableProtocol](*items: T) -> ISet[T]:
     return CreateSet(items)
 
-def CreateDictionary[TKey: IHashableValue, TValue](dictionary: MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+def CreateDictionary[TKey: HashableProtocol, TValue](dictionary: MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return Dictionary[TKey, TValue](dictionary)
 
-def GetSet[T: IHashableValue](items: ISet[T]|set[T]|Iterable[T]) -> ISet[T]:
+def GetSet[T: HashableProtocol](items: ISet[T]|set[T]|Iterable[T]) -> ISet[T]:
     return items if isinstance(items, ISet) else CreateSet(items)
-def GetDictionary[TKey: IHashableValue, TValue](dictionary: IDictionary[TKey, TValue]|MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
+def GetDictionary[TKey: HashableProtocol, TValue](dictionary: IDictionary[TKey, TValue]|MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return dictionary if isinstance(dictionary, IDictionary) else CreateDictionary(dictionary)

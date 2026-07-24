@@ -14,7 +14,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, TupleAbstract, TupleCollection, EquatableTupleCollection, HashableTupleCollection, ArrayCollection
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue
+from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut]):
@@ -65,7 +65,7 @@ class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]],
     
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
-class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
+class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
@@ -81,7 +81,7 @@ class EquatableTuple[TIn: IEquatableValue, TOut: IEquatableValue](TupleBase[TIn,
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
-class HashableTuple[TIn: IHashableValue, TOut: IHashableValue](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 

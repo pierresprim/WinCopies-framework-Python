@@ -16,12 +16,12 @@ from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, Creat
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Comparison import IHashableValue, INotHashableValue
+from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
-class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
+class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
         def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
@@ -133,7 +133,7 @@ class _OrderedSetList[T: IHashableValue](Abstract, MutableList[T], Collection.Co
     
     def __delitem__(self, index: int|slice) -> None: RemoveItems(self, index)
 @final
-class _OrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IList[T]]):
+class _OrderedSetListUpdater[T: HashableProtocol](ValueFunctionUpdater[IList[T]]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T], updater: Method[IFunction[IList[T]]]) -> None:
         super().__init__(updater)
 
@@ -144,7 +144,7 @@ class _OrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IList[T]]):
     
     def _GetValue(self) -> IList[T]: return _OrderedSetList[T](self.__items, self.__list, self.__set, self.__innerSet)
 
-class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceAbstract[TItem], IEquatableTuple[TItem], INotHashableValue, GenericConstraint[TCollection, ITuple[TItem]]):
+class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](SequenceAbstract[TItem], IEquatableTuple[TItem], INotHashableValue, GenericConstraint[TCollection, ITuple[TItem]]):
     def __init__(self, items: TCollection) -> None:
         super().__init__()
         
@@ -169,7 +169,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceA
         def equals(x: ITuple[TItem], y: ITuple[TItem]) -> bool:
             if x.GetCount() == y.GetCount():
                 for item in zip(x.AsIterable(), y.AsIterable()):
-                    if not item[0].Equals(item[1]): return False
+                    if not item[0] == item[1]: return False
             
                 return True
             
@@ -184,7 +184,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceA
             _y: IEnumerator[TItem] = AsEnumerator(iter(y))
             
             for item in zip(_x.AsIterator(), _y.AsIterator()):
-                if not item[0].Equals(item[1]): return False
+                if not item[0] == item[1]: return False
             
             return not (_x.MoveNext() or _y.MoveNext())
 
@@ -202,7 +202,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: IHashableValue, TCollection](SequenceA
     def ToString(self) -> str: return self.ToString()
 
 @final
-class _ReadOnlyOrderedSetReversedTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
+class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
@@ -216,7 +216,7 @@ class _ReadOnlyOrderedSetReversedTuple[T: IHashableValue](_ReadOnlyOrderedSetTup
     
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
 @final
-class _ReadOnlyOrderedSetReversedTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
+class _ReadOnlyOrderedSetReversedTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -225,7 +225,7 @@ class _ReadOnlyOrderedSetReversedTupleUpdater[T: IHashableValue](ValueFunctionUp
     def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items.AsReversed())
 
 @final
-class _ReadOnlyOrderedSetTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
+class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None:
             self.__reversed = func
@@ -245,7 +245,7 @@ class _ReadOnlyOrderedSetTuple[T: IHashableValue](_ReadOnlyOrderedSetTupleBase[T
     
     def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
 @final
-class _ReadOnlyOrderedSetTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IEquatableTuple[T]]):
+class _ReadOnlyOrderedSetTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -254,7 +254,7 @@ class _ReadOnlyOrderedSetTupleUpdater[T: IHashableValue](ValueFunctionUpdater[IE
     def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple[T](self.__items.AsList().AsReadOnly())
 
 @final
-class _ReadOnlyOrderedSetList[T: IHashableValue](CountableEnumerable[T], IReadOnlyOrderedSet[T]):
+class _ReadOnlyOrderedSetList[T: HashableProtocol](CountableEnumerable[T], IReadOnlyOrderedSet[T]):
     def __init__(self, items: IOrderedSet[T]) -> None:
         super().__init__()
 
@@ -273,7 +273,7 @@ class _ReadOnlyOrderedSetList[T: IHashableValue](CountableEnumerable[T], IReadOn
     
     def AsContainer(self) -> Container[T]: return self.__items.AsContainer()
 @final
-class _ReadOnlyOrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IReadOnlyOrderedSet[T]]):
+class _ReadOnlyOrderedSetListUpdater[T: HashableProtocol](ValueFunctionUpdater[IReadOnlyOrderedSet[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IReadOnlyOrderedSet[T]]]) -> None:
         super().__init__(updater)
 
@@ -281,7 +281,7 @@ class _ReadOnlyOrderedSetListUpdater[T: IHashableValue](ValueFunctionUpdater[IRe
     
     def _GetValue(self) -> IReadOnlyOrderedSet[T]: return _ReadOnlyOrderedSetList[T](self.__items)
 
-class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
+class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
     def __init__(self, items: IEnumerable[T]|None = None) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyOrderedSet[T]]) -> None: self.__readOnly = func
         
@@ -361,7 +361,7 @@ class OrderedSet[T: IHashableValue](CountableEnumerable[T], IOrderedSet[T]):
     @final
     def AsList(self) -> IList[T]: return self.__list.GetValue()
 
-class _ReadOnlyKeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]], IReadOnlyKeyedSet[TKey, TValue]):
+class _ReadOnlyKeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue]], IReadOnlyKeyedSet[TKey, TValue]):
     def __init__(self, items: IReadOnlyKeyedSet[TKey, TValue]) -> None:
         super().__init__()
 
@@ -383,7 +383,7 @@ class _ReadOnlyKeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple
     @final
     def TryGetEnumerator(self) -> IEnumerator[ITuple[TValue]]|None: return TryCreateEnumerator(self._GetItems().TryGetEnumerator())
 @final
-class _ReadOnlyKeyedSetUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdater[IReadOnlyKeyedSet[TKey, TValue]]):
+class _ReadOnlyKeyedSetUpdater[TKey: HashableProtocol, TValue](ValueFunctionUpdater[IReadOnlyKeyedSet[TKey, TValue]]):
     def __init__(self, items: KeyedSet[TKey, TValue], updater: Method[IFunction[IReadOnlyKeyedSet[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
@@ -391,7 +391,7 @@ class _ReadOnlyKeyedSetUpdater[TKey: IHashableValue, TValue](ValueFunctionUpdate
     
     def _GetValue(self) -> IReadOnlyKeyedSet[TKey, TValue]:
         return _ReadOnlyKeyedSet[TKey, TValue](self.__items)
-class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]], IKeyedSet[TKey, TValue]):
+class KeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue]], IKeyedSet[TKey, TValue]):
     def __init__(self, keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> None:
         def update(func: IFunction[IReadOnlyKeyedSet[TKey, TValue]]) -> None:
             self.__readOnly = func
@@ -434,15 +434,15 @@ class KeyedSet[TKey: IHashableValue, TValue](CountableEnumerable[ITuple[TValue]]
     @final
     def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]: return self.__readOnly.GetValue()
 
-def CreateOrderedSet[T: IHashableValue](items: Iterable[T]) -> IOrderedSet[T]:
+def CreateOrderedSet[T: HashableProtocol](items: Iterable[T]) -> IOrderedSet[T]:
     return OrderedSet[T](CreateIterable(items))
-def MakeOrderedSet[T: IHashableValue](*items: T) -> IOrderedSet[T]:
+def MakeOrderedSet[T: HashableProtocol](*items: T) -> IOrderedSet[T]:
     return CreateOrderedSet(items)
 
-def CreateKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> IKeyedSet[TKey, TValue]:
+def CreateKeyedSet[TKey: HashableProtocol, TValue](keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> IKeyedSet[TKey, TValue]:
     return KeyedSet[TKey, TValue](keys, values)
-def MakeKeyedSet[TKey: IHashableValue, TValue](keys: Iterable[TKey], *values: ITuple[TValue]) -> IKeyedSet[TKey, TValue]:
+def MakeKeyedSet[TKey: HashableProtocol, TValue](keys: Iterable[TKey], *values: ITuple[TValue]) -> IKeyedSet[TKey, TValue]:
     return CreateKeyedSet(keys, values)
 
-def MakeKeyedSetFromKeys[TKey: IHashableValue, TValue](values: Iterable[ITuple[TValue]], *keys: TKey) -> IKeyedSet[TKey, TValue]:
+def MakeKeyedSetFromKeys[TKey: HashableProtocol, TValue](values: Iterable[ITuple[TValue]], *keys: TKey) -> IKeyedSet[TKey, TValue]:
     return CreateKeyedSet(keys, values)

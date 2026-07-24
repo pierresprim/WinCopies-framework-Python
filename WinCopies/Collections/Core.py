@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import ReverseIndex, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, HashableProtocol
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import OrderedEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
@@ -292,7 +292,7 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         ...
-class IEquatableTuple[T: IEquatableValue](ITuple[T], IEquatableValue):
+class IEquatableTuple[T: EquatableProtocol](ITuple[T], IEquatableValue):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -302,7 +302,7 @@ class IEquatableTuple[T: IEquatableValue](ITuple[T], IEquatableValue):
     @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         ...
-class IHashableTuple[T: IHashableValue](IEquatableTuple[T], IHashableValue):
+class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -510,14 +510,14 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     def Remove(self, key: TKey) -> TValue:
         ...
 
-class IReadOnlyOrderedSet[T: IHashableValue](IReadOnlySet[T]):
+class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T]):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
     def AsTuple(self) -> IEquatableTuple[T]:
         ...
-class IOrderedSet[T: IHashableValue](ISet[T], IReadOnlyOrderedSet[T]):
+class IOrderedSet[T: HashableProtocol](ISet[T], IReadOnlyOrderedSet[T]):
     def __init__(self) -> None:
         super().__init__()
     
