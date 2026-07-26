@@ -4,7 +4,8 @@ from collections.abc import Generator as GeneratorBase
 from enum import Flag
 from typing import Callable
 
-from WinCopies import Abstract, BooleanableEnum, NullableBoolean
+from WinCopies import Abstract
+from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate
 

@@ -5,7 +5,8 @@ from typing import final
 
 
 
-from WinCopies import IInterface, Abstract, NullableBoolean, ToNullableBoolean
+from WinCopies import IInterface, Abstract
+from WinCopies.Bool import NullableBoolean, ToNullableBoolean
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, GetEnumeratorInactiveError

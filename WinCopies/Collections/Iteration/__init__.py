@@ -2,7 +2,7 @@ from collections.abc import Iterable, Iterator, Collection
 from contextlib import AbstractContextManager
 from typing import Callable, Type
 
-from WinCopies import NullableBoolean
+from WinCopies.Bool import NullableBoolean
 from WinCopies.Collections import Generator, IterationResult, IterableScanResult
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, CreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
