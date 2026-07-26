@@ -208,7 +208,7 @@ class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetT
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
     
-    def Equals(self, item: object) -> bool: return item is self or item.Equals(self) if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
+    def Equals(self, item: object) -> bool: return item is self or item == self if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
     
     def TryGetValue(self, key: int) -> INullable[T]: return self._GetContainer().TryGetValue(self.ReverseIndex(key))
     
