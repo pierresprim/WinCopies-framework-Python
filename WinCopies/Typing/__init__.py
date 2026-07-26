@@ -233,3 +233,9 @@ class IEnumBase(IInterface):
     @abstractmethod
     def GetEnumValue(self) -> Enum:
         ...
+class IEnum[T: Enum](IEnumBase):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def GetEnumValue(self) -> T:
+        ...
