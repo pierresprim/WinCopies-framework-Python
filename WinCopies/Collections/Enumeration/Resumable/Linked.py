@@ -12,7 +12,7 @@ from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObje
 from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
 from WinCopies.Typing import GetDisposedError
-from WinCopies.Typing.Comparison import IHashable
+from WinCopies.Typing.Comparison import IHashableValue
 
 type ICookie = ICookieBase[ILinkedNode]
 
@@ -90,7 +90,7 @@ class _ResumableNodeEnumerationCursor(Abstract, IResumableNodeEnumerationCursor)
             self.__node = None
 
 @final
-class _NodeKey(Abstract, IHashable["_NodeKey"]):
+class _NodeKey(Abstract, IHashableValue):
     def __init__(self, node: ILinkedNode) -> None:
         super().__init__()
 

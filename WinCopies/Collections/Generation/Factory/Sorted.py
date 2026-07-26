@@ -12,25 +12,29 @@ from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, Com
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Typing import INullable, GetNullableValue
-from WinCopies.Typing.Comparison import IExtendedComparable, HashableComparableProtocol, CompareTo
+from WinCopies.Typing.Comparison import IHashableComparableItem, CompareTo
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
-class ISortedNode[TKey, TValue](INode[TKey, TValue], IExtendedComparable['ISortedNode[TKey, TValue]|TKey']):
+class ISortedNode[TKey: SupportsEqualityAndRichComparison, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsComparableValue(self) -> TKey: return self.GetKey()
 @final
-class _SortedNode[TKey: HashableComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
+class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[TKey, TValue]) -> None:
         super().__init__(key, obj)
 
         self.__items: ISortedList[TKey, TValue] = items
     
-    def CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None: return CompareTo(self.GetKey(), ExtractKey(item))
+    def _CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None: return CompareTo(self.GetKey(), ExtractKey(item))
     
     def Remove(self) -> None:
         items: ISortedList[TKey, TValue] = self.__items
 
         items.Remove(self.GetKey())
 
-class ISortedList[TKey, TValue](IReadOnlyCollection, IClearable):
+class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -51,7 +55,7 @@ class ISortedList[TKey, TValue](IReadOnlyCollection, IClearable):
     @abstractmethod
     def Remove(self, key: TKey) -> None:
         ...
-class SortedList[TKey: HashableComparableProtocol, TValue](Countable, ISortedList[TKey, TValue]):
+class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -91,7 +95,7 @@ class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, 
 class ISortedObjectFactory[TKey, TValue](ISortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
-class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
+class SortedObjectFactoryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -141,10 +145,10 @@ class SortedObjectFactoryBase[TKey: HashableComparableProtocol, TIn, TOut: IDisp
         super().InvalidateObjects()
         
         self._GetSortedItems().Clear()
-class SortedObjectFactory[TKey: HashableComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
+class SortedObjectFactory[TKey: SupportsEqualityAndRichComparison, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
     def __init__(self) -> None: super().__init__()
 
-class SortedDisposableObjectFactory[TKey: HashableComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
+class SortedDisposableObjectFactory[TKey: SupportsEqualityAndRichComparison, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final

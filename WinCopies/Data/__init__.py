@@ -10,13 +10,13 @@ from WinCopies.Collections.Extensions import IReadOnlySet
 from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import ErrorBase, InvalidOperationError
-from WinCopies.Typing.Comparison import IHashable, HashableProtocol
+from WinCopies.Typing.Comparison import IHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater
 
-class IColumn(IHashable['IColumn']):
+class IColumn(IHashableValue):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod

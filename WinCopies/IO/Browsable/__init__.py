@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import IStringable, Abstract
+from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import SortedList
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursivelyEnumerable
@@ -12,11 +12,11 @@ from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraint
-from WinCopies.Typing.Object import IComparableObject, String
+from WinCopies.Typing.Object import IComparableItem, String
 
 def GetNameInfo(item: IBrowsable) -> IBrowsableNameInfo: return item.GetPathInfo().GetNameInfo()
 
-def TryGetNameInfo(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> IBrowsableNameInfo|None:
+def TryGetNameInfo(item: IBrowsableInfo|str|object) -> IBrowsableNameInfo|None:
     match item:
         case IBrowsableNameInfo(): return item
         case IBrowsablePathInfo(): return item.GetNameInfo()
@@ -24,16 +24,16 @@ def TryGetNameInfo(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object
         
         case _: return None
 
-def TryGetName(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> str|None:
+def TryGetName(item: IBrowsableInfo|str|object) -> str|None:
     name: IBrowsableNameInfo|None = TryGetNameInfo(item)
 
     return None if name is None else name.GetName()
-def TryGetFullName(item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> str|None:
+def TryGetFullName(item: IBrowsableInfo|str|object) -> str|None:
     name: IBrowsableNameInfo|None = TryGetNameInfo(item)
 
     return None if name is None else name.GetFullName()
 
-class IBrowsableInfo(IComparableObject["IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo"], IStringable):
+class IBrowsableInfo(IComparableItem[str]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -42,6 +42,9 @@ class IBrowsableInfo(IComparableObject["IBrowsable|IBrowsablePathInfo|IBrowsable
 
 class IBrowsableNameInfo(IBrowsableInfo):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsComparableValue(self) -> str: return self.GetFullName()
     
     @abstractmethod
     def GetName(self) -> str:
@@ -52,11 +55,11 @@ class IBrowsableNameInfo(IBrowsableInfo):
 
     def GetFullName(self) -> str: return f"{self.GetName()}{self.GetSeparator()}{self.GetExtension()}"
     
-    def Equals(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool:
+    def Equals(self, item: IBrowsableInfo|str|object) -> bool:
         return String.TryAreEqual(self.GetFullName(), TryGetFullName(item))
     def Hash(self) -> int: return hash(self.GetFullName())
     
-    def CompareTo(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool|None: return String.TryCompare(self.GetFullName(), TryGetFullName(item))
+    def _CompareTo(self, item: IBrowsableInfo|str|object) -> bool|None: return String.TryCompare(self.GetFullName(), TryGetFullName(item))
 
     def ToString(self) -> str: return self.GetFullName()
 
@@ -92,6 +95,9 @@ class BrowsableNameInfo(BrowsableNameInfoBase):
 class IBrowsablePathInfo(IBrowsableInfo):
     def __init__(self) -> None: super().__init__()
 
+    @final
+    def _AsComparableValue(self) -> str: return self.GetPath()
+
     @abstractmethod
     def GetDirectory(self) -> str:
         ...
@@ -102,7 +108,7 @@ class IBrowsablePathInfo(IBrowsableInfo):
     def GetPath(self) -> str:
         return f"{self.GetDirectory()}{self.GetSeparator()}{self.GetNameInfo().GetFullName()}"
     
-    def Equals(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool:
+    def Equals(self, item: IBrowsableInfo|str|object) -> bool:
         def equals(item: IBrowsablePathInfo) -> bool: return String.AreEqual(self.GetPath(), item.GetPath())
         
         match item:
@@ -113,7 +119,7 @@ class IBrowsablePathInfo(IBrowsableInfo):
             case _: return False
     def Hash(self) -> int: return hash(self.GetPath())
     
-    def CompareTo(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool|None:
+    def _CompareTo(self, item: IBrowsableInfo|str|object) -> bool|None:
         def compareTo(item: IBrowsablePathInfo) -> bool|None: return String.Compare(self.GetPath(), item.GetPath())
         
         match item:
@@ -139,6 +145,9 @@ class BrowsablePathInfo(Abstract, IBrowsablePathInfo):
 class IBrowsable(IBrowsableInfo):
     def __init__(self) -> None: super().__init__()
 
+    @final
+    def _AsComparableValue(self) -> str: return self.GetPathInfo().GetPath()
+
     @abstractmethod
     def GetPathInfo(self) -> IBrowsablePathInfo:
         ...
@@ -146,7 +155,7 @@ class IBrowsable(IBrowsableInfo):
     @final
     def GetSeparator(self) -> str: return self.GetPathInfo().GetSeparator()
     
-    def Equals(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool:
+    def Equals(self, item: IBrowsableInfo|str|object) -> bool:
         def getPathInfo() -> IBrowsablePathInfo: return self.GetPathInfo()
         
         def equals(item: IBrowsablePathInfo) -> bool: return getPathInfo().Equals(item)
@@ -159,7 +168,7 @@ class IBrowsable(IBrowsableInfo):
             case _: return False
     def Hash(self) -> int: return hash(self.GetPathInfo().GetPath())
     
-    def CompareTo(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool|None:
+    def _CompareTo(self, item: IBrowsableInfo|str|object) -> bool|None:
         def getPathInfo() -> IBrowsablePathInfo: return self.GetPathInfo()
         
         def compareTo(item: IBrowsablePathInfo) -> bool|None: return getPathInfo().CompareTo(item.GetPath())
@@ -220,8 +229,6 @@ class BrowsableAbstract[T](RecursivelyEnumerable[IExplorable], IExplorableObject
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IExplorable]|None: return self._GetItems().TryGetEnumerator()
-    
-    def CompareTo(self, item: IBrowsable|IBrowsablePathInfo|IBrowsableNameInfo|object) -> bool|None: return self.GetPathInfo().CompareTo(item)
 class BrowsableBase[TIn, TOut](BrowsableAbstract[TIn], IGenericConstraint[TIn, IEnumerable[TOut]]):
     def __init__(self, innerObject: TIn) -> None:
         def update(func: IFunction[ISortedList[IExplorable]]) -> None: self.__items = func

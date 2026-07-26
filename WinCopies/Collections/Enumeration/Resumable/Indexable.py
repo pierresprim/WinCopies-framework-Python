@@ -9,7 +9,7 @@ from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, 
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectFactory, SortedDisposableObjectFactory
 from WinCopies.Typing import GetDisposedError
-from WinCopies.Typing.Comparison import IExtendedComparable
+from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
 type ICookie = ICookieBase[int]
@@ -21,8 +21,11 @@ class _ICookie(ICookieBase[int], IRemovable):
     def MoveToTop(self) -> None:
         ...
 
-class IResumableIncrementalEnumerationCursor(IExtendedComparable["IResumableIncrementalEnumerationCursor|int"], IResumableEnumerationCursor):
+class IResumableIncrementalEnumerationCursor(IHashableComparableItem[int], IResumableEnumerationCursor):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsComparableValue(self) -> int: return self.GetIndex()
     
     @abstractmethod
     def GetIndex(self) -> int:
@@ -76,7 +79,7 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
     def Equals(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool: return self.__Compare(item, UnderlyingValueEquals)
     def Hash(self) -> int: return hash(self.GetIndex())
     
-    def CompareTo(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool|None: return self.__Compare(item, CompareUnderlyingValue)
+    def _CompareTo(self, item: int|object) -> bool|None: return self.__Compare(item, CompareUnderlyingValue)
     
     def Dispose(self) -> None:
         cookie: _ICookie|None = self.__cookie

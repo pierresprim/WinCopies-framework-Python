@@ -6,11 +6,11 @@ from weakref import ref, ReferenceType
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IGetter
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol, HashableComparableProtocol
+from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol
 
 def ExtractKey(item: INodeBase|object) -> object:
     return item.GetKey() if isinstance(item, INodeBase) else item
-def GetKey[TKey: HashableComparableProtocol, TValue](node: INode[TKey, TValue]) -> TKey:
+def GetKey[TKey: HashableProtocol, TValue](node: INode[TKey, TValue]) -> TKey:
     return node.GetKey()
 
 class INodeBase(IInterface):
@@ -19,7 +19,7 @@ class INodeBase(IInterface):
     @abstractmethod
     def GetKey(self) -> object:
         ...
-class INode[TKey, TValue](INodeBase, IHashableItem["INode[TKey, TValue]|TKey"]):
+class INode[TKey, TValue](INodeBase, IHashableItem[TKey]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod

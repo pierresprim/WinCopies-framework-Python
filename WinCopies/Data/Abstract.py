@@ -20,7 +20,7 @@ from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandle
 from WinCopies.Delegates import BoolFalse
 
 from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
-from WinCopies.Typing.Comparison import IEquatable, INotHashableValue
+from WinCopies.Typing.Comparison import IEquatableItem, INotHashableItem
 from WinCopies.Typing.Delegate import Method, Function, NullableConverter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
@@ -83,7 +83,7 @@ class _ITransactionCheckable(IInterface):
     def _EnsureNoActiveTransaction(self) -> None:
         if self._CheckIfActiveTransaction(): raise InvalidOperationError("DDL is not allowed while a transaction is active.")
 
-class ITable(IEquatable['ITable'], IRemovable, IDisposable):
+class ITable(IEquatableItem['ITable'], IRemovable, IDisposable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -130,7 +130,7 @@ class ITable(IEquatable['ITable'], IRemovable, IDisposable):
     @abstractmethod
     def TryRemove(self) -> bool:
         ...
-class Table(Abstract, ITable, INotHashableValue, _ITransactionCheckable):
+class Table(Abstract, ITable, INotHashableItem[ITable], _ITransactionCheckable):
     class _QueryFactory(Abstract, ITableQueryFactory):
         def __init__(self, table: Table) -> None:
             super().__init__()

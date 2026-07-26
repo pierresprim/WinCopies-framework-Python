@@ -6,9 +6,9 @@ from typing import final, Self
 from WinCopies import Abstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.BoolProvider import IBoolProvider, INullableBoolProvider
-from WinCopies.Typing.Comparison import IEquatableItem, INotHashableItem
+from WinCopies.Typing.Comparison import IEquatableValue, INotHashableItem
 
-class IKeyValuePair[TKey, TValue](IEquatableItem["IKeyValuePair[TKey, TValue]"]):
+class IKeyValuePair[TKey, TValue](IEquatableValue):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -23,7 +23,7 @@ class IKeyValuePair[TKey, TValue](IEquatableItem["IKeyValuePair[TKey, TValue]"])
         ...
     
     @final
-    def Equals(self, item: IKeyValuePair[TKey, TValue]) -> bool: return type(item) == type(self) and (item.IsKeyValuePair() == self.IsKeyValuePair()) and (item.GetKey() == self.GetKey()) and (item.GetValue() == self.GetValue())
+    def Equals(self, item: Self|object) -> bool: return isinstance(item, type(self)) and type(item) == type(self) and (item.IsKeyValuePair() == self.IsKeyValuePair()) and (item.GetKey() == self.GetKey()) and (item.GetValue() == self.GetValue())
 
 class KeyValuePairBase[TKey, TValue](Abstract, IKeyValuePair[TKey, TValue], INotHashableItem[IKeyValuePair[TKey, TValue]]):
     def __init__(self) -> None: super().__init__()

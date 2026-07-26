@@ -11,20 +11,23 @@ from WinCopies import IInterface, IDisposableBase, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Delegates import NoAction, FuncNone
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
-from WinCopies.Typing import NumericalValue, IDisposable, INullable, IEnum
-from WinCopies.Typing.Comparison import IHashableValue, IHashable, IExtendedHashableComparable, CompareTo
+from WinCopies.Typing import NumericalValue, INullable, IDisposable, IEnumBase, IEnum
+from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem, CompareTo
 from WinCopies.Typing.Delegate import Action, NullableFunction
+from WinCopies.Typing.Enum import IntEnum, IntegerEnum
 from WinCopies.Typing.Reflection import IsOf, GetType, GetTypeName
 
-class IItem(IHashableValue, IStringable):
+class IItem(IHashableBase, IEquatableBase, IStringable):
     def __init__(self) -> None: super().__init__()
 
-class IObject[T](IHashable[T], IItem):
+class IObject[T](IHashableItem[T|object], IItem):
     def __init__(self) -> None: super().__init__()
 class Object[T](Abstract, IObject[T]):
     def __init__(self) -> None: super().__init__()
 
-class IComparableObject[T](IObject[T], IExtendedHashableComparable[T]):
+class IComparableItem[T](IHashableComparableItem[T], IItem):
+    def __init__(self) -> None: super().__init__()
+class IComparableObject[T](IObject[T], IHashableComparableItem[T]):
     def __init__(self) -> None: super().__init__()
 
 class IValueProvider(IInterface):
@@ -63,6 +66,9 @@ class IComplexValueObject[TValue, TUnderlying, TObject](IItemObject[TValue, TObj
 
 class IComparableValueObject[TValue, TObject](IItemObject[TValue, TObject], IComparable[TValue|TObject]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsComparableValue(self) -> TValue: return self.GetValue()
 class IComparableComplexValueObject[TValue, TUnderlying, TObject](IComplexValueObject[TValue, TUnderlying, TObject], IComparableValueObject[TValue, TObject]):
     def __init__(self) -> None: super().__init__()
 
@@ -109,13 +115,13 @@ class ComparableValueObjectBase[TValue, TObject, TInterface: IValueItem](Extende
     
     @staticmethod
     @abstractmethod
-    def _CompareTo(x: TObject, y: TObject) -> bool:
+    def _CompareValues(x: TObject, y: TObject) -> bool:
         ...
     
     @staticmethod
     @final
     def Compare(x: TValue|TObject|TInterface, y: TValue|TObject|TInterface) -> bool|None:
-        def compare(x: TObject, y: TObject) -> bool|None: return None if ComparableValueObjectBase[TValue, TObject, TInterface]._AreValuesEqual(x, y) else ComparableValueObjectBase[TValue, TObject, TInterface]._CompareTo(y, x)
+        def compare(x: TObject, y: TObject) -> bool|None: return None if ComparableValueObjectBase[TValue, TObject, TInterface]._AreValuesEqual(x, y) else ComparableValueObjectBase[TValue, TObject, TInterface]._CompareValues(y, x)
 
         return compare(ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(x), ExtendedValueObjectBase[TValue, TObject, TInterface].AsValue(y))
     @staticmethod
@@ -128,7 +134,7 @@ class ValueObject[TValue, TInterface: IValueItem](ExtendedValueObjectBase[TValue
 class ComparableValueObject[TValue, TInterface: IValueItem](ComparableValueObjectBase[TValue, TValue, TInterface]):
     def __init__(self, value: TValue) -> None: super().__init__(value)
 
-class IBoolean(IComparableValueObject[bool, 'IBoolean|bool']):
+class IBoolean(IComparableValueObject[bool, bool]):
     def __init__(self) -> None: super().__init__()
 class __Boolean(Abstract, IBoolean):
     def __init__(self) -> None: super().__init__()
@@ -141,7 +147,7 @@ class __Boolean(Abstract, IBoolean):
         return (isinstance(item, IBoolean) and equals(item.GetValue())) or (isinstance(item, bool) and equals(item))
     def Hash(self) -> int: return hash(self.GetValue())
     
-    def CompareTo(self, item: IBoolean|bool|object) -> bool|None:
+    def _CompareTo(self, item: IBoolean|bool|object) -> bool|None:
         def compareTo(item: bool) -> bool|None: return CompareTo(self.GetValue(), item)
         
         return (isinstance(item, IBoolean) and compareTo(item.GetValue())) or (isinstance(item, bool) and compareTo(item))
@@ -165,16 +171,13 @@ __false: IBoolean = __False()
 def GetTrueObject() -> IBoolean: return __true
 def GetFalseObject() -> IBoolean: return __false
 
-type NumericalObject = IInteger|IFloat|IDecimal
-type Numerical = NumericalValue|NumericalObject
-
 class INumericalItem(IValueItem):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetValue(self) -> NumericalValue:
         ...
-class INumericalValue[T: NumericalValue](IComparableValueObject[T, Numerical], INumericalItem):
+class INumericalValue[T: NumericalValue](IComparableValueObject[T, "Numerical"], INumericalItem):
     def __init__(self) -> None: super().__init__()
 
 class IInteger(INumericalValue[int]):
@@ -183,6 +186,9 @@ class IFloat(INumericalValue[float]):
     def __init__(self) -> None: super().__init__()
 class IDecimal(INumericalValue[decimal]):
     def __init__(self) -> None: super().__init__()
+
+type NumericalObject = IInteger|IFloat|IDecimal
+type Numerical = NumericalValue|NumericalObject
 
 def TryMapNumericalValue(obj: object) -> NumericalValue|None:
     match obj:
@@ -222,7 +228,7 @@ class _NumericalValue[T: NumericalValue](ComparableValueObjectBase[T, NumericalV
     def Equals(self, item: Numerical|object) -> bool: return Equals(self, item) if isinstance(item, INumericalItem) else ValueEquals(self, item)
     def Hash(self) -> int: return hash(self.GetValue())
     
-    def CompareTo(self, item: Numerical|object) -> bool|None:
+    def _CompareTo(self, item: Numerical|object) -> bool|None:
         def compareTo(item: int) -> bool|None: return CompareTo(self.GetValue(), item)
         
         return (isinstance(item, IInteger) and compareTo(item.GetValue())) or (isinstance(item, int) and compareTo(item))
@@ -235,7 +241,7 @@ class _NumericalValue[T: NumericalValue](ComparableValueObjectBase[T, NumericalV
         return x == y
     @staticmethod
     @final
-    def _CompareTo(x: NumericalValue, y: NumericalValue) -> bool:
+    def _CompareValues(x: NumericalValue, y: NumericalValue) -> bool:
         return x > y
     
     @staticmethod
@@ -247,55 +253,55 @@ class Integer(_NumericalValue[int], IInteger):
     def __init__(self, value: int) -> None: super().__init__(value)
     
     @staticmethod
-    def FromEnum(value: Enum) -> IInteger:
+    def FromEnum(value: IntegerEnum) -> IInteger:
         return Integer(value.value)
 class Float(_NumericalValue[float], IFloat):
     def __init__(self, value: float) -> None: super().__init__(value)
 class Decimal(_NumericalValue[decimal], IDecimal):
     def __init__(self, value: decimal) -> None: super().__init__(value)
 
-class IEnumValue[T: Enum](IComparableComplexValueObject[T, int, IEnum|Enum], IEnum):
+class IEnumValue[TEnum: Enum, TValue](IComparableComplexValueObject[TEnum, TValue, IEnum[TEnum]|Enum], IEnum[TEnum]):
     def __init__(self) -> None: super().__init__()
-class EnumValue[T: Enum](ValueObjectAbstract[T, int, IEnum|Enum], IEnumValue[T]):
+class EnumValue[T: IntegerEnum](ValueObjectAbstract[T, int, IEnum[T]|Enum], IEnumValue[T, int]):
     def __init__(self, value: T) -> None: super().__init__(value)
     
     @final
-    def GetEnumValue(self) -> Enum:
+    def GetEnumValue(self) -> T:
         return self.GetValue()
     @final
     def GetUnderlyingValue(self) -> int:
-        return int(self.GetValue().value)
+        return self.GetValue().value
     
     @final
     def IsSameAs(self, value: Enum) -> bool:
         return IsOf(self.GetValue(), type(value))
     
-    def Equals(self, item: IEnum|Enum|object) -> bool:
+    def Equals(self, item: IEnumBase|Enum|object) -> bool:
         def equals(item: Enum) -> bool: return self.GetValue() == item
         
-        return (isinstance(item, IEnum) and equals(item.GetEnumValue())) or (isinstance(item, Enum) and equals(item))
+        return (isinstance(item, IEnumBase) and equals(item.GetEnumValue())) or (isinstance(item, Enum) and equals(item))
     def Hash(self) -> int: return hash(self.GetValue().value)
     
-    def CompareTo(self, item: IEnumValue[T]|Enum|object) -> bool|None:
+    def _CompareTo(self, item: IEnumValue[T, int]|Enum|object) -> bool|None:
         def compareTo(item: Enum) -> bool|None: return self.IsSameAs(item) and CompareTo(self.GetUnderlyingValue(), item.value)
         
-        return (isinstance(item, IEnum) and compareTo(item.GetEnumValue())) or (isinstance(item, Enum) and compareTo(item))
+        return (isinstance(item, IEnumBase) and compareTo(item.GetEnumValue())) or (isinstance(item, Enum) and compareTo(item))
     
     def ToString(self) -> str: return str(self.GetValue().name)
 
-def AreEnumsEqual[T: IEnum|Enum](x: T, y: T) -> bool:
+def AreEnumsEqual[T: IEnumBase|Enum](x: T, y: T) -> bool:
     return _AreEnumsEqual(x, y)
-def TryAreEnumsEqual[T: IEnum|Enum](x: T|None, y: T|None) -> bool:
+def TryAreEnumsEqual[T: IEnumBase|Enum](x: T|None, y: T|None) -> bool:
     return _TryAreEnumsEqual(x, y)
 
-def CompareEnums[T: IEnum|Enum](x: T, y: T) -> INullable[bool|None]:
+def CompareEnums[T: IntegerEnum](x: IEnum[T]|T, y: IEnum[T]|T) -> bool|None:
     return _CompareEnums(x, y)
-def TryCompare[T: IEnum|Enum](x: T|None, y: T|None) -> INullable[bool|None]:
+def TryCompare[T: IntegerEnum](x: IEnum[T]|T|None, y: IEnum[T]|T|None) -> INullable[bool|None]:
     return _TryCompare(x, y)
 
-def CreateEnum[T: Enum](value: T) -> IEnumValue[T]:
+def CreateEnum[T: IntegerEnum](value: T) -> IEnumValue[T, int]:
     return EnumValue[T](value)
-def TryCreateEnum[T: Enum](e: TypeBase[T], v: int) -> IEnumValue[T]|None:
+def TryCreateEnum[T: IntegerEnum](e: TypeBase[T], v: int) -> IEnumValue[T, int]|None:
     result: T|None = TryGetFieldFromValue(e, v)
 
     return None if result is None else CreateEnum(result)
@@ -311,7 +317,7 @@ class String(ComparableValueObject[str, IString], IString):
         return (isinstance(item, IString) and equals(item.GetValue())) or (isinstance(item, str) and equals(item))
     def Hash(self) -> int: return hash(self.GetValue())
     
-    def CompareTo(self, item: IString|str|object) -> bool|None:
+    def _CompareTo(self, item: IString|str|object) -> bool|None:
         def compareTo(item: str) -> bool|None: return String.Compare(self.GetValue(), item)
         
         return (isinstance(item, IString) and compareTo(item.GetValue())) or (isinstance(item, str) and compareTo(item))
@@ -324,7 +330,7 @@ class String(ComparableValueObject[str, IString], IString):
         return x == y
     @staticmethod
     @final
-    def _CompareTo(x: str, y: str) -> bool:
+    def _CompareValues(x: str, y: str) -> bool:
         return x > y
     
     @staticmethod
@@ -343,7 +349,7 @@ class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
         return (isinstance(item, IByteArray) and equals(item.GetValue())) or (isinstance(item, bytes) and equals(item))
     def Hash(self) -> int: return hash(self.GetValue())
     
-    def CompareTo(self, item: IByteArray|bytes|object) -> bool|None:
+    def _CompareTo(self, item: IByteArray|bytes|object) -> bool|None:
         def compareTo(item: bytes) -> bool|None: return ByteArray.Compare(self.GetValue(), item)
         
         return (isinstance(item, IByteArray) and compareTo(item.GetValue())) or (isinstance(item, bytes) and compareTo(item))
@@ -356,7 +362,7 @@ class ByteArray(ComparableValueObject[bytes, IByteArray], IByteArray):
         return x == y
     @staticmethod
     @final
-    def _CompareTo(x: bytes, y: bytes) -> bool:
+    def _CompareValues(x: bytes, y: bytes) -> bool:
         return x > y
     
     @staticmethod
@@ -397,6 +403,15 @@ class DefaultReference[T](Reference[T]):
     
     def ToString(self) -> str: return str(self)
 
+class IDate(IItemObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["date|DateTimeOrDeltaItem"]):
+    def __init__(self) -> None: super().__init__()
+class ITime(IItemObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["time|DateTimeOrDeltaItem"]):
+    def __init__(self) -> None: super().__init__()
+class IDateTime(IItemObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparable["datetime|DateTimeOrDeltaItem"]):
+    def __init__(self) -> None: super().__init__()
+class ITimeDelta(IItemObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparable["timedelta|DateTimeOrDeltaItem"]):
+    def __init__(self) -> None: super().__init__()
+
 type DateOrTimeValue = date|time
 type DateAndTimeValue = DateOrTimeValue|datetime
 type DateTimeOrDeltaValue = DateAndTimeValue|timedelta
@@ -409,17 +424,11 @@ type DateOrTime = DateOrTimeValue|DateOrTimeItem
 type DateAndTime = DateOrTime|DateAndTimeValue|DateAndTimeItem
 type DateTimeOrDelta = DateAndTime|DateTimeOrDeltaValue|DateTimeOrDeltaItem
 
-class IDate(IItemObject[date, "time|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["date|DateTimeOrDeltaItem"]):
-    def __init__(self) -> None: super().__init__()
-class ITime(IItemObject[time, "date|datetime|timedelta|DateTimeOrDeltaItem"], IComparable["time|DateTimeOrDeltaItem"]):
-    def __init__(self) -> None: super().__init__()
-class IDateTime(IItemObject[datetime, "DateOrTimeValue|timedelta|DateTimeOrDeltaItem"], IComparable["datetime|DateTimeOrDeltaItem"]):
-    def __init__(self) -> None: super().__init__()
-class ITimeDelta(IItemObject[timedelta, "DateAndTimeValue|DateTimeOrDeltaItem"], IComparable["timedelta|DateTimeOrDeltaItem"]):
-    def __init__(self) -> None: super().__init__()
-
 class _DateTime[TValue: DateTimeOrDeltaValue, TInterface: DateTimeOrDeltaItem](ExtendedValueObjectBase[TValue, DateTimeOrDeltaValue, DateTimeOrDeltaItem]):
     def __init__(self, value: TValue) -> None: super().__init__(value)
+
+    @final
+    def _AsComparableValue(self) -> TValue: return self.GetValue()
     
     def Equals(self, item: TValue|TInterface|object) -> bool:
         def equals(item: DateTimeOrDeltaValue) -> bool: return _DateTime[TValue, TInterface].AreEqual(self.GetValue(), item)
@@ -427,7 +436,7 @@ class _DateTime[TValue: DateTimeOrDeltaValue, TInterface: DateTimeOrDeltaItem](E
         return (isinstance(item, (IDate, ITime, IDateTime, ITimeDelta)) and equals(item.GetValue())) or (isinstance(item, (date, time, datetime, timedelta)) and equals(item))
     def Hash(self) -> int: return hash(self.GetValue())
     
-    def CompareTo(self, item: TValue|TInterface|object) -> bool|None:
+    def _CompareTo(self, item: TValue|TInterface|object) -> bool|None:
         def compareTo(item: TValue|TInterface) -> bool|None: return _DateTime[TValue, TInterface].Compare(self.GetValue(), item)
         
         return (isinstance(item, _DateTime[TValue, TInterface]._GetInterfaceType()) and compareTo(_DateTime[TValue, TInterface]._AsValue(item))) or (isinstance(item, _DateTime[TValue, TInterface]._GetValueType()) and compareTo(item))
@@ -449,7 +458,7 @@ class _DateTime[TValue: DateTimeOrDeltaValue, TInterface: DateTimeOrDeltaItem](E
         return x == y
     @staticmethod
     @abstractmethod
-    def _CompareTo(x: TValue, y: TValue) -> bool:
+    def _CompareValues(x: TValue, y: TValue) -> bool:
         pass
     
     @staticmethod
@@ -465,7 +474,7 @@ class _DateTime[TValue: DateTimeOrDeltaValue, TInterface: DateTimeOrDeltaItem](E
     @staticmethod
     @final
     def Compare(x: TValue|TInterface, y: TValue|TInterface) -> bool|None:
-        def compare(x: TValue, y: TValue) -> bool|None: return None if _DateTime[TValue, TInterface]._AreValuesEqual(x, y) else _DateTime[TValue, TInterface]._CompareTo(y, x)
+        def compare(x: TValue, y: TValue) -> bool|None: return None if _DateTime[TValue, TInterface]._AreValuesEqual(x, y) else _DateTime[TValue, TInterface]._CompareValues(y, x)
 
         return compare(_DateTime[TValue, TInterface]._AsValue(x), _DateTime[TValue, TInterface]._AsValue(y))
     @staticmethod
@@ -491,7 +500,7 @@ class Date(_DateTime[date, IDate], IDate):
         return item.GetValue() if isinstance(item, IDate) else item
     @staticmethod
     @final
-    def _CompareTo(x: date, y: date) -> bool:
+    def _CompareValues(x: date, y: date) -> bool:
         return x > y
 class Time(_DateTime[time, ITime], ITime):
     def __init__(self, value: time) -> None: super().__init__(value)
@@ -511,7 +520,7 @@ class Time(_DateTime[time, ITime], ITime):
         return item.GetValue() if isinstance(item, ITime) else item
     @staticmethod
     @final
-    def _CompareTo(x: time, y: time) -> bool:
+    def _CompareValues(x: time, y: time) -> bool:
         return x > y
 class DateTime(_DateTime[datetime, IDateTime], IDateTime):
     def __init__(self, value: datetime) -> None: super().__init__(value)
@@ -531,7 +540,7 @@ class DateTime(_DateTime[datetime, IDateTime], IDateTime):
         return item.GetValue() if isinstance(item, IDateTime) else item
     @staticmethod
     @final
-    def _CompareTo(x: datetime, y: datetime) -> bool:
+    def _CompareValues(x: datetime, y: datetime) -> bool:
         return x > y
 class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
     def __init__(self, value: timedelta) -> None: super().__init__(value)
@@ -551,7 +560,7 @@ class TimeDelta(_DateTime[timedelta, ITimeDelta], ITimeDelta):
         return item.GetValue() if isinstance(item, ITimeDelta) else item
     @staticmethod
     @final
-    def _CompareTo(x: timedelta, y: timedelta) -> bool:
+    def _CompareValues(x: timedelta, y: timedelta) -> bool:
         return x > y
 
 class IDisposableObject[T](IDisposable, IObject[T]):
@@ -559,7 +568,7 @@ class IDisposableObject[T](IDisposable, IObject[T]):
 
 type PrimitiveValue = bool|NumericalValue|str|bytes
 
-class PrimitiveType(Enum):
+class PrimitiveType(IntEnum):
     Null = 0
     Bool = 1
     Integer = 2
