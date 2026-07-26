@@ -7,11 +7,12 @@ from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Extensions import IReadOnlySet
-from WinCopies.Enum import EnsureOneAndOnlyOneFlag
+from WinCopies.Enum import EnsureOneAndOnlyOneFlag, TryGetFieldFromName, TryGetFieldFromValue, TryGetValueFromName
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import ErrorBase, InvalidOperationError
 from WinCopies.Typing.Comparison import IHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Selector
+from WinCopies.Typing.Enum import IntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 from WinCopies.Data.Misc import ITableNameFormater
@@ -115,26 +116,28 @@ class ConditionalOperator(Enum):
         
         return getValue(ConditionalOperator.And, ConditionalOperator.Or)
 
-class Ordering(Enum):
-    Null = 0,
-    Ascending = 1,
-    Descending = 2
+class OrderingNames(StrEnum):
+    Ascending = "ASC"
+    Descending = "DESC"
+class Ordering(IntEnum):
+    Descending = -1
+    Null = 0
+    Ascending = 1
 
     @final
     def __str__(self) -> str:
-        match self:
-            case Ordering.Ascending: return "ASC"
-            case Ordering.Descending: return "DESC"
-
-            case _: return ''
+        return TryGetValueFromName(OrderingNames, self.name)
     
     @staticmethod
-    def TryParse(value: str) -> Ordering|None:
-        match value:
-            case "ASC": return Ordering.Ascending
-            case "DESC": return Ordering.Descending
-            
-            case _: return None
+    def TryParse(value: OrderingNames|str) -> Ordering:
+        def getOrdering(ordering: OrderingNames|None) -> Ordering:
+            if ordering is None: return Ordering.Null
+
+            result: Ordering|None = TryGetFieldFromName(Ordering, ordering.name)
+
+            return Ordering.Null if result is None else result
+
+        return getOrdering(value if isinstance(value, OrderingNames) else TryGetFieldFromValue(OrderingNames, value))
 
 class IParameterProvider(IInterface):
     def __init__(self) -> None: super().__init__()

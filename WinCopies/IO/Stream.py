@@ -16,12 +16,24 @@ from types import TracebackType
 from typing import cast, final
 
 from WinCopies import IInterface, IDisposableBase, IDisposable, IStringable, Abstract
-from WinCopies.Enum import TryGetFieldFromValue
+from WinCopies.Enum import TryGetFieldFromName, TryGetFieldFromValue, TryGetValueFromName
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Function, Predicate, Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Enum import IntEnum
+from WinCopies.Typing.Enum import IntEnum, StrEnum
 from WinCopies.Typing.Generic import IGenericConstraint
 
+class FileModeNames(StrEnum):
+    Read = 'r'
+    Write = 'w'
+    
+    Append = 'a'
+    Create = 'x'
+    
+    ReadWrite = 'r+'
+    Truncate = 'w+'
+    
+    AppendExtended = 'a+'
+    CreateExtended = 'x+'
 class FileMode(Enum):
     Null = 0
     Read = 1
@@ -42,14 +54,7 @@ class FileMode(Enum):
     """Open the file. Error if existing."""
     
     def __str__(self) -> str:
-        match self:
-            case FileMode.Read: return 'r'
-            case FileMode.Write: return 'w'
-            
-            case FileMode.Append: return 'a'
-            case FileMode.Create: return 'x'
-            
-            case _: return ''
+        return TryGetValueFromName(FileModeNames, self.name)
     
     def ToString(self, fileType: FileType) -> str:
         def getMode() -> str: return str(self)
@@ -74,41 +79,37 @@ class FileMode(Enum):
             case _: return ''
     
     @staticmethod
-    def GetMode(fileMode: str) -> FileMode:
-        match fileMode:
-            case 'r': return FileMode.Read
-            case 'w': return FileMode.Write
-            
-            case 'a': return FileMode.Append
-            case 'x': return FileMode.Create
-            
-            case 'r+': return FileMode.ReadWrite
-            case 'w+': return FileMode.Truncate
-            
-            case 'a+': return FileMode.AppendExtended
-            case 'x+': return FileMode.CreateExtended
-            
-            case _: return FileMode.Null
+    def GetMode(fileMode: FileModeNames|str) -> FileMode:
+        def getMode(fileMode: FileModeNames|None) -> FileMode:
+            if fileMode is None: return FileMode.Null
 
+            mode: FileMode|None = TryGetFieldFromName(FileMode, fileMode.name)
+
+            return FileMode.Null if mode is None else mode
+
+        return getMode(fileMode if isinstance(fileMode, FileModeNames) else TryGetFieldFromValue(FileModeNames, fileMode))
+
+class FileTypeNames(StrEnum):
+    Text = 't'
+    Binary = 'b'
 class FileType(Enum):
     Null = 0
     Text = 1
     Binary = 2
                 
     def __str__(self) -> str:
-        match self:
-            case FileType.Text: return 't'
-            case FileType.Binary: return 'b'
-            
-            case _: return ''
+        return TryGetValueFromName(FileTypeNames, self.name)
     
     @staticmethod
-    def GetType(fileType: str) -> FileType:
-        match fileType:
-            case 't': return FileType.Text
-            case 'b': return FileType.Binary
+    def GetType(fileType: FileTypeNames|str) -> FileType:
+        def getType(fileType: FileTypeNames|None) -> FileType:
+            if fileType is None: return FileType.Null
+
+            type: FileType|None = TryGetFieldFromName(FileType, fileType.name)
             
-            case _: return FileType.Null
+            return FileType.Null if type is None else type
+
+        return getType(fileType if isinstance(fileType, FileTypeNames) else TryGetFieldFromValue(FileTypeNames, fileType))
 
 class StreamPosition(IntEnum):
     Null = 0

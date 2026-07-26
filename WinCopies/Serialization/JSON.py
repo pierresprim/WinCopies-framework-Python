@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import Enum, Flag
+from enum import Enum, StrEnum, Flag
 from typing import Callable, final
 
 from WinCopies import Abstract
@@ -36,37 +36,37 @@ class Event(Enum):
     Number = 10
     String = 11
 
-class _Events:
-    START_MAP = "start_map"
-    END_MAP = "end_map"
-    START_ARRAY = "start_array"
-    END_ARRAY = "end_array"
-    MAP_KEY = "map_key"
-    NULL = "null"
-    BOOLEAN = "boolean"
-    INTEGER = "integer"
-    DOUBLE = "double"
-    NUMBER = "number"
-    STRING = "string"
+class EventNames(StrEnum):
+    StartMap = "start_map"
+    EndMap = "end_map"
+    StartArray = "start_array"
+    EndArray = "end_array"
+    MapKey = "map_key"
+    Null = "null"
+    Boolean = "boolean"
+    Integer = "integer"
+    Double = "double"
+    Number = "number"
+    String = "string"
 
     @staticmethod
     def TryConvertToEvent(eventName: str) -> Event|None:
         match eventName:
-            case _Events.START_MAP: return Event.StartMap
-            case _Events.END_MAP: return Event.EndMap
+            case EventNames.StartMap: return Event.StartMap
+            case EventNames.EndMap: return Event.EndMap
             
-            case _Events.START_ARRAY: return Event.StartArray
-            case _Events.END_ARRAY: return Event.EndArray
+            case EventNames.StartArray: return Event.StartArray
+            case EventNames.EndArray: return Event.EndArray
             
-            case _Events.MAP_KEY: return Event.MapKey
+            case EventNames.MapKey: return Event.MapKey
             
-            case _Events.NULL: return Event.NullValue
+            case EventNames.Null: return Event.NullValue
             
-            case _Events.BOOLEAN: return Event.Boolean
-            case _Events.INTEGER: return Event.Integer
-            case _Events.DOUBLE: return Event.Double
-            case _Events.NUMBER: return Event.Number
-            case _Events.STRING: return Event.String
+            case EventNames.Boolean: return Event.Boolean
+            case EventNames.Integer: return Event.Integer
+            case EventNames.Double: return Event.Double
+            case EventNames.Number: return Event.Number
+            case EventNames.String: return Event.String
             
             case _: return None
 
@@ -645,7 +645,7 @@ def _Enumerate(stream: IStreamReader[bytes]) -> Generator[Item]:
     event: Event|None = None
 
     for item in parse(stream.AsReader()):
-        if (event := _Events.TryConvertToEvent(item[1])) is not None: yield Item(str(item[0]), item[2], event)
+        if (event := EventNames.TryConvertToEvent(item[1])) is not None: yield Item(str(item[0]), item[2], event)
 
 def GetNodeEnumerator(stream: IStreamReader[bytes]) -> IEnumerator[DualResult[INode|None, Event]]:
     return Enumerator(AsEnumerator(_Enumerate(stream)))
