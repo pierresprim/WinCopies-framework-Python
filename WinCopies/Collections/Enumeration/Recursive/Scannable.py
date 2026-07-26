@@ -19,8 +19,8 @@ class Events(Flag):
     End = auto()
 
 class LoopResult(Enum):
-    Continue = 0
-    Completed = 1
+    Completed = 0
+    Continue = 1
     SkipChildren = 2
     ExitLevel = 3
 
