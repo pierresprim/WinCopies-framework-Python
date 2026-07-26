@@ -1,4 +1,4 @@
-from typing import runtime_checkable, Any, Protocol
+from typing import runtime_checkable, Any, Protocol, Self
 
 @runtime_checkable
 class SupportsEqualityComparison(Protocol):
@@ -12,16 +12,16 @@ class SupportsEqualityComparison(Protocol):
 class SupportsRichComparison(Protocol):
     """Protocol for types that support comparison operators."""
     
-    def __lt__(self, other: Any, /) -> bool:
+    def __lt__(self, other: Self, /) -> bool:
         """Less than comparison."""
         ...
-    def __le__(self, other: Any, /) -> bool:
+    def __le__(self, other: Self, /) -> bool:
         """Less than or equal comparison."""
         ...
-    def __gt__(self, other: Any, /) -> bool:
+    def __gt__(self, other: Self, /) -> bool:
         """Greater than comparison."""
         ...
-    def __ge__(self, other: Any, /) -> bool:
+    def __ge__(self, other: Self, /) -> bool:
         """Greater than or equal comparison."""
         ...
 
@@ -32,15 +32,15 @@ class SupportsEqualityAndRichComparison(Protocol):
     def __hash__(self, /) -> int:
         ...
     
-    def __lt__(self, other: Any, /) -> bool:
+    def __lt__(self, other: Self, /) -> bool:
         """Less than comparison."""
         ...
-    def __le__(self, other: Any, /) -> bool:
+    def __le__(self, other: Self, /) -> bool:
         """Less than or equal comparison."""
         ...
-    def __gt__(self, other: Any, /) -> bool:
+    def __gt__(self, other: Self, /) -> bool:
         """Greater than comparison."""
         ...
-    def __ge__(self, other: Any, /) -> bool:
+    def __ge__(self, other: Self, /) -> bool:
         """Greater than or equal comparison."""
         ...
