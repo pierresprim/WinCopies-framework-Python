@@ -265,6 +265,14 @@ def TryGetFieldFromValue[T: Enum](e: Type[T], v: Any) -> T|None:
 
     return __TryGetField(e, lambda o: o.value == v)
 
+def StringifyIfNone(e: StringEnum|None) -> str:
+    return '' if e is None else (e if isinstance(e, str) else e.value)
+
+def TryGetValueFromName(e: Type[StringEnum], n: str) -> str:
+    return StringifyIfNone(TryGetFieldFromName(e, n))
+def TryGetValueFromValue(e: Type[StringEnum], v: str) -> str:
+    return StringifyIfNone(TryGetFieldFromValue(e, v))
+
 def EnumerateFlags[T: Flag](e: T) -> Iterable[T]:
     yield from e
 
