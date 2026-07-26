@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from importlib import import_module
-from inspect import FrameInfo, Traceback, getframeinfo, getsource
+from inspect import FrameInfo, Traceback, getframeinfo, getsource, getmembers, isfunction, ismethod
 from pkgutil import ModuleInfo as ModuleInfoBase, walk_packages
 from sys import modules
-from types import ModuleType, FrameType, FunctionType
+from types import ModuleType, FrameType, FunctionType, MethodType
 from typing import Protocol, Type, final
 
 from WinCopies import IInterface, Abstract
@@ -19,7 +19,21 @@ from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
 from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Reflection import GetModuleName, TryGetModuleNameFromFrame, TryGetPackageNameFromFrame, TryFindModuleFromFileName, TryGetModuleFromFrame, IsSubmoduleFromNames, TryIsModuleInPackageFromFrame, TryIsMain, TryIsBuiltin, EnumerateFunctions
+from WinCopies.Typing.Pairing import KeyValuePair
+from WinCopies.Typing.Reflection import GetModuleName, TryGetModuleNameFromFrame, TryGetPackageNameFromFrame, TryFindModuleFromFileName, TryGetModuleFromFrame, IsSubmoduleFromNames, TryIsModuleInPackageFromFrame, TryIsMain, TryIsBuiltin
+
+def GetFunctions(t: type) -> Sequence[tuple[str, FunctionType]]:
+    return getmembers(t, isfunction)
+def GetMethods(obj: object) -> Sequence[tuple[str, MethodType]]:
+    return getmembers(obj, ismethod)
+
+def _EnumerateMembers[T](members: Iterable[tuple[str, T]]) -> Generator[KeyValuePair[str, T]]:
+    return (KeyValuePair(member_name, member) for (member_name, member) in members)
+
+def EnumerateFunctions(t: type) -> Generator[KeyValuePair[str, FunctionType]]:
+    return _EnumerateMembers(GetFunctions(t))
+def EnumerateMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
+    return _EnumerateMembers(GetMethods(obj))
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package

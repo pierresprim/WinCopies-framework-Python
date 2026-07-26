@@ -1,10 +1,10 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from importlib import import_module
-from inspect import FrameInfo, stack, getfile, getmembers, isfunction, ismethod
+from inspect import FrameInfo, stack, getfile
 from os import path, sep
 from sys import modules, builtin_module_names
-from types import ModuleType, FrameType, FunctionType, MethodType
+from types import ModuleType, FrameType
 from typing import overload, final, Any, Callable, List, Type
 
 from WinCopies import IInterface, Abstract
@@ -13,7 +13,6 @@ from WinCopies.Collections import Generator
 from WinCopies.String import SplitFromLast
 from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
 from WinCopies.Typing.Delegate import Converter, Selector, IFunctionBase, IFunction, IMethodBase, IMethod, IStruct
-from WinCopies.Typing.Pairing import KeyValuePair
 
 type GetterBase[TClass, TValue] = Converter[TClass, IFunctionBase[TValue]]
 type SetterBase[TClass, TValue] = Converter[TClass, IMethodBase[TValue]]
@@ -573,19 +572,6 @@ def AreInstances(type: type, *values: object) -> bool:
         if not isinstance(value, type): return False
 
     return True
-
-def GetFunctions(t: type) -> Sequence[tuple[str, FunctionType]]:
-    return getmembers(t, isfunction)
-def GetMethods(obj: object) -> Sequence[tuple[str, MethodType]]:
-    return getmembers(obj, ismethod)
-
-def _EnumerateMembers[T](members: Iterable[tuple[str, T]]) -> Generator[KeyValuePair[str, T]]:
-    return (KeyValuePair(member_name, member) for (member_name, member) in members)
-
-def EnumerateFunctions(t: type) -> Generator[KeyValuePair[str, FunctionType]]:
-    return _EnumerateMembers(GetFunctions(t))
-def EnumerateMethods(obj: object) -> Generator[KeyValuePair[str, MethodType]]:
-    return _EnumerateMembers(GetMethods(obj))
 
 def GetType[T](value: T|Type[T]) -> Type[T]: return value if isinstance(value, type) else type(value)
 def GetTypeName(value: object|type) -> str: return GetType(value).__name__
