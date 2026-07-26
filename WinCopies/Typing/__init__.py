@@ -227,7 +227,7 @@ class Monitor(Abstract, IMonitor):
     @final
     def Dispose(self) -> None: self.__isBusy = False
 
-class IEnum(IInterface):
+class IEnumBase(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
