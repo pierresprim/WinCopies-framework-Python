@@ -12,14 +12,16 @@ import os, sqlite3, tempfile, traceback
 
 from collections.abc import Iterable
 
-from WinCopies.Typing.Delegate import Action, IStruct, Struct
+from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import Action, Function, IStruct, Struct
+
 from WinCopies.Data.Abstract import IConnection, IDataBase
 from WinCopies.Data.Factory import IFieldFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, TextMode, IntegerField, TextField
-from WinCopies.Data.ORM import (ITransaction, DataContextBase, DataContext, Entity, EntityCollection, IColumnAbstract,
+from WinCopies.Data.ORM import (DataContextBase, DataContext, Entity, EntityCollection, IColumnAbstract,
                                 autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig,
                                 PrimaryKeyMutationError, RowVanishedError, UnresolvedRollbackError,
-                                EntityNotPersistedError, DeletedEntityError, InvalidOperationError,
+                                EntityNotPersistedError, DeletedEntityError,
                                 _GetColumns) # pyright: ignore[reportPrivateUsage]
 from WinCopies.Data.SQLite import Connection
 
@@ -209,6 +211,10 @@ def expect_raises(exc_type: type[Exception], fn: Action) -> None:
     except BaseException as e: raise AssertionError(f"expected {exc_type.__name__}, got {type(e).__name__}: {e}")
 
     raise AssertionError(f"expected {exc_type.__name__}, nothing raised")
+def func_expect_raises[T](exc_type: type[Exception], fn: Function[T]) -> None:
+    def action() -> None: fn()
+
+    expect_raises(exc_type, action)
 
 # ------------------------------------------------------------------ scenarios
 def s_simple() -> None:
@@ -353,7 +359,7 @@ def s_reinsert_root_app() -> None:
     it = insert_item(ctx, 10)
     tx = ctx.BeginTransaction(); it.Delete(); tx.Dispose()
     tx = ctx.BeginTransaction()
-    expect_raises(DeletedEntityError, lambda: tx.TryAdd(it))
+    func_expect_raises(DeletedEntityError, lambda: tx.TryAdd(it))
     tx.Dispose()
 
 def s_reinsert_root_db_origin() -> None:
@@ -365,7 +371,7 @@ def s_reinsert_root_db_origin() -> None:
     it = list(Items(ctx).Select().AsIterable())[0]      # DB-origin
     tx = ctx.BeginTransaction(); it.Delete(); tx.Dispose()
     tx = ctx.BeginTransaction()
-    expect_raises(DeletedEntityError, lambda: tx.TryAdd(it))
+    func_expect_raises(DeletedEntityError, lambda: tx.TryAdd(it))
     tx.Dispose()
 
 def s_reinsert_fk_target() -> None:
@@ -385,7 +391,7 @@ def s_reinsert_fk_target() -> None:
 
     p = Product(100, c)                                     # new product pointing at the tombstone
     tx = ctx.BeginTransaction()
-    expect_raises(DeletedEntityError, lambda: tx.TryAdd(p))
+    func_expect_raises(DeletedEntityError, lambda: tx.TryAdd(p))
     tx.Dispose()
 
 def s_mixed_tx() -> None:
