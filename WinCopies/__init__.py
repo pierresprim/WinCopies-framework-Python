@@ -24,7 +24,6 @@ if sys.version_info < _MIN_VERSION:
         f"You are using Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.")
 
 from abc import abstractmethod, ABC
-from enum import Enum
 from types import TracebackType
 from typing import final, Self
 
@@ -33,67 +32,6 @@ class IInterface:
 
 class Abstract(ABC, IInterface):
     def __init__(self) -> None: super().__init__()
-
-class IBooleanable(IInterface):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def ToBool(self) -> bool:
-        ...
-class INullableBooleanable(IInterface):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def ToNullableBoolean(self) -> NullableBoolean:
-        ...
-    
-    @final
-    def ToNullableBool(self) -> bool|None:
-        return ToNullableBool(self.ToNullableBoolean())
-
-class BooleanableEnum(Enum):
-    def __bool__(self) -> bool: return int(self.value) >= 0
-
-class NullableBoolean(BooleanableEnum):
-    BoolFalse = -1
-    Null = 0
-    BoolTrue = 1
-    
-    def Not(self) -> NullableBoolean:
-        return NullableBoolean.BoolFalse if self else NullableBoolean.BoolTrue
-    def NullableNot(self) -> NullableBoolean:
-        return NullableBoolean.Null if self == NullableBoolean.Null else self.Not()
-
-def ToNullableBool(value: NullableBoolean) -> bool|None:
-    match value:
-        case NullableBoolean.Null: return None
-        
-        case NullableBoolean.BoolFalse: return False
-        case NullableBoolean.BoolTrue: return True
-    
-    return ValueError(value)
-def ToNullableBoolean(value: bool|None) -> NullableBoolean:
-    match value:
-        case True: return NullableBoolean.BoolTrue
-        case False: return NullableBoolean.BoolFalse
-        
-        case _: return NullableBoolean.Null
-
-class Endianness(Enum):
-    Null = 0
-    Little = 1
-    Big = 2
-
-class Sign(Enum):
-    Signed = 1
-    Unsigned = 2
-    Float = 3
-
-class BitDepthLevel(Enum):
-    One = 8
-    Two = 16
-    Three = 32
-    Four = 64
 
 class IDisposableBase(IInterface):
     def __init__(self) -> None: super().__init__()

@@ -4,15 +4,9 @@ Unit tests for WinCopies root package (WinCopies/__init__.py).
 
 import unittest
 
-from WinCopies import (
-    BooleanableEnum, NullableBoolean,
-    IDisposable,
-    IStringable,
-    Endianness, Sign, BitDepthLevel,
-    ToNullableBool, ToNullableBoolean,
-    Not,
-    TryConvertToInt
-)
+from WinCopies import IDisposable, IStringable, Not, TryConvertToInt
+from WinCopies.Bool import BooleanableEnum, NullableBoolean, ToNullableBool, ToNullableBoolean
+from WinCopies.Extensions import Endianness, Sign, BitDepthLevel
 
 # ---------------------------------------------------------------------------
 # Concrete helpers for abstract classes

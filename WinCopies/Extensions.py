@@ -1,5 +1,24 @@
+from enum import Enum
+
 from WinCopies import AskConfirmation, ReadInt
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
+from WinCopies.Typing.Enum import IntEnum
+
+class Endianness(Enum):
+    Null = 0
+    Little = 1
+    Big = 2
+
+class Sign(Enum):
+    Signed = 1
+    Unsigned = 2
+    Float = 3
+
+class BitDepthLevel(IntEnum):
+    One = 8
+    Two = 16
+    Three = 32
+    Four = 64
 
 def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range.") -> int:
     value: int = 0
