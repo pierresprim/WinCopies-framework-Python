@@ -8,10 +8,8 @@ from enum import Enum, Flag
 from WinCopies.Assertion import (
     GetAssertionError,
     Throw,
-    EnsureFalse, TryEnsureFalse,
-    EnsureTrue, TryEnsureTrue,
-    EnsureNone,
-    EnsureValue,
+    EnsureFalse, EnsureTrue, TryEnsureFalse, TryEnsureTrue,
+    EnsureNone, EnsureValue,
     EnsureSubclass,
     EnsureEnum, EnsureFlagEnum
 )

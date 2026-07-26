@@ -6,34 +6,32 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    GetGenericError, GetDisposedError,
-    IDisposable, IDisposableInfo,
-    INullable, GetNullable, GetNullValue,
-    TryGetValue, GetNullableValue, HasValue,
-    DisposableProvider,
+    IDisposable, IDisposableInfo, DisposableProvider,
     Monitor,
-    TryGetValueAs, TryGetAs,
-)
-
+    INullable, GetNullable, GetNullValue, GetNullableValue,
+    GetGenericError, GetDisposedError,
+    TryGetValue, HasValue,
+    TryGetValueAs, TryGetAs)
 
 # ---------------------------------------------------------------------------
 # Concrete helpers
 # ---------------------------------------------------------------------------
 
 class _ConcreteDisposable(IDisposable):
-    def __init__(self) -> None:
-        super().__init__()
-        self.__disposed = False
+    def __init__(self) -> None: super().__init__()
 
-    def Dispose(self) -> None: self.__disposed = True
+    def Dispose(self) -> None: pass
 
 class _ConcreteDisposableInfo(IDisposableInfo):
     def __init__(self) -> None:
         super().__init__()
+
         self.__disposed = False
 
     def IsDisposed(self) -> bool: return self.__disposed
     def Dispose(self) -> None: self.__disposed = True
+
+def _Throw() -> None: _ConcreteDisposable()._Throw() # pyright: ignore[reportPrivateUsage]
 
 
 # ---------------------------------------------------------------------------
@@ -115,13 +113,13 @@ class TestIDisposableThrow(unittest.TestCase):
     def test_throw_raises_invalid_operation_error(self) -> None:
         """_Throw raises an InvalidOperationError."""
 
-        with self.assertRaises(InvalidOperationError): _ConcreteDisposable()._Throw()
+        with self.assertRaises(InvalidOperationError): _Throw()
 
     def test_throw_message_mentions_disposed(self) -> None:
         """_Throw raises an error whose message references disposal."""
 
         try:
-            _ConcreteDisposable()._Throw()
+            _Throw()
         except InvalidOperationError as e:
             self.assertIn("disposed", e.GetMessage().lower())
 
@@ -193,6 +191,8 @@ class TestGetNullable(unittest.TestCase):
 # INullable — via GetNullValue
 # ---------------------------------------------------------------------------
 
+def _GetNullValue() -> INullable[None]: return GetNullValue()
+
 class TestGetNullValue(unittest.TestCase):
     """Tests for GetNullValue — the absent/null nullable."""
 
@@ -209,7 +209,7 @@ class TestGetNullValue(unittest.TestCase):
     def test_try_get_value_returns_none(self) -> None:
         """TryGetValue returns None when HasValue is False."""
 
-        self.assertIsNone(GetNullValue().TryGetValue())
+        self.assertIsNone(_GetNullValue().TryGetValue())
 
     def test_try_get_value_or_default_returns_default(self) -> None:
         """TryGetValueOrDefault returns the default when HasValue is False."""
@@ -219,22 +219,22 @@ class TestGetNullValue(unittest.TestCase):
     def test_try_convert_returns_default(self) -> None:
         """TryConvert returns the provided default when HasValue is False."""
 
-        self.assertEqual(GetNullValue().TryConvert(lambda x: x, default="fallback"), "fallback")
+        self.assertEqual(_GetNullValue().TryConvert(lambda x: x, default="fallback"), "fallback")
 
     def test_try_convert_without_default_returns_none(self) -> None:
         """TryConvert without an explicit default returns None when HasValue is False."""
 
-        self.assertIsNone(GetNullValue().TryConvert(lambda x: x))
+        self.assertIsNone(_GetNullValue().TryConvert(lambda x: x))
 
     def test_try_convert_to_nullable_returns_null(self) -> None:
         """TryConvertToNullable returns a null INullable when HasValue is False."""
 
-        self.assertFalse(GetNullValue().TryConvertToNullable(lambda x: x).HasValue())
+        self.assertFalse(_GetNullValue().TryConvertToNullable(lambda x: x).HasValue())
 
     def test_null_value_is_singleton(self) -> None:
         """GetNullValue returns the same singleton instance on every call."""
 
-        self.assertIs(GetNullValue(), GetNullValue())
+        self.assertIs(_GetNullValue(), _GetNullValue())
 
 
 # ---------------------------------------------------------------------------
@@ -291,7 +291,7 @@ class TestFreeNullableFunctions(unittest.TestCase):
     def test_has_value_with_null_value_returns_false(self) -> None:
         """HasValue returns False for a null INullable."""
 
-        self.assertFalse(HasValue(GetNullValue()))
+        self.assertFalse(HasValue(_GetNullValue()))
 
 
 # ---------------------------------------------------------------------------

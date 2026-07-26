@@ -5,15 +5,11 @@ Unit tests for WinCopies root package (WinCopies/__init__.py).
 import unittest
 
 from WinCopies import (
-    BooleanableEnum,
-    NullableBoolean,
+    BooleanableEnum, NullableBoolean,
     IDisposable,
     IStringable,
-    Endianness,
-    Sign,
-    BitDepthLevel,
-    ToNullableBool,
-    ToNullableBoolean,
+    Endianness, Sign, BitDepthLevel,
+    ToNullableBool, ToNullableBoolean,
     Not,
     TryConvertToInt
 )
@@ -37,11 +33,8 @@ class _ConcreteDisposable(IDisposable):
     def IsInitialized(self) -> bool: return self.__initialized
     def IsDisposed(self) -> bool: return self.__disposed
 
-    def Initialize(self) -> None:
-        self.__initialized = True
-
-    def Dispose(self) -> None:
-        self.__disposed = True
+    def Initialize(self) -> None: self.__initialized = True
+    def Dispose(self) -> None: self.__disposed = True
 
 class _ConcreteStringable(IStringable):
     def __init__(self, value: str) -> None:
@@ -49,8 +42,7 @@ class _ConcreteStringable(IStringable):
 
         self.__value = value
 
-    def ToString(self) -> str:
-        return self.__value
+    def ToString(self) -> str: return self.__value
 
 # ---------------------------------------------------------------------------
 # BooleanableEnum
@@ -273,7 +265,7 @@ class TestIDisposable(unittest.TestCase):
 
         obj = _ConcreteDisposable()
 
-        result = obj.__exit__(None, None, None)  # type: ignore[arg-type]
+        result = obj.__exit__(None, None, None)
 
         self.assertTrue(obj.IsDisposed())
         self.assertIs(result, False)
