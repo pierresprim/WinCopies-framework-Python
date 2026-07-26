@@ -17,8 +17,9 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import Reflection, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
+from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Reflection import GetModuleName, TryGetModuleNameFromFrame, TryGetPackageNameFromFrame, TryFindModuleFromFileName, TryGetModuleFromFrame, IsSubmoduleFromNames, TryIsModuleInPackageFromFrame, TryIsMain, TryIsBuiltin, EnumerateFunctions
 
 def ImportModule(package: ModuleType|str) -> ModuleType:
     return import_module(package) if isinstance(package, str) else package
@@ -99,7 +100,7 @@ class ModuleInfo(Abstract):
     def TryGetDoc(self) -> str|None:
         return self._GetModule().__doc__
     
-    def ContainsModule(self, module: ModuleType|ModuleInfo) -> bool: return Reflection.IsSubmoduleFromNames(Reflection.GetModuleName(module if isinstance(module, ModuleType) else module._GetModule()), self.GetPath())
+    def ContainsModule(self, module: ModuleType|ModuleInfo) -> bool: return IsSubmoduleFromNames(GetModuleName(module if isinstance(module, ModuleType) else module._GetModule()), self.GetPath())
     
     def EnumerateSubmodules(self, includePrivate: bool = False) -> Generator[ModuleInfoBase]: return EnumerateSubmodules(self.__module, includePrivate)
     
@@ -264,14 +265,14 @@ class __FrameInspector(Abstract, IFrameInspector):
     
     def GetFileName(self) -> str: return self.__frameInfo.GetFileName()
     
-    def TryGetModuleName(self) -> INullable[str]|None: return Reflection.TryGetModuleNameFromFrame(self.GetFrame())
+    def TryGetModuleName(self) -> INullable[str]|None: return TryGetModuleNameFromFrame(self.GetFrame())
     
-    def TryGetPackageName(self) -> str|None: return Reflection.TryGetPackageNameFromFrame(self.GetFrame())
+    def TryGetPackageName(self) -> str|None: return TryGetPackageNameFromFrame(self.GetFrame())
     
     def TryGetModule(self) -> ModuleType|None:
-        def getResult() -> ModuleType|None: return Reflection.TryFindModuleFromFileName(self.__frameInfo.GetFileName())
+        def getResult() -> ModuleType|None: return TryFindModuleFromFileName(self.__frameInfo.GetFileName())
         
-        module: INullable[ModuleType]|None = Reflection.TryGetModuleFromFrame(self.GetFrame())
+        module: INullable[ModuleType]|None = TryGetModuleFromFrame(self.GetFrame())
 
         if module is None: return getResult()
         
@@ -290,7 +291,7 @@ class __FrameInspector(Abstract, IFrameInspector):
         except ImportError: return None
     
     def IsInPackage(self, package: ModuleType|str) -> bool:
-        return Reflection.TryIsModuleInPackageFromFrame(self.GetFrame(), package)
+        return TryIsModuleInPackageFromFrame(self.GetFrame(), package)
     
     def GetFunctionName(self) -> str:
         return self.__frameInfo.GetFunction()
@@ -312,9 +313,9 @@ class __FrameInspector(Abstract, IFrameInspector):
         return GetNullValue() if value is None else GetNullable(f"{value}.{self.GetFunctionName()}")
     
     def TryIsMain(self) -> INullable[bool]|None:
-        return Reflection.TryIsMain(self.GetFrame())
+        return TryIsMain(self.GetFrame())
     def TryIsBuiltin(self) -> INullable[bool]|None:
-        return Reflection.TryIsBuiltin(self.GetFrame())
+        return TryIsBuiltin(self.GetFrame())
 
 def CreateFrameInspector(frameInfo: FrameInfo) -> IFrameInspector:
     return __FrameInspector(__FrameInfo(frameInfo))
@@ -485,7 +486,7 @@ class _TypeUpdater[T](ValueFunctionUpdater[IArray[IFunctionInfo]]):
         self.__type: TypeInfo[T] = t
     
     def _GetValue(self) -> IArray[IFunctionInfo]:
-        return Array[IFunctionInfo](_Function(func.GetValue(), self.__type) for func in Reflection.EnumerateFunctions(self.__type.GetType()))
+        return Array[IFunctionInfo](_Function(func.GetValue(), self.__type) for func in EnumerateFunctions(self.__type.GetType()))
 
 class TypeInfo[T](Abstract, ITypeInfo):
     def __init__(self, type: Type[T]) -> None:
