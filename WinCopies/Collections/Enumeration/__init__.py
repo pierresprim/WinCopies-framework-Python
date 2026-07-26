@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from enum import Enum
 from typing import final, Any
 
 from WinCopies import IInterface, Abstract
@@ -19,16 +18,17 @@ from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 def GetEnumeratorInactiveError() -> InvalidOperationError:
     return InvalidOperationError("The enumeration has not started or has been terminated.")
 
-class EnumerationState(Enum):
+class EnumerationState(IntEnum):
     Idle = 0
     Started = 1
     Ended = 2
-class EnumerationResult(Enum):
+class EnumerationResult(IntEnum):
     Stopped = -2
     NoData = -1
     Running = 0

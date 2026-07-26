@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import Enum
 from typing import Iterable, final
 
 from WinCopies import IInterface, Abstract
@@ -11,9 +10,10 @@ from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue
 from WinCopies.Typing.Delegate import IFunction, Converter
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint
 
-class PriorityLevel(Enum):
+class PriorityLevel(IntEnum):
     Lowest = -4
     VeryLow = -3
     Lower = -2

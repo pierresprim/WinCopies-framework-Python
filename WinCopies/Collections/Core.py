@@ -10,11 +10,11 @@ from WinCopies.Collections.Util import ReverseIndex, GetOffset, GetIndex, Valida
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
-from WinCopies.Typing.Enum import OrderedEnum
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
 from WinCopies.Typing.Protocols import SupportsRichComparison
 
-class Mutability(OrderedEnum):
+class Mutability(IntEnum):
     ReadOnly = 0
     FixedSize = 1
     Mutable = 2

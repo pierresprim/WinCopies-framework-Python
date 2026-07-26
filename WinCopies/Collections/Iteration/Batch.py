@@ -1,6 +1,5 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Collection, Sequence
-from enum import Enum
 from typing import Callable, final
 
 from WinCopies import IInterface, Abstract
@@ -15,6 +14,7 @@ from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinke
 from WinCopies.Collections.Util import Enumerate, MakeGenerator
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing.Delegate import Action, Function, Converter, IFunction, IStruct, ValueFunction, Struct
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 type BatchGenerator[T] = Generator[Generator[T]]
@@ -44,7 +44,7 @@ def _Enumerate[T](enumerator: IEnumerator[T], size: int) -> Generator[T]:
 def _CompleteBatch[T](batch: Generator[T]) -> None:
     for _ in batch: pass
 
-class ResumeResult(Enum):
+class ResumeResult(IntEnum):
     NotResumable = -3
     PostConvergence = -2
     Exhausted = -1

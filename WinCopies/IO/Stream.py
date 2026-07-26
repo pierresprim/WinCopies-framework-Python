@@ -19,6 +19,7 @@ from WinCopies import IInterface, IDisposableBase, IDisposable, IStringable, Abs
 from WinCopies.Enum import TryGetFieldFromValue
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing.Delegate import Function, Predicate, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import IGenericConstraint
 
 class FileMode(Enum):
@@ -109,7 +110,7 @@ class FileType(Enum):
             
             case _: return FileType.Null
 
-class StreamPosition(Enum):
+class StreamPosition(IntEnum):
     Null = 0
     Start = 1
     Current = 2

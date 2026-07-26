@@ -3,6 +3,7 @@ from enum import auto, Enum, Flag
 from typing import final
 
 from WinCopies import IStringable, Abstract
+from WinCopies.Typing.Enum import IntEnum
 
 class FieldType(Enum):
     Null = 0
@@ -11,7 +12,7 @@ class FieldType(Enum):
     Real = 3
     Text = 4
 
-class IntegerMode(Enum):
+class IntegerMode(IntEnum):
     Byte = 1
     Short = 2
     Medium = 3
@@ -21,7 +22,7 @@ class RealMode(Enum):
     Normal = 1
     Double = 2
 
-class TextMode(Enum):
+class TextMode(IntEnum):
     Fixed = 1
     Variable = 2
     Text = 3

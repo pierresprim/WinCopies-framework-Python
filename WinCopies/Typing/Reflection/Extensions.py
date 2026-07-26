@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import abstractmethod
 from ast import Import, ImportFrom, Module, parse, walk
 from collections.abc import Iterable, Sequence
-from enum import Enum
 from importlib import import_module
 from inspect import FrameInfo, Traceback, getframeinfo, getsource, getmembers, isfunction, ismethod
 from pkgutil import ModuleInfo as ModuleInfoBase, walk_packages
@@ -19,6 +18,7 @@ from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
 from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
 from WinCopies.Typing.Reflection import GetModuleName, TryGetModuleNameFromFrame, TryGetPackageNameFromFrame, TryFindModuleFromFileName, TryGetModuleFromFrame, IsSubmoduleFromNames, TryIsModuleInPackageFromFrame, TryIsMain, TryIsBuiltin
 
@@ -441,7 +441,7 @@ class FrameHierarchy(Abstract):
 def GetFrameHierarchy(frameInfo: FrameInfo) -> FrameHierarchy:
     return FrameHierarchy.CreateFromFrameInfo(frameInfo)
 
-class MemberKind(Enum):
+class MemberKind(IntEnum):
     Null = 0
     Field = 1
     Function = 2

@@ -1,14 +1,14 @@
 import sys
 
 from abc import abstractmethod
-from enum import Enum
 from logging import Logger as LoggerBase, Formatter, StreamHandler, getLogger, NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 from typing import final, TextIO
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Typing.Delegate import Method
+from WinCopies.Typing.Enum import IntEnum
 
-class Level(Enum):
+class Level(IntEnum):
     Null = NOTSET
     Debug = DEBUG
     Info = INFO

@@ -1,23 +1,51 @@
-from enum import Enum
-from typing import Self
+from enum import Enum as _Enum, IntEnum as _IntEnum, StrEnum as _StrEnum
+from types import DynamicClassAttribute
+from typing import final, Generic, Self, Type, TypeVar
 
-from WinCopies.Typing.Reflection import AreFromSameClass
+from WinCopies.Typing.Comparison import IHashableComparableItemBase, IHashableComparable
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
-class OrderedEnum(Enum):
-    def __lt__(self, other: Self) -> bool:
-        """Less than comparison."""
+T = TypeVar('T')
+U = TypeVar('U', bound=SupportsEqualityAndRichComparison)
 
-        return self.value < other.value if AreFromSameClass(self, other) else NotImplemented
-    def __le__(self, other: Self) -> bool:
-        """Less than or equal comparison."""
+class Enum(Generic[T], IHashableComparableItemBase[T]):
+    def __init__(self, value: T) -> None: super().__init__()
 
-        return self.value <= other.value if AreFromSameClass(self, other) else NotImplemented
+    def __new__(cls, value: T) -> Self:
+        type: Type[T] = cls._GetComparableType()
+        
+        if not isinstance(value, type): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.") # pyright: ignore[reportUnnecessaryIsInstance]
+        
+        member: Self = object.__new__(cls)
+        member._value_ = value
+
+        return member
+
+    _value_: T
+
+    @DynamicClassAttribute
+    def value(self) -> T:
+        return self._value_
+class OrderedEnum(Enum[U], IHashableComparable[U]):
+    def __init__(self, value: U) -> None: super().__init__(value)
     
-    def __gt__(self, other: Self) -> bool:
-        """Greater than comparison."""
+    def __new__(cls, value: U) -> Self: return super().__new__(cls, value)
 
-        return self.value > other.value if AreFromSameClass(self, other) else NotImplemented
-    def __ge__(self, other: Self) -> bool:
-        """Greater than or equal comparison."""
+    @final
+    def _AsComparableValue(self) -> U: return self.value
 
-        return self.value >= other.value if AreFromSameClass(self, other) else NotImplemented
+class IntEnum(OrderedEnum[int], _Enum):
+    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+
+    @classmethod
+    @final
+    def _GetComparableType(cls) -> Type[int]: return int
+class StrEnum(Enum[str], _Enum):
+    def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
+
+    @classmethod
+    @final
+    def _GetComparableType(cls) -> Type[str]: return str
+
+type IntegerEnum = IntEnum|_IntEnum
+type StringEnum = StrEnum|_StrEnum
