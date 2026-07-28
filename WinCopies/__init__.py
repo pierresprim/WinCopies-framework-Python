@@ -9,8 +9,6 @@ Created on Fri May 26 14:21:00 2023
 @author: Pierre Sprimont
 """
 
-from __future__ import annotations
-
 import sys
 
 __version__ = "0.1.0"

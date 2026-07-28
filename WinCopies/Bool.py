@@ -1,8 +1,23 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface
 from WinCopies.Typing.Enum import IntEnum
+
+class BooleanableEnum(IntEnum):
+    def __bool__(self) -> bool: return self >= 0
+
+class NullableBoolean(BooleanableEnum):
+    BoolFalse = -1
+    Null = 0
+    BoolTrue = 1
+    
+    def Not(self) -> NullableBoolean:
+        return NullableBoolean.BoolFalse if self else NullableBoolean.BoolTrue
+    def NullableNot(self) -> NullableBoolean:
+        return NullableBoolean.Null if self == NullableBoolean.Null else self.Not()
 
 class IBooleanable(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -20,19 +35,6 @@ class INullableBooleanable(IInterface):
     @final
     def ToNullableBool(self) -> bool|None:
         return ToNullableBool(self.ToNullableBoolean())
-
-class BooleanableEnum(IntEnum):
-    def __bool__(self) -> bool: return self >= 0
-
-class NullableBoolean(BooleanableEnum):
-    BoolFalse = -1
-    Null = 0
-    BoolTrue = 1
-    
-    def Not(self) -> NullableBoolean:
-        return NullableBoolean.BoolFalse if self else NullableBoolean.BoolTrue
-    def NullableNot(self) -> NullableBoolean:
-        return NullableBoolean.Null if self == NullableBoolean.Null else self.Not()
 
 def ToNullableBool(value: NullableBoolean) -> bool|None:
     match value:
