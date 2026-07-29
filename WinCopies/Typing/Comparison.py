@@ -56,7 +56,77 @@ class INotHashableValue(IEquatableValue, _INotHashable):
 class INotHashableItem[T](IEquatableItem[T], _INotHashable):
     def __init__(self) -> None: super().__init__()
 
-class _IComparableValue[T](IEquatableValue):
+class IComparableBase[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _AsComparableValue(self) -> T:
+        ...
+
+class _IComparable[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _Compare[TResult](self, item: Self|T, predicate: Converter[T, TResult], onError: Function[TResult]) -> TResult:
+        ...
+class _IRichComparable[TItem, TValue](_IComparable[TValue], IComparableBase[TValue]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsFromSameInterface(self, other: Self|TItem|object) -> Self|None: return other if isinstance(other, type(self)) else None
+    
+    @abstractmethod
+    def _CompareToValue[TResult](self, item: TValue|object, predicate: Converter[TValue, TResult], onError: Function[TResult]) -> TResult:
+        ...
+
+    @final
+    def _Compare[TResult](self, item: Self|TValue|object, predicate: Converter[TValue, TResult], onError: Function[TResult]) -> TResult:
+        other: Self|None = self._AsFromSameInterface(item)
+        
+        return self._CompareToValue(item, predicate, onError) if other is None else predicate(other._AsComparableValue())
+
+class IEquatableObjectAbstract[T](IEquatableItem[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @classmethod
+    @abstractmethod
+    def _GetComparableType(cls) -> Type[T]:
+        ...
+class IEquatableObjectBase[T](IEquatableObjectAbstract[T], IComparableBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+class IEquatableValueBase[TItem, TValue](IEquatableItem[TItem], _IRichComparable[TItem, TValue]):
+    def __init__(self) -> None: super().__init__()
+    
+    def Equals(self, item: Self|TItem|object) -> bool:
+        return self._Compare(item, lambda other: self._AsComparableValue() == other, BoolFalse)
+class IEquatableItemBase[T](IEquatableValueBase[T, T|object]):
+    def __init__(self) -> None: super().__init__()
+
+    def _CompareToValue[TResult](self, item: T|object, predicate: Converter[T|object, TResult], onError: Function[TResult]) -> TResult: return predicate(item)
+
+class IEquatable[T](IEquatableObjectBase[T], IEquatableValueBase[T, T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CompareToValue[TResult](self, item: T|object, predicate: Converter[T, TResult], onError: Function[TResult]) -> TResult:
+        if isinstance(item, self._GetComparableType()): return predicate(item)
+        
+        return onError()
+
+class IHashableValueBase[TItem, TValue](IHashableItem[TItem], IEquatableValueBase[TItem, TValue]):
+    def __init__(self) -> None: super().__init__()
+
+    def Hash(self) -> int: return hash(self._AsComparableValue())
+class IHashableItemBase[T](IHashableValueBase[T, T|object], IEquatableItemBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    def Hash(self) -> int: return hash(self._AsComparableValue())
+
+class IHashable[T](IHashableValueBase[T, T], IEquatable[T]):
+    def __init__(self) -> None: super().__init__()
+
+class _IComparableValue[T](IEquatableValue, _IComparable[T]):
     def __init__(self) -> None: super().__init__()
 
     @classmethod
@@ -66,10 +136,6 @@ class _IComparableValue[T](IEquatableValue):
     
     @abstractmethod
     def _CompareTo(self, item: T) -> bool|None:
-        ...
-
-    @abstractmethod
-    def _Compare[TResult](self, item: Self|T|object, predicate: Converter[T, TResult], onError: Function[TResult]) -> TResult:
         ...
     
     @final
@@ -136,28 +202,12 @@ class IComparableObject[T](_IComparableValue[T]):
 class IHashableComparableObject[T](IHashableValue, IComparableObject[T]):
     def __init__(self) -> None: super().__init__()
 
-class IComparableItemBase[TItem: HashableProtocol, TValue](IEquatableItem[TItem]):
+class IComparableItemBase[TItem: HashableProtocol, TValue](IEquatableItem[TItem], _IRichComparable[TItem, TValue]):
     def __init__(self) -> None: super().__init__()
-
-    @final
-    def _AsFromSameInterface(self, other: Self|TItem|object) -> Self|None: return other if isinstance(other, type(self)) else None
-
-    @abstractmethod
-    def _AsComparableValue(self) -> TValue:
-        ...
 
     @abstractmethod
     def _CompareTo(self, item: TValue) -> bool|None:
         ...
-    @abstractmethod
-    def _CompareToValue[TResult](self, item: TValue|object, predicate: Converter[TValue, TResult], onError: Function[TResult]) -> TResult:
-        ...
-
-    @final
-    def _Compare[TResult](self, item: Self|TValue|object, predicate: Converter[TValue, TResult], onError: Function[TResult]) -> TResult:
-        other: Self|None = self._AsFromSameInterface(item)
-        
-        return self._CompareToValue(item, predicate, onError) if other is None else predicate(other._AsComparableValue())
     
     @final
     def CompareTo(self, item: Self|TItem) -> bool|None:
@@ -207,31 +257,12 @@ class IComparableItemBase[TItem: HashableProtocol, TValue](IEquatableItem[TItem]
 class IComparableItem[T: HashableProtocol](IComparableItemBase[T, T]):
     def __init__(self) -> None: super().__init__()
 
-class IHashableComparableItemBase[T](IEquatableItem[T]):
+class IHashableComparableItem[T](IComparableItemBase[T, T|object], IHashableItemBase[T]):
     def __init__(self) -> None: super().__init__()
-
-    @classmethod
-    @abstractmethod
-    def _GetComparableType(cls) -> Type[T]:
-        ...
-class IHashableComparableItem[T](IHashableItem[T], IComparableItemBase[T, T|object]):
-    def __init__(self) -> None: super().__init__()
-
-    def _CompareToValue[TResult](self, item: T|object, predicate: Converter[T|object, TResult], onError: Function[TResult]) -> TResult: return predicate(item)
-class IHashableComparable[T: SupportsEqualityAndRichComparison](IHashableItem[T], IComparableItem[T], IHashableComparableItemBase[T]):
+class IHashableComparable[T: SupportsEqualityAndRichComparison](IComparableItem[T], IHashable[T]):
     def __init__(self) -> None: super().__init__()
 
     def _CompareTo(self, item: T) -> bool|None: return CompareTo(self._AsComparableValue(), item)
-
-    @final
-    def _CompareToValue[TResult](self, item: T|object, predicate: Converter[T, TResult], onError: Function[TResult]) -> TResult:
-        if isinstance(item, self._GetComparableType()): return predicate(item)
-        
-        return onError()
-    
-    def Equals(self, item: Self|T|object) -> bool:
-        return self._Compare(item, lambda other: self._AsComparableValue() == other, BoolFalse)
-    def Hash(self) -> int: return hash(self._AsComparableValue())
 
 type EquatableProtocol = IEquatableValue|SupportsEqualityComparison
 type HashableProtocol = IHashableValue|SupportsEqualityComparison

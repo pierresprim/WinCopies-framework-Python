@@ -1,14 +1,14 @@
 from enum import Enum as _Enum, IntEnum as _IntEnum, StrEnum as _StrEnum
 from types import DynamicClassAttribute
-from typing import final, Generic, Self, Type, TypeVar
+from typing import final, Self, Type, TypeVar
 
-from WinCopies.Typing.Comparison import IHashableComparableItemBase, IHashableComparable
+from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashableComparable
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 T = TypeVar('T')
 U = TypeVar('U', bound=SupportsEqualityAndRichComparison)
 
-class Enum(Generic[T], IHashableComparableItemBase[T]):
+class Enum(IEquatableObjectBase[T]):
     def __init__(self, value: T) -> None: super().__init__()
 
     def __new__(cls, value: T) -> Self:
