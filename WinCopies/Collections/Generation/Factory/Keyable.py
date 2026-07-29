@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from weakref import ref, ReferenceType
 
@@ -7,11 +5,6 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IGetter
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol
-
-def ExtractKey(item: INodeBase|object) -> object:
-    return item.GetKey() if isinstance(item, INodeBase) else item
-def GetKey[TKey: HashableProtocol, TValue](node: INode[TKey, TValue]) -> TKey:
-    return node.GetKey()
 
 class INodeBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -29,6 +22,11 @@ class INode[TKey, TValue](INodeBase, IHashableItem[TKey]):
     @abstractmethod
     def TryGetValue(self) -> TValue|None:
         ...
+
+def ExtractKey(item: INodeBase|object) -> object:
+    return item.GetKey() if isinstance(item, INodeBase) else item
+def GetKey[TKey: HashableProtocol, TValue](node: INode[TKey, TValue]) -> TKey:
+    return node.GetKey()
 
 class Node[TKey: HashableProtocol, TValue](Abstract, INode[TKey, TValue]):
     def __init__(self, key: TKey, obj: TValue) -> None:
