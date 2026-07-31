@@ -33,8 +33,13 @@ class InvalidOperationError(Error):
 def GetGenericError() -> InvalidOperationError:
     return InvalidOperationError("Could not perform the requested action.")
 
+def __GetDisposedError(msg: str) -> InvalidOperationError:
+    return InvalidOperationError(f"The current object has been {msg}.")
+
+def GetInvalidatedError() -> InvalidOperationError:
+    return __GetDisposedError("invalidated")
 def GetDisposedError() -> InvalidOperationError:
-    return InvalidOperationError("The current object has been disposed.")
+    return __GetDisposedError("disposed")
 
 class IDisposable(IDisposableBase):
     def __init__(self) -> None: super().__init__()
