@@ -12,9 +12,9 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, T
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollection, ICollectionMonitors, IResumableEnumeratorMonitor, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ICollection, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFactory, ResumableEnumeratorFactory, TupleEnumerator, ResumableTupleEnumerator
-from WinCopies.Collections.Extensions.Revocable import IRevocableViewMonitor, IRevocableViewFactory, RevocableViewFactory
+from WinCopies.Collections.Extensions.Revocable import IRevocableViewFactory, RevocableViewFactory
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Generation.Factory.Core import ICollectionFactory, CollectionFactory
 from WinCopies.Collections.Iteration.Extensions import Reverse
