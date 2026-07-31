@@ -123,7 +123,7 @@ class EnumeratorFactoryBase[T](ObjectFactory[IEnumeratorBase], IEnumeratorFactor
     
     @final
     def CreateEnumerator[U](self, items: ITuple[U]) -> IEnumerator[U]:
-        enumerator: IEnumeratorBase = TupleEnumerator[U](items)
+        enumerator: IEnumerator[U] = TupleEnumerator[U](items)
 
         self._Push(enumerator)
 
