@@ -62,7 +62,7 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TIte
         super().__init__(items)
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
@@ -146,7 +146,7 @@ class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]]):
         self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def AsReversed(self) -> ITuple[T]: return self.__reversed.GetValue()
@@ -162,7 +162,7 @@ class _ReadOnlySortedTuple[T](SortedCollectionBase[T], _IReadOnlyTuple[T, ISorte
         self.__reversed: IFunction[ISortedTuple[T]] = _ReversedSortedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectLeft(item, converter)
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectRight(item, converter)
@@ -215,7 +215,7 @@ class _ITuple[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory[T]:
+    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
         ...
 
     @final
@@ -304,13 +304,13 @@ class _TupleCollection[T](TupleAbstract[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__factory: IResumableEnumeratorFactory[T] = ResumableEnumeratorFactory[T]()
+        self.__factory: IResumableEnumeratorFactory = ResumableEnumeratorFactory()
     
     @final
-    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory[T]:
+    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
         return self.__factory
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
         return self._GetEnumeratorFactory().AsMonitor()
 
 class TupleCollection[T](_TupleCollection[T]):
@@ -416,16 +416,16 @@ class _ArrayCollectionAbstract[TItem, TCollection](ArrayAbstractBase[TItem, TCol
         
         super().__init__()
 
-        factory: IResumableEnumeratorFactory[TItem] = ResumableEnumeratorFactory[TItem]()
+        factory: IResumableEnumeratorFactory = ResumableEnumeratorFactory()
 
-        self.__factory: IResumableEnumeratorFactory[TItem] = factory
+        self.__factory: IResumableEnumeratorFactory = factory
         self.__reversed: IFunction[TCollection] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
     
     @final
-    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory[TItem]:
+    def _GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
         return self.__factory
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
         return self._GetEnumeratorFactory().AsMonitor()
     
     @final
@@ -537,7 +537,7 @@ class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T]):
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetContainer().TryGetSourceMutability()
     
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self._GetContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetContainer().GetEnumeratorMonitor()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return TryCreateResumableEnumerator(self._GetContainer().TryGetResumableEnumerator())

@@ -103,7 +103,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__list.TryGetEnumerator()
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__list.TryGetResumableEnumerator()
     
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self.__list.GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__list.GetEnumeratorMonitor()
     
     def Clear(self) -> None: self.__items.Clear()
     
@@ -196,7 +196,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def AsReadOnly(self) -> IEquatableTuple[TItem]: return self

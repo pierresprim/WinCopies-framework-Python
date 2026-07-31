@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract, IDisposableBase
-from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator
+from WinCopies.Collections.Enumeration import IEnumeratorBase, IEnumerator, IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
@@ -47,30 +47,30 @@ class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[
 class ResumableTupleEnumerator[T](ResumableTupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
-class IEnumeratorFactory[T](IObjectFactory[IEnumerator[T]], IEnumeratorMonitor[T]):
+class IEnumeratorFactory(IObjectFactory[IEnumeratorBase], IEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def AsMonitor(self) -> IEnumeratorMonitor[T]:
+    def AsMonitor(self) -> IEnumeratorMonitor:
         ...
-class IResumableEnumeratorFactory[T](IEnumeratorFactory[T], IResumableEnumeratorMonitor[T]):
+class IResumableEnumeratorFactory(IEnumeratorFactory, IResumableEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def AsMonitor(self) -> IResumableEnumeratorMonitor[T]:
+    def AsMonitor(self) -> IResumableEnumeratorMonitor:
         ...
 
-class EnumeratorMonitor[TItem, TFactory](Abstract, IEnumeratorMonitor[TItem], GenericConstraint[TFactory, IEnumeratorFactory[TItem]]):
-    def __init__(self, factory: TFactory) -> None:
+class EnumeratorMonitor[T](Abstract, IEnumeratorMonitor, GenericConstraint[T, IEnumeratorFactory]):
+    def __init__(self, factory: T) -> None:
         super().__init__()
 
-        self.__factory: TFactory = factory
+        self.__factory: T = factory
     
     @final
-    def _GetContainer(self) -> TFactory: return self.__factory
+    def _GetContainer(self) -> T: return self.__factory
     
     @final
-    def CreateEnumerator(self, items: ITuple[TItem]) -> IEnumerator[TItem]: return self._GetInnerContainer().CreateEnumerator(items)
+    def CreateEnumerator[U](self, items: ITuple[U]) -> IEnumerator[U]: return self._GetInnerContainer().CreateEnumerator(items)
 class EnumeratorMonitorUpdater[TMonitor, TFactory](ValueFunctionUpdater[TMonitor]):
     def __init__(self, factory: TFactory, updater: Method[IFunction[TMonitor]]) -> None:
         super().__init__(updater)
@@ -82,83 +82,82 @@ class EnumeratorMonitorUpdater[TMonitor, TFactory](ValueFunctionUpdater[TMonitor
         return self.__factory
 
 @final
-class _EnumeratorMonitor[T](EnumeratorMonitor[T, IEnumeratorFactory[T]]):
-    def __init__(self, factory: IEnumeratorFactory[T]) -> None: super().__init__(factory)
+class _EnumeratorMonitor(EnumeratorMonitor[IEnumeratorFactory]):
+    def __init__(self, factory: IEnumeratorFactory) -> None: super().__init__(factory)
     
-    def _AsContainer(self, container: IEnumeratorFactory[T]) -> IEnumeratorFactory[T]: return container
+    def _AsContainer(self, container: IEnumeratorFactory) -> IEnumeratorFactory: return container
 @final
-class _EnumeratorMonitorUpdater[T](EnumeratorMonitorUpdater[IEnumeratorMonitor[T], IEnumeratorFactory[T]]):
-    def __init__(self, factory: IEnumeratorFactory[T], updater: Method[IFunction[IEnumeratorMonitor[T]]]) -> None: super().__init__(factory, updater)
+class _EnumeratorMonitorUpdater(EnumeratorMonitorUpdater[IEnumeratorMonitor, IEnumeratorFactory]):
+    def __init__(self, factory: IEnumeratorFactory, updater: Method[IFunction[IEnumeratorMonitor]]) -> None: super().__init__(factory, updater)
     
-    def _GetValue(self) -> IEnumeratorMonitor[T]: return _EnumeratorMonitor[T](self._GetFactory())
+    def _GetValue(self) -> IEnumeratorMonitor: return _EnumeratorMonitor(self._GetFactory())
 
 @final
-class _ResumableEnumeratorMonitor[T](EnumeratorMonitor[T, IResumableEnumeratorFactory[T]], IResumableEnumeratorMonitor[T]):
-    def __init__(self, factory: IResumableEnumeratorFactory[T]) -> None: super().__init__(factory)
+class _ResumableEnumeratorMonitor(EnumeratorMonitor[IResumableEnumeratorFactory], IResumableEnumeratorMonitor):
+    def __init__(self, factory: IResumableEnumeratorFactory) -> None: super().__init__(factory)
     
-    def _AsContainer(self, container: IResumableEnumeratorFactory[T]) -> IResumableEnumeratorFactory[T]: return container
+    def _AsContainer(self, container: IResumableEnumeratorFactory) -> IResumableEnumeratorFactory: return container
     
-    def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
+    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IResumableEnumerator[U]:
         return self._GetContainer().CreateResumableEnumerator(items)
 @final
-class _ResumableEnumeratorMonitorUpdater[T](EnumeratorMonitorUpdater[IResumableEnumeratorMonitor[T], IResumableEnumeratorFactory[T]]):
-    def __init__(self, factory: IResumableEnumeratorFactory[T], updater: Method[IFunction[IResumableEnumeratorMonitor[T]]]) -> None: super().__init__(factory, updater)
+class _ResumableEnumeratorMonitorUpdater(EnumeratorMonitorUpdater[IResumableEnumeratorMonitor, IResumableEnumeratorFactory]):
+    def __init__(self, factory: IResumableEnumeratorFactory, updater: Method[IFunction[IResumableEnumeratorMonitor]]) -> None: super().__init__(factory, updater)
     
-    def _GetValue(self) -> IResumableEnumeratorMonitor[T]: return _ResumableEnumeratorMonitor[T](self._GetFactory())
+    def _GetValue(self) -> IResumableEnumeratorMonitor: return _ResumableEnumeratorMonitor(self._GetFactory())
 
-class EnumeratorFactoryBase[TItem, TMonitor](ObjectFactory[IEnumerator[TItem]], IEnumeratorFactory[TItem]):
+class EnumeratorFactoryBase[T](ObjectFactory[IEnumeratorBase], IEnumeratorFactory):
     def __init__(self) -> None:
-        def update(func: IFunction[TMonitor]) -> None: self.__monitor = func
+        def update(func: IFunction[T]) -> None: self.__monitor = func
         
         super().__init__()
 
-        self.__monitor: IFunction[TMonitor] = self._CreateUpdater(update) # type: ignore[no-redef]
+        self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
     
     @abstractmethod
-    def _CreateUpdater(self, updater: Method[IFunction[TMonitor]]) -> EnumeratorMonitorUpdater[TMonitor, IEnumeratorFactory[TItem]]:
+    def _CreateUpdater(self, updater: Method[IFunction[T]]) -> EnumeratorMonitorUpdater[T, IEnumeratorFactory]:
         ...
     
     @final
-    def _Convert(self, item: IEnumerator[TItem]) -> IDisposableBase:
-        return item.ToDisposable()
+    def _Convert(self, item: IEnumeratorBase) -> IDisposableBase: return item.ToDisposable()
     
     @final
-    def CreateEnumerator(self, items: ITuple[TItem]) -> IEnumerator[TItem]:
-        enumerator: IEnumerator[TItem] = TupleEnumerator[TItem](items)
+    def CreateEnumerator[U](self, items: ITuple[U]) -> IEnumerator[U]:
+        enumerator: IEnumeratorBase = TupleEnumerator[U](items)
 
         self._Push(enumerator)
 
         return enumerator
     
     @final
-    def _AsMonitor(self) -> TMonitor:
+    def _AsMonitor(self) -> T:
         return self.__monitor.GetValue()
 
-class EnumeratorFactory[T](EnumeratorFactoryBase[T, IEnumeratorMonitor[T]]):
+class EnumeratorFactory(EnumeratorFactoryBase[IEnumeratorMonitor]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _CreateUpdater(self, updater: Method[IFunction[IEnumeratorMonitor[T]]]) -> EnumeratorMonitorUpdater[IEnumeratorMonitor[T], IEnumeratorFactory[T]]:
-        return _EnumeratorMonitorUpdater[T](self, updater)
+    def _CreateUpdater(self, updater: Method[IFunction[IEnumeratorMonitor]]) -> EnumeratorMonitorUpdater[IEnumeratorMonitor, IEnumeratorFactory]:
+        return _EnumeratorMonitorUpdater(self, updater)
     
     @final
-    def AsMonitor(self) -> IEnumeratorMonitor[T]:
+    def AsMonitor(self) -> IEnumeratorMonitor:
         return self._AsMonitor()
-class ResumableEnumeratorFactory[T](EnumeratorFactoryBase[T, IResumableEnumeratorMonitor[T]], IResumableEnumeratorFactory[T]):
+class ResumableEnumeratorFactory(EnumeratorFactoryBase[IResumableEnumeratorMonitor], IResumableEnumeratorFactory):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _CreateUpdater(self, updater: Method[IFunction[IResumableEnumeratorMonitor[T]]]) -> EnumeratorMonitorUpdater[IResumableEnumeratorMonitor[T], IResumableEnumeratorFactory[T]]:
-        return _ResumableEnumeratorMonitorUpdater[T](self, updater)
+    def _CreateUpdater(self, updater: Method[IFunction[IResumableEnumeratorMonitor]]) -> EnumeratorMonitorUpdater[IResumableEnumeratorMonitor, IResumableEnumeratorFactory]:
+        return _ResumableEnumeratorMonitorUpdater(self, updater)
     
     @final
-    def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
-        enumerator: IResumableEnumerator[T] = ResumableTupleEnumerator[T](items)
+    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IResumableEnumerator[U]:
+        enumerator: IResumableEnumerator[U] = ResumableTupleEnumerator[U](items)
 
         self._Push(enumerator)
 
         return enumerator
     
     @final
-    def AsMonitor(self) -> IResumableEnumeratorMonitor[T]:
+    def AsMonitor(self) -> IResumableEnumeratorMonitor:
         return self._AsMonitor()

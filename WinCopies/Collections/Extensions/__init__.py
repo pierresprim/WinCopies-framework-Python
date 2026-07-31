@@ -113,24 +113,24 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T
     @final
     def AsMutableSequence(self) -> MutableSequenceBase[T]: return self
 
-class IEnumeratorMonitor[T](IInterface):
+class IEnumeratorMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateEnumerator(self, items: ITuple[T]) -> IEnumerator[T]:
+    def CreateEnumerator[T](self, items: ITuple[T]) -> IEnumerator[T]:
         ...
-class IResumableEnumeratorMonitor[T](IEnumeratorMonitor[T]):
+class IResumableEnumeratorMonitor(IEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateResumableEnumerator(self, items: ITuple[T]) -> IResumableEnumerator[T]:
+    def CreateResumableEnumerator[T](self, items: ITuple[T]) -> IResumableEnumerator[T]:
         ...
 
 class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]:
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
         ...
     
     @abstractmethod

@@ -9,7 +9,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import IResumableEnumeratorMonitor, ITuple, IArray, IList, MutableSequence, SequenceAbstract
+from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import INullable
@@ -280,7 +280,10 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
+
+    @final
+    def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
     def ToString(self) -> str: return self._GetInnerContainer().ToString()
