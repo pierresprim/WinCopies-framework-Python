@@ -11,10 +11,19 @@ U = TypeVar('U', bound=SupportsEqualityAndRichComparison)
 class Enum(IEquatableObjectBase[T]):
     def __init__(self, value: T) -> None: super().__init__()
 
-    def __new__(cls, value: T) -> Self:
+    @classmethod
+    @final
+    def ValidateValueType(cls, value: T|object) -> bool:
         type: Type[T] = cls._GetComparableType()
         
-        if not isinstance(value, type): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.") # pyright: ignore[reportUnnecessaryIsInstance]
+        return isinstance(value, type)
+    @classmethod
+    @final
+    def CheckValueType(cls, value: T|object) -> None:
+        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.")
+
+    def __new__(cls, value: T) -> Self:
+        cls.CheckValueType(value)
         
         member: Self = object.__new__(cls)
         member._value_ = value
