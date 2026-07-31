@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract, IDisposableBase
-from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator, ToDisposableEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator, IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
@@ -120,7 +120,7 @@ class EnumeratorFactoryBase[TItem, TMonitor](ObjectFactory[IEnumerator[TItem]], 
     
     @final
     def _Convert(self, item: IEnumerator[TItem]) -> IDisposableBase:
-        return ToDisposableEnumerator(item)
+        return item.ToDisposable()
     
     @final
     def CreateEnumerator(self, items: ITuple[TItem]) -> IEnumerator[TItem]:
