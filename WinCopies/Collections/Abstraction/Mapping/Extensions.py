@@ -10,7 +10,7 @@ from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, CreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, IResumableEnumeratorMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableSequence
+from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -103,7 +103,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__list.TryGetEnumerator()
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__list.TryGetResumableEnumerator()
     
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__list.GetEnumeratorMonitor()
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self.__list.GetCollectionMonitors()
     
     def Clear(self) -> None: self.__items.Clear()
     
@@ -114,6 +114,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
     def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
+    def AsImmutable(self) -> ITuple[T]: return self.__list.AsImmutable()
     
     def insert(self, index: int, value: T) -> None: self.Insert(index, value)
     
@@ -196,10 +197,12 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self._GetInnerContainer().GetEnumeratorMonitor()
-    
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
+
     @final
     def AsReadOnly(self) -> IEquatableTuple[TItem]: return self
+    @final
+    def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
     def ToString(self) -> str: return self.ToString()

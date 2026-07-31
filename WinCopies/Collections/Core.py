@@ -290,6 +290,9 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
         ...
 
     @abstractmethod
+    def AsImmutable(self) -> ITuple[T]:
+        ...
+    @abstractmethod
     def AsReadOnly(self) -> ITuple[T]:
         ...
     

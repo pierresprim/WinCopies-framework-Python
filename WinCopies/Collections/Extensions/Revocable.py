@@ -9,7 +9,7 @@ from WinCopies import IDisposableBase, Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import IRevocableViewMonitor, ITuple
+from WinCopies.Collections.Extensions import ICollectionMonitors, IRevocableViewMonitor, ITuple
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
@@ -77,6 +77,9 @@ class RevocableViewBase[T](Abstract, ITuple[T]):
 
     @final
     def TryGetValue(self, key: int) -> INullable[T]: return self._GetItems().TryGetValue(key)
+
+    @final
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetItems().GetCollectionMonitors()
 
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetItems().TryGetEnumerator()

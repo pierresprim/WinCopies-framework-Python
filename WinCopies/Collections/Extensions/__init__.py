@@ -7,7 +7,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable
 from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
-                                        ITuple as ITupleBase, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
+                                        ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
                                         IArray as IArrayAbstract,
                                         IListBase as IListAbstractBase, IList as IListAbstract,
                                         ISortedTuple as ISortedTupleBase, ISortedList as ISortedListBase,
@@ -134,7 +134,7 @@ class IRevocableViewMonitor(IInterface):
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
         ...
 
-class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+class ICollectionMonitors(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -142,7 +142,24 @@ class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], 
         ...
     
     @abstractmethod
+    def GetRevocableViewMonitor(self) -> IRevocableViewMonitor:
+        ...
+
+class ITupleBase(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def GetCollectionMonitors(self) -> ICollectionMonitors:
+        ...
+class ITuple[T](ITupleAbstract[T], ITupleBase, ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
     def AsReversed(self) -> ITuple[T]:
+        ...
+
+    @abstractmethod
+    def AsImmutable(self) -> ITuple[T]:
         ...
     
     @abstractmethod

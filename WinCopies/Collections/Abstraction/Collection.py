@@ -9,7 +9,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration import IEnumeratorBase, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
@@ -124,7 +124,7 @@ class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], Tuple
     
     @final
     def _SetAt(self, key: int, value: TItem) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         self._GetSpecializedContainer()[key] = value
 class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Collection.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
@@ -151,13 +151,13 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Collection.Array[T], IGener
     
     @final
     def Move(self, x: int, y: int) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         Move(self._GetContainer(), x, y)
     
     @final
     def Swap(self, x: int, y: int) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         super().Swap(x, y)
     
@@ -181,19 +181,19 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     @final
     def _GetContainer(self) -> MutableSequenceBase[T]: return self.__items
     @abstractmethod
-    def _GetEnumerationMonitor(self) -> IObjectMonitor:
+    def _GetCollectionMonitors(self) -> IObjectMonitor:
         ...
 
     @final
-    def __InvalidateEnumerators(self) -> None:
-        self._GetEnumerationMonitor().InvalidateObjects()
+    def __InvalidateViews(self) -> None:
+        self._GetCollectionMonitors().InvalidateObjects()
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None:
         if index < 0: return None
         if index >= self.GetCount(): return False
         
-        self.__InvalidateEnumerators()
+        self.__InvalidateViews()
         
         self._GetContainer().pop(index)
         
@@ -202,7 +202,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     @final
     def TryRemoveRange(self, index: int, count: int) -> bool:
         if self.ValidateIndex(index):
-            self.__InvalidateEnumerators()
+            self.__InvalidateViews()
 
             for i in range(count): self.RemoveAt(index + i)
 
@@ -212,7 +212,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     
     @final
     def Clear(self) -> None:
-        self.__InvalidateEnumerators()
+        self.__InvalidateViews()
         
         self._GetContainer().clear()
     
@@ -221,18 +221,17 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None: super().__init__(items)
     
     @final
-    def _GetEnumerationMonitor(self) -> IObjectMonitor:
-        return self._GetEnumeratorFactory()
+    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionFactories()
     
     @final
     def Move(self, x: int, y: int) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         Move(self._GetContainer(), x, y)
     
     @final
     def Swap(self, x: int, y: int) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
         
         super().Swap(x, y)
     
@@ -242,7 +241,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     @final
     def _TryInsert(self, index: int, value: T) -> bool:
         if self.ValidateIndex(index):
-            self._InvalidateEnumerators()
+            self._InvalidateViews()
 
             self._GetContainer().insert(index, value)
             
@@ -252,7 +251,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     @final
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         if self.ValidateIndex(index):
-            self._InvalidateEnumerators()
+            self._InvalidateViews()
 
             index -= 1
             
@@ -267,7 +266,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     
     @final
     def insert(self, index: int, value: T) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         self._GetContainer().insert(index, value)
     
@@ -286,13 +285,13 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     
     @final
     def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         self._GetContainer()[index] = value # type: ignore
     
     @final
     def __delitem__(self, index: int|slice) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         del self._GetContainer()[index]
 class List[T](ListBase[T]):
@@ -305,7 +304,7 @@ class List[T](ListBase[T]):
     
     @final
     def Add(self, item: T) -> None:
-        self._InvalidateEnumerators()
+        self._InvalidateViews()
 
         self._GetContainer().append(item)
     
@@ -420,7 +419,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @final
     def Add(self, item: T) -> None:
         if self.ValidateLength(1):
-            self._InvalidateEnumerators()
+            self._InvalidateViews()
 
             self._GetContainer().append(item)
         
@@ -443,6 +442,10 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
         super().__init__()
 
         self.__array: IArray[IStruct[T]] = array
+
+    @final
+    def __RegisterEnumerator(self, enumerator: IEnumeratorBase) -> None:
+        self._GetCollectionFactories().GetEnumeratorFactory().RegisterObject(enumerator)
     
     @final
     def _GetItems(self) -> IArray[IStruct[T]]:
@@ -480,14 +483,14 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         enumerator: IEnumerator[T] = TupleEnumerator[T](self)
 
-        self._GetEnumeratorFactory().RegisterObject(enumerator)
+        self.__RegisterEnumerator(enumerator)
 
         return enumerator
     @final
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
         enumerator: IResumableEnumerator[T] = ResumableTupleEnumerator[T](self)
 
-        self._GetEnumeratorFactory().RegisterObject(enumerator)
+        self.__RegisterEnumerator(enumerator)
 
         return enumerator
     
@@ -509,8 +512,7 @@ class SortedList[T: SupportsRichComparison](ListAbstract[T], Sequence[T], Collec
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
     @final
-    def _GetEnumerationMonitor(self) -> IObjectMonitor:
-        return self._GetEnumeratorFactory()
+    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionFactories()
     
     @final
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return bisect_left(self.AsSequence(), item) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
