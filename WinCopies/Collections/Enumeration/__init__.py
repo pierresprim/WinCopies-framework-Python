@@ -63,6 +63,10 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def HasProcessedItems(self) -> bool:
         ...
+
+    @abstractmethod
+    def ToDisposable(self) -> IDisposableEnumeratorBase:
+        ...
 class IEnumerator[T](IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
     
@@ -73,8 +77,15 @@ class IEnumerator[T](IEnumeratorBase):
     @abstractmethod
     def AsIterator(self) -> SystemIterator[T]:
         ...
-class IDisposableEnumerator[T](IEnumerator[T], IDisposable):
+
+    def ToDisposable(self) -> IDisposableEnumerator[T]: return _DisposableEnumerator[T](self)
+
+class IDisposableEnumeratorBase(IEnumeratorBase, IDisposable):
     def __init__(self) -> None: super().__init__()
+class IDisposableEnumerator[T](IEnumerator[T], IDisposableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+
+    def ToDisposable(self) -> IDisposableEnumerator[T]: return self
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -874,6 +885,3 @@ def CreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None
     return EnumeratorProvider[T](enumeratorProvider)
 def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None) -> Enumerable[T]|None:
     return None if enumeratorProvider is None else CreateEnumeratorProvider(enumeratorProvider)
-
-def ToDisposableEnumerator[T](enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
-    return enumerator if isinstance(enumerator, IDisposableEnumerator) else _DisposableEnumerator[T](enumerator)
