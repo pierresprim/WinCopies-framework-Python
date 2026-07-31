@@ -57,9 +57,6 @@ class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConve
     @final
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
         return self._GetInnerContainer().TryGetResumableEnumerator()
-
-    @final
-    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
 class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence]):
     def __init__(self) -> None: super().__init__()
     

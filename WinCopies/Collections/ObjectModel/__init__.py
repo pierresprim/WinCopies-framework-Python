@@ -1,6 +1,6 @@
 from typing import final
 
-from WinCopies.Collections.Extensions.Collection import ITuple, ISortedTuple, IArray, SequenceAbstract
+from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation

@@ -48,7 +48,7 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
         super().__init__()
 
         self.__items: ITuple[T] = items
-        self.__view: Function[ITuple[T]] = createView
+        self.__view: Function[ITuple[T]] = createView # type: ignore[no-redef]
 
     @abstractmethod
     def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]:
@@ -58,7 +58,10 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
     def _GetItems(self) -> ITuple[T]: return self.__items
 
     @final
-    def GetImmutableView(self) -> ITuple[T]: return self.__view()
+    def GetImmutableView(self) -> ITuple[T]:
+        func: Function[ITuple[T]] = self.__view # For mypy compatibility
+
+        return func()
 class CollectionViewMonitor[T](CollectionViewMonitorBase[T]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
