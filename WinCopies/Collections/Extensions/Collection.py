@@ -576,9 +576,6 @@ class _ArrayCollectionAbstract[TItem, TCollection](_ArrayCollectionAbstractBase[
     @final
     def _AsReversed(self) -> TCollection:
         return self.__reversed.GetValue()
-    
-    @final
-    def AsImmutable(self) -> ITuple[TItem]: return self._GetCollectionViewMonitor().GetImmutableView()
 class _ArrayCollectionBase[TItem, TCollection](_ArrayCollectionAbstract[TItem, TCollection]):
     def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ITuple[TItem]]) -> None: self.__readOnly = func

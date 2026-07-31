@@ -621,10 +621,7 @@ def CancellableScan[T](items: Iterable[T], predicate: NullablePredicate[T]) -> I
         result = True
 
     match ForEachUntilThenContinue(items, predicate, action):
-        case True:
-            return GetNullable(result)
-        case False:
-            return GetNullValue()
+        case True: return GetNullable(result)
+        case False: return GetNullValue()
         
-        case _:
-            return None
+        case _: return None
