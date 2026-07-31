@@ -5,7 +5,7 @@ from typing import final, Self
 
 from WinCopies import IDisposableBase, Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Factory import IObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNodeBase, IDoublyLinkedNode, DoublyLinkedNode
@@ -203,3 +203,20 @@ class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
     
     @final
     def _Convert(self, item: T) -> T: return item
+
+@final
+class _DisposableCollectionFactoryItem(Abstract, IDisposableBase):
+    def __init__(self, item: IObjectMonitor) -> None:
+        super().__init__()
+
+        self.__item: IObjectMonitor = item
+
+    def Dispose(self) -> None: self.__item.InvalidateObjects()
+
+class ICollectionFactory[T: IObjectMonitor](IObjectFactory[T]):
+    def __init__(self) -> None: super().__init__()
+class CollectionFactory[T: IObjectMonitor](ObjectFactory[T], ICollectionFactory[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _Convert(self, item: T) -> IDisposableBase: return _DisposableCollectionFactoryItem(item)
