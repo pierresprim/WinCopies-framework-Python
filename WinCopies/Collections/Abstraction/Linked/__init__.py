@@ -79,29 +79,29 @@ class _ReadOnlyList[T](Abstract, ISinglyLinkedList[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetUpdater(self) -> IFunction[IReadOnlyList[T]]:
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyList[T]]:
         ...
     
     @final
-    def AsReadOnly(self) -> IReadOnlyList[T]: return self._GetUpdater().GetValue()
+    def AsReadOnly(self) -> IReadOnlyList[T]: return self._GetReadOnlyUpdater().GetValue()
 class _ReadOnlyCountableList[T](Abstract, ICountableSinglyLinkedList[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetUpdater(self) -> IFunction[IReadOnlyCountableList[T]]:
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyCountableList[T]]:
         ...
     
     @final
-    def AsReadOnly(self) -> IReadOnlyCountableList[T]: return self._GetUpdater().GetValue()
+    def AsReadOnly(self) -> IReadOnlyCountableList[T]: return self._GetReadOnlyUpdater().GetValue()
 class _ReadOnlyEnumerableList[T](Abstract, IEnumerableList[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetUpdater(self) -> IFunction[IReadOnlyEnumerableList[T]]:
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyEnumerableList[T]]:
         ...
     
     @final
-    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]: return self._GetUpdater().GetValue()
+    def AsReadOnly(self) -> IReadOnlyEnumerableList[T]: return self._GetReadOnlyUpdater().GetValue()
 class _ReadOnlyCountableEnumerableList[T](ICountableEnumerableList[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyCountableEnumerableList[T]]) -> None: self.__updater = func
@@ -197,7 +197,7 @@ class LinkedList[T](AbstractList[T, IReadWriteList[T]], _ReadOnlyList[T], IGener
         self.__updater: IFunction[IReadOnlyList[T]] = _ReadOnlyLinkedListUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _GetUpdater(self) -> IFunction[IReadOnlyList[T]]: return self.__updater
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyList[T]]: return self.__updater
 class CountableLinkedList[T](AbstractCountableList[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableList[T], IGenericSpecializedConstraintImplementation[IReadWriteList[T], ICountableDoublyLinkedList[T]]):
     def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyCountableList[T]]) -> None: self.__updater = func
@@ -207,7 +207,7 @@ class CountableLinkedList[T](AbstractCountableList[T, ICountableDoublyLinkedList
         self.__updater: IFunction[IReadOnlyCountableList[T]] = _ReadOnlyCountableLinkedListUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _GetUpdater(self) -> IFunction[IReadOnlyCountableList[T]]: return self.__updater
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyCountableList[T]]: return self.__updater
 class EnumerableLinkedList[T](AbstractEnumerableList[T, IDoublyLinkedList[T]], _ReadOnlyEnumerableList[T], IGenericSpecializedConstraintImplementation[IReadWriteList[T], IReadWriteEnumerableList[T]]):
     def __init__(self, l: IDoublyLinkedList[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableList[T]]) -> None: self.__updater = func
@@ -217,7 +217,7 @@ class EnumerableLinkedList[T](AbstractEnumerableList[T, IDoublyLinkedList[T]], _
         self.__updater: IFunction[IReadOnlyEnumerableList[T]] = _ReadOnlyEnumerableLinkedListUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def _GetUpdater(self) -> IFunction[IReadOnlyEnumerableList[T]]: return self.__updater
+    def _GetReadOnlyUpdater(self) -> IFunction[IReadOnlyEnumerableList[T]]: return self.__updater
 class CountableEnumerableLinkedList[T](AbstractCountableEnumerableList[T, ICountableDoublyLinkedList[T]], _ReadOnlyCountableEnumerableList[T], IGenericSpecializedConstraintImplementation[IReadWriteList[T], ICountableDoublyLinkedList[T]]):
     def __init__(self, l: ICountableDoublyLinkedList[T]|None = None) -> None: super().__init__(_GetCountableList(l))
 

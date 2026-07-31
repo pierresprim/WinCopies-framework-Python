@@ -128,7 +128,7 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
     def __init__(self, items: ICircularArray[T]) -> None: super().__init__(items)
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]: return _ArrayUpdater[T](self, func)
+    def _GetReversedUpdater(self, func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]: return _ArrayUpdater[T](self, func)
     
     @final
     def AsReversed(self) -> IArray[T]: return self._AsReversed()
@@ -139,7 +139,7 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     def __init__(self, items: ICircularList[T]) -> None: super().__init__(items)
     
     @final
-    def _GetUpdater(self, func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]: return _ListUpdater[T](self, func)
+    def _GetReversedUpdater(self, func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]: return _ListUpdater[T](self, func)
     
     @final
     def AsReversed(self) -> IList[T]: return self._AsReversed()

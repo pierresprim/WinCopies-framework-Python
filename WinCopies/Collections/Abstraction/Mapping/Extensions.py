@@ -33,8 +33,8 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         self.__set: ISet[T] = s
         self.__innerSet: set[T] = innerSet
 
-        self.__fixedSize: IFunction[IArray[T]] = self._GetReversedUpdater(updateFixedSize) # type: ignore[no-redef]
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
     
     def __TryAdd(self, index: int, value: T) -> bool:
         return self.ValidateIndex(index) and self.__set.TryAdd(value)

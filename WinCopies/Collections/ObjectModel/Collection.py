@@ -342,7 +342,7 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__readOnly: IFunction[IReadOnlyObservableCollection[T]] = _ReadOnlyObservableCollectionUpdater[T](self, updateReadOnly) #type: ignore[no-redef]
         self.__fixedSize: IFunction[IFixedSizeObservableCollection[T]] = _FixedSizeObservableCollectionUpdater[T](self, updateFixedSize) #type: ignore[no-redef]
         
-        self.__reversed: IFunction[IList[T]] = self._GetUpdater(updateReversed) #type: ignore[no-redef]
+        self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) #type: ignore[no-redef]
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]: return self.__eventManager
