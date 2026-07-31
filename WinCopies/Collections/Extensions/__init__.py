@@ -18,6 +18,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Delegate import Action
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -126,9 +127,16 @@ class IResumableEnumeratorMonitor(IEnumeratorMonitor):
     def CreateResumableEnumerator[T](self, items: ITuple[T]) -> IResumableEnumerator[T]:
         ...
 
-class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+class IRevocableViewMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
+    @abstractmethod
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
+        ...
+
+class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+    def __init__(self) -> None: super().__init__()
+
     @abstractmethod
     def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
         ...
