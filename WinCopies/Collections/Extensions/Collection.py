@@ -146,7 +146,7 @@ class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]]):
         self.__reversed: IFunction[ITuple[T]] = _ReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self.__factory
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
     def AsReversed(self) -> ITuple[T]: return self.__reversed.GetValue()
@@ -162,7 +162,7 @@ class _ReadOnlySortedTuple[T](SortedCollectionBase[T], _IReadOnlyTuple[T, ISorte
         self.__reversed: IFunction[ISortedTuple[T]] = _ReversedSortedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self.__factory
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[T]: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectLeft(item, converter)
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectRight(item, converter)
