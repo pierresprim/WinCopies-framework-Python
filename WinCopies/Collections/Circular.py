@@ -23,9 +23,9 @@ class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatabl
     def __init__(self) -> None: super().__init__()
 class ICircularHashableTuple[T: HashableProtocol](ICircularTuple[T], IHashableTuple[T]):
     def __init__(self) -> None: super().__init__()
-class ICircularArray[T](ICircularTuple[T], IArray[T]):
+class ICircularArray[T](IArray[T], ICircularTuple[T]):
     def __init__(self) -> None: super().__init__()
-class ICircularList[T](ICircularArray[T], IList[T]):
+class ICircularList[T](IList[T], ICircularArray[T]):
     def __init__(self) -> None: super().__init__()
 
 class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
