@@ -22,7 +22,7 @@ class _Enumerable[T](Enumerable[T]):
     def _GetEnumerable(self) -> IEnumerable[T]:
         return self.__enumerable
     
-    def TryGetEnumerator(self) -> IEnumerator[T] | None: return self._GetEnumerable().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 
 class _EquatableEnumerable[T: EquatableProtocol](EquatableEnumerable[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:

@@ -15,12 +15,10 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
 
         self.__converter: Converter[TIn, TOut] = converter
     
-    def _Clone(self, items: ITuple[TIn]) -> Tuple[TIn, TOut]:
-        return Tuple[TIn, TOut](items, self.__converter)
+    def _Clone(self, items: ITuple[TIn]) -> Tuple[TIn, TOut]: return Tuple[TIn, TOut](items, self.__converter)
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -30,12 +28,10 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](Collection
 
         self.__converter: Converter[TIn, TOut] = converter
     
-    def _Clone(self, items: IEquatableTuple[TIn]) -> EquatableTuple[TIn, TOut]:
-        return EquatableTuple[TIn, TOut](items, self.__converter)
+    def _Clone(self, items: IEquatableTuple[TIn]) -> EquatableTuple[TIn, TOut]: return EquatableTuple[TIn, TOut](items, self.__converter)
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -45,12 +41,10 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](Collection.Ha
 
         self.__converter: Converter[TIn, TOut] = converter
     
-    def _Clone(self, items: IHashableTuple[TIn]) -> HashableTuple[TIn, TOut]:
-        return HashableTuple[TIn, TOut](items, self.__converter)
+    def _Clone(self, items: IHashableTuple[TIn]) -> HashableTuple[TIn, TOut]: return HashableTuple[TIn, TOut](items, self.__converter)
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
 
 class Array[TIn, TOut](Collection.Array[TIn, TOut]):
     def __init__(self, items: IArray[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
@@ -59,15 +53,12 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
         self.__converter: Converter[TIn, TOut] = converter
         self.__backConverter: Converter[TOut, TIn] = backConverter
     
-    def _Clone(self, items: IArray[TIn]) -> Array[TIn, TOut]:
-        return Array[TIn, TOut](items, self.__converter, self.__backConverter)
+    def _Clone(self, items: IArray[TIn]) -> Array[TIn, TOut]: return Array[TIn, TOut](items, self.__converter, self.__backConverter)
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     @final
-    def _ConvertBack(self, item: TOut) -> TIn:
-        return self.__backConverter(item)
+    def _ConvertBack(self, item: TOut) -> TIn: return self.__backConverter(item)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
@@ -79,15 +70,12 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
         self.__converter: Converter[TIn, TOut] = converter
         self.__backConverter: Converter[TOut, TIn] = backConverter
     
-    def _Clone(self, items: IList[TIn]) -> List[TIn, TOut]:
-        return List[TIn, TOut](items, self.__converter, self.__backConverter)
+    def _Clone(self, items: IList[TIn]) -> List[TIn, TOut]: return List[TIn, TOut](items, self.__converter, self.__backConverter)
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     @final
-    def _ConvertBack(self, item: TOut) -> TIn:
-        return self.__backConverter(item)
+    def _ConvertBack(self, item: TOut) -> TIn: return self.__backConverter(item)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
@@ -100,11 +88,9 @@ class Set[TIn: HashableProtocol, TOut: HashableProtocol](Mapping.Set[TIn, TOut])
         self.__backConverter: Converter[TOut, TIn] = backConverter
     
     @final
-    def _Convert(self, item: TIn) -> TOut:
-        return self.__converter(item)
+    def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     @final
-    def _ConvertBack(self, item: TOut) -> TIn:
-        return self.__backConverter(item)
+    def _ConvertBack(self, item: TOut) -> TIn: return self.__backConverter(item)
 
 class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Mapping.Dictionary[TKey, TValueIn, TValueOut]):
     def __init__(self, items: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> None:
@@ -114,11 +100,9 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Mapping.Dictionary
         self.__backConverter: Converter[TValueOut, TValueIn] = backConverter
     
     @final
-    def _Convert(self, item: TValueIn) -> TValueOut:
-        return self.__converter(item)
+    def _Convert(self, item: TValueIn) -> TValueOut: return self.__converter(item)
     @final
-    def _ConvertBack(self, item: TValueOut) -> TValueIn:
-        return self.__backConverter(item)
+    def _ConvertBack(self, item: TValueOut) -> TValueIn: return self.__backConverter(item)
 
 def CreateTuple[TIn, TOut](items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> ITuple[TOut]:
     return Tuple[TIn, TOut](items, converter)

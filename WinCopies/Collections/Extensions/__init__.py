@@ -138,6 +138,10 @@ class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], 
         ...
     
     @abstractmethod
+    def AsReadOnly(self) -> ITuple[T]:
+        ...
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         ...
 class IEquatableTuple[T: EquatableProtocol](IEquatableTupleBase[T], IEquatableEnumerable[T], ITuple[T]):
@@ -145,6 +149,10 @@ class IEquatableTuple[T: EquatableProtocol](IEquatableTupleBase[T], IEquatableEn
 
     @abstractmethod
     def AsReversed(self) -> IEquatableTuple[T]:
+        ...
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IEquatableTuple[T]:
         ...
     
     @abstractmethod
@@ -158,24 +166,14 @@ class IHashableTuple[T: HashableProtocol](IHashableTupleBase[T], IEquatableTuple
         ...
     
     @abstractmethod
+    def AsReadOnly(self) -> IHashableTuple[T]:
+        ...
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
-class IArrayBase[T](ITuple[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> ITuple[T]:
-        ...
-    
-    @abstractmethod
-    def AsReversed(self) -> IArrayBase[T]:
-        ...
-    
-    @abstractmethod
-    def SliceAt(self, key: slice) -> IArrayBase[T]:
-        ...
-class IArray[T](IArrayBase[T], IArrayAbstract[T]):
+class IArray[T](ITuple[T], IArrayAbstract[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -186,7 +184,7 @@ class IArray[T](IArrayBase[T], IArrayAbstract[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         ...
 
-class IListBase[T](IArrayBase[T], IListAbstractBase[T]):
+class IListBase[T](ITuple[T], IListAbstractBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod

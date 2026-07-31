@@ -11,7 +11,7 @@ from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArrayBase, IArray, IList, ISortedList, MutableSequence, Count
+from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Iteration import Zip
@@ -117,7 +117,7 @@ class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], Collection.H
     
     def ToString(self) -> str: return str(self._GetContainer())
 
-class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, IArrayBase[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self) -> None: super().__init__()
 class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Collection.ArrayAbstract[TItem, IArray[TItem]]):
     def __init__(self) -> None: super().__init__()

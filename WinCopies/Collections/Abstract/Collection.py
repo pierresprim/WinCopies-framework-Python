@@ -62,6 +62,9 @@ class Tuple[TIn, TOut](TupleCollection[TOut], TupleBase[TIn, TOut, ITuple[TIn]],
     
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+
+    @final
+    def AsReadOnly(self) -> ITuple[TOut]: return self
     
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))

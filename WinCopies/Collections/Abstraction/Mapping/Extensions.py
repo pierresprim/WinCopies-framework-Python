@@ -111,8 +111,8 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     
     def ToString(self) -> str: return self.__items.ToString()
     
-    def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
     def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
+    def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
     
     def insert(self, index: int, value: T) -> None: self.Insert(index, value)
@@ -199,6 +199,9 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor[TItem]: return self._GetInnerContainer().GetEnumeratorMonitor()
     
     @final
+    def AsReadOnly(self) -> IEquatableTuple[TItem]: return self
+    
+    @final
     def ToString(self) -> str: return self.ToString()
 
 @final
@@ -227,8 +230,7 @@ class _ReadOnlyOrderedSetReversedTupleUpdater[T: HashableProtocol](ValueFunction
 @final
 class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None:
-        def update(func: IFunction[IEquatableTuple[T]]) -> None:
-            self.__reversed = func
+        def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__reversed = func
         
         super().__init__(items)
 
@@ -389,12 +391,10 @@ class _ReadOnlyKeyedSetUpdater[TKey: HashableProtocol, TValue](ValueFunctionUpda
 
         self.__items: KeyedSet[TKey, TValue] = items
     
-    def _GetValue(self) -> IReadOnlyKeyedSet[TKey, TValue]:
-        return _ReadOnlyKeyedSet[TKey, TValue](self.__items)
+    def _GetValue(self) -> IReadOnlyKeyedSet[TKey, TValue]: return _ReadOnlyKeyedSet[TKey, TValue](self.__items)
 class KeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue]], IKeyedSet[TKey, TValue]):
     def __init__(self, keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> None:
-        def update(func: IFunction[IReadOnlyKeyedSet[TKey, TValue]]) -> None:
-            self.__readOnly = func
+        def update(func: IFunction[IReadOnlyKeyedSet[TKey, TValue]]) -> None: self.__readOnly = func
         
         super().__init__()
 

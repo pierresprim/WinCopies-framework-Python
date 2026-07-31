@@ -294,6 +294,8 @@ class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFix
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
     
     def AsReversed(self) -> ITuple[T]: return self._GetContainer().AsReversed().AsReadOnly()
+
+    def AsReadOnly(self) -> ITuple[T]: return self
 @final
 class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IGenericConstraintImplementation[IObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T]) -> None: super().__init__(items)

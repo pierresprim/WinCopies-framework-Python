@@ -288,6 +288,10 @@ class ITuple[T](IReadOnlyCountableIndexableList[T]):
     @abstractmethod
     def AsReversed(self) -> ITuple[T]:
         ...
+
+    @abstractmethod
+    def AsReadOnly(self) -> ITuple[T]:
+        ...
     
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
@@ -316,14 +320,7 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
-class IArrayBase[T](ITuple[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> ITuple[T]:
-        ...
-
-class IArray[T](IArrayBase[T], ICountableIndexable[T]):
+class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -334,7 +331,7 @@ class IArray[T](IArrayBase[T], ICountableIndexable[T]):
     def SliceAt(self, key: slice) -> IArray[T]:
         ...
 
-class IListBase[T](IArrayBase[T], ICountableList[T]):
+class IListBase[T](ITuple[T], ICountableList[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
