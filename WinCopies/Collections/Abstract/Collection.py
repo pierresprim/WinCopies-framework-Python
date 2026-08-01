@@ -107,6 +107,9 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](TupleBase[
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
+
+    @final
+    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
 class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
@@ -125,6 +128,9 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](TupleBase[TIn
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
+    @final
+    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
+
 class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], StringableTwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self) -> None: super().__init__()
     
@@ -134,6 +140,9 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     @final
     def _SetAt(self, key: int, value: TOut) -> None:
         self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
+
+    @final
+    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], ArrayAbstract[TIn, TOut, TSequence]):
     def __init__(self) -> None: super().__init__()
 

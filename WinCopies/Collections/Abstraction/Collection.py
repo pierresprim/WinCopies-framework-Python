@@ -493,6 +493,9 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
         self.__RegisterEnumerator(enumerator)
 
         return enumerator
+
+    @final
+    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
     
     @final
     def ToString(self) -> str: return self._GetItems().ToString()

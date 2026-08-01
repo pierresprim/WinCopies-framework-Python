@@ -432,6 +432,9 @@ class TupleCollectionBase[T](_TupleCollectionBase[T]):
     
     @final
     def AsReversed(self) -> ITuple[T]: return self.__reversed.GetValue()
+
+    @final
+    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
 class TupleCollection[T](_TupleCollection[T]):
     def __init__(self) -> None:
         def update(func: IFunction[ITuple[T]]) -> None: self.__reversed = func
