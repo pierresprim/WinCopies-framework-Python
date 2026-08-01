@@ -102,7 +102,8 @@ class RevocableViewBase[T](Abstract, ITuple[T]):
     def AsSequence(self) -> SequenceBase[T]: return self._GetItems().AsSequence()
 
     def ToString(self) -> str: return self._GetItems().ToString()
-class RevocableView[T](RevocableViewBase[T]):
+@final
+class _RevocableView[T](RevocableViewBase[T]):
     def __init__(self, items: ITuple[T]) -> None:
         def getItems() -> ITuple[T]: return items
         
@@ -119,9 +120,11 @@ class RevocableView[T](RevocableViewBase[T]):
 
             if onDisposed is not None: onDisposed()
 
-        view: RevocableView[T] = RevocableView[T](items)
+        view: _RevocableView[T] = _RevocableView[T](items)
 
         return (view, _RevocableViewCookie(update))
+
+type RevocableView[T] = _RevocableView[T]
 
 class RevocableViewFactory(Abstract, IRevocableViewFactory):
     def __init__(self) -> None:
@@ -138,7 +141,7 @@ class RevocableViewFactory(Abstract, IRevocableViewFactory):
     
     @final
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
-        view: tuple[ITuple[T], IDisposableBase] = RevocableView[T].Create(items, onDisposed)
+        view: tuple[ITuple[T], IDisposableBase] = _RevocableView[T].Create(items, onDisposed)
 
         self._GetFactory().RegisterObject(view[1])
 
