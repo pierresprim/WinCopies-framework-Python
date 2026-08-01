@@ -260,7 +260,7 @@ class TupleAbstract[T](TupleAbstractBase[T]):
     @final
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
-class ITupleBase[T](ITupleAbstract):
+class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod

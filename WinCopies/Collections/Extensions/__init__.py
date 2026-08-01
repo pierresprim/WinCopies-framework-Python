@@ -145,21 +145,21 @@ class ICollectionMonitors(IInterface):
     def GetRevocableViewMonitor(self) -> IRevocableViewMonitor:
         ...
 
-class ITupleBase(IInterface):
+class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetCollectionMonitors(self) -> ICollectionMonitors:
         ...
-class ITuple[T](ITupleAbstract[T], ITupleBase, ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+
+    @abstractmethod
+    def AsImmutable(self) -> ITuple[T]:
+        ...
+class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> ITuple[T]:
-        ...
-
-    @abstractmethod
-    def AsImmutable(self) -> ITuple[T]:
         ...
     
     @abstractmethod
