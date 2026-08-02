@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import final, Any, Self, Type
+from typing import final, Self, Type
 
 from WinCopies import IInterface, IsTruthy, IsFalsy
 from WinCopies.Delegates import BoolFalse
@@ -275,7 +275,7 @@ def Between[T: SupportsRichComparison](x: T, value: T, y: T, bx: bool = True, by
 def Outside[T: SupportsRichComparison](x: T, value: T, y: T, bx: bool = True, by: bool = True) -> bool:
     return __Check(value, x, bx) or __Check(y, value, by)
 
-def CompareFrom(x: SupportsRichComparison, y: Any) -> bool|None:
+def CompareFrom(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
     return None if x == y else x < y
-def CompareTo(x: SupportsRichComparison, y: Any) -> bool|None:
+def CompareTo(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
     return None if x == y else x > y
