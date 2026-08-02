@@ -1,28 +1,40 @@
+from __future__ import annotations
+
 from enum import Enum as _Enum, IntEnum as _IntEnum, StrEnum as _StrEnum
 from types import DynamicClassAttribute
-from typing import final, Self, Type, TypeVar
+from typing import final, Generic, Self, Type, TypeVar
 
+from WinCopies.Typing import IEnum
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
-from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
-T = TypeVar('T')
-U = TypeVar('U', bound=SupportsEqualityAndRichComparison)
+_T = TypeVar('_T')
+_U = TypeVar('_U', bound=SupportsEqualityComparison)
+_V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-class Enum(IEquatableObjectBase[T]):
-    def __init__(self, value: T) -> None: super().__init__()
+_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
+_TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
+
+class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]):
+    def __init__(self) -> None: super().__init__()
+class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
+    def __init__(self) -> None: super().__init__()
+
+class Enum(IEquatableObjectBase[_T]):
+    def __init__(self, value: _T) -> None: super().__init__()
 
     @classmethod
     @final
-    def ValidateValueType(cls, value: T|object) -> bool:
-        type: Type[T] = cls._GetComparableType()
+    def ValidateValueType(cls, value: _T|object) -> bool:
+        type: Type[_T] = cls._GetComparableType()
         
         return isinstance(value, type)
     @classmethod
     @final
-    def CheckValueType(cls, value: T|object) -> None:
+    def CheckValueType(cls, value: _T|object) -> None:
         if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.")
 
-    def __new__(cls, value: T) -> Self:
+    def __new__(cls, value: _T) -> Self:
         cls.CheckValueType(value)
         
         member: Self = object.__new__(cls)
@@ -30,24 +42,24 @@ class Enum(IEquatableObjectBase[T]):
 
         return member
 
-    _value_: T
+    _value_: _T
 
     @DynamicClassAttribute
-    def value(self) -> T:
+    def value(self) -> _T:
         return self._value_
-class EquatableEnum(Enum[U], IHashable[U]):
-    def __init__(self, value: U) -> None: super().__init__(value)
+class EquatableEnum(Generic[_TEquatableEnum, _U], Enum[_U], IEquatableEnum[_TEquatableEnum, _U]):
+    def __init__(self, value: _U) -> None: super().__init__(value)
     
-    def __new__(cls, value: U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _U) -> Self: return super().__new__(cls, value)
 
     @final
-    def _AsComparableValue(self) -> U: return self.value
-class OrderedEnum(EquatableEnum[U], IHashableComparable[U]):
-    def __init__(self, value: U) -> None: super().__init__(value)
+    def _AsComparableValue(self) -> _U: return self.value
+class OrderedEnum(Generic[_TComparableEnum, _V], EquatableEnum[_TComparableEnum, _V], IComparableEnum[_TComparableEnum, _V]):
+    def __init__(self, value: _V) -> None: super().__init__(value)
     
-    def __new__(cls, value: U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
 
-class IntEnum(OrderedEnum[int], _Enum):
+class IntEnum(OrderedEnum["IntEnum", int], _Enum):
     def __init__(self, value: int) -> None: super().__init__(value)
 
     def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
@@ -55,7 +67,7 @@ class IntEnum(OrderedEnum[int], _Enum):
     @classmethod
     @final
     def _GetComparableType(cls) -> Type[int]: return int
-class StrEnum(EquatableEnum[str], _Enum):
+class StrEnum(EquatableEnum["StrEnum", str], _Enum):
     def __init__(self, value: str) -> None: super().__init__(value)
     
     def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
