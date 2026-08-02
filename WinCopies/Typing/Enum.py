@@ -35,14 +35,14 @@ class Enum(IEquatableObjectBase[T]):
     @DynamicClassAttribute
     def value(self) -> T:
         return self._value_
-class ComparableEnum(Enum[U], IHashable[U]):
+class EquatableEnum(Enum[U], IHashable[U]):
     def __init__(self, value: U) -> None: super().__init__(value)
     
     def __new__(cls, value: U) -> Self: return super().__new__(cls, value)
 
     @final
     def _AsComparableValue(self) -> U: return self.value
-class OrderedEnum(ComparableEnum[U], IHashableComparable[U]):
+class OrderedEnum(EquatableEnum[U], IHashableComparable[U]):
     def __init__(self, value: U) -> None: super().__init__(value)
     
     def __new__(cls, value: U) -> Self: return super().__new__(cls, value)
@@ -55,7 +55,7 @@ class IntEnum(OrderedEnum[int], _Enum):
     @classmethod
     @final
     def _GetComparableType(cls) -> Type[int]: return int
-class StrEnum(ComparableEnum[str], _Enum):
+class StrEnum(EquatableEnum[str], _Enum):
     def __init__(self, value: str) -> None: super().__init__(value)
     
     def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
