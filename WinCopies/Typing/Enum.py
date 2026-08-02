@@ -66,3 +66,6 @@ class StrEnum(EquatableEnum[str], _Enum):
 
 type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
+
+type EquatableEnumProtocol = IntegerEnum|StringEnum
+type ComparableEnumProtocol = IntegerEnum
