@@ -5,7 +5,7 @@ from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, overload, Type as SystemType
 
-from WinCopies import IInterface, IDisposable as IDisposableBase, Abstract
+from WinCopies import IInterface, IStringable, IDisposable as IDisposableBase, Abstract
 from WinCopies.Typing.Delegate import Converter
 
 type NumericalValue = int|float|decimal
@@ -232,12 +232,14 @@ class Monitor(Abstract, IMonitor):
     @final
     def Dispose(self) -> None: self.__isBusy = False
 
-class IEnumBase(IInterface):
+class IEnumBase(IStringable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetEnumValue(self) -> Enum:
         ...
+
+    def ToString(self) -> str: return str(self.GetEnumValue())
 class IEnum[T: Enum](IEnumBase):
     def __init__(self) -> None: super().__init__()
     
