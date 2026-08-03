@@ -12,6 +12,9 @@ _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
+type EquatableEnumProtocol = IntegerEnum|StringEnum
+type ComparableEnumProtocol = IntegerEnum
+
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
 
@@ -78,6 +81,3 @@ class StrEnum(EquatableEnum["StrEnum", str], _Enum):
 
 type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
-
-type EquatableEnumProtocol = IntegerEnum|StringEnum
-type ComparableEnumProtocol = IntegerEnum
