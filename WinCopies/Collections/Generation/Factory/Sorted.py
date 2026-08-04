@@ -13,6 +13,7 @@ from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFacto
 from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem, CompareTo
+from WinCopies.Typing.Protocols import SupportsRichComparison
 
 class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
     def __init__(self) -> None: super().__init__()
@@ -26,7 +27,12 @@ class _SortedNode[TKey: ComparableProtocol, TValue: IDisposableBase](Node[TKey, 
 
         self.__items: ISortedList[TKey, TValue] = items
     
-    def _CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None: return CompareTo(self.GetKey(), ExtractKey(item))
+    def _CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None:
+        value: object = ExtractKey(item)
+
+        if isinstance(value, SupportsRichComparison): return CompareTo(self.GetKey(), value)
+
+        raise NotImplementedError()
     
     def Remove(self) -> None:
         items: ISortedList[TKey, TValue] = self.__items
