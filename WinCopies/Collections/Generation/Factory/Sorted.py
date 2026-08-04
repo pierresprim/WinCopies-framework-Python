@@ -12,16 +12,15 @@ from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, Com
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Typing import INullable, GetNullableValue
-from WinCopies.Typing.Comparison import IHashableComparableItem, CompareTo
-from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
+from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem, CompareTo
 
-class ISortedNode[TKey: SupportsEqualityAndRichComparison, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
+class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _AsComparableValue(self) -> TKey: return self.GetKey()
 @final
-class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
+class _SortedNode[TKey: ComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[TKey, TValue]) -> None:
         super().__init__(key, obj)
 
@@ -34,7 +33,7 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IDisposableBa
 
         items.Remove(self.GetKey())
 
-class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
+class ISortedList[TKey: ComparableProtocol, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -55,7 +54,7 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
     @abstractmethod
     def Remove(self, key: TKey) -> None:
         ...
-class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISortedList[TKey, TValue]):
+class SortedList[TKey: ComparableProtocol, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -95,7 +94,7 @@ class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, 
 class ISortedObjectFactory[TKey, TValue](ISortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
-class SortedObjectFactoryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
+class SortedObjectFactoryBase[TKey: ComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -145,10 +144,10 @@ class SortedObjectFactoryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOut
         super().InvalidateObjects()
         
         self._GetSortedItems().Clear()
-class SortedObjectFactory[TKey: SupportsEqualityAndRichComparison, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
+class SortedObjectFactory[TKey: ComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
     def __init__(self) -> None: super().__init__()
 
-class SortedDisposableObjectFactory[TKey: SupportsEqualityAndRichComparison, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
+class SortedDisposableObjectFactory[TKey: ComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
