@@ -107,6 +107,8 @@ class _RevocableView[T](RevocableViewBase[T]):
     def __init__(self, items: ITuple[T]) -> None:
         def getItems() -> ITuple[T]: return items
         
+        super().__init__()
+
         self.__items: Function[ITuple[T]] = getItems
 
     def _GetItems(self) -> ITuple[T]: return self.__items()
