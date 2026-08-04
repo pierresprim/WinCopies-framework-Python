@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import final, Self, Type
+from typing import runtime_checkable, final, Protocol, Self, Type
 
 from WinCopies import IInterface, IsTruthy, IsFalsy
 from WinCopies.Delegates import BoolFalse
@@ -193,6 +193,27 @@ class IComparableValue[T](_IComparableValue[T]):
 class IHashableComparableValue[T](IHashableValue, IComparableValue[T]):
     def __init__(self) -> None: super().__init__()
 
+@runtime_checkable
+class _SupportsRichComparison(SupportsEqualityAndRichComparison, Protocol):
+    def CompareTo(self, item: Self) -> bool|None:
+        ...
+    
+    def IsLessThan(self, other: Self) -> bool:
+        """Less than comparison."""
+        ...
+    
+    def IsLessThanOrEqual(self, other: Self) -> bool:
+        """Less than or equal comparison."""
+        ...
+    
+    def IsGreaterThan(self, other: Self) -> bool:
+        """Greater than comparison."""
+        ...
+    
+    def IsGreaterThanOrEqual(self, other: Self) -> bool:
+        """Greater than or equal comparison."""
+        ...
+
 class IComparableObject[T](_IComparableValue[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -266,6 +287,8 @@ class IHashableComparable[T: SupportsEqualityAndRichComparison](IComparableItem[
 
 type EquatableProtocol = IEquatableValue|SupportsEqualityComparison
 type HashableProtocol = IHashableValue|SupportsEqualityComparison
+
+type ComparableProtocol = _SupportsRichComparison|SupportsEqualityAndRichComparison
 
 def __Check(x: SupportsRichComparison, y: SupportsRichComparison, b: bool) -> bool:
     return x <= y if b else x < y
