@@ -64,7 +64,7 @@ def TryGetLastItem[T](l: Sequence[T]) -> INullable[T]:
 def ReverseIndexFromLast(index: int, lastIndex: int) -> int:
     return lastIndex - index
 def ReverseIndex(index: int, length: int) -> int:
-    return ReverseIndexFromLast(length - 1, index)
+    return ReverseIndexFromLast(index, length - 1)
 
 def ReverseRangeStartIndex(index: int, count: int, totalLength: int) -> int:
     return GetIndex(ReverseIndex(index, totalLength), totalLength, -(count - 1))[0]
