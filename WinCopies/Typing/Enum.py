@@ -70,6 +70,9 @@ class IntEnum(OrderedEnum["IntEnum", int], _Enum):
     @classmethod
     @final
     def _GetComparableType(cls) -> Type[int]: return int
+
+    @final
+    def GetEnumValue(self) -> IntEnum: return self
 class StrEnum(EquatableEnum["StrEnum", str], _Enum):
     def __init__(self, value: str) -> None: super().__init__(value)
     
@@ -78,6 +81,9 @@ class StrEnum(EquatableEnum["StrEnum", str], _Enum):
     @classmethod
     @final
     def _GetComparableType(cls) -> Type[str]: return str
+
+    @final
+    def GetEnumValue(self) -> StrEnum: return self
 
 type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum

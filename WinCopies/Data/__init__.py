@@ -125,8 +125,7 @@ class Ordering(IntEnum):
     Ascending = 1
 
     @final
-    def __str__(self) -> str:
-        return TryGetValueFromName(OrderingNames, self.name)
+    def ToString(self) -> str: return TryGetValueFromName(OrderingNames, self.name)
     
     @staticmethod
     def TryParse(value: OrderingNames|str) -> Ordering:
