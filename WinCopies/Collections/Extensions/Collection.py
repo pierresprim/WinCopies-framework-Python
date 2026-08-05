@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence as SequenceBase
-from typing import overload, final, SupportsIndex
+from typing import overload, final, Callable, SupportsIndex
 
 
 
@@ -19,7 +19,7 @@ from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Generation.Factory.Core import ICollectionFactory, CollectionFactory
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
-from WinCopies.Collections.Util import FindIndex
+from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
@@ -752,26 +752,36 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
         else: items.Add(item)
     
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool: return self._GetContainerAsList().TryInsert(self.ReverseIndex(index), value)
+    def __TryInsert[T, U](self, index: int, value: T, adder: Converter[IList[TItem], Method[T]], _adder: Converter[IList[TItem], Callable[[int, T], U]]) -> bool|U:
+        def tryAdd(condition: int, items: IList[TItem]) -> bool:
+            if index == condition:
+                adder(items)(value)
+
+                return True
+
+            return False
+
+        if self.ValidateIndex(index, True):
+            if tryAdd(self.GetCount(), self): return True
+            
+            items: IList[TItem] = self._GetContainerAsList()
+
+            return tryAdd(0, items) or _adder(items)(ReverseIndexFromLast(index, self.GetCount()), value)
+
+        return False
+    
+    @final
+    def TryInsert(self, index: int, value: TItem) -> bool:
+        return self.__TryInsert(index, value, lambda items: items.Add, lambda items: items.TryInsert)
     @final
     def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
-        if self.ValidateIndex(index):
-            _items: IList[TItem] = self._GetContainerAsList()
-            items = Reverse(items)
-
-            if index > 0: return _items.TryInsertRange(self.ReverseIndex(index), items)
-            
-            _items.AddRange(items)
-
-            return True
-        
-        return False
+        return self.__TryInsert(index, Reverse(items), lambda items: items.AddRange, lambda items: items.TryInsertRange)
     
     @final
     def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
-    def insert(self, index: int, value: TItem) -> None: return self._GetContainerAsList().AsMutableSequence().insert(self.ReverseIndex(index), value)
+    def insert(self, index: int, value: TItem) -> None: self.__TryInsert(index, value, lambda items: items.AsMutableSequence().append, lambda items: items.AsMutableSequence().insert)
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...
