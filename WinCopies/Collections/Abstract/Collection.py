@@ -199,7 +199,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], Mu
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainer().TryRemoveRange(index, count)
+    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainer().TryRemoveRange(index, count)
     
     @final
     def Clear(self) -> None: self._GetContainer().Clear()

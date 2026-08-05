@@ -200,17 +200,6 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
         return True
     
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool:
-        if self.ValidateIndex(index):
-            self.__InvalidateViews()
-
-            for i in range(count): self.RemoveAt(index + i)
-
-            return True
-        
-        return False
-    
-    @final
     def Clear(self) -> None:
         self.__InvalidateViews()
         
@@ -252,17 +241,22 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         if self.ValidateIndex(index):
             self._InvalidateViews()
-
-            index -= 1
             
             for item in items:
-                index += 1
-
                 self._GetContainer().insert(index, item)
+
+                index += 1
             
             return True
         
         return False
+    @final
+    def _TryRemoveRange(self, index: int, count: int) -> bool:
+        self._InvalidateViews()
+
+        del self._GetContainer()[index:index + count]
+
+        return True
     
     @final
     def insert(self, index: int, value: T) -> None:

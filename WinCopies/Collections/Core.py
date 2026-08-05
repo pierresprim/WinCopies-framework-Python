@@ -349,6 +349,14 @@ class IListBase[T](ITuple[T], ICountableList[T]):
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
 
+    def _TryRemoveRange(self, index: int, count: int) -> bool:
+        for _ in range(count): self.RemoveAt(index)
+
+        return True
+    @final
+    def TryRemoveRange(self, index: int, count: int) -> bool:
+        return self.ValidateIndex(index) and self._TryRemoveRange(index, count)
+
 class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None: super().__init__()
     

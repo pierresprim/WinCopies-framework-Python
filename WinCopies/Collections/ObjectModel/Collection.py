@@ -111,7 +111,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool: return self._InsertItems(index, items)
     
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool: return self._RemoveItemsAt(index, count)
+    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._RemoveItemsAt(index, count)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._RemoveItemAt(index)
