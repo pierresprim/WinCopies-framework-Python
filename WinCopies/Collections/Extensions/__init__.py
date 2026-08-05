@@ -348,14 +348,27 @@ def GetCount(items: ICountable|Sized) -> int:
 def TryGetCount(items: ICountable|Sized|None) -> int|None:
         return None if items is None else GetCount(items)
 
-def Count[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]) -> tuple[Iterable[T], int]:
+@overload
+def Count[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
+@overload
+def Count[T](items: ICountableEnumerable[T]) -> tuple[ICountableEnumerable[T], int]: ...
+
+def Count[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]) -> tuple[ICountableEnumerable[T]|CollectionBase[T], int]:
+    def getItems(items: CollectionBase[T]) -> tuple[CollectionBase[T], int]: return (items, len(items))
+
     match items:
-        case ICountableEnumerable(): return (items.AsIterable(), items.GetCount())
-        case CollectionBase(): return (items, len(items))
+        case ICountableEnumerable(): return (items, items.GetCount())
+        case CollectionBase(): return getItems(items)
         
         case _:
-            items = tuple(items)
+            return getItems(tuple(items))
 
-            return (items, len(items))
-def TryCount[T](items: Iterable[T]|None) -> tuple[Iterable[T], int]|None:
+@overload
+def TryCount[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
+@overload
+def TryCount[T](items: ICountableEnumerable[T]) -> tuple[ICountableEnumerable[T], int]: ...
+@overload
+def TryCount(items: None) -> None: ...
+
+def TryCount[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]|None) -> tuple[ICountableEnumerable[T]|CollectionBase[T]|Iterable[T], int]|None:
     return None if items is None else Count(items)
