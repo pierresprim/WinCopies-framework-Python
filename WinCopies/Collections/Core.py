@@ -6,7 +6,7 @@ from typing import overload, final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
-from WinCopies.Collections.Util import ReverseIndex, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
+from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
@@ -102,7 +102,7 @@ class ICountable(IInterface):
     def GetLastIndex(self) -> int: return self.GetCount() - 1
     
     @final
-    def ValidateIndex(self, index: int) -> bool: return ValidateIndex(index, self.GetCount())
+    def ValidateIndex(self, index: int, permissive: bool = False) -> bool: return ValidateIndex(index, self.GetCount(), permissive)
     
     @abstractmethod
     def AsSized(self) -> Sized:
@@ -201,6 +201,9 @@ class ICountableIndexableBase(IKeyableBase[int], ICountable):
 class IIndexableCollectionBase(ICountable):
     def __init__(self) -> None: super().__init__()
     
+    @final
+    def ReverseIndexFromLast(self, index: int) -> int:
+        return ReverseIndexFromLast(index, self.GetLastIndex())
     @final
     def ReverseIndex(self, index: int) -> int:
         return ReverseIndex(index, self.GetCount())

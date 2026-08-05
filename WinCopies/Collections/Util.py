@@ -10,8 +10,8 @@ from WinCopies.Typing.Comparison import Between, Outside
 from WinCopies.Typing.Delegate import Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualNullableValueInfo
 
-def ValidateIndex(index: int, length: int) -> bool:
-    return Between(0, index, length, True, False)
+def ValidateIndex(index: int, length: int, permissive: bool = False) -> bool:
+    return Between(0, index, length, True, permissive)
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
     paramName: str|None = None
