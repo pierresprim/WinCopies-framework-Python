@@ -270,7 +270,7 @@ class _ITuple[T](ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetCollectionFactories(self) -> ICollectionFactories[T]:
+    def _GetCollectionFactories(self) -> ICollectionFactories:
         ...
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors:
@@ -361,7 +361,7 @@ class _ReversedHashableTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IH
     
     def _GetValue(self) -> IHashableTuple[T]: return _ReversedHashableTuple[T](self.__array)
 
-class ICollectionFactories[T](ICollectionFactory[IObjectMonitor]):
+class ICollectionFactories(ICollectionFactory[IObjectMonitor]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -378,16 +378,16 @@ class ICollectionFactories[T](ICollectionFactory[IObjectMonitor]):
 
 @final
 class _Monitors[T](Abstract, ICollectionMonitors):
-    def __init__(self, factories: ICollectionFactories[T]) -> None:
+    def __init__(self, factories: ICollectionFactories) -> None:
         super().__init__()
 
-        self.__factories: ICollectionFactories[T] = factories
+        self.__factories: ICollectionFactories = factories
 
     def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__factories.GetEnumeratorFactory().AsMonitor()
     
     def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__factories.GetRevocableViewFactory().AsMonitor()
 @final
-class _CollectionFactories[T](CollectionFactory[IObjectMonitor], ICollectionFactories[T]):
+class _CollectionFactories[T](CollectionFactory[IObjectMonitor], ICollectionFactories):
     def __init__(self) -> None:
         def createRegistry[U: IObjectMonitor](factory: U) -> U:
             self.RegisterObject(factory)
@@ -413,11 +413,11 @@ class _TupleCollection[T](_TupleCollectionBase[T], _ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__factories: ICollectionFactories[T] = _CollectionFactories[T]()
+        self.__factories: ICollectionFactories = _CollectionFactories[T]()
         self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self)
 
     @final
-    def _GetCollectionFactories(self) -> ICollectionFactories[T]: return self.__factories
+    def _GetCollectionFactories(self) -> ICollectionFactories: return self.__factories
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__monitor
@@ -566,15 +566,15 @@ class _ArrayCollectionAbstract[TItem, TCollection](_ArrayCollectionAbstractBase[
         
         super().__init__()
 
-        factory: ICollectionFactories[TItem] = _CollectionFactories[TItem]()
+        factory: ICollectionFactories = _CollectionFactories[TItem]()
 
-        self.__factory: ICollectionFactories[TItem] = factory
+        self.__factory: ICollectionFactories = factory
         self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
 
         self.__reversed: IFunction[TCollection] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
     
     @final
-    def _GetCollectionFactories(self) -> ICollectionFactories[TItem]: return self.__factory
+    def _GetCollectionFactories(self) -> ICollectionFactories: return self.__factory
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self.__monitor
@@ -768,7 +768,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
         return False
     
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
+    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
     def insert(self, index: int, value: TItem) -> None: return self._GetContainerAsList().AsMutableSequence().insert(self.ReverseIndex(index), value)
@@ -814,7 +814,7 @@ class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem,
     def Add(self, item: TItem) -> None: self._GetContainerAsList().AddLeft(item)
     
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
+    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[TItem]: return self._GetSpecializedContainerAsList(self.ToSlicedAt(key))
