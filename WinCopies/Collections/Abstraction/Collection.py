@@ -19,7 +19,7 @@ from WinCopies.Collections.Loop import ForEachItem
 from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import IFunction, IStruct, Converter, EqualityComparison, Handle
+from WinCopies.Typing.Delegate import IFunction, IStruct, Method, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
@@ -296,6 +296,12 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
         del self._GetContainer()[index]
 class List[T](ListBase[T]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None = None) -> None: super().__init__(items)
+
+    @final
+    def __Add[U](self, items: U, adder: Method[U]) -> None:
+        self._InvalidateViews()
+        
+        adder(items)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
@@ -303,10 +309,9 @@ class List[T](ListBase[T]):
     def TryGetSourceMutability(self) -> None: return None
     
     @final
-    def Add(self, item: T) -> None:
-        self._InvalidateViews()
-
-        self._GetContainer().append(item)
+    def Add(self, item: T) -> None: self.__Add(item, self._GetContainer().append)
+    @final
+    def AddRange(self, items: Iterable[T]) -> None: self.__Add(items, self._GetContainer().extend)
     
     @final
     def TryInsert(self, index: int, value: T) -> bool: return self._TryInsert(index, value)
@@ -415,15 +420,24 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     
     @final
     def ValidateLength(self, count: int) -> bool: return self.GetCount() + count <= self.GetMaxLength()
+
+    @final
+    def __Add[U](self, count: int, items: U, adder: Method[U]) -> None:
+        if self.ValidateLength(count):
+            self._InvalidateViews()
+
+            adder(items)
+        
+        else: raise InvalidOperationError("The list is already full.")
     
     @final
     def Add(self, item: T) -> None:
-        if self.ValidateLength(1):
-            self._InvalidateViews()
+        self.__Add(1, item, self._GetContainer().append)
+    @final
+    def AddRange(self, items: Iterable[T]) -> None:
+        _items: tuple[Iterable[T], int] = Count(items)
 
-            self._GetContainer().append(item)
-        
-        else: raise InvalidOperationError("The list is already full.")
+        self.__Add(_items[1], _items[0], self._GetContainer().extend)
     
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None: return self._TryInsert(index, value) if self.ValidateLength(1) else None
