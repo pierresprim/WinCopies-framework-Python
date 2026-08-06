@@ -83,10 +83,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         return False
     
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool:
-        for i in range(count): self.RemoveAt(index + i)
-
-        return True
+    def _TryRemoveRange(self, index: int, count: int) -> bool: return super(MutableList[T], self)._TryRemoveRange(index, count)
     
     def TryRemoveAt(self, index: int) -> bool|None:
         if index < 0: return None
