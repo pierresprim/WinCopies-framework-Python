@@ -291,7 +291,7 @@ type HashableProtocol = IHashableValue|SupportsEqualityComparison
 type ComparableProtocol = _SupportsRichComparison|SupportsEqualityAndRichComparison
 
 def __Check(x: SupportsRichComparison, y: SupportsRichComparison, b: bool) -> bool:
-    return x <= y if b else x < y
+    return (x <= y) if b else (x < y)
 
 def Between[T: SupportsRichComparison](x: T, value: T, y: T, bx: bool = True, by: bool = True) -> bool:
     return __Check(x, value, bx) and __Check(value, y, by)
