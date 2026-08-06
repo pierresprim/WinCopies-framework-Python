@@ -94,15 +94,23 @@ def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     i: int|None = key.start
     l: int|None = key.stop
 
+    count: int = lst.GetCount()
+
     if i is None: i = 0
-    if l is None: l = lst.GetCount()
+    if l is None: l = count
 
     if s < 0:
         RemoveValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s))
 
         return
 
-    if i >= l: raise IndexError()
+    if i >= l or i >= count: return
+
+    if s == 1:
+        if i == 0 and l >= count: lst.Clear()
+        else: lst.RemoveRange(i, None if l > count - i else l)
+
+        return
     
     for index in CreateEnumerableStack(range(i, l, s)).AsIterable(): lst.RemoveAt(index)
 def RemoveItems[T](lst: IListBase[T], index: SupportsIndex|slice) -> None:
