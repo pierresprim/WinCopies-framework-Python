@@ -1,14 +1,78 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Callable
 
 from WinCopies import Not
 from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
+from WinCopies.Collections.Iteration import PrependItem, GetFirst
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
 from WinCopies.Typing import INullable, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
-from WinCopies.Typing.Pairing import DualValueBool
+from WinCopies.Typing.Pairing import DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
+
+def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
+    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
+    
+    return CreateDualResult(enumerator.AsIterator(), enumerator.HasProcessedItems)
+def TryEnumerate[T](items: Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
+    return None if items is None else Enumerate(items)
+
+def Iterate[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Predicate[T]|None = None) -> bool:
+    def enumerate() -> bool:
+        result: DualResult[Iterator[T], Function[bool]] = Enumerate(items)
+
+        action(result.GetKey())
+
+        return result.GetValue()()
+
+    def iterate(firstAction: Predicate[T]) -> bool:
+        def iterate(first: T) -> None:
+            firstAction(first)
+    
+            action(PrependItem(items, first))
+
+        nonlocal items
+
+        first: INullable[T] = GetFirst(items := iter(items))
+        
+        if first.HasValue():
+            iterate(first.GetValue())
+
+            return True
+    
+        return False
+
+    return enumerate() if firstAction is None else iterate(firstAction)
+def TryIterate[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Predicate[T]|None = None) -> bool|None:
+    return None if items is None else Iterate(items, action, firstAction)
+
+def IterateFromAll[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Method[T]) -> bool:
+    def predicate(item: T) -> bool:
+        firstAction(item)
+
+        return True
+    
+    return Iterate(items, action, predicate)
+def TryIterateFromAll[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Method[T]) -> bool|None:
+    return None if items is None else IterateFromAll(items, action, firstAction)
+
+def IterateFromAllItems[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Action) -> bool:
+    def predicate(_: T) -> bool:
+        firstAction()
+
+        return True
+    
+    return Iterate(items, action, predicate)
+def TryIterateFromAllItems[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Action) -> bool|None:
+    return None if items is None else IterateFromAllItems(items, action, firstAction)
+
+def IterateItems[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Function[bool]) -> bool:
+    def predicate(_: T) -> bool: return firstAction()
+    
+    return Iterate(items, action, predicate)
+def TryIterateItems[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Function[bool]) -> bool|None:
+    return None if items is None else IterateItems(items, action, firstAction)
 
 def While(func: Function[bool], action: Action) -> bool:
     """Executes the given action while the given condition is True.
@@ -87,9 +151,9 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     for item in items:
         i += 1
 
-        if action(i, item): return DualValueBool(i, False)
+        if action(i, item): return CreateDualValueBool(i, False)
     
-    return None if i == -1 else DualValueBool(i, True)
+    return None if i == -1 else CreateDualValueBool(i, True)
 def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
     """Iterates over items until the given predicate returns True.
 
