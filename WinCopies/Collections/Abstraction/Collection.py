@@ -15,7 +15,8 @@ from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Iteration import Zip
-from WinCopies.Collections.Loop import ForEachItem
+from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
+from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
 from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -201,9 +202,10 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
     
     @final
     def Clear(self) -> None:
-        self.__InvalidateViews()
-        
-        self._GetContainer().clear()
+        if self.GetCount() > 0:
+            self.__InvalidateViews()
+            
+            self._GetContainer().clear()
     
     def ToString(self) -> str: return str(self._GetContainer())
 class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Collection.List[T]):
@@ -228,29 +230,31 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def SliceAt(self, key: slice) -> IList[T]: return List[T](self._GetContainer()[key])
 
     @final
-    def __TryInsert[U](self, index: int, value: U, add: Converter[MutableSequenceBase[T], Method[U]], insert: Converter[MutableSequenceBase[T], Callable[[int, U], None]]) -> bool:
-        if self.ValidateIndex(index, True):
-            self._InvalidateViews()
+    def __Insert[U](self, index: int, value: U, add: Converter[MutableSequenceBase[T], Method[U]], insert: Converter[MutableSequenceBase[T], Callable[[int, U], None]]) -> None:
+        items: MutableSequenceBase[T] = self._GetContainer()
 
-            items: MutableSequenceBase[T] = self._GetContainer()
-
-            if index == self.GetCount(): add(items)(value)
-            else: insert(items)(index, value)
-            
-            return True
-        
-        return False
+        if index == self.GetCount(): add(items)(value)
+        else: insert(items)(index, value)
     
     @final
     def _TryInsert(self, index: int, value: T) -> bool:
-        return self.__TryInsert(index, value, lambda items: items.append, lambda items: items.insert)
+        if self.ValidateIndex(index, True):
+            self._InvalidateViews()
+
+            self.__Insert(index, value, lambda items: items.append, lambda items: items.insert)
+
+            return True
+
+        return False
     @final
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         def extendAt(items: MutableSequenceBase[T], index: int, values: Iterable[T]) -> None: items[index:index] = values
 
-        return self.__TryInsert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values))
+        return self.ValidateIndex(index, True) and IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews)
     @final
     def _TryRemoveRange(self, index: int, count: int) -> bool:
+        # The check on parent type implies that index and count are valid, so at least one item will be removed.
+
         self._InvalidateViews()
 
         del self._GetContainer()[index:index + count]
@@ -258,10 +262,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
         return True
     
     @final
-    def insert(self, index: int, value: T) -> None:
-        self._InvalidateViews()
-
-        self._GetContainer().insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
@@ -269,7 +270,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self._GetSpecializedContainer()[int(index) if isinstance(index, SupportsIndex) else index]
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return GetItems(self, index)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
@@ -277,24 +278,12 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
     
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-        self._InvalidateViews()
-
-        self._GetContainer()[index] = value # type: ignore
+    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None: SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice) -> None:
-        self._InvalidateViews()
-
-        del self._GetContainer()[index]
+    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, index)
 class List[T](ListBase[T]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None = None) -> None: super().__init__(items)
-
-    @final
-    def __Add[U](self, items: U, adder: Method[U]) -> None:
-        self._InvalidateViews()
-        
-        adder(items)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
@@ -302,9 +291,12 @@ class List[T](ListBase[T]):
     def TryGetSourceMutability(self) -> None: return None
     
     @final
-    def Add(self, item: T) -> None: self.__Add(item, self._GetContainer().append)
+    def Add(self, item: T) -> None:
+        self._InvalidateViews()
+        
+        self._GetContainer().append(item)
     @final
-    def AddRange(self, items: Iterable[T]) -> None: self.__Add(items, self._GetContainer().extend)
+    def AddRange(self, items: Iterable[T]) -> None: IterateFromAllItems(items, self._GetContainer().extend, self._InvalidateViews)
     
     @final
     def TryInsert(self, index: int, value: T) -> bool: return self._TryInsert(index, value)
@@ -429,8 +421,9 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @final
     def AddRange(self, items: Iterable[T]) -> None:
         _items: tuple[Iterable[T], int] = Count(items)
+        count: int = _items[1]
 
-        self.__Add(_items[1], _items[0], self._GetContainer().extend)
+        if count > 0: self.__Add(count, _items[0], self._GetContainer().extend)
     
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None: return self._TryInsert(index, value) if self.ValidateLength(1) else None
@@ -533,13 +526,22 @@ class SortedList[T: SupportsRichComparison](ListAbstract[T], Sequence[T], Collec
     def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_left(self.AsSequence(), item, key = converter)
     @final
     def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_right(self.AsSequence(), item, key = converter)
+
+    @final
+    def __Add(self, item: T, adder: Callable[[MutableSequenceBase[T], T], None]) -> None:
+        self._InvalidateViews()
+
+        adder(self._GetContainer(), item)
     
     @final
-    def AddLeft(self, item: T) -> None: insort_left(self._GetContainer(), item)
+    def AddLeft(self, item: T) -> None: self.__Add(item, insort_left)
     @final
-    def Add(self, item: T) -> None: insort_right(self._GetContainer(), item)
+    def Add(self, item: T) -> None: self.__Add(item, insort_right)
     @final
-    def AddRange(self, items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
+    def AddRange(self, items: Iterable[T]) -> None:
+        def _merge(items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
+        
+        IterateFromAllItems(items, _merge, self._InvalidateViews)
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[T]: return SortedList[T](self._GetContainer()[key])
