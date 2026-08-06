@@ -2,8 +2,8 @@ from collections.abc import Iterable, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
 from WinCopies.Collections.Abstraction.Collection import CreateTuple
-from WinCopies.Collections.Core import ITuple as ITupleBase
-from WinCopies.Collections.Enumeration import ICountableEnumerable
+from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Linked.Singly import CreateCountableQueue, CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex
@@ -35,25 +35,25 @@ def GetItemsAt[T](l: ITuple[T], index: SupportsIndex|slice) -> T|ITuple[T]: ...
 def GetItemsAt[T](l: ITuple[T]|IList[T], index: SupportsIndex|slice) -> T|ITuple[T]|IList[T]:
     return GetAt(l, index) if isinstance(index, SupportsIndex) else l.SliceAt(index)
 
-def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
+def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
     def reverseIndex(index: int) -> int: return ReverseIndex(index, lst.GetCount())
     
-    def getItems() -> ICountableEnumerable[T]: return (values
-                                               if isinstance(values, ICountableEnumerable)
-                                               else (CreateTuple(values) if isinstance(values, Sequence)
-                                               else CreateCountableQueue(values).AsCountableGenerator()))
+    def getItems() -> ICountableEnumerable[T]:
+        match values:
+            case ICountableEnumerable(): return values
+            case Sequence(): return CreateTuple(values)
+
+            case _: return CreateCountableQueue(values).AsCountableGenerator()
 
     s: int|None = key.step
 
     if s is None: s = 1
-    
     elif s == 0: raise IndexError()
 
     i: int|None = key.start
     l: int|None = key.stop
 
     if i is None: i = 0
-    
     if l is None: l = lst.GetCount()
 
     if s < 0: SetValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s), values)
@@ -65,25 +65,25 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]) -> None:
 
         if count > 0: lst.RemoveRange(i, count)
 
-        lst.InsertRange(i, values)
+        lst.InsertRange(i, values.AsIterable() if isinstance(values, IEnumerable) else values)
 
     # step > 1
     elif i >= l: raise IndexError()
 
-    items: ICountableEnumerable[T] = getItems()
+    else:
+        items: ICountableEnumerable[T] = getItems()
 
-    if len(range(i, l, s)) != items.GetCount(): raise ValueError()
+        if len(range(i, l, s)) != items.GetCount(): raise ValueError()
 
-    for item in items.AsIterable():
-        lst.SetAt(i, item)
-        
-        i += s
-def SetItems[T](lst: IList[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
+        for item in items.AsIterable():
+            lst.SetAt(i, item)
+            
+            i += s
+def SetItems[T](lst: IListBase[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex): lst.SetAt(int(index), value) # type: ignore
-    
     else: SetValues(lst, index, value) # type: ignore
 
-def RemoveValues[T](lst: IList[T], key: slice) -> None:
+def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     def reverseIndex(index: int) -> int: return ReverseIndex(index, lst.GetCount())
 
     s: int|None = key.step
@@ -104,7 +104,7 @@ def RemoveValues[T](lst: IList[T], key: slice) -> None:
 
     if i >= l: raise IndexError()
     
-    for index in CreateEnumerableStack(range(i, l, s)): lst.RemoveAt(index)
-def RemoveItems[T](lst: IList[T], index: SupportsIndex|slice) -> None:
+    for index in CreateEnumerableStack(range(i, l, s)).AsIterable(): lst.RemoveAt(index)
+def RemoveItems[T](lst: IListBase[T], index: SupportsIndex|slice) -> None:
     if isinstance(index, SupportsIndex): lst.RemoveAt(int(index))
     else: RemoveValues(lst, index)
