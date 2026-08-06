@@ -34,8 +34,11 @@ def GetItemsAt[T](l: ITuple[T], index: SupportsIndex|slice) -> T|ITuple[T]: ...
 def GetItemsAt[T](l: ITuple[T]|IList[T], index: SupportsIndex|slice) -> T|ITuple[T]|IList[T]:
     return GetAt(l, index) if isinstance(index, SupportsIndex) else l.SliceAt(index)
 
+def __Normalize(index: int, count: int) -> int: return count + (index + 1)
+
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
-    def reverseIndex(index: int) -> int: return ReverseIndex(index, lst.GetCount())
+    def reverseIndex(index: int) -> int: return ReverseIndex(index, count)
+    def normalize(index: int) -> int: return __Normalize(index, count)
     
     def getItems() -> tuple[Iterable[T], int]:
         match values:
@@ -55,17 +58,22 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     i: int|None = key.start
     l: int|None = key.stop
 
+    count: int = lst.GetCount()
+
     if i is None: i = 0
-    if l is None: l = lst.GetCount()
+    elif i < 0 and (i := normalize(i)) < 0: return
+
+    if l is None: l = count
+    elif l < 0 and (l := normalize(l)) < 0: return
 
     if s < 0: SetValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s), values)
 
     elif s == 1:
         if i > l: raise IndexError()
 
-        count: int = l - i
+        length: int = l - i
 
-        if count > 0: lst.RemoveRange(i, count)
+        if length > 0: lst.RemoveRange(i, length)
 
         lst.InsertRange(i, values.AsIterable() if isinstance(values, IEnumerable) else values)
 
@@ -86,27 +94,33 @@ def SetItems[T](lst: IListBase[T], index: SupportsIndex|slice, value: T|Iterable
     else: SetValues(lst, index, value) # type: ignore
 
 def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
-    def reverseIndex(index: int) -> int: return ReverseIndex(index, lst.GetCount())
+    def reverseIndex(index: int) -> int: return ReverseIndex(index, count)
+    def normalize(index: int) -> int: return __Normalize(index, count)
 
     s: int|None = key.step
 
     if s is None: s = 1
     elif s == 0: raise IndexError()
+
+    count: int = lst.GetCount()
+
+    if count == 0: return
     
     i: int|None = key.start
     l: int|None = key.stop
 
-    count: int = lst.GetCount()
-
     if i is None: i = 0
+    elif i < 0 and (i := normalize(i)) < 0: return
+
     if l is None: l = count
+    elif l < 0 and (l := normalize(l)) < 0: return
 
     if s < 0:
         RemoveValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s))
 
         return
 
-    if i >= l or i >= count: return
+    if i >= l or i >= count or l == 0: return
 
     if l >= count:
         if s == 1 and i == 0:
