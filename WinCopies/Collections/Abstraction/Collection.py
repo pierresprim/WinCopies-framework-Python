@@ -4,7 +4,7 @@ from abc import abstractmethod
 from bisect import bisect_left, bisect_right, insort_left, insort_right
 from collections.abc import Iterable, Sequence, MutableSequence as MutableSequenceBase
 from heapq import merge
-from typing import overload, final, SupportsIndex
+from typing import overload, final, Callable, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
@@ -226,30 +226,29 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return List[T](self._GetContainer()[key])
+
+    @final
+    def __TryInsert[U](self, index: int, value: U, add: Converter[MutableSequenceBase[T], Method[U]], insert: Converter[MutableSequenceBase[T], Callable[[int, U], None]]) -> bool:
+        if self.ValidateIndex(index, True):
+            self._InvalidateViews()
+
+            items: MutableSequenceBase[T] = self._GetContainer()
+
+            if index == self.GetCount(): add(items)(value)
+            else: insert(items)(index, value)
+            
+            return True
+        
+        return False
     
     @final
     def _TryInsert(self, index: int, value: T) -> bool:
-        if self.ValidateIndex(index):
-            self._InvalidateViews()
-
-            self._GetContainer().insert(index, value)
-            
-            return True
-        
-        return False
+        return self.__TryInsert(index, value, lambda items: items.append, lambda items: items.insert)
     @final
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
-        if self.ValidateIndex(index):
-            self._InvalidateViews()
-            
-            for item in items:
-                self._GetContainer().insert(index, item)
+        def extendAt(items: MutableSequenceBase[T], index: int, values: Iterable[T]) -> None: items[index:index] = values
 
-                index += 1
-            
-            return True
-        
-        return False
+        return self.__TryInsert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values))
     @final
     def _TryRemoveRange(self, index: int, count: int) -> bool:
         self._InvalidateViews()
