@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol, Between
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
@@ -361,7 +361,7 @@ class IListBase[T](ITuple[T], ICountableList[T]):
         if self.ValidateIndex(index):
             length: int = self.GetCount() - index
 
-            return self._TryRemoveRange(index, length) if count is None else ValidateIndex(index, count) and count <= length and self._TryRemoveRange(index, count)
+            return self._TryRemoveRange(index, length) if count is None else Between(0, count, length, False, True) and self._TryRemoveRange(index, count)
 
         return False
 
