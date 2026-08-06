@@ -85,10 +85,10 @@ class ICollection[T](IReadOnlyList[T]):
         if not self.TryRemove(item, predicate): raise ValueError(item)
     
     @abstractmethod
-    def TryRemoveRange(self, index: int, count: int) -> bool:
+    def TryRemoveRange(self, index: int, count: int|None) -> bool:
         ...
     @final
-    def RemoveRange(self, index: int, count: int) -> None:
+    def RemoveRange(self, index: int, count: int|None) -> None:
         if not self.TryRemoveRange(index, count): raise IndexError(index)
 
 class ICountable(IInterface):
@@ -357,8 +357,13 @@ class IListBase[T](ITuple[T], ICountableList[T]):
 
         return True
     @final
-    def TryRemoveRange(self, index: int, count: int) -> bool:
-        return self.ValidateIndex(index) and self._TryRemoveRange(index, count)
+    def TryRemoveRange(self, index: int, count: int|None) -> bool:
+        if self.ValidateIndex(index):
+            length: int = self.GetCount() - index
+
+            return self._TryRemoveRange(index, length) if count is None else ValidateIndex(index, count) and count <= length and self._TryRemoveRange(index, count)
+
+        return False
 
 class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None: super().__init__()
