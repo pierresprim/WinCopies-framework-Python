@@ -85,13 +85,24 @@ def TrySetAt[T](l: MutableSequence[T], index: int, value: T) -> bool:
     
     return False
 
-def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
-    if x == y: return
-    
-    item: T = l.pop(x)
+def TryMove[T](l: MutableSequence[T], x: int, y: int) -> bool|None:
+    def validateIndex(index: int) -> bool: return ValidateIndex(index, length)
 
-    if y == len(l): l.append(item)
-    else: l.insert(y, item)
+    length: int = len(l)
+
+    if validateIndex(x) and validateIndex(y):
+        if x == y: return False
+
+        item: T = l.pop(x)
+
+        if y == length: l.append(item)
+        else: l.insert(y, item)
+
+        return True
+
+    return None
+def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
+    if TryMove(l, x, y) is None: raise IndexError()
 
 def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
