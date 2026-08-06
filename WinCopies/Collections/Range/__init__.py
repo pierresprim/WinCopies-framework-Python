@@ -1,11 +1,10 @@
 from collections.abc import Iterable, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
-from WinCopies.Collections.Abstraction.Collection import CreateTuple
 from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
-from WinCopies.Collections.Linked.Singly import CreateCountableQueue, CreateEnumerableStack
+from WinCopies.Collections.Linked.Singly import ICountableQueue, CreateCountableQueue, CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
@@ -38,12 +37,15 @@ def GetItemsAt[T](l: ITuple[T]|IList[T], index: SupportsIndex|slice) -> T|ITuple
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
     def reverseIndex(index: int) -> int: return ReverseIndex(index, lst.GetCount())
     
-    def getItems() -> ICountableEnumerable[T]:
+    def getItems() -> tuple[Iterable[T], int]:
         match values:
-            case ICountableEnumerable(): return values
-            case Sequence(): return CreateTuple(values)
+            case ICountableEnumerable(): return (values.AsIterable(), values.GetCount())
+            case Sequence(): return (values, len(values))
 
-            case _: return CreateCountableQueue(values).AsCountableGenerator()
+            case _:
+                _values: ICountableQueue[T] = CreateCountableQueue(values)
+
+                return (_values.AsGenerator(), _values.GetCount())
 
     s: int|None = key.step
 
@@ -71,11 +73,11 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     elif i >= l: raise IndexError()
 
     else:
-        items: ICountableEnumerable[T] = getItems()
+        items: tuple[Iterable[T], int] = getItems()
 
-        if len(range(i, l, s)) != items.GetCount(): raise ValueError()
+        if len(range(i, l, s)) != items[1]: raise ValueError()
 
-        for item in items.AsIterable():
+        for item in items[0]:
             lst.SetAt(i, item)
             
             i += s
