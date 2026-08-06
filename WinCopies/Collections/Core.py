@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Iterable, Container
-from typing import overload, final
+from typing import overload, final, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
@@ -181,16 +181,24 @@ class IWriteOnlyIndexable[T](ISetter[int, T]):
 
 class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __ChangePosition(self, x: TKey, y: TKey, updater: Callable[[TKey, TKey], bool|None]) -> None:
+        if updater(x, y) is None: raise IndexError()
+
+    @abstractmethod
+    def TryMove(self, x: TKey, y: TKey) -> bool|None:
+        ...
+    @final
+    def Move(self, x: TKey, y: TKey) -> None:
+        self.__ChangePosition(x, y, self.TryMove)
     
     @abstractmethod
-    def Move(self, x: TKey, y: TKey) -> None:
+    def TrySwap(self, x: TKey, y: TKey) -> bool|None:
         ...
-    
+    @final
     def Swap(self, x: TKey, y: TKey) -> None:
-        value: TValue = self.GetAt(x)
-
-        self.SetAt(x, self.GetAt(y))
-        self.SetAt(y, value)
+        self.__ChangePosition(x, y, self.TrySwap)
 
 class ICountableIndexableBase(IKeyableBase[int], ICountable):
     def __init__(self) -> None: super().__init__()
@@ -326,8 +334,41 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
+def _ChangePosition[T](x: T, y: T, validator: Callable[[T, T], bool], updater: Callable[[T, T], None]) -> bool|None:
+    if validator(x, y):
+        if x == y: return False
+
+        updater(x, y)
+
+        return True
+
+    return None
+
+def _Swap[TKey, TValue](items: IReadWriteCollection[TKey, TValue], x: TKey, y: TKey) -> None:
+    value: TValue = items.GetAt(x)
+
+    items.SetAt(x, items.GetAt(y))
+    items.SetAt(y, value)
+
 class IArray[T](ITuple[T], ICountableIndexable[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __ChangePosition(self, x: int, y: int, updater: Callable[[int, int], None]) -> bool|None: return _ChangePosition(x, y, self.ValidateIndices, updater)
+
+    def ValidateIndices(self, x: int, y: int) -> bool:
+        return self.ValidateIndex(x) and self.ValidateIndex(y)
+
+    @abstractmethod
+    def _Move(self, x: int, y: int) -> None:
+        ...
+    @final
+    def TryMove(self, x: int, y: int) -> bool|None: return self.__ChangePosition(x, y, self._Move)
+
+    def _Swap(self, x: int, y: int) -> None:
+        _Swap(self, x, y)
+    @final
+    def TrySwap(self, x: int, y: int) -> bool|None: return self.__ChangePosition(x, y, self._Swap)
 
     @abstractmethod
     def AsReversed(self) -> IArray[T]:
@@ -352,16 +393,17 @@ class IListBase[T](ITuple[T], ICountableList[T]):
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         return self.TryRemoveAt(self.FindFirstIndex(item, predicate)) is True
 
-    def _TryRemoveRange(self, index: int, count: int) -> bool:
+    def _RemoveRange(self, index: int, count: int) -> None:
         for _ in range(count): self.RemoveAt(index)
-
-        return True
     @final
     def TryRemoveRange(self, index: int, count: int|None) -> bool:
         if self.ValidateIndex(index):
             length: int = self.GetCount() - index
 
-            return self._TryRemoveRange(index, length) if count is None else Between(0, count, length, False, True) and self._TryRemoveRange(index, count)
+            if count is None: self._RemoveRange(index, length)
+            elif Between(0, count, length, False, True): self._RemoveRange(index, count)
+            
+            return True
 
         return False
 
@@ -388,14 +430,14 @@ class IList[T](IArray[T], IListBase[T]):
         if not self.TryInsert(index, value): raise IndexError(index)
     
     @abstractmethod
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         ...
     @final
     def InsertRange(self, index: int, items: Iterable[T]) -> None:
-        if not self.TryInsertRange(index, items): raise IndexError(index)
+        if self.TryInsertRange(index, items) is None: raise IndexError(index)
     
     @final
-    def TryInsertValues(self, index: int, *values: T) -> bool: return self.TryInsertRange(index, values)
+    def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
     @final
     def InsertValues(self, index: int, *values: T) -> None:
         if not self.TryInsertValues(index, *values): raise IndexError(index)
@@ -480,6 +522,23 @@ class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue],
     def __init__(self) -> None: super().__init__()
 class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __ChangePosition(self, x: TKey, y: TKey, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self.ValidateKeys, updater)
+
+    def ValidateKeys(self, x: TKey, y: TKey) -> bool:
+        return self.ContainsKey(x) and self.ContainsKey(y)
+
+    @abstractmethod
+    def _Move(self, x: TKey, y: TKey) -> None:
+        ...
+    @final
+    def TryMove(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Move)
+
+    def _Swap(self, x: TKey, y: TKey) -> None:
+        _Swap(self, x, y)
+    @final
+    def TrySwap(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Swap)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:

@@ -135,7 +135,7 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     def __init__(self) -> None: super().__init__()
     
     @final
-    def Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(x, y)
+    def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(x, y)
     
     @final
     def _SetAt(self, key: int, value: TOut) -> None:
@@ -165,7 +165,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
     
     @final
-    def Swap(self, x: int, y: int) -> None: super().Swap(x, y)
+    def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
@@ -183,7 +183,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], Mu
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
     
     @final
-    def Swap(self, x: int, y: int) -> None: super().Swap(x, y)
+    def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
@@ -194,12 +194,12 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], Mu
     @final
     def TryInsert(self, index: int, value: TOut) -> bool: return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool: return self._GetContainer().TryInsertRange(index, Select(items, lambda item: self._ConvertBack(item)))
+    def TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool|None: return self._GetContainer().TryInsertRange(index, Select(items, lambda item: self._ConvertBack(item)))
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainer().TryRemoveRange(index, count)
+    def _RemoveRange(self, index: int, count: int) -> None: return self._GetContainer().RemoveRange(index, count)
     
     @final
     def Clear(self) -> None: self._GetContainer().Clear()

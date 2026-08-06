@@ -46,7 +46,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     
     def Contains(self, value: T|object) -> bool: return self.__set.Contains(value)
     
-    def Move(self, x: int, y: int) -> None: self.__list.Move(x, y)
+    def _Move(self, x: int, y: int) -> None: self.__list.Move(x, y)
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindFirstIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindLastIndex(item, predicate)
@@ -73,17 +73,19 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         return False
     
     @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         if self.ValidateIndex(index):
             if self.__set.TryAddRange(items):
                 self.__list.InsertRange(index, items)
 
                 return True
+
+            return False
         
-        return False
+        return None
     
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool: return super(MutableList, self)._TryRemoveRange(index, count)
+    def _RemoveRange(self, index: int, count: int) -> None: return super(MutableList, self)._RemoveRange(index, count)
     
     def TryRemoveAt(self, index: int) -> bool|None:
         if index < 0: return None

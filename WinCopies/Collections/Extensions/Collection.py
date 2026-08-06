@@ -260,13 +260,19 @@ class TupleAbstract[T](TupleAbstractBase[T]):
     @final
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
+class IViewProvider(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _InvalidateViews(self) -> None:
+        ...
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]:
         ...
-class _ITuple[T](ITupleBase[T]):
+class _ITuple[T](ITupleBase[T], IViewProvider):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -277,8 +283,7 @@ class _ITuple[T](ITupleBase[T]):
         return self._GetCollectionFactories().AsMonitors()
 
     @final
-    def _InvalidateViews(self) -> None:
-        self._GetCollectionFactories().InvalidateObjects()
+    def _InvalidateViews(self) -> None: self._GetCollectionFactories().InvalidateObjects()
 
 class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None: super().__init__()
@@ -377,7 +382,7 @@ class ICollectionFactories(ICollectionFactory[IObjectMonitor]):
         ...
 
 @final
-class _Monitors[T](Abstract, ICollectionMonitors):
+class _Monitors(Abstract, ICollectionMonitors):
     def __init__(self, factories: ICollectionFactories) -> None:
         super().__init__()
 
@@ -387,7 +392,7 @@ class _Monitors[T](Abstract, ICollectionMonitors):
     
     def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__factories.GetRevocableViewFactory().AsMonitor()
 @final
-class _CollectionFactories[T](CollectionFactory[IObjectMonitor], ICollectionFactories):
+class _CollectionFactories(CollectionFactory[IObjectMonitor], ICollectionFactories):
     def __init__(self) -> None:
         def createRegistry[U: IObjectMonitor](factory: U) -> U:
             self.RegisterObject(factory)
@@ -396,7 +401,7 @@ class _CollectionFactories[T](CollectionFactory[IObjectMonitor], ICollectionFact
         
         super().__init__()
 
-        self.__monitors: ICollectionMonitors = _Monitors[T](self)
+        self.__monitors: ICollectionMonitors = _Monitors(self)
 
         self.__factory: IResumableEnumeratorFactory = createRegistry(ResumableEnumeratorFactory())
         self.__view: IRevocableViewFactory = createRegistry(RevocableViewFactory())
@@ -413,7 +418,7 @@ class _TupleCollection[T](_TupleCollectionBase[T], _ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__factories: ICollectionFactories = _CollectionFactories[T]()
+        self.__factories: ICollectionFactories = _CollectionFactories()
         self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self)
 
     @final
@@ -514,7 +519,7 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
     def TrySetAt(self, key: int, value: TItem) -> bool: return self._GetSpecializedContainer().TrySetAt(self.ReverseIndex(key), value)
     
     @final
-    def Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))
+    def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))
     
     @final
     def AsReadOnly(self) -> ITuple[TItem]: return self.__readOnly.GetValue()
@@ -566,7 +571,7 @@ class _ArrayCollectionAbstract[TItem, TCollection](_ArrayCollectionAbstractBase[
         
         super().__init__()
 
-        factory: ICollectionFactories = _CollectionFactories[TItem]()
+        factory: ICollectionFactories = _CollectionFactories()
 
         self.__factory: ICollectionFactories = factory
         self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
@@ -771,14 +776,12 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
         return False
     
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool:
-        return self.__TryInsert(index, value, lambda items: items.Add, lambda items: items.TryInsert)
+    def TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, lambda items: items.Add, lambda items: items.TryInsert)
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool:
-        return self.__TryInsert(index, Reverse(items), lambda items: items.AddRange, lambda items: items.TryInsertRange)
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self.__TryInsert(index, Reverse(items), lambda items: items.AddRange, lambda items: items.TryInsertRange)
     
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
+    def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
     def insert(self, index: int, value: TItem) -> None: self.TryInsert(index, value)
@@ -824,7 +827,7 @@ class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem,
     def Add(self, item: TItem) -> None: self._GetContainerAsList().AddLeft(item)
     
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._GetContainerAsList().TryRemoveRange(self.ReverseRangeStartIndex(index, count), count)
+    def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[TItem]: return self._GetSpecializedContainerAsList(self.ToSlicedAt(key))

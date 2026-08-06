@@ -9,10 +9,10 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
-from WinCopies.Collections.Enumeration import IEnumeratorBase, IEnumerator
+from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, MutableSequence, Count
-from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
+from WinCopies.Collections.Extensions.Collection import IViewProvider
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
 from WinCopies.Collections.Iteration import Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
@@ -118,8 +118,14 @@ class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], Collection.H
     
     def ToString(self) -> str: return str(self._GetContainer())
 
-class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]], IViewProvider):
     def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _Move(self, x: int, y: int) -> None:
+        self._InvalidateViews()
+
+        Move(self._GetSpecializedContainer(), x, y)
 class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Collection.ArrayAbstract[TItem, IArray[TItem]]):
     def __init__(self) -> None: super().__init__()
     
@@ -151,16 +157,10 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Collection.Array[T], IGener
     def TryGetSourceMutability(self) -> Mutability|None: return self.__mutability
     
     @final
-    def Move(self, x: int, y: int) -> None:
+    def _Swap(self, x: int, y: int) -> None:
         self._InvalidateViews()
 
-        Move(self._GetContainer(), x, y)
-    
-    @final
-    def Swap(self, x: int, y: int) -> None:
-        self._InvalidateViews()
-
-        super().Swap(x, y)
+        super()._Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return Array[T](self._GetContainer()[key])
@@ -215,16 +215,10 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionFactories()
     
     @final
-    def Move(self, x: int, y: int) -> None:
-        self._InvalidateViews()
-
-        Move(self._GetContainer(), x, y)
-    
-    @final
-    def Swap(self, x: int, y: int) -> None:
+    def _Swap(self, x: int, y: int) -> None:
         self._InvalidateViews()
         
-        super().Swap(x, y)
+        super()._Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return List[T](self._GetContainer()[key])
@@ -247,19 +241,15 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
 
         return False
     @final
-    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         def extendAt(items: MutableSequenceBase[T], index: int, values: Iterable[T]) -> None: items[index:index] = values
 
-        return self.ValidateIndex(index, True) and IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews)
+        return IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews) if  self.ValidateIndex(index, True) else None
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool:
-        # The check on parent type implies that index and count are valid, so at least one item will be removed.
-
+    def _RemoveRange(self, index: int, count: int) -> None:
         self._InvalidateViews()
 
         del self._GetContainer()[index:index + count]
-
-        return True
     
     @final
     def insert(self, index: int, value: T) -> None: self.Insert(index, value)
@@ -301,7 +291,7 @@ class List[T](ListBase[T]):
     @final
     def TryInsert(self, index: int, value: T) -> bool: return self._TryInsert(index, value)
     @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self._TryInsertRange(index, items)
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None: return self._TryInsertRange(index, items)
 
 class _ISizedListInitializer[T](IInterface):
     def __init__(self) -> None:
@@ -381,12 +371,6 @@ class ISizedList[T](IList[T]):
         ...
     @final
     def TryInsert(self, index: int, value: T) -> bool: return self.TryInsertAt(index, value) is True
-    
-    @abstractmethod
-    def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
-        ...
-    @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self.TryInsertRangeAt(index, items) is True
 
 class SizedList[T](ListBase[T], ISizedList[T]):
     def __init__(self, initializer: _ISizedListInitializer[T]) -> None:
@@ -428,7 +412,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @final
     def TryInsertAt(self, index: int, value: T) -> bool|None: return self._TryInsert(index, value) if self.ValidateLength(1) else None
     @final
-    def TryInsertRangeAt(self, index: int, items: Iterable[T]) -> bool|None:
+    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         _items: tuple[Iterable[T], int] = Count(items)
         
         return self._TryInsertRange(index, _items[0]) if self.ValidateLength(_items[1]) else None
@@ -442,10 +426,6 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
         super().__init__()
 
         self.__array: IArray[IStruct[T]] = array
-
-    @final
-    def __RegisterEnumerator(self, enumerator: IEnumeratorBase) -> None:
-        self._GetCollectionFactories().GetEnumeratorFactory().RegisterObject(enumerator)
     
     @final
     def _GetItems(self) -> IArray[IStruct[T]]:
@@ -460,6 +440,8 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
         return self._GetStructAt(key).GetValue()
     @final
     def _SetAt(self, key: int, value: T) -> None:
+        self._InvalidateViews()
+
         self._GetStructAt(key).SetValue(value)
     
     @final
@@ -474,25 +456,18 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
     def Contains(self, value: T|object) -> bool: return value in self.AsSequence()
     
     @final
-    def Move(self, x: int, y: int) -> None: self._GetItems().Move(x, y)
+    def _Move(self, x: int, y: int) -> None:
+        self._InvalidateViews()
+        
+        self._GetItems().Move(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return ArrayCollection[T](self._GetItems().SliceAt(key))
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None:
-        enumerator: IEnumerator[T] = TupleEnumerator[T](self)
-
-        self.__RegisterEnumerator(enumerator)
-
-        return enumerator
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__array.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None:
-        enumerator: IResumableEnumerator[T] = ResumableTupleEnumerator[T](self)
-
-        self.__RegisterEnumerator(enumerator)
-
-        return enumerator
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__array.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()

@@ -57,10 +57,10 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         
         return self._GetInnerContainer().TryInsert(index, item)
     
-    def _InsertItems(self, index: int, items: Iterable[TItem]) -> bool:
+    def _InsertItems(self, index: int, items: Iterable[TItem]) -> bool|None:
         return self._GetInnerContainer().TryInsertRange(index, items)
     
-    def _RemoveItemsAt(self, index: int, count: int) -> bool:
+    def _TryRemoveItemsAt(self, index: int, count: int) -> bool:
         return self._GetInnerContainer().TryRemoveRange(index, count)
     
     def _RemoveItemAt(self, index: int) -> bool|None:
@@ -94,10 +94,10 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self._SetItem(key, value)
     
     @final
-    def Move(self, x: int, y: int) -> None: self._MoveItem(x, y)
+    def _Move(self, x: int, y: int) -> None: self._MoveItem(x, y)
     
     @final
-    def Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
+    def _Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainer().SliceAt(key)
@@ -108,10 +108,10 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def TryInsert(self, index: int, value: TItem) -> bool: return self._InsertItem(index, value)
     
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool: return self._InsertItems(index, items)
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self._InsertItems(index, items)
     
     @final
-    def _TryRemoveRange(self, index: int, count: int) -> bool: return self._RemoveItemsAt(index, count)
+    def _RemoveRange(self, index: int, count: int) -> None: self._TryRemoveItemsAt(index, count)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._RemoveItemAt(index)
@@ -305,7 +305,7 @@ class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IOb
     
     def TrySetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(key, value)
     
-    def Move(self, x: int, y: int) -> None: return self._GetContainer().Move(x, y)
+    def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(x, y)
     
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(key)
     
@@ -406,10 +406,10 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         
         return False
     
-    def _RemoveItemsAt(self, index: int, count: int) -> bool:
+    def _TryRemoveItemsAt(self, index: int, count: int) -> bool:
         self.__AssertReentrancy()
 
-        if super()._RemoveItemsAt(index, count):
+        if super()._TryRemoveItemsAt(index, count):
             self.__invoker.OnItemRemoved(CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
             return True
