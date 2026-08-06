@@ -397,14 +397,16 @@ class IListBase[T](ITuple[T], ICountableList[T]):
         for _ in range(count): self.RemoveAt(index)
     @final
     def TryRemoveRange(self, index: int, count: int|None) -> bool:
+        def removeRange(length: int) -> bool:
+            self._RemoveRange(index, length)
+
+            return True
         if self.ValidateIndex(index):
             length: int = self.GetCount() - index
 
-            if count is None: self._RemoveRange(index, length)
-            elif Between(0, count, length, False, True): self._RemoveRange(index, count)
+            if count is None: return removeRange(length)
+            elif Between(0, count, length, False, True): return removeRange(count)
             
-            return True
-
         return False
 
 class IList[T](IArray[T], IListBase[T]):
@@ -440,7 +442,7 @@ class IList[T](IArray[T], IListBase[T]):
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
     @final
     def InsertValues(self, index: int, *values: T) -> None:
-        if not self.TryInsertValues(index, *values): raise IndexError(index)
+        if self.TryInsertValues(index, *values) is not True: raise IndexError(index)
 
 class ISortedTuple[T](ITuple[T]):
     def __init__(self) -> None: super().__init__()
