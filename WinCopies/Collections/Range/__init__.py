@@ -5,6 +5,7 @@ from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Linked.Singly import ICountableQueue, CreateCountableQueue, CreateEnumerableStack
+from WinCopies.Collections.Util import ReverseIndex
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
     return l.GetAt(int(index))
@@ -35,9 +36,26 @@ def GetItemsAt[T](l: ITuple[T]|IList[T], index: SupportsIndex|slice) -> T|ITuple
 
 def __Normalize(index: int, count: int) -> int: return count + index
 
+# A negative step runs down to 0, so -1 marks the position just past it.
+def __GetDefaultStart(count: int, step: int) -> int: return count - 1 if step < 0 else 0
+def __GetDefaultStop(count: int, step: int) -> int: return -1 if step < 0 else count
+
+def __ResolveIndex(index: int, count: int, step: int) -> int:
+    return index if index >= 0 else max(__Normalize(index, count), __GetDefaultStop(count, step) if step < 0 else 0)
+
+def __ResolveBounds(key: slice, count: int, step: int) -> tuple[int, int]:
+    def resolve(index: int|None, default: int) -> int:
+        return default if index is None else __ResolveIndex(index, count, step)
+
+    return (resolve(key.start, __GetDefaultStart(count, step)), resolve(key.stop, __GetDefaultStop(count, step)))
+
+# Both bounds are reversed: the -1 stop sentinel becomes count, which is the exclusive stop the reversed view expects.
+def __AsReversedKey(start: int, stop: int, step: int, count: int) -> slice:
+    def reverseIndex(index: int) -> int: return ReverseIndex(index, count)
+
+    return slice(reverseIndex(start), reverseIndex(stop), -step)
+
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
-    def normalize(index: int) -> int: return __Normalize(index, count)
-    
     def getItems() -> tuple[Iterable[T], int]:
         match values:
             case ICountableEnumerable(): return (values.AsIterable(), values.GetCount())
@@ -53,18 +71,11 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     if s is None: s = 1
     elif s == 0: raise IndexError()
 
-    i: int|None = key.start
-    l: int|None = key.stop
-
     count: int = lst.GetCount()
 
-    if i is None: i = 0 if s > 0 else count
-    elif i < 0 and (i := normalize(i)) < 0: return
+    i, l = __ResolveBounds(key, count, s)
 
-    if l is None: l = count if s > 0 else 0
-    elif l < 0 and (l := normalize(l)) < 0: return
-
-    if s < 0: SetValues(lst.AsReversed(), slice(l, i, -s), values)
+    if s < 0: SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), values)
 
     elif s == 1:
         if i > l: raise IndexError()
@@ -92,8 +103,6 @@ def SetItems[T](lst: IListBase[T], index: SupportsIndex|slice, value: T|Iterable
     else: SetValues(lst, index, value) # type: ignore
 
 def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
-    def normalize(index: int) -> int: return __Normalize(index, count)
-
     s: int|None = key.step
 
     if s is None: s = 1
@@ -102,18 +111,11 @@ def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     count: int = lst.GetCount()
 
     if count == 0: return
-    
-    i: int|None = key.start
-    l: int|None = key.stop
 
-    if i is None: i = 0 if s > 0 else count
-    elif i < 0 and (i := normalize(i)) < 0: return
-
-    if l is None: l = count if s > 0 else 0
-    elif l < 0 and (l := normalize(l)) < 0: return
+    i, l = __ResolveBounds(key, count, s)
 
     if s < 0:
-        RemoveValues(lst.AsReversed(), slice(l, i, -s))
+        RemoveValues(lst.AsReversed(), __AsReversedKey(i, l, s, count))
 
         return
 
