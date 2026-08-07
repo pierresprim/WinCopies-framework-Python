@@ -5,7 +5,6 @@ from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Linked.Singly import ICountableQueue, CreateCountableQueue, CreateEnumerableStack
-from WinCopies.Collections.Util import ReverseIndex
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
     return l.GetAt(int(index))
@@ -34,10 +33,9 @@ def GetItemsAt[T](l: ITuple[T], index: SupportsIndex|slice) -> T|ITuple[T]: ...
 def GetItemsAt[T](l: ITuple[T]|IList[T], index: SupportsIndex|slice) -> T|ITuple[T]|IList[T]:
     return GetAt(l, index) if isinstance(index, SupportsIndex) else l.SliceAt(index)
 
-def __Normalize(index: int, count: int) -> int: return count + (index + 1)
+def __Normalize(index: int, count: int) -> int: return count + index
 
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
-    def reverseIndex(index: int) -> int: return ReverseIndex(index, count)
     def normalize(index: int) -> int: return __Normalize(index, count)
     
     def getItems() -> tuple[Iterable[T], int]:
@@ -60,13 +58,13 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
 
     count: int = lst.GetCount()
 
-    if i is None: i = 0
+    if i is None: i = 0 if s > 0 else count
     elif i < 0 and (i := normalize(i)) < 0: return
 
-    if l is None: l = count
+    if l is None: l = count if s > 0 else 0
     elif l < 0 and (l := normalize(l)) < 0: return
 
-    if s < 0: SetValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s), values)
+    if s < 0: SetValues(lst.AsReversed(), slice(l, i, -s), values)
 
     elif s == 1:
         if i > l: raise IndexError()
@@ -94,7 +92,6 @@ def SetItems[T](lst: IListBase[T], index: SupportsIndex|slice, value: T|Iterable
     else: SetValues(lst, index, value) # type: ignore
 
 def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
-    def reverseIndex(index: int) -> int: return ReverseIndex(index, count)
     def normalize(index: int) -> int: return __Normalize(index, count)
 
     s: int|None = key.step
@@ -109,14 +106,14 @@ def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     i: int|None = key.start
     l: int|None = key.stop
 
-    if i is None: i = 0
+    if i is None: i = 0 if s > 0 else count
     elif i < 0 and (i := normalize(i)) < 0: return
 
-    if l is None: l = count
+    if l is None: l = count if s > 0 else 0
     elif l < 0 and (l := normalize(l)) < 0: return
 
     if s < 0:
-        RemoveValues(lst.AsReversed(), slice(reverseIndex(i), reverseIndex(l), -s))
+        RemoveValues(lst.AsReversed(), slice(l, i, -s))
 
         return
 
