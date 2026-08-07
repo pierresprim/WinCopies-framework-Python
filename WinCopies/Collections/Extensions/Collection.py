@@ -759,23 +759,15 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def AddRange(self, items: Iterable[TItem]) -> None:
         self._GetContainerAsList().InsertRange(0, Reverse(items))
     
+    # ReverseIndexFromLast maps k to count - k, hence count at the reversed head and 0 at its tail, both of which the permissive source insertion accepts. No bound needs a special case, and staying on the Try* members keeps the refusal a returned value rather than an exception.
     @final
-    def __TryInsert[T, U](self, index: int, value: T, default: U, adder: Converter[IList[TItem], Method[T]], _adder: Converter[IList[TItem], Callable[[int, T], U]]) -> bool|U:
-        def __add(index: int) -> U: return _adder(self._GetContainerAsList())(index, value)
-        
-        if not self.ValidateIndex(index, True): return default
+    def __TryInsert[T, U](self, index: int, value: T, default: U, inserter: Converter[IList[TItem], Callable[[int, T], U]]) -> U:
+        return inserter(self._GetContainerAsList())(ReverseIndexFromLast(index, self.GetCount()), value) if self.ValidateIndex(index, True) else default
 
-        if index == 0:
-            adder(self._GetContainerAsList())(value)
-
-            return True
-
-        return __add(0 if index == self.GetCount() else ReverseIndexFromLast(index, self.GetCount()))
-    
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, False, lambda items: items.Add, lambda items: items.TryInsert)
+    def TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, False, lambda items: items.TryInsert)
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self.__TryInsert(index, Reverse(items), None, lambda items: items.AddRange, lambda items: items.TryInsertRange)
+    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self.__TryInsert(index, Reverse(items), None, lambda items: items.TryInsertRange)
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
