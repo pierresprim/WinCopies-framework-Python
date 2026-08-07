@@ -763,7 +763,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def __TryInsert[T, U](self, index: int, value: T, default: U, adder: Converter[IList[TItem], Method[T]], _adder: Converter[IList[TItem], Callable[[int, T], U]]) -> bool|U:
         def __add(index: int) -> U: return _adder(self._GetContainerAsList())(index, value)
         
-        if self.ValidateIndex(index, True): return default
+        if not self.ValidateIndex(index, True): return default
 
         if index == 0:
             adder(self._GetContainerAsList())(value)
