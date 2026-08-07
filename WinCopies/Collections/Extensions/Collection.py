@@ -757,19 +757,20 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
         else: items.Add(item)
     @final
     def AddRange(self, items: Iterable[TItem]) -> None:
-        self._GetContainerAsList().AddRange(Reverse(items))
+        self._GetContainerAsList().InsertRange(0, Reverse(items))
     
     @final
     def __TryInsert[T, U](self, index: int, value: T, default: U, adder: Converter[IList[TItem], Method[T]], _adder: Converter[IList[TItem], Callable[[int, T], U]]) -> bool|U:
-        def tryAdd(condition: int) -> bool:
-            if index == condition:
-                adder(self._GetContainerAsList())(value)
+        def __add(index: int) -> U: return _adder(self._GetContainerAsList())(index, value)
+        
+        if self.ValidateIndex(index, True): return default
 
-                return True
+        if index == 0:
+            adder(self._GetContainerAsList())(value)
 
-            return False
+            return True
 
-        return (tryAdd(self.GetCount()) or tryAdd(0) or _adder(self._GetContainerAsList())(ReverseIndexFromLast(index, self.GetCount()), value)) if self.ValidateIndex(index, True) else default
+        return __add(0 if index == self.GetCount() else ReverseIndexFromLast(index, self.GetCount()))
     
     @final
     def TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, False, lambda items: items.Add, lambda items: items.TryInsert)
