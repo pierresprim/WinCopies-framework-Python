@@ -8,34 +8,40 @@ suite honest about slice and index semantics as it grows.
 """
 
 import unittest
-from collections.abc import Iterable
-from typing import Any, Callable, List as PyList
+from collections.abc import Iterable, Sequence, MutableSequence
+from typing import Callable
 
 from WinCopies.Collections.Abstraction.Collection import CreateList, CreateSizedList
 from WinCopies.Collections.Extensions import IList, ITuple
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetValues
+from WinCopies.Collections.Util import CreateSequence
+from WinCopies.String import StringifyIfNone
 
-_SOURCE: PyList[int] = [0, 1, 2, 3, 4]
+_SOURCE: Sequence[int] = (0, 1, 2, 3, 4)
 
 def _create(items: Iterable[int]|None = None) -> IList[int]:
     return CreateList(list(_SOURCE) if items is None else list(items))
 
-def _dump[T](items: ITuple[T]) -> PyList[T]:
-    return [items.GetAt(i) for i in range(items.GetCount())]
+def _dump[T](items: ITuple[T]) -> Sequence[T]:
+    return CreateSequence(Select(range(items.GetCount()), items.GetAt))
 
 def _format(key: slice) -> str:
-    def part(value: int|None) -> str: return '' if value is None else str(value)
+    step: int|None = key.step
 
-    return f"[{part(key.start)}:{part(key.stop)}{'' if key.step is None else ':' + str(key.step)}]"
+    return f"[{StringifyIfNone(key.start)}:{StringifyIfNone(key.stop)}{StringifyIfNone(step, ':')}]"
 
-_KEYS: PyList[slice] = [
-    slice(1, 3), slice(0, 2), slice(2, 5), slice(0, 5), slice(None, None),
-    slice(3, 1), slice(2, 2), slice(10, 20),
-    slice(0, 5, 2), slice(1, None, 2), slice(None, None, 3),
-    slice(4, 1, -1), slice(4, 0, -2), slice(4, None, -1), slice(None, 1, -1),
-    slice(None, None, -1), slice(None, None, -2), slice(None, None, -3), slice(1, 4, -1),
-    slice(4, -1, -1), slice(None, -1), slice(-3, None), slice(-4, -1), slice(-1, None),
-    slice(-2, -1), slice(None, -6), slice(-6, None), slice(-1, -1), slice(-5, None)]
+def __GetSlices(*values: tuple[int|None, int|None]|tuple[int|None, int|None, int|None]) -> Sequence[slice]:
+    return CreateSequence(Select(values, lambda value: slice(*value)))
+
+_KEYS: Sequence[slice] = __GetSlices(
+    (1, 3), (0, 2), (2, 5), (0, 5), (None, None),
+    (3, 1), (2, 2), (10, 20),
+    (0, 5, 2), (1, None, 2), (None, None, 3),
+    (4, 1, -1), (4, 0, -2), (4, None, -1), (None, 1, -1),
+    (None, None, -1), (None, None, -2), (None, None, -3), (1, 4, -1),
+    (4, -1, -1), (None, -1), (-3, None), (-4, -1), (-1, None),
+    (-2, -1), (None, -6), (-6, None), (-1, -1), (-5, None))
 
 class TestReversedView(unittest.TestCase):
     """A reversed view must satisfy reversed[k] == source[n - 1 - k] on every path."""
@@ -59,9 +65,9 @@ class TestReversedView(unittest.TestCase):
 
         self.assertEqual(collection.AsReversed().GetAt(2), collection.GetAt(2))
 
-    def __assertInserted(self, count: int, action: Callable[[IList[int], int], None], expected: Callable[[PyList[int], int], None]) -> None:
+    def __assertInserted(self, count: int, action: Callable[[IList[int], int], None], expected: Callable[[MutableSequence[int], int], None]) -> None:
         for size in (0, 1, 3, 5):
-            source: PyList[int] = list(range(size))
+            source: Sequence[int] = list(range(size))
 
             for index in range(size + 1):
                 with self.subTest(size = size, index = index, count = count):
@@ -69,28 +75,28 @@ class TestReversedView(unittest.TestCase):
 
                     action(collection.AsReversed(), index)
 
-                    reference: PyList[int] = list(reversed(source))
+                    reference: Sequence[int] = list(reversed(source))
 
                     expected(reference, index)
 
                     self.assertEqual(_dump(collection), list(reversed(reference)))
 
     def test_try_insert_at_every_position(self) -> None:
-        def insert(reference: PyList[int], index: int) -> None: reference.insert(index, 99)
+        def insert(reference: MutableSequence[int], index: int) -> None: reference.insert(index, 99)
 
         self.__assertInserted(1, lambda items, index: self.assertTrue(items.TryInsert(index, 99)), insert)
 
     def test_insert_at_every_position(self) -> None:
-        def insert(reference: PyList[int], index: int) -> None: reference.insert(index, 99)
+        def insert(reference: MutableSequence[int], index: int) -> None: reference.insert(index, 99)
 
         self.__assertInserted(1, lambda items, index: items.AsMutableSequence().insert(index, 99), insert)
 
     def test_try_insert_range_at_every_position(self) -> None:
         """A single item hides a double reversal, so the range must carry several."""
 
-        def check(values: PyList[int]) -> None:
+        def check(values: Sequence[int]) -> None:
             def action(items: IList[int], index: int) -> None: items.TryInsertRange(index, list(values))
-            def insert(reference: PyList[int], index: int) -> None: reference[index:index] = values
+            def insert(reference: MutableSequence[int], index: int) -> None: reference[index:index] = values
 
             self.__assertInserted(len(values), action, insert)
 
@@ -117,7 +123,7 @@ class TestReversedView(unittest.TestCase):
 
                 self.assertTrue(collection.AsReversed().TryRemoveAt(index))
 
-                reference: PyList[int] = list(reversed(_SOURCE))
+                reference: Sequence[int] = list(reversed(_SOURCE))
 
                 del reference[index]
 
@@ -134,7 +140,7 @@ class TestRemoveRange(unittest.TestCase):
 
                     self.assertTrue(collection.TryRemoveRange(index, count))
 
-                    reference: PyList[int] = list(_SOURCE)
+                    reference: Sequence[int] = list(_SOURCE)
 
                     del reference[index:index + count]
 
@@ -166,14 +172,14 @@ class TestSliceSemantics(unittest.TestCase):
 
                 del collection.AsMutableSequence()[key]
 
-                reference: PyList[int] = list(_SOURCE)
+                reference: Sequence[int] = list(_SOURCE)
 
                 del reference[key]
 
                 self.assertEqual(_dump(collection), reference)
 
     def test_assignment_matches_python(self) -> None:
-        cases: PyList[tuple[slice, PyList[int]]] = [
+        cases: Sequence[tuple[slice, Sequence[int]]] = [
             (slice(1, 3), [9, 9]), (slice(1, 3), [7, 8, 9]), (slice(1, 3), []),
             (slice(0, 5), []), (slice(2, 2), [9]),
             (slice(0, 5, 2), [7, 8, 9]), (slice(None, None, 2), [7, 8, 9]),
@@ -187,7 +193,7 @@ class TestSliceSemantics(unittest.TestCase):
 
                 SetValues(collection, key, list(values))
 
-                reference: PyList[int] = list(_SOURCE)
+                reference: Sequence[int] = list(_SOURCE)
                 reference[key] = values
 
                 self.assertEqual(_dump(collection), reference)
@@ -197,7 +203,7 @@ class TestSliceSemantics(unittest.TestCase):
 
         SetValues(collection, slice(1, 3), (value for value in (9, 9)))
 
-        reference: PyList[int] = list(_SOURCE)
+        reference: Sequence[int] = list(_SOURCE)
         reference[1:3] = [9, 9]
 
         self.assertEqual(_dump(collection), reference)
