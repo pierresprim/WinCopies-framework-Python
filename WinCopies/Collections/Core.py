@@ -442,7 +442,7 @@ class IList[T](IArray[T], IListBase[T]):
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
     @final
     def InsertValues(self, index: int, *values: T) -> None:
-        if self.TryInsertValues(index, *values) is not True: raise IndexError(index)
+        if self.TryInsertValues(index, *values) is None: raise IndexError(index)
 
 class ISortedTuple[T](ITuple[T]):
     def __init__(self) -> None: super().__init__()

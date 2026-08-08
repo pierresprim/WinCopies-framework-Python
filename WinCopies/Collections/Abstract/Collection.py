@@ -78,7 +78,7 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
     @final
-    def GetCollectionMonitors(self) -> ICollectionMonitors: return self.GetCollectionMonitors()
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
     @final
     def _GetContainer(self) -> ITuple[TIn]: return self.__items
@@ -156,7 +156,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
     @final
-    def GetCollectionMonitors(self) -> ICollectionMonitors: return self.GetCollectionMonitors()
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
     @final
     def _GetContainer(self) -> IArray[TIn]: return self.__items
