@@ -88,10 +88,13 @@ class TestReversedView(unittest.TestCase):
     def test_try_insert_range_at_every_position(self) -> None:
         """A single item hides a double reversal, so the range must carry several."""
 
-        for values in ([7, 8, 9], [9], []):
-            def insert(reference: PyList[int], index: int, values: PyList[int] = values) -> None: reference[index:index] = values
+        def check(values: PyList[int]) -> None:
+            def action(items: IList[int], index: int) -> None: items.TryInsertRange(index, list(values))
+            def insert(reference: PyList[int], index: int) -> None: reference[index:index] = values
 
-            self.__assertInserted(len(values), lambda items, index, values = values: items.TryInsertRange(index, list(values)), insert)
+            self.__assertInserted(len(values), action, insert)
+
+        for values in ([7, 8, 9], [9], []): check(values)
 
     def test_add_appends_to_the_reversed_tail(self) -> None:
         collection: IList[int] = _create([0, 1, 2])
