@@ -1,5 +1,16 @@
 from collections.abc import Iterable
+from enum import Flag
 from typing import Callable
+
+from WinCopies.Enum import HasFlag
+from WinCopies.Typing.Protocols import SupportsStringization
+
+class StringizationSurrounding(Flag):
+    Null = 0
+    Void = 1
+    Empty = Void << 1
+    NonEmpty = Void << 1
+    All = Void + Empty + NonEmpty
 
 def NullifyIfEmpty(value: str) -> str|None:
     """Converts an empty string to None.
@@ -11,7 +22,7 @@ def NullifyIfEmpty(value: str) -> str|None:
         None if the string is empty, otherwise the original string.
     """
     return None if value == '' else value
-def StringifyIfNone(value: str|None) -> str:
+def StringifyIfNone(value: str|SupportsStringization|None, prefix: str|None = None, suffix: str|None = None, surroundingWay: StringizationSurrounding = StringizationSurrounding.NonEmpty) -> str:
     """Converts None to an empty string.
 
     Args:
@@ -20,7 +31,14 @@ def StringifyIfNone(value: str|None) -> str:
     Returns:
         An empty string if value is None, otherwise the original string.
     """
-    return '' if value == None else value
+    def stringify(value: str, condition: StringizationSurrounding) -> str:
+        return SurroundWith(prefix, value, suffix) if HasFlag(surroundingWay, condition) else value
+
+    if value == None: return stringify('', StringizationSurrounding.Void)
+
+    value = str(value)
+
+    return stringify(value, StringizationSurrounding.Empty if value == '' else StringizationSurrounding.NonEmpty)
 
 def IsNoneOrEmpty(value: str|None) -> bool:
     """Checks if a value is None or an empty string.
