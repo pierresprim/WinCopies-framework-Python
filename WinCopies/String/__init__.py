@@ -1,16 +1,39 @@
 from collections.abc import Iterable
 from enum import Flag
-from typing import Callable
+from typing import final, Callable
 
-from WinCopies.Enum import HasFlag
+from WinCopies import Abstract
 from WinCopies.Typing.Protocols import SupportsStringization
 
 class StringizationSurrounding(Flag):
     Null = 0
     Void = 1
     Empty = Void << 1
-    NonEmpty = Void << 1
-    All = Void + Empty + NonEmpty
+    NonEmpty = Empty << 1
+    All = Void | Empty | NonEmpty
+
+@final
+class __Stringifier(Abstract):
+    def __init__(self) -> None:
+        def stringify(value: str, prefix: str|None, suffix: str|None, surroundingWay: StringizationSurrounding, condition: StringizationSurrounding) -> str:
+            def stringify(value: str, prefix: str|None, suffix: str|None, surroundingWay: StringizationSurrounding, condition: StringizationSurrounding) -> str:
+                return SurroundWith(prefix, value, suffix) if hasFlag(surroundingWay, condition) else value
+            
+            from WinCopies.Enum import HasFlag
+
+            hasFlag: Callable[[Flag, Flag], bool] = HasFlag
+            self.__stringify = stringify
+
+            return stringify(value, prefix, suffix, surroundingWay, condition)
+
+        super().__init__()
+
+        self.__stringify: Callable[[str, str|None, str|None, StringizationSurrounding, StringizationSurrounding], str] = stringify # type: ignore[no-redef]
+
+    def __call__(self, value: str, prefix: str|None, suffix: str|None, surroundingWay: StringizationSurrounding, condition: StringizationSurrounding) -> str:
+        return self.__stringify(value, prefix, suffix, surroundingWay, condition)
+
+__STRINGIFIER: __Stringifier = __Stringifier()
 
 def NullifyIfEmpty(value: str) -> str|None:
     """Converts an empty string to None.
@@ -31,10 +54,10 @@ def StringifyIfNone(value: str|SupportsStringization|None, prefix: str|None = No
     Returns:
         An empty string if value is None, otherwise the original string.
     """
-    def stringify(value: str, condition: StringizationSurrounding) -> str:
-        return SurroundWith(prefix, value, suffix) if HasFlag(surroundingWay, condition) else value
 
-    if value == None: return stringify('', StringizationSurrounding.Void)
+    def stringify(value: str, condition: StringizationSurrounding) -> str: return __STRINGIFIER(value, prefix, suffix, surroundingWay, condition)
+
+    if value is None: return stringify('', StringizationSurrounding.Void)
 
     value = str(value)
 
@@ -93,7 +116,9 @@ def SurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str:
     Returns:
         The concatenated string with prefix, string, and suffix.
     """
-    return f"{StringifyIfNone(prefix)}{StringifyIfNone(string)}{StringifyIfNone(suffix)}"
+    def stringifyIfNone(value: str|None) -> str: return '' if value is None else value
+    
+    return f"{stringifyIfNone(prefix)}{stringifyIfNone(string)}{stringifyIfNone(suffix)}"
 def TrySurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str|None:
     """Tries to surround a string with a prefix and suffix.
 
