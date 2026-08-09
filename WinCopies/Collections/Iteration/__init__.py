@@ -9,6 +9,7 @@ from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, Exclu
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotPredicate, RetrieveValue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.BoolProvider import BooleanableProtocol
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
@@ -706,39 +707,46 @@ def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider
 
 def RetrieveValues[T](items: Iterable[Function[T]]) -> Iterable[T]:
     return Select(items, RetrieveValue)
+def RetrieveItems[TIn, TOut](items: Iterable[Function[TIn]], selector: Converter[TIn, TOut]) -> Iterable[TOut]:
+    return Select(items, lambda item: selector(RetrieveValue(item)))
 
-def AndAlso[T: bool](items: Iterable[T]) -> bool:
-    for value in items:
+def __GetBoolValueIterator[T: BooleanableProtocol](items: Iterable[T]) -> Iterable[bool]:
+    return Select(items, bool)
+def __GetBoolIterator[T: BooleanableProtocol](items: Iterable[Function[T]]) -> Iterator[BooleanableProtocol]:
+    return iter(RetrieveItems(items, bool))
+
+def AndAlso[T: BooleanableProtocol](items: Iterable[T]) -> bool:
+    for value in __GetBoolValueIterator(items):
         if not value: return False
 
     return True
-def OrElse[T: bool](items: Iterable[T]) -> bool:
-    for value in items:
+def OrElse[T: BooleanableProtocol](items: Iterable[T]) -> bool:
+    for value in __GetBoolValueIterator(items):
         if value: return True
 
     return False
 
-def CheckAndAlso[T: bool](items: Iterable[Function[T]]) -> bool:
+def CheckAndAlso[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
     return AndAlso(RetrieveValues(items))
-def CheckAnd[T: bool](items: Iterable[Function[T]]) -> bool:
-    values: Iterator[T] = iter(RetrieveValues(items))
+def CheckAnd[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
+    values: Iterator[BooleanableProtocol] = __GetBoolIterator(items)
 
     for value in values:
-        if not value:
-            for value in values: pass
+        if not bool(value):
+            for _ in values: pass
 
             return False
 
     return True
 
-def CheckOrElse[T: bool](items: Iterable[Function[T]]) -> bool:
+def CheckOrElse[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
     return OrElse(RetrieveValues(items))
-def CheckOr[T: bool](items: Iterable[Function[T]]) -> bool:
-    values: Iterator[T] = iter(RetrieveValues(items))
+def CheckOr[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
+    values: Iterator[BooleanableProtocol] = __GetBoolIterator(items)
 
     for value in values:
-        if value:
-            for value in values: pass
+        if bool(value):
+            for _ in values: pass
 
             return True
 

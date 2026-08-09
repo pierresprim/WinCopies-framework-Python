@@ -1,6 +1,11 @@
 from typing import runtime_checkable, Any, Protocol, Self
 
 @runtime_checkable
+class SupportsBooleanConversion(Protocol):
+    def __bool__(self) -> bool:
+        ...
+
+@runtime_checkable
 class SupportsStringization(Protocol):
     def __str__(self) -> str:
         ...
