@@ -11,30 +11,41 @@ import unittest
 from collections.abc import Iterable, Sequence, MutableSequence
 from typing import Callable
 
+from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import CreateList, CreateSizedList
 from WinCopies.Collections.Extensions import IList, ITuple
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetValues
-from WinCopies.Collections.Util import CreateSequence
+from WinCopies.Collections.Util import MakeSequence, CreateSequence, CreateTuple, CreateList as CreatePyList
 from WinCopies.String import StringifyIfNone
 
 _SOURCE: Sequence[int] = (0, 1, 2, 3, 4)
 
-def _create(items: Iterable[int]|None = None) -> IList[int]:
-    return CreateList(list(_SOURCE) if items is None else list(items))
+def _create(items: ReadOnlyArray[int]|None = None) -> IList[int]:
+    return CreateList(_SOURCE if items is None else items)
 
-def _dump[T](items: ITuple[T]) -> Sequence[T]:
-    return CreateSequence(Select(range(items.GetCount()), items.GetAt))
+def _dump[T](items: ITuple[T]) -> ReadOnlyArray[T]:
+    return CreateTuple(Select(range(items.GetCount()), items.GetAt))
 
 def _format(key: slice) -> str:
     step: int|None = key.step
 
     return f"[{StringifyIfNone(key.start)}:{StringifyIfNone(key.stop)}{StringifyIfNone(step, ':')}]"
 
-def __GetSlices(*values: tuple[int|None, int|None]|tuple[int|None, int|None, int|None]) -> Sequence[slice]:
+def _GetSlices(*values: tuple[int|None, int|None]|tuple[int|None, int|None, int|None]) -> Sequence[slice]:
     return CreateSequence(Select(values, lambda value: slice(*value)))
+def _GetSliceTuples(*values: tuple[tuple[int|None, int|None]|tuple[int|None, int|None, int|None], Sequence[int]]) -> Sequence[tuple[slice, Sequence[int]]]:
+    return CreateSequence(Select(values, lambda value: (slice(*(value[0])), value[1])))
 
-_KEYS: Sequence[slice] = __GetSlices(
+def _Iterate() -> Iterable[int]:
+    return range(len(_SOURCE))
+
+def _AssertEqual(testCase: unittest.TestCase, actual: ReadOnlyArray[int], expected: Sequence[int]) -> None:
+    testCase.assertEqual(len(actual), len(expected))
+
+    for _actual, _expected in zip(actual, expected): testCase.assertEqual(_actual, _expected)
+
+_KEYS: Sequence[slice] = _GetSlices(
     (1, 3), (0, 2), (2, 5), (0, 5), (None, None),
     (3, 1), (2, 2), (10, 20),
     (0, 5, 2), (1, None, 2), (None, None, 3),
@@ -56,7 +67,7 @@ class TestReversedView(unittest.TestCase):
                 self.assertEqual(reversed_.GetAt(i), collection.GetAt(count - 1 - i))
 
     def test_enumeration_yields_the_reversed_source(self) -> None:
-        self.assertEqual(_dump(_create().AsReversed()), list(reversed(_SOURCE)))
+        self.assertEqual(_dump(_create().AsReversed()), CreateSequence(reversed(_SOURCE)))
 
     def test_midpoint_is_a_fixed_point(self) -> None:
         """The middle index maps to itself, so it is the cheapest tell that the mapping is sound."""
@@ -67,7 +78,7 @@ class TestReversedView(unittest.TestCase):
 
     def __assertInserted(self, count: int, action: Callable[[IList[int], int], None], expected: Callable[[MutableSequence[int], int], None]) -> None:
         for size in (0, 1, 3, 5):
-            source: Sequence[int] = list(range(size))
+            source: ReadOnlyArray[int] = CreateTuple(range(size))
 
             for index in range(size + 1):
                 with self.subTest(size = size, index = index, count = count):
@@ -75,11 +86,11 @@ class TestReversedView(unittest.TestCase):
 
                     action(collection.AsReversed(), index)
 
-                    reference: Sequence[int] = list(reversed(source))
+                    reference: MutableSequence[int] = CreatePyList(reversed(source))
 
                     expected(reference, index)
 
-                    self.assertEqual(_dump(collection), list(reversed(reference)))
+                    self.assertEqual(_dump(collection), CreateTuple(reversed(reference)))
 
     def test_try_insert_at_every_position(self) -> None:
         def insert(reference: MutableSequence[int], index: int) -> None: reference.insert(index, 99)
@@ -95,59 +106,60 @@ class TestReversedView(unittest.TestCase):
         """A single item hides a double reversal, so the range must carry several."""
 
         def check(values: Sequence[int]) -> None:
-            def action(items: IList[int], index: int) -> None: items.TryInsertRange(index, list(values))
+            def action(items: IList[int], index: int) -> None: items.TryInsertRange(index, CreatePyList(values))
             def insert(reference: MutableSequence[int], index: int) -> None: reference[index:index] = values
 
             self.__assertInserted(len(values), action, insert)
+        def makeSequence(*values: ReadOnlyArray[int]) -> Sequence[ReadOnlyArray[int]]: return values
 
-        for values in ([7, 8, 9], [9], []): check(values)
+        for values in makeSequence((7, 8, 9), (9,), MakeSequence()): check(values)
 
     def test_add_appends_to_the_reversed_tail(self) -> None:
-        collection: IList[int] = _create([0, 1, 2])
+        collection: IList[int] = _create((0, 1, 2))
 
         collection.AsReversed().Add(99)
 
-        self.assertEqual(_dump(collection), [99, 0, 1, 2])
+        self.assertEqual(_dump(collection), (99, 0, 1, 2))
 
     def test_add_range_appends_to_the_reversed_tail(self) -> None:
-        collection: IList[int] = _create([0, 1, 2])
+        collection: IList[int] = _create((0, 1, 2))
 
-        collection.AsReversed().AddRange([7, 8, 9])
+        collection.AsReversed().AddRange((7, 8, 9))
 
-        self.assertEqual(_dump(collection), [9, 8, 7, 0, 1, 2])
+        self.assertEqual(_dump(collection), (9, 8, 7, 0, 1, 2))
 
     def test_removal_mirrors_the_source(self) -> None:
-        for index in range(len(_SOURCE)):
+        for index in _Iterate():
             with self.subTest(index = index):
                 collection: IList[int] = _create()
 
                 self.assertTrue(collection.AsReversed().TryRemoveAt(index))
 
-                reference: Sequence[int] = list(reversed(_SOURCE))
+                reference: Sequence[int] = CreatePyList(reversed(_SOURCE))
 
                 del reference[index]
 
-                self.assertEqual(_dump(collection), list(reversed(reference)))
+                _AssertEqual(self, _dump(collection), CreateSequence(reversed(reference)))
 
 class TestRemoveRange(unittest.TestCase):
     """TryRemoveRange must report what it did, and do exactly what it reports."""
 
     def test_valid_ranges_remove_and_report_true(self) -> None:
-        for index in range(len(_SOURCE)):
+        for index in _Iterate():
             for count in range(1, len(_SOURCE) - index + 1):
                 with self.subTest(index = index, count = count):
                     collection: IList[int] = _create()
 
                     self.assertTrue(collection.TryRemoveRange(index, count))
 
-                    reference: Sequence[int] = list(_SOURCE)
+                    reference: Sequence[int] = CreatePyList(_SOURCE)
 
                     del reference[index:index + count]
 
-                    self.assertEqual(_dump(collection), reference)
+                    _AssertEqual(self, _dump(collection), reference)
 
     def test_a_none_count_removes_to_the_end(self) -> None:
-        for index in range(len(_SOURCE)):
+        for index in _Iterate():
             with self.subTest(index = index):
                 collection: IList[int] = _create()
 
@@ -172,41 +184,41 @@ class TestSliceSemantics(unittest.TestCase):
 
                 del collection.AsMutableSequence()[key]
 
-                reference: Sequence[int] = list(_SOURCE)
+                reference: Sequence[int] = CreatePyList(_SOURCE)
 
                 del reference[key]
 
-                self.assertEqual(_dump(collection), reference)
+                _AssertEqual(self, _dump(collection), reference)
 
     def test_assignment_matches_python(self) -> None:
-        cases: Sequence[tuple[slice, Sequence[int]]] = [
-            (slice(1, 3), [9, 9]), (slice(1, 3), [7, 8, 9]), (slice(1, 3), []),
-            (slice(0, 5), []), (slice(2, 2), [9]),
-            (slice(0, 5, 2), [7, 8, 9]), (slice(None, None, 2), [7, 8, 9]),
-            (slice(4, 1, -1), [7, 8, 9]), (slice(None, 1, -1), [7, 8, 9]),
-            (slice(None, None, -1), [5, 6, 7, 8, 9]), (slice(4, None, -1), [5, 6, 7, 8, 9]),
-            (slice(-3, None), [9]), (slice(None, -1), [9])]
+        cases: Sequence[tuple[slice, Sequence[int]]] = _GetSliceTuples(
+            ((1, 3), (9, 9)), ((1, 3), (7, 8, 9)), ((1, 3), ()),
+            ((0, 5), ()), ((2, 2), (9,)),
+            ((0, 5, 2), (7, 8, 9)), ((None, None, 2), (7, 8, 9)),
+            ((4, 1, -1), (7, 8, 9)), ((None, 1, -1), (7, 8, 9)),
+            ((None, None, -1), (5, 6, 7, 8, 9)), ((4, None, -1), (5, 6, 7, 8, 9)),
+            ((-3, None), (9,)), ((None, -1), (9,)))
 
         for key, values in cases:
             with self.subTest(key = _format(key), values = values):
                 collection: IList[int] = _create()
 
-                SetValues(collection, key, list(values))
+                SetValues(collection, key, CreatePyList(values))
 
-                reference: Sequence[int] = list(_SOURCE)
+                reference: MutableSequence[int] = CreatePyList(_SOURCE)
                 reference[key] = values
 
-                self.assertEqual(_dump(collection), reference)
+                _AssertEqual(self, _dump(collection), reference)
 
     def test_assignment_accepts_a_single_pass_iterable(self) -> None:
         collection: IList[int] = _create()
 
         SetValues(collection, slice(1, 3), (value for value in (9, 9)))
 
-        reference: Sequence[int] = list(_SOURCE)
+        reference: MutableSequence[int] = CreatePyList(_SOURCE)
         reference[1:3] = [9, 9]
 
-        self.assertEqual(_dump(collection), reference)
+        _AssertEqual(self, _dump(collection), reference)
 
 class TestTryMembersDoNotRaise(unittest.TestCase):
     """A Try* member reports a refusal; only its throwing counterpart raises."""
@@ -220,7 +232,7 @@ class TestTryMembersDoNotRaise(unittest.TestCase):
                 collection: IList[int] = self.__createFull()
 
                 self.assertIsNot(collection.AsReversed().TryInsert(index, 9), True)
-                self.assertEqual(_dump(collection), [0, 1, 2])
+                self.assertEqual(_dump(collection), (0, 1, 2))
 
     def test_try_insert_range_refuses_at_every_bound(self) -> None:
         for index in (0, 3):
@@ -228,7 +240,7 @@ class TestTryMembersDoNotRaise(unittest.TestCase):
                 collection: IList[int] = self.__createFull()
 
                 self.assertIsNot(collection.AsReversed().TryInsertRange(index, [9]), True)
-                self.assertEqual(_dump(collection), [0, 1, 2])
+                self.assertEqual(_dump(collection), (0, 1, 2))
 
 class TestEmptyRange(unittest.TestCase):
     """Inserting nothing is a trivial success, not a failure."""
