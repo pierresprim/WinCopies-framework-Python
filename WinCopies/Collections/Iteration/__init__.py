@@ -7,7 +7,7 @@ from WinCopies.Collections import Generator, IterationResult, IterableScanResult
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, CreateIterable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Util import MakeGenerator
-from WinCopies.Delegates import GetNotPredicate
+from WinCopies.Delegates import GetNotPredicate, RetrieveValue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
@@ -703,3 +703,43 @@ def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[AbstractC
     return IterableScanResult.DoesNotExist
 def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
     return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
+
+def RetrieveValues[T](items: Iterable[Function[T]]) -> Iterable[T]:
+    return Select(items, RetrieveValue)
+
+def AndAlso[T: bool](items: Iterable[T]) -> bool:
+    for value in items:
+        if not value: return False
+
+    return True
+def OrElse[T: bool](items: Iterable[T]) -> bool:
+    for value in items:
+        if value: return True
+
+    return False
+
+def CheckAndAlso[T: bool](items: Iterable[Function[T]]) -> bool:
+    return AndAlso(RetrieveValues(items))
+def CheckAnd[T: bool](items: Iterable[Function[T]]) -> bool:
+    values: Iterator[T] = iter(RetrieveValues(items))
+
+    for value in values:
+        if not value:
+            for value in values: pass
+
+            return False
+
+    return True
+
+def CheckOrElse[T: bool](items: Iterable[Function[T]]) -> bool:
+    return OrElse(RetrieveValues(items))
+def CheckOr[T: bool](items: Iterable[Function[T]]) -> bool:
+    values: Iterator[T] = iter(RetrieveValues(items))
+
+    for value in values:
+        if value:
+            for value in values: pass
+
+            return True
+
+    return False

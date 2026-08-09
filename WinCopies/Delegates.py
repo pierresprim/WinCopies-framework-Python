@@ -25,6 +25,9 @@ def AlwaysFalse(obj: Any) -> bool:
 def CompareEquality[T](x: T, y: T) -> bool:
     return x == y
 
+def RetrieveValue[T](func: Function[T]) -> T:
+    return func()
+
 
 
 def PredicateAction[T](obj: T, predicate: Predicate[T], action: Method[T]) -> bool:
