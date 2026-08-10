@@ -48,6 +48,8 @@ class IResumableEnumerator[T](IEnumerator[T]):
     @abstractmethod
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         ...
+
+    def ToDisposable(self) -> IDisposableResumableEnumerator[T]: return _DisposableEnumerator[T](self)
 class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TItem]):
     @final
     class _Cookie[_TItem, _TCursorValue](Abstract, ICookie[_TCursorValue]):
@@ -231,6 +233,8 @@ class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IResumableEnumerator[
     def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: return self._GetContainer().MoveToTop(cursor)
     
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
+
+    def ToDisposable(self) -> IDisposableResumableEnumerator[T]: return self
 
 __emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
