@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from collections.abc import Sequence as SequenceBase
 from typing import final
 
 
@@ -9,7 +8,7 @@ from WinCopies import IDisposableBase, Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionMonitors, IRevocableViewMonitor, ITuple
+from WinCopies.Collections.Extensions import ICollectionMonitors, IRevocableViewMonitor, ITuple, SequenceAbstract
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
@@ -52,7 +51,7 @@ class _RevocableViewCookie(Abstract, IDisposableBase):
 
     def Dispose(self) -> None: self.__updater()
 
-class RevocableViewBase[T](Abstract, ITuple[T]):
+class RevocableViewBase[T](SequenceAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -97,9 +96,6 @@ class RevocableViewBase[T](Abstract, ITuple[T]):
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self
-
-    @final
-    def AsSequence(self) -> SequenceBase[T]: return self._GetItems().AsSequence()
 
     def ToString(self) -> str: return self._GetItems().ToString()
 @final

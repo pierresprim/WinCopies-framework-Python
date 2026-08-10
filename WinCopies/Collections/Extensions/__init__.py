@@ -79,7 +79,7 @@ class ReadOnlyCollectionBase[T](CollectionBase[T], IReadOnlyCollection[T]):
     def AsIterable(self) -> Iterable[T]: return self
     @final
     def AsCollection(self) -> CollectionBase[T]: return self
-class ReadOnlyCollection[T](ReadOnlyCollectionBase[T], IReadOnlyCollection[T]):
+class ReadOnlyCollection[T](ReadOnlyCollectionBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
