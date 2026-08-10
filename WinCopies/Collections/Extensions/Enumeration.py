@@ -3,13 +3,13 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import Abstract, IDisposableBase
-from WinCopies.Collections.Enumeration import IEnumeratorBase, IEnumerator, IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
+from WinCopies import Abstract
+from WinCopies.Collections.Enumeration import IEnumeratorBase, IDisposableEnumeratorBase, IEnumerator, IDisposableEnumerator, IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IDisposableResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Collections.Generation.Factory.Core import ObjectFactory
+from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
@@ -106,28 +106,38 @@ class _ResumableEnumeratorMonitorUpdater(EnumeratorMonitorUpdater[IResumableEnum
     
     def _GetValue(self) -> IResumableEnumeratorMonitor: return _ResumableEnumeratorMonitor(self._GetFactory())
 
-class EnumeratorFactoryBase[T](ObjectFactory[IEnumeratorBase], IEnumeratorFactory):
+
+def _RegisterEnumerator[U: IDisposableEnumeratorBase](factory: IEnumeratorFactory, enumerator: U) -> U:
+    factory.RegisterObject(enumerator)
+
+    return enumerator
+
+class EnumeratorFactoryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorFactory):
     def __init__(self) -> None:
         def update(func: IFunction[T]) -> None: self.__monitor = func
         
         super().__init__()
 
+        self.__factory: IObjectFactory[IDisposableEnumeratorBase] = DisposableObjectFactory[IDisposableEnumeratorBase]()
         self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
+
+    @final
+    def _GetFactory(self) -> IObjectFactory[IDisposableEnumeratorBase]:
+        return self.__factory
     
     @abstractmethod
     def _CreateUpdater(self, updater: Method[IFunction[T]]) -> EnumeratorMonitorUpdater[T, IEnumeratorFactory]:
         ...
+
+    @final
+    def RegisterObject(self, item: IEnumeratorBase) -> None: self._GetFactory().RegisterObject(item.ToDisposable())
+
+    @final
+    def InvalidateObjects(self) -> None: self._GetFactory().InvalidateObjects()
     
     @final
-    def _Convert(self, item: IEnumeratorBase) -> IDisposableBase: return item.ToDisposable()
-    
-    @final
-    def CreateEnumerator[U](self, items: ITuple[U]) -> IEnumerator[U]:
-        enumerator: IEnumerator[U] = TupleEnumerator[U](items)
-
-        self._Push(enumerator)
-
-        return enumerator
+    def CreateEnumerator[U](self, items: ITuple[U]) -> IDisposableEnumerator[U]:
+        return _RegisterEnumerator(self, TupleEnumerator[U](items).ToDisposable())
     
     @final
     def _AsMonitor(self) -> T:
@@ -151,12 +161,8 @@ class ResumableEnumeratorFactory(EnumeratorFactoryBase[IResumableEnumeratorMonit
         return _ResumableEnumeratorMonitorUpdater(self, updater)
     
     @final
-    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IResumableEnumerator[U]:
-        enumerator: IResumableEnumerator[U] = ResumableTupleEnumerator[U](items)
-
-        self._Push(enumerator)
-
-        return enumerator
+    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IDisposableResumableEnumerator[U]:
+        return _RegisterEnumerator(self, ResumableTupleEnumerator[U](items).ToDisposable())
     
     @final
     def AsMonitor(self) -> IResumableEnumeratorMonitor:
