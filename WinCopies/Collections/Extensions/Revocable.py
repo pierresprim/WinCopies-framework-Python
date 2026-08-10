@@ -8,7 +8,7 @@ from WinCopies import IDisposableBase, Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionMonitors, IRevocableViewMonitor, ITuple, SequenceAbstract
+from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
@@ -52,7 +52,10 @@ class _RevocableViewCookie(Abstract, IDisposableBase):
     def Dispose(self) -> None: self.__updater()
 
 class RevocableViewBase[T](SequenceAbstract[T]):
-    def __init__(self) -> None: super().__init__()
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self._GetItems().AsReversed())
 
     @abstractmethod
     def _GetItems(self) -> ITuple[T]:
@@ -86,10 +89,10 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self._GetItems().TryGetResumableEnumerator()
 
     @final
-    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key)
+    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key) # TODO: The return type should reflect the type of the inner collection (IArray, IList, etc).
 
     @final
-    def AsReversed(self) -> ITuple[T]: return self._GetItems().AsReversed()
+    def AsReversed(self) -> ITuple[T]: return self.__monitor.GetImmutableView()
     
     @final
     def AsReadOnly(self) -> ITuple[T]: return self
