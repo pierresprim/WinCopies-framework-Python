@@ -12,7 +12,7 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, T
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollection, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, CollectionViewMonitor, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFactory, ResumableEnumeratorFactory, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewFactory, RevocableViewFactory
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
@@ -23,50 +23,9 @@ from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Action, Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsRichComparison
-
-class ICollectionViewMonitor[T](IInterface):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def GetImmutableView(self) -> ITuple[T]:
-        ...
-
-class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
-    def __init__(self, items: ITuple[T]) -> None:
-        def createView() -> ITuple[T]:
-            view: ITuple[T] = self._CreateView(self._GetItems().AsReadOnly(), onDisposed)
-
-            self.__view = lambda: view
-
-            return view
-
-        def onDisposed() -> None: self.__view = createView
-
-        super().__init__()
-
-        self.__items: ITuple[T] = items
-        self.__view: Function[ITuple[T]] = createView # type: ignore[no-redef]
-
-    @abstractmethod
-    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]:
-        ...
-
-    @final
-    def _GetItems(self) -> ITuple[T]: return self.__items
-
-    @final
-    def GetImmutableView(self) -> ITuple[T]:
-        func: Function[ITuple[T]] = self.__view # For mypy compatibility
-
-        return func()
-class CollectionViewMonitor[T](CollectionViewMonitorBase[T]):
-    def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
-
-    @final
-    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]: return self._GetItems().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
 
 class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:

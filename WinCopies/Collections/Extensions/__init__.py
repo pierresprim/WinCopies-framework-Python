@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IInterface, IStringable
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
                                         ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
@@ -18,7 +18,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Action
+from WinCopies.Typing.Delegate import Action, Function
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -144,6 +144,47 @@ class ICollectionMonitors(IInterface):
     @abstractmethod
     def GetRevocableViewMonitor(self) -> IRevocableViewMonitor:
         ...
+
+class ICollectionViewMonitor[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetImmutableView(self) -> ITuple[T]:
+        ...
+
+class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
+    def __init__(self, items: ITuple[T]) -> None:
+        def createView() -> ITuple[T]:
+            view: ITuple[T] = self._CreateView(self._GetItems().AsReadOnly(), onDisposed)
+
+            self.__view = lambda: view
+
+            return view
+
+        def onDisposed() -> None: self.__view = createView
+
+        super().__init__()
+
+        self.__items: ITuple[T] = items
+        self.__view: Function[ITuple[T]] = createView # type: ignore[no-redef]
+
+    @abstractmethod
+    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]:
+        ...
+
+    @final
+    def _GetItems(self) -> ITuple[T]: return self.__items
+
+    @final
+    def GetImmutableView(self) -> ITuple[T]:
+        func: Function[ITuple[T]] = self.__view # For mypy compatibility
+
+        return func()
+class CollectionViewMonitor[T](CollectionViewMonitorBase[T]):
+    def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
+
+    @final
+    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]: return self._GetItems().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
 
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
