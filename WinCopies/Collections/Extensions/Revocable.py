@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final
 
@@ -51,11 +53,32 @@ class _RevocableViewCookie(Abstract, IDisposableBase):
 
     def Dispose(self) -> None: self.__updater()
 
+class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
+    def __init__(self, updater: Method[IFunction[ICollectionViewMonitor[T]]]) -> None: super().__init__(updater)
+
+    @abstractmethod
+    def _GetItems(self) -> ITuple[T]:
+        ...
+
+    @final
+    def _GetValue(self) -> ICollectionViewMonitor[T]: return CollectionViewMonitor[T](self._GetItems().AsReversed())
+
 class RevocableViewBase[T](SequenceAbstract[T]):
+    @final
+    class _MonitorUpdater[_T](_CollectionViewMonitorUpdater[_T]):
+        def __init__(self, items: RevocableViewBase[_T], updater: Method[IFunction[ICollectionViewMonitor[_T]]]) -> None:
+            super().__init__(updater)
+
+            self.__items: RevocableViewBase[_T] = items
+
+        def _GetItems(self) -> ITuple[_T]: return self.__items._GetItems()
+    
     def __init__(self) -> None:
+        def update(func: IFunction[ICollectionViewMonitor[T]]) -> None: self.__monitor = func
+        
         super().__init__()
 
-        self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self._GetItems().AsReversed())
+        self.__monitor: IFunction[ICollectionViewMonitor[T]] = RevocableViewBase._MonitorUpdater[T](self, update) # type: ignore[no-redef]
 
     @abstractmethod
     def _GetItems(self) -> ITuple[T]:
@@ -92,7 +115,7 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key) # TODO: The return type should reflect the type of the inner collection (IArray, IList, etc).
 
     @final
-    def AsReversed(self) -> ITuple[T]: return self.__monitor.GetImmutableView()
+    def AsReversed(self) -> ITuple[T]: return self.__monitor.GetValue().GetImmutableView()
     
     @final
     def AsReadOnly(self) -> ITuple[T]: return self
