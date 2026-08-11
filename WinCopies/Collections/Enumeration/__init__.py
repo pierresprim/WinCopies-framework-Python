@@ -289,8 +289,6 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def TryReset(self) -> bool|None:
-        def onReset() -> None: self.__moveNextFunc = BoolFalse
-        
         if self.IsResetSupported():
             if self.IsStarted(): self.Stop()
             
@@ -301,11 +299,9 @@ class EnumeratorBase[T](IteratorBase[T]):
                 
                 return True
             
-            onReset()
-            
             return False
         
-        onReset()
+        self.__moveNextFunc = BoolFalse
         
         return None
     
