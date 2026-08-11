@@ -777,7 +777,7 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
 
     def AsIterator(self) -> SystemIterator[T]: raise GetDisposedError()
 
-class DisposableEnumeratorAbstract[T](Abstract, IDisposableEnumerator[T]):
+class DisposableEnumeratorAbstract[T](IteratorBase[T], IDisposableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
     @staticmethod
@@ -823,9 +823,6 @@ class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEn
         self._GetInnerContainer().Stop()
 
         self.__enumerator = self._GetDisposedEnumerator()
-    
-    @final
-    def AsIterator(self) -> SystemIterator[TItem]: return self._GetInnerContainer().AsIterator()
 @final
 class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
