@@ -243,6 +243,10 @@ class EnumeratorBase[T](IteratorBase[T]):
     def __OnCompleted(self) -> None:
         self.__OnTerminated(True)
         self._OnCompleted()
+
+    @final
+    def __OnStopped(self) -> None:
+        pass
     
     @abstractmethod
     def _GetCurrent(self) -> T:
@@ -277,6 +281,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def Stop(self) -> None:
+        self.__moveNextFunc = BoolFalse
         self.__result = EnumerationResult.Stopped
 
         self.__OnTerminated(False)
