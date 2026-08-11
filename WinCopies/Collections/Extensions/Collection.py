@@ -247,8 +247,8 @@ class _ITuple[T](ITupleBase[T], IViewProvider):
 class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None: super().__init__()
 
-    def __RegisterEnumerator(self, enumerator: IEnumerator[T]) -> None:
-        self._GetCollectionFactories().GetEnumeratorFactory().RegisterObject(enumerator)
+    def __GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
+        return self._GetCollectionFactories().GetEnumeratorFactory()
     
     # Not final to allow customization of the enumerator.
     def _TryGetEnumerator(self) -> IEnumerator[T]:
@@ -257,19 +257,9 @@ class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
         return ResumableTupleEnumerator[T](self)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]:
-        enumerator: IEnumerator[T] = self._TryGetEnumerator()
-
-        self.__RegisterEnumerator(enumerator)
-
-        return enumerator
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__GetEnumeratorFactory().RegisterEnumerator(self._TryGetEnumerator())
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]:
-        enumerator: IResumableEnumerator[T] = self._TryGetResumableEnumerator()
-
-        self.__RegisterEnumerator(enumerator)
-
-        return enumerator
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__GetEnumeratorFactory().RegisterResumableEnumerator(self._TryGetResumableEnumerator())
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
