@@ -49,12 +49,10 @@ class ITwoWayLinkedNode[T](ILinkedNode[T], ITwoWayNode):
         ...
 
 class IReadWriteLinkedNode[T](ITwoWayLinkedNode[T], IReadWriteNode):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
 
 class IReadWriteTwoWayLinkedNode[T](IReadWriteLinkedNode[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def SetPrevious(self, value: T) -> IReadWriteTwoWayLinkedNode[T]:
@@ -74,8 +72,7 @@ class LinkedNodeAbstract[T](Abstract, ILinkedNode[T]):
     @final
     def SetValue(self, value: T) -> None: self.__value = value
 class LinkedNodeBase[TItem, TNode](LinkedNodeAbstract[TItem]):
-    def __init__(self, value: TItem) -> None:
-        super().__init__(value)
+    def __init__(self, value: TItem) -> None: super().__init__(value)
 
     @abstractmethod
     def _AsLinkedNode(self, node: TNode) -> LinkedNodeBase[TItem, TNode]:
