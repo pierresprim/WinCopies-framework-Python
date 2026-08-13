@@ -14,7 +14,7 @@ from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollection
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
-from WinCopies.Delegates import NoAction
+from WinCopies.Delegates import NoAction, ConcatenateActions
 
 from WinCopies.Typing import INullable, GetInvalidatedError
 from WinCopies.Typing.Delegate import Action, Method, Function, EqualityComparison, IFunction, ValueFunctionUpdater
@@ -47,18 +47,26 @@ class _RevocableViewMonitorUpdater(ValueFunctionUpdater[IRevocableViewMonitor]):
     def _GetValue(self) -> IRevocableViewMonitor: return RevocableViewMonitor(self.__factory)
 
 @final
-class _RevocableViewCookie(Abstract, IDisposableBase):
-    def __init__(self, updater: Action) -> None:
+class _RevocableViewCookie[T](Abstract, IDisposableBase):
+    def __init__(self, items: ITuple[T], onDisposed: Action|None) -> None:
+        def getItems() -> ITuple[T]: return items
+
+        def dispose() -> None:
+            def throw() -> ITuple[T]: raise GetInvalidatedError()
+
+            self.__items = throw
+            self.__onDisposed = NoAction
+        
         super().__init__()
 
-        self.__updater: Action = updater
+        self.__items: Function[ITuple[T]] = getItems # type: ignore[no-redef]
 
-    def Dispose(self) -> None:
-        updater: Action = self.__updater
+        self.__onDisposed: Action = dispose if onDisposed is None else ConcatenateActions(dispose, onDisposed) # type: ignore[no-redef]
 
-        self.__updater = NoAction
+    def GetItems(self) -> ITuple[T]:
+        return self.__items()
 
-        updater()
+    def Dispose(self) -> None: self.__onDisposed()
 
 class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
     def __init__(self, updater: Method[IFunction[ICollectionViewMonitor[T]]]) -> None: super().__init__(updater)
@@ -133,27 +141,18 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def ToString(self) -> str: return self._GetItems().ToString()
 @final
 class _RevocableView[T](RevocableViewBase[T]):
-    def __init__(self, items: ITuple[T]) -> None:
-        def getItems() -> ITuple[T]: return items
-        
+    def __init__(self, cookie: _RevocableViewCookie[T]) -> None:
         super().__init__()
 
-        self.__items: Function[ITuple[T]] = getItems
+        self.__cookie: _RevocableViewCookie[T] = cookie
 
-    def _GetItems(self) -> ITuple[T]: return self.__items()
+    def _GetItems(self) -> ITuple[T]: return self.__cookie.GetItems()
 
-    @staticmethod
-    def Create(items: ITuple[T], onDisposed: Action|None = None) -> tuple[ITuple[T], IDisposableBase]:
-        def update() -> None:
-            def throw() -> ITuple[T]: raise GetInvalidatedError()
+def _CreateRevocableView[T](items: ITuple[T], onDisposed: Action|None = None) -> tuple[ITuple[T], IDisposableBase]:
+    cookie: _RevocableViewCookie[T] = _RevocableViewCookie(items, onDisposed)
+    view: _RevocableView[T] = _RevocableView[T](cookie)
 
-            view.__items = throw
-
-            if onDisposed is not None: onDisposed()
-
-        view: _RevocableView[T] = _RevocableView[T](items)
-
-        return (view, _RevocableViewCookie(update))
+    return (view, cookie)
 
 type RevocableView[T] = _RevocableView[T]
 
@@ -172,7 +171,7 @@ class RevocableViewFactory(Abstract, IRevocableViewFactory):
     
     @final
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
-        view: tuple[ITuple[T], IDisposableBase] = _RevocableView[T].Create(items, onDisposed)
+        view: tuple[ITuple[T], IDisposableBase] = _CreateRevocableView(items, onDisposed)
 
         self._GetFactory().RegisterObject(view[1])
 
