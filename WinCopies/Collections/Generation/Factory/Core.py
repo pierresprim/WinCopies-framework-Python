@@ -270,15 +270,6 @@ class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
     def _Convert(self, item: T) -> T: return item
 
 @final
-class _DisposableCollectionFactoryItem(Abstract, IDisposableBase):
-    def __init__(self, item: IObjectMonitor) -> None:
-        super().__init__()
-
-        self.__item: IObjectMonitor = item
-
-    def Dispose(self) -> None: self.__item.InvalidateObjects()
-
-@final
 class _CollectionFactoryCookie(Abstract, IRemovable):
     def __init__(self, node: IRemovable) -> None:
         super().__init__()
