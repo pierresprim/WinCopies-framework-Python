@@ -294,7 +294,6 @@ class ICollectionFactory[T: IObjectMonitor](IObjectFactory[T]):
     def RegisterMonitor(self, item: T) -> IRemovable:
         ...
 
-    @final
     def RegisterObject(self, item: T) -> None: self.RegisterMonitor(item)
 class CollectionFactory[T: IObjectMonitor](Abstract, ICollectionFactory[T]):
     def __init__(self) -> None:
@@ -303,11 +302,17 @@ class CollectionFactory[T: IObjectMonitor](Abstract, ICollectionFactory[T]):
         self.__items: IReadWriteList[T] = _Collection[T]()
 
     @final
+    def __Register(self, item: T) -> IRemovable:
+        return self.__items.AddLastNode(item)
+
+    @final
     def _GetItems(self) -> IReadOnlyList[T]:
         return self.__items.AsReadOnly()
-    
+
     @final
-    def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__items.AddLastNode(item))
+    def RegisterObject(self, item: T) -> None: self.__Register(item)
+    @final
+    def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
 
     def InvalidateObjects(self) -> None:
         node: ILinkedNode[T]|None = self.__items.GetFirstNode()
