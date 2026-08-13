@@ -14,6 +14,8 @@ from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollection
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
+from WinCopies.Delegates import NoAction
+
 from WinCopies.Typing import INullable, GetInvalidatedError
 from WinCopies.Typing.Delegate import Action, Method, Function, EqualityComparison, IFunction, ValueFunctionUpdater
 
@@ -51,7 +53,12 @@ class _RevocableViewCookie(Abstract, IDisposableBase):
 
         self.__updater: Action = updater
 
-    def Dispose(self) -> None: self.__updater()
+    def Dispose(self) -> None:
+        updater: Action = self.__updater
+
+        self.__updater = NoAction
+
+        updater()
 
 class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
     def __init__(self, updater: Method[IFunction[ICollectionViewMonitor[T]]]) -> None: super().__init__(updater)

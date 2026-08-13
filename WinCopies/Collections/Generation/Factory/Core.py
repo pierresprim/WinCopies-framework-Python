@@ -168,6 +168,7 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
         return node
     @final
     def __PushFirst(self, obj: TOut) -> INodeBase:
+        self.__push = self.__Push
         self.__clear = self.__Clear
 
         return self.__Push(obj)
