@@ -16,7 +16,7 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import DiscardReason, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
+from WinCopies.Typing import INullable, IDisposableInfoBase, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
@@ -179,7 +179,7 @@ class IFrameInspector(IInterface):
     @abstractmethod
     def TryIsBuiltin(self) -> INullable[bool]|None:
         ...
-class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
+class IDisposableFrameInspector(IFrameInspector, IDisposableInfoBase):
     def __init__(self) -> None: super().__init__()
 
 class _IFrameInfo(IInterface):
@@ -210,12 +210,12 @@ class __FrameInfo(Abstract, _IFrameInfo):
     def GetFunction(self) -> str: return self.__frameInfo.function
     def GetLineNumber(self) -> int: return self.__frameInfo.lineno
 @final
-class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
+class __Traceback(Abstract, _IFrameInfo, IDisposableInfoBase):
     class _IHandle(_IFrameInfo):
         def __init__(self) -> None: super().__init__()
         
         @abstractmethod
-        def GetDiscardReason(self) -> DiscardReason:
+        def IsDisposed(self) -> bool:
             ...
         
         @abstractmethod
@@ -226,7 +226,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
     class _NullHandle(Abstract, _IHandle):
         def __init__(self) -> None: super().__init__()
         
-        def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed
+        def IsDisposed(self) -> bool: return True
 
         def GetFrame(self) -> FrameType: raise GetDiscardedError()
         def GetFileName(self) -> str: raise GetDiscardedError()
@@ -242,7 +242,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
             self.__frame: FrameType = frame
             self.__traceback: Traceback = traceback
         
-        def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Null
+        def IsDisposed(self) -> bool: return False
 
         def GetFrame(self) -> FrameType: return self.__frame
         def GetFileName(self) -> str: return self.__traceback.filename
@@ -259,7 +259,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
 
         self.__handle: __Traceback._IHandle = __Traceback._Handle(frame, traceback)
     
-    def GetDiscardReason(self) -> DiscardReason: return self.__handle.GetDiscardReason()
+    def IsDisposed(self) -> bool: return self.__handle.IsDisposed()
     
     def GetFrame(self) -> FrameType: return self.__handle.GetFrame()
     def GetFileName(self) -> str: return self.__handle.GetFileName()
@@ -337,14 +337,14 @@ def CreateFrameInspectorFromFrame(frame: FrameType) -> IFrameInspector:
     return __FrameInspector(__Traceback(frame, getframeinfo(frame)))
 
 @final
-class __DisposableFrameInspector(Abstract, IDisposableInfo):
+class __DisposableFrameInspector(Abstract, IDisposableInfoBase):
     def __init__(self, frame: FrameType) -> None:
         super().__init__()
 
         self.__frame: FrameType = frame
         self.__frameInspector: IFrameInspector|None = CreateFrameInspectorFromFrame(self.__frame)
     
-    def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed if self.__frameInspector is None else DiscardReason.Null
+    def IsDisposed(self) -> bool: return self.__frameInspector is None
     
     def GetFrameInspector(self) -> IFrameInspector:
         if self.__frameInspector is None or self.IsDisposed(): raise GetDiscardedError()
