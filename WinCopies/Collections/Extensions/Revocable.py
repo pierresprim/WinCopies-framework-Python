@@ -12,7 +12,7 @@ from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
-from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
+from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectFactory
 
 from WinCopies.Delegates import ConcatenateMethods
 
@@ -160,7 +160,7 @@ class RevocableViewFactory(Abstract, IRevocableViewFactory):
         
         super().__init__()
 
-        self.__factory: IObjectFactory[IInvalidatable] = DisposableObjectFactory[IInvalidatable]()
+        self.__factory: IObjectFactory[IInvalidatable] = InvalidatableObjectFactory[IInvalidatable]()
         self.__monitor: IFunction[IRevocableViewMonitor] = _RevocableViewMonitorUpdater(self, update) # type: ignore[no-redef]
 
     @final

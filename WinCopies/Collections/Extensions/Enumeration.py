@@ -9,7 +9,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, ID
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
+from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectFactory
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
@@ -124,7 +124,7 @@ class EnumeratorFactoryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorFactory)
         
         super().__init__()
 
-        self.__factory: IObjectFactory[IDisposableEnumeratorBase] = DisposableObjectFactory[IDisposableEnumeratorBase]()
+        self.__factory: IObjectFactory[IDisposableEnumeratorBase] = InvalidatableObjectFactory[IDisposableEnumeratorBase]()
         self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
 
     @final

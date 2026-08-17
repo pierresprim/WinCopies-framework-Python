@@ -263,7 +263,7 @@ class ObjectFactoryBase[TIn, TOut: IInvalidatable](Abstract, IObjectFactory[TIn]
 class ObjectFactory[T](ObjectFactoryBase[T, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class DisposableObjectFactory[T: IInvalidatable](ObjectFactoryBase[T, T]):
+class InvalidatableObjectFactory[T: IInvalidatable](ObjectFactoryBase[T, T]):
     def __init__(self) -> None: super().__init__()
     
     @final
