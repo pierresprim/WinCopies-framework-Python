@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
+from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
@@ -155,9 +156,21 @@ class ICollectionViewMonitor[T](IInterface):
 class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
     def __init__(self, items: ITuple[T]) -> None:
         def createView() -> ITuple[T]:
+            def getView() -> ITuple[T]:
+                view: ITuple[T]|None = _ref()
+
+                if view is None:
+                    onDisposed()
+
+                    return createView()
+
+                return view
+
             view: ITuple[T] = self._CreateView(self._GetItems().AsReadOnly(), onDisposed)
 
-            self.__view = lambda: view
+            _ref: ReferenceType[ITuple[T]] = ref(view)
+
+            self.__view = getView
 
             return view
 
