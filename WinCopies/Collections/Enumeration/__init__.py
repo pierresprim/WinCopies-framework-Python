@@ -15,7 +15,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDiscardedError
+from WinCopies.Typing import DiscardReason, INullable, IInvalidatable, InvalidOperationError, GetNullable, GetNullValue, GetDiscardedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
@@ -65,7 +65,7 @@ class IEnumeratorBase(IInterface):
         ...
 
     @abstractmethod
-    def ToDisposable(self) -> IDisposableEnumeratorBase:
+    def ToInvalidatable(self) -> IInvalidatableEnumeratorBase:
         ...
 class IEnumerator[T](IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
@@ -78,14 +78,14 @@ class IEnumerator[T](IEnumeratorBase):
     def AsIterator(self) -> SystemIterator[T]:
         ...
 
-    def ToDisposable(self) -> IDisposableEnumerator[T]: return _DisposableEnumerator[T](self)
+    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return _InvalidatableEnumerator[T](self)
 
-class IDisposableEnumeratorBase(IEnumeratorBase, IDisposable):
+class IInvalidatableEnumeratorBase(IEnumeratorBase, IInvalidatable):
     def __init__(self) -> None: super().__init__()
-class IDisposableEnumerator[T](IEnumerator[T], IDisposableEnumeratorBase):
+class IInvalidatableEnumerator[T](IEnumerator[T], IInvalidatableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
-    def ToDisposable(self) -> IDisposableEnumerator[T]: return self
+    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return self
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -755,7 +755,7 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
         return True
 
 @final
-class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
+class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
     def IsResetSupported(self) -> bool: return False
@@ -773,17 +773,17 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     
     def Stop(self) -> None: pass
     
-    def Dispose(self) -> None: pass
+    def _Dispose(self, reason: DiscardReason) -> None: pass
 
     def AsIterator(self) -> SystemIterator[T]: raise GetDiscardedError()
 
-class DisposableEnumeratorAbstract[T](IteratorBase[T], IDisposableEnumerator[T]):
+class InvalidatableEnumeratorAbstract[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
     @staticmethod
     def _GetDefaultDisposedEnumerator() -> IEnumerator[T]:
         return _GetDisposedEnumerator()
-class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEnumeratorAbstract[TItem], GenericConstraint[TEnumerator, IEnumerator[TItem]]):
+class InvalidatableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](InvalidatableEnumeratorAbstract[TItem], GenericConstraint[TEnumerator, IEnumerator[TItem]]):
     def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
 
@@ -819,23 +819,23 @@ class DisposableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](DisposableEn
     @final
     def TryReset(self) -> bool|None: return self._GetInnerContainer().TryReset()
     
-    def Dispose(self) -> None:
+    def _Dispose(self, reason: DiscardReason) -> None:
         self._GetInnerContainer().Stop()
 
         self.__enumerator = self._GetDisposedEnumerator()
 @final
-class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
+class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
     def _GetDisposedEnumerator(self) -> IEnumerator[T]:
-        return DisposableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
+        return InvalidatableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
 
 __emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
 
 __disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
 
-def _GetDisposedEnumerator[T]() -> IDisposableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
+def _GetDisposedEnumerator[T]() -> IInvalidatableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __disposedEnumerator
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:

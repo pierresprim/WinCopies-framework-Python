@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
 from WinCopies.Typing import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, InvalidOperationError, GetDiscardedError
@@ -49,7 +49,7 @@ class IResumableEnumerator[T](IEnumerator[T]):
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         ...
 
-    def ToDisposable(self) -> IDisposableResumableEnumerator[T]: return _DisposableEnumerator[T](self)
+    def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return _InvalidatableEnumerator[T](self)
 class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TItem]):
     @final
     class _Cookie[_TItem, _TCursorValue](Abstract, ICookie[_TCursorValue]):
@@ -154,7 +154,7 @@ class AbstractResumableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Abstr
 class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumableEnumerator[T]], IGenericConstraintImplementation[IResumableEnumerator[T]]):
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
 
-class IDisposableResumableEnumerator[T](IResumableEnumerator[T], IDisposableEnumerator[T]):
+class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
 
 @final
@@ -219,7 +219,7 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetDiscardedError()
 
 @final
-class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IResumableEnumerator[T]], IDisposableResumableEnumerator[T], IGenericConstraintImplementation[IResumableEnumerator[T]]):
+class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IResumableEnumerator[T]], IInvalidatableResumableEnumerator[T], IGenericConstraintImplementation[IResumableEnumerator[T]]):
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
     
     def _GetDisposedEnumerator(self) -> IResumableEnumerator[T]:
@@ -234,7 +234,7 @@ class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IResumableEnumerator[
     
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
-    def ToDisposable(self) -> IDisposableResumableEnumerator[T]: return self
+    def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return self
 
 class ICursorCookie[T](ICookie[T], IRemovable):
     def __init__(self) -> None: super().__init__()
@@ -347,5 +347,5 @@ def CreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IEnumerato
 def TryCreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IResumableEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> IResumableEnumerable[T]|None:
     return None if enumeratorProvider is None else CreateResumableEnumeratorProvider(enumeratorProvider, resumableEnumeratorProvider)
 
-def ToDisposableResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IDisposableResumableEnumerator[T]:
-    return enumerator if isinstance(enumerator, IDisposableResumableEnumerator) else _DisposableEnumerator[T](enumerator)
+def ToInvalidatableResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IInvalidatableResumableEnumerator[T]:
+    return enumerator if isinstance(enumerator, IInvalidatableResumableEnumerator) else _InvalidatableEnumerator[T](enumerator)

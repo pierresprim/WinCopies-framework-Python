@@ -4,8 +4,8 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration import IDisposableEnumeratorBase, IEnumerator, IDisposableEnumerator, IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IDisposableResumableEnumerator
+from WinCopies.Collections.Enumeration import IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation.Factory import IObjectFactory
@@ -47,12 +47,12 @@ class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[
 class ResumableTupleEnumerator[T](ResumableTupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
-class IEnumeratorFactory(IObjectFactory[IDisposableEnumeratorBase], IEnumeratorMonitor):
+class IEnumeratorFactory(IObjectFactory[IInvalidatableEnumeratorBase], IEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def RegisterEnumerator[T](self, enumerator: IEnumerator[T]) -> IDisposableEnumerator[T]:
-        self.RegisterObject((enumerator := enumerator.ToDisposable()))
+    def RegisterEnumerator[T](self, enumerator: IEnumerator[T]) -> IInvalidatableEnumerator[T]:
+        self.RegisterObject((enumerator := enumerator.ToInvalidatable()))
         
         return enumerator
     
@@ -63,8 +63,8 @@ class IResumableEnumeratorFactory(IEnumeratorFactory, IResumableEnumeratorMonito
     def __init__(self) -> None: super().__init__()
 
     @final
-    def RegisterResumableEnumerator[T](self, enumerator: IResumableEnumerator[T]) -> IDisposableResumableEnumerator[T]:
-        self.RegisterObject((enumerator := enumerator.ToDisposable()))
+    def RegisterResumableEnumerator[T](self, enumerator: IResumableEnumerator[T]) -> IInvalidatableResumableEnumerator[T]:
+        self.RegisterObject((enumerator := enumerator.ToInvalidatable()))
         
         return enumerator
     
@@ -124,11 +124,11 @@ class EnumeratorFactoryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorFactory)
         
         super().__init__()
 
-        self.__factory: IObjectFactory[IDisposableEnumeratorBase] = InvalidatableObjectFactory[IDisposableEnumeratorBase]()
+        self.__factory: IObjectFactory[IInvalidatableEnumeratorBase] = InvalidatableObjectFactory[IInvalidatableEnumeratorBase]()
         self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
 
     @final
-    def _GetFactory(self) -> IObjectFactory[IDisposableEnumeratorBase]:
+    def _GetFactory(self) -> IObjectFactory[IInvalidatableEnumeratorBase]:
         return self.__factory
     
     @abstractmethod
@@ -136,13 +136,13 @@ class EnumeratorFactoryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorFactory)
         ...
 
     @final
-    def RegisterObject(self, item: IDisposableEnumeratorBase) -> None: self._GetFactory().RegisterObject(item)
+    def RegisterObject(self, item: IInvalidatableEnumeratorBase) -> None: self._GetFactory().RegisterObject(item)
 
     @final
     def InvalidateObjects(self) -> None: self._GetFactory().InvalidateObjects()
     
     @final
-    def CreateEnumerator[U](self, items: ITuple[U]) -> IDisposableEnumerator[U]:
+    def CreateEnumerator[U](self, items: ITuple[U]) -> IInvalidatableEnumerator[U]:
         return self.RegisterEnumerator(TupleEnumerator[U](items))
     
     @final
@@ -167,7 +167,7 @@ class ResumableEnumeratorFactory(EnumeratorFactoryBase[IResumableEnumeratorMonit
         return _ResumableEnumeratorMonitorUpdater(self, updater)
     
     @final
-    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IDisposableResumableEnumerator[U]:
+    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IInvalidatableResumableEnumerator[U]:
         return self.RegisterResumableEnumerator(ResumableTupleEnumerator[U](items))
     
     @final
