@@ -16,7 +16,7 @@ from WinCopies.Collections.Linked.Singly import IQueue, Queue
 from WinCopies.Delegates import BoolFalse
 from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
-from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue, GetDiscardedError
 from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
@@ -168,14 +168,14 @@ class _DictionaryBuffer(_DictionaryBufferBase):
 class _NullArrayBuffer(_ArrayBufferBase):
     def __init__(self) -> None: super().__init__()
     
-    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None: raise GetDisposedError()
+    def Initialize(self, items: ITuple[DualResult[object, ValueType]]) -> None: raise GetDiscardedError()
     
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return None
 @final
 class _NullDictionaryBuffer(_DictionaryBufferBase):
     def __init__(self) -> None: super().__init__()
     
-    def Initialize(self, items: IReadOnlyDictionary[str, DualResult[object, ValueType]]) -> None: raise GetDisposedError()
+    def Initialize(self, items: IReadOnlyDictionary[str, DualResult[object, ValueType]]) -> None: raise GetDiscardedError()
     
     def TryGetValues(self) -> ITuple[DualResult[object, ValueType]]|None: return None
     

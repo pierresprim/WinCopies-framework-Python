@@ -92,14 +92,6 @@ class BrokenObjectError(UnusableError):
 def GetGenericError() -> InvalidOperationError:
     return InvalidOperationError("Could not perform the requested action.")
 
-def __GetDisposedError(msg: str) -> InvalidOperationError:
-    return InvalidOperationError(f"The current object has been {msg}.")
-
-def GetInvalidatedError() -> InvalidOperationError:
-    return __GetDisposedError("invalidated")
-def GetDisposedError() -> InvalidOperationError:
-    return __GetDisposedError("disposed")
-
 def TryGetDiscardedError(discardReason: DiscardReason = DiscardReason.Disposed) -> DiscardedError|None:
     match discardReason:
         case DiscardReason.Disposed: return DisposedError()
@@ -123,7 +115,7 @@ class IDisposable(IDisposableBase):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def _Throw(self) -> None: raise GetDisposedError()
+    def _Throw(self) -> None: raise GetDiscardedError()
 
 class IDiscardableInfo(IDisposableBase):
     def __init__(self) -> None: super().__init__()
@@ -325,7 +317,7 @@ class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
 class _DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     def __init__(self) -> None: super().__init__()
     
-    def GetItem(self) -> T: raise GetDisposedError()
+    def GetItem(self) -> T: raise GetDiscardedError()
 
     def IsDisposed(self) -> bool: return True
 
@@ -358,7 +350,7 @@ class IDisposableProvider[T: IDisposableInfo](IDisposableInfo):
     
     @final
     def GetItem(self) -> T:
-        if self.IsDisposed(): raise GetDisposedError()
+        if self.IsDisposed(): raise GetDiscardedError()
         
         return self._GetItem()
     @final

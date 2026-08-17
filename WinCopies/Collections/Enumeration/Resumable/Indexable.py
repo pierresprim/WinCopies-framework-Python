@@ -8,7 +8,7 @@ from WinCopies.Collections.Enumeration import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectFactory, SortedDisposableObjectFactory
-from WinCopies.Typing import GetDisposedError
+from WinCopies.Typing import GetDiscardedError
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
@@ -65,14 +65,14 @@ class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnum
     def Resume(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None: raise GetDisposedError()
+        if cookie is None: raise GetDiscardedError()
 
         cookie.SetCursor(self.__index)
     
     def MoveToTop(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None: raise GetDisposedError()
+        if cookie is None: raise GetDiscardedError()
         
         cookie.MoveToTop()
     

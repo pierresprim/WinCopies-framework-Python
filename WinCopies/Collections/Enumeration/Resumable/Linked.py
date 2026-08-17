@@ -11,7 +11,7 @@ from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFacto
 from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObjectFactory
 from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
-from WinCopies.Typing import GetDisposedError
+from WinCopies.Typing import GetDiscardedError
 from WinCopies.Typing.Comparison import IHashableValue
 
 type ICookie = ICookieBase[ILinkedNode]
@@ -35,7 +35,7 @@ class IResumableNodeEnumerationCursor(IResumableEnumerationCursor):
     def GetNode(self) -> ILinkedNode:
         node: ILinkedNode|None = self.TryGetNode()
 
-        if node is None: raise GetDisposedError()
+        if node is None: raise GetDiscardedError()
         
         return node
 
@@ -69,14 +69,14 @@ class _ResumableNodeEnumerationCursor(Abstract, IResumableNodeEnumerationCursor)
     def Resume(self) -> None:
         cookie: _ICookie|None = self.__cookie
 
-        if cookie is None: raise GetDisposedError()
+        if cookie is None: raise GetDiscardedError()
         
         cookie.SetCursor(self.GetNode())
     
     def MoveToTop(self) -> None:
         cookie: _ICookie|None = self.__cookie
         
-        if cookie is None: raise GetDisposedError()
+        if cookie is None: raise GetDiscardedError()
         
         cookie.MoveToTop()
     

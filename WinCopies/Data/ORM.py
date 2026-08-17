@@ -30,7 +30,7 @@ from WinCopies.Collections.Util import MakeSequence
 
 from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
-from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError, GetDisposedError
+from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError, GetDiscardedError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, IType, Reference, DefaultReference, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
@@ -70,7 +70,7 @@ class DeletedEntityError(Error):
 #   Return channel (True / False / None): outcome of an operation that could run.
 #     True  = done ; False = nothing moved (legitimate no-op) ; None = empty input only.
 #   Exception channel (raise): any failure (misuse guard, operational, commit) or
-#     non-live object (disposed -> GetDisposedError ; doomed / not-active -> InvalidOperationError).
+#     non-live object (disposed -> GetDiscardedError ; doomed / not-active -> InvalidOperationError).
 #   Invariant: one fact, one channel — identical response via Entity.* and ITransaction.*.
 
 @final
@@ -2369,16 +2369,16 @@ class _Transaction(Abstract, ITransaction):
         
         def IsActive(self) -> bool: return False
         
-        def Begin(self) -> bool: raise GetDisposedError()
+        def Begin(self) -> bool: raise GetDiscardedError()
         
-        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
-        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: raise GetDisposedError()
+        def TryAdd(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDiscardedError()
+        def TryAddRange(self, items: Iterable[Entity]) -> bool|tuple[BaseException, _ITransaction]|None: raise GetDiscardedError()
         
-        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+        def TryUpdate(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDiscardedError()
         
-        def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+        def Delete(self, item: Entity) -> bool|tuple[BaseException, _ITransaction]: raise GetDiscardedError()
         
-        def Commit(self) -> bool|tuple[BaseException, _ITransaction]: raise GetDisposedError()
+        def Commit(self) -> bool|tuple[BaseException, _ITransaction]: raise GetDiscardedError()
         def Rollback(self) -> bool: return False
         
         def Dispose(self) -> tuple[_ITransaction, BaseException|None]: return (self, None)

@@ -9,7 +9,7 @@ from WinCopies.Typing import (
     IDisposable, IDisposableInfo, DisposableProvider,
     Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
-    GetGenericError, GetDisposedError,
+    GetGenericError, GetDiscardedError,
     TryGetValue, HasValue,
     TryGetValueAs, TryGetAs)
 
@@ -76,11 +76,11 @@ class TestError(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# GetGenericError / GetDisposedError
+# GetGenericError / GetDiscardedError
 # ---------------------------------------------------------------------------
 
 class TestErrorFactories(unittest.TestCase):
-    """Tests for GetGenericError and GetDisposedError."""
+    """Tests for GetGenericError and GetDiscardedError."""
 
     def test_get_generic_error_returns_invalid_operation_error(self) -> None:
         """GetGenericError returns an InvalidOperationError."""
@@ -93,14 +93,14 @@ class TestErrorFactories(unittest.TestCase):
         self.assertGreater(len(GetGenericError().GetMessage()), 0)
 
     def test_get_disposed_error_returns_invalid_operation_error(self) -> None:
-        """GetDisposedError returns an InvalidOperationError."""
+        """GetDiscardedError returns an InvalidOperationError."""
 
-        self.assertIsInstance(GetDisposedError(), InvalidOperationError)
+        self.assertIsInstance(GetDiscardedError(), InvalidOperationError)
 
     def test_get_disposed_error_has_non_empty_message(self) -> None:
-        """GetDisposedError returns an error with a non-empty message."""
+        """GetDiscardedError returns an error with a non-empty message."""
 
-        self.assertGreater(len(GetDisposedError().GetMessage()), 0)
+        self.assertGreater(len(GetDiscardedError().GetMessage()), 0)
 
 
 # ---------------------------------------------------------------------------

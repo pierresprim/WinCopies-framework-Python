@@ -9,7 +9,7 @@ from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Typing import InvalidOperationError, GetDisposedError
+from WinCopies.Typing import InvalidOperationError, GetDiscardedError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -213,10 +213,10 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
     def GetCurrent(self) -> T: return self.__enumerator.GetCurrent()
     def AsIterator(self) -> Iterator[T]: return self.__enumerator.AsIterator()
     def SupportsMultipleCursors(self) -> bool: return False
-    def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetDisposedError()
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetDisposedError()
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: raise GetDisposedError()
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetDisposedError()
+    def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetDiscardedError()
+    def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetDiscardedError()
+    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: raise GetDiscardedError()
+    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetDiscardedError()
 
 @final
 class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IResumableEnumerator[T]], IDisposableResumableEnumerator[T], IGenericConstraintImplementation[IResumableEnumerator[T]]):

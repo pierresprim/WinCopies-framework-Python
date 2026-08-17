@@ -19,7 +19,7 @@ from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandle
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing import INullable, InvalidOperationError, GetDisposedError
+from WinCopies.Typing import INullable, InvalidOperationError, GetDiscardedError
 from WinCopies.Typing.Comparison import IEquatableItem, INotHashableItem
 from WinCopies.Typing.Delegate import Method, Function, NullableConverter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
@@ -336,25 +336,25 @@ class _NullTable(Abstract, ITable):
     
     def Equals(self, item: ITable|object) -> bool: return item is self or isinstance(item, ITable)
     
-    def GetName(self) -> str: raise GetDisposedError()
-    def SetName(self, name: str) -> None: raise GetDisposedError()
+    def GetName(self) -> str: raise GetDiscardedError()
+    def SetName(self, name: str) -> None: raise GetDiscardedError()
 
-    def GetQueryFactory(self) -> ITableQueryFactory: raise GetDisposedError()
+    def GetQueryFactory(self) -> ITableQueryFactory: raise GetDiscardedError()
     
-    def GetFields(self) -> IArray[IField]: raise GetDisposedError()
+    def GetFields(self) -> IArray[IField]: raise GetDiscardedError()
 
-    def GetIndices(self) -> IArray[IIndex]: raise GetDisposedError()
+    def GetIndices(self) -> IArray[IIndex]: raise GetDiscardedError()
     
-    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[str, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDisposedError()
+    def SelectByKeys(self, columns: IColumnParameterSet[IFormattable], keys: IReadOnlyKeyedSet[str, object]) -> Generator[ISelectionQueryExecutionResult]|None: raise GetDiscardedError()
 
-    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
-    def InsertMany(self, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+    def Insert(self, items: IDictionary[str, object], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDiscardedError()
+    def InsertMany(self, columns: ICountableEnumerable[str], items: Iterable[Iterable[object]], ignoreExisting: bool = False) -> IInsertionQueryExecutionResult: raise GetDiscardedError()
 
-    def Update(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDisposedError()
+    def Update(self, values: IDictionary[str, object], conditions: IConditionParameterSet | None) -> IInsertionQueryExecutionResult: raise GetDiscardedError()
 
-    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult: raise GetDisposedError()
+    def Delete(self, conditions: IConditionParameterSet) -> IQueryExecutionResult: raise GetDiscardedError()
     
-    def Remove(self) -> None: raise GetDisposedError()
+    def Remove(self) -> None: raise GetDiscardedError()
     def TryRemove(self) -> bool: return False
     
     def Dispose(self) -> None: pass

@@ -15,7 +15,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDisposedError
+from WinCopies.Typing import INullable, IDisposable, InvalidOperationError, GetNullable, GetNullValue, GetDiscardedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
@@ -760,14 +760,14 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     
     def IsResetSupported(self) -> bool: return False
     
-    def HasProcessedItems(self) -> bool: raise GetDisposedError()
+    def HasProcessedItems(self) -> bool: raise GetDiscardedError()
     
-    def GetCurrent(self) -> T: raise GetDisposedError()
+    def GetCurrent(self) -> T: raise GetDiscardedError()
     
-    def GetState(self) -> EnumerationState: raise GetDisposedError()
-    def GetResult(self) -> EnumerationResult: raise GetDisposedError()
+    def GetState(self) -> EnumerationState: raise GetDiscardedError()
+    def GetResult(self) -> EnumerationResult: raise GetDiscardedError()
     
-    def MoveNext(self) -> bool: raise GetDisposedError()
+    def MoveNext(self) -> bool: raise GetDiscardedError()
     
     def TryReset(self) -> None: return None
     
@@ -775,7 +775,7 @@ class _DisposedEnumerator[T](Abstract, IDisposableEnumerator[T]):
     
     def Dispose(self) -> None: pass
 
-    def AsIterator(self) -> SystemIterator[T]: raise GetDisposedError()
+    def AsIterator(self) -> SystemIterator[T]: raise GetDiscardedError()
 
 class DisposableEnumeratorAbstract[T](IteratorBase[T], IDisposableEnumerator[T]):
     def __init__(self) -> None: super().__init__()

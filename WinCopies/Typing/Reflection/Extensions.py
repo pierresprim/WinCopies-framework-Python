@@ -16,7 +16,7 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDisposedError
+from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
@@ -228,10 +228,10 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
         
         def IsDisposed(self) -> bool: return True
 
-        def GetFrame(self) -> FrameType: raise GetDisposedError()
-        def GetFileName(self) -> str: raise GetDisposedError()
-        def GetFunction(self) -> str: raise GetDisposedError()
-        def GetLineNumber(self) -> int: raise GetDisposedError()
+        def GetFrame(self) -> FrameType: raise GetDiscardedError()
+        def GetFileName(self) -> str: raise GetDiscardedError()
+        def GetFunction(self) -> str: raise GetDiscardedError()
+        def GetLineNumber(self) -> int: raise GetDiscardedError()
         
         def Dispose(self) -> __Traceback._IHandle: return self
     @final
@@ -347,7 +347,7 @@ class __DisposableFrameInspector(Abstract, IDisposableInfo):
     def IsDisposed(self) -> bool: return self.__frameInspector is None
     
     def GetFrameInspector(self) -> IFrameInspector:
-        if self.__frameInspector is None or self.IsDisposed(): raise GetDisposedError()
+        if self.__frameInspector is None or self.IsDisposed(): raise GetDiscardedError()
         
         return self.__frameInspector
     

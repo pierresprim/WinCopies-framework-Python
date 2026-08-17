@@ -21,7 +21,7 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import IDisposableInfo, INullable, GetDisposedError
+from WinCopies.Typing import IDisposableInfo, INullable, GetDiscardedError
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
@@ -54,14 +54,14 @@ class _Connection(Abstract, IDisposableInfo):
     def GetConnection(self) -> IConnection:
         connection: IConnection|None = self.__connection
 
-        if connection is None: raise GetDisposedError()
+        if connection is None: raise GetDiscardedError()
         
         return connection
     
     def GetInnerConnection(self) -> sqlite3.Connection:
         innerConnection: sqlite3.Connection|None = self.__innerConnection
 
-        if innerConnection is None: raise GetDisposedError()
+        if innerConnection is None: raise GetDiscardedError()
         
         return innerConnection
     
@@ -85,7 +85,7 @@ class _Table(Table):
         def __GetConnection(self) -> _Connection:
             connection: _Connection|None = self.__connection
 
-            if connection is None: raise GetDisposedError()
+            if connection is None: raise GetDiscardedError()
             
             return connection
         
@@ -486,7 +486,7 @@ class _Struct(Abstract, IDisposableInfo):
     def _GetConnection(self) -> _Connection:
         connection: _Connection|None = self.__GetValue()
 
-        if connection is None: raise GetDisposedError()
+        if connection is None: raise GetDiscardedError()
         
         return connection
     def GetConnection(self) -> IFunction[_Connection]:
@@ -552,7 +552,7 @@ class _TransactionCookie(TransactionCookie):
     def CreateTransactionControl(self) -> ITransactionControl:
         connection: Function[sqlite3.Connection]|None = self.__connection
 
-        if connection is None: raise GetDisposedError()
+        if connection is None: raise GetDiscardedError()
 
         return _TransactionCookie._TransactionControl(connection(), self)
     
