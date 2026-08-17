@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    IDisposable, IDisposableInfoBase, DisposableProvider,
+    IDisposable, IDisposableInfo, DisposableProvider,
     Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
     GetGenericError, GetDiscardedError,
@@ -22,7 +22,7 @@ class _ConcreteDisposable(IDisposable):
 
     def Dispose(self) -> None: pass
 
-class _ConcreteDisposableInfo(IDisposableInfoBase):
+class _ConcreteDisposableInfo(IDisposableInfo):
     def __init__(self) -> None:
         super().__init__()
 

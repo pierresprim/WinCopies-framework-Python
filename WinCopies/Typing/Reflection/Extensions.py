@@ -16,7 +16,7 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import INullable, IDisposableInfoBase, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
+from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
@@ -179,7 +179,7 @@ class IFrameInspector(IInterface):
     @abstractmethod
     def TryIsBuiltin(self) -> INullable[bool]|None:
         ...
-class IDisposableFrameInspector(IFrameInspector, IDisposableInfoBase):
+class IDisposableFrameInspector(IFrameInspector, IDisposableInfo):
     def __init__(self) -> None: super().__init__()
 
 class _IFrameInfo(IInterface):
@@ -210,7 +210,7 @@ class __FrameInfo(Abstract, _IFrameInfo):
     def GetFunction(self) -> str: return self.__frameInfo.function
     def GetLineNumber(self) -> int: return self.__frameInfo.lineno
 @final
-class __Traceback(Abstract, _IFrameInfo, IDisposableInfoBase):
+class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
     class _IHandle(_IFrameInfo):
         def __init__(self) -> None: super().__init__()
         
@@ -337,7 +337,7 @@ def CreateFrameInspectorFromFrame(frame: FrameType) -> IFrameInspector:
     return __FrameInspector(__Traceback(frame, getframeinfo(frame)))
 
 @final
-class __DisposableFrameInspector(Abstract, IDisposableInfoBase):
+class __DisposableFrameInspector(Abstract, IDisposableInfo):
     def __init__(self, frame: FrameType) -> None:
         super().__init__()
 
