@@ -117,7 +117,7 @@ class IDisposable(IDisposableBase):
     @final
     def _Throw(self) -> None: raise GetDiscardedError()
 
-class _IDisposable(IInterface):
+class _IDiscardable(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -133,7 +133,7 @@ class _IDisposableInfoBase(IInterface):
 class IDisposableInfo(_IDisposableInfoBase, IDisposable):
     def __init__(self) -> None: super().__init__()
 
-class IDiscardableInfoBase(_IDisposableInfoBase, _IDisposable, IDisposableAbstract):
+class IDiscardableInfoBase(_IDisposableInfoBase, _IDiscardable, IDisposableAbstract):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -141,7 +141,7 @@ class IDiscardableInfoBase(_IDisposableInfoBase, _IDisposable, IDisposableAbstra
 class IDiscardableInfo(IDiscardableInfoBase, IDisposableBase):
     def __init__(self) -> None: super().__init__()
 
-class IRevocableInfo(IDiscardableInfo, IDisposableInfo):
+class IDiscardableItem(IDiscardableInfo, IDisposableInfo):
     def __init__(self) -> None: super().__init__()
 
 class IInvalidatable(IDisposableBase):
@@ -159,17 +159,17 @@ class IInvalidatable(IDisposableBase):
 class IInvalidatableInfo(IInvalidatable, IDiscardableInfo):
     def __init__(self) -> None: super().__init__()
 
-class _IDisposableInfo(_IDisposable):
+class _IDisposableCookie(_IDiscardable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def Dispose(self, reason: DiscardReason) -> None:
         ...
-class DisposableBase(Abstract, IRevocableInfo):
+class DisposableBase(Abstract, IDiscardableItem):
     @final
-    class _DisposableCookie(Abstract, _IDisposableInfo):
+    class _DisposableCookie(Abstract, _IDisposableCookie):
         @final
-        class _DisposedCookie(Abstract, _IDisposableInfo):
+        class _DisposedCookie(Abstract, _IDisposableCookie):
             def __init__(self, reason: DiscardReason) -> None:
                 super().__init__()
 
@@ -179,11 +179,11 @@ class DisposableBase(Abstract, IRevocableInfo):
 
             def Dispose(self, reason: DiscardReason) -> None: pass
         
-        def __init__(self, obj: DisposableBase, updater: Method[_IDisposableInfo]) -> None:
+        def __init__(self, obj: DisposableBase, updater: Method[_IDisposableCookie]) -> None:
             super().__init__()
 
             self.__obj: DisposableBase = obj
-            self.__updater: Method[_IDisposableInfo] = updater
+            self.__updater: Method[_IDisposableCookie] = updater
 
         def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Null
 
@@ -202,11 +202,11 @@ class DisposableBase(Abstract, IRevocableInfo):
             obj._Finalize()
     
     def __init__(self) -> None:
-        def update(cookie: _IDisposableInfo) -> None: self.__disposableCookie = cookie
+        def update(cookie: _IDisposableCookie) -> None: self.__disposableCookie = cookie
 
         super().__init__()
 
-        self.__disposableCookie: _IDisposableInfo = DisposableBase._DisposableCookie(self, update) # type: ignore[no-redef]
+        self.__disposableCookie: _IDisposableCookie = DisposableBase._DisposableCookie(self, update) # type: ignore[no-redef]
 
     def _OnDisposing(self, reason: DiscardReason) -> None:
         pass

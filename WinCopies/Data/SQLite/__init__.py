@@ -21,7 +21,7 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import DiscardReason, IRevocableInfo, INullable, Disposable, GetDiscardedError
+from WinCopies.Typing import DiscardReason, IDiscardableItem, INullable, Disposable, GetDiscardedError
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
@@ -567,7 +567,7 @@ class _TransactionCookie(TransactionCookie):
         super().Dispose()
 
 @final
-class Connection(ConnectionBase, IRevocableInfo):
+class Connection(ConnectionBase, IDiscardableItem):
     def __init__(self, path: str) -> None:
         super().__init__()
 
