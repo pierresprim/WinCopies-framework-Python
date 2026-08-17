@@ -16,8 +16,9 @@ from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectFac
 
 from WinCopies.Delegates import ConcatenateMethods
 
-from WinCopies.Typing import DiscardReason, IInvalidatable, InvalidatableObjectProvider, INullable
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider
 
 class IRevocableViewFactory(IRevocableViewMonitor, IObjectMonitor):
     def __init__(self) -> None: super().__init__()

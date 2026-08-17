@@ -13,8 +13,9 @@ from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerab
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Linked.Singly import Stack
 
-from WinCopies.Typing import INullable, IDisposable
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import IDisposable
 from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 
 class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisposable):

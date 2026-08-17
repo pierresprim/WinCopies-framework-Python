@@ -14,9 +14,9 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, CollectionViewMonitorBase, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollection, HashableTupleCollection, ArrayList
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Typing import DiscardReason
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method
+from WinCopies.Typing.Discard import DiscardReason
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class CollectionAbstractionViewMonitorBase[TIn, TOut](CollectionViewMonitorBase[TOut]):

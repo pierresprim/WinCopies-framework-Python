@@ -30,8 +30,9 @@ from WinCopies.Collections.Util import MakeSequence
 
 from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
-from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError, GetDiscardedError
+from WinCopies.Typing import IDisposable, IMonitor, Monitor, Error, InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
+from WinCopies.Typing.Discard import GetDiscardedError
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, IType, Reference, DefaultReference, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
 from WinCopies.Typing.Reflection import GetterBase, SetterBase, Property, IFunctionProvider, IGetterProvider, IPropertyProvider, IReadOnlyPropertyBase, IReadOnlyProperty, IProperty, ReadOnlyPropertyDecoratorBase, PropertyDecorator, GetTypeName

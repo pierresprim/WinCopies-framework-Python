@@ -9,8 +9,9 @@ from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Typing import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, InvalidOperationError, GetDiscardedError
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, GetDiscardedError
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ICookie[T](IInterface):

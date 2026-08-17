@@ -16,8 +16,9 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
+from WinCopies.Typing import INullable, GetNullable, GetNullValue, TryGetValue
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import IDisposableInfo, IDisposableProvider, DisposableProvider, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
 from WinCopies.Typing.Reflection import GetModuleName, TryGetModuleNameFromFrame, TryGetPackageNameFromFrame, TryFindModuleFromFileName, TryGetModuleFromFrame, IsSubmoduleFromNames, TryIsModuleInPackageFromFrame, TryIsMain, TryIsBuiltin

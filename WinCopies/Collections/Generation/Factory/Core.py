@@ -12,8 +12,9 @@ from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, IReadWriteLinkedNode
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing import IInvalidatable, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import IWeakReferenceRegister, IWeakReference, CreateWeakReferenceRegister
 

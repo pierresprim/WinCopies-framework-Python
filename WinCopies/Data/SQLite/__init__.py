@@ -21,8 +21,9 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import DiscardReason, IDiscardableItem, INullable, Disposable, GetDiscardedError
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
+from WinCopies.Typing.Discard import DiscardReason, IDiscardableItem, Disposable, GetDiscardedError
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
 

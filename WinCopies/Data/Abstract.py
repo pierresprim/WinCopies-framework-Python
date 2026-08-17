@@ -19,8 +19,9 @@ from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandle
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing import INullable, InvalidOperationError, GetDiscardedError
+from WinCopies.Typing import INullable, InvalidOperationError
 from WinCopies.Typing.Comparison import IEquatableItem, INotHashableItem
+from WinCopies.Typing.Discard import GetDiscardedError
 from WinCopies.Typing.Delegate import Method, Function, NullableConverter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall

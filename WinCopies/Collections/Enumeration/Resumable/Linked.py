@@ -11,8 +11,8 @@ from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFacto
 from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObjectFactory
 from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
-from WinCopies.Typing import GetDiscardedError
 from WinCopies.Typing.Comparison import IHashableValue
+from WinCopies.Typing.Discard import GetDiscardedError
 
 type ICookie = ICookieBase[ILinkedNode]
 

@@ -6,12 +6,12 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    IDisposable, IDisposableInfo, DisposableProvider,
     Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
-    GetGenericError, GetDiscardedError,
+    GetGenericError, 
     TryGetValue, HasValue,
     TryGetValueAs, TryGetAs)
+from WinCopies.Typing.Discard import IDisposable, IDisposableInfo, DisposableProvider, GetDiscardedError
 
 # ---------------------------------------------------------------------------
 # Concrete helpers

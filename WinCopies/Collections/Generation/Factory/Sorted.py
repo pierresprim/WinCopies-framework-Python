@@ -10,8 +10,9 @@ from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryGetAt
-from WinCopies.Typing import IInvalidatable, INullable, GetNullableValue
+from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem, CompareTo
+from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Protocols import SupportsRichComparison
 
 class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):

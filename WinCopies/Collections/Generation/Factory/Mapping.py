@@ -10,8 +10,9 @@ from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory
-from WinCopies.Typing import IInvalidatable, INullable, GetNullableValue
+from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import HashableProtocol
+from WinCopies.Typing.Discard import IInvalidatable
 
 @final
 class _KeyedNode[TKey: HashableProtocol, TValue: IInvalidatable](Abstract, IRemovable):
