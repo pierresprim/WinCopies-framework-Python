@@ -5,8 +5,8 @@ from typing import final, cast
 
 from WinCopies import Abstract
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator
-from WinCopies.Collections.Generation import IRemovable, INode
+from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator, NullableResumableEnumerationCursor
+from WinCopies.Collections.Generation import INode
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactory
 from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObjectFactory
 from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
@@ -15,14 +15,6 @@ from WinCopies.Typing import GetDiscardedError
 from WinCopies.Typing.Comparison import IHashableValue
 
 type ICookie = ICookieBase[ILinkedNode]
-
-class _ICookie(ICookieBase[ILinkedNode], IRemovable):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def MoveToTop(self) -> None:
-        ...
 
 class IResumableNodeEnumerationCursor(IResumableEnumerationCursor):
     def __init__(self) -> None:
@@ -40,54 +32,12 @@ class IResumableNodeEnumerationCursor(IResumableEnumerationCursor):
         return node
 
 @final
-class _ResumableNodeEnumerationCursor(Abstract, IResumableNodeEnumerationCursor):
-    @final
-    class _Cookie(Abstract, _ICookie):
-        def __init__(self, node: INode, cookie: ICookie) -> None:
-            super().__init__()
+class _ResumableNodeEnumerationCursor(NullableResumableEnumerationCursor[ILinkedNode], IResumableNodeEnumerationCursor):
+    def __init__(self, node: ILinkedNode) -> None: super().__init__(node)
 
-            self.__node: INode = node
-            self.__cookie: ICookie = cookie
-        
-        def SetCursor(self, value: ILinkedNode) -> None: return self.__cookie.SetCursor(value)
-        
-        def MoveToTop(self) -> None: self.__node.TryMoveToBottom()
-        
-        def Remove(self) -> None: self.__node.Remove()
+    def _GetCursorValue(self) -> ILinkedNode: return self.GetNode()
     
-    def __init__(self, node: ILinkedNode) -> None:
-        super().__init__()
-
-        self.__node: ILinkedNode|None = node
-        self.__cookie: _ICookie|None = None
-    
-    def _InitializeCookie(self, node: INode, cookie: ICookie) -> None:
-        self.__cookie = _ResumableNodeEnumerationCursor._Cookie(node, cookie)
-    
-    def TryGetNode(self) -> ILinkedNode|None: return self.__node
-    
-    def Resume(self) -> None:
-        cookie: _ICookie|None = self.__cookie
-
-        if cookie is None: raise GetDiscardedError()
-        
-        cookie.SetCursor(self.GetNode())
-    
-    def MoveToTop(self) -> None:
-        cookie: _ICookie|None = self.__cookie
-        
-        if cookie is None: raise GetDiscardedError()
-        
-        cookie.MoveToTop()
-    
-    def Dispose(self) -> None:
-        cookie: _ICookie|None = self.__cookie
-    
-        if cookie is not None:
-            cookie.Remove()
-
-            self.__cookie = None
-            self.__node = None
+    def TryGetNode(self) -> ILinkedNode|None: return self._GetCursorItem()
 
 @final
 class _NodeKey(Abstract, IHashableValue):

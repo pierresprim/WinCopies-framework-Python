@@ -3,23 +3,14 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Callable, final
 
-from WinCopies import Abstract
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator
-from WinCopies.Collections.Generation import IRemovable, INode
+from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator, ResumableEnumerationCursor
+from WinCopies.Collections.Generation import INode
 from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectFactory, SortedDisposableObjectFactory
-from WinCopies.Typing import GetDiscardedError
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
 type ICookie = ICookieBase[int]
-
-class _ICookie(ICookieBase[int], IRemovable):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def MoveToTop(self) -> None:
-        ...
 
 class IResumableIncrementalEnumerationCursor(IHashableComparableItem[int], IResumableEnumerationCursor):
     def __init__(self) -> None: super().__init__()
@@ -32,63 +23,21 @@ class IResumableIncrementalEnumerationCursor(IHashableComparableItem[int], IResu
         ...
 
 @final
-class _ResumableIncrementalEnumerationCursor(Abstract, IResumableIncrementalEnumerationCursor):
-    @final
-    class _Cookie(Abstract, _ICookie):
-        def __init__(self, node: INode, cookie: ICookie) -> None:
-            super().__init__()
-            
-            self.__node: INode = node
-            self.__cookie: ICookie = cookie
-        
-        def SetCursor(self, value: int) -> None: return self.__cookie.SetCursor(value)
-        
-        def MoveToTop(self) -> None: self.__node.TryMoveToBottom()
-        
-        def Remove(self) -> None: self.__node.Remove()
-    
-    def __init__(self, index: int) -> None:
-        super().__init__()
-
-        self.__index: int = index
-        self.__cookie: _ICookie|None = None
-    
-    def _InitializeCookie(self, node: INode, cookie: ICookie) -> None:
-        self.__cookie = _ResumableIncrementalEnumerationCursor._Cookie(node, cookie)
+class _ResumableIncrementalEnumerationCursor(ResumableEnumerationCursor[int], IResumableIncrementalEnumerationCursor):
+    def __init__(self, index: int) -> None: super().__init__(index)
     
     def __Compare[T](self, item: IResumableIncrementalEnumerationCursor|int|object, func: Callable[[int, int|object], T]) -> T:
         return func(self.GetIndex(), item.GetIndex() if isinstance(item, IResumableIncrementalEnumerationCursor) else item)
     
     def GetIndex(self) -> int:
-        return self.__index
-    
-    def Resume(self) -> None:
-        cookie: _ICookie|None = self.__cookie
-
-        if cookie is None: raise GetDiscardedError()
-
-        cookie.SetCursor(self.__index)
-    
-    def MoveToTop(self) -> None:
-        cookie: _ICookie|None = self.__cookie
-
-        if cookie is None: raise GetDiscardedError()
-        
-        cookie.MoveToTop()
+        return self._GetCursorValue()
     
     def Equals(self, item: IResumableIncrementalEnumerationCursor|int|object) -> bool: return self.__Compare(item, UnderlyingValueEquals)
     def Hash(self) -> int: return hash(self.GetIndex())
     
     def _CompareTo(self, item: int|object) -> bool|None: return self.__Compare(item, CompareUnderlyingValue)
-    
-    def Dispose(self) -> None:
-        cookie: _ICookie|None = self.__cookie
 
-        if cookie is not None:
-            cookie.Remove()
-
-            self.__cookie = None
-            self.__index = -1
+    def _GetDefaultCursorValue(self) -> int: return -1
 
 class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](ISortedObjectFactory[int, T], IDefaultResumableEnumerationCursorFactory[T]):
     def __init__(self) -> None: super().__init__()

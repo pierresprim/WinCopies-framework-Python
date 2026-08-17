@@ -4,12 +4,12 @@ from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import final, Any
 
-from WinCopies import IInterface, IDisposable, Abstract
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IDisposableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, DisposableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
-from WinCopies.Collections.Generation import IResumable, INode
+from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Factory import IObjectFactory
-from WinCopies.Typing import InvalidOperationError, GetDiscardedError
+from WinCopies.Typing import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, InvalidOperationError, GetDiscardedError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -20,7 +20,7 @@ class ICookie[T](IInterface):
     def SetCursor(self, value: T) -> None:
         ...
 
-class IResumableEnumerationCursor(IResumable, IDisposable):
+class IResumableEnumerationCursor(IResumable, IInvalidatable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -235,6 +235,96 @@ class _DisposableEnumerator[T](DisposableEnumeratorBase[T, IResumableEnumerator[
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
     def ToDisposable(self) -> IDisposableResumableEnumerator[T]: return self
+
+class ICursorCookie[T](ICookie[T], IRemovable):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def MoveToTop(self) -> None:
+        ...
+@final
+class _Cookie[T](Abstract, ICursorCookie[T]):
+    def __init__(self, node: INode, cookie: ICookie[T]) -> None:
+        super().__init__()
+        
+        self.__node: INode = node
+        self.__cookie: ICookie[T] = cookie
+    
+    def SetCursor(self, value: T) -> None: return self.__cookie.SetCursor(value)
+    
+    def MoveToTop(self) -> None: self.__node.TryMoveToBottom()
+    
+    def Remove(self) -> None: self.__node.Remove()
+
+class ResumableEnumerationCursorAbstract[T](InvalidatableObjectProviderBase[ICursorCookie[T]], IResumableEnumerationCursor):
+    def __init__(self) -> None:
+        def throw() -> ICursorCookie[T]: raise InvalidOperationError("Object not initialized.")
+
+        super().__init__()
+
+        self.__cookie: Function[ICursorCookie[T]] = throw
+
+    @final
+    def _InitializeCookie(self, node: INode, cookie: ICookie[T]) -> None:
+        cookie = _Cookie[T](node, cookie)
+
+        self.__cookie = lambda: cookie
+
+    @final
+    def _GetValue(self) -> ICursorCookie[T]: return self.__cookie()
+    
+    @final
+    def MoveToTop(self) -> None:
+        self._GetValue().MoveToTop()
+    
+    def _OnDisposing(self, reason: DiscardReason) -> None:
+        super()._OnDisposing(reason)
+
+        self._GetValue().Remove()
+    def _SetValueProvider(self, func: Function[ICursorCookie[T]]) -> None:
+        self.__cookie = func
+class ResumableEnumerationCursorBase[T](ResumableEnumerationCursorAbstract[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCursorValue(self) -> T:
+        ...
+    
+    @final
+    def Resume(self) -> None:
+        self._GetValue().SetCursor(self._GetCursorValue())
+
+class ResumableEnumerationCursor[T](ResumableEnumerationCursorBase[T]):
+    def __init__(self, value: T) -> None:
+        super().__init__()
+
+        self.__value: T = value
+
+    @final
+    def _GetCursorValue(self) -> T:
+        return self.__value
+    @abstractmethod
+    def _GetDefaultCursorValue(self) -> T:
+        ...
+    
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        super()._DisposeOverride(reason)
+
+        self.__value = self._GetDefaultCursorValue()
+class NullableResumableEnumerationCursor[T](ResumableEnumerationCursorBase[T]):
+    def __init__(self, value: T) -> None:
+        super().__init__()
+
+        self.__value: T|None = value
+
+    @final
+    def _GetCursorItem(self) -> T|None:
+        return self.__value
+    
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        super()._DisposeOverride(reason)
+
+        self.__value = None
 
 __emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
