@@ -31,15 +31,17 @@ class IInterface:
 class Abstract(ABC, IInterface):
     def __init__(self) -> None: super().__init__()
 
-class IDisposableBase(IInterface):
+class IDisposableAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
-    
-    def Initialize(self) -> None:
-        pass
     
     @abstractmethod
     def Dispose(self) -> None:
         ...
+class IDisposableBase(IDisposableAbstract):
+    def __init__(self) -> None: super().__init__()
+    
+    def Initialize(self) -> None:
+        pass
 class IDisposable(IDisposableBase):
     def __init__(self) -> None:
         super().__init__()
