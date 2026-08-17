@@ -18,8 +18,9 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
+from WinCopies.Typing import DiscardReason
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Action, Function
+from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
 
@@ -132,7 +133,7 @@ class IRevocableViewMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]:
         ...
 
 class ICollectionMonitors(IInterface):
@@ -160,7 +161,7 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
                 view: ITuple[T]|None = _ref()
 
                 if view is None:
-                    onDisposed()
+                    onDisposed(DiscardReason.Finalized)
 
                     return createView()
 
@@ -174,7 +175,8 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
 
             return view
 
-        def onDisposed() -> None: self.__view = createView
+        def onDisposed(reason: DiscardReason) -> None:
+            if reason.IsExplicit(): self.__view = createView
 
         super().__init__()
 
@@ -182,7 +184,7 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
         self.__view: Function[ITuple[T]] = createView # type: ignore[no-redef]
 
     @abstractmethod
-    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]:
+    def _CreateView(self, items: ITuple[T], onDisposed: Method[DiscardReason]) -> ITuple[T]:
         ...
 
     @final
@@ -197,7 +199,7 @@ class CollectionViewMonitor[T](CollectionViewMonitorBase[T]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
     @final
-    def _CreateView(self, items: ITuple[T], onDisposed: Action) -> ITuple[T]: return self._GetItems().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
+    def _CreateView(self, items: ITuple[T], onDisposed: Method[DiscardReason]) -> ITuple[T]: return self._GetItems().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
 
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()

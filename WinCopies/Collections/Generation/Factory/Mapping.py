@@ -4,17 +4,17 @@ from abc import abstractmethod
 from typing import final
 from weakref import ReferenceType, ref
 
-from WinCopies import IDisposableBase, Abstract
+from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory
-from WinCopies.Typing import INullable, GetNullableValue
+from WinCopies.Typing import IInvalidatable, INullable, GetNullableValue
 from WinCopies.Typing.Comparison import HashableProtocol
 
 @final
-class _KeyedNode[TKey: HashableProtocol, TValue: IDisposableBase](Abstract, IRemovable):
+class _KeyedNode[TKey: HashableProtocol, TValue: IInvalidatable](Abstract, IRemovable):
     def __init__(self, key: TKey, items: IDictionary[TKey, ReferenceType[TValue]]) -> None:
         super().__init__()
 
@@ -23,7 +23,7 @@ class _KeyedNode[TKey: HashableProtocol, TValue: IDisposableBase](Abstract, IRem
     
     def Remove(self) -> None: self.__items.TryRemove(self.__key)
 
-class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
+class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -79,9 +79,9 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IDisposableBase]
         
         self._GetKeyedItems().Clear()
 
-class KeyedObjectFactory[TKey: HashableProtocol, TValue](KeyedObjectFactoryBase[TKey, TValue, IDisposableBase]):
+class KeyedObjectFactory[TKey: HashableProtocol, TValue](KeyedObjectFactoryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
-class KeyedDisposableObjectFactory[TKey: HashableProtocol, TValue: IDisposableBase](KeyedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
+class KeyedDisposableObjectFactory[TKey: HashableProtocol, TValue: IInvalidatable](KeyedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final

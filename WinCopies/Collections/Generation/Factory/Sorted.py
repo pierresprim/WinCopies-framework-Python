@@ -5,13 +5,12 @@ from bisect import bisect_left, bisect_right, insort_right
 from collections.abc import MutableSequence
 from typing import final
 
-from WinCopies import IDisposableBase
 from WinCopies.Collections.Core import IReadOnlyCollection, IClearable, Countable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
 from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryGetAt
-from WinCopies.Typing import INullable, GetNullableValue
+from WinCopies.Typing import IInvalidatable, INullable, GetNullableValue
 from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem, CompareTo
 from WinCopies.Typing.Protocols import SupportsRichComparison
 
@@ -21,7 +20,7 @@ class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashab
     @final
     def _AsComparableValue(self) -> TKey: return self.GetKey()
 @final
-class _SortedNode[TKey: ComparableProtocol, TValue: IDisposableBase](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
+class _SortedNode[TKey: ComparableProtocol, TValue: IInvalidatable](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[TKey, TValue]) -> None:
         super().__init__(key, obj)
 
@@ -100,7 +99,7 @@ class ISortedObjectFactoryBase[TKey, TIn, TOut](IKeyableObjectFactoryBase[TKey, 
 class ISortedObjectFactory[TKey, TValue](ISortedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
-class SortedObjectFactoryBase[TKey: ComparableProtocol, TIn, TOut: IDisposableBase](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
+class SortedObjectFactoryBase[TKey: ComparableProtocol, TIn, TOut: IInvalidatable](ObjectFactoryBase[TIn, TOut], ISortedObjectFactoryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -150,10 +149,10 @@ class SortedObjectFactoryBase[TKey: ComparableProtocol, TIn, TOut: IDisposableBa
         super().InvalidateObjects()
         
         self._GetSortedItems().Clear()
-class SortedObjectFactory[TKey: ComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IDisposableBase]):
+class SortedObjectFactory[TKey: ComparableProtocol, TValue](SortedObjectFactoryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class SortedDisposableObjectFactory[TKey: ComparableProtocol, TValue: IDisposableBase](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
+class SortedDisposableObjectFactory[TKey: ComparableProtocol, TValue: IInvalidatable](SortedObjectFactoryBase[TKey, TValue, TValue], ISortedObjectFactory[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final

@@ -7,13 +7,13 @@ from enum import Enum
 from typing import final, Any, Type as TypeBase
 from weakref import finalize, ref, ReferenceType
 
-from WinCopies import IInterface, IDisposableBase, IStringable, Abstract
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Delegates import NoAction, FuncNone
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
-from WinCopies.Typing import NumericalValue, INullable, IDisposable, IEnumBase, IEnum
+from WinCopies.Typing import NumericalValue, DiscardReason, INullable, IDisposable, IInvalidatable, IEnumBase, IEnum
 from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem, Equals as _Equals, CompareTo
-from WinCopies.Typing.Delegate import Action, NullableFunction, ItemComparison
+from WinCopies.Typing.Delegate import Action, Method, NullableFunction, ItemComparison
 from WinCopies.Typing.Enum import IntEnum, IntegerEnum, StringEnum, EquatableEnumProtocol, ComparableEnumProtocol
 from WinCopies.Typing.Protocols import SupportsStringization, EquatableObject as EquatableObjectProtocol, ComparableObject as ComparableObjectProtocol
 from WinCopies.Typing.Reflection import IsOf, GetType, GetTypeName
@@ -809,28 +809,30 @@ class WeakReferenceFinalizer[T](Finalizer):
         super().Remove()
 
         self.__tryGetValue = FuncNone
-class DisposableFinalizer[T: IDisposableBase](WeakReferenceFinalizer[T], IDisposableBase):
+class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalidatable):
     def __init__(self, obj: T, action: Action) -> None:
-        def dispose() -> None:
-            obj: IDisposableBase|None = self.TryGetValue()
+        def dispose(invalidate: bool) -> None:
+            obj: IInvalidatable|None = self.TryGetValue()
 
             if obj is not None:
-                obj.Dispose()
+                if invalidate: obj.Invalidate()
+                else: obj.Dispose()
 
                 self.Remove()
 
         super().__init__(obj, action)
 
-        self.__dispose: Action = dispose
+        self.__dispose: Method[bool] = dispose
     
     def Remove(self) -> None:
         super().Remove()
 
-        self.__dispose = NoAction
+        self.__dispose = lambda _: None
     
-    def Dispose(self) -> None: self.__dispose()
+    def _Dispose(self, reason: DiscardReason) -> None:
+        if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
 
-class IWeakReferenceRegister[T: IDisposableBase](IInterface):
+class IWeakReferenceRegister[T: IInvalidatable](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -841,18 +843,15 @@ class IWeakReferenceRegister[T: IDisposableBase](IInterface):
     def RegisterNode(self, node: IRemovable) -> None:
         ...
 
-class IWeakReference[T](IInterface):
+class IWeakReference[T](IInvalidatable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def TryGetValue(self) -> T|None: ...
-    
-    @abstractmethod
-    def Invalidate(self) -> None: ...
 @final
-class _WeakReference[T: IDisposableBase](Abstract, IWeakReference[T]):
+class _WeakReference[T: IInvalidatable](Abstract, IWeakReference[T]):
     @final
-    class _Register[_T: IDisposableBase](Abstract, IWeakReferenceRegister[_T]):
+    class _Register[_T: IInvalidatable](Abstract, IWeakReferenceRegister[_T]):
         def __init__(self, obj: _T, cookie: _WeakReference[_T]) -> None:
             super().__init__()
 
@@ -873,10 +872,15 @@ class _WeakReference[T: IDisposableBase](Abstract, IWeakReference[T]):
 
         return None if finalizer is None else finalizer.TryGetValue()
     
-    def Invalidate(self) -> None:
+    def _Dispose(self, reason: DiscardReason) -> None:
         finalizer: DisposableFinalizer[T]|None = self.__finalizer
 
-        if finalizer is not None: finalizer.Dispose()
+        if finalizer is not None:
+            match reason:
+                case DiscardReason.Invalidated: finalizer.Invalidate()
+                case DiscardReason.Disposed: finalizer.Dispose()
+
+                case _: pass
     
     def _RegisterNode(self, obj: T, node: IRemovable) -> None:
         self.__finalizer = DisposableFinalizer[T](obj, lambda: node.Remove())
@@ -885,5 +889,5 @@ class _WeakReference[T: IDisposableBase](Abstract, IWeakReference[T]):
     def _CreateRegister(obj: T) -> IWeakReferenceRegister[T]:
         return _WeakReference._Register[T](obj, _WeakReference[T]())
 
-def CreateWeakReferenceRegister[T: IDisposableBase](obj: T) -> IWeakReferenceRegister[T]:
+def CreateWeakReferenceRegister[T: IInvalidatable](obj: T) -> IWeakReferenceRegister[T]:
     return _WeakReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]

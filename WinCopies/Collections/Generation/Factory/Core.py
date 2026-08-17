@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
-from WinCopies import IDisposableBase, Abstract
+from WinCopies import Abstract
 from WinCopies.Collections.Core import IClearable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
@@ -12,7 +12,7 @@ from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, IReadWriteLinkedNode
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import IInvalidatable, INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import IWeakReferenceRegister, IWeakReference, CreateWeakReferenceRegister
@@ -55,7 +55,7 @@ class _ReadOnlyCollection[T](_ReadOnlyListAbstract[T, T]):
     def TryGetLast(self) -> INullable[T]: return self._GetItems().TryGetLast()
 
 @final
-class _ReadOnlyList[T: IDisposableBase](_ReadOnlyListAbstract[IWeakReference[T], T]):
+class _ReadOnlyList[T: IInvalidatable](_ReadOnlyListAbstract[IWeakReference[T], T]):
     def __init__(self, items: IReadWriteList[IWeakReference[T]]) -> None: super().__init__(items)
     
     def __TryGetValue(self, getNode: Function[IReadWriteLinkedNode[IWeakReference[T]]|None]) -> INullable[T]:
@@ -97,12 +97,12 @@ class _ReadOnlyListUpdaterBase[TItem, TList](ValueFunctionUpdater[TList]):
     def _GetValue(self) -> TList: return self._GetItems(self.__items)
 
 @final
-class _ReadOnlyListBaseUpdater[T: IDisposableBase](_ReadOnlyListUpdaterBase[IWeakReference[T], IReadOnlyList[IWeakReference[T]]]):
+class _ReadOnlyListBaseUpdater[T: IInvalidatable](_ReadOnlyListUpdaterBase[IWeakReference[T], IReadOnlyList[IWeakReference[T]]]):
     def __init__(self, items: IReadWriteList[IWeakReference[T]], updater: Method[IFunction[IReadOnlyList[IWeakReference[T]]]]) -> None: super().__init__(items, updater)
     
     def _GetItems(self, items: IReadWriteList[IWeakReference[T]]) -> IReadOnlyList[IWeakReference[T]]: return _ReadOnlyCollection[IWeakReference[T]](items)
 @final
-class _ReadOnlyListUpdater[T: IDisposableBase](_ReadOnlyListUpdaterBase[IWeakReference[T], IReadOnlyList[T]]):
+class _ReadOnlyListUpdater[T: IInvalidatable](_ReadOnlyListUpdaterBase[IWeakReference[T], IReadOnlyList[T]]):
     def __init__(self, items: IReadWriteList[IWeakReference[T]], updater: Method[IFunction[IReadOnlyList[T]]]) -> None: super().__init__(items, updater)
     
     def _GetItems(self, items: IReadWriteList[IWeakReference[T]]) -> IReadOnlyList[T]: return _ReadOnlyList[T](items)
@@ -153,7 +153,7 @@ class _Collection[T: IObjectMonitor](_ListBase[T, "_CollectionNode[T]", "_Collec
     def _GetPreviousNode(self, node: _CollectionNode[T]) -> _CollectionNode[T]|None: return node.GetPreviousNode()
     def _GetNextNode(self, node: _CollectionNode[T]) -> _CollectionNode[T]|None: return node.GetNextNode()
 @final
-class _List[T: IDisposableBase](_ListBase[IWeakReference[T], "_Node[T]", "_List[T]"]):
+class _List[T: IInvalidatable](_ListBase[IWeakReference[T], "_Node[T]", "_List[T]"]):
     def __init__(self) -> None: super().__init__()
 
     def _CreateUpdater(self, updater: Method[IFunction[IReadOnlyList[IWeakReference[T]]]]) -> IFunction[IReadOnlyList[IWeakReference[T]]]: return _ReadOnlyListBaseUpdater[T](self, updater)
@@ -175,7 +175,7 @@ class _NodeBase[TItem, TNode, TList: IClearable](DoublyLinkedNode[TItem, TNode, 
     def GetList(self) -> IReadWriteList[TItem]|None: return self._GetList()
 
 @final
-class _Node[T: IDisposableBase](_NodeBase[IWeakReference[T], "_Node[T]", _List[T]]):
+class _Node[T: IInvalidatable](_NodeBase[IWeakReference[T], "_Node[T]", _List[T]]):
     def __init__(self, value: IWeakReference[T], l: _List[T]|None, itemCookie: IListCookie[_Node[T]], cookie: INodeCookie[_Node[T]], previousNode: Self|None, nextNode: Self|None) -> None: super().__init__(value, l, itemCookie, cookie, previousNode, nextNode)
     
     def _AsLinkedNode(self, node: _Node[T]) -> _Node[T]:
@@ -205,7 +205,7 @@ class _CollectionNode[T: IObjectMonitor](_NodeBase[T, "_CollectionNode[T]", _Col
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _CollectionNode[T]:
         return _CollectionNode[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
 
-class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn]):
+class ObjectFactoryBase[TIn, TOut: IInvalidatable](Abstract, IObjectFactory[TIn]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[TOut]]) -> None: self.__readOnly = func
         
@@ -260,10 +260,10 @@ class ObjectFactoryBase[TIn, TOut: IDisposableBase](Abstract, IObjectFactory[TIn
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
     
     def InvalidateObjects(self) -> None: self.__clear()
-class ObjectFactory[T](ObjectFactoryBase[T, IDisposableBase]):
+class ObjectFactory[T](ObjectFactoryBase[T, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class DisposableObjectFactory[T: IDisposableBase](ObjectFactoryBase[T, T]):
+class DisposableObjectFactory[T: IInvalidatable](ObjectFactoryBase[T, T]):
     def __init__(self) -> None: super().__init__()
     
     @final

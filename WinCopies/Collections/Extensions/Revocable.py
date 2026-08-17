@@ -5,7 +5,7 @@ from typing import final
 
 
 
-from WinCopies import IDisposableBase, Abstract
+from WinCopies import Abstract
 
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
@@ -14,10 +14,10 @@ from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollection
 from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
 from WinCopies.Collections.Generation.Factory.Core import DisposableObjectFactory
 
-from WinCopies.Delegates import NoAction, ConcatenateActions
+from WinCopies.Delegates import ConcatenateMethods
 
-from WinCopies.Typing import INullable, GetInvalidatedError
-from WinCopies.Typing.Delegate import Action, Method, Function, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing import DiscardReason, IInvalidatable, InvalidatableObjectProvider, INullable
+from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
 
 class IRevocableViewFactory(IRevocableViewMonitor, IObjectMonitor):
     def __init__(self) -> None: super().__init__()
@@ -36,7 +36,7 @@ class RevocableViewMonitor(Abstract, IRevocableViewMonitor):
     def _GetFactory(self) -> IRevocableViewFactory: return self.__factory
     
     @final
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]: return self._GetFactory().CreateRevocableView(items, onDisposed)
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: return self._GetFactory().CreateRevocableView(items, onDisposed)
 @final
 class _RevocableViewMonitorUpdater(ValueFunctionUpdater[IRevocableViewMonitor]):
     def __init__(self, factory: IRevocableViewFactory, updater: Method[IFunction[IRevocableViewMonitor]]) -> None:
@@ -47,26 +47,24 @@ class _RevocableViewMonitorUpdater(ValueFunctionUpdater[IRevocableViewMonitor]):
     def _GetValue(self) -> IRevocableViewMonitor: return RevocableViewMonitor(self.__factory)
 
 @final
-class _RevocableViewCookie[T](Abstract, IDisposableBase):
-    def __init__(self, items: ITuple[T], onDisposed: Action|None) -> None:
+class _RevocableViewCookie[T](InvalidatableObjectProvider[ITuple[T]]):
+    def __init__(self, items: ITuple[T], onDisposed: Method[DiscardReason]|None) -> None:
         def getItems() -> ITuple[T]: return items
 
-        def dispose() -> None:
-            def throw() -> ITuple[T]: raise GetInvalidatedError()
-
-            self.__items = throw
-            self.__onDisposed = NoAction
+        def dispose(_: DiscardReason) -> None:
+            self.__onDisposed = lambda _: None
         
-        super().__init__()
+        super().__init__(getItems)
 
-        self.__items: Function[ITuple[T]] = getItems # type: ignore[no-redef]
-
-        self.__onDisposed: Action = dispose if onDisposed is None else ConcatenateActions(dispose, onDisposed) # type: ignore[no-redef]
+        self.__onDisposed: Method[DiscardReason] = dispose if onDisposed is None else ConcatenateMethods(dispose, onDisposed) # type: ignore[no-redef]
 
     def GetItems(self) -> ITuple[T]:
-        return self.__items()
+        return self._GetValue()
 
-    def Dispose(self) -> None: self.__onDisposed()
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        onDisposed: Method[DiscardReason] = self.__onDisposed
+
+        return onDisposed(reason)
 
 class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
     def __init__(self, updater: Method[IFunction[ICollectionViewMonitor[T]]]) -> None: super().__init__(updater)
@@ -148,7 +146,7 @@ class _RevocableView[T](RevocableViewBase[T]):
 
     def _GetItems(self) -> ITuple[T]: return self.__cookie.GetItems()
 
-def _CreateRevocableView[T](items: ITuple[T], onDisposed: Action|None = None) -> tuple[ITuple[T], IDisposableBase]:
+def _CreateRevocableView[T](items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[ITuple[T], IInvalidatable]:
     cookie: _RevocableViewCookie[T] = _RevocableViewCookie(items, onDisposed)
     view: _RevocableView[T] = _RevocableView[T](cookie)
 
@@ -162,16 +160,16 @@ class RevocableViewFactory(Abstract, IRevocableViewFactory):
         
         super().__init__()
 
-        self.__factory: IObjectFactory[IDisposableBase] = DisposableObjectFactory[IDisposableBase]()
+        self.__factory: IObjectFactory[IInvalidatable] = DisposableObjectFactory[IInvalidatable]()
         self.__monitor: IFunction[IRevocableViewMonitor] = _RevocableViewMonitorUpdater(self, update) # type: ignore[no-redef]
 
     @final
-    def _GetFactory(self) -> IObjectFactory[IDisposableBase]:
+    def _GetFactory(self) -> IObjectFactory[IInvalidatable]:
         return self.__factory
     
     @final
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Action|None = None) -> ITuple[T]:
-        view: tuple[ITuple[T], IDisposableBase] = _CreateRevocableView(items, onDisposed)
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]:
+        view: tuple[ITuple[T], IInvalidatable] = _CreateRevocableView(items, onDisposed)
 
         self._GetFactory().RegisterObject(view[1])
 

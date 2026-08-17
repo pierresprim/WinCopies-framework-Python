@@ -14,8 +14,9 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, CollectionViewMonitorBase, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollection, HashableTupleCollection, ArrayList
 from WinCopies.Collections.Iteration import Select
+from WinCopies.Typing import DiscardReason
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Action
+from WinCopies.Typing.Delegate import Method
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class CollectionAbstractionViewMonitorBase[TIn, TOut](CollectionViewMonitorBase[TOut]):
@@ -31,7 +32,7 @@ class CollectionAbstractionViewMonitor[TIn, TOut](CollectionAbstractionViewMonit
     def __init__(self, source: ITuple[TIn], items: ITuple[TOut]) -> None: super().__init__(source, items)
 
     @final
-    def _CreateView(self, items: ITuple[TOut], onDisposed: Action) -> ITuple[TOut]:
+    def _CreateView(self, items: ITuple[TOut], onDisposed: Method[DiscardReason]) -> ITuple[TOut]:
         return self._GetSource().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
 
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut], ITupleBase[TOut]):
