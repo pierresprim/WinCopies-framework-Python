@@ -16,7 +16,7 @@ from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Extensions import IArray
 from WinCopies.Collections.Util import GetLastItem
 from WinCopies.String import TrySplit, SplitFromLast
-from WinCopies.Typing import INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
+from WinCopies.Typing import DiscardReason, INullable, IDisposableInfo, IDisposableProvider, DisposableProvider, GetNullable, GetNullValue, TryGetValue, GetDiscardedError
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair
@@ -215,7 +215,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
         def __init__(self) -> None: super().__init__()
         
         @abstractmethod
-        def IsDisposed(self) -> bool:
+        def GetDiscardReason(self) -> DiscardReason:
             ...
         
         @abstractmethod
@@ -226,7 +226,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
     class _NullHandle(Abstract, _IHandle):
         def __init__(self) -> None: super().__init__()
         
-        def IsDisposed(self) -> bool: return True
+        def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed
 
         def GetFrame(self) -> FrameType: raise GetDiscardedError()
         def GetFileName(self) -> str: raise GetDiscardedError()
@@ -242,7 +242,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
             self.__frame: FrameType = frame
             self.__traceback: Traceback = traceback
         
-        def IsDisposed(self) -> bool: return False
+        def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Null
 
         def GetFrame(self) -> FrameType: return self.__frame
         def GetFileName(self) -> str: return self.__traceback.filename
@@ -259,7 +259,7 @@ class __Traceback(Abstract, _IFrameInfo, IDisposableInfo):
 
         self.__handle: __Traceback._IHandle = __Traceback._Handle(frame, traceback)
     
-    def IsDisposed(self) -> bool: return self.__handle.IsDisposed()
+    def GetDiscardReason(self) -> DiscardReason: return self.__handle.GetDiscardReason()
     
     def GetFrame(self) -> FrameType: return self.__handle.GetFrame()
     def GetFileName(self) -> str: return self.__handle.GetFileName()
@@ -344,7 +344,7 @@ class __DisposableFrameInspector(Abstract, IDisposableInfo):
         self.__frame: FrameType = frame
         self.__frameInspector: IFrameInspector|None = CreateFrameInspectorFromFrame(self.__frame)
     
-    def IsDisposed(self) -> bool: return self.__frameInspector is None
+    def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed if self.__frameInspector is None else DiscardReason.Null
     
     def GetFrameInspector(self) -> IFrameInspector:
         if self.__frameInspector is None or self.IsDisposed(): raise GetDiscardedError()

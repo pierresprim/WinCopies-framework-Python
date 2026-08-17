@@ -5,7 +5,7 @@ from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, overload, Type as SystemType
 
-from WinCopies import IInterface, IStringable, IDisposable as IDisposableBase, Abstract
+from WinCopies import IInterface, IStringable, IDisposableAbstract, IDisposable as IDisposableBase, Abstract
 from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Enum import IntEnum
 
@@ -117,12 +117,23 @@ class IDisposable(IDisposableBase):
     @final
     def _Throw(self) -> None: raise GetDiscardedError()
 
-class IDiscardableInfo(IDisposableBase):
+class _IDisposable(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def IsDisposed(self) -> bool:
+    def GetDiscardReason(self) -> DiscardReason:
         ...
+
+class IDiscardableInfoAbstract(_IDisposable):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsDisposed(self) -> bool:
+        return self.GetDiscardReason() > DiscardReason.Null
+class IDiscardableInfoBase(IDiscardableInfoAbstract, IDisposableAbstract):
+    def __init__(self) -> None: super().__init__()
+class IDiscardableInfo(IDiscardableInfoBase, IDisposableBase):
+    def __init__(self) -> None: super().__init__()
 
 class IDisposableInfo(IDisposable, IDiscardableInfo):
     def __init__(self) -> None: super().__init__()
@@ -142,11 +153,54 @@ class IInvalidatable(IDisposableBase):
 class IInvalidatableInfo(IInvalidatable, IDiscardableInfo):
     def __init__(self) -> None: super().__init__()
 
+class _IDisposableInfo(_IDisposable):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Dispose(self, reason: DiscardReason) -> None:
+        ...
 class DisposableBase(Abstract, IDisposableInfo):
+    @final
+    class _DisposableCookie(Abstract, _IDisposableInfo):
+        @final
+        class _DisposedCookie(Abstract, _IDisposableInfo):
+            def __init__(self, reason: DiscardReason) -> None:
+                super().__init__()
+
+                self.__reason: DiscardReason = reason
+
+            def GetDiscardReason(self) -> DiscardReason: return self.__reason
+
+            def Dispose(self, reason: DiscardReason) -> None: pass
+        
+        def __init__(self, obj: DisposableBase, updater: Method[_IDisposableInfo]) -> None:
+            super().__init__()
+
+            self.__obj: DisposableBase = obj
+            self.__updater: Method[_IDisposableInfo] = updater
+
+        def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Null
+
+        def Dispose(self, reason: DiscardReason) -> None:
+            if reason == DiscardReason.Null: return
+
+            obj: DisposableBase = self.__obj
+
+            obj._OnDisposing(reason)
+
+            if reason.IsExplicit():
+                obj._DisposeOverride(reason)
+
+                self.__updater(DisposableBase._DisposableCookie._DisposedCookie(reason))
+
+            obj._Finalize()
+    
     def __init__(self) -> None:
+        def update(cookie: _IDisposableInfo) -> None: self.__disposableCookie = cookie
+
         super().__init__()
 
-        self.__dispose: Method[DiscardReason] = self.__Dispose
+        self.__disposableCookie: _IDisposableInfo = DisposableBase._DisposableCookie(self, update) # type: ignore[no-redef]
 
     def _OnDisposing(self, reason: DiscardReason) -> None:
         pass
@@ -156,31 +210,13 @@ class DisposableBase(Abstract, IDisposableInfo):
     
     def _Finalize(self) -> None:
         pass
-    
-    def __Dispose(self, reason: DiscardReason) -> None:
-        if reason == DiscardReason.Null: return
-
-        self._OnDisposing(reason)
-
-        if reason.IsExplicit():
-            self._DisposeOverride(reason)
-
-            self.__dispose = lambda _: None
-
-        self._Finalize()
 
     @final
     def _Dispose(self, reason: DiscardReason) -> None:
-        dispose: Method[DiscardReason] = self.__dispose # Needed for mypy compatibility
-
-        dispose(reason)
+        self.__disposableCookie.Dispose(reason)
 
     @final
-    def IsDisposed(self) -> bool:
-        # Equality, not identity: 'self.__Dispose' builds a new bound method object on
-        # each access, so 'is not' would always be True. '!=' compares __self__ and
-        # __func__, which is the intended check.
-        return self.__dispose != self.__Dispose
+    def GetDiscardReason(self) -> DiscardReason: return self.__disposableCookie.GetDiscardReason()
 class Disposable(DisposableBase):
     def __init__(self) -> None: super().__init__()
 
@@ -299,15 +335,11 @@ def GetNullableValue[T](value: T|None) -> INullable[T]:
 def HasValue[T](value: INullable[T]|None) -> bool:
     return value is not None and value.HasValue()
 
-class _IDisposableProviderItem[T: IDisposableInfo](IInterface):
+class _IDisposableProviderItem[T: IDisposableInfo](IDiscardableInfoAbstract):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetItem(self) -> T:
-        ...
-
-    @abstractmethod
-    def IsDisposed(self) -> bool:
         ...
 
     @abstractmethod
@@ -319,7 +351,7 @@ class _DisposedItem[T: IDisposableInfo](Abstract, _IDisposableProviderItem[T]):
     
     def GetItem(self) -> T: raise GetDiscardedError()
 
-    def IsDisposed(self) -> bool: return True
+    def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed
 
     def Dispose(self) -> _IDisposableProviderItem[T]: return self
 
@@ -334,7 +366,7 @@ class _DisposableProviderItem[T: IDisposableInfo](Abstract, _IDisposableProvider
     
     def GetItem(self) -> T: return self.__item
 
-    def IsDisposed(self) -> bool: return self.__item.IsDisposed()
+    def GetDiscardReason(self) -> DiscardReason: return self.__item.GetDiscardReason()
     
     def Dispose(self) -> _IDisposableProviderItem[T]:
         self.__item.Dispose()
@@ -367,7 +399,7 @@ class DisposableProvider[T: IDisposableInfo](Abstract, IDisposableProvider[T]):
         return self.__item.GetItem()
     
     @final
-    def IsDisposed(self) -> bool: return self.__item.IsDisposed()
+    def GetDiscardReason(self) -> DiscardReason: return self.__item.GetDiscardReason()
     
     @final
     def Dispose(self) -> None: self.__item = self.__item.Dispose()

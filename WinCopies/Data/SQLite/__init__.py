@@ -21,7 +21,7 @@ from WinCopies.Enum import HasFlag
 
 from WinCopies.String import DoubleQuoteSurround
 
-from WinCopies.Typing import IDisposableInfo, INullable, GetDiscardedError
+from WinCopies.Typing import DiscardReason, IDisposableInfo, INullable, Disposable, GetDiscardedError
 from WinCopies.Typing.Delegate import Function, IFunction, IStruct, Struct
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableInfo, CreateDualResult, CreateDualValueBool, CreateDualValueNullableInfo
 
@@ -42,7 +42,7 @@ from WinCopies.Data.SQLite.Factory import FieldFactory, IndexFactory
 from WinCopies.Data.SQLite.Query import Factory
 
 @final
-class _Connection(Abstract, IDisposableInfo):
+class _Connection(Disposable):
     def __init__(self, connection: Connection, innerCollection: sqlite3.Connection, queryLimits: IMutableQueryLimits) -> None:
         super().__init__()
 
@@ -67,11 +67,14 @@ class _Connection(Abstract, IDisposableInfo):
     
     def GetQueryLimits(self) -> IMutableQueryLimits:
         return self.__queryLimits
-    
-    def IsDisposed(self) -> bool: return self.__connection is None
-    
-    def Dispose(self) -> None:
+
+    def _OnDisposing(self, reason: DiscardReason) -> None:
+        super()._OnDisposing(reason)
+
         self.GetInnerConnection().close()
+    
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        super()._DisposeOverride(reason)
         
         self.__innerConnection = None
         self.__connection = None
@@ -464,7 +467,7 @@ class _DataBase(DataBaseAbstract):
         return self.__GetTable(self.__GetCursor(), name)
 
 @final
-class _Struct(Abstract, IDisposableInfo):
+class _Struct(Disposable):
     @final
     class _Function(Abstract, IFunction[_Connection]):
         def __init__(self, struct: _Struct) -> None:
@@ -495,8 +498,10 @@ class _Struct(Abstract, IDisposableInfo):
     def SetConnection(self, connection: _Connection) -> None:
         self.__struct.SetValue(connection)
     
-    def IsDisposed(self) -> bool: return self.__GetValue() is None
-    def Dispose(self) -> None: self.__struct.SetValue(None)
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        super()._DisposeOverride(reason)
+
+        self.__struct.SetValue(None)
 @final
 class _QueryLimits(Abstract, IQueryLimits):
     def __init__(self, connection: Function[sqlite3.Connection]) -> None:
@@ -590,4 +595,4 @@ class Connection(ConnectionBase, IDisposableInfo):
     
     def _CloseOverride(self) -> None: self.__connection.Dispose()
     
-    def IsDisposed(self) -> bool: return self.__connection.IsDisposed()
+    def GetDiscardReason(self) -> DiscardReason: return self.__connection.GetDiscardReason()

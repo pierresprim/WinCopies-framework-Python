@@ -855,8 +855,6 @@ class _MutableQueryLimits(Abstract, IMutableQueryLimits):
         return update(False) if maxParameterCount is None or size > maxParameterCount.GetKey() else None
 
 class Connection(Abstract, IConnection):
-    
-    
     def __init__(self) -> None:
         super().__init__()
 

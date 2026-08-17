@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    IDisposable, IDisposableInfo, DisposableProvider,
+    DiscardReason, IDisposable, IDisposableInfo, DisposableProvider,
     Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
     GetGenericError, GetDiscardedError,
@@ -28,7 +28,7 @@ class _ConcreteDisposableInfo(IDisposableInfo):
 
         self.__disposed = False
 
-    def IsDisposed(self) -> bool: return self.__disposed
+    def GetDiscardReason(self) -> DiscardReason: return DiscardReason.Disposed if self.__disposed else DiscardReason.Null
     def Dispose(self) -> None: self.__disposed = True
 
 def _Throw() -> None: _ConcreteDisposable()._Throw() # pyright: ignore[reportPrivateUsage]
