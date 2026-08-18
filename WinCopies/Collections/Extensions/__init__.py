@@ -160,12 +160,7 @@ class CollectionViewMonitorBase[T](Abstract, ICollectionViewMonitor[T]):
             def getView() -> ITuple[T]:
                 view: ITuple[T]|None = _ref()
 
-                if view is None:
-                    onDisposed(DiscardReason.Finalized)
-
-                    return createView()
-
-                return view
+                return createView() if view is None else view
 
             view: ITuple[T] = self._CreateView(self._GetItems().AsReadOnly(), onDisposed)
 
