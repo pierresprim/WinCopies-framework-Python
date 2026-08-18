@@ -167,11 +167,7 @@ class Array[T](ArrayBase[T, MutableSequenceBase[T]], Collection.Array[T], IGener
     
     def ToString(self) -> str: return str(self._GetContainer())
 class SizedArray[T](Array[T]):
-    def __init__(self, length: int) -> None: super().__init__([self._GetDefaultValue()] * length)
-    
-    @abstractmethod
-    def _GetDefaultValue(self) -> T:
-        pass
+    def __init__(self, length: int, defaultValue: T) -> None: super().__init__([defaultValue] * length)
 
 class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.ICollection[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None:
@@ -355,8 +351,7 @@ class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
     def GetMutability(self) -> Mutability|None: return Mutability.Mutable
 
 class ISizedList[T](IList[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def GetMaxLength(self) -> int:
