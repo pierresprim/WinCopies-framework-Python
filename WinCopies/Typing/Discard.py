@@ -167,12 +167,11 @@ class DisposableBase(Abstract, IDiscardableItem):
 
             obj._OnDisposing(reason)
 
-            if reason.IsExplicit():
-                obj._DisposeOverride(reason)
-
-                self.__updater(DisposableBase._DisposableCookie._DisposedCookie(reason))
+            if reason.IsExplicit(): obj._DisposeOverride(reason)
 
             obj._Finalize()
+
+            self.__updater(DisposableBase._DisposableCookie._DisposedCookie(reason))
     
     def __init__(self) -> None:
         def update(cookie: _IDisposableCookie) -> None: self.__disposableCookie = cookie
