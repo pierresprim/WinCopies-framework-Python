@@ -2,10 +2,9 @@
 Regression harness for the registry and the life cycle of revocable views.
 
 These tests are **parameterised by concrete type**: every invariant is exercised
-on each indexable type that supports it, rather than on one representative. The
-Immuabilité.1 review showed that a family assumed to be uniform has several
-behavioural strata, invisible to a reading by invariant and only found by
-instantiating the types one by one.
+on each indexable type that supports it, rather than on one representative.
+A family assumed to be uniform has several behavioural strata, invisible to
+a reading by invariant and only found by instantiating the types one by one.
 
 Two method constraints, inherited from that review's protocol, without which the
 measurements are wrong:
