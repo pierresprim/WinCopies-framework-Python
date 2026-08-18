@@ -136,8 +136,6 @@ class RevocableViewBase[T](SequenceAbstract[T]):
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self
-
-    def ToString(self) -> str: return self._GetItems().ToString()
 @final
 class _RevocableView[T](RevocableViewBase[T]):
     def __init__(self, cookie: _RevocableViewCookie[T]) -> None:
@@ -146,6 +144,13 @@ class _RevocableView[T](RevocableViewBase[T]):
         self.__cookie: _RevocableViewCookie[T] = cookie
 
     def _GetItems(self) -> ITuple[T]: return self.__cookie.GetItems()
+
+    def ToString(self) -> str:
+        cookie: _RevocableViewCookie[T] = self.__cookie
+
+        discardReason: DiscardReason = cookie.GetDiscardReason()
+
+        return cookie.GetItems().ToString() if discardReason == DiscardReason.Null else f"<RevocableView (revoked: view {discardReason.ToString().lower()})>"
 
 def _CreateRevocableView[T](items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[ITuple[T], IInvalidatable]:
     cookie: _RevocableViewCookie[T] = _RevocableViewCookie(items, onDisposed)
