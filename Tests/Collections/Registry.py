@@ -26,7 +26,7 @@ import unittest
 from typing import Any, Callable
 
 from WinCopies.Collections.Abstraction.Collection import (
-    Array, ArrayList, EquatableTuple, HashableTuple, List, SortedList, TryCreateSizedList, Tuple)
+    Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstraction.Selection import List as SelectionList
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Typing.Delegate import IFunction
@@ -48,6 +48,16 @@ def _arrayList() -> Any:
     observable content showing it."""
 
     items = ArrayList[int](3, _Handle())
+
+    for index in range(3): items.SetAt(index, index + 1)
+
+    return items
+
+def _sizedArray() -> Any:
+    """SizedArray fills every cell with one default value, so its cells are told apart
+    afterwards for the same reason as ArrayList's."""
+
+    items = SizedArray[int](3, 0)
 
     for index in range(3): items.SetAt(index, index + 1)
 
@@ -143,6 +153,7 @@ _MUTABLE: list[_MutableCase] = [
     _MutableCase("SizedList",  _sizedList,                         lambda o: o.SetAt(0, 9), _resizable),
     _MutableCase("Array",      lambda: Array[int]([1, 2, 3]),      lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("ArrayList",  _arrayList,                         lambda o: o.SetAt(0, 9), _fixed),
+    _MutableCase("SizedArray", _sizedArray,                        lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("ObservableCollection", lambda: ObservableCollection[int](_source()), lambda o: o.Add(9), _resizable, True),
 ]
 _ALL: list[_Case] = _IMMUTABLE + list(_MUTABLE)
