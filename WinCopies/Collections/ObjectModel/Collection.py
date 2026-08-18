@@ -71,6 +71,9 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
+
+    @final
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
     
     @final
     def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
@@ -80,6 +83,8 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
+    @final
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
     
     @final
     def FindFirstIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindFirstIndex(item, predicate)
@@ -100,6 +105,9 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def _Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
     
     @final
+    def _RemoveRange(self, index: int, count: int) -> None: self._TryRemoveItemsAt(index, count)
+    
+    @final
     def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainer().SliceAt(key)
     
     @final
@@ -111,13 +119,13 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self._InsertItems(index, items)
     
     @final
-    def _RemoveRange(self, index: int, count: int) -> None: self._TryRemoveItemsAt(index, count)
-    
-    @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._RemoveItemAt(index)
     
     @final
     def Clear(self) -> None: self._ClearItems()
+
+    @final
+    def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
     def ToString(self) -> str: return self._GetInnerContainer().ToString()
