@@ -16,9 +16,9 @@ from WinCopies.Collections.Linked.Singly import IQueue, Queue
 from WinCopies.Delegates import BoolFalse
 from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
-from WinCopies.Typing import IDisposable, INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Method
-from WinCopies.Typing.Discard import GetDiscardedError
+from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 from ijson import parse
