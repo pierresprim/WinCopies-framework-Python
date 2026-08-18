@@ -1,23 +1,23 @@
 """
-Harnais de régression du registre et du cycle de vie des vues révocables.
+Regression harness for the registry and the life cycle of revocable views.
 
-Ces tests sont **paramétrés par type concret** : chaque invariant est exercé sur
-tous les types de la famille indexable qui le supportent, plutôt que sur un
-représentant. La revue Immuabilité.1 a montré qu'une famille supposée uniforme
-comporte plusieurs strates de comportement, invisibles à une lecture par
-invariant et découvertes en instanciant les types un à un.
+These tests are **parameterised by concrete type**: every invariant is exercised
+on each indexable type that supports it, rather than on one representative. The
+Immuabilité.1 review showed that a family assumed to be uniform has several
+behavioural strata, invisible to a reading by invariant and only found by
+instantiating the types one by one.
 
-Deux contraintes de méthode, héritées du protocole de cette revue, sans
-lesquelles les mesures sont fausses :
+Two method constraints, inherited from that review's protocol, without which the
+measurements are wrong:
 
-  * toute mesure de vie d'objet force `gc.collect()` au préalable — une vue
-    participe à un cycle sur elle-même via son updater de moniteur, donc sa
-    libération passe par le collecteur cyclique ;
-  * l'ordre « muter d'abord, observer ensuite » est exercé explicitement : c'est
-    là que se logeait le désarmement du registre (D-2).
+  * any object-lifetime measurement forces `gc.collect()` first — a view sits in
+    a cycle through its own monitor updater, so its release goes through the
+    cyclic collector;
+  * the "mutate first, observe second" order is exercised explicitly: that is
+    where the registry disarming of D-2 used to hide.
 
-Le module n'est pas découvert par la ligne qui exécute le reste de la suite ; il
-faut le nommer :
+This module is not discovered by the line that runs the rest of the suite; it
+has to be named:
 
     python3 -m unittest Tests.Collections.Registry
 """
@@ -37,16 +37,16 @@ type Factory = Callable[[], Any]
 type Action = Callable[[Any], Any]
 
 class _Handle(IFunction[int]):
-    """Initialiseur de cellule pour `ArrayList`, qui exige un fournisseur et non une séquence."""
+    """Cell initialiser for ArrayList, which takes a provider rather than a sequence."""
 
     def GetValue(self) -> int: return 0
 
 def _source() -> Any: return List[int]([1, 2, 3])
 
 def _arrayList() -> Any:
-    """`ArrayList` s'initialise par un fournisseur, donc à cellules identiques. Les
-    valeurs sont distinguées ensuite, faute de quoi `Move` et `Swap` seraient
-    effectifs sans que le contenu observable le montre."""
+    """ArrayList initialises from a provider, so every cell starts equal. The values are
+    told apart afterwards: otherwise Move and Swap would take effect without the
+    observable content showing it."""
 
     items = ArrayList[int](3, _Handle())
 
@@ -55,8 +55,8 @@ def _arrayList() -> Any:
     return items
 
 def _sizedList() -> Any:
-    """Liste dimensionnée avec de la marge : pleine, elle refuserait toute insertion et
-    laisserait six chemins d'écriture inexercés."""
+    """A sized list with spare capacity: a full one refuses every insertion and would
+    leave six write paths unexercised."""
 
     items = TryCreateSizedList(6, [1, 2, 3])
 
@@ -64,9 +64,9 @@ def _sizedList() -> Any:
 
     return items
 
-# Recettes de mutation, par nom de membre. Un type ne les porte pas toutes ; le
-# harnais n'exerce que celles qu'il expose, ce qui donne la couverture C5 sans
-# écrire un test par couple (type, mutateur).
+# Mutation recipes, by member name. No type carries them all; the harness exercises
+# only those a type exposes, which gives C5 coverage without writing one test per
+# (type, mutator) pair.
 _MUTATORS: dict[str, Action] = {
     "Add":            lambda o: o.Add(9),
     "AddLeft":        lambda o: o.AddLeft(9),
@@ -93,7 +93,7 @@ _MUTATORS: dict[str, Action] = {
 }
 
 class _Case:
-    """Un type concret et sa fabrique."""
+    """A concrete type and its factory."""
 
     def __init__(self, name: str, factory: Factory) -> None:
         self.name = name
@@ -102,10 +102,10 @@ class _Case:
     def Create(self) -> Any: return self.factory()
 
 class _MutableCase(_Case):
-    """Un type mutable, avec de quoi le muter effectivement et de quoi se faire refuser.
+    """A mutable type, with a way to mutate it effectively and a way to be refused.
 
-    `refuse` applique une mutation que le type doit **rejeter** : elle sert à vérifier
-    C6, et son libellé varie selon que le type est redimensionnable ou à taille fixe.
+    'refuse' applies a mutation the type must reject: it is what checks C6, and its
+    wording differs depending on whether the type is resizable or fixed-size.
     """
 
     def __init__(self, name: str, factory: Factory, mutate: Action, refuse: Action, sourced: bool = False) -> None:
@@ -113,31 +113,31 @@ class _MutableCase(_Case):
 
         self.mutate = mutate
         self.refuse = refuse
-        self.sourced = sourced   # le type route son registre vers celui d'une source
+        self.sourced = sourced   # the type routes its registry to a source's
 
     def GetMutators(self, items: Any) -> list[tuple[str, Action]]:
         return [(n, f) for n, f in _MUTATORS.items() if callable(getattr(items, n, None))]
 
 def _snapshot(items: Any) -> tuple[Any, ...]:
-    """Contenu observable, pour établir qu'une mutation a *effectivement* eu lieu."""
+    """Observable content, used to establish that a mutation actually took place."""
 
     return tuple(items.GetAt(i) for i in range(items.GetCount()))
 
-# Strate « Abstraction » : registre propre. Strate « ObjectModel » : registre routé
-# vers la source. `Abstract` n'y figure pas — ses types sont abstraits, non
-# instanciables ; `Selection` fait l'objet d'une classe dédiée plus bas.
 def _resizable(items: Any) -> Any: return items.TryRemoveAt(99)
 def _fixed(items: Any) -> Any: return items.TrySetAt(99, 9)
 
+# Abstraction stratum: own registry. ObjectModel stratum: registry routed to the
+# source. The Abstract stratum is absent — its types are abstract, hence not
+# instantiable; Selection has its own test class further down.
 _IMMUTABLE: list[_Case] = [
     _Case("Tuple",          lambda: Tuple[int]((1, 2, 3))),
     _Case("EquatableTuple", lambda: EquatableTuple[int]((1, 2, 3))),
     _Case("HashableTuple",  lambda: HashableTuple[int]((1, 2, 3))),
 ]
 
-# `ObjectModel.Collection` n'y figure pas : elle est abstraite par conception —
-# `ObservableCollection` en est le concret. Elle s'instancie pourtant à l'exécution,
-# faute de contrainte d'abstraction ; Pyright, lui, la refuse.
+# ObjectModel.Collection is absent on purpose: it is abstract by design, and
+# ObservableCollection is its concrete type. It does instantiate at runtime, for want
+# of an abstractness constraint; pyright, for its part, rejects it.
 _MUTABLE: list[_MutableCase] = [
     _MutableCase("List",       lambda: List[int]([1, 2, 3]),       lambda o: o.Add(9),      _resizable),
     _MutableCase("SortedList", lambda: SortedList[int]([3, 1, 2]), lambda o: o.Add(9),      _resizable),
@@ -156,15 +156,15 @@ def _revoked(view: Any) -> bool:
         return True
 
 def _countCookies() -> int:
-    """Cookies de révocation vivants. Le type est privé : on le reconnaît par son nom
-    plutôt que de l'importer, pour ne pas créer de dépendance hors API."""
+    """Live revocation cookies. The type is private, so it is recognised by name rather
+    than imported, to avoid depending on something outside the public API."""
 
     gc.collect()
 
     return sum(1 for o in gc.get_objects() if type(o).__name__ == "_RevocableViewCookie")
 
 class TestGenerationIdentity(unittest.TestCase):
-    """C2 et C3 : une génération, une instance ; une mutation, une génération neuve."""
+    """C2 and C3: one generation, one instance; one mutation, a fresh generation."""
 
     def test_same_instance_within_a_generation(self) -> None:
         for case in _ALL:
@@ -187,7 +187,7 @@ class TestGenerationIdentity(unittest.TestCase):
                 self.assertFalse(_revoked(second))
 
     def test_generations_chain(self) -> None:
-        """La révocation n'est pas à un coup : chaque génération meurt à son tour."""
+        """Revocation is not one-shot: every generation dies in turn."""
 
         for case in _MUTABLE:
             with self.subTest(type = case.name):
@@ -204,7 +204,7 @@ class TestGenerationIdentity(unittest.TestCase):
                         self.assertTrue(_revoked(view))
 
 class TestLazyCreation(unittest.TestCase):
-    """C4 : aucun révocable n'est alloué tant qu'aucun n'est demandé."""
+    """C4: no revocable is allocated until one is asked for."""
 
     def test_mutating_without_asking_allocates_nothing(self) -> None:
         for case in _MUTABLE:
@@ -217,12 +217,12 @@ class TestLazyCreation(unittest.TestCase):
                 self.assertEqual(_countCookies(), before)
 
 class TestWritePathCoverage(unittest.TestCase):
-    """C5 : un test par mutateur et par type. Le mode de défaillance est le chemin oublié,
-    donc l'échantillon ne vaut rien — il faut l'exhaustivité."""
+    """C5: one test per mutator, per type. The failure mode is the forgotten path, so a
+    sample proves nothing — only exhaustiveness does."""
 
     def test_every_mutator_revokes(self) -> None:
-        """Le verdict dépend de l'effet, pas de l'intention : un mutateur qui refuse
-        n'a pas à révoquer — c'est C6 —, un mutateur qui écrit y est tenu."""
+        """The verdict follows the effect, not the intent: a mutator that refuses need not
+        revoke — that is C6 — while one that writes must."""
 
         for case in _MUTABLE:
             for name, mutate in case.GetMutators(case.Create()):
@@ -233,13 +233,13 @@ class TestWritePathCoverage(unittest.TestCase):
 
                     try: mutate(items)
                     except Exception as error:
-                        self.skipTest(f"{name} inapplicable sur ce type : {type(error).__name__}")
+                        self.skipTest(f"{name} does not apply to this type: {type(error).__name__}")
 
-                    if _snapshot(items) == before: self.assertFalse(_revoked(view), f"{name} n'a rien changé mais a révoqué")
-                    else: self.assertTrue(_revoked(view), f"{name} a muté la collection sans révoquer")
+                    if _snapshot(items) == before: self.assertFalse(_revoked(view), f"{name} changed nothing yet revoked")
+                    else: self.assertTrue(_revoked(view), f"{name} mutated the collection without revoking")
 
 class TestIneffectiveMutation(unittest.TestCase):
-    """C6 : c'est la mutation *effective* qui révoque, pas la tentative."""
+    """C6: it is the effective mutation that revokes, not the attempt."""
 
     def test_a_refused_mutation_leaves_the_view_valid(self) -> None:
         for case in _MUTABLE:
@@ -253,7 +253,7 @@ class TestIneffectiveMutation(unittest.TestCase):
                 self.assertFalse(_revoked(view))
 
 class TestRootRegistration(unittest.TestCase):
-    """C7 et C8 : l'enregistrement vise la racine, et les projections survivent."""
+    """C7 and C8: registration targets the root, and projections survive."""
 
     def test_mutating_the_source_revokes_a_view_taken_on_the_wrapper(self) -> None:
         source = _source()
@@ -276,7 +276,7 @@ class TestRootRegistration(unittest.TestCase):
         self.assertTrue(_revoked(view))
 
     def test_the_projection_itself_survives_the_mutation(self) -> None:
-        """C8 : seul le révocable meurt ; la vue inversée reste utilisable."""
+        """C8: only the revocable dies; the reversed view stays usable."""
 
         source = _source()
         reversed_: Any = source.AsReversed()
@@ -288,7 +288,7 @@ class TestRootRegistration(unittest.TestCase):
         self.assertEqual(reversed_.GetCount(), 4)
 
 class TestRevocationIsTotal(unittest.TestCase):
-    """D1 : toute lecture lève. Aucune ne rend une valeur périmée."""
+    """D1: every read raises. None returns stale content."""
 
     def test_every_read_path_raises(self) -> None:
         for case in _MUTABLE:
@@ -309,7 +309,7 @@ class TestRevocationIsTotal(unittest.TestCase):
                     self.assertRaises(DiscardedError, read)
 
     def test_the_error_names_the_cause(self) -> None:
-        """Un consommateur doit pouvoir distinguer l'invalidation d'une disposition."""
+        """A consumer must be able to tell invalidation from disposal."""
 
         from WinCopies.Typing.Discard import DiscardReason, InvalidatedError
 
@@ -323,8 +323,8 @@ class TestRevocationIsTotal(unittest.TestCase):
         self.assertEqual(caught.exception.GetDiscardReason(), DiscardReason.Invalidated)
 
 class TestRepresentationDegrades(unittest.TestCase):
-    """D2 : `ToString()` et `repr()` ne lèvent pas — ils sont appelés quand quelque chose
-    s'est déjà mal passé — et ne fuient pas le contenu."""
+    """D2: ToString() and repr() do not raise — they are called once something has
+    already gone wrong — and they do not leak the content."""
 
     def test_representation_does_not_raise_and_does_not_leak(self) -> None:
         for case in _MUTABLE:
@@ -339,7 +339,7 @@ class TestRepresentationDegrades(unittest.TestCase):
                     self.assertNotIn("1, 2, 3", text)
 
 class TestSourceRelease(unittest.TestCase):
-    """D5 : retenir une vue révoquée ne retient pas la collection."""
+    """D5: holding on to a revoked view does not hold on to the collection."""
 
     def test_a_revoked_view_does_not_pin_its_source(self) -> None:
         import weakref
@@ -358,8 +358,8 @@ class TestSourceRelease(unittest.TestCase):
         self.assertIsNone(reference())
 
 class TestDerivedTransitivity(unittest.TestCase):
-    """§2.1 de l'addendum 3 : un dérivé se construit sur le révocable, jamais sur ce
-    qu'il enveloppe. Sa validité est celle de son sujet."""
+    """Addendum 3 §2.1: a derived object is built on the revocable, never on what the
+    revocable wraps. Its validity is its subject's."""
 
     def test_a_derivative_taken_before_revocation_raises_after(self) -> None:
         for case in _MUTABLE:
@@ -373,10 +373,10 @@ class TestDerivedTransitivity(unittest.TestCase):
                 self.assertRaises(DiscardedError, lambda: len(sequence))
 
 class TestEnumeratorInvalidation(unittest.TestCase):
-    """F1′ : preuve d'exécution du mécanisme, non preuve de non-régression."""
+    """F1': proof that the mechanism runs, not proof that it has not changed."""
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
-        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # cf. TestArrayCollectionStratum
+        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
             with self.subTest(type = case.name):
                 items = case.Create()
                 enumerator: Any = items.TryGetEnumerator()
@@ -402,7 +402,7 @@ class TestEnumeratorInvalidation(unittest.TestCase):
         self.assertTrue(_revoked(view))
 
 class TestMutateBeforeObserving(unittest.TestCase):
-    """§4.4 : l'ordre inverse. C'est là que se logeait le désarmement du registre (D-2)."""
+    """§4.4: the reverse order. That is where the registry disarming of D-2 used to hide."""
 
     def test_mutating_before_the_first_view_does_not_disarm_the_registry(self) -> None:
         for case in _MUTABLE:
@@ -419,9 +419,9 @@ class TestMutateBeforeObserving(unittest.TestCase):
                     self.assertTrue(_revoked(view))
 
 class TestArrayCollectionStratum(unittest.TestCase):
-    """`ArrayCollection` — donc `ArrayList` — enregistre ses énumérateurs auprès du
-    registre de sa **source** alors qu'il invalide le **sien**. C'est le résidu de D-5 ;
-    la vue est bien révoquée, l'énumérateur non. Attendu rouge, marqué comme tel."""
+    """ArrayCollection — hence ArrayList — registers its enumerators with its source's
+    registry while invalidating its own. This is the D-5 residue: the view is revoked,
+    the enumerator is not. Expected to fail, and marked as such rather than softened."""
 
     @unittest.expectedFailure
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
@@ -434,9 +434,9 @@ class TestArrayCollectionStratum(unittest.TestCase):
         self.assertRaises(DiscardedError, enumerator.MoveNext)
 
 class TestSelectionStratum(unittest.TestCase):
-    """La strate `Selection` route trois de ses quatre types vers un registre propre au
-    lieu de celui de leur source. C'est D-8, et ces tests le constatent — ils sont
-    attendus rouges et marqués comme tels, jamais assouplis."""
+    """The Selection stratum routes three of its four types to a registry of their own
+    instead of their source's. This is D-8, and these tests record it — expected to
+    fail, marked as such, never softened."""
 
     @unittest.expectedFailure
     def test_selection_list_routes_to_its_source_registry(self) -> None:
