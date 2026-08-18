@@ -63,6 +63,8 @@ class _RevocableViewCookie[T](InvalidatableObjectProvider[ITuple[T]]):
         return self._GetValue()
 
     def _DisposeOverride(self, reason: DiscardReason) -> None:
+        super()._DisposeOverride(reason)
+
         onDisposed: Method[DiscardReason] = self.__onDisposed
 
         return onDisposed(reason)
