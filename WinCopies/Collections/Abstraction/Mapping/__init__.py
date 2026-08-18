@@ -154,12 +154,12 @@ class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnume
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryAsEnumerator(self._TryGetIterator())
 
 @final
-class __None(Abstract):
+class _None(Abstract):
     def __init__(self) -> None: super().__init__()
 
-__none: __None = __None()
+__none: _None = _None()
 
-def _GetNoneInstance() -> __None:
+def _GetNoneInstance() -> _None:
     return __none
 
 # TODO: Should inherit from MutableMapping
@@ -211,9 +211,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]:
-        result: TValue|__None = self._GetDictionary().get(key, _GetNoneInstance())
+        result: TValue|_None = self._GetDictionary().get(key, _GetNoneInstance())
 
-        return GetNullValue() if isinstance(result, __None) else GetNullable(result)
+        return GetNullValue() if isinstance(result, _None) else GetNullable(result)
     
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
@@ -247,9 +247,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     @final
     def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        result: TValue|__None = self._GetDictionary().pop(key, _GetNoneInstance())
+        result: TValue|_None = self._GetDictionary().pop(key, _GetNoneInstance())
 
-        return CreateDualValueBool(defaultValue, False) if isinstance(result, __None) else CreateDualValueBool(result, True)
+        return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
     @final
     def Remove(self, key: TKey) -> TValue: return self._GetDictionary().pop(key)
     
