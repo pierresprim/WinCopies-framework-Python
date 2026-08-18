@@ -26,8 +26,7 @@ class DiscardReason(IntEnum):
         return '' if self == DiscardReason.Null else self.name
 
 class UnusableError(InvalidOperationError):
-    def __init__(self, message: str, *args: object) -> None:
-        super().__init__(message, *args)
+    def __init__(self, message: str, *args: object) -> None: super().__init__(message, *args)
 
     @abstractmethod
     def GetUnusabilityReason(self) -> UnusabilityReason:

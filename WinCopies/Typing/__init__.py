@@ -10,7 +10,7 @@ from WinCopies.Typing.Delegate import Converter
 
 type NumericalValue = int|float|decimal
 
-class ErrorBase(Exception):
+class ErrorBase(Exception, Abstract):
     def __init__(self, *args: object) -> None: super().__init__(*args)
     
     @abstractmethod
