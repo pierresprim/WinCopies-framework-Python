@@ -29,6 +29,7 @@ from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstraction.Selection import (
     EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
+from WinCopies.Collections.Extensions.Revocable import RevocableViewFactory
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Typing.Delegate import IFunction
 from WinCopies.Typing.Discard import DiscardedError
@@ -460,13 +461,41 @@ class TestCursorContract(unittest.TestCase):
     transitivity: it is anchored on the source and invalidated straight by the registry.
 
     Two consequences, both asserted below. A cursor may outlive the revocable that
-    produced it, and it may not outlive a mutation of the source.
+    produced it, and it may not outlive a mutation of the source. The first needs a
+    revocation that does not mutate the source, which no collection path offers: a
+    factory of its own supplies it.
     """
 
     def test_a_cursor_outlives_the_revocable_that_produced_it(self) -> None:
-        """Selection.List is the only bench where the two fates can be told apart: its view
-        is not revoked by a source mutation, so a cursor anchored on the view would stay
-        alive while one anchored on the source dies. The contract calls for the latter."""
+        """The half of the rule that a collection cannot show. Reached through a collection,
+        the revocation of the view and the death of the cursor have one and the same cause —
+        the source mutation — so no bench built that way can tell survival from coincidence.
+        A factory of its own is invalidated directly instead: the view dies, the source is
+        never touched, and the cursor must go on."""
+
+        factory = RevocableViewFactory()
+        items = List[int]([1, 2, 3])
+        view: Any = factory.CreateRevocableView(items.AsReadOnly())
+        cursor: Any = view.TryGetEnumerator()
+
+        self.assertIsNotNone(cursor)
+        self.assertTrue(cursor.MoveNext())
+
+        factory.InvalidateObjects()
+
+        self.assertTrue(_revoked(view))
+        self.assertTrue(cursor.MoveNext())              # the view does not carry the cursor away
+        self.assertEqual(cursor.GetCurrent(), 2)
+        self.assertEqual(_snapshot(items), (1, 2, 3))   # and the source is untouched
+
+    def test_a_cursor_is_anchored_on_the_source_and_not_on_the_view(self) -> None:
+        """Selection.List is the only bench where the two anchorings can be told apart: its
+        view is not revoked by a source mutation, so a cursor anchored on the view would
+        stay alive while one anchored on the source dies. The contract calls for the latter.
+
+        The discriminating clause below rests on D-8. Once D-8 is fixed the view will be
+        revoked like any other and this test must be revisited — it is the one green test
+        in this module that the step 4 fix will invalidate."""
 
         source = _source()
         items = SelectionList[int, str](source, str, int)
