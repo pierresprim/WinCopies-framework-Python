@@ -27,7 +27,8 @@ from typing import Any, Callable
 
 from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
-from WinCopies.Collections.Abstraction.Selection import List as SelectionList
+from WinCopies.Collections.Abstraction.Selection import (
+    EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Typing.Delegate import IFunction
 from WinCopies.Typing.Discard import DiscardedError
@@ -131,6 +132,14 @@ def _snapshot(items: Any) -> tuple[Any, ...]:
     """Observable content, used to establish that a mutation actually took place."""
 
     return tuple(items.GetAt(i) for i in range(items.GetCount()))
+
+# Derivation forms a type may expose. Each one is a second level between the root and
+# the revocable, and the failure mode C7 targets is registration with the immediate
+# parent rather than the root: one level works, two levels break.
+_PROJECTIONS: tuple[str, ...] = ("AsReversed", "AsReadOnly", "AsFixedSize")
+
+def _projections(items: Any) -> list[tuple[str, Any]]:
+    return [(n, getattr(items, n)()) for n in _PROJECTIONS if callable(getattr(items, n, None))]
 
 def _resizable(items: Any) -> Any: return items.TryRemoveAt(99)
 def _fixed(items: Any) -> Any: return items.TrySetAt(99, 9)
@@ -277,25 +286,44 @@ class TestRootRegistration(unittest.TestCase):
         self.assertTrue(_revoked(view))
 
     def test_a_chain_two_deep_still_reaches_the_root(self) -> None:
-        source = _source()
-        reversed_: Any = source.AsReversed()
-        view: Any = reversed_.AsImmutable()
+        """C7 on every type and every derivation form it exposes. A revocable obtained
+        from a projection must die when the root is mutated, not merely when the
+        projection is."""
 
-        source.Add(9)
+        for case in _MUTABLE:
+            items = case.Create()
 
-        self.assertTrue(_revoked(view))
+            for name, _ in _projections(items):
+                with self.subTest(type = case.name, projection = name):
+                    items = case.Create()
+                    projection: Any = getattr(items, name)()
+                    view: Any = projection.AsImmutable()
+
+                    case.mutate(items)
+
+                    self.assertTrue(_revoked(view))
+
+class TestProjectionsSurvive(unittest.TestCase):
+    """C8: only the revocable dies. A projection is a view of the framework, not a
+    dependant of the registry; invalidating it too would change the behaviour of a
+    pre-existing type for reasons unrelated to immutability."""
 
     def test_the_projection_itself_survives_the_mutation(self) -> None:
-        """C8: only the revocable dies; the reversed view stays usable."""
+        for case in _MUTABLE:
+            items = case.Create()
 
-        source = _source()
-        reversed_: Any = source.AsReversed()
-        view: Any = reversed_.AsImmutable()
+            for name, _ in _projections(items):
+                with self.subTest(type = case.name, projection = name):
+                    items = case.Create()
+                    projection: Any = getattr(items, name)()
+                    view: Any = projection.AsImmutable()
+                    expected: int = items.GetCount()
 
-        source.Add(9)
+                    case.mutate(items)
 
-        self.assertTrue(_revoked(view))
-        self.assertEqual(reversed_.GetCount(), 4)
+                    self.assertTrue(_revoked(view))
+                    self.assertEqual(projection.GetCount(), items.GetCount())
+                    self.assertGreaterEqual(items.GetCount(), min(expected, 1))
 
 class TestRevocationIsTotal(unittest.TestCase):
     """D1: every read raises. None returns stale content."""
@@ -354,33 +382,78 @@ class TestSourceRelease(unittest.TestCase):
     def test_a_revoked_view_does_not_pin_its_source(self) -> None:
         import weakref
 
-        items = List[int]([1, 2, 3])
-        view: Any = items.AsImmutable()
-
-        items.Add(9)
-
-        reference = weakref.ref(items)
-
-        del items
-        gc.collect()
-
-        self.assertTrue(_revoked(view))
-        self.assertIsNone(reference())
-
-class TestDerivedTransitivity(unittest.TestCase):
-    """Addendum 3 §2.1: a derived object is built on the revocable, never on what the
-    revocable wraps. Its validity is its subject's."""
-
-    def test_a_derivative_taken_before_revocation_raises_after(self) -> None:
         for case in _MUTABLE:
             with self.subTest(type = case.name):
                 items = case.Create()
                 view: Any = items.AsImmutable()
-                sequence = view.AsSequence()
 
                 case.mutate(items)
 
-                self.assertRaises(DiscardedError, lambda: len(sequence))
+                reference = weakref.ref(items)
+
+                del items
+                gc.collect()   # the view sits in a cycle: refcounting alone never frees it
+
+                self.assertTrue(_revoked(view))
+                self.assertIsNone(reference())
+
+class TestDerivedTransitivity(unittest.TestCase):
+    """Addendum 3 §2.1, perimeter settled by note 3.2 §2: transitivity applies to what
+    reads through the revocable, not to what materialises from it.
+
+    A view — AsSequence(), AsReversed(), TryGetEnumerator() — is built on the revocable
+    and dies with it. A slice is a snapshot taken at the call, so one obtained while the
+    revocable was alive legitimately survives; but obtaining one is a data access, so
+    the call itself must raise once the revocable is dead.
+    """
+
+    def test_a_view_taken_before_revocation_raises_after(self) -> None:
+        reads: dict[str, Callable[[Any], Any]] = {
+            "AsSequence":        lambda derived: len(derived),
+            "AsReversed":        lambda derived: derived.GetCount(),
+            "TryGetEnumerator":  lambda derived: derived.MoveNext()}
+
+        for case in _MUTABLE:
+            for name, read in reads.items():
+                if case.name == "ArrayList" and name == "TryGetEnumerator": continue # see TestArrayCollectionStratum
+
+                with self.subTest(type = case.name, derivative = name):
+                    items = case.Create()
+                    view: Any = items.AsImmutable()
+                    derived: Any = getattr(view, name)()
+
+                    self.assertIsNotNone(derived)
+
+                    case.mutate(items)
+
+                    self.assertRaises(DiscardedError, lambda: read(derived))
+
+    def test_taking_a_slice_after_revocation_raises(self) -> None:
+        """Obtaining a slice is a data access, so it falls under D1."""
+
+        for case in _MUTABLE:
+            with self.subTest(type = case.name):
+                items = case.Create()
+                view: Any = items.AsImmutable()
+
+                case.mutate(items)
+
+                self.assertRaises(DiscardedError, lambda: view.SliceAt(slice(0, 2)))
+
+    def test_a_slice_taken_before_revocation_is_a_snapshot(self) -> None:
+        """A slice is an independent collection, so one obtained while the revocable was
+        alive keeps the content it was given."""
+
+        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
+            with self.subTest(type = case.name):
+                items = case.Create()
+                view: Any = items.AsImmutable()
+                taken: Any = view.SliceAt(slice(0, 2))
+                expected: tuple[Any, ...] = _snapshot(taken)
+
+                case.mutate(items)
+
+                self.assertEqual(_snapshot(taken), expected)
 
 class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
@@ -443,10 +516,43 @@ class TestArrayCollectionStratum(unittest.TestCase):
 
         self.assertRaises(DiscardedError, enumerator.MoveNext)
 
+    @unittest.expectedFailure
+    def test_an_enumerator_derived_from_a_revoked_view_dies(self) -> None:
+        """Same cause reached through the transitivity of derived objects."""
+
+        items = _arrayList()
+        view: Any = items.AsImmutable()
+        enumerator: Any = view.TryGetEnumerator()
+
+        items.SetAt(0, 9)
+
+        self.assertRaises(DiscardedError, enumerator.MoveNext)
+
+    @unittest.expectedFailure
+    def test_a_slice_is_an_independent_collection(self) -> None:
+        """ArrayCollection slices the array of cells rather than their values, so the slice
+        shares the very cells it was cut from: mutating the source changes it. Every other
+        indexable type returns a snapshot. Recorded, not softened."""
+
+        items = _arrayList()
+        taken: Any = items.SliceAt(slice(0, 2))
+        expected: tuple[Any, ...] = _snapshot(taken)
+
+        items.SetAt(0, 9)
+
+        self.assertEqual(_snapshot(taken), expected)
+
 class TestSelectionStratum(unittest.TestCase):
     """The Selection stratum routes three of its four types to a registry of their own
     instead of their source's. This is D-8, and these tests record it — expected to
-    fail, marked as such, never softened."""
+    fail, marked as such, never softened.
+
+    Two of the three carry a third status. Their defect is established structurally —
+    the registries measurably differ — but cannot be exercised behaviourally, because
+    their source is immutable and no mutation can therefore revoke anything. Those are
+    skipped with a reason that names the defect, so that it stays visible in the report
+    without inflating the failure count. A skip here is a finding, not an omission.
+    """
 
     @unittest.expectedFailure
     def test_selection_list_routes_to_its_source_registry(self) -> None:
@@ -454,6 +560,31 @@ class TestSelectionStratum(unittest.TestCase):
         items = SelectionList[int, str](source, str, int)
 
         self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
+
+    @unittest.expectedFailure
+    def test_selection_equatable_tuple_routes_to_its_source_registry(self) -> None:
+        """Structural half of the defect for the immutable-sourced types: exerciseable,
+        and failing."""
+
+        source = EquatableTuple[int]((1, 2, 3))
+        items = SelectionEquatableTuple[int, str](source, str)
+
+        self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
+
+    @unittest.expectedFailure
+    def test_selection_hashable_tuple_routes_to_its_source_registry(self) -> None:
+        source = HashableTuple[int]((1, 2, 3))
+        items = SelectionHashableTuple[int, str](source, str)
+
+        self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
+
+    def test_selection_tuples_cannot_be_exercised_behaviourally(self) -> None:
+        """Behavioural half: not exerciseable. Recorded rather than silently dropped."""
+
+        self.skipTest("D-8, third status: Selection.EquatableTuple and Selection.HashableTuple keep a "
+                      "registry of their own — measured by test_selection_equatable_tuple_routes_to_its_source_registry — "
+                      "but their source is immutable, so no mutation can revoke a view and the consequence "
+                      "cannot be exercised. Defect established, not exerciseable.")
 
     @unittest.expectedFailure
     def test_mutating_the_source_revokes_a_selection_view(self) -> None:
