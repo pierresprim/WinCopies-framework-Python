@@ -21,8 +21,10 @@ has to be named:
     python3 -m unittest Tests.Collections.Registry
 """
 
+import contextlib
 import gc
 import unittest
+from collections.abc import Generator
 from typing import Any, Callable
 
 from WinCopies.Collections.Abstraction.Collection import (
@@ -190,6 +192,41 @@ def _countCookies() -> int:
 
     return sum(1 for o in gc.get_objects() if type(o).__name__ == "_RevocableViewCookie")
 
+def _cookieType() -> Any:
+    """The cookie type, resolved by name rather than imported: it is private, and this
+    module keeps its imports to the public API."""
+
+    import WinCopies.Collections.Extensions.Revocable as revocable
+
+    return getattr(revocable, "_RevocableViewCookie")
+
+@contextlib.contextmanager
+def _counting() -> Generator[Callable[[], int]]:
+    """Counts the revocation cookies *constructed* inside the block.
+
+    C4 forbids an allocation, which is a flow. A census of live cookies is a stock and
+    cannot establish it: anything allocated and collected inside the window leaves the
+    census unchanged. Nothing public reports a construction count, so the constructor is
+    wrapped for the duration of the block and restored on the way out — the one place in
+    this module that reaches past the public API, and it is confined here.
+    """
+
+    count: int = 0
+    cookie: Any = _cookieType()
+    original: Any = cookie.__init__
+
+    def counted(self: Any, *args: Any, **kwargs: Any) -> None:
+        nonlocal count
+
+        count += 1
+
+        original(self, *args, **kwargs)
+
+    cookie.__init__ = counted
+
+    try: yield lambda: count
+    finally: cookie.__init__ = original
+
 class TestGenerationIdentity(unittest.TestCase):
     """C2 and C3: one generation, one instance; one mutation, a fresh generation."""
 
@@ -231,9 +268,51 @@ class TestGenerationIdentity(unittest.TestCase):
                         self.assertTrue(_revoked(view))
 
 class TestLazyCreation(unittest.TestCase):
-    """C4: no revocable is allocated until one is asked for."""
+    """C4: no revocable is allocated until one is asked for.
+
+    Measured as a flow, since that is what C4 states. The stock — how many cookies are
+    left standing afterwards — is a different property and lives in TestRegistryRetention.
+    """
 
     def test_mutating_without_asking_allocates_nothing(self) -> None:
+        for case in _MUTABLE:
+            with self.subTest(type = case.name):
+                items = case.Create()
+
+                with _counting() as allocated:
+                    for _ in range(20): case.mutate(items)
+
+                    self.assertEqual(allocated(), 0)
+
+    def test_the_counter_rejects_a_window_that_does_allocate(self) -> None:
+        """The control at the level of the invariant: a window that violates C4 and whose
+        allocations are all collected before it closes. A census returns the same figure
+        for this window and for the conforming one; only the counter tells them apart, and
+        that is the whole reason it is here."""
+
+        items = List[int]([1, 2, 3])
+        before: int = _countCookies()
+
+        with _counting() as allocated:
+            for _ in range(20):
+                items.Add(9)
+
+                view: Any = items.AsImmutable()
+
+                del view
+
+            self.assertEqual(allocated(), 20)
+
+        self.assertEqual(_countCookies(), before)
+
+class TestRegistryRetention(unittest.TestCase):
+    """D5, registry side: mutating without ever asking for a view leaves no cookie behind.
+
+    This is what a census establishes, and it is not C4. Filed here under the invariant it
+    does establish rather than under the one its previous name announced.
+    """
+
+    def test_mutating_without_asking_retains_no_cookie(self) -> None:
         for case in _MUTABLE:
             with self.subTest(type = case.name):
                 items = case.Create()
@@ -432,16 +511,31 @@ class TestRepresentationDegrades(unittest.TestCase):
     already gone wrong — and they do not leak the content."""
 
     def test_representation_does_not_raise_and_does_not_leak(self) -> None:
+        """Both contents are checked for, and neither is spelled out.
+
+        Looking for one literal string misses whichever type no longer contains it: on the
+        four types whose witness mutation is SetAt(0, 9), the content stops being 1, 2, 3
+        and the assertion cannot bite. A leak has two shapes anyway — handing out the
+        snapshot the view was given, or reading through to what the collection now holds —
+        so both are built from the collection itself.
+        """
+
         for case in _MUTABLE:
             with self.subTest(type = case.name):
                 items = case.Create()
+                before: tuple[Any, ...] = _snapshot(items)
                 view: Any = items.AsImmutable()
 
                 case.mutate(items)
 
+                contents: tuple[str, ...] = tuple(", ".join(str(value) for value in content)
+                                                  for content in (before, _snapshot(items)) if content)
+
                 for text in (view.ToString(), repr(view)):
                     self.assertIsInstance(text, str)
-                    self.assertNotIn("1, 2, 3", text)
+
+                    for content in contents:
+                        with self.subTest(content = content): self.assertNotIn(content, text)
 
 class TestSourceRelease(unittest.TestCase):
     """D5: holding on to a revoked view does not hold on to the collection."""
