@@ -245,10 +245,6 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__OnTerminated(True)
         self._OnCompleted()
 
-    @final
-    def __OnStopped(self) -> None:
-        pass
-    
     @abstractmethod
     def _GetCurrent(self) -> T:
         ...
