@@ -168,6 +168,13 @@ _MUTABLE: list[_MutableCase] = [
 ]
 _ALL: list[_Case] = _IMMUTABLE + list(_MUTABLE)
 
+# ArrayList is held out of three benches below, each time by an open defect. Every one of
+# those exclusions has a matching expectedFailure in TestArrayCollectionStratum, so the
+# defect itself is recorded — but nothing lifts the exclusion when the defect goes. A fix
+# leaves it behind, and the coverage silently stays reduced without anything turning red.
+# Lift each one when its named counterpart turns green.
+_EXCEPT_ARRAY_LIST: list[_MutableCase] = [c for c in _MUTABLE if c.name != "ArrayList"]
+
 def _revoked(view: Any) -> bool:
     try:
         view.GetCount()
@@ -327,7 +334,12 @@ class TestProjectionsSurvive(unittest.TestCase):
                     self.assertGreaterEqual(items.GetCount(), min(expected, 1))
 
 class TestRevocationIsTotal(unittest.TestCase):
-    """D1: every read raises. None returns stale content."""
+    """D1: every read raises. None returns stale content.
+
+    Totality is not reached today: ==, != and hash() answer on a revoked view. They are
+    left out of the sweep below and recorded in TestEqualityContract instead, so that the
+    hole reads as a known defect rather than as a claim of totality that happens to pass.
+    """
 
     def test_every_read_path_raises(self) -> None:
         for case in _MUTABLE:
@@ -360,6 +372,60 @@ class TestRevocationIsTotal(unittest.TestCase):
         with self.assertRaises(InvalidatedError) as caught: view.GetCount()
 
         self.assertEqual(caught.exception.GetDiscardReason(), DiscardReason.Invalidated)
+
+class TestEqualityContract(unittest.TestCase):
+    """B4 files Equals under content reading, alongside Contains and Count: a revocable
+    must expose it, and must raise once revoked. It does neither. And one view type serves
+    every subject, so what the subject decided about equality is neither carried nor
+    withheld faithfully.
+
+    D-31 and D-32, recorded here so that a fix has something to turn green. Without these
+    the two defects would live in a report and nowhere else.
+    """
+
+    @unittest.expectedFailure
+    def test_equality_raises_on_a_revoked_view(self) -> None:
+        """D-31: fifteen read paths raise, == and != answer as though nothing happened."""
+
+        items = List[int]([1, 2, 3])
+        view: Any = items.AsImmutable()
+        other: Any = List[int]([1, 2, 3]).AsImmutable()
+
+        items.Add(9)
+
+        self.assertRaises(DiscardedError, lambda: view == other)
+
+    @unittest.expectedFailure
+    def test_hashing_raises_on_a_revoked_view(self) -> None:
+        """D-31, second half: a revoked view still answers hash()."""
+
+        items = List[int]([1, 2, 3])
+        view: Any = items.AsImmutable()
+
+        items.Add(9)
+
+        self.assertRaises(DiscardedError, lambda: hash(view))
+
+    @unittest.expectedFailure
+    def test_a_view_carries_the_equality_of_its_subject(self) -> None:
+        """D-32: the subject compares by content, its view by identity, so AsImmutable()
+        returns something that is not substitutable for what it exposes."""
+
+        subject: Any = EquatableTuple[int]((1, 2, 3))
+        other: Any = EquatableTuple[int]((1, 2, 3))
+
+        self.assertTrue(subject.Equals(other))
+        self.assertEqual(subject.AsImmutable(), other.AsImmutable())
+
+    @unittest.expectedFailure
+    def test_a_view_does_not_grant_a_hashability_its_subject_refuses(self) -> None:
+        """D-32, the other way round: EquatableTuple is deliberately unhashable, and its own
+        view hands out object.__hash__. A type that cannot be a key has a view that can."""
+
+        subject: Any = EquatableTuple[int]((1, 2, 3))
+
+        self.assertRaises(TypeError, lambda: hash(subject))
+        self.assertRaises(TypeError, lambda: hash(subject.AsImmutable()))
 
 class TestRepresentationDegrades(unittest.TestCase):
     """D2: ToString() and repr() do not raise — they are called once something has
@@ -444,7 +510,8 @@ class TestDerivedTransitivity(unittest.TestCase):
         """A slice is an independent collection, so one obtained while the revocable was
         alive keeps the content it was given."""
 
-        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
+        # Lift with TestArrayCollectionStratum.test_a_slice_is_an_independent_collection.
+        for case in _EXCEPT_ARRAY_LIST:
             with self.subTest(type = case.name):
                 items = case.Create()
                 view: Any = items.AsImmutable()
@@ -489,29 +556,32 @@ class TestCursorContract(unittest.TestCase):
         self.assertEqual(_snapshot(items), (1, 2, 3))   # and the source is untouched
 
     def test_a_cursor_is_anchored_on_the_source_and_not_on_the_view(self) -> None:
-        """Selection.List is the only bench where the two anchorings can be told apart: its
-        view is not revoked by a source mutation, so a cursor anchored on the view would
-        stay alive while one anchored on the source dies. The contract calls for the latter.
+        """Telling the two anchorings apart needs a view whose revocation is decoupled from
+        its source's mutations: only then does an anchoring on the view show as survival
+        where an anchoring on the source shows as death.
 
-        The discriminating clause below rests on D-8. Once D-8 is fixed the view will be
-        revoked like any other and this test must be revisited — it is the one green test
-        in this module that the step 4 fix will invalidate."""
+        D-8 supplies such a view by accident — Selection.List is revoked by nothing — and
+        the bench first built here rested on it, so the step 4 fix would have turned this
+        test red with nothing to announce it. A factory of its own supplies the same
+        configuration by construction: the view is registered with that factory, which the
+        collection never notifies."""
 
-        source = _source()
-        items = SelectionList[int, str](source, str, int)
-        view: Any = items.AsImmutable()
+        factory = RevocableViewFactory()
+        items = List[int]([1, 2, 3])
+        view: Any = factory.CreateRevocableView(items.AsReadOnly())
         cursor: Any = view.TryGetEnumerator()
 
         self.assertIsNotNone(cursor)
         self.assertTrue(cursor.MoveNext())
 
-        source.Add(9)
+        items.Add(9)
 
-        self.assertFalse(_revoked(view))                            # D-8: this view survives
-        self.assertRaises(DiscardedError, cursor.MoveNext)          # the cursor does not
+        self.assertFalse(_revoked(view))                    # decoupled by construction, not by defect
+        self.assertRaises(DiscardedError, cursor.MoveNext)  # the cursor follows the source all the same
 
     def test_a_cursor_does_not_outlive_a_mutation_of_the_source(self) -> None:
-        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
+        # Lift with TestArrayCollectionStratum.test_a_cursor_obtained_through_a_view_dies_on_mutation.
+        for case in _EXCEPT_ARRAY_LIST:
             with self.subTest(type = case.name):
                 items = case.Create()
                 view: Any = items.AsImmutable()
@@ -528,7 +598,8 @@ class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
-        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
+        # Lift with TestArrayCollectionStratum.test_an_active_enumerator_dies_on_mutation.
+        for case in _EXCEPT_ARRAY_LIST:
             with self.subTest(type = case.name):
                 items = case.Create()
                 enumerator: Any = items.TryGetEnumerator()
