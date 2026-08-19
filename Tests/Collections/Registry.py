@@ -398,25 +398,24 @@ class TestSourceRelease(unittest.TestCase):
                 self.assertIsNone(reference())
 
 class TestDerivedTransitivity(unittest.TestCase):
-    """Addendum 3 §2.1, perimeter settled by note 3.2 §2: transitivity applies to what
-    reads through the revocable, not to what materialises from it.
+    """Addendum 3 §2.1, perimeter settled by the reformulated B4: transitivity applies to
+    what reads through the revocable, not to what materialises from it nor to what
+    consumes it over time.
 
-    A view — AsSequence(), AsReversed(), TryGetEnumerator() — is built on the revocable
-    and dies with it. A slice is a snapshot taken at the call, so one obtained while the
-    revocable was alive legitimately survives; but obtaining one is a data access, so
-    the call itself must raise once the revocable is dead.
+    A view — AsSequence(), AsReversed() — is built on the revocable and dies with it. A
+    slice is a snapshot taken at the call, so one obtained while the revocable was alive
+    legitimately survives; but obtaining one is a data access, so the call itself must
+    raise once the revocable is dead. Cursors are a category of their own and are
+    covered by TestCursorContract.
     """
 
     def test_a_view_taken_before_revocation_raises_after(self) -> None:
         reads: dict[str, Callable[[Any], Any]] = {
-            "AsSequence":        lambda derived: len(derived),
-            "AsReversed":        lambda derived: derived.GetCount(),
-            "TryGetEnumerator":  lambda derived: derived.MoveNext()}
+            "AsSequence": lambda derived: len(derived),
+            "AsReversed": lambda derived: derived.GetCount()}
 
         for case in _MUTABLE:
             for name, read in reads.items():
-                if case.name == "ArrayList" and name == "TryGetEnumerator": continue # see TestArrayCollectionStratum
-
                 with self.subTest(type = case.name, derivative = name):
                     items = case.Create()
                     view: Any = items.AsImmutable()
@@ -454,6 +453,47 @@ class TestDerivedTransitivity(unittest.TestCase):
                 case.mutate(items)
 
                 self.assertEqual(_snapshot(taken), expected)
+
+class TestCursorContract(unittest.TestCase):
+    """Reformulated B4: TryGetEnumerator() returns a cursor, not a view. A cursor consumes
+    a sequence over time instead of exposing a content, so it is not subject to
+    transitivity: it is anchored on the source and invalidated straight by the registry.
+
+    Two consequences, both asserted below. A cursor may outlive the revocable that
+    produced it, and it may not outlive a mutation of the source.
+    """
+
+    def test_a_cursor_outlives_the_revocable_that_produced_it(self) -> None:
+        """Selection.List is the only bench where the two fates can be told apart: its view
+        is not revoked by a source mutation, so a cursor anchored on the view would stay
+        alive while one anchored on the source dies. The contract calls for the latter."""
+
+        source = _source()
+        items = SelectionList[int, str](source, str, int)
+        view: Any = items.AsImmutable()
+        cursor: Any = view.TryGetEnumerator()
+
+        self.assertIsNotNone(cursor)
+        self.assertTrue(cursor.MoveNext())
+
+        source.Add(9)
+
+        self.assertFalse(_revoked(view))                            # D-8: this view survives
+        self.assertRaises(DiscardedError, cursor.MoveNext)          # the cursor does not
+
+    def test_a_cursor_does_not_outlive_a_mutation_of_the_source(self) -> None:
+        for case in (c for c in _MUTABLE if c.name != "ArrayList"): # see TestArrayCollectionStratum
+            with self.subTest(type = case.name):
+                items = case.Create()
+                view: Any = items.AsImmutable()
+                cursor: Any = view.TryGetEnumerator()
+
+                self.assertIsNotNone(cursor)
+                self.assertTrue(cursor.MoveNext())
+
+                case.mutate(items)
+
+                self.assertRaises(DiscardedError, cursor.MoveNext)
 
 class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
@@ -517,16 +557,17 @@ class TestArrayCollectionStratum(unittest.TestCase):
         self.assertRaises(DiscardedError, enumerator.MoveNext)
 
     @unittest.expectedFailure
-    def test_an_enumerator_derived_from_a_revoked_view_dies(self) -> None:
-        """Same cause reached through the transitivity of derived objects."""
+    def test_a_cursor_obtained_through_a_view_dies_on_mutation(self) -> None:
+        """Same cause, second path: a cursor must not outlive a mutation of its source, and
+        this one does whether it was obtained from the collection or through a view."""
 
         items = _arrayList()
         view: Any = items.AsImmutable()
-        enumerator: Any = view.TryGetEnumerator()
+        cursor: Any = view.TryGetEnumerator()
 
         items.SetAt(0, 9)
 
-        self.assertRaises(DiscardedError, enumerator.MoveNext)
+        self.assertRaises(DiscardedError, cursor.MoveNext)
 
     @unittest.expectedFailure
     def test_a_slice_is_an_independent_collection(self) -> None:
