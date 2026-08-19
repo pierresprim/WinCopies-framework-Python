@@ -530,9 +530,17 @@ class TestArrayCollectionStratum(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_a_slice_is_an_independent_collection(self) -> None:
-        """ArrayCollection slices the array of cells rather than their values, so the slice
-        shares the very cells it was cut from: mutating the source changes it. Every other
-        indexable type returns a snapshot. Recorded, not softened."""
+        """ArrayCollection holds an array of cells rather than of values, and its slice
+        copies the list of cells rather than the cells: parent and slice share the very
+        same boxes, and writing through either is visible from the other. Every other
+        indexable type returns a snapshot.
+
+        This is not recorded as a defect. Holding references rather than values is what
+        the type is for, so sharing them may well be the intent; whether a slice should
+        copy the boxes is a design question, pending arbitration. The test states the
+        rule the rest of the family follows, and will turn green on its own should the
+        arbitration go that way.
+        """
 
         items = _arrayList()
         taken: Any = items.SliceAt(slice(0, 2))
