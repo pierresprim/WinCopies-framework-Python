@@ -11,8 +11,8 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
-from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
-from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectRegistry
+from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectRegistry
 
 from WinCopies.Delegates import ConcatenateMethods
 
@@ -20,7 +20,7 @@ from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider
 
-class IRevocableViewFactory(IRevocableViewMonitor, IObjectMonitor):
+class IRevocableViewRegistry(IRevocableViewMonitor, IObjectMonitor):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -28,24 +28,24 @@ class IRevocableViewFactory(IRevocableViewMonitor, IObjectMonitor):
         ...
 
 class RevocableViewMonitor(Abstract, IRevocableViewMonitor):
-    def __init__(self, factory: IRevocableViewFactory) -> None:
+    def __init__(self, registry: IRevocableViewRegistry) -> None:
         super().__init__()
 
-        self.__factory: IRevocableViewFactory = factory
+        self.__registry: IRevocableViewRegistry = registry
     
     @final
-    def _GetFactory(self) -> IRevocableViewFactory: return self.__factory
+    def _GetRegistry(self) -> IRevocableViewRegistry: return self.__registry
     
     @final
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: return self._GetFactory().CreateRevocableView(items, onDisposed)
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: return self._GetRegistry().CreateRevocableView(items, onDisposed)
 @final
 class _RevocableViewMonitorUpdater(ValueFunctionUpdater[IRevocableViewMonitor]):
-    def __init__(self, factory: IRevocableViewFactory, updater: Method[IFunction[IRevocableViewMonitor]]) -> None:
+    def __init__(self, registry: IRevocableViewRegistry, updater: Method[IFunction[IRevocableViewMonitor]]) -> None:
         super().__init__(updater)
 
-        self.__factory: IRevocableViewFactory = factory
+        self.__registry: IRevocableViewRegistry = registry
     
-    def _GetValue(self) -> IRevocableViewMonitor: return RevocableViewMonitor(self.__factory)
+    def _GetValue(self) -> IRevocableViewMonitor: return RevocableViewMonitor(self.__registry)
 
 @final
 class _RevocableViewCookie[T](InvalidatableObjectProvider[ITuple[T]]):
@@ -162,30 +162,30 @@ def _CreateRevocableView[T](items: ITuple[T], onDisposed: Method[DiscardReason]|
 
 type RevocableView[T] = _RevocableView[T]
 
-class RevocableViewFactory(Abstract, IRevocableViewFactory):
+class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
     def __init__(self) -> None:
         def update(func: IFunction[IRevocableViewMonitor]) -> None: self.__monitor = func
         
         super().__init__()
 
-        self.__factory: IObjectFactory[IInvalidatable] = InvalidatableObjectFactory[IInvalidatable]()
+        self.__registry: IObjectRegistry[IInvalidatable] = InvalidatableObjectRegistry[IInvalidatable]()
         self.__monitor: IFunction[IRevocableViewMonitor] = _RevocableViewMonitorUpdater(self, update) # type: ignore[no-redef]
 
     @final
-    def _GetFactory(self) -> IObjectFactory[IInvalidatable]:
-        return self.__factory
+    def _GetRegistry(self) -> IObjectRegistry[IInvalidatable]:
+        return self.__registry
     
     @final
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]:
         view: tuple[ITuple[T], IInvalidatable] = _CreateRevocableView(items, onDisposed)
 
-        self._GetFactory().RegisterObject(view[1])
+        self._GetRegistry().RegisterObject(view[1])
 
         return view[0]
 
     @final
     def InvalidateObjects(self) -> None:
-        return self._GetFactory().InvalidateObjects()
+        return self._GetRegistry().InvalidateObjects()
     
     @final
     def AsMonitor(self) -> IRevocableViewMonitor: return self.__monitor.GetValue()

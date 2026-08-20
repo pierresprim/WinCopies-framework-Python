@@ -8,8 +8,8 @@ from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Collections.Generation.Factory.Core import ObjectFactoryBase, CompositeRemovable
-from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectFactoryBase, IKeyableObjectFactory
+from WinCopies.Collections.Generation.Factory.Core import ObjectRegistryBase, CompositeRemovable
+from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Discard import IInvalidatable
@@ -24,7 +24,7 @@ class _KeyedNode[TKey: HashableProtocol, TValue: IInvalidatable](Abstract, IRemo
     
     def Remove(self) -> None: self.__items.TryRemove(self.__key)
 
-class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable](ObjectFactoryBase[TIn, TOut], IKeyableObjectFactoryBase[TKey, TIn, TOut]):
+class KeyedObjectRegistryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable](ObjectRegistryBase[TIn, TOut], IKeyableObjectRegistryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -80,9 +80,9 @@ class KeyedObjectFactoryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable](
         
         self._GetKeyedItems().Clear()
 
-class KeyedObjectFactory[TKey: HashableProtocol, TValue](KeyedObjectFactoryBase[TKey, TValue, IInvalidatable]):
+class KeyedObjectRegistry[TKey: HashableProtocol, TValue](KeyedObjectRegistryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
-class KeyedDisposableObjectFactory[TKey: HashableProtocol, TValue: IInvalidatable](KeyedObjectFactoryBase[TKey, TValue, TValue], IKeyableObjectFactory[TKey, TValue]):
+class KeyedDisposableObjectRegistry[TKey: HashableProtocol, TValue: IInvalidatable](KeyedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final

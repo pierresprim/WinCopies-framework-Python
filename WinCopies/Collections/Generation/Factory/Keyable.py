@@ -3,7 +3,7 @@ from weakref import ref, ReferenceType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IGetter
-from WinCopies.Collections.Generation.Factory import IObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectRegistry
 from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol
 
 class INodeBase(IInterface):
@@ -42,7 +42,7 @@ class Node[TKey: HashableProtocol, TValue](Abstract, INode[TKey, TValue]):
     def Equals(self, item: INode[TKey, TValue]|TKey|object) -> bool: return self.GetKey() == ExtractKey(item)
     def Hash(self) -> int: return hash(self.GetKey())
 
-class IKeyableObjectFactoryBase[TKey, TIn, TOut](IObjectFactory[TIn], IGetter[TKey, TOut]):
+class IKeyableObjectRegistryBase[TKey, TIn, TOut](IObjectRegistry[TIn], IGetter[TKey, TOut]):
     def __init__(self) -> None: super().__init__()
-class IKeyableObjectFactory[TKey, TValue](IKeyableObjectFactoryBase[TKey, TValue, TValue]):
+class IKeyableObjectRegistry[TKey, TValue](IKeyableObjectRegistryBase[TKey, TValue, TValue]):
     def __init__(self) -> None: super().__init__()

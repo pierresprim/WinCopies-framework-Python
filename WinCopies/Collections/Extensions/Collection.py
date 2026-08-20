@@ -13,10 +13,10 @@ from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGe
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, CollectionViewMonitor, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
-from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorFactory, ResumableEnumeratorFactory, TupleEnumerator, ResumableTupleEnumerator
-from WinCopies.Collections.Extensions.Revocable import IRevocableViewFactory, RevocableViewFactory
+from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
+from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
 from WinCopies.Collections.Generation.Factory import IObjectMonitor
-from WinCopies.Collections.Generation.Factory.Core import ICollectionFactory, CollectionFactory
+from WinCopies.Collections.Generation.Factory.Core import ICollectionRegistry, CollectionRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
 from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast
@@ -235,20 +235,20 @@ class _ITuple[T](ITupleBase[T], IViewProvider):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _GetCollectionFactories(self) -> ICollectionFactories:
+    def _GetCollectionRegistries(self) -> ICollectionRegistries:
         ...
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors:
-        return self._GetCollectionFactories().AsMonitors()
+        return self._GetCollectionRegistries().AsMonitors()
 
     @final
-    def _InvalidateViews(self) -> None: self._GetCollectionFactories().InvalidateObjects()
+    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
 
 class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None: super().__init__()
 
-    def __GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
-        return self._GetCollectionFactories().GetEnumeratorFactory()
+    def __GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
+        return self._GetCollectionRegistries().GetEnumeratorRegistry()
     
     # Not final to allow customization of the enumerator.
     def _TryGetEnumerator(self) -> IEnumerator[T]:
@@ -257,9 +257,9 @@ class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
         return ResumableTupleEnumerator[T](self)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__GetEnumeratorFactory().RegisterEnumerator(self._TryGetEnumerator())
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__GetEnumeratorRegistry().RegisterEnumerator(self._TryGetEnumerator())
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__GetEnumeratorFactory().RegisterResumableEnumerator(self._TryGetResumableEnumerator())
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__GetEnumeratorRegistry().RegisterResumableEnumerator(self._TryGetResumableEnumerator())
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
@@ -315,7 +315,7 @@ class _ReversedHashableTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IH
     
     def _GetValue(self) -> IHashableTuple[T]: return _ReversedHashableTuple[T](self.__array)
 
-class ICollectionFactories(ICollectionFactory[IObjectMonitor]):
+class ICollectionRegistries(ICollectionRegistry[IObjectMonitor]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -323,43 +323,43 @@ class ICollectionFactories(ICollectionFactory[IObjectMonitor]):
         ...
 
     @abstractmethod
-    def GetEnumeratorFactory(self) -> IResumableEnumeratorFactory:
+    def GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
         ...
     
     @abstractmethod
-    def GetRevocableViewFactory(self) -> IRevocableViewFactory:
+    def GetRevocableViewRegistry(self) -> IRevocableViewRegistry:
         ...
 
 @final
 class _Monitors(Abstract, ICollectionMonitors):
-    def __init__(self, factories: ICollectionFactories) -> None:
+    def __init__(self, registries: ICollectionRegistries) -> None:
         super().__init__()
 
-        self.__factories: ICollectionFactories = factories
+        self.__registries: ICollectionRegistries = registries
 
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__factories.GetEnumeratorFactory().AsMonitor()
+    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__registries.GetEnumeratorRegistry().AsMonitor()
     
-    def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__factories.GetRevocableViewFactory().AsMonitor()
+    def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__registries.GetRevocableViewRegistry().AsMonitor()
 @final
-class _CollectionFactories(CollectionFactory[IObjectMonitor], ICollectionFactories):
+class _CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegistries):
     def __init__(self) -> None:
-        def createRegistry[U: IObjectMonitor](factory: U) -> U:
-            self.RegisterObject(factory)
+        def createRegistry[U: IObjectMonitor](registry: U) -> U:
+            self.RegisterObject(registry)
 
-            return factory
+            return registry
         
         super().__init__()
 
         self.__monitors: ICollectionMonitors = _Monitors(self)
 
-        self.__factory: IResumableEnumeratorFactory = createRegistry(ResumableEnumeratorFactory())
-        self.__view: IRevocableViewFactory = createRegistry(RevocableViewFactory())
+        self.__registry: IResumableEnumeratorRegistry = createRegistry(ResumableEnumeratorRegistry())
+        self.__view: IRevocableViewRegistry = createRegistry(RevocableViewRegistry())
 
     def AsMonitors(self) -> ICollectionMonitors: return self.__monitors
 
-    def GetEnumeratorFactory(self) -> IResumableEnumeratorFactory: return self.__factory
+    def GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry: return self.__registry
     
-    def GetRevocableViewFactory(self) -> IRevocableViewFactory: return self.__view
+    def GetRevocableViewRegistry(self) -> IRevocableViewRegistry: return self.__view
 
 class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
@@ -367,11 +367,11 @@ class _TupleCollection[T](_TupleCollectionBase[T], _ITuple[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__factories: ICollectionFactories = _CollectionFactories()
+        self.__registries: ICollectionRegistries = _CollectionRegistries()
         self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self)
 
     @final
-    def _GetCollectionFactories(self) -> ICollectionFactories: return self.__factories
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registries
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__monitor
@@ -520,15 +520,15 @@ class _ArrayCollectionAbstract[TItem, TCollection](_ArrayCollectionAbstractBase[
         
         super().__init__()
 
-        factory: ICollectionFactories = _CollectionFactories()
+        registry: ICollectionRegistries = _CollectionRegistries()
 
-        self.__factory: ICollectionFactories = factory
+        self.__registry: ICollectionRegistries = registry
         self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
 
         self.__reversed: IFunction[TCollection] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
     
     @final
-    def _GetCollectionFactories(self) -> ICollectionFactories: return self.__factory
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registry
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self.__monitor

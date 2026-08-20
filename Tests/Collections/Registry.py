@@ -31,7 +31,7 @@ from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstraction.Selection import (
     EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
-from WinCopies.Collections.Extensions.Revocable import RevocableViewFactory
+from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Typing.Delegate import IFunction
 from WinCopies.Typing.Discard import DiscardedError
@@ -624,25 +624,25 @@ class TestCursorContract(unittest.TestCase):
     Two consequences, both asserted below. A cursor may outlive the revocable that
     produced it, and it may not outlive a mutation of the source. The first needs a
     revocation that does not mutate the source, which no collection path offers: a
-    factory of its own supplies it.
+    registry of its own supplies it.
     """
 
     def test_a_cursor_outlives_the_revocable_that_produced_it(self) -> None:
         """The half of the rule that a collection cannot show. Reached through a collection,
         the revocation of the view and the death of the cursor have one and the same cause —
         the source mutation — so no bench built that way can tell survival from coincidence.
-        A factory of its own is invalidated directly instead: the view dies, the source is
+        A registry of its own is invalidated directly instead: the view dies, the source is
         never touched, and the cursor must go on."""
 
-        factory = RevocableViewFactory()
+        registry = RevocableViewRegistry()
         items = List[int]([1, 2, 3])
-        view: Any = factory.CreateRevocableView(items.AsReadOnly())
+        view: Any = registry.CreateRevocableView(items.AsReadOnly())
         cursor: Any = view.TryGetEnumerator()
 
         self.assertIsNotNone(cursor)
         self.assertTrue(cursor.MoveNext())
 
-        factory.InvalidateObjects()
+        registry.InvalidateObjects()
 
         self.assertTrue(_revoked(view))
         self.assertTrue(cursor.MoveNext())              # the view does not carry the cursor away
@@ -656,13 +656,13 @@ class TestCursorContract(unittest.TestCase):
 
         D-8 supplies such a view by accident — Selection.List is revoked by nothing — and
         the bench first built here rested on it, so the step 4 fix would have turned this
-        test red with nothing to announce it. A factory of its own supplies the same
-        configuration by construction: the view is registered with that factory, which the
+        test red with nothing to announce it. A registry of its own supplies the same
+        configuration by construction: the view is registered with that registry, which the
         collection never notifies."""
 
-        factory = RevocableViewFactory()
+        registry = RevocableViewRegistry()
         items = List[int]([1, 2, 3])
-        view: Any = factory.CreateRevocableView(items.AsReadOnly())
+        view: Any = registry.CreateRevocableView(items.AsReadOnly())
         cursor: Any = view.TryGetEnumerator()
 
         self.assertIsNotNone(cursor)

@@ -8,7 +8,7 @@ class IObjectMonitor(IInterface):
     @abstractmethod
     def InvalidateObjects(self) -> None:
         ...
-class IObjectFactory[T](IObjectMonitor):
+class IObjectRegistry[T](IObjectMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod

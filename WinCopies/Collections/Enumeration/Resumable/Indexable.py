@@ -4,9 +4,9 @@ from abc import abstractmethod
 from typing import Callable, final
 
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorFactory, IDefaultResumableEnumerator, ResumableEnumerationCursor
+from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultResumableEnumerator, ResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
-from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectFactory, SortedDisposableObjectFactory
+from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
@@ -39,9 +39,9 @@ class _ResumableIncrementalEnumerationCursor(ResumableEnumerationCursor[int], IR
 
     def _GetDefaultCursorValue(self) -> int: return -1
 
-class IResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](ISortedObjectFactory[int, T], IDefaultResumableEnumerationCursorFactory[T]):
+class IResumableIncrementalEnumerationCursorRegistry[T: IResumableIncrementalEnumerationCursor](ISortedObjectRegistry[int, T], IDefaultResumableEnumerationCursorRegistry[T]):
     def __init__(self) -> None: super().__init__()
-class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnumerationCursor](SortedDisposableObjectFactory[int, T], IResumableIncrementalEnumerationCursorFactory[T]):
+class ResumableIncrementalEnumerationCursorRegistry[T: IResumableIncrementalEnumerationCursor](SortedDisposableObjectRegistry[int, T], IResumableIncrementalEnumerationCursorRegistry[T]):
     def __init__(self, cookie: ICookie) -> None:
         super().__init__()
         
@@ -70,7 +70,7 @@ class ResumableIncrementalEnumerationCursorFactory[T: IResumableIncrementalEnume
     def GetFirstCursor(self) -> T:
         return self._GetItems().GetLastValue()
 @final
-class _ResumableEnumerationCursorFactory(ResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor]):
+class _ResumableEnumerationCursorRegistry(ResumableIncrementalEnumerationCursorRegistry[_ResumableIncrementalEnumerationCursor]):
     def __init__(self, cookie: ICookie) -> None: super().__init__(cookie)
     
     def _InitializeCursorOverride(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
@@ -80,7 +80,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultResuma
     def __init__(self) -> None:
         super().__init__()
         
-        self.__cursors: IResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor] = _ResumableEnumerationCursorFactory(self._CreateCursorCookie())
+        self.__cursors: IResumableIncrementalEnumerationCursorRegistry[_ResumableIncrementalEnumerationCursor] = _ResumableEnumerationCursorRegistry(self._CreateCursorCookie())
     
     @final
     def _GetFirstCursor(self) -> IResumableEnumerationCursor:
@@ -102,7 +102,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultResuma
 
             return cursor
         
-        cursors: IResumableIncrementalEnumerationCursorFactory[_ResumableIncrementalEnumerationCursor] = self.__cursors
+        cursors: IResumableIncrementalEnumerationCursorRegistry[_ResumableIncrementalEnumerationCursor] = self.__cursors
         index: int = self._GetValue()
         cursor: IResumableIncrementalEnumerationCursor|None = cursors.TryGetValue(cursors.BisectLeft(index)).TryGetValue()
 

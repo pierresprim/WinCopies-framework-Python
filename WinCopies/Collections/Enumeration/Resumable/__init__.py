@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
-from WinCopies.Collections.Generation.Factory import IObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, GetDiscardedError
@@ -134,15 +134,14 @@ class ResumableEnumeratorBase[T](EnumeratorBase[T], IResumableEnumerator[T]):
 class ResumableEnumerator[T](ResumableEnumeratorBase[T]):
     def __init__(self) -> None: super().__init__()
 
-class IResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IObjectFactory[T], IReadOnlyCollection):
+class IResumableEnumerationCursorRegistry[T: IResumableEnumerationCursor](IObjectRegistry[T], IReadOnlyCollection):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def GetFirstCursor(self) -> IResumableEnumerationCursor:
         ...
-class IDefaultResumableEnumerationCursorFactory[T: IResumableEnumerationCursor](IResumableEnumerationCursorFactory[T]):
-    def __init__(self) -> None:
-        super().__init__()
+class IDefaultResumableEnumerationCursorRegistry[T: IResumableEnumerationCursor](IResumableEnumerationCursorRegistry[T]):
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _InitializeCursor(self, cursor: T, node: INode) -> None:

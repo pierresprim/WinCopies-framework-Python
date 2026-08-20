@@ -6,7 +6,7 @@ from typing import final, Self
 from WinCopies import Abstract
 from WinCopies.Collections.Core import IClearable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectFactory
+from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode
@@ -206,7 +206,7 @@ class _CollectionNode[T: IObjectMonitor](_NodeBase[T, "_CollectionNode[T]", _Col
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _CollectionNode[T]:
         return _CollectionNode[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
 
-class ObjectFactoryBase[TIn, TOut: IInvalidatable](Abstract, IObjectFactory[TIn]):
+class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[TOut]]) -> None: self.__readOnly = func
         
@@ -261,10 +261,10 @@ class ObjectFactoryBase[TIn, TOut: IInvalidatable](Abstract, IObjectFactory[TIn]
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
     
     def InvalidateObjects(self) -> None: self.__clear()
-class ObjectFactory[T](ObjectFactoryBase[T, IInvalidatable]):
+class ObjectRegistry[T](ObjectRegistryBase[T, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class InvalidatableObjectFactory[T: IInvalidatable](ObjectFactoryBase[T, T]):
+class InvalidatableObjectRegistry[T: IInvalidatable](ObjectRegistryBase[T, T]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -279,7 +279,7 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
 
     def Remove(self) -> None: self.__node.Remove()
 
-class ICollectionFactory[T: IObjectMonitor](IObjectFactory[T]):
+class ICollectionRegistry[T: IObjectMonitor](IObjectRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -287,7 +287,7 @@ class ICollectionFactory[T: IObjectMonitor](IObjectFactory[T]):
         ...
 
     def RegisterObject(self, item: T) -> None: self.RegisterMonitor(item)
-class CollectionFactory[T: IObjectMonitor](Abstract, ICollectionFactory[T]):
+class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def __init__(self) -> None:
         super().__init__()
 

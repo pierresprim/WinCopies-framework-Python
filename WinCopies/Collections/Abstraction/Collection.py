@@ -208,7 +208,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], Mut
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None: super().__init__(items)
     
     @final
-    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionFactories()
+    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionRegistries()
     
     @final
     def _Swap(self, x: int, y: int) -> None:
@@ -485,7 +485,7 @@ class SortedList[T: SupportsRichComparison](ListAbstract[T], Sequence[T], Collec
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
     @final
-    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionFactories()
+    def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionRegistries()
     
     @final
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return bisect_left(self.AsSequence(), item) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
