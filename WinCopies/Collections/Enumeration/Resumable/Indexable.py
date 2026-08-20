@@ -6,7 +6,7 @@ from typing import Callable, final
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultResumableEnumerator, ResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
-from WinCopies.Collections.Generation.Factory.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry
+from WinCopies.Collections.Generation.Registry.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 

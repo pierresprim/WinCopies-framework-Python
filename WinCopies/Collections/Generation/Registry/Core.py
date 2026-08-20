@@ -6,7 +6,7 @@ from typing import final, Self
 from WinCopies import Abstract
 from WinCopies.Collections.Core import IClearable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Factory import IObjectMonitor, IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode

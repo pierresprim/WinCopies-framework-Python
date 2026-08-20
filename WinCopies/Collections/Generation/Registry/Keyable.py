@@ -3,7 +3,7 @@ from weakref import ref, ReferenceType
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IGetter
-from WinCopies.Collections.Generation.Factory import IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectRegistry
 from WinCopies.Typing.Comparison import IHashableItem, HashableProtocol
 
 class INodeBase(IInterface):

@@ -7,8 +7,8 @@ from typing import final
 
 from WinCopies.Collections.Core import IReadOnlyCollection, IClearable, Countable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Factory.Core import ObjectRegistryBase, CompositeRemovable
-from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
+from WinCopies.Collections.Generation.Registry.Core import ObjectRegistryBase, CompositeRemovable
+from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem, CompareTo

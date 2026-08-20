@@ -8,8 +8,8 @@ from WinCopies.Collections.Enumeration import IInvalidatableEnumeratorBase, IEnu
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
-from WinCopies.Collections.Generation.Factory import IObjectRegistry
-from WinCopies.Collections.Generation.Factory.Core import InvalidatableObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectRegistry
+from WinCopies.Collections.Generation.Registry.Core import InvalidatableObjectRegistry
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 

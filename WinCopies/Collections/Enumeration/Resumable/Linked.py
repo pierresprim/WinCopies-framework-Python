@@ -7,8 +7,8 @@ from WinCopies import Abstract
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultResumableEnumerator, NullableResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
-from WinCopies.Collections.Generation.Factory.Keyable import IKeyableObjectRegistry
-from WinCopies.Collections.Generation.Factory.Mapping import KeyedDisposableObjectRegistry
+from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistry
+from WinCopies.Collections.Generation.Registry.Mapping import KeyedDisposableObjectRegistry
 from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
 from WinCopies.Typing.Comparison import IHashableValue

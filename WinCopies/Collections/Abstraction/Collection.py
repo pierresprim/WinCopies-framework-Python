@@ -13,7 +13,7 @@ from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Collection import IViewProvider
-from WinCopies.Collections.Generation.Factory import IObjectMonitor
+from WinCopies.Collections.Generation.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration import Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
