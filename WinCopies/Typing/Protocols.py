@@ -1,3 +1,4 @@
+from types import TracebackType
 from typing import runtime_checkable, Any, Protocol, Self
 
 @runtime_checkable
@@ -45,3 +46,16 @@ class EquatableObject(SupportsEqualityComparison, SupportsStringization, Protoco
 @runtime_checkable
 class ComparableObject(SupportsEqualityAndRichComparison, EquatableObject, Protocol):
     pass
+
+@runtime_checkable
+class SupportsContextManagement(Protocol):
+    def __enter__(self) -> Self:
+        ...
+    
+    def __exit__(self, exc_type: type[Exception]|None, exc_value: Exception|None, traceback: TracebackType|None) -> bool:
+        ...
+
+@runtime_checkable
+class SupportsClose(Protocol):
+    def close(self) -> None:
+        ...

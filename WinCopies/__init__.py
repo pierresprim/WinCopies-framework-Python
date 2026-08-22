@@ -43,8 +43,7 @@ class IDisposableBase(IDisposableAbstract):
     def Initialize(self) -> None:
         pass
 class IDisposable(IDisposableBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
         return False
