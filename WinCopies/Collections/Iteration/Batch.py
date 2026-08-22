@@ -5,7 +5,7 @@ from typing import Callable, final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IReadOnlyCountableIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, CreateIterable, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, AsEnumerable, GetEnumeratorInactiveError
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorAbstract, IResumableEnumerationCursor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement
@@ -799,7 +799,7 @@ class LazyCountableBatchEnumerator[T](LazyCountableBatchEnumeratorBase[T]):
         return self.__items.GetCount()
 class LazyCollectionBatchEnumerator[T](LazyCountableBatchEnumeratorBase[T]):
     def __init__(self, size: int, items: Collection[T]) -> None:
-        super().__init__(size, CreateIterable(items).GetEnumerator())
+        super().__init__(size, AsEnumerable(items).GetEnumerator())
 
         self.__items: Collection[T] = items
     
@@ -910,10 +910,10 @@ def TryBatch[T](size: int,
                 enumerator: IEnumerator[T]|None = items.TryGetEnumerator()
 
                 return None if enumerator is None else _handle(enumerator, handler)
-            case Collection(): return enumerate(LazyCollectionBatchEnumerator[T](size, items)) if handler is None else _handle(CreateIterable(items).GetEnumerator(), handler)
+            case Collection(): return enumerate(LazyCollectionBatchEnumerator[T](size, items)) if handler is None else _handle(AsEnumerable(items).GetEnumerator(), handler)
             
             case IEnumerable(): return tryCreateEnumerator(items)
-            case _: return tryCreateEnumerator(CreateIterable(items))
+            case _: return tryCreateEnumerator(AsEnumerable(items))
     
     return None if items is None else batch(items)
 def Batch[T](size: int,

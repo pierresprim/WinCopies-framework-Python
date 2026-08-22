@@ -4,7 +4,7 @@ from typing import Callable, Type
 
 from WinCopies.Bool import NullableBoolean
 from WinCopies.Collections import Generator, IterationResult, IterableScanResult
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, CreateIterable, AsEnumerator
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotPredicate, RetrieveValue
@@ -460,7 +460,7 @@ def __Exclude[T](items: Iterable[T]|None, selector: Selector[IEnumerator[T]]) ->
         
         return None if enumerator is None else selector(enumerator).AsIterator()
     
-    for item in TryEnumerate(None if items is None else getIterator(CreateIterable(items))): yield item
+    for item in TryEnumerate(None if items is None else getIterator(AsEnumerable(items))): yield item
 
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items while they match a predicate, then includes the rest.
@@ -603,7 +603,7 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
 
     validator = validate
 
-    enumerator: IEnumerator[T]|None = CreateIterable(items).TryGetEnumerator()
+    enumerator: IEnumerator[T]|None = AsEnumerable(items).TryGetEnumerator()
 
     if enumerator is None: return IterationResult.Empty
 
@@ -676,7 +676,7 @@ def __TryZip[T1, T2](x: Iterable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Genera
     
     match y:
         case Iterator(): return zip(AsEnumerator(y))
-        case Iterable(): return zip(CreateIterable(y).GetEnumerator())
+        case Iterable(): return zip(AsEnumerable(y).GetEnumerator())
         
         case IEnumerable():
             _y: IEnumerator[T2]|None = y.TryGetEnumerator()

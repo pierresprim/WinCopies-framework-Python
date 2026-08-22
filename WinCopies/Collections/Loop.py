@@ -2,7 +2,7 @@ from collections.abc import Iterable, Iterator
 from typing import Callable
 
 from WinCopies import Not
-from WinCopies.Collections.Enumeration import IEnumerator, CreateIterable
+from WinCopies.Collections.Enumeration import IEnumerator, AsEnumerable
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
@@ -12,7 +12,7 @@ from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Nulla
 from WinCopies.Typing.Pairing import DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
 
 def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
-    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
+    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
     
     return CreateDualResult(enumerator.AsIterator(), enumerator.HasProcessedItems)
 def TryEnumerate[T](items: Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
@@ -166,7 +166,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
         - True if predicate matched
         - False if completed without match.
     """
-    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
+    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator():
         if predicate(entry): return True
@@ -265,7 +265,7 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     Returns:
         True if completed all values or False if the source was empty.
     """
-    enumerator: IEnumerator[T] = CreateIterable(items).GetEnumerator()
+    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
 
     for entry in enumerator.AsIterator(): action(entry)
     

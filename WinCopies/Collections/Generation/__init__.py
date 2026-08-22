@@ -6,7 +6,7 @@ from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CreateIterable, GetIterable
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import GetNotPredicate
@@ -135,7 +135,7 @@ class IteratorBase[T](Abstract, IIterator[T]):
             
             return None if enumerator is None else selector(enumerator).AsIterator()
         
-        for item in TryEnumerate(getIterator(CreateIterable(self._GetItems()))):
+        for item in TryEnumerate(getIterator(AsEnumerable(self._GetItems()))):
             yield item
 
             if self._ProcessItem(item): break
