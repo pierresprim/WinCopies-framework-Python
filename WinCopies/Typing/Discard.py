@@ -212,8 +212,10 @@ class Disposable(DisposableBase):
 
     @final
     def Dispose(self) -> None: self._Dispose(DiscardReason.Disposed)
+class Invalidatable(DisposableBase, IInvalidatableInfo):
+    def __init__(self) -> None: super().__init__()
 
-class InvalidatableObjectProviderBase[T](DisposableBase, IInvalidatableInfo):
+class InvalidatableObjectProviderBase[T](Invalidatable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
