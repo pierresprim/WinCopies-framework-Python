@@ -130,7 +130,7 @@ class IInvalidatable(IDisposableBase):
 
     @final
     def Invalidate(self) -> None: self._Dispose(DiscardReason.Invalidated)
-class IInvalidatableInfo(IInvalidatable, IDiscardableInfo):
+class IInvalidatableInfo(IInvalidatable, IDiscardableItem):
     def __init__(self) -> None: super().__init__()
 
 class _IDisposableCookie(_IDiscardable):
