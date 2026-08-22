@@ -4,8 +4,9 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, IDisposableAbstract, IDisposable as IDisposableBase, Abstract
+from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Method, Function
+from WinCopies.Typing.Delegate import Action, Method, Function
 from WinCopies.Typing.Enum import IntEnum
 
 class UnusabilityReason(IntEnum):
@@ -174,11 +175,22 @@ class DisposableBase(Abstract, IDiscardableItem):
             self.__updater(DisposableBase._DisposableCookie._DisposedCookie(reason))
     
     def __init__(self) -> None:
+        def initialize() -> None:
+            self.__initialize = NoAction
+
+            self._Initialize()
+
         def update(cookie: _IDisposableCookie) -> None: self.__disposableCookie = cookie
 
         super().__init__()
 
+        self.__initialize: Action = initialize # type: ignore[no-redef]
         self.__disposableCookie: _IDisposableCookie = DisposableBase._DisposableCookie(self, update) # type: ignore[no-redef]
+
+    def _Initialize(self) -> None:
+        ...
+    @final
+    def Initialize(self) -> None: return self.__initialize()
 
     def _OnDisposing(self, reason: DiscardReason) -> None:
         pass
