@@ -44,6 +44,84 @@ class EnumerationResult(IntEnum):
     Completed = 1
     """Iteration was successfully completed, possibly without yielding any item. If the enumerator is empty by design, NoData should be reported."""
 
+class IEnumeratorStatus(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetState(self) -> EnumerationState:
+        ...
+    @abstractmethod
+    def GetResult(self) -> EnumerationResult:
+        ...
+
+    @final
+    def IsStarted(self) -> bool:
+        return self.GetState() == EnumerationState.Started
+
+@final
+class _ReadOnlyEnumeratorStatus(Abstract, IEnumeratorStatus):
+    def __init__(self, enumeratorStatus: EnumeratorStatus) -> None:
+        super().__init__()
+
+        self.__enumeratorStatus: IEnumeratorStatus = enumeratorStatus
+
+    def GetState(self) -> EnumerationState: return self.__enumeratorStatus.GetState()
+    def GetResult(self) -> EnumerationResult: return self.__enumeratorStatus.GetResult()
+class EnumeratorStatus(Abstract, IEnumeratorStatus):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__state: EnumerationState = EnumerationState.Idle
+        self.__result: EnumerationResult = EnumerationResult.Idle
+
+        self.__readOnly: IEnumeratorStatus = _ReadOnlyEnumeratorStatus(self)
+
+    @final
+    def GetState(self) -> EnumerationState: return self.__state
+    @final
+    def GetResult(self) -> EnumerationResult: return self.__result
+
+    @final
+    def Reset(self) -> None:
+        self.__state = EnumerationState.Idle
+        self.__result = EnumerationResult.Idle
+
+    @final
+    def Start(self) -> None:
+        self.__state = EnumerationState.Started
+        self.__result = EnumerationResult.Running
+
+    @final
+    def __Terminate(self) -> None:
+        self.__state = EnumerationState.Ended
+
+    @final
+    def Complete(self) -> None:
+        self.__Terminate()
+
+        self.__result = EnumerationResult.Completed
+    @final
+    def Stop(self) -> None:
+        self.__Terminate()
+        
+        self.__result = EnumerationResult.Stopped
+
+    @final
+    def AsReadOnly(self) -> IEnumeratorStatus:
+        return self.__readOnly
+
+@final
+class _NoData(Abstract, IEnumeratorStatus):
+    def __init__(self) -> None: super().__init__()
+
+    def GetState(self) -> EnumerationState: return EnumerationState.Ended
+    def GetResult(self) -> EnumerationResult: return EnumerationResult.NoData
+
+__noData: IEnumeratorStatus = _NoData()
+
+def GetNoDataEnumerationStatus() -> IEnumeratorStatus:
+    return __noData
+
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None: super().__init__()
     
@@ -66,7 +144,7 @@ class IEnumeratorBase(IInterface):
     
     @final
     def IsStarted(self) -> bool:
-        return self.GetStatus().GetState() == EnumerationState.Started
+        return self.GetStatus().IsStarted()
     @abstractmethod
     def HasProcessedItems(self) -> bool:
         ...
@@ -202,80 +280,6 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     def TryGetEnumerator(self) -> None: return None
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
-
-class IEnumeratorStatus(IInterface):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def GetState(self) -> EnumerationState:
-        ...
-    @abstractmethod
-    def GetResult(self) -> EnumerationResult:
-        ...
-
-@final
-class _ReadOnlyEnumeratorStatus(Abstract, IEnumeratorStatus):
-    def __init__(self, enumeratorStatus: EnumeratorStatus) -> None:
-        super().__init__()
-
-        self.__enumeratorStatus: IEnumeratorStatus = enumeratorStatus
-
-    def GetState(self) -> EnumerationState: return self.__enumeratorStatus.GetState()
-    def GetResult(self) -> EnumerationResult: return self.__enumeratorStatus.GetResult()
-class EnumeratorStatus(Abstract, IEnumeratorStatus):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.__state: EnumerationState = EnumerationState.Idle
-        self.__result: EnumerationResult = EnumerationResult.Idle
-
-        self.__readOnly: IEnumeratorStatus = _ReadOnlyEnumeratorStatus(self)
-
-    @final
-    def GetState(self) -> EnumerationState: return self.__state
-    @final
-    def GetResult(self) -> EnumerationResult: return self.__result
-
-    @final
-    def Reset(self) -> None:
-        self.__state = EnumerationState.Idle
-        self.__result = EnumerationResult.Idle
-
-    @final
-    def Start(self) -> None:
-        self.__state = EnumerationState.Started
-        self.__result = EnumerationResult.Running
-
-    @final
-    def __Terminate(self) -> None:
-        self.__state = EnumerationState.Ended
-
-    @final
-    def Complete(self) -> None:
-        self.__Terminate()
-
-        self.__result = EnumerationResult.Completed
-    @final
-    def Stop(self) -> None:
-        self.__Terminate()
-        
-        self.__result = EnumerationResult.Stopped
-
-    @final
-    def AsReadOnly(self) -> IEnumeratorStatus:
-        return self.__readOnly
-
-@final
-class _NoData(Abstract, IEnumeratorStatus):
-    def __init__(self) -> None: super().__init__()
-
-    def GetState(self) -> EnumerationState: return EnumerationState.Ended
-    def GetResult(self) -> EnumerationResult: return EnumerationResult.NoData
-
-__noData: IEnumeratorStatus = _NoData()
-
-def GetNoDataEnumerationStatus() -> IEnumeratorStatus:
-    return __noData
 
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
