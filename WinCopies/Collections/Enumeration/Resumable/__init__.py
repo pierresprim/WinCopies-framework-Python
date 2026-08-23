@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import EnumerationResult, EnumerationState, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumeratorStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
@@ -161,8 +161,7 @@ class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatab
 class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
-    def GetState(self) -> EnumerationState: return GetEmptyEnumerator().GetState()
-    def GetResult(self) -> EnumerationResult: return GetEmptyEnumerator().GetResult()
+    def GetStatus(self) -> IEnumeratorStatus: return GetEmptyEnumerator().GetStatus()
     
     def GetCurrent(self) -> T: return GetEmptyEnumerator().GetCurrent() # pyright: ignore[reportUnknownVariableType]
     def MoveNext(self) -> bool: return GetEmptyEnumerator().MoveNext()
@@ -202,8 +201,7 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
 
         self.__enumerator: IEnumerator[T] = enumerator
     
-    def GetState(self) -> EnumerationState: return GetEmptyEnumerator().GetState()
-    def GetResult(self) -> EnumerationResult: return GetEmptyEnumerator().GetResult()
+    def GetStatus(self) -> IEnumeratorStatus: return GetEmptyEnumerator().GetStatus()
     
     def MoveNext(self) -> bool: return self.__enumerator.MoveNext()
     def Stop(self) -> None: return self.__enumerator.Stop()

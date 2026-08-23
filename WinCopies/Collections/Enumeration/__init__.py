@@ -61,15 +61,12 @@ class IEnumeratorBase(IInterface):
         ...
 
     @abstractmethod
-    def GetState(self) -> EnumerationState:
-        ...
-    @abstractmethod
-    def GetResult(self) -> EnumerationResult:
+    def GetStatus(self) -> IEnumeratorStatus:
         ...
     
     @final
     def IsStarted(self) -> bool:
-        return self.GetState() == EnumerationState.Started
+        return self.GetStatus().GetState() == EnumerationState.Started
     @abstractmethod
     def HasProcessedItems(self) -> bool:
         ...
@@ -195,8 +192,7 @@ class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def TryReset(self) -> bool|None: return None
     def IsResetSupported(self) -> bool: return False
     
-    def GetState(self) -> EnumerationState: return EnumerationState.Ended
-    def GetResult(self) -> EnumerationResult: return EnumerationResult.NoData
+    def GetStatus(self) -> IEnumeratorStatus: return GetNoDataEnumerationStatus()
     
     def HasProcessedItems(self) -> bool: return False
 @final
@@ -216,7 +212,16 @@ class IEnumeratorStatus(IInterface):
     @abstractmethod
     def GetResult(self) -> EnumerationResult:
         ...
+
 @final
+class _ReadOnlyEnumeratorStatus(Abstract, IEnumeratorStatus):
+    def __init__(self, enumeratorStatus: EnumeratorStatus) -> None:
+        super().__init__()
+
+        self.__enumeratorStatus: IEnumeratorStatus = enumeratorStatus
+
+    def GetState(self) -> EnumerationState: return self.__enumeratorStatus.GetState()
+    def GetResult(self) -> EnumerationResult: return self.__enumeratorStatus.GetResult()
 class EnumeratorStatus(Abstract, IEnumeratorStatus):
     def __init__(self) -> None:
         super().__init__()
@@ -224,28 +229,53 @@ class EnumeratorStatus(Abstract, IEnumeratorStatus):
         self.__state: EnumerationState = EnumerationState.Idle
         self.__result: EnumerationResult = EnumerationResult.Idle
 
+        self.__readOnly: IEnumeratorStatus = _ReadOnlyEnumeratorStatus(self)
+
+    @final
     def GetState(self) -> EnumerationState: return self.__state
+    @final
     def GetResult(self) -> EnumerationResult: return self.__result
 
+    @final
     def Reset(self) -> None:
         self.__state = EnumerationState.Idle
         self.__result = EnumerationResult.Idle
 
+    @final
     def Start(self) -> None:
         self.__state = EnumerationState.Started
         self.__result = EnumerationResult.Running
 
+    @final
     def __Terminate(self) -> None:
         self.__state = EnumerationState.Ended
 
+    @final
     def Complete(self) -> None:
         self.__Terminate()
 
         self.__result = EnumerationResult.Completed
+    @final
     def Stop(self) -> None:
         self.__Terminate()
         
         self.__result = EnumerationResult.Stopped
+
+    @final
+    def AsReadOnly(self) -> IEnumeratorStatus:
+        return self.__readOnly
+
+@final
+class _NoData(Abstract, IEnumeratorStatus):
+    def __init__(self) -> None: super().__init__()
+
+    def GetState(self) -> EnumerationState: return EnumerationState.Ended
+    def GetResult(self) -> EnumerationResult: return EnumerationResult.NoData
+
+__noData: IEnumeratorStatus = _NoData()
+
+def GetNoDataEnumerationStatus() -> IEnumeratorStatus:
+    return __noData
 
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
@@ -328,7 +358,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def Stop(self) -> None:
-        if self.GetState() >= EnumerationState.Ended: return
+        if self.GetStatus().GetState() >= EnumerationState.Ended: return
 
         self.__moveNextFunc = BoolFalse
 
@@ -340,7 +370,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     @final
     def TryReset(self) -> bool|None:
         if self.IsResetSupported():
-            if self.GetState() == EnumerationState.Idle: return True
+            if self.GetStatus().GetState() == EnumerationState.Idle: return True
 
             self.Stop()
             
@@ -359,9 +389,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         return None
     
     @final
-    def GetState(self) -> EnumerationState: return self.__status.GetState()
-    @final
-    def GetResult(self) -> EnumerationResult: return self.__status.GetResult()
+    def GetStatus(self) -> IEnumeratorStatus: return self.__status.AsReadOnly()
     
     @final
     def HasProcessedItems(self) -> bool: return self.__hasProcessedItems
@@ -660,9 +688,7 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
     @final
-    def GetState(self) -> EnumerationState: return self._GetContainer().GetState()
-    @final
-    def GetResult(self) -> EnumerationResult: return self._GetContainer().GetResult()
+    def GetStatus(self) -> IEnumeratorStatus: return self._GetContainer().GetStatus()
     
     @final
     def HasProcessedItems(self) -> bool: return self._GetContainer().HasProcessedItems()
@@ -812,8 +838,7 @@ class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
     
     def GetCurrent(self) -> T: raise GetDiscardedError()
     
-    def GetState(self) -> EnumerationState: raise GetDiscardedError()
-    def GetResult(self) -> EnumerationResult: raise GetDiscardedError()
+    def GetStatus(self) -> IEnumeratorStatus: raise GetDiscardedError()
     
     def MoveNext(self) -> bool: raise GetDiscardedError()
     
@@ -851,9 +876,7 @@ class InvalidatableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Invalidat
     def HasProcessedItems(self) -> bool: return self._GetInnerContainer().HasProcessedItems()
     
     @final
-    def GetState(self) -> EnumerationState: return self._GetInnerContainer().GetState()
-    @final
-    def GetResult(self) -> EnumerationResult: return self._GetInnerContainer().GetResult()
+    def GetStatus(self) -> IEnumeratorStatus: return self._GetInnerContainer().GetStatus()
     
     @final
     def GetCurrent(self) -> TItem: return self._GetInnerContainer().GetCurrent()
