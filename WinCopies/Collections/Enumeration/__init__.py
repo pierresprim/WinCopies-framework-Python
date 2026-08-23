@@ -27,13 +27,22 @@ def GetEnumeratorInactiveError() -> InvalidOperationError:
 
 class EnumerationState(IntEnum):
     Idle = 0
+    """Iteration has not yet started."""
     Started = 1
+    """Enumerator is in run state."""
     Ended = 2
+    """Iteration has terminated."""
 class EnumerationResult(IntEnum):
-    Stopped = -2
-    NoData = -1
+    Stopped = -3
+    """Iteration was canceled."""
+    NoData = -2
+    """The enumerator is empty by design. An enumeration that completed without yielding any item should report Completed."""
+    Idle = -1
+    """Iteration has not yet started."""
     Running = 0
+    """Enumerator is in run state."""
     Completed = 1
+    """Iteration was successfully completed, possibly without yielding any item. If the enumerator is empty by design, NoData should be reported."""
 
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -203,8 +212,10 @@ class EnumeratorBase[T](IteratorBase[T]):
         super().__init__()
 
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
+
         self.__status: EnumerationState = EnumerationState.Idle
-        self.__result: EnumerationResult = EnumerationResult.NoData
+        self.__result: EnumerationResult = EnumerationResult.Idle
+        self.__hasProcessedItems: bool = False
     
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
@@ -222,10 +233,11 @@ class EnumeratorBase[T](IteratorBase[T]):
     def __MoveFirst(self) -> bool:
         if self._OnStarting():
             self.__status = EnumerationState.Started
+            self.__result = EnumerationResult.Running
             
             if self._MoveNextOverride():
                 self.__moveNextFunc = self.__MoveNext
-                self.__result = EnumerationResult.Completed
+                self.__hasProcessedItems = True
                 
                 return True
         
@@ -235,15 +247,17 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
-        self.__status = EnumerationState.Ended
-
         self._OnTerminated(completed)
         self._OnEnded()
+
+        self.__status = EnumerationState.Ended
     
     @final
     def __OnCompleted(self) -> None:
-        self.__OnTerminated(True)
         self._OnCompleted()
+        self.__OnTerminated(True)
+
+        self.__result = EnumerationResult.Completed
 
     @abstractmethod
     def _GetCurrent(self) -> T:
@@ -278,40 +292,44 @@ class EnumeratorBase[T](IteratorBase[T]):
     
     @final
     def Stop(self) -> None:
-        self.__moveNextFunc = BoolFalse
-        self.__result = EnumerationResult.Stopped
+        if self.GetState() >= EnumerationState.Ended: return
 
-        self.__OnTerminated(False)
+        self.__moveNextFunc = BoolFalse
+
         self._OnStopped()
+        self.__OnTerminated(False)
+        
+        self.__result = EnumerationResult.Stopped
     
     @final
     def TryReset(self) -> bool|None:
         if self.IsResetSupported():
-            if self.IsStarted(): self.Stop()
+            if self.GetState() == EnumerationState.Idle: return True
+
+            self.Stop()
             
             if self._ResetOverride():
                 self.__moveNextFunc = self.__MoveFirst
+
                 self.__status = EnumerationState.Idle
-                self.__result = EnumerationResult.NoData
+                self.__result = EnumerationResult.Idle
+                self.__hasProcessedItems = False
                 
                 return True
             
             return False
         
-        self.__moveNextFunc = BoolFalse
+        self.Stop()
         
         return None
     
     @final
     def GetState(self) -> EnumerationState: return self.__status
     @final
-    def GetResult(self) -> EnumerationResult: return EnumerationResult.Running if self.GetState().value < EnumerationState.Ended.value else self.__result
+    def GetResult(self) -> EnumerationResult: return self.__result
     
     @final
-    def HasProcessedItems(self) -> bool:
-        result: EnumerationResult = self.GetResult()
-
-        return self.__moveNextFunc == self.__MoveNext if result == EnumerationResult.Running else result != EnumerationResult.NoData
+    def HasProcessedItems(self) -> bool: return self.__hasProcessedItems
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None: super().__init__()
@@ -438,10 +456,8 @@ class Iterator[T](Enumerator[T]):
             self._SetCurrent(self.__iterator.__next__())
             
             return True
-        except StopIteration:
-            self._UnsetCurrent()
-
-            return False
+        
+        except StopIteration: return False
     
     def _OnStopped(self) -> None: pass
 
