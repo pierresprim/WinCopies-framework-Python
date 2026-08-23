@@ -168,7 +168,6 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def Stop(self) -> None: GetEmptyEnumerator().Stop()
     def TryReset(self) -> bool|None: return GetEmptyEnumerator().TryReset()
     def IsResetSupported(self) -> bool: return GetEmptyEnumerator().IsResetSupported()
-    def HasProcessedItems(self) -> bool: return GetEmptyEnumerator().HasProcessedItems()
     def SupportsMultipleCursors(self) -> bool: return False
     def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetEnumeratorInactiveError()
     def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetEnumeratorInactiveError()
@@ -207,7 +206,6 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
     def Stop(self) -> None: return self.__enumerator.Stop()
     def TryReset(self) -> bool|None: return self.__enumerator.TryReset()
     def IsResetSupported(self) -> bool: return self.__enumerator.IsResetSupported()
-    def HasProcessedItems(self) -> bool: return self.__enumerator.HasProcessedItems()
     def GetCurrent(self) -> T: return self.__enumerator.GetCurrent()
     def AsIterator(self) -> Iterator[T]: return self.__enumerator.AsIterator()
     def SupportsMultipleCursors(self) -> bool: return False
