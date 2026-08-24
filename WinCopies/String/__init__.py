@@ -63,6 +63,9 @@ def StringifyIfNone(value: str|SupportsStringization|None, prefix: str|None = No
 
     return stringify(value, StringizationSurrounding.Empty if value == '' else StringizationSurrounding.NonEmpty)
 
+def __IsEmpty(value: str) -> bool:
+    return value == ''
+
 def IsNoneOrEmpty(value: str|None) -> bool:
     """Checks if a value is None or an empty string.
 
@@ -72,7 +75,10 @@ def IsNoneOrEmpty(value: str|None) -> bool:
     Returns:
         True if the value is None or empty, False otherwise.
     """
-    return value is None or value == ''
+    return value is None or __IsEmpty(value)
+
+def GetValueOrDefault(value: str|None, default: str) -> str:
+    return default if value is None or __IsEmpty(value) else value
 
 def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     """Replaces escape sequences in a string.
