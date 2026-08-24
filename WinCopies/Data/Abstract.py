@@ -19,7 +19,7 @@ from WinCopies.Collections.Iteration.Batch import ResumeResult, ICursor, IHandle
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing import INullable, InvalidOperationError
+from WinCopies.Typing import INullable, InvalidOperationError, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableItem, INotHashableItem
 from WinCopies.Typing.Discard import GetDiscardedError
 from WinCopies.Typing.Delegate import Method, Function, NullableConverter, IFunction, ValueFunctionUpdater
@@ -224,7 +224,7 @@ class Table(Abstract, ITable, INotHashableItem[ITable], _ITransactionCheckable):
                         case ResumeResult.ResumeFailed: throw("Enumerator failed to re-arm after a valid refinement.")
                         case ResumeResult.NotResumable: throw("Cursor is not in a resumable state.")
                 
-                raise InvalidOperationError("An unexpected error occurred.")
+                raise GetUnexpectedError()
 
             return result
         
