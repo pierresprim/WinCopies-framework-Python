@@ -15,11 +15,11 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, IMonitor, Monitor, InvalidOperationError, DoWork, Process, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, GetDiscardedError
-from WinCopies.Typing.Enum import IntEnum
+from WinCopies.Typing.Enum import IntEnum, StrEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 def GetEnumeratorInactiveError() -> InvalidOperationError:
@@ -295,6 +295,9 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
+class _ErrorMessages(StrEnum):
+    ReentrancyNotAllowed = "Enumeration methods cannot be called from within an override or a hook."
+
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -302,6 +305,10 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
 
         self.__status: EnumeratorStatus = EnumeratorStatus()
+        self.__monitor: IMonitor = Monitor()
+
+    def __Process[U](self, func: Function[U]) -> U:
+        return Process(self.__monitor, func, _ErrorMessages.ReentrancyNotAllowed.value)
     
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
@@ -330,6 +337,17 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__SetCompletedMoveNext()
 
         return False
+
+    @final
+    def __Stop(self) -> None:
+        if self.GetStatus().GetState() >= EnumerationState.Ended: return
+        
+        self.__moveNextFunc = BoolFalse
+
+        self._OnStopped()
+        self.__OnTerminated(False)
+        
+        self.__status.Stop()
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -372,38 +390,33 @@ class EnumeratorBase[T](IteratorBase[T]):
         raise GetEnumeratorInactiveError()
 
     @final
-    def MoveNext(self) -> bool: return self.__moveNextFunc()
+    def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
     
     @final
-    def Stop(self) -> None:
-        if self.GetStatus().GetState() >= EnumerationState.Ended: return
-
-        self.__moveNextFunc = BoolFalse
-
-        self._OnStopped()
-        self.__OnTerminated(False)
-        
-        self.__status.Stop()
+    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, _ErrorMessages.ReentrancyNotAllowed.value)
     
     @final
     def TryReset(self) -> bool|None:
-        if self.IsResetSupported():
-            if self.GetStatus().GetState() == EnumerationState.Idle: return True
+        def tryReset() -> bool|None:
+            if self.IsResetSupported():
+                if self.GetStatus().GetState() == EnumerationState.Idle: return True
 
-            self.Stop()
-            
-            if self._ResetOverride():
-                self.__moveNextFunc = self.__MoveFirst
-
-                self.__status.Reset()
+                self.__Stop()
                 
-                return True
+                if self._ResetOverride():
+                    self.__moveNextFunc = self.__MoveFirst
+
+                    self.__status.Reset()
+                    
+                    return True
+                
+                return False
             
-            return False
-        
-        self.Stop()
-        
-        return None
+            self.__Stop()
+            
+            return None
+
+        return self.__Process(tryReset)
     
     @final
     def GetStatus(self) -> IEnumeratorStatus: return self.__status.AsReadOnly()
