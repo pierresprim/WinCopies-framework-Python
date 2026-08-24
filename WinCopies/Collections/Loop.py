@@ -14,7 +14,7 @@ from WinCopies.Typing.Pairing import DualResult, DualValueBool, CreateDualResult
 def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
     enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
     
-    return CreateDualResult(enumerator.AsIterator(), enumerator.HasProcessedItems)
+    return CreateDualResult(enumerator.AsIterator(), enumerator.GetStatus().HasProcessedItems)
 def TryEnumerate[T](items: Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
     return None if items is None else Enumerate(items)
 
@@ -171,7 +171,7 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
     for entry in enumerator.AsIterator():
         if predicate(entry): return True
     
-    return False if enumerator.HasProcessedItems() else None
+    return False if enumerator.GetStatus().HasProcessedItems() else None
 
 def ForEach[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
     """Iterates over items with index, executing the given action while it returns True.
@@ -269,7 +269,7 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
 
     for entry in enumerator.AsIterator(): action(entry)
     
-    return enumerator.HasProcessedItems()
+    return enumerator.GetStatus().HasProcessedItems()
 def DoForEachArg[T](action: Method[T], *values: T) -> bool:
     """Executes the given action for each variadic value.
 

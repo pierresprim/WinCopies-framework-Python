@@ -611,7 +611,7 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
         # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
         if validator(item): return IterationResult.Error
 
-    return IterationResult.Success if enumerator.HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
+    return IterationResult.Success if enumerator.GetStatus().HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
 def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
     """Validates that exactly one item matches a predicate.
 
