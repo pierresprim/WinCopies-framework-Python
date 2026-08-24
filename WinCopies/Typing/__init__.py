@@ -6,7 +6,9 @@ from enum import Enum
 from typing import final, overload, Type as SystemType
 
 from WinCopies import IInterface, IStringable, IDisposable, Abstract
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Delegates import GetMethodAsFunction
+from WinCopies.String import GetValueOrDefault
+from WinCopies.Typing.Delegate import Action, Function, Converter
 
 type NumericalValue = int|float|decimal
 
@@ -32,6 +34,9 @@ class InvalidOperationError(Error):
 
 def GetGenericError() -> InvalidOperationError:
     return InvalidOperationError("Could not perform the requested action.")
+
+def GetUnexpectedError() -> InvalidOperationError:
+    return InvalidOperationError("An unexpected error occurred.")
 
 class INullable[T]:
     __slots__ = ()
@@ -139,6 +144,22 @@ class Monitor(Abstract, IMonitor):
     
     @final
     def Dispose(self) -> None: self.__isBusy = False
+
+def __CheckMonitor(monitor: IMonitor, errorMessage: str|None = None) -> None:
+    if monitor.IsBusy(): raise InvalidOperationError(GetValueOrDefault(errorMessage, "The given monitor is already busy."))
+
+def DoWork(monitor: IMonitor, worker: Action, errorMessage: str|None = None) -> None:
+    __CheckMonitor(monitor, errorMessage)
+
+    with monitor: worker()
+def Process[T](monitor: IMonitor, worker: Function[T], errorMessage: str|None = None) -> T:
+    __CheckMonitor(monitor, errorMessage)
+    
+    with monitor: return worker()
+
+    raise GetUnexpectedError()
+def ProcessData[TIn, TOut](data: TIn, monitor: IMonitor, worker: Converter[TIn, TOut], errorMessage: str|None = None) -> TOut:
+    return Process(monitor, GetMethodAsFunction(data, worker), errorMessage)
 
 class IEnumBase(IStringable):
     def __init__(self) -> None: super().__init__()
