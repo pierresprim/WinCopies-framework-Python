@@ -5,7 +5,7 @@ from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, overload, Type as SystemType
 
-from WinCopies import IStringable, IDisposable, Abstract
+from WinCopies import IInterface, IStringable, IDisposable, Abstract
 from WinCopies.Typing.Delegate import Converter
 
 type NumericalValue = int|float|decimal
@@ -117,12 +117,14 @@ def TryGetValueAs[TValue, TDefault](type: SystemType[TValue], value: object, def
 def TryGetAs[T](type: SystemType[T], value: object) -> T|None:
     return TryGetValueAs(type, value, None)
 
-class IMonitor(IDisposable):
+class IWorker(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsBusy(self) -> bool:
         ...
+class IMonitor(IWorker, IDisposable):
+    def __init__(self) -> None: super().__init__()
 class Monitor(Abstract, IMonitor):
     def __init__(self) -> None:
         super().__init__()
