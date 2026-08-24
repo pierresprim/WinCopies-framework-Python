@@ -28,6 +28,9 @@ def CompareEquality[T](x: T, y: T) -> bool:
 def RetrieveValue[T](func: Function[T]) -> T:
     return func()
 
+def GetMethodAsFunction[TIn, TOut](data: TIn, action: Converter[TIn, TOut]) -> Function[TOut]:
+    return lambda: action(data)
+
 
 
 def PredicateAction[T](obj: T, predicate: Predicate[T], action: Method[T]) -> bool:
