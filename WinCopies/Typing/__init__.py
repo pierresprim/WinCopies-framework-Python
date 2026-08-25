@@ -83,7 +83,7 @@ class _NullableValue[T](INullable[T], metaclass=ABCMeta):
 
 @final
 class _Nullable[T](_NullableValue[T]):
-    __slots__ = ('__value',)
+    __slots__ = ("__value",)
     
     def __init__(self, value: T) -> None:
         super().__init__()

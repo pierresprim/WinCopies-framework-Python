@@ -44,7 +44,7 @@ class EnumerationResult(IntEnum):
     Completed = 1
     """Iteration was successfully completed, possibly without yielding any item. If the enumerator is empty by design, NoData should be reported."""
 
-class IEnumeratorStatus(IInterface):
+class IEnumerationStatus(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -63,17 +63,17 @@ class IEnumeratorStatus(IInterface):
         return self.GetState() == EnumerationState.Started
 
 @final
-class _ReadOnlyEnumeratorStatus(Abstract, IEnumeratorStatus):
-    def __init__(self, enumeratorStatus: EnumeratorStatus) -> None:
+class _ReadOnlyEnumerationStatus(Abstract, IEnumerationStatus):
+    def __init__(self, enumerationStatus: EnumerationStatus) -> None:
         super().__init__()
 
-        self.__enumeratorStatus: IEnumeratorStatus = enumeratorStatus
+        self.__enumerationStatus: IEnumerationStatus = enumerationStatus
 
-    def GetState(self) -> EnumerationState: return self.__enumeratorStatus.GetState()
-    def GetResult(self) -> EnumerationResult: return self.__enumeratorStatus.GetResult()
+    def GetState(self) -> EnumerationState: return self.__enumerationStatus.GetState()
+    def GetResult(self) -> EnumerationResult: return self.__enumerationStatus.GetResult()
 
-    def HasProcessedItems(self) -> bool: return self.__enumeratorStatus.HasProcessedItems()
-class EnumeratorStatus(Abstract, IEnumeratorStatus):
+    def HasProcessedItems(self) -> bool: return self.__enumerationStatus.HasProcessedItems()
+class EnumerationStatus(Abstract, IEnumerationStatus):
     def __init__(self) -> None:
         super().__init__()
 
@@ -82,7 +82,7 @@ class EnumeratorStatus(Abstract, IEnumeratorStatus):
 
         self.__hasProcessedItems: bool = False
 
-        self.__readOnly: IEnumeratorStatus = _ReadOnlyEnumeratorStatus(self)
+        self.__readOnly: IEnumerationStatus = _ReadOnlyEnumerationStatus(self)
 
     @final
     def GetState(self) -> EnumerationState: return self.__state
@@ -124,11 +124,11 @@ class EnumeratorStatus(Abstract, IEnumeratorStatus):
         self.__result = EnumerationResult.Stopped
 
     @final
-    def AsReadOnly(self) -> IEnumeratorStatus:
+    def AsReadOnly(self) -> IEnumerationStatus:
         return self.__readOnly
 
 @final
-class _NoData(Abstract, IEnumeratorStatus):
+class _NoData(Abstract, IEnumerationStatus):
     def __init__(self) -> None: super().__init__()
 
     def GetState(self) -> EnumerationState: return EnumerationState.Ended
@@ -136,9 +136,9 @@ class _NoData(Abstract, IEnumeratorStatus):
 
     def HasProcessedItems(self) -> bool: return False
 
-__noData: IEnumeratorStatus = _NoData()
+__noData: IEnumerationStatus = _NoData()
 
-def GetNoDataEnumerationStatus() -> IEnumeratorStatus:
+def GetNoDataEnumerationStatus() -> IEnumerationStatus:
     return __noData
 
 class IEnumeratorBase(IInterface):
@@ -158,7 +158,7 @@ class IEnumeratorBase(IInterface):
         ...
 
     @abstractmethod
-    def GetStatus(self) -> IEnumeratorStatus:
+    def GetStatus(self) -> IEnumerationStatus:
         ...
     
     @final
@@ -277,7 +277,7 @@ class CountableEnumerable[T](Enumerable[T], ICountableEnumerable[T]):
     def AsSized(self) -> Sized: return self.__countable.GetValue().AsSized()
 
 @final
-class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
+class _EmptyEnumerator[T](IteratorBase[T]):
     def __init__(self) -> None: super().__init__()
     
     def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
@@ -286,7 +286,7 @@ class _EmptyEnumerator[T](IteratorBase[T], IEnumerator[T]):
     def TryReset(self) -> bool|None: return None
     def IsResetSupported(self) -> bool: return False
     
-    def GetStatus(self) -> IEnumeratorStatus: return GetNoDataEnumerationStatus()
+    def GetStatus(self) -> IEnumerationStatus: return GetNoDataEnumerationStatus()
 @final
 class _EmptyEnumerable[T](_SystemIterable[T]):
     def __init__(self) -> None: super().__init__()
@@ -304,9 +304,9 @@ class EnumeratorBase[T](IteratorBase[T]):
 
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
 
-        self.__status: EnumeratorStatus = EnumeratorStatus()
+        self.__status: EnumerationStatus = EnumerationStatus()
         self.__monitor: IMonitor = Monitor()
-
+    
     def __Process[U](self, func: Function[U]) -> U:
         return Process(self.__monitor, func, _ErrorMessages.ReentrancyNotAllowed.value)
     
@@ -329,7 +329,7 @@ class EnumeratorBase[T](IteratorBase[T]):
             
             if self._MoveNextOverride():
                 self.__moveNextFunc = self.__MoveNext
-
+                
                 self.__status.NotifyItemProcessed()
                 
                 return True
@@ -337,7 +337,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__SetCompletedMoveNext()
 
         return False
-
+    
     @final
     def __Stop(self) -> None:
         if self.GetStatus().GetState() >= EnumerationState.Ended: return
@@ -419,7 +419,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         return self.__Process(tryReset)
     
     @final
-    def GetStatus(self) -> IEnumeratorStatus: return self.__status.AsReadOnly()
+    def GetStatus(self) -> IEnumerationStatus: return self.__status.AsReadOnly()
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None: super().__init__()
@@ -715,7 +715,7 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
     @final
-    def GetStatus(self) -> IEnumeratorStatus: return self._GetContainer().GetStatus()
+    def GetStatus(self) -> IEnumerationStatus: return self._GetContainer().GetStatus()
 
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None:
@@ -860,7 +860,7 @@ class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
     
     def GetCurrent(self) -> T: raise GetDiscardedError()
     
-    def GetStatus(self) -> IEnumeratorStatus: raise GetDiscardedError()
+    def GetStatus(self) -> IEnumerationStatus: raise GetDiscardedError()
     
     def MoveNext(self) -> bool: raise GetDiscardedError()
     
@@ -895,7 +895,7 @@ class InvalidatableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Invalidat
     def IsResetSupported(self) -> bool: return self._GetInnerContainer().IsResetSupported()
     
     @final
-    def GetStatus(self) -> IEnumeratorStatus: return self._GetInnerContainer().GetStatus()
+    def GetStatus(self) -> IEnumerationStatus: return self._GetInnerContainer().GetStatus()
     
     @final
     def GetCurrent(self) -> TItem: return self._GetInnerContainer().GetCurrent()
