@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from typing import final, Any
+from typing import final, Any, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
@@ -201,7 +201,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def AsIterator(self) -> SystemIterator[T]: return self
     
     @final
-    def __iter__(self) -> SystemIterator[T]: return self
+    def __iter__(self) -> Self: return self
 
 class IEnumerableBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
