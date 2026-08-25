@@ -623,15 +623,16 @@ class AbstractEnumerator[T](Selector[T, T]):
     
     def _GetCurrent(self) -> T: return self._GetContainer().GetCurrent()
 
-class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    def __init__(self) -> None:
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+    def __init__(self, enumerator: TEnumerator) -> None:
         super().__init__()
+
+        self.__enumerator: TEnumerator = enumerator
 
         self.__moveNextFunc: Function[bool] = self.__MoveNext
     
-    @abstractmethod
-    def _GetContainer(self) -> TEnumerator:
-        ...
+    @final
+    def _GetContainer(self) -> TEnumerator: return self.__enumerator
     
     def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
     
@@ -716,15 +717,6 @@ class _AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterat
     
     @final
     def GetStatus(self) -> IEnumerationStatus: return self._GetContainer().GetStatus()
-
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](_AbstractionEnumeratorBase[TIn, TOut, TEnumerator]):
-    def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__()
-
-        self.__enumerator: TEnumerator = enumerator
-    
-    @final
-    def _GetContainer(self) -> TEnumerator: return self.__enumerator
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
 
