@@ -16,8 +16,7 @@ from WinCopies.Collections.Linked.Doubly.Welded import (
     IDoublyLinkedNode,
     ICountableLinkedListNode,
     List,
-    CountableList
-)
+    CountableList)
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector

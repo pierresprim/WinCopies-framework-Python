@@ -75,17 +75,17 @@ class IIterationStatus(IInterface):
         return self.GetState() == IterationState.Started
 
 @final
-class _ReadOnlyEnumerationStatus(Abstract, IIterationStatus):
-    def __init__(self, enumerationStatus: EnumerationStatus) -> None:
+class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
+    def __init__(self, iterationStatus: IterationStatus) -> None:
         super().__init__()
 
-        self.__enumerationStatus: IIterationStatus = enumerationStatus
+        self.__iterationStatus: IIterationStatus = iterationStatus
 
-    def GetState(self) -> IterationState: return self.__enumerationStatus.GetState()
-    def GetResult(self) -> IterationResult: return self.__enumerationStatus.GetResult()
+    def GetState(self) -> IterationState: return self.__iterationStatus.GetState()
+    def GetResult(self) -> IterationResult: return self.__iterationStatus.GetResult()
 
-    def HasProcessedItems(self) -> bool: return self.__enumerationStatus.HasProcessedItems()
-class EnumerationStatus(Abstract, IIterationStatus):
+    def HasProcessedItems(self) -> bool: return self.__iterationStatus.HasProcessedItems()
+class IterationStatus(Abstract, IIterationStatus):
     def __init__(self) -> None:
         super().__init__()
 
@@ -94,7 +94,7 @@ class EnumerationStatus(Abstract, IIterationStatus):
 
         self.__hasProcessedItems: bool = False
 
-        self.__readOnly: IIterationStatus = _ReadOnlyEnumerationStatus(self)
+        self.__readOnly: IIterationStatus = _ReadOnlyIterationStatus(self)
 
     @final
     def GetState(self) -> IterationState: return self.__state
@@ -316,7 +316,7 @@ class EnumeratorBase[T](IteratorBase[T]):
 
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
 
-        self.__status: EnumerationStatus = EnumerationStatus()
+        self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
     
     def __Process[U](self, func: Function[U]) -> U:

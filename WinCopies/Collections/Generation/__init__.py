@@ -7,7 +7,7 @@ from typing import final, Callable, Self, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, IterationStatus, AsEnumerable, GetIterable, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import NoAction, GetNotPredicate
@@ -350,7 +350,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         super().__init__()
 
         self.__value: INullableItem[TItem] = CreateNullableItem()
-        self.__status: EnumerationStatus = EnumerationStatus()
+        self.__status: IterationStatus = IterationStatus()
 
         self.__moveNext: Action = self.__MoveNext
         self.__send: ConverterDelegate[TData, TItem] = self.__Send
