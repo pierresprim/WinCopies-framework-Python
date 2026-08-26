@@ -14,6 +14,7 @@ from typing import final, Any, Self
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
+from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
@@ -44,6 +45,16 @@ class EnumerationResult(IntEnum):
     """Enumerator is in run state."""
     Completed = 1
     """Iteration was successfully completed, possibly without yielding any item. If the enumerator is empty by design, NoData should be reported."""
+
+    @final
+    def HasCompleted(self) -> bool:
+        match self:
+            case EnumerationResult.Completed | EnumerationResult.NoData: return True
+
+            case _: return False
+    @final
+    def HasTerminated(self) -> bool:
+        return _Outside(EnumerationResult.Idle, self, EnumerationResult.Running, False, False)
 
 class IEnumerationStatus(IInterface):
     def __init__(self) -> None: super().__init__()
