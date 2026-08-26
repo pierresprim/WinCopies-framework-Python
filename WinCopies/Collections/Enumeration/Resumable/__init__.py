@@ -6,7 +6,7 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IEnumeratorStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
@@ -161,7 +161,7 @@ class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatab
 class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
-    def GetStatus(self) -> IEnumeratorStatus: return GetEmptyEnumerator().GetStatus()
+    def GetStatus(self) -> IIterationStatus: return GetEmptyEnumerator().GetStatus()
     
     def GetCurrent(self) -> T: return GetEmptyEnumerator().GetCurrent() # pyright: ignore[reportUnknownVariableType]
     def MoveNext(self) -> bool: return GetEmptyEnumerator().MoveNext()
@@ -169,10 +169,10 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def TryReset(self) -> bool|None: return GetEmptyEnumerator().TryReset()
     def IsResetSupported(self) -> bool: return GetEmptyEnumerator().IsResetSupported()
     def SupportsMultipleCursors(self) -> bool: return False
-    def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetEnumeratorInactiveError()
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetEnumeratorInactiveError()
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: raise GetEnumeratorInactiveError()
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetEnumeratorInactiveError()
+    def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetIterationInactiveError()
+    def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetIterationInactiveError()
+    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: raise GetIterationInactiveError()
+    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetIterationInactiveError()
 @final
 class _EmptyEnumerable[T](Iterable[T], IResumableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -200,7 +200,7 @@ class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
 
         self.__enumerator: IEnumerator[T] = enumerator
     
-    def GetStatus(self) -> IEnumeratorStatus: return GetEmptyEnumerator().GetStatus()
+    def GetStatus(self) -> IIterationStatus: return GetEmptyEnumerator().GetStatus()
     
     def MoveNext(self) -> bool: return self.__enumerator.MoveNext()
     def Stop(self) -> None: return self.__enumerator.Stop()

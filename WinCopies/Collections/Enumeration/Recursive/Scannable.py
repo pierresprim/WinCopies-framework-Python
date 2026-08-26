@@ -7,7 +7,7 @@ from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
 from WinCopies.Collections.Iteration import Select, WhereSelect
 from WinCopies.Delegates import BoolFalse
@@ -48,7 +48,7 @@ class EnumerationDelegate[T](Abstract, IEnumerationDelegate[T]):
     def GetCurrent(self) -> IKeyValuePair[T, Events]:
         current: IKeyValuePair[T, Events]|None = self.__current
 
-        if current is None: raise GetEnumeratorInactiveError()
+        if current is None: raise GetIterationInactiveError()
         
         return current
     

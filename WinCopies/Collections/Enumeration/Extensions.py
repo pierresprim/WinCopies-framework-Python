@@ -14,7 +14,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetIterationInactiveError
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
@@ -46,7 +46,7 @@ class _IToken[T](IInterface):
 class _NullToken[T](Abstract, _IToken[T]):
     def __init__(self) -> None: super().__init__()
     
-    def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
+    def GetCurrent(self) -> T: raise GetIterationInactiveError()
     
     def MoveNext(self) -> bool: return False
 @final
@@ -76,7 +76,7 @@ class _Token[T](Abstract, _IToken[T]):
     def GetCurrent(self) -> T:
         node: IDoublyLinkedNode[T]|None = self.__node
 
-        if node is None: raise GetEnumeratorInactiveError()
+        if node is None: raise GetIterationInactiveError()
         
         return node.GetValue()
     
@@ -163,7 +163,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
     def _GetCurrent(self) -> T:
         items: IList[T]|None = self.__items
 
-        if items is None: raise GetEnumeratorInactiveError()
+        if items is None: raise GetIterationInactiveError()
 
         return items.GetLastValue()
     

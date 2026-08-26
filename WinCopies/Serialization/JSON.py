@@ -8,7 +8,7 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Tuple
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ObjectGeneratorProvider
 from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
@@ -608,7 +608,7 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def _GetCurrent(self) -> DualResult[INode|None, Event]:
         current: DualResult[INode|None, Event]|None = self.__current
 
-        if current is None: raise GetEnumeratorInactiveError()
+        if current is None: raise GetIterationInactiveError()
         
         return current
     

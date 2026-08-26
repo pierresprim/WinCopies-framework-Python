@@ -15,7 +15,7 @@ from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple,
 from WinCopies.Collections.Abstraction.Mapping import Set, Dictionary, CreateSet, CreateDictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateKeyedSet
 from WinCopies.Collections.Core import ICountable, IContainer, IReadOnlyIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, GetEmptyEnumerable, AsEnumerator, GetEnumeratorInactiveError, CreateIteratorProvider
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, GetEmptyEnumerable, AsEnumerator, GetIterationInactiveError, CreateIteratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
@@ -1191,7 +1191,7 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
             def _GetCurrent(self) -> __T:
                 if self.__canMoveNext is None: return self.__key.GetValue()
                 
-                raise GetEnumeratorInactiveError()
+                raise GetIterationInactiveError()
             
             def _MoveNextOverride(self) -> bool:
                 canMoveNext: bool|None = self.__canMoveNext

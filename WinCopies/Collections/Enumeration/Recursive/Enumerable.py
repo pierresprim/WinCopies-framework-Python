@@ -9,7 +9,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Bool import NullableBoolean, ToNullableBoolean
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, AbstractEnumerator, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Linked.Singly import Stack
 
@@ -93,7 +93,7 @@ class _NullRecursiveEnumerationDelegate[T](Abstract, IRecursiveEnumerationDelega
     
     def GetOrder(self) -> EnumerationOrder: return EnumerationOrder.Null
     
-    def GetCurrent(self) -> T: raise GetEnumeratorInactiveError()
+    def GetCurrent(self) -> T: raise GetIterationInactiveError()
     
     def MoveNext(self) -> bool: return False
     
@@ -213,7 +213,7 @@ class _RecursiveEnumerationDelegate[TEnumerationItems, TCookie, TStackItems](Abs
     def GetCurrent(self) -> TEnumerationItems:
         enumerator: IEnumerator[TEnumerationItems]|None = self.__currentEnumerator
 
-        if enumerator is None: raise GetEnumeratorInactiveError()
+        if enumerator is None: raise GetIterationInactiveError()
 
         return enumerator.GetCurrent()
     
@@ -489,17 +489,17 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
         def GetStackItemAsCookie(self, item: _TStackItems) -> _TCookie: return self.__enumerator._GetStackItemAsCookie(item)
         
         def Push(self, item: _TStackItems) -> None:
-            if self.__enumerators is None: raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetIterationInactiveError()
             
             self.__enumerators.Push(item)
 
         def TryPeek(self) -> INullable[_TStackItems]:
-            if self.__enumerators is None: raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetIterationInactiveError()
             
             return self.__enumerators.TryPeek()
 
         def TryPop(self) -> INullable[_TStackItems]:
-            if self.__enumerators is None: raise GetEnumeratorInactiveError()
+            if self.__enumerators is None: raise GetIterationInactiveError()
             
             self.__enumerators.TryPop()
 

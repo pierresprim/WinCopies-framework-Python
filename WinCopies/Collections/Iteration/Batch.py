@@ -5,7 +5,7 @@ from typing import Callable, final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IReadOnlyCountableIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, AsEnumerable, GetEnumeratorInactiveError
+from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, AsEnumerable, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorAbstract, IResumableEnumerationCursor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement
@@ -360,7 +360,7 @@ class _ResumableBatchInnerEnumeratorBase[T](AbstractEnumeratorBase[T, Generator[
     def _GetCurrent(self) -> Generator[T]:
         current: Generator[T]|None = self.__current
 
-        if current is None: raise GetEnumeratorInactiveError()
+        if current is None: raise GetIterationInactiveError()
         
         return current
     
