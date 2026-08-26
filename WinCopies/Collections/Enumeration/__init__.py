@@ -145,6 +145,17 @@ def GetNoDataEnumerationStatus() -> IEnumerationStatus:
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None: super().__init__()
     
+    @final
+    def IsStarted(self) -> bool:
+        return self.GetStatus().IsStarted()
+    @abstractmethod
+    def IsResetSupported(self) -> bool:
+        ...
+
+    @abstractmethod
+    def GetStatus(self) -> IEnumerationStatus:
+        ...
+    
     @abstractmethod
     def MoveNext(self) -> bool:
         ...
@@ -154,17 +165,6 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def TryReset(self) -> bool|None:
         ...
-    @abstractmethod
-    def IsResetSupported(self) -> bool:
-        ...
-
-    @abstractmethod
-    def GetStatus(self) -> IEnumerationStatus:
-        ...
-    
-    @final
-    def IsStarted(self) -> bool:
-        return self.GetStatus().IsStarted()
 
     @abstractmethod
     def ToInvalidatable(self) -> IInvalidatableEnumeratorBase:
