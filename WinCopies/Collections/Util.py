@@ -3,10 +3,10 @@ from typing import overload
 
 from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator
+from WinCopies.Comparison import Between, Outside
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import Between, Outside
 from WinCopies.Typing.Delegate import Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualNullableValueInfo
 

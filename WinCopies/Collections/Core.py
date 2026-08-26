@@ -7,8 +7,9 @@ from typing import overload, final, Callable
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
+from WinCopies.Comparison import Between
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol, Between
+from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool

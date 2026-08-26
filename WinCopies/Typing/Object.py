@@ -9,10 +9,11 @@ from weakref import finalize, ref, ReferenceType
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Comparison import Equals as _Equals, CompareTo
 from WinCopies.Delegates import NoAction, FuncNone
 from WinCopies.Enum import TryGetFieldFromValue, AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Typing import NumericalValue, INullable, IEnumBase, IEnum
-from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem, Equals as _Equals, CompareTo
+from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem
 from WinCopies.Typing.Delegate import Action, Method, NullableFunction, ItemComparison
 from WinCopies.Typing.Discard import DiscardReason, IDisposable, IInvalidatable
 from WinCopies.Typing.Enum import IntEnum, IntegerEnum, StringEnum, EquatableEnumProtocol, ComparableEnumProtocol
