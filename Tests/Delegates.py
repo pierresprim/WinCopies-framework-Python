@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies.Delegates import (
     Self,
-    BoolTrue, BoolFalse, FuncNone, DoNothing,
+    BoolTrue, BoolFalse, FuncNone, NoAction,
     CompareEquality,
     PredicateAction, GetPredicateAction,
     BoolFuncAction, GetBoolFuncAction,
@@ -76,7 +76,7 @@ def _predicate_counter(return_value: bool = True) -> tuple[Predicate[object], Fu
 # ---------------------------------------------------------------------------
 
 class TestBasicDelegates(unittest.TestCase):
-    """Tests for Self, BoolTrue, BoolFalse, FuncNone, DoNothing, CompareEquality."""
+    """Tests for Self, BoolTrue, BoolFalse, FuncNone, NoAction, CompareEquality."""
 
     def test_self_returns_the_value(self) -> None:
         """Self returns the value it receives unchanged."""
@@ -100,11 +100,12 @@ class TestBasicDelegates(unittest.TestCase):
         
         self.assertIsNone(FuncNone()) # type: ignore[func-returns-value]
 
-    def test_do_nothing_returns_none(self) -> None:
-        """DoNothing accepts any argument and returns None implicitly."""
+    def test_no_action_returns_none(self) -> None:
+        """NoAction accepts any argument and returns None implicitly."""
         
-        self.assertIsNone(DoNothing(42)) # type: ignore[func-returns-value]
-        self.assertIsNone(DoNothing(None)) # type: ignore[func-returns-value]
+        self.assertIsNone(NoAction()) # type: ignore[func-returns-value]
+        self.assertIsNone(NoAction(42)) # type: ignore[func-returns-value]
+        self.assertIsNone(NoAction(None)) # type: ignore[func-returns-value]
 
     def test_compare_equality_equal_values(self) -> None:
         """CompareEquality returns True for equal values."""
