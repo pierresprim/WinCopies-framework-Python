@@ -309,6 +309,10 @@ class IAccumulatorAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
+    def GetStatus(self) -> IEnumerationStatus:
+        ...
+    
+    @abstractmethod
     def Start(self) -> bool|None:
         ...
     @abstractmethod
