@@ -112,12 +112,10 @@ class _Nullable[T](_NullableValue[T]):
 class _NullValue[T](_NullableValue[T]):
     __slots__ = ()
     
-    def __init__(self) -> None: super().__init__()
-    
     def HasValue(self) -> bool: return False
     def GetValue(self) -> T: raise InvalidOperationError("No value available.")
 
-__nullValue: _NullValue = _NullValue() # type: ignore
+__nullValue: _NullValue[Any] = _NullValue[Any]()
 
 class _ReadOnlyNullableValue[T](_NullableValue[T]):
     __slots__ = ("__value",)
@@ -230,7 +228,7 @@ def _GetNullValue[T]() -> INullableValue[T]: # pyright: ignore[reportInvalidType
 def GetNullable[T](value: T) -> INullable[T]:
     return _Nullable[T](value)
 def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __nullValue # pyright: ignore[reportUnknownVariableType]
+    return __nullValue
 
 def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
