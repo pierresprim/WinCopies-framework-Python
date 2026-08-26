@@ -7,7 +7,7 @@ from typing import final, Callable, Self, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import EnumerationState, IEnumerationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable
+from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import NoAction, GetNotPredicate
@@ -309,7 +309,7 @@ class IAccumulatorAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetStatus(self) -> IEnumerationStatus:
+    def GetStatus(self) -> IIterationStatus:
         ...
     
     @abstractmethod
@@ -448,7 +448,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
     @final
     def TryReset(self) -> bool|None:
         if self.IsResetSupported():
-            if self.GetStatus().GetState() == EnumerationState.Idle: return True
+            if self.GetStatus().GetState() == IterationState.Idle: return True
 
             self.Stop()
             
@@ -470,7 +470,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         return None
     
     @final
-    def GetStatus(self) -> IEnumerationStatus: return self.__status.AsReadOnly()
+    def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
 
     @final
     def TryGetValue(self) -> INullable[TItem]: return self.__value.AsReadOnly()
