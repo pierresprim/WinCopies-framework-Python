@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator as IteratorCollection
-from typing import final, Callable, Type
+from collections.abc import Iterable, Iterator as IteratorCollection, Generator as _GeneratorCollection
+from types import TracebackType
+from typing import final, Callable, Self, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerable, GetIterable
+from WinCopies.Collections.Enumeration import EnumerationState, IEnumerationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
-from WinCopies.Delegates import GetNotPredicate
-from WinCopies.Typing.Delegate import Function, Predicate, Converter as ConverterDelegate, Selector
+from WinCopies.Delegates import NoAction, GetNotPredicate
+from WinCopies.Typing import INullable, INullableItem, CreateNullableItem, InvalidOperationError
+from WinCopies.Typing.Delegate import Action, Function, Predicate, Converter as ConverterDelegate, Selector
 
 class IResumable(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -284,8 +286,7 @@ class Converter[TIn, TOut](ConverterBase[TIn, TOut]):
         self.__items: IIterator[TIn] = items
     
     @final
-    def _GetItems(self) -> IIterator[TIn]:
-        return self.__items
+    def _GetItems(self) -> IIterator[TIn]: return self.__items
 
 class DelegateConverterBase[TIn, TOut](ConverterBase[TIn, TOut]):
     def __init__(self, converter: ConverterDelegate[TIn, TOut]) -> None:
@@ -302,5 +303,198 @@ class DelegateConverter[TIn, TOut](DelegateConverterBase[TIn, TOut]):
         self.__items: IIterator[TIn] = items
     
     @final
-    def _GetItems(self) -> IIterator[TIn]:
-        return self.__items
+    def _GetItems(self) -> IIterator[TIn]: return self.__items
+
+class IAccumulatorAbstract(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def Start(self) -> bool|None:
+        ...
+    @abstractmethod
+    def Stop(self) -> None:
+        ...
+
+    @abstractmethod
+    def IsResetSupported(self) -> bool:
+        ...
+    @abstractmethod
+    def TryReset(self) -> bool|None:
+        ...
+class IAccumulatorBase[TItem, TData](IAccumulatorAbstract):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryGetValue(self) -> INullable[TItem]:
+        ...
+    @final
+    def GetValue(self) -> TItem:
+        return self.TryGetValue().GetValue()
+
+    @abstractmethod
+    def Send(self, data: TData) -> TItem:
+        ...
+
+    @abstractmethod
+    def AsGenerator(self) -> _GeneratorCollection[TItem, TData, BaseException]:
+        ...
+class IAccumulator[T](IAccumulatorBase[T, T]):
+    def __init__(self) -> None: super().__init__()
+
+class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData, BaseException], IAccumulatorBase[TItem, TData]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__value: INullableItem[TItem] = CreateNullableItem()
+        self.__status: EnumerationStatus = EnumerationStatus()
+
+        self.__moveNext: Action = self.__MoveNext
+        self.__send: ConverterDelegate[TData, TItem] = self.__Send
+
+        self.__start: Function[bool|None] = self.__Start
+        self.__stop: Action = self.__Stop
+
+    @final
+    def __MoveNext(self) -> None:
+        if not self.Start(): raise StopIteration()
+
+    @final
+    def __Start(self) -> bool|None:
+        def start() -> bool: return False
+
+        def stop() -> None:
+            self.__Stop()
+
+            raise StopIteration()
+        
+        value: INullable[TItem] = self._GetInitialValue()
+
+        if value.HasValue():
+            self.__status.Start()
+            self.__value.SetValue(value.GetValue())
+
+            self.__moveNext = stop
+            self.__send = self.__SendFirst
+
+            self.__start = start
+
+            return True
+
+        self.Stop()
+
+        return None
+    @final
+    def __Stop(self) -> None:
+        def start() -> bool: return False
+
+        def moveNext() -> None: raise StopIteration()
+        def send(_: TData) -> TItem: raise InvalidOperationError("Iteration has terminated.")
+        
+        self.__value.UnsetValue()
+
+        self.__moveNext = moveNext
+        self.__send = send
+
+        self.__start = start
+        self.__stop = NoAction
+
+        self.__status.Complete()
+
+    @final
+    def __Send(self, _: TData) -> TItem:
+        raise InvalidOperationError("Iteration has not yet started.")
+    @final
+    def __SendValue(self, data: TData) -> TItem:
+        value: TItem = self._Send(data)
+
+        self.__value.SetValue(value)
+
+        return value
+    @final
+    def __SendFirst(self, data: TData) -> TItem:
+        result: TItem = self.__SendValue(data)
+
+        self.__status.NotifyItemProcessed()
+
+        self.__send = self.__SendValue
+
+        return result
+    
+    @abstractmethod
+    def _GetInitialValue(self) -> INullable[TItem]:
+        ...
+
+    @abstractmethod
+    def _Send(self, data: TData) -> TItem:
+        ...
+
+    @abstractmethod
+    def _ResetOverride(self) -> bool:
+        ...
+
+    @final
+    def Start(self) -> bool|None: return self.__start()
+    
+    @final
+    def Send(self, data: TData) -> TItem: return self.__send(data)
+
+    @final
+    def Stop(self) -> None: self.__stop()
+    
+    @final
+    def TryReset(self) -> bool|None:
+        if self.IsResetSupported():
+            if self.GetStatus().GetState() == EnumerationState.Idle: return True
+
+            self.Stop()
+            
+            if self._ResetOverride():
+                self.__moveNext = self.__MoveNext
+                self.__send = self.__Send
+
+                self.__start = self.__Start
+                self.__stop = self.__Stop
+
+                self.__status.Reset()
+                
+                return True
+            
+            return False
+        
+        self.Stop()
+        
+        return None
+    
+    @final
+    def GetStatus(self) -> IEnumerationStatus: return self.__status.AsReadOnly()
+
+    @final
+    def TryGetValue(self) -> INullable[TItem]: return self.__value.AsReadOnly()
+    
+    @final
+    def __next__(self) -> TItem:
+        self.__moveNext()
+
+        return self.GetValue()
+    
+    @final
+    def __iter__(self) -> Self: return self
+
+    @final
+    def send(self, value: TData) -> TItem: return self.Send(value)
+
+    @final
+    def throw(self, typ: BaseException|Type[BaseException], val: object|None = None, tb: TracebackType|None = None) -> TItem:
+        self.Stop()
+        
+        e: BaseException = typ if isinstance(typ, BaseException) else (typ() if val is None else typ(val))
+
+        raise e if tb is None else e.with_traceback(tb)
+
+    @final
+    def close(self) -> None: self.Stop()
+    
+    @final
+    def AsGenerator(self) -> _GeneratorCollection[TItem, TData, BaseException]: return self
+class Accumulator[T](AccumulatorBase[T, T], IAccumulator[T]):
+    def __init__(self) -> None: super().__init__()
