@@ -40,6 +40,15 @@ def _Outside(x: SupportsRichComparison, value: SupportsRichComparison, y: Suppor
 def ValidateIndex(index: int, length: int, permissive: bool = False) -> bool:
     return _Between(0, index, length, True, permissive)
 
+def TryGetRangeLength(index: int, length: int, count: int|None) -> int|None:
+    if ValidateIndex(index, length):
+        length -= index
+
+        if count is None: return length
+        elif _Between(0, count, length, False, True): return count
+
+    return None
+
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
     paramName: str|None = None
 

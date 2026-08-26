@@ -6,8 +6,7 @@ from typing import overload, final, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
-from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex
-from WinCopies.Comparison import Between
+from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
@@ -398,17 +397,11 @@ class IListBase[T](ITuple[T], ICountableList[T]):
         for _ in range(count): self.RemoveAt(index)
     @final
     def TryRemoveRange(self, index: int, count: int|None) -> bool:
-        def removeRange(length: int) -> bool:
-            self._RemoveRange(index, length)
+        if (count := TryGetRangeLength(index, self.GetCount(), count)) is None: return False
 
-            return True
-        if self.ValidateIndex(index):
-            length: int = self.GetCount() - index
-
-            if count is None: return removeRange(length)
-            elif Between(0, count, length, False, True): return removeRange(count)
-            
-        return False
+        self._RemoveRange(index, count)
+        
+        return True
 
 class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None: super().__init__()
