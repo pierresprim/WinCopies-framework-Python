@@ -115,8 +115,6 @@ class _NullValue[T](_NullableValue[T]):
     def HasValue(self) -> bool: return False
     def GetValue(self) -> T: raise InvalidOperationError("No value available.")
 
-__nullValue: _NullValue[Any] = _NullValue[Any]()
-
 class _ReadOnlyNullableValue[T](_NullableValue[T]):
     __slots__ = ("__value",)
     
@@ -220,6 +218,7 @@ class NullableItem[T](_NullableValue[T], INullableItem[T]):
     @final
     def AsReadOnly(self) -> INullable[T]: return self.__readOnly
 
+__nullValue: _NullValue[Any] = _NullValue[Any]()
 __nullItem: INullableValue[Any] = _NullItem[Any]()
 
 def _GetNullValue[T]() -> INullableValue[T]: # pyright: ignore[reportInvalidTypeVarUse]
@@ -230,9 +229,6 @@ def GetNullable[T](value: T) -> INullable[T]:
 def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __nullValue
 
-def TryGetValue[T](value: INullable[T]|None) -> T|None:
-    return None if value is None else value.TryGetValue()
-
 def GetNullableValue[T](value: T|None) -> INullable[T]:
     return GetNullValue() if value is None else GetNullable(value)
 
@@ -241,6 +237,9 @@ def GetNullableItem[T](value: T|None) -> INullableItem[T]:
 
 def CreateNullableItem[T](value: INullableValue[T]|None = None) -> INullableItem[T]:
     return NullableItem[T](value)
+
+def TryGetValue[T](value: INullable[T]|None) -> T|None:
+    return None if value is None else value.TryGetValue()
 
 def HasValue[T](value: INullable[T]|None) -> bool:
     return value is not None and value.HasValue()
