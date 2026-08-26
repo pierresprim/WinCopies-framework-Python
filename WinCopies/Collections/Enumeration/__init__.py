@@ -15,12 +15,13 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Delegates import BoolFalse
-from WinCopies.Typing import INullable, IMonitor, Monitor, InvalidOperationError, DoWork, Process, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum, StrEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process
 
 def GetEnumeratorInactiveError() -> InvalidOperationError:
     return InvalidOperationError("The enumeration has not started or has been terminated.")

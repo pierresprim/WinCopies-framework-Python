@@ -6,12 +6,12 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    IMonitor, Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
     GetGenericError, 
     TryGetValue, HasValue,
     TryGetValueAs, TryGetAs)
 from WinCopies.Typing.Discard import IDisposable, IDisposableInfo, DisposableProvider, GetDiscardedError
+from WinCopies.Typing.Monitoring import IMonitor, Monitor
 
 # ---------------------------------------------------------------------------
 # Concrete helpers

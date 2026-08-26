@@ -4,8 +4,9 @@ from typing import final
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 
-from WinCopies.Typing import InvalidOperationError, IMonitor, Monitor
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate.Event import IEvent, ICancellableEvent, INotifyableEvent, IEventManager, CancellableEventArgs, NotifyableEventArgs, EventHandler, EventManager, CancellableEventManager
+from WinCopies.Typing.Monitoring import IMonitor, Monitor
 from WinCopies.Typing.Pairing import DualValueNullableBool
 
 class ILevelChangedEventArgs[T](IInterface):
