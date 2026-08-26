@@ -247,8 +247,7 @@ class _ValueProviderUpdater[T](ValueFunctionUpdater[T]):
 @final
 class ValueProvider[T](Abstract, IFunction[T]):
     def __init__(self, valueProvider: IFunction[T]) -> None:
-        def update(func: IFunction[T]) -> None:
-            self.__valueProvider = func
+        def update(func: IFunction[T]) -> None: self.__valueProvider = func
         
         super().__init__()
 

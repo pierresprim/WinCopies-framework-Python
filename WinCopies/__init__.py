@@ -83,7 +83,7 @@ def IsFalsy(value: bool|None) -> bool: return value is not True
 def Not(value: bool|None) -> bool|None: return None if value is None else not value
 
 def TryConvertToInt(value: object) -> int|None:
-    try: return int(value) # type: ignore
+    try: return int(value) # type: ignore[no-any-return, call-overload]
     except ValueError: return None
 
 def ReadInt(message: str, errorMessage: str = "Invalid value; an integer is expected.") -> int:

@@ -135,7 +135,7 @@ class TestReversedView(unittest.TestCase):
 
                 self.assertTrue(collection.AsReversed().TryRemoveAt(index))
 
-                reference: Sequence[int] = CreatePyList(reversed(_SOURCE))
+                reference: MutableSequence[int] = CreatePyList(reversed(_SOURCE))
 
                 del reference[index]
 
@@ -152,7 +152,7 @@ class TestRemoveRange(unittest.TestCase):
 
                     self.assertTrue(collection.TryRemoveRange(index, count))
 
-                    reference: Sequence[int] = CreatePyList(_SOURCE)
+                    reference: MutableSequence[int] = CreatePyList(_SOURCE)
 
                     del reference[index:index + count]
 
@@ -184,7 +184,7 @@ class TestSliceSemantics(unittest.TestCase):
 
                 del collection.AsMutableSequence()[key]
 
-                reference: Sequence[int] = CreatePyList(_SOURCE)
+                reference: MutableSequence[int] = CreatePyList(_SOURCE)
 
                 del reference[key]
 

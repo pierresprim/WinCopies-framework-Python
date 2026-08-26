@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies.Typing import (
     ErrorBase, Error, InvalidOperationError,
-    Monitor,
+    IMonitor, Monitor,
     INullable, GetNullable, GetNullValue, GetNullableValue,
     GetGenericError, 
     TryGetValue, HasValue,
@@ -364,7 +364,7 @@ class TestMonitor(unittest.TestCase):
     def test_busy_after_initialize(self) -> None:
         """IsBusy returns True after Initialize is called."""
 
-        m = Monitor()
+        m: IMonitor = Monitor()
         m.Initialize()
 
         self.assertTrue(m.IsBusy())
@@ -372,7 +372,7 @@ class TestMonitor(unittest.TestCase):
     def test_not_busy_after_dispose(self) -> None:
         """IsBusy returns False after Dispose is called."""
 
-        m = Monitor()
+        m: IMonitor = Monitor()
         m.Initialize()
         m.Dispose()
 
@@ -381,7 +381,7 @@ class TestMonitor(unittest.TestCase):
     def test_context_manager_sets_and_clears_busy(self) -> None:
         """Using Monitor as a context manager sets IsBusy during the block and clears it on exit."""
 
-        m = Monitor()
+        m: IMonitor = Monitor()
 
         with m:
             self.assertTrue(m.IsBusy())

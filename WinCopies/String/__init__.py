@@ -3,6 +3,7 @@ from enum import Flag
 from typing import final, Callable
 
 from WinCopies import Abstract
+from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Protocols import SupportsStringization
 
 class StringizationSurrounding(Flag):
@@ -21,7 +22,7 @@ class __Stringifier(Abstract):
             
             from WinCopies.Enum import HasFlag
 
-            hasFlag: Callable[[Flag, Flag], bool] = HasFlag
+            hasFlag: EqualityComparison[Flag] = HasFlag
             self.__stringify = stringify
 
             return stringify(value, prefix, suffix, surroundingWay, condition)
