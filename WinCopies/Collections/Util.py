@@ -1,17 +1,44 @@
 from collections.abc import Iterable, Sequence, MutableSequence
-from typing import overload
+from typing import overload, Callable
 
 from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator
-from WinCopies.Comparison import Between, Outside
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualNullableValueInfo
+from WinCopies.Typing.Protocols import SupportsRichComparison
+
+type __BoundComparison = Callable[[SupportsRichComparison, SupportsRichComparison, SupportsRichComparison, bool, bool], bool]
+
+def __Between(x: SupportsRichComparison, value: SupportsRichComparison, y: SupportsRichComparison, bx: bool, by: bool) -> bool:
+    from WinCopies.Comparison import Between
+
+    global __betweenComparisonDelegate
+
+    __betweenComparisonDelegate = Between
+
+    return Between(x, value, y, bx, by)
+def __Outside(x: SupportsRichComparison, value: SupportsRichComparison, y: SupportsRichComparison, bx: bool, by: bool) -> bool:
+    from WinCopies.Comparison import Outside
+
+    global __outsideComparisonDelegate
+
+    __outsideComparisonDelegate = Outside
+
+    return Outside(x, value, y)
+
+__betweenComparisonDelegate: __BoundComparison = __Between
+__outsideComparisonDelegate: __BoundComparison = __Outside
+
+def _Between(x: SupportsRichComparison, value: SupportsRichComparison, y: SupportsRichComparison, bx: bool, by: bool) -> bool:
+    return __betweenComparisonDelegate(x, value, y, bx, by)
+def _Outside(x: SupportsRichComparison, value: SupportsRichComparison, y: SupportsRichComparison, bx: bool, by: bool) -> bool:
+    return __outsideComparisonDelegate(x, value, y, bx, by)
 
 def ValidateIndex(index: int, length: int, permissive: bool = False) -> bool:
-    return Between(0, index, length, True, permissive)
+    return _Between(0, index, length, True, permissive)
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
     paramName: str|None = None
@@ -129,7 +156,7 @@ def GetIndexOf[T](l: Sequence[T], value: T, i: int = 0, length: int|None = None,
     def getReturnValue(value: int|None, info: int) -> DualNullableValueInfo[int, int]: return DualNullableValueInfo[int, int](value, info)
     def getNullValue(length: int) -> DualNullableValueInfo[int, int]: return getReturnValue(None, length)
     
-    def validate(length: int|None, listLength: int) -> int|None: return listLength if length is None else (None if Outside(0, length, listLength) else length)
+    def validate(length: int|None, listLength: int) -> int|None: return listLength if length is None else (None if _Outside(0, length, listLength, True, True) else length)
     
     if (length := validate(length, len(l))) is None: return None
     
