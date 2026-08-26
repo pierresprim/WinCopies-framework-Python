@@ -196,7 +196,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __next__(self) -> T:
         if self.MoveNext(): return self.GetCurrent()
         
-        raise StopIteration
+        raise StopIteration()
     
     @final
     def AsIterator(self) -> SystemIterator[T]: return self
