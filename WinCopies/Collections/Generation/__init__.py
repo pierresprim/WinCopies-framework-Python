@@ -7,11 +7,11 @@ from typing import final, Callable, Self, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable
+from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, EnumerationStatus, AsEnumerable, GetIterable, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import NoAction, GetNotPredicate
-from WinCopies.Typing import INullable, INullableItem, CreateNullableItem, InvalidOperationError
+from WinCopies.Typing import INullable, INullableItem, CreateNullableItem
 from WinCopies.Typing.Delegate import Action, Function, Predicate, Converter as ConverterDelegate, Selector
 
 class IResumable(IInterface):
@@ -392,7 +392,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         def start() -> bool: return False
 
         def moveNext() -> None: raise StopIteration()
-        def send(_: TData) -> TItem: raise InvalidOperationError("Iteration has terminated.")
+        def send(_: TData) -> TItem: raise GetIterationInactiveError()
         
         self.__value.UnsetValue()
 
@@ -406,7 +406,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
 
     @final
     def __Send(self, _: TData) -> TItem:
-        raise InvalidOperationError("Iteration has not yet started.")
+        raise GetIterationInactiveError()
     @final
     def __SendValue(self, data: TData) -> TItem:
         value: TItem = self._Send(data)
