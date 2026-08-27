@@ -1,4 +1,4 @@
-from WinCopies.Typing.Enum import IntEnum
+from WinCopies.Typing.Enum import IntEnum, StrEnum
 
 class Endianness(IntEnum):
     Null = 0
@@ -21,3 +21,6 @@ class BitDepthLevel(IntEnum):
     Eight = One << 7
     Nine = One << 8
     Ten = One << 9
+
+class ErrorMessages(StrEnum):
+    ReentrancyNotAllowed = "Reentrant calls are not supported: this method cannot be called while another operation is in progress on this object."

@@ -16,11 +16,12 @@ from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
 from WinCopies.Delegates import BoolFalse
+from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, GetDiscardedError
-from WinCopies.Typing.Enum import IntEnum, StrEnum
+from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process
 
@@ -307,9 +308,6 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
-class _ErrorMessages(StrEnum):
-    ReentrancyNotAllowed = "Enumeration methods cannot be called from within an override or a hook."
-
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -320,7 +318,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__monitor: IMonitor = Monitor()
     
     def __Process[U](self, func: Function[U]) -> U:
-        return Process(self.__monitor, func, _ErrorMessages.ReentrancyNotAllowed.value)
+        return Process(self.__monitor, func, ErrorMessages.ReentrancyNotAllowed.value)
     
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
@@ -405,7 +403,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
     
     @final
-    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, _ErrorMessages.ReentrancyNotAllowed.value)
+    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, ErrorMessages.ReentrancyNotAllowed.value)
     
     @final
     def TryReset(self) -> bool|None:
