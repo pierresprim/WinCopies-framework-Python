@@ -318,7 +318,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__monitor: IMonitor = Monitor()
     
     def __Process[U](self, func: Function[U]) -> U:
-        return Process(self.__monitor, func, ErrorMessages.ReentrancyNotAllowed.value)
+        return Process(self.__monitor, func, ErrorMessages.ReentrancyNotAllowed)
     
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
@@ -403,7 +403,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
     
     @final
-    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, ErrorMessages.ReentrancyNotAllowed.value)
+    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, ErrorMessages.ReentrancyNotAllowed)
     
     @final
     def TryReset(self) -> bool|None:
