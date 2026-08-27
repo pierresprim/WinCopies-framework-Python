@@ -12,7 +12,9 @@ def BoolFalse() -> bool:
 def FuncNone() -> None:
     return None
 
-def NoAction(*values: object) -> None:
+def NoAction() -> None:
+    pass
+def DoNothing(*values: object) -> None:
     pass
 
 def AlwaysTrue(obj: Any) -> bool:
