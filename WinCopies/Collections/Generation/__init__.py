@@ -345,9 +345,23 @@ class IAccumulatorBase[TItem, TData](IAccumulatorAbstract):
 class IAccumulator[T](IAccumulatorBase[T, T]):
     def __init__(self) -> None: super().__init__()
 
-class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData, BaseException], IAccumulatorBase[TItem, TData]):
-    def __init__(self) -> None:
+class _IAccumulatorCookie[TItem, TData](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def GetInitialValue(self) -> INullable[TItem]:
+        ...
+
+    @abstractmethod
+    def Send(self, data: TData) -> TItem:
+        ...
+
+@final
+class _AccumulatorEngine[TItem, TData](Abstract):
+    def __init__(self, accumulator: _IAccumulatorCookie[TItem, TData]) -> None:
         super().__init__()
+
+        self.__cookie: _IAccumulatorCookie[TItem, TData] = accumulator
 
         self.__value: INullableItem[TItem] = CreateNullableItem()
         self.__status: IterationStatus = IterationStatus()
@@ -358,11 +372,9 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         self.__start: Function[bool|None] = self.__Start
         self.__stop: Action = self.__Stop
 
-    @final
     def __MoveNext(self) -> None:
         if not self.Start(): raise StopIteration()
 
-    @final
     def __Start(self) -> bool|None:
         def start() -> bool: return False
 
@@ -371,7 +383,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
 
             raise StopIteration()
         
-        value: INullable[TItem] = self._GetInitialValue()
+        value: INullable[TItem] = self.__cookie.GetInitialValue()
 
         if value.HasValue():
             self.__status.Start()
@@ -387,7 +399,6 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         self.Stop()
 
         return None
-    @final
     def __Stop(self) -> None:
         def start() -> bool: return False
 
@@ -404,17 +415,14 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
 
         self.__status.Complete()
 
-    @final
     def __Send(self, _: TData) -> TItem:
         raise GetIterationInactiveError()
-    @final
     def __SendValue(self, data: TData) -> TItem:
-        value: TItem = self._Send(data)
+        value: TItem = self.__cookie.Send(data)
 
         self.__value.SetValue(value)
 
         return value
-    @final
     def __SendFirst(self, data: TData) -> TItem:
         result: TItem = self.__SendValue(data)
 
@@ -423,6 +431,50 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         self.__send = self.__SendValue
 
         return result
+
+    def MoveNext(self) -> None:
+        self.__moveNext()
+
+    def Start(self) -> bool|None:
+        return self.__start()
+    
+    def Send(self, data: TData) -> TItem:
+        return self.__send(data)
+
+    def Stop(self) -> None:
+        return self.__stop()
+    
+    def GetStatus(self) -> IIterationStatus:
+        return self.__status.AsReadOnly()
+
+    def TryGetValue(self) -> INullable[TItem]:
+        return self.__value.AsReadOnly()
+
+    def Reset(self) -> None:
+        self.__moveNext = self.__MoveNext
+        self.__send = self.__Send
+
+        self.__start = self.__Start
+        self.__stop = self.__Stop
+
+        self.__status.Reset()
+
+class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData, BaseException], IAccumulatorBase[TItem, TData]):
+    @final
+    class _Cookie[_TItem, _TData](Abstract, _IAccumulatorCookie[_TItem, _TData]):
+        def __init__(self, accumulator: AccumulatorBase[_TItem, _TData]) -> None:
+            super().__init__()
+
+            self.__accumulator: AccumulatorBase[_TItem, _TData] = accumulator
+
+        def GetInitialValue(self) -> INullable[_TItem]: return self.__accumulator._GetInitialValue()
+
+        def Send(self, data: _TData) -> _TItem: return self.__accumulator._Send(data)
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__engine: _AccumulatorEngine[TItem, TData] = _AccumulatorEngine[TItem, TData](AccumulatorBase._Cookie[TItem, TData](self))
     
     @abstractmethod
     def _GetInitialValue(self) -> INullable[TItem]:
@@ -437,13 +489,13 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         ...
 
     @final
-    def Start(self) -> bool|None: return self.__start()
+    def Start(self) -> bool|None: return self.__engine.Start()
     
     @final
-    def Send(self, data: TData) -> TItem: return self.__send(data)
+    def Send(self, data: TData) -> TItem: return self.__engine.Send(data)
 
     @final
-    def Stop(self) -> None: self.__stop()
+    def Stop(self) -> None: self.__engine.Stop()
     
     @final
     def TryReset(self) -> bool|None:
@@ -453,13 +505,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
             self.Stop()
             
             if self._ResetOverride():
-                self.__moveNext = self.__MoveNext
-                self.__send = self.__Send
-
-                self.__start = self.__Start
-                self.__stop = self.__Stop
-
-                self.__status.Reset()
+                self.__engine.Reset()
                 
                 return True
             
@@ -470,14 +516,14 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         return None
     
     @final
-    def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
+    def GetStatus(self) -> IIterationStatus: return self.__engine.GetStatus()
 
     @final
-    def TryGetValue(self) -> INullable[TItem]: return self.__value.AsReadOnly()
+    def TryGetValue(self) -> INullable[TItem]: return self.__engine.TryGetValue()
     
     @final
     def __next__(self) -> TItem:
-        self.__moveNext()
+        self.__engine.MoveNext()
 
         return self.GetValue()
     
