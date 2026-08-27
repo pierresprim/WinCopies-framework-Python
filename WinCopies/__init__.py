@@ -85,18 +85,3 @@ def Not(value: bool|None) -> bool|None: return None if value is None else not va
 def TryConvertToInt(value: object) -> int|None:
     try: return int(value) # type: ignore[no-any-return, call-overload]
     except ValueError: return None
-
-def ReadInt(message: str, errorMessage: str = "Invalid value; an integer is expected.") -> int:
-    def read() -> int|None: return TryConvertToInt(input(message))
-        
-    value: int|None = read()
-    
-    while value is None:
-        print(errorMessage)
-        
-        value = read()
-    
-    return value
-
-def AskConfirmation(message: str, info: str = " [y]/any other key: ", value: str = "y") -> bool:
-    return input(message + info) == value

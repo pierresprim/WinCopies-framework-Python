@@ -7,13 +7,13 @@ from argparse import ArgumentParser as ArgumentParserBase, Namespace, RawDescrip
 from enum import Enum
 from typing import final, cast, Callable, Type
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, Abstract, TryConvertToInt
 from WinCopies.Application import IDescription, Description
 from WinCopies.Application.Logging import ILogger, Logger
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Linked.Singly import IReadOnlyEnumerableList, IEnumerableList, CreateEnumerableQueue
 from WinCopies.Collections.Util import MakeSequence
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Delegate import Action as _Action, Method, Function, Converter, Predicate
 from WinCopies.Typing.Object import PrimitiveType, PrimitiveValue
 
 class IParameterDescription(IDescription):
@@ -511,3 +511,79 @@ class Application(Abstract):
         except ApplicationError as e: return onError(e, f"Application error", 3)
         except KeyboardInterrupt: return _onError("\nCanceled by user", 130) # Standard code for SIGINT
         except Exception as e: return onError(e, f"Unknown error", 4)
+
+def ReadInt(message: str, errorMessage: str = "Invalid value; an integer is expected.") -> int:
+    def read() -> int|None: return TryConvertToInt(input(message))
+        
+    value: int|None = read()
+    
+    while value is None:
+        print(errorMessage)
+        
+        value = read()
+    
+    return value
+
+def AskConfirmation(message: str, info: str = " [y]/any other key: ", value: str = "y") -> bool:
+    return input(message + info) == value
+
+def AskInt(message: str, predicate: Predicate[int], errorMessage: str = "The value is out of range.") -> int:
+    value: int = 0
+    
+    def loop() -> int: return ReadInt(message)
+    
+    value = loop()
+    
+    while predicate(value):
+        print(errorMessage)
+        
+        value = loop()
+    
+    return value
+
+def Process(action: _Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
+    while AskConfirmation(message, info, value): action()
+
+def DoProcess(action: _Action, message: str = "Continue?", info: str = " [y]/any other key: ", value: str = "y") -> None:
+    action()
+    
+    Process(action, message, info, value)
+
+def TryPredicate(predicate: Predicate[Exception], action: _Action) -> bool|None:
+    ok: bool = True
+    _predicate: Predicate[Exception]
+
+    def __predicate(e: Exception) -> bool:
+        nonlocal ok
+        nonlocal _predicate
+
+        if predicate(e):
+            ok = False
+            _predicate = predicate
+
+            return True
+        
+        return False
+    
+    _predicate = __predicate
+    
+    while True:
+        try: action()
+
+        except Exception as e:
+            if _predicate(e): continue
+            
+            return None
+        
+        break
+
+    return ok
+def Try(action: _Action, onError: Method[Exception], func: Function[bool]) -> bool|None:
+    def _onError(e: Exception) -> bool:
+        onError(e)
+        
+        return func()
+    
+    return TryPredicate(_onError, action)
+def TryMessage(action: _Action, onError: Method[Exception], message: str = "Continue?") -> bool|None:
+    return Try(action, onError, lambda: AskConfirmation(message))
