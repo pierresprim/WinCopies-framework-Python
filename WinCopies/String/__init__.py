@@ -78,8 +78,8 @@ def IsNoneOrEmpty(value: str|None) -> bool:
     """
     return value is None or __IsEmpty(value)
 
-def GetValueOrDefault(value: str|None, default: str) -> str:
-    return default if value is None or __IsEmpty(value) else value
+def GetValueOrDefault(value: str|SupportsStringization|None, default: str) -> str:
+    return default if value is None or (isinstance(value, str) and __IsEmpty(value)) else str(value)
 
 def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
     """Replaces escape sequences in a string.
