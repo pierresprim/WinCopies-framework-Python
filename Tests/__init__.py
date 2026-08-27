@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies import IDisposable, IStringable, Not, TryConvertToInt
 from WinCopies.Bool import BooleanableEnum, NullableBoolean, ToNullableBool, ToNullableBoolean
-from WinCopies.Extensions import Endianness, Sign, BitDepthLevel
+from WinCopies.Enums import Endianness, Sign, BitDepthLevel
 
 # ---------------------------------------------------------------------------
 # Concrete helpers for abstract classes
