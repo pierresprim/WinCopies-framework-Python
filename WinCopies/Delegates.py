@@ -76,6 +76,45 @@ def JoinMethods[T](arg: T, *actions: Method[T]) -> Action:
 
 
 
+def TryPredicate(predicate: Predicate[Exception], action: Action) -> bool|None:
+    ok: bool = True
+    _predicate: Predicate[Exception]
+
+    def __predicate(e: Exception) -> bool:
+        nonlocal ok
+        nonlocal _predicate
+
+        if predicate(e):
+            ok = False
+            _predicate = predicate
+
+            return True
+        
+        return False
+    
+    _predicate = __predicate
+    
+    while True:
+        try: action()
+
+        except Exception as e:
+            if _predicate(e): continue
+            
+            return None
+        
+        break
+
+    return ok
+def Try(action: Action, onError: Method[Exception], func: Function[bool]) -> bool|None:
+    def _onError(e: Exception) -> bool:
+        onError(e)
+        
+        return func()
+    
+    return TryPredicate(_onError, action)
+
+
+
 def __CheckRepeat(n: int) -> None:
     if n < 1: raise ValueError()
 

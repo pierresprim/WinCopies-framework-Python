@@ -13,7 +13,8 @@ from WinCopies.Application.Logging import ILogger, Logger
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Linked.Singly import IReadOnlyEnumerableList, IEnumerableList, CreateEnumerableQueue
 from WinCopies.Collections.Util import MakeSequence
-from WinCopies.Typing.Delegate import Action as _Action, Method, Function, Converter, Predicate
+from WinCopies.Delegates import Try
+from WinCopies.Typing.Delegate import Action as _Action, Method, Converter, Predicate
 from WinCopies.Typing.Object import PrimitiveType, PrimitiveValue
 
 class IParameterDescription(IDescription):
@@ -549,41 +550,5 @@ def DoProcess(action: _Action, message: str = "Continue?", info: str = " [y]/any
     
     Process(action, message, info, value)
 
-def TryPredicate(predicate: Predicate[Exception], action: _Action) -> bool|None:
-    ok: bool = True
-    _predicate: Predicate[Exception]
-
-    def __predicate(e: Exception) -> bool:
-        nonlocal ok
-        nonlocal _predicate
-
-        if predicate(e):
-            ok = False
-            _predicate = predicate
-
-            return True
-        
-        return False
-    
-    _predicate = __predicate
-    
-    while True:
-        try: action()
-
-        except Exception as e:
-            if _predicate(e): continue
-            
-            return None
-        
-        break
-
-    return ok
-def Try(action: _Action, onError: Method[Exception], func: Function[bool]) -> bool|None:
-    def _onError(e: Exception) -> bool:
-        onError(e)
-        
-        return func()
-    
-    return TryPredicate(_onError, action)
 def TryMessage(action: _Action, onError: Method[Exception], message: str = "Continue?") -> bool|None:
     return Try(action, onError, lambda: AskConfirmation(message))
