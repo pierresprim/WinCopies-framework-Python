@@ -11,8 +11,10 @@ from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, 
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import NoAction, GetNotPredicate
+from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, INullableItem, CreateNullableItem
 from WinCopies.Typing.Delegate import Action, Function, Predicate, Converter as ConverterDelegate, Selector
+from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
 
 class IResumable(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -475,6 +477,18 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         super().__init__()
 
         self.__engine: _AccumulatorEngine[TItem, TData] = _AccumulatorEngine[TItem, TData](AccumulatorBase._Cookie[TItem, TData](self))
+        self.__monitor: IMonitor = Monitor()
+
+    @final
+    def __DoWork(self, worker: Action) -> None:
+        DoWork(self.__monitor, worker, ErrorMessages.ReentrancyNotAllowed)
+    @final
+    def __Process[T](self, worker: Function[T]) -> T:
+        return Process(self.__monitor, worker, ErrorMessages.ReentrancyNotAllowed)
+
+    @final
+    def __Stop(self) -> None:
+        self.__engine.Stop()
     
     @abstractmethod
     def _GetInitialValue(self) -> INullable[TItem]:
@@ -489,31 +503,34 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
         ...
 
     @final
-    def Start(self) -> bool|None: return self.__engine.Start()
+    def Start(self) -> bool|None: return self.__Process(self.__engine.Start)
     
     @final
-    def Send(self, data: TData) -> TItem: return self.__engine.Send(data)
+    def Send(self, data: TData) -> TItem: return ProcessData(data, self.__monitor, self.__engine.Send, ErrorMessages.ReentrancyNotAllowed)
 
     @final
-    def Stop(self) -> None: self.__engine.Stop()
+    def Stop(self) -> None: self.__DoWork(self.__Stop)
     
     @final
     def TryReset(self) -> bool|None:
-        if self.IsResetSupported():
-            if self.GetStatus().GetState() == IterationState.Idle: return True
+        def tryReset() -> bool|None:
+            if self.IsResetSupported():
+                if self.GetStatus().GetState() == IterationState.Idle: return True
 
-            self.Stop()
-            
-            if self._ResetOverride():
-                self.__engine.Reset()
+                self.__Stop()
                 
-                return True
+                if self._ResetOverride():
+                    self.__engine.Reset()
+                    
+                    return True
+                
+                return False
             
-            return False
-        
-        self.Stop()
-        
-        return None
+            self.__Stop()
+
+            return None
+
+        return self.__Process(tryReset)
     
     @final
     def GetStatus(self) -> IIterationStatus: return self.__engine.GetStatus()
@@ -523,7 +540,7 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
     
     @final
     def __next__(self) -> TItem:
-        self.__engine.MoveNext()
+        self.__DoWork(self.__engine.MoveNext)
 
         return self.GetValue()
     
