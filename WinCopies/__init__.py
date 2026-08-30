@@ -58,8 +58,7 @@ class IDisposable(IDisposableBase):
     def __exit__(self, exc_type: type[Exception]|None, exc_value: Exception|None, traceback: TracebackType|None) -> bool:
         result: bool|None = self._OnExiting(exc_type, exc_value, traceback)
 
-        if result is None:
-            return False
+        if result is None: return False
 
         self.Dispose()
 

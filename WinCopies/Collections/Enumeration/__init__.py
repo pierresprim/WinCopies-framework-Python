@@ -676,8 +676,8 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     
     @final
     def __OnCompleted(self) -> None:
-        self.__OnTerminated(True)
         self._OnCompleted()
+        self.__OnTerminated(True)
     
     def _OnStarting(self) -> bool:
         return True
@@ -706,6 +706,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     def Stop(self) -> None:
         self._GetContainer().Stop()
 
+        self._OnStopped()
         self.__OnTerminated(False)
     
     @final
