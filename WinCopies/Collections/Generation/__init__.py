@@ -3,17 +3,18 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator as IteratorCollection, Generator as _GeneratorCollection
 from types import TracebackType
-from typing import final, Callable, Self, Type
+from typing import final, Any, Callable, Self, Type
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IDisposableAbstract, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumerator, IterationStatus, AsEnumerable, GetIterable, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IEnumerable, IEnumeratorBase, IEnumerator, IterationStatus, IteratorBase as _IteratorBase, Iterator as _Iterator, ConverterEnumeratorBase, AsEnumerable, GetIterable, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import TryEnumerate, Select
 from WinCopies.Delegates import NoAction, GetNotPredicate
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, INullableItem, CreateNullableItem
 from WinCopies.Typing.Delegate import Action, Function, Predicate, Converter as ConverterDelegate, Selector
+from WinCopies.Typing.Discard import DiscardReason, IDisposableCookie, IDisposable, DisposableAbstract
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
 
 class IResumable(IInterface):
@@ -565,3 +566,129 @@ class AccumulatorBase[TItem, TData](Abstract, _GeneratorCollection[TItem, TData,
     def AsGenerator(self) -> _GeneratorCollection[TItem, TData, BaseException]: return self
 class Accumulator[T](AccumulatorBase[T, T], IAccumulator[T]):
     def __init__(self) -> None: super().__init__()
+
+class ICursorBase(IEnumeratorBase, IDisposable):
+    def __init__(self) -> None: super().__init__()
+class ICursor[T](IEnumerator[T], ICursorBase):
+    def __init__(self) -> None: super().__init__()
+
+@final
+class _EmptyCursor[T](_IteratorBase[T], ICursor[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    def GetCurrent(self) -> T: raise GetIterationInactiveError()
+    def MoveNext(self) -> bool: return False
+    def Stop(self) -> None: pass
+    def TryReset(self) -> bool|None: return None
+    def IsResetSupported(self) -> bool: return False
+    
+    def GetStatus(self) -> IIterationStatus: return GetNoDataEnumerationStatus()
+
+    def Dispose(self) -> None: pass
+
+__emptyCursor = _EmptyCursor[Any]()
+
+def GetEmptyCursor[T]() -> ICursor[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyCursor
+
+class IScannable[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryGetCursor(self) -> ICursor[T]|None:
+        ...
+    @final
+    def GetCursor(self) -> ICursor[T]:
+        cursor: ICursor[T]|None = self.TryGetCursor()
+
+        return GetEmptyCursor() if cursor is None else cursor
+class Scannable[T](Abstract, IScannable[T]):
+    def __init__(self) -> None: super().__init__()
+
+class Cursor[TRoot, THandle, TItem](ConverterEnumeratorBase[THandle, TItem], DisposableAbstract, ICursor[TItem]):
+    def __init__(self, root: TRoot) -> None:
+        def enumerate() -> IteratorCollection[THandle]:
+            handle: INullable[THandle] = self._GetFirstHandle(root)
+
+            def setNext() -> None:
+                nonlocal handle
+
+                handle = self._GetNextHandle(value)
+
+            if self._OnRootHandleProcessed(root) and handle.HasValue():
+                value: THandle = handle.GetValue()
+
+                def setCurrent() -> bool:
+                    nonlocal value
+
+                    return self._OnHandleProcessing(value := handle.GetValue())
+
+                if self._OnHandleProcessing(value):
+                    yield value
+
+                    setNext()
+
+                    while self._OnHandleProcessed(value) and handle.HasValue() and setCurrent():
+                        yield value
+
+                        setNext()
+
+        def updateCookie(cookie: IDisposableCookie) -> None: self.__disposableCookie = cookie
+        
+        super().__init__(_Iterator[THandle](enumerate()))
+
+        self.__disposableCookie: IDisposableCookie = self._CreateDisposableCookie(updateCookie) # type: ignore[no-redef]
+
+    @final
+    def _GetDisposableCookie(self) -> IDisposableCookie: return self.__disposableCookie
+
+    @abstractmethod
+    def _GetFirstHandle(self, handle: TRoot) -> INullable[THandle]:
+        ...
+    @abstractmethod
+    def _GetNextHandle(self, handle: THandle) -> INullable[THandle]:
+        ...
+
+    def _OnRootHandleProcessed(self, handle: TRoot) -> bool:
+        return True
+    
+    def _OnHandleProcessing(self, handle: THandle) -> bool:
+        return True
+    def _OnHandleProcessed(self, handle: THandle) -> bool:
+        return True
+
+    def _OnStopping(self, enumerator: IEnumerator[THandle]) -> None:
+        self._DisposeHandle(enumerator.GetCurrent())
+
+        super()._OnStopping(enumerator)
+
+    @abstractmethod
+    def _DisposeHandle(self, handle: THandle) -> None:
+        ...
+
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        self.Stop()
+
+        super()._DisposeOverride(reason)
+
+    def _Finalize(self) -> None:
+        enumerator: IEnumerator[THandle] = self._GetContainer()
+
+        if enumerator.IsStarted(): self._DisposeHandle(enumerator.GetCurrent())
+        
+        super()._Finalize()
+class DisposableCursor[TRoot: IDisposableAbstract, THandle: IDisposableAbstract, TItem](Cursor[TRoot, THandle, TItem]):
+    def __init__(self, root: TRoot) -> None: super().__init__(root)
+
+    def _DisposeHandle(self, handle: TRoot|THandle) -> None:
+        handle.Dispose()
+    
+    def _DisposeProcessedHandle(self, handle: TRoot|THandle) -> bool:
+        self._DisposeHandle(handle)
+        
+        return True
+
+    def _OnRootHandleProcessed(self, handle: TRoot) -> bool:
+        return self._DisposeProcessedHandle(handle)
+    def _OnHandleProcessed(self, handle: THandle) -> bool:
+        return self._DisposeProcessedHandle(handle)
