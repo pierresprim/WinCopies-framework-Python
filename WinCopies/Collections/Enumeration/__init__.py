@@ -661,11 +661,20 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
 
                 return True
         
+        enumerator: TEnumerator = self._GetContainer()
+
+        self._OnCompleting(enumerator)
+        self.__OnTerminating(enumerator, True)
+        
         self._OnCompleted()
         self.__OnTerminated(True)
         
         return False
     
+    @final
+    def __OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
+        self._OnTerminating(enumerator, completed)
+        self._OnEnding(enumerator)
     @final
     def __OnTerminated(self, completed: bool) -> None:
         self._OnTerminated(completed)
@@ -673,11 +682,23 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     
     def _OnStarting(self) -> bool:
         return True
+    
+    def _OnCompleting(self, enumerator: TEnumerator) -> None:
+        pass
     def _OnCompleted(self) -> None:
+        pass
+
+    def _OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
         pass
     def _OnTerminated(self, completed: bool) -> None:
         pass
+    
+    def _OnEnding(self, enumerator: TEnumerator) -> None:
+        pass
     def _OnEnded(self) -> None:
+        pass
+    
+    def _OnStopping(self, enumerator: TEnumerator) -> None:
         pass
     @abstractmethod
     def _OnStopped(self) -> None:
@@ -698,7 +719,12 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     def Stop(self) -> None:
         if self.GetStatus().GetState() >= IterationState.Ended: return
 
-        self._GetContainer().Stop()
+        enumerator: TEnumerator = self._GetContainer()
+
+        self._OnStopping(enumerator)
+        self.__OnTerminating(enumerator, False)
+
+        enumerator.Stop()
 
         self._OnStopped()
         self.__OnTerminated(False)
