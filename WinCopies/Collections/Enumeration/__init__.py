@@ -323,7 +323,10 @@ class EnumeratorBase[T](IteratorBase[T]):
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
         
-        self.__OnCompleted()
+        self._OnCompleted()
+        self.__OnTerminated(True)
+
+        self.__status.Complete()
     
     @final
     def __MoveNext(self) -> bool:
@@ -363,13 +366,6 @@ class EnumeratorBase[T](IteratorBase[T]):
     def __OnTerminated(self, completed: bool) -> None:
         self._OnTerminated(completed)
         self._OnEnded()
-    
-    @final
-    def __OnCompleted(self) -> None:
-        self._OnCompleted()
-        self.__OnTerminated(True)
-
-        self.__status.Complete()
 
     @abstractmethod
     def _GetCurrent(self) -> T:
@@ -665,7 +661,8 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
 
                 return True
         
-        self.__OnCompleted()
+        self._OnCompleted()
+        self.__OnTerminated(True)
         
         return False
     
@@ -673,11 +670,6 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     def __OnTerminated(self, completed: bool) -> None:
         self._OnTerminated(completed)
         self._OnEnded()
-    
-    @final
-    def __OnCompleted(self) -> None:
-        self._OnCompleted()
-        self.__OnTerminated(True)
     
     def _OnStarting(self) -> bool:
         return True
@@ -704,6 +696,8 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     def MoveNext(self) -> bool: return self.__moveNextFunc()
     @final
     def Stop(self) -> None:
+        if self.GetStatus().GetState() >= IterationState.Ended: return
+
         self._GetContainer().Stop()
 
         self._OnStopped()
@@ -711,18 +705,25 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
     
     @final
     def TryReset(self) -> bool|None:
-        if self.IsStarted(): self.Stop()
-        
-        result: bool|None = self._GetContainer().TryReset()
+        if self.IsResetSupported():
+            if self.GetStatus().GetState() == IterationState.Idle: return True
 
-        if result is True and self._ResetOverride():
-            self.__moveNextFunc = self.__MoveNext
+            self.Stop()
+            
+            result: bool|None = self._GetContainer().TryReset()
 
-            return True
-        
-        self.__moveNextFunc = BoolFalse
-        
-        return result
+            if result is True and self._ResetOverride():
+                self.__moveNextFunc = self.__MoveNext
+
+                return True
+            
+            self.__moveNextFunc = BoolFalse
+            
+            return result
+
+        self.Stop()
+
+        return None
     @final
     def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
