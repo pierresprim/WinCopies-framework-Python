@@ -19,7 +19,7 @@ from WinCopies.Delegates import BoolFalse
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter, Method, Function, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Action, Method, Function, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
@@ -308,6 +308,11 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
+def _Process[T](monitor: IMonitor, func: Function[T]) -> T:
+    return Process(monitor, func, ErrorMessages.ReentrancyNotAllowed)
+def _DoWork(monitor: IMonitor, action: Action) -> None:
+    DoWork(monitor, action, ErrorMessages.ReentrancyNotAllowed)
+
 class EnumeratorBase[T](IteratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -318,7 +323,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__monitor: IMonitor = Monitor()
     
     def __Process[U](self, func: Function[U]) -> U:
-        return Process(self.__monitor, func, ErrorMessages.ReentrancyNotAllowed)
+        return _Process(self.__monitor, func)
     
     def __SetCompletedMoveNext(self) -> None:
         self.__moveNextFunc = BoolFalse
@@ -399,7 +404,7 @@ class EnumeratorBase[T](IteratorBase[T]):
     def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
     
     @final
-    def Stop(self) -> None: DoWork(self.__monitor, self.__Stop, ErrorMessages.ReentrancyNotAllowed)
+    def Stop(self) -> None: _DoWork(self.__monitor, self.__Stop)
     
     @final
     def TryReset(self) -> bool|None:
@@ -636,6 +641,10 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
         self.__enumerator: TEnumerator = enumerator
 
         self.__moveNextFunc: Function[bool] = self.__MoveNext
+        self.__monitor: IMonitor = Monitor()
+    
+    def __Process[T](self, func: Function[T]) -> T:
+        return _Process(self.__monitor, func)
     
     @final
     def _GetContainer(self) -> TEnumerator: return self.__enumerator
@@ -670,6 +679,19 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
         self.__OnTerminated(True)
         
         return False
+
+    def __Stop(self) -> None:
+        if self.GetStatus().GetState() >= IterationState.Ended: return
+        
+        enumerator: TEnumerator = self._GetContainer()
+
+        self._OnStopping(enumerator)
+        self.__OnTerminating(enumerator, False)
+
+        enumerator.Stop()
+
+        self._OnStopped()
+        self.__OnTerminated(False)
     
     @final
     def __OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
@@ -714,42 +736,37 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Iterato
         
         raise GetIterationInactiveError()
     @final
-    def MoveNext(self) -> bool: return self.__moveNextFunc()
+    def MoveNext(self) -> bool:
+        return self.__Process(self.__moveNextFunc)
     @final
     def Stop(self) -> None:
-        if self.GetStatus().GetState() >= IterationState.Ended: return
-
-        enumerator: TEnumerator = self._GetContainer()
-
-        self._OnStopping(enumerator)
-        self.__OnTerminating(enumerator, False)
-
-        enumerator.Stop()
-
-        self._OnStopped()
-        self.__OnTerminated(False)
+        _DoWork(self.__monitor, self.__Stop)
     
     @final
     def TryReset(self) -> bool|None:
-        if self.IsResetSupported():
-            if self.GetStatus().GetState() == IterationState.Idle: return True
+        def tryReset() -> bool|None:
+            if self.IsResetSupported():
+                if self.GetStatus().GetState() == IterationState.Idle: return True
 
-            self.Stop()
-            
-            result: bool|None = self._GetContainer().TryReset()
+                self.__Stop()
+                
+                result: bool|None = self._GetContainer().TryReset()
 
-            if result is True and self._ResetOverride():
-                self.__moveNextFunc = self.__MoveNext
+                if result is True and self._ResetOverride():
+                    self.__moveNextFunc = self.__MoveNext
 
-                return True
-            
-            self.__moveNextFunc = BoolFalse
-            
-            return result
+                    return True
+                
+                self.__moveNextFunc = BoolFalse
+                
+                return result
 
-        self.Stop()
+            self.__Stop()
 
-        return None
+            return None
+
+        return self.__Process(tryReset)
+    
     @final
     def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
