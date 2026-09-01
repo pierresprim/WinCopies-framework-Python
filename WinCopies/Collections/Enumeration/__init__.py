@@ -634,144 +634,38 @@ class AbstractEnumerator[T](Selector[T, T]):
     
     def _GetCurrent(self) -> T: return self._GetContainer().GetCurrent()
 
-class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](IteratorBase[TOut], IEnumerator[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__()
-
-        self.__enumerator: TEnumerator = enumerator
-
-        self.__moveNextFunc: Function[bool] = self.__MoveNext
-        self.__monitor: IMonitor = Monitor()
-    
-    def __Process[T](self, func: Function[T]) -> T:
-        return _Process(self.__monitor, func)
-    
-    @final
-    def _GetContainer(self) -> TEnumerator: return self.__enumerator
-    
-    def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
-    
-    @abstractmethod
-    def _ResetOverride(self) -> bool:
-        ...
-    
-    @final
-    def __MoveNext(self) -> bool:
-        if self._OnStarting():
-            def moveNext() -> bool:
-                if self._MoveNextOverride(): return True
-                
-                self.__moveNextFunc = BoolFalse
-
-                return False
-            
-            if moveNext():
-                self.__moveNextFunc = moveNext
-
-                return True
-        
-        enumerator: TEnumerator = self._GetContainer()
-
-        self._OnCompleting(enumerator)
-        self.__OnTerminating(enumerator, True)
-        
-        self._OnCompleted()
-        self.__OnTerminated(True)
-        
-        return False
-
-    def __Stop(self) -> None:
-        if self.GetStatus().GetState() >= IterationState.Ended: return
-        
-        enumerator: TEnumerator = self._GetContainer()
-
-        self._OnStopping(enumerator)
-        self.__OnTerminating(enumerator, False)
-
-        enumerator.Stop()
-
-        self._OnStopped()
-        self.__OnTerminated(False)
-    
-    @final
-    def __OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
-        self._OnTerminating(enumerator, completed)
-        self._OnEnding(enumerator)
-    @final
-    def __OnTerminated(self, completed: bool) -> None:
-        self._OnTerminated(completed)
-        self._OnEnded()
-    
-    def _OnStarting(self) -> bool:
-        return True
+class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator]):
+    def __init__(self, enumerator: TEnumerator) -> None: super().__init__(enumerator)
     
     def _OnCompleting(self, enumerator: TEnumerator) -> None:
-        pass
-    def _OnCompleted(self) -> None:
-        pass
-
-    def _OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
-        pass
-    def _OnTerminated(self, completed: bool) -> None:
-        pass
-    
-    def _OnEnding(self, enumerator: TEnumerator) -> None:
-        pass
-    def _OnEnded(self) -> None:
         pass
     
     def _OnStopping(self, enumerator: TEnumerator) -> None:
         pass
     @abstractmethod
+    def _OnStoppedOverride(self) -> None:
+        ...
+
+    def _OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
+        pass
+    def _OnEnding(self, enumerator: TEnumerator) -> None:
+        pass
+
+    @final
+    def __OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
+        self._OnTerminating(enumerator, completed)
+        self._OnEnding(enumerator)
+    
+    @final
     def _OnStopped(self) -> None:
-        ...
+        enumerator: TEnumerator = self._GetContainer()
 
-    @abstractmethod
-    def _GetCurrent(self) -> TOut:
-        ...
-    
-    @final
-    def GetCurrent(self) -> TOut:
-        if self.IsStarted(): return self._GetCurrent()
-        
-        raise GetIterationInactiveError()
-    @final
-    def MoveNext(self) -> bool:
-        return self.__Process(self.__moveNextFunc)
-    @final
-    def Stop(self) -> None:
-        _DoWork(self.__monitor, self.__Stop)
-    
-    @final
-    def TryReset(self) -> bool|None:
-        def tryReset() -> bool|None:
-            if self.IsResetSupported():
-                if self.GetStatus().GetState() == IterationState.Idle: return True
+        self._OnStopping(enumerator)
+        self.__OnTerminating(enumerator, False)
 
-                self.__Stop()
-                
-                result: bool|None = self._GetContainer().TryReset()
+        super()._OnStopped()
 
-                if result is True and self._ResetOverride():
-                    self.__moveNextFunc = self.__MoveNext
-
-                    return True
-                
-                self.__moveNextFunc = BoolFalse
-                
-                return result
-
-            self.__Stop()
-
-            return None
-
-        return self.__Process(tryReset)
-    
-    @final
-    def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
-    
-    @final
-    def GetStatus(self) -> IIterationStatus: return self._GetContainer().GetStatus()
+        self._OnStoppedOverride()
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
 
@@ -835,7 +729,7 @@ class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         
         super()._OnEnded()
     
-    def _OnStopped(self) -> None:
+    def _OnStoppedOverride(self) -> None:
         pass
 
     def _ResetOverride(self) -> bool: return True

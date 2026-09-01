@@ -638,7 +638,7 @@ class Enumerator(AbstractionEnumerator[Item, DualResult[INode|None, Event]]):
     def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
     def _OnEnded(self) -> None: self.__current = None
-    def _OnStopped(self) -> None: pass
+    def _OnStoppedOverride(self) -> None: pass
     
     def _ResetOverride(self) -> bool: return self._GetContainer().TryReset() is True
 

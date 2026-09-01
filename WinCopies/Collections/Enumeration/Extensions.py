@@ -215,7 +215,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
 
         super()._OnEnded()
     
-    def _OnStopped(self) -> None:
+    def _OnStoppedOverride(self) -> None:
         pass
     
     def _ResetOverride(self) -> bool:
