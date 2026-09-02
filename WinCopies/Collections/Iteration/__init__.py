@@ -3,7 +3,7 @@ from contextlib import AbstractContextManager
 from typing import Callable, Type
 
 from WinCopies.Bool import NullableBoolean
-from WinCopies.Collections import Generator, IterationResult, IterableScanResult
+from WinCopies.Collections import Generator, ScanResult, IterableScanResult
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Util import MakeGenerator
@@ -577,7 +577,7 @@ def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) 
     """
     return None if items is None else Any(items, predicate)
 
-def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> IterationResult:
+def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> ScanResult:
     """Validates that exactly one or no item matches a predicate.
 
     Args:
@@ -585,12 +585,12 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
         predicate: The condition to validate.
 
     Returns:
-        - IterationResult.Null if items is None
-        - IterationResult.Empty if no items exist
-        - IterationResult.Success if exactly one item matches
-        - IterationResult.Error if more than one item matches
+        - ScanResult.Null if items is None
+        - ScanResult.Empty if no items exist
+        - ScanResult.Success if exactly one item matches
+        - ScanResult.Error if more than one item matches
     """
-    if items is None: return IterationResult.Null
+    if items is None: return ScanResult.Null
 
     validator: Predicate[T]|None = None
 
@@ -605,13 +605,13 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Iter
 
     enumerator: IEnumerator[T]|None = AsEnumerable(items).TryGetEnumerator()
 
-    if enumerator is None: return IterationResult.Empty
+    if enumerator is None: return ScanResult.Empty
 
     for item in enumerator.AsIterator():
         # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
-        if validator(item): return IterationResult.Error
+        if validator(item): return ScanResult.Error
 
-    return IterationResult.Success if enumerator.GetStatus().HasProcessedItems() else IterationResult.Empty # Validation succeeded or iterable is empty.
+    return ScanResult.Success if enumerator.GetStatus().HasProcessedItems() else ScanResult.Empty # Validation succeeded or iterable is empty.
 def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
     """Validates that exactly one item matches a predicate.
 
@@ -625,8 +625,8 @@ def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -
         - False if zero or more than one item matches
     """
     match ValidateOnlyOne(items, predicate):
-        case IterationResult.Success: return True
-        case IterationResult.Null: return None
+        case ScanResult.Success: return True
+        case ScanResult.Null: return None
         
         case _: return False
 
