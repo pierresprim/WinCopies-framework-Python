@@ -299,6 +299,11 @@ def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
     """
     if not HasFlag(e, v): raise ValueError(f"{v} is not in {e}.")
 
+def AddFlag[T: Flag](e: T, v: T) -> T:
+    return e | v
+def RemoveFlag[T: Flag](e: T, v: T) -> T:
+    return e & ~v
+
 def __GetNormalizedFlag(value: int) -> int:
     return value & (value - 1)
 
