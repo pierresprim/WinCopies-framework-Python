@@ -36,8 +36,14 @@ class IterationState(IntEnum):
     Ended = 2
     """Iteration has terminated."""
 class IterationResult(IntEnum):
+    Faulted = -5
+    "Iteration terminated because an error occurred."
+    Invalidated = -4
+    """Iteration was invalidated because the source mutated."""
     Stopped = -3
     """Iteration was canceled."""
+    Failed = -2
+    """Iteration failed to start."""
     Idle = -1
     """Iteration has not yet started."""
     Running = 0
