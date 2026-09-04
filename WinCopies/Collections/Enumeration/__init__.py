@@ -773,7 +773,7 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__moveNext: Function[bool]|None
+        self.__moveNext: Function[bool]|None = None
     
     @abstractmethod
     def _OnMoveNext(self) -> Function[bool]|None:
@@ -800,9 +800,9 @@ class DelegateEnumerator[T](EnumeratorBase[T]):
         return False if self.__moveNext is None else self.__moveNext()
     
     def _OnEnded(self) -> None:
-        super()._OnEnded()
-
         self.__moveNext = None
+
+        super()._OnEnded()
 
 class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None:
