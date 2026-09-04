@@ -3,20 +3,19 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, Self
 
-from WinCopies import Abstract
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IClearable
-from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry import IObjectMonitor
+from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode
-from WinCopies.Collections.Linked.Node import IReadWriteLinkedNode
+from WinCopies.Collections.Linked.Node import IReadWriteLinkedNode, ILinkedNode
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
-from WinCopies.Typing.Object import IWeakReference
+from WinCopies.Typing.Object import IWeakReference, IWeakReferenceRegister
 
 class CompositeRemovable(Abstract, IRemovable):
     def __init__(self, node: IRemovable, obj: IRemovable) -> None:
@@ -109,7 +108,7 @@ class _ReadOnlyListUpdater[T: IInvalidatable](_ReadOnlyListUpdaterBase[IWeakRefe
     def _GetItems(self, items: IReadWriteList[IWeakReference[T]]) -> IReadOnlyList[T]: return _ReadOnlyList[T](items)
 
 @final
-class _ReadOnlyCollectionUpdater[T: IObjectMonitor](_ReadOnlyListUpdaterBase[T, IReadOnlyList[T]]):
+class _ReadOnlyCollectionUpdater[T](_ReadOnlyListUpdaterBase[T, IReadOnlyList[T]]):
     def __init__(self, items: IReadWriteList[T], updater: Method[IFunction[IReadOnlyList[T]]]) -> None: super().__init__(items, updater)
     
     def _GetItems(self, items: IReadWriteList[T]) -> IReadOnlyList[T]: return _ReadOnlyCollection[T](items)
@@ -139,7 +138,7 @@ class _ListBase[TItem, TNode, TList: IClearable](ListBase[TItem, TNode, IDoublyL
         return self.__readOnly.GetValue()
 
 @final
-class _Collection[T: IObjectMonitor](_ListBase[T, "_CollectionNode[T]", "_Collection[T]"]):
+class _Collection[T](_ListBase[T, "_CollectionNode[T]", "_Collection[T]"]):
     def __init__(self) -> None: super().__init__()
 
     def _CreateUpdater(self, updater: Method[IFunction[IReadOnlyList[T]]]) -> IFunction[IReadOnlyList[T]]: return _ReadOnlyCollectionUpdater[T](self, updater)
@@ -191,7 +190,7 @@ class _Node[T: IInvalidatable](_NodeBase[IWeakReference[T], "_Node[T]", _List[T]
     def _CreateNode(self, value: IWeakReference[T], previous: Self|None, next: Self|None) -> _Node[T]:
         return _Node[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
 @final
-class _CollectionNode[T: IObjectMonitor](_NodeBase[T, "_CollectionNode[T]", _Collection[T]]):
+class _CollectionNode[T](_NodeBase[T, "_CollectionNode[T]", _Collection[T]]):
     def __init__(self, value: T, l: _Collection[T]|None, itemCookie: IListCookie[_CollectionNode[T]], cookie: INodeCookie[_CollectionNode[T]], previousNode: Self|None, nextNode: Self|None) -> None: super().__init__(value, l, itemCookie, cookie, previousNode, nextNode)
     
     def _AsLinkedNode(self, node: _CollectionNode[T]) -> _CollectionNode[T]:
@@ -205,3 +204,80 @@ class _CollectionNode[T: IObjectMonitor](_NodeBase[T, "_CollectionNode[T]", _Col
     
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _CollectionNode[T]:
         return _CollectionNode[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
+
+class IRegistryBase[TIn, TOut](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Push(self, item: TIn) -> INode:
+        ...
+
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyList[TOut]:
+        ...
+
+class IWeakReferenceRegistry[T: IInvalidatable](IRegistryBase[IWeakReferenceRegister[T], T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryRemoveFirst(self) -> IWeakReference[T]|None:
+        ...
+class IItemRegistry[T](IRegistryBase[T, T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryGetFirstNode(self) -> ILinkedNode[T]|None:
+        ...
+
+class RegistryBase[TIn, TItem, TOut](Abstract, IRegistryBase[TIn, TOut]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__items: IReadWriteList[TItem] = self._CreateList()
+
+    @abstractmethod
+    def _CreateList(self) -> IReadWriteList[TItem]:
+        ...
+
+    @final
+    def _GetItems(self) -> IReadWriteList[TItem]:
+        return self.__items
+
+class WeakReferenceRegistry[T: IInvalidatable](RegistryBase[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistry[T]):
+    def __init__(self) -> None:
+        def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__readOnly = func
+        
+        super().__init__()
+        
+        self.__readOnly: IFunction[IReadOnlyList[T]] = _ReadOnlyListUpdater[T](self.__items, update) # type: ignore[no-redef]
+
+    @final
+    def _CreateList(self) -> IReadWriteList[IWeakReference[T]]: return _List[T]()
+
+    @final
+    def Push(self, item: IWeakReferenceRegister[T]) -> INode: return self._GetItems().AddLastNode(item.GetCookie())
+
+    @final
+    def TryRemoveFirst(self) -> IWeakReference[T]|None: return self._GetItems().TryRemoveFirst().TryGetValue()
+
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
+class ItemRegistry[T](RegistryBase[T, T, T], IItemRegistry[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CreateList(self) -> IReadWriteList[T]: return _Collection[T]()
+
+    @final
+    def Push(self, item: T) -> INode: return self._GetItems().AddLastNode(item)
+
+    @final
+    def TryGetFirstNode(self) -> ILinkedNode[T]|None: return self._GetItems().GetFirstNode()
+
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]: return self._GetItems().AsReadOnly()
+
+def CreateWeakReferenceRegistry[T: IInvalidatable]() -> IWeakReferenceRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return WeakReferenceRegistry[T]()
+def CreateItemRegistry[T]() -> IItemRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return ItemRegistry[T]()

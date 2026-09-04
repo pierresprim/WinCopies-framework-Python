@@ -6,35 +6,31 @@ from typing import final
 from WinCopies import Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry
-from WinCopies.Collections.Generation.Registry.Kernel import _ReadOnlyListUpdater, _List, _Collection
-from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
+from WinCopies.Collections.Generation.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
+from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate, IFunction
+from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Object import IWeakReferenceRegister, IWeakReference, CreateWeakReferenceRegister
 
 class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn]):
     def __init__(self) -> None:
-        def update(func: IFunction[IReadOnlyList[TOut]]) -> None: self.__readOnly = func
-        
         super().__init__()
 
-        self.__items: IReadWriteList[IWeakReference[TOut]] = _List[TOut]()
+        self.__items: IWeakReferenceRegistry[TOut] = CreateWeakReferenceRegistry()
 
         self.__push: ConverterDelegate[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
-
-        self.__readOnly: IFunction[IReadOnlyList[TOut]] = _ReadOnlyListUpdater[TOut](self.__items, update) # type: ignore[no-redef]
     
     @final
     def _GetItems(self) -> IReadOnlyList[TOut]:
-        return self.__readOnly.GetValue()
+        return self.__items.AsReadOnly()
     
     @final
     def __Push(self, obj: TOut) -> INodeBase:
         cookie: IWeakReferenceRegister[TOut] = CreateWeakReferenceRegister(obj)
-        node: INodeBase = self.__items.AddLastNode(cookie.GetCookie())
+        node: INodeBase = self.__items.Push(cookie)
 
         cookie.RegisterNode(self._GetRemovable(obj, node))
 
@@ -59,8 +55,7 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     def __Clear(self) -> None:
         cookie: IWeakReference[TOut]|None = None
 
-        while (cookie := self.__items.TryRemoveFirst().TryGetValue()) is not None:
-            cookie.Invalidate()
+        while (cookie := self.__items.TryRemoveFirst()) is not None: cookie.Invalidate()
         
         self.__push = self.__PushFirst
         self.__clear = NoAction
@@ -99,11 +94,11 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__items: IReadWriteList[T] = _Collection[T]()
+        self.__items: IItemRegistry[T] = CreateItemRegistry()
 
     @final
     def __Register(self, item: T) -> IRemovable:
-        return self.__items.AddLastNode(item)
+        return self.__items.Push(item)
 
     @final
     def _GetItems(self) -> IReadOnlyList[T]:
@@ -115,7 +110,7 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
 
     def InvalidateObjects(self) -> None:
-        node: ILinkedNode[T]|None = self.__items.GetFirstNode()
+        node: ILinkedNode[T]|None = self.__items.TryGetFirstNode()
 
         while node is not None:
             node.GetValue().InvalidateObjects()
