@@ -228,19 +228,28 @@ class IEnumerator[T](IEnumeratorBase):
 
     def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return _InvalidatableEnumerator[T](self)
 
-class IInvalidatableEnumeratorBase(IEnumeratorBase, IInvalidatable):
+class IInvalidatableIteratorBase(IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
         ...
-class IInvalidatableEnumerator[T](IEnumerator[T], IInvalidatableEnumeratorBase):
+class IInvalidatableIterator[T](IEnumerator[T], IInvalidatableIteratorBase):
     def __init__(self) -> None: super().__init__()
 
-    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return self
+    @abstractmethod
+    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]:
+        ...
+
+class IInvalidatableEnumeratorBase(IInvalidatableIteratorBase, IInvalidatable):
+    def __init__(self) -> None: super().__init__()
 
     def _Dispose(self, reason: DiscardReason) -> None:
         if reason.IsExplicit() and reason != DiscardReason.Invalidated: self.Stop()
+class IInvalidatableEnumerator[T](IInvalidatableIterator[T], IInvalidatableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+
+    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return self
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
