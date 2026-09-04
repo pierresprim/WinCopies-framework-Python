@@ -16,8 +16,8 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlySet as IReadOnlySetBase, ISet as ISetBase,
                                         IReadOnlyDictionary as IReadOnlyDictionaryBase, IDictionary as IDictionaryBase,
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
-from WinCopies.Collections.Enumeration import IEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IResumableEnumerator
+from WinCopies.Collections.Enumeration import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Discard import DiscardReason
@@ -120,13 +120,13 @@ class IEnumeratorMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateEnumerator[T](self, items: ITuple[T]) -> IEnumerator[T]:
+    def CreateEnumerator[T](self, items: ITuple[T]) -> IInvalidatableEnumerator[T]:
         ...
 class IResumableEnumeratorMonitor(IEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateResumableEnumerator[T](self, items: ITuple[T]) -> IResumableEnumerator[T]:
+    def CreateResumableEnumerator[T](self, items: ITuple[T]) -> IInvalidatableResumableEnumerator[T]:
         ...
 
 class IRevocableViewMonitor(IInterface):

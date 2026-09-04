@@ -10,8 +10,8 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
-from WinCopies.Collections.Enumeration import IEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
+from WinCopies.Collections.Enumeration import IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, CollectionViewMonitor, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
@@ -247,19 +247,24 @@ class _ITuple[T](ITupleBase[T], IViewProvider):
 class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
     def __init__(self) -> None: super().__init__()
 
-    def __GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
+    def __RegisterEnumerator[U: IInvalidatableEnumeratorBase](self, enumerator: U) -> U:
+        self._GetEnumeratorRegistry().RegisterEnumerator(enumerator)
+
+        return enumerator
+
+    def _GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
         return self._GetCollectionRegistries().GetEnumeratorRegistry()
     
     # Not final to allow customization of the enumerator.
-    def _TryGetEnumerator(self) -> IEnumerator[T]:
+    def _TryGetEnumerator(self) -> IInvalidatableEnumerator[T]:
         return TupleEnumerator[T](self)
-    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[T]:
+    def _TryGetResumableEnumerator(self) -> IInvalidatableResumableEnumerator[T]:
         return ResumableTupleEnumerator[T](self)
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__GetEnumeratorRegistry().RegisterEnumerator(self._TryGetEnumerator())
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__RegisterEnumerator(self._TryGetEnumerator())
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__GetEnumeratorRegistry().RegisterResumableEnumerator(self._TryGetResumableEnumerator())
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__RegisterEnumerator(self._TryGetResumableEnumerator())
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()

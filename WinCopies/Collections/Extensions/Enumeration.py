@@ -4,13 +4,15 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration import IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IInvalidatableResumableEnumerator
+from WinCopies.Collections.Enumeration import IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
-from WinCopies.Collections.Generation.Registry import IObjectRegistry
+from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation.Registry import IObjectMonitor, InvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Core import InvalidatableObjectRegistry
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
@@ -47,26 +49,18 @@ class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[
 class ResumableTupleEnumerator[T](ResumableTupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
-class IEnumeratorRegistry(IObjectRegistry[IInvalidatableEnumeratorBase], IEnumeratorMonitor):
+class IEnumeratorRegistry(IEnumeratorMonitor, IObjectMonitor):
     def __init__(self) -> None: super().__init__()
 
-    @final
-    def RegisterEnumerator[T](self, enumerator: IEnumerator[T]) -> IInvalidatableEnumerator[T]:
-        self.RegisterObject((enumerator := enumerator.ToInvalidatable()))
-        
-        return enumerator
+    @abstractmethod
+    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase) -> None:
+        ...
     
     @abstractmethod
     def AsMonitor(self) -> IEnumeratorMonitor:
         ...
 class IResumableEnumeratorRegistry(IEnumeratorRegistry, IResumableEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
-
-    @final
-    def RegisterResumableEnumerator[T](self, enumerator: IResumableEnumerator[T]) -> IInvalidatableResumableEnumerator[T]:
-        self.RegisterObject((enumerator := enumerator.ToInvalidatable()))
-        
-        return enumerator
     
     @abstractmethod
     def AsMonitor(self) -> IResumableEnumeratorMonitor:
@@ -82,7 +76,7 @@ class EnumeratorMonitor[T](Abstract, IEnumeratorMonitor, GenericConstraint[T, IE
     def _GetContainer(self) -> T: return self.__registry
     
     @final
-    def CreateEnumerator[U](self, items: ITuple[U]) -> IEnumerator[U]: return self._GetInnerContainer().CreateEnumerator(items)
+    def CreateEnumerator[U](self, items: ITuple[U]) -> IInvalidatableEnumerator[U]: return self._GetInnerContainer().CreateEnumerator(items)
 class EnumeratorMonitorUpdater[TMonitor, TRegistry](ValueFunctionUpdater[TMonitor]):
     def __init__(self, registry: TRegistry, updater: Method[IFunction[TMonitor]]) -> None:
         super().__init__(updater)
@@ -110,13 +104,33 @@ class _ResumableEnumeratorMonitor(EnumeratorMonitor[IResumableEnumeratorRegistry
     
     def _AsContainer(self, container: IResumableEnumeratorRegistry) -> IResumableEnumeratorRegistry: return container
     
-    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IResumableEnumerator[U]:
-        return self._GetContainer().CreateResumableEnumerator(items)
+    def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IInvalidatableResumableEnumerator[U]: return self._GetContainer().CreateResumableEnumerator(items)
 @final
 class _ResumableEnumeratorMonitorUpdater(EnumeratorMonitorUpdater[IResumableEnumeratorMonitor, IResumableEnumeratorRegistry]):
     def __init__(self, registry: IResumableEnumeratorRegistry, updater: Method[IFunction[IResumableEnumeratorMonitor]]) -> None: super().__init__(registry, updater)
     
     def _GetValue(self) -> IResumableEnumeratorMonitor: return _ResumableEnumeratorMonitor(self._GetRegistry())
+
+@final
+class _Registry(InvalidatableObjectRegistry[IInvalidatable]):
+    def __init__(self) -> None: super().__init__()
+
+    def RegisterEnumerator(self, item: IInvalidatable) -> IRemovable:
+        return self._Push(item)
+@final
+class _Registrar(InvalidationRegistrar):
+    def __init__(self, registry: _Registry) -> None:
+        super().__init__()
+
+        self.__registry: _Registry = registry
+        self.__node: IRemovable|None = None
+
+    def Register(self, cookie: IInvalidatable) -> None:
+        self.__node = self.__registry.RegisterEnumerator(cookie)
+    def Unregister(self) -> None:
+        node: IRemovable|None = self.__node
+
+        if node is not None: node.Remove()
 
 class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistry):
     def __init__(self) -> None:
@@ -124,11 +138,11 @@ class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistr
         
         super().__init__()
 
-        self.__registry: IObjectRegistry[IInvalidatableEnumeratorBase] = InvalidatableObjectRegistry[IInvalidatableEnumeratorBase]()
+        self.__registry: _Registry = _Registry()
         self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
 
     @final
-    def _GetRegistry(self) -> IObjectRegistry[IInvalidatableEnumeratorBase]:
+    def _GetRegistry(self) -> _Registry:
         return self.__registry
     
     @abstractmethod
@@ -136,14 +150,19 @@ class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistr
         ...
 
     @final
-    def RegisterObject(self, item: IInvalidatableEnumeratorBase) -> None: self._GetRegistry().RegisterObject(item)
+    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase) -> None:
+        enumerator.AddRegistrar(_Registrar(self._GetRegistry()))
 
     @final
     def InvalidateObjects(self) -> None: self._GetRegistry().InvalidateObjects()
     
     @final
     def CreateEnumerator[U](self, items: ITuple[U]) -> IInvalidatableEnumerator[U]:
-        return self.RegisterEnumerator(TupleEnumerator[U](items))
+        enumerator: IInvalidatableEnumerator[U] = TupleEnumerator[U](items)
+
+        self.RegisterEnumerator(enumerator)
+
+        return enumerator
     
     @final
     def _AsMonitor(self) -> T:
@@ -168,7 +187,11 @@ class ResumableEnumeratorRegistry(EnumeratorRegistryBase[IResumableEnumeratorMon
     
     @final
     def CreateResumableEnumerator[U](self, items: ITuple[U]) -> IInvalidatableResumableEnumerator[U]:
-        return self.RegisterResumableEnumerator(ResumableTupleEnumerator[U](items))
+        enumerator: IInvalidatableResumableEnumerator[U] = ResumableTupleEnumerator[U](items)
+
+        self.RegisterEnumerator(enumerator)
+        
+        return enumerator
     
     @final
     def AsMonitor(self) -> IResumableEnumeratorMonitor:
