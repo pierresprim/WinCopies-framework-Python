@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Callable, final
 
 from WinCopies.Collections.Enumeration import IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultResumableEnumerator, ResumableEnumerationCursor
+from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultInvalidatableResumableEnumerator, ResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
 from WinCopies.Collections.Generation.Registry.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry
 from WinCopies.Typing.Comparison import IHashableComparableItem
@@ -76,7 +76,7 @@ class _ResumableEnumerationCursorRegistry(ResumableIncrementalEnumerationCursorR
     def _InitializeCursorOverride(self, cursor: _ResumableIncrementalEnumerationCursor, node: INode, cookie: ICookie) -> None:
         cursor._InitializeCookie(node, cookie) # pyright: ignore[reportPrivateUsage]
 
-class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultResumableEnumerator[T, int]):
+class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultInvalidatableResumableEnumerator[T, int]):
     def __init__(self) -> None:
         super().__init__()
         
