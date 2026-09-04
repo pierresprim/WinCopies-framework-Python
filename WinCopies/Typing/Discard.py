@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import IInterface, IDisposableAbstract, IDisposable as IDisposableBase, Abstract
+from WinCopies import IInterface, IDisposableAbstract, IDisposable as IDisposableBase, IInvalidatable as _IInvalidatable, Abstract
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function
@@ -118,7 +118,7 @@ class IDiscardableInfo(IDiscardableInfoBase, IDisposableBase):
 class IDiscardableItem(IDiscardableInfo, IDisposableInfo):
     def __init__(self) -> None: super().__init__()
 
-class IInvalidatable(IDisposableBase):
+class IInvalidatable(IDisposableBase, _IInvalidatable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod

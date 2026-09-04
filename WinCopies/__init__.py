@@ -3,10 +3,6 @@
 WinCopies Framework
 
 Architecture-first Python framework.
-
-Created on Fri May 26 14:21:00 2023
-
-@author: Pierre Sprimont
 """
 
 import sys
@@ -63,6 +59,13 @@ class IDisposable(IDisposableBase):
         self.Dispose()
 
         return result
+
+class IInvalidatable(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Invalidate(self) -> None:
+        ...
 
 class IStringable(IInterface):
     def __init__(self) -> None: super().__init__()
