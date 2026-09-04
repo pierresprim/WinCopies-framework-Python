@@ -16,7 +16,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
-from WinCopies.Delegates import BoolFalse
+from WinCopies.Delegates import BoolTrue, BoolFalse, GetActionBoolFunc
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
@@ -353,50 +353,106 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
     
+    @final
     def __Process[U](self, func: Function[U]) -> U:
         return _Process(self.__monitor, func)
-    
-    def __SetCompletedMoveNext(self) -> None:
-        self.__moveNextFunc = BoolFalse
-        
-        self._OnCompleted()
-        self.__OnTerminated(True)
 
-        self.__status.Complete()
+    @final
+    def __TryAction(self, action: Action) -> None:
+        try: action()
+
+        except Exception:
+            self.__status.Fault(False)
+
+            raise
+
+    @final
+    def __TryFunction[U](self, func: Function[U], onError: Function[bool]) -> U:
+        try: return func()
+
+        except Exception:
+            self.__status.Fault(onError())
+
+            raise
     
     @final
-    def __MoveNext(self) -> bool:
-        if self._MoveNextOverride(): return True
+    def __SetCompletedMoveNext(self, completed: bool) -> None:
+        def onCompleted() -> None:
+            self._OnCompleted()
+            self.__OnTerminated(completed)
+        
+        self.__moveNextFunc = BoolFalse
 
-        self.__SetCompletedMoveNext()
+        if completed:
+            self.__status.Complete()
+        
+        else: self.__status.Fail()
 
-        return False
+        self.__TryAction(onCompleted)
+    
     @final
     def __MoveFirst(self) -> bool:
-        if self._OnStarting():
-            self.__status.Start()
-            
-            if self._MoveNextOverride():
-                self.__moveNextFunc = self.__MoveNext
+        def onCompleted(completed: bool) -> bool:
+            self.__SetCompletedMoveNext(completed)
+
+            return False
+
+        def tryAction(func: Function[bool]) -> bool:
+            try: return func()
+            except StopIteration: return False
+
+        def setMoveNextFunc(func: Function[bool]) -> None:
+            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func), self.IsStarted)
+
+        def _moveFirst() -> bool:
+            def moveNext() -> bool:
+                if tryAction(self._MoveNextOverride): return True
+                
+                self.__SetCompletedMoveNext(True)
+
+                return False
+
+            if tryAction(self._MoveNextOverride):
+                setMoveNextFunc(moveNext)
                 
                 self.__status.NotifyItemProcessed()
                 
                 return True
-        
-        self.__SetCompletedMoveNext()
 
-        return False
+            return onCompleted(True)
+
+        def onError() -> bool:
+            if self.IsStarted(): setMoveNextFunc(_moveFirst)
+
+            return True
+
+        def moveFirst() -> bool:
+            if tryAction(self._OnStarting):
+                self.__status.Start()
+                
+                return _moveFirst()
+
+            return onCompleted(False)
+
+        return self.__TryFunction(moveFirst, onError)
+    
+    @final
+    def __Terminate(self, action: Action) -> None:
+        def cancel() -> None:
+            self._OnStopped()
+            self.__OnTerminated(False)
+
+        if self.GetStatus().GetState() >= IterationState.Ended: return
+
+        action()
+
+        self.__moveNextFunc = BoolFalse
+
+        self.__TryAction(cancel)
     
     @final
     def __Stop(self) -> None:
-        if self.GetStatus().GetState() >= IterationState.Ended: return
-        
-        self.__moveNextFunc = BoolFalse
-
-        self._OnStopped()
-        self.__OnTerminated(False)
-        
-        self.__status.Stop()
+        self.__Terminate(self.__status.Stop)
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -427,7 +483,7 @@ class EnumeratorBase[T](IteratorBase[T]):
 
     @final
     def GetCurrent(self) -> T:
-        if self.IsStarted(): return self._GetCurrent()
+        if self.IsStarted(): return self.__TryFunction(self._GetCurrent, BoolTrue)
         
         raise GetIterationInactiveError()
 
@@ -445,7 +501,7 @@ class EnumeratorBase[T](IteratorBase[T]):
 
                 self.__Stop()
                 
-                if self._ResetOverride():
+                if self.__TryFunction(self._ResetOverride, BoolFalse):
                     self.__moveNextFunc = self.__MoveFirst
 
                     self.__status.Reset()
