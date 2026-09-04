@@ -550,11 +550,11 @@ class _EnumeratorBase[T](EnumeratorBase[T]):
     @final
     def _UnsetCurrent(self) -> None:
         if self.IsStarted(): self._UnsetCurrentOverride()
-    
-    def _OnEnded(self) -> None:
+
+    def _Clear(self) -> None:
         self._UnsetCurrent()
 
-        super()._OnEnded()
+        super()._Clear()
 
 class Enumerator[T](_EnumeratorBase[T]):
     def __init__(self) -> None:
