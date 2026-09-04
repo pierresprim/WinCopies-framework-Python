@@ -834,11 +834,13 @@ class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalid
     def _Dispose(self, reason: DiscardReason) -> None:
         if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
 
+type WeakReference[T: IInvalidatable] = _WeakReference[T]
+
 class IWeakReferenceRegister[T: IInvalidatable](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def GetCookie(self) -> _WeakReference[T]:
+    def GetCookie(self) -> WeakReference[T]:
         ...
     
     @abstractmethod
