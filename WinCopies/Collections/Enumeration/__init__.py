@@ -38,21 +38,18 @@ class IterationState(IntEnum):
 class IterationResult(IntEnum):
     Stopped = -3
     """Iteration was canceled."""
-    NoData = -2
-    """The enumerator is empty by design. An enumeration that completed without yielding any item should report Completed."""
     Idle = -1
     """Iteration has not yet started."""
     Running = 0
     """Iterator is in run state."""
     Completed = 1
     """Iteration was successfully completed, possibly without yielding any item. If the enumerator is empty by design, NoData should be reported."""
+    NoData = 2
+    """The enumerator is empty by design. An enumeration that completed without yielding any item should report Completed."""
 
     @final
     def HasCompleted(self) -> bool:
-        match self:
-            case IterationResult.Completed | IterationResult.NoData: return True
-
-            case _: return False
+        return self > IterationResult.Running
     @final
     def HasTerminated(self) -> bool:
         return _Outside(IterationResult.Idle, self, IterationResult.Running, False, False)
