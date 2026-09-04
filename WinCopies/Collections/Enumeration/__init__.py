@@ -384,7 +384,8 @@ class EnumeratorBase[T](IteratorBase[T]):
         self.__moveNextFunc = BoolFalse
 
         if completed:
-            self.__status.Complete()
+            try: self.__Clear(True)
+            finally: self.__status.Complete()
         
         else: self.__status.Fail()
 
@@ -444,9 +445,11 @@ class EnumeratorBase[T](IteratorBase[T]):
 
         if self.GetStatus().GetState() >= IterationState.Ended: return
 
-        action()
+        try: self.__Clear(self.IsStarted())
+        finally:
+            action()
 
-        self.__moveNextFunc = BoolFalse
+            self.__moveNextFunc = BoolFalse
 
         self.__TryAction(cancel)
     
@@ -469,6 +472,16 @@ class EnumeratorBase[T](IteratorBase[T]):
     @abstractmethod
     def _ResetOverride(self) -> bool:
         ...
+
+    def _Clear(self) -> None:
+        pass
+    @final
+    def __Clear(self, clear: bool) -> None:
+        def _clear() -> None:
+            if clear: self._Clear()
+
+        self.__TryAction(_clear)
+
     def _OnStarting(self) -> bool:
         return True
     def _OnCompleted(self) -> None:
