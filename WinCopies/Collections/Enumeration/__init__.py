@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
+from enum import Flag, auto
 from typing import final, Any, Self
 
 from WinCopies import IInterface, Abstract
@@ -16,6 +17,7 @@ from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
 from WinCopies.Delegates import BoolFalse
+from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
@@ -60,6 +62,11 @@ class IterationResult(IntEnum):
     def HasTerminated(self) -> bool:
         return _Outside(IterationResult.Idle, self, IterationResult.Running, False, False)
 
+class IterationData(Flag):
+    Null = 0
+    HasProcessedItems = auto()
+    Faulted = auto()
+
 class IIterationStatus(IInterface):
     def __init__(self) -> None: super().__init__()
 
@@ -71,9 +78,12 @@ class IIterationStatus(IInterface):
         ...
     
     @abstractmethod
-    def HasProcessedItems(self) -> bool:
+    def GetData(self) -> IterationData:
         ...
-
+    @final
+    def HasProcessedItems(self) -> bool:
+        return HasFlag(self.GetData(), IterationData.HasProcessedItems)
+    
     @final
     def IsStarted(self) -> bool:
         return self.GetState() == IterationState.Started
@@ -88,7 +98,7 @@ class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
     def GetState(self) -> IterationState: return self.__iterationStatus.GetState()
     def GetResult(self) -> IterationResult: return self.__iterationStatus.GetResult()
 
-    def HasProcessedItems(self) -> bool: return self.__iterationStatus.HasProcessedItems()
+    def GetData(self) -> IterationData: return self.__iterationStatus.GetData()
 class IterationStatus(Abstract):
     def __init__(self) -> None:
         super().__init__()
@@ -96,9 +106,13 @@ class IterationStatus(Abstract):
         self.__state: IterationState = IterationState.Idle
         self.__result: IterationResult = IterationResult.Idle
 
-        self.__hasProcessedItems: bool = False
+        self.__data: IterationData = IterationData.Null
 
         self.__readOnly: IIterationStatus = _ReadOnlyIterationStatus(self)
+
+    @final
+    def __AddFlag(self, value: IterationData) -> None:
+        self.__data = AddFlag(self.__data, value)
 
     @final
     def GetState(self) -> IterationState: return self.__state
@@ -106,18 +120,18 @@ class IterationStatus(Abstract):
     def GetResult(self) -> IterationResult: return self.__result
     
     @final
-    def HasProcessedItems(self) -> bool: return self.__hasProcessedItems
+    def GetData(self) -> IterationData: return self.__data
 
     @final
     def NotifyItemProcessed(self) -> None:
-        self.__hasProcessedItems = True
+        self.__AddFlag(IterationData.HasProcessedItems)
 
     @final
     def Reset(self) -> None:
         self.__state = IterationState.Idle
         self.__result = IterationResult.Idle
 
-        self.__hasProcessedItems = False
+        self.__data = IterationData.Null
 
     @final
     def Start(self) -> None:
@@ -125,19 +139,33 @@ class IterationStatus(Abstract):
         self.__result = IterationResult.Running
 
     @final
-    def __Terminate(self) -> None:
+    def __Terminate(self, result: IterationResult) -> None:
         self.__state = IterationState.Ended
+        self.__result = result
 
     @final
     def Complete(self) -> None:
-        self.__Terminate()
+        self.__Terminate(IterationResult.Completed)
 
-        self.__result = IterationResult.Completed
+    @final
+    def Fail(self) -> None:
+        self.__Terminate(IterationResult.Failed)
+    
     @final
     def Stop(self) -> None:
-        self.__Terminate()
-        
-        self.__result = IterationResult.Stopped
+        self.__Terminate(IterationResult.Stopped)
+    @final
+    def Invalidate(self) -> None:
+        self.__Terminate(IterationResult.Invalidated)
+
+    @final
+    def Fault(self, running: bool) -> None:
+        if running: self.__result = IterationResult.Faulted
+
+        self.__AddFlag(IterationData.Faulted)
+    @final
+    def Unfault(self) -> None:
+        self.__result = IterationResult.Running
 
     @final
     def AsReadOnly(self) -> IIterationStatus:
@@ -150,7 +178,7 @@ class _NoData(Abstract, IIterationStatus):
     def GetState(self) -> IterationState: return IterationState.Ended
     def GetResult(self) -> IterationResult: return IterationResult.NoData
 
-    def HasProcessedItems(self) -> bool: return False
+    def GetData(self) -> IterationData: return IterationData.Null
 
 __noData: IIterationStatus = _NoData()
 
