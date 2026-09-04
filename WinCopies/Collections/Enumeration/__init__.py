@@ -15,17 +15,20 @@ from typing import final, Any, Self
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
+from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
+from WinCopies.Collections.Generation.Registry.Invalidation import ManagedInvalidationRegistrar
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
-from WinCopies.Delegates import BoolTrue, BoolFalse, GetActionBoolFunc
+from WinCopies.Delegates import NoAction, BoolTrue, BoolFalse, GetActionBoolFunc
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, GetDiscardedError
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, Invalidatable, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
-from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process
+from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
 
 def GetIterationInactiveError() -> InvalidOperationError:
     return InvalidOperationError("Iteration is not active.")
@@ -227,10 +230,17 @@ class IEnumerator[T](IEnumeratorBase):
 
 class IInvalidatableEnumeratorBase(IEnumeratorBase, IInvalidatable):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        ...
 class IInvalidatableEnumerator[T](IEnumerator[T], IInvalidatableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
     def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return self
+
+    def _Dispose(self, reason: DiscardReason) -> None:
+        if reason.IsExplicit() and reason != DiscardReason.Invalidated: self.Stop()
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -344,7 +354,19 @@ def _Process[T](monitor: IMonitor, func: Function[T]) -> T:
 def _DoWork(monitor: IMonitor, action: Action) -> None:
     DoWork(monitor, action, ErrorMessages.ReentrancyNotAllowed)
 
-class EnumeratorBase[T](IteratorBase[T]):
+@final
+class _EnumeratorInvalidator(Invalidatable):
+    def __init__(self, action: Action) -> None:
+        super().__init__()
+
+        self.__action: Action = action
+
+    def _DisposeOverride(self, reason: DiscardReason) -> None:
+        if reason == DiscardReason.Invalidated: self.__action()
+
+        self.__action = NoAction
+
+class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -352,6 +374,8 @@ class EnumeratorBase[T](IteratorBase[T]):
 
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
+
+        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
@@ -430,6 +454,7 @@ class EnumeratorBase[T](IteratorBase[T]):
         def moveFirst() -> bool:
             if tryAction(self._OnStarting):
                 self.__status.Start()
+                self.__invalidationRegistrar.Register()
                 
                 return _moveFirst()
 
@@ -456,6 +481,9 @@ class EnumeratorBase[T](IteratorBase[T]):
     @final
     def __Stop(self) -> None:
         self.__Terminate(self.__status.Stop)
+    @final
+    def __Invalidate(self) -> None:
+        self.__Terminate(self.__status.Invalidate)
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -478,6 +506,8 @@ class EnumeratorBase[T](IteratorBase[T]):
     @final
     def __Clear(self, clear: bool) -> None:
         def _clear() -> None:
+            self.__invalidationRegistrar.Unregister()
+
             if clear: self._Clear()
 
         self.__TryAction(_clear)
@@ -493,6 +523,9 @@ class EnumeratorBase[T](IteratorBase[T]):
         pass
     def _OnEnded(self) -> None:
         pass
+
+    @final
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return ProcessData(invalidationRegistrar, self.__monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
 
     @final
     def GetCurrent(self) -> T:
@@ -894,6 +927,17 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
         return True
 
 @final
+class _Removable(Abstract, IRemovable):
+    def __init__(self) -> None: super().__init__()
+
+    def Remove(self) -> None: pass
+
+__removable: IRemovable = _Removable()
+
+def _GetRemovable() -> IRemovable:
+    return __removable
+
+@final
 class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -908,6 +952,9 @@ class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
     def TryReset(self) -> None: return None
     
     def Stop(self) -> None: pass
+
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        return _GetRemovable()
     
     def _Dispose(self, reason: DiscardReason) -> None: pass
 
@@ -957,6 +1004,9 @@ class InvalidatableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Invalidat
 @final
 class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
+
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        return _GetRemovable()
     
     def _GetDisposedEnumerator(self) -> IEnumerator[T]:
         return InvalidatableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
