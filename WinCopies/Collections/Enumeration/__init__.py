@@ -77,13 +77,13 @@ class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
     def __init__(self, iterationStatus: IterationStatus) -> None:
         super().__init__()
 
-        self.__iterationStatus: IIterationStatus = iterationStatus
+        self.__iterationStatus: IterationStatus = iterationStatus
 
     def GetState(self) -> IterationState: return self.__iterationStatus.GetState()
     def GetResult(self) -> IterationResult: return self.__iterationStatus.GetResult()
 
     def HasProcessedItems(self) -> bool: return self.__iterationStatus.HasProcessedItems()
-class IterationStatus(Abstract, IIterationStatus):
+class IterationStatus(Abstract):
     def __init__(self) -> None:
         super().__init__()
 
