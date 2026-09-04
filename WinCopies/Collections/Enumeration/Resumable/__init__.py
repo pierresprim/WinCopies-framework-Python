@@ -6,9 +6,9 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError, _GetRemovable
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
-from WinCopies.Collections.Generation.Registry import IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, GetDiscardedError
@@ -28,7 +28,7 @@ class IResumableEnumerationCursor(IResumable, IInvalidatable):
     def MoveToTop(self) -> None:
         ...
 
-class IResumableEnumerator[T](IEnumerator[T]):
+class IResumableEnumeratorBase(IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -49,8 +49,14 @@ class IResumableEnumerator[T](IEnumerator[T]):
     @abstractmethod
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None:
         ...
+class IResumableEnumerator[T](IEnumerator[T], IResumableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
 
     def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return _InvalidatableEnumerator[T](self)
+
+class IInvalidatableResumableEnumeratorBase(IResumableEnumeratorBase, IInvalidatableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+
 class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TItem]):
     @final
     class _Cookie[_TItem, _TCursorValue](Abstract, ICookie[_TCursorValue]):
@@ -111,6 +117,8 @@ class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TIte
         if self.IsStarted(): (self._GetFirstCursor() if cursor is None else cursor).Resume()
         
         else: raise IDefaultResumableEnumerator._GetException("resume")
+class IDefaultInvalidatableResumableEnumerator[TItem, TCursorValue](IDefaultResumableEnumerator[TItem, TCursorValue], IInvalidatableResumableEnumerator[TItem]):
+    def __init__(self) -> None: super().__init__()
 
 class IResumableEnumerable[T](IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -154,7 +162,7 @@ class AbstractResumableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Abstr
 class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumableEnumerator[T]], IGenericConstraintImplementation[IResumableEnumerator[T]]):
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
 
-class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatableEnumerator[T]):
+class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatableEnumerator[T], IInvalidatableResumableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
 @final
@@ -231,6 +239,8 @@ class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IResumableEnume
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
     def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return self
+
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return _GetRemovable()
 
 class ICursorCookie[T](ICookie[T], IRemovable):
     def __init__(self) -> None: super().__init__()
