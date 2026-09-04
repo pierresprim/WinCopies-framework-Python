@@ -25,7 +25,7 @@ from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, Invalidatable, GetDiscardedError
+from WinCopies.Typing.Discard import DiscardReason, Invalidatable
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
@@ -211,9 +211,11 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def TryReset(self) -> bool|None:
         ...
+class IInvalidatableEnumeratorBase(IEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def ToInvalidatable(self) -> IInvalidatableEnumeratorBase:
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
         ...
 class IEnumerator[T](IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
@@ -225,31 +227,8 @@ class IEnumerator[T](IEnumeratorBase):
     @abstractmethod
     def AsIterator(self) -> SystemIterator[T]:
         ...
-
-    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return _InvalidatableEnumerator[T](self)
-
-class IInvalidatableIteratorBase(IEnumeratorBase):
+class IInvalidatableEnumerator[T](IEnumerator[T], IInvalidatableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
-        ...
-class IInvalidatableIterator[T](IEnumerator[T], IInvalidatableIteratorBase):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]:
-        ...
-
-class IInvalidatableEnumeratorBase(IInvalidatableIteratorBase, IInvalidatable):
-    def __init__(self) -> None: super().__init__()
-
-    def _Dispose(self, reason: DiscardReason) -> None:
-        if reason.IsExplicit() and reason != DiscardReason.Invalidated: self.Stop()
-class IInvalidatableEnumerator[T](IInvalidatableIterator[T], IInvalidatableEnumeratorBase):
-    def __init__(self) -> None: super().__init__()
-
-    def ToInvalidatable(self) -> IInvalidatableEnumerator[T]: return self
 
 class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -935,98 +914,8 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
 
         return True
 
-@final
-class _Removable(Abstract, IRemovable):
-    def __init__(self) -> None: super().__init__()
-
-    def Remove(self) -> None: pass
-
-__removable: IRemovable = _Removable()
-
-def _GetRemovable() -> IRemovable:
-    return __removable
-
-@final
-class _DisposedEnumerator[T](Abstract, IInvalidatableEnumerator[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    def IsResetSupported(self) -> bool: return False
-    
-    def GetCurrent(self) -> T: raise GetDiscardedError()
-    
-    def GetStatus(self) -> IIterationStatus: raise GetDiscardedError()
-    
-    def MoveNext(self) -> bool: raise GetDiscardedError()
-    
-    def TryReset(self) -> None: return None
-    
-    def Stop(self) -> None: pass
-
-    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
-        return _GetRemovable()
-    
-    def _Dispose(self, reason: DiscardReason) -> None: pass
-
-    def AsIterator(self) -> SystemIterator[T]: raise GetDiscardedError()
-
-class InvalidatableEnumeratorAbstract[T](IteratorBase[T], IInvalidatableEnumerator[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @staticmethod
-    def _GetDefaultDisposedEnumerator() -> IEnumerator[T]:
-        return _GetDisposedEnumerator()
-class InvalidatableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](InvalidatableEnumeratorAbstract[TItem], GenericConstraint[TEnumerator, IEnumerator[TItem]]):
-    def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__()
-
-        self.__enumerator: TEnumerator = enumerator
-    
-    @final
-    def _GetContainer(self) -> TEnumerator: return self.__enumerator
-    
-    @abstractmethod
-    def _GetDisposedEnumerator(self) -> TEnumerator:
-        ...
-    
-    @final
-    def IsResetSupported(self) -> bool: return self._GetInnerContainer().IsResetSupported()
-    
-    @final
-    def GetStatus(self) -> IIterationStatus: return self._GetInnerContainer().GetStatus()
-    
-    @final
-    def GetCurrent(self) -> TItem: return self._GetInnerContainer().GetCurrent()
-    
-    @final
-    def MoveNext(self) -> bool: return self._GetInnerContainer().MoveNext()
-    
-    @final
-    def Stop(self) -> None: return self._GetInnerContainer().Stop()
-    
-    @final
-    def TryReset(self) -> bool|None: return self._GetInnerContainer().TryReset()
-    
-    def _Dispose(self, reason: DiscardReason) -> None:
-        self._GetInnerContainer().Stop()
-
-        self.__enumerator = self._GetDisposedEnumerator()
-@final
-class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IEnumerator[T]], IGenericConstraintImplementation[IEnumerator[T]]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
-
-    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
-        return _GetRemovable()
-    
-    def _GetDisposedEnumerator(self) -> IEnumerator[T]:
-        return InvalidatableEnumeratorAbstract[T]._GetDefaultDisposedEnumerator()
-
 __emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
-
-__disposedEnumerator: _DisposedEnumerator[Any] = _DisposedEnumerator[Any]()
-
-def _GetDisposedEnumerator[T]() -> IInvalidatableEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __disposedEnumerator
 
 def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetEnumerator()

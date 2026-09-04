@@ -6,12 +6,12 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, InvalidatableEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError, _GetRemovable
+from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
-from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase, GetDiscardedError
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ICookie[T](IInterface):
@@ -52,9 +52,9 @@ class IResumableEnumeratorBase(IEnumeratorBase):
 class IResumableEnumerator[T](IEnumerator[T], IResumableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
-    def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return _InvalidatableEnumerator[T](self)
-
 class IInvalidatableResumableEnumeratorBase(IResumableEnumeratorBase, IInvalidatableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatableEnumerator[T], IInvalidatableResumableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
 class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TItem]):
@@ -162,9 +162,6 @@ class AbstractResumableEnumeratorBase[TItem, TEnumerator: IEnumeratorBase](Abstr
 class AbstractResumableEnumerator[T](AbstractResumableEnumeratorBase[T, IResumableEnumerator[T]], IGenericConstraintImplementation[IResumableEnumerator[T]]):
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
 
-class IInvalidatableResumableEnumerator[T](IResumableEnumerator[T], IInvalidatableEnumerator[T], IInvalidatableResumableEnumeratorBase):
-    def __init__(self) -> None: super().__init__()
-
 @final
 class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -200,47 +197,6 @@ class ResumableEnumeratorProvider[T](EnumeratorProvider[T], IResumableEnumerable
     
     @final
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return None if self.__resumableEnumeratorProvider is None else self.__resumableEnumeratorProvider()
-
-@final
-class _DisposedEnumerator[T](Abstract, IResumableEnumerator[T]):
-    def __init__(self, enumerator: IEnumerator[T]) -> None:
-        super().__init__()
-
-        self.__enumerator: IEnumerator[T] = enumerator
-    
-    def GetStatus(self) -> IIterationStatus: return GetEmptyEnumerator().GetStatus()
-    
-    def MoveNext(self) -> bool: return self.__enumerator.MoveNext()
-    def Stop(self) -> None: return self.__enumerator.Stop()
-    def TryReset(self) -> bool|None: return self.__enumerator.TryReset()
-    def IsResetSupported(self) -> bool: return self.__enumerator.IsResetSupported()
-    def GetCurrent(self) -> T: return self.__enumerator.GetCurrent()
-    def AsIterator(self) -> Iterator[T]: return self.__enumerator.AsIterator()
-    def SupportsMultipleCursors(self) -> bool: return False
-    def PlaceCursor(self) -> IResumableEnumerationCursor: raise GetDiscardedError()
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor: raise GetDiscardedError()
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: raise GetDiscardedError()
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: raise GetDiscardedError()
-
-@final
-class _InvalidatableEnumerator[T](InvalidatableEnumeratorBase[T, IResumableEnumerator[T]], IInvalidatableResumableEnumerator[T], IGenericConstraintImplementation[IResumableEnumerator[T]]):
-    def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)
-    
-    def _GetDisposedEnumerator(self) -> IResumableEnumerator[T]:
-        return _DisposedEnumerator[T](self._GetDefaultDisposedEnumerator())
-    
-    def SupportsMultipleCursors(self) -> bool: return self._GetContainer().SupportsMultipleCursors()
-    
-    def PlaceCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceCursor()
-    def PlaceTopCursor(self) -> IResumableEnumerationCursor: return self._GetContainer().PlaceTopCursor()
-    
-    def MoveToTop(self, cursor: IResumableEnumerationCursor) -> None: return self._GetContainer().MoveToTop(cursor)
-    
-    def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
-
-    def ToInvalidatable(self) -> IInvalidatableResumableEnumerator[T]: return self
-
-    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return _GetRemovable()
 
 class ICursorCookie[T](ICookie[T], IRemovable):
     def __init__(self) -> None: super().__init__()
@@ -352,6 +308,3 @@ def CreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IEnumerato
     return ResumableEnumeratorProvider[T](enumeratorProvider, resumableEnumeratorProvider)
 def TryCreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IResumableEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> IResumableEnumerable[T]|None:
     return None if enumeratorProvider is None else CreateResumableEnumeratorProvider(enumeratorProvider, resumableEnumeratorProvider)
-
-def ToInvalidatableResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IInvalidatableResumableEnumerator[T]:
-    return enumerator if isinstance(enumerator, IInvalidatableResumableEnumerator) else _InvalidatableEnumerator[T](enumerator)
