@@ -91,3 +91,5 @@ class StrEnum(EquatableEnum["StrEnum", str], _Enum):
 
 type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
+
+type TypedEnum = IntegerEnum|StringEnum
