@@ -117,6 +117,15 @@ def EnsureIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> None:
     """
     if not IsIn(e, t): raise ValueError()
 
+def __TryGetMembers[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> Generator[TOut]:
+    for o in e:
+        if predicate(o): yield selector(o)
+
+def TryGetMembers[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> Generator[T]:
+    EnsureEnum(e)
+
+    return __TryGetMembers(e, predicate, selector)
+
 def __TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None:
     for o in e:
         if predicate(o): return selector(o)
