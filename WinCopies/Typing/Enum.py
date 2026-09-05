@@ -45,8 +45,12 @@ class Enum(IEquatableObjectBase[_T]):
 
         return member
 
+    _name_: str
     _value_: _T
 
+    @DynamicClassAttribute
+    def name(self) -> str:
+        return self._name_
     @DynamicClassAttribute
     def value(self) -> _T:
         return self._value_
