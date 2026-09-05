@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Feb 6 20:37:51 2022
-
-@author: Pierre Sprimont
-"""
-
 from __future__ import annotations
 
 from abc import abstractmethod
