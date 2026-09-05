@@ -12,6 +12,30 @@ from WinCopies.Typing.Enum import Enum as _TypedEnum, StringEnum
 from WinCopies.Typing.Pairing import IKeyValuePair
 
 @overload
+def Enumerate[TValue](t: Type[_TypedEnum[TValue]]) -> Generator[_TypedEnum[TValue]]: ...
+@overload
+def Enumerate[TEnum: Enum](t: Type[TEnum]) -> Generator[TEnum]: ...
+
+def Enumerate[TValue, TEnum: Enum](t: Type[_TypedEnum[TValue]|TEnum]) -> Generator[_TypedEnum[TValue]|TEnum]:
+    yield from t
+
+def EnumerateNames[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[str]:
+    return Select(t, lambda item: item.name)
+
+@overload
+def EnumerateValues[T](t: Type[_TypedEnum[T]]) -> Generator[T]: ...
+@overload
+def EnumerateValues(t: Type[Enum]) -> Generator[Any]: ...
+
+def EnumerateValues[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[T|Any]:
+    return Select(t, lambda item: item.value)
+
+def EnumerateFieldNames(value: Flag) -> Generator[str]:
+    return SelectWhereNotNone(value, lambda item: item.name)
+def EnumerateFieldValues(value: Flag) -> Generator[int]:
+    return Select(value, lambda item: item.value)
+
+@overload
 def IsMemberOf[T](e: Type[_TypedEnum[T]], n: str) -> bool: ...
 @overload
 def IsMemberOf(e: Type[Enum], n: str) -> bool: ...
@@ -294,30 +318,6 @@ def TryGetValueFromName(e: Type[StringEnum], n: str) -> str:
     return StringifyIfNone(TryGetFieldFromName(e, n))
 def TryGetValueFromValue(e: Type[StringEnum], v: str) -> str:
     return StringifyIfNone(TryGetFieldFromValue(e, v))
-
-def EnumerateNames[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[str]:
-    return Select(t, lambda item: item.name)
-
-@overload
-def EnumerateValues[T](t: Type[_TypedEnum[T]]) -> Generator[T]: ...
-@overload
-def EnumerateValues(t: Type[Enum]) -> Generator[Any]: ...
-
-def EnumerateValues[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[T|Any]:
-    return Select(t, lambda item: item.value)
-
-def EnumerateFieldNames(value: Flag) -> Generator[str]:
-    return SelectWhereNotNone(value, lambda item: item.name)
-def EnumerateFieldValues(value: Flag) -> Generator[int]:
-    return Select(value, lambda item: item.value)
-
-@overload
-def Enumerate[TValue](t: Type[_TypedEnum[TValue]]) -> Generator[_TypedEnum[TValue]]: ...
-@overload
-def Enumerate[TEnum: Enum](t: Type[TEnum]) -> Generator[TEnum]: ...
-
-def Enumerate[TValue, TEnum: Enum](t: Type[_TypedEnum[TValue]|TEnum]) -> Generator[_TypedEnum[TValue]|TEnum]:
-    yield from t
 
 def Print(value: Flag) -> str: return CommaJoin(EnumerateFieldNames(value))
 
