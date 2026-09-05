@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from enum import Flag
+from enum import Flag, auto
 from typing import final, Callable
 
 from WinCopies import Abstract
@@ -8,9 +8,9 @@ from WinCopies.Typing.Protocols import SupportsStringization
 
 class StringizationSurrounding(Flag):
     Null = 0
-    Void = 1
-    Empty = Void << 1
-    NonEmpty = Empty << 1
+    Void = auto()
+    Empty = auto()
+    NonEmpty = auto()
     All = Void | Empty | NonEmpty
 
 @final

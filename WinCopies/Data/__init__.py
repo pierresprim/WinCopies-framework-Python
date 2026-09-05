@@ -7,13 +7,14 @@ from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections.Extensions import IReadOnlySet
-from WinCopies.Enum import EnsureOneAndOnlyOneFlag, TryGetFieldFromName, TryGetFieldFromValue, TryGetValueFromName
+from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import ErrorBase, InvalidOperationError
 from WinCopies.Typing.Comparison import IHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Selector
 from WinCopies.Typing.Enum import IntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair
+from WinCopies.Typing.Reflection.Enum import TryGetFieldFromName, TryGetFieldFromValue, TryGetValueFromName
 
 from WinCopies.Data.Misc import ITableNameFormater
 
