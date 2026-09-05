@@ -1,20 +1,22 @@
 from enum import Enum, Flag
-from typing import Any, Callable, Type
+from typing import cast, overload, Any, Callable, Type
 
 from WinCopies.Assertion import EnsureEnum
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Iteration import Select, SelectWhereNotNone, GetFirstItem
+from WinCopies.Collections.Iteration import Select, SelectWhereNotNone, GetFirst, GetFirstItem, WhereSelect
 from WinCopies.Delegates import Self
 from WinCopies.Enum import ToTuple, ToKeyValuePairs
 from WinCopies.String import CommaJoin, StringifyIfNone
 from WinCopies.Typing.Delegate import Predicate, Converter
-from WinCopies.Typing.Enum import StringEnum
+from WinCopies.Typing.Enum import Enum as _TypedEnum, StringEnum
 from WinCopies.Typing.Pairing import IKeyValuePair
 
-def __IsMemberOf[T](e: Type[Enum], obj: T, selector: Converter[Enum, T]) -> bool:
-    return obj in Select(e, selector)
+@overload
+def IsMemberOf[T](e: Type[_TypedEnum[T]], n: str) -> bool: ...
+@overload
+def IsMemberOf(e: Type[Enum], n: str) -> bool: ...
 
-def IsMemberOf(e: Type[Enum], n: str) -> bool:
+def IsMemberOf[T](e: Type[_TypedEnum[T]|Enum], n: str) -> bool:
     """Checks if a name is a member of an enum.
 
     Args:
@@ -29,8 +31,8 @@ def IsMemberOf(e: Type[Enum], n: str) -> bool:
     """
     EnsureEnum(e)
 
-    return __IsMemberOf(e, n, lambda o: o.name)
-def EnsureMemberOf(e: Type[Enum], n: str) -> None:
+    return n in EnumerateNames(e)
+def EnsureMemberOf[T](e: Type[_TypedEnum[T]|Enum], n: str) -> None:
     """Ensures a name is a member of an enum.
 
     Args:
@@ -43,7 +45,12 @@ def EnsureMemberOf(e: Type[Enum], n: str) -> None:
     """
     if not IsMemberOf(e, n): raise ValueError()
 
-def IsValueOf(e: Type[Enum], v: Any) -> bool:
+@overload
+def IsValueOf[T](e: Type[_TypedEnum[T]], v: T) -> bool: ...
+@overload
+def IsValueOf(e: Type[Enum], v: Any) -> bool: ...
+
+def IsValueOf[T](e: Type[_TypedEnum[T]|Enum], v: Any) -> bool:
     """Checks if a value exists in an enum.
 
     Args:
@@ -58,8 +65,8 @@ def IsValueOf(e: Type[Enum], v: Any) -> bool:
     """
     EnsureEnum(e)
 
-    return __IsMemberOf(e, v, lambda o: o.value)
-def EnsureValueOf(e: Type[Enum], v: Any) -> None:
+    return v in EnumerateValues(e)
+def EnsureValueOf[T](e: Type[_TypedEnum[T]|Enum], v: Any) -> None:
     """Ensures a value exists in an enum.
 
     Args:
@@ -72,7 +79,12 @@ def EnsureValueOf(e: Type[Enum], v: Any) -> None:
     """
     if not IsValueOf(e, v): raise ValueError()
 
-def ToTuples(e: Type[Enum]) -> Generator[tuple[str, Any]]:
+@overload
+def ToTuples[T](e: Type[_TypedEnum[T]]) -> Generator[tuple[str, T]]: ...
+@overload
+def ToTuples(e: Type[Enum]) -> Generator[tuple[str, Any]]: ...
+
+def ToTuples[T](e: Type[_TypedEnum[T]|Enum]) -> Generator[tuple[str, T|Any]]:
     """Converts all members of an enum to tuples.
 
     Args:
@@ -81,9 +93,14 @@ def ToTuples(e: Type[Enum]) -> Generator[tuple[str, Any]]:
     Yields:
         Tuples containing name and value for each enum member.
     """
-    for value in e: yield ToTuple(value)
+    return Select(e, ToTuple)
 
-def IsIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> bool:
+@overload
+def IsIn[T](e: Type[_TypedEnum[T]], t: tuple[str, T]|IKeyValuePair[str, T]) -> bool: ...
+@overload
+def IsIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> bool: ...
+
+def IsIn[T](e: Type[_TypedEnum[T]|Enum], t: tuple[str, T]|IKeyValuePair[str, T]) -> bool:
     """Checks if a tuple or key-value pair exists in an enum.
 
     Args:
@@ -104,7 +121,13 @@ def IsIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> bool:
         if t.GetKey() == item.GetKey() and t.GetValue() == item.GetValue(): return True
 
     return False
-def EnsureIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> None:
+
+@overload
+def EnsureIn[T](e: Type[_TypedEnum[T]], t: tuple[str, T]|IKeyValuePair[str, T]) -> None: ...
+@overload
+def EnsureIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> None: ...
+
+def EnsureIn[T](e: Type[_TypedEnum[T]|Enum], t: tuple[str, T]|IKeyValuePair[str, T]) -> None:
     """Ensures a tuple or key-value pair exists in an enum.
 
     Args:
@@ -117,22 +140,33 @@ def EnsureIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> None:
     """
     if not IsIn(e, t): raise ValueError()
 
-def __TryGetMembers[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> Generator[TOut]:
-    for o in e:
-        if predicate(o): yield selector(o)
+@overload
+def __TryGetMembers[TIn, TOut](e: Type[_TypedEnum[TIn]], predicate: Predicate[_TypedEnum[TIn]], selector: Converter[_TypedEnum[TIn], TOut]) -> Generator[TOut]: ...
+@overload
+def __TryGetMembers[TEnum: Enum, TOut](e: Type[TEnum], predicate: Predicate[TEnum], selector: Converter[TEnum, TOut]) -> Generator[TOut]: ...
 
-def TryGetMembers[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> Generator[T]:
+def __TryGetMembers[TIn, TEnum: Enum, TOut](e: Type[_TypedEnum[TIn]|TEnum], predicate: Predicate[_TypedEnum[TIn]]|Predicate[TEnum], selector: Converter[_TypedEnum[TIn], TOut]|Converter[TEnum, TOut]) -> Generator[TOut]:
+    return WhereSelect(cast(Generator[_TypedEnum[TIn]|TEnum], Enumerate(e)), cast(Predicate[_TypedEnum[TIn]|TEnum], predicate), cast(Converter[_TypedEnum[TIn]|TEnum, TOut], selector))
+
+def TryGetMembers[TIn, TEnum: Enum, TOut](e: Type[_TypedEnum[TIn]|TEnum], predicate: Predicate[_TypedEnum[TIn]]|Predicate[TEnum], selector: Converter[_TypedEnum[TIn], TOut]|Converter[TEnum, TOut]) -> Generator[TOut]:
     EnsureEnum(e)
 
-    return __TryGetMembers(e, predicate, selector)
+    return __TryGetMembers(e, cast(Predicate[_TypedEnum[TIn]|TEnum], predicate), cast(Converter[_TypedEnum[TIn]|TEnum, TOut], selector))
 
-def __TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None:
-    for o in e:
-        if predicate(o): return selector(o)
-    
-    return None
+@overload
+def __TryGetMember[TIn, TOut](e: Type[_TypedEnum[TIn]], predicate: Predicate[_TypedEnum[TIn]], selector: Converter[_TypedEnum[TIn], TOut]) -> TOut|None: ...
+@overload
+def __TryGetMember[TEnum: Enum, TOut](e: Type[TEnum], predicate: Predicate[TEnum], selector: Converter[TEnum, TOut]) -> TOut|None: ...
 
-def TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Converter[Enum, T]) -> T|None:
+def __TryGetMember[TIn, TEnum: Enum, TOut](e: Type[_TypedEnum[TIn]|TEnum], predicate: Predicate[_TypedEnum[TIn]]|Predicate[TEnum], selector: Converter[_TypedEnum[TIn], TOut]|Converter[TEnum, TOut]) -> TOut|None:
+    return GetFirst(__TryGetMembers(e, cast(Predicate[_TypedEnum[TIn]|TEnum], predicate), cast(Converter[_TypedEnum[TIn]|TEnum, TOut], selector))).TryGetValue()
+
+@overload
+def TryGetMember[TIn, TOut](e: Type[_TypedEnum[TIn]], predicate: Predicate[_TypedEnum[TIn]], selector: Converter[_TypedEnum[TIn], TOut]) -> TOut|None: ...
+@overload
+def TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None: ...
+
+def TryGetMember[TIn, TEnum: Enum, TOut](e: Type[_TypedEnum[TIn]|TEnum], predicate: Predicate[_TypedEnum[TIn]]|Predicate[TEnum], selector: Converter[_TypedEnum[TIn], TOut]|Converter[TEnum, TOut]) -> TOut|None:
     """Tries to get a member from an enum using a predicate and selector.
 
     Args:
@@ -148,12 +182,17 @@ def TryGetMember[T](e: Type[Enum], predicate: Predicate[Enum], selector: Convert
     """
     EnsureEnum(e)
 
-    return __TryGetMember(e, predicate, selector)
+    return __TryGetMember(e, cast(Predicate[_TypedEnum[TIn]|TEnum], predicate), cast(Converter[_TypedEnum[TIn]|TEnum, TOut], selector))
 
-def __TryGetFieldValue[TIn, TOut](e: Type[Enum], obj: TIn, predicateSelector: Converter[Enum, TIn], conversionSelector: Converter[Enum, TOut]) -> TOut|None:
+def __TryGetFieldValue[TValue, TIn, TOut](e: Type[_TypedEnum[TValue]|Enum], obj: TIn, predicateSelector: Converter[_TypedEnum[TValue]|Enum, TIn], conversionSelector: Converter[_TypedEnum[TValue]|Enum, TOut]) -> TOut|None:
     return __TryGetMember(e, lambda o: predicateSelector(o) == obj, conversionSelector)
 
-def TryGetName(e: Type[Enum], v: Any) -> str|None:
+@overload
+def TryGetName[T](e: Type[_TypedEnum[T]], v: T) -> str|None: ...
+@overload
+def TryGetName(e: Type[Enum], v: Any) -> str|None: ...
+
+def TryGetName[T](e: Type[_TypedEnum[T]|Enum], v: T|Any) -> str|None:
     """Tries to get the name of an enum member by its value.
 
     Args:
@@ -170,7 +209,12 @@ def TryGetName(e: Type[Enum], v: Any) -> str|None:
 
     return __TryGetFieldValue(e, v, lambda o: o.value, lambda o: o.name)
 
-def TryGetValue(e: Type[Enum], n: str) -> Any|None:
+@overload
+def TryGetValue[T](e: Type[_TypedEnum[T]], n: str) -> T|None: ...
+@overload
+def TryGetValue(e: Type[Enum], n: str) -> Any|None: ...
+
+def TryGetValue[T](e: Type[_TypedEnum[T]|Enum], n: str) -> T|Any|None:
     """Tries to get the value of an enum member by its name.
 
     Args:
@@ -187,10 +231,10 @@ def TryGetValue(e: Type[Enum], n: str) -> Any|None:
 
     return __TryGetFieldValue(e, n, lambda o: o.name, lambda o: o.value)
 
-def __TryGetField[T: Enum](e: Type[T], predicate: Predicate[Enum]) -> T|None:
+def __TryGetField[T: Enum](e: Type[T], predicate: Predicate[T]) -> T|None:
     return __TryGetMember(e, predicate, Self)
 
-def TryGetField[T: Enum](e: Type[T], predicate: Predicate[Enum]) -> T|None:
+def TryGetField[T: Enum](e: Type[T], predicate: Predicate[T]) -> T|None:
     """Tries to get an enum field using a predicate.
 
     Args:
@@ -223,7 +267,13 @@ def TryGetFieldFromName[T: Enum](e: Type[T], n: str) -> T|None:
     EnsureEnum(e)
 
     return __TryGetField(e, lambda o: o.name == n)
-def TryGetFieldFromValue[T: Enum](e: Type[T], v: Any) -> T|None:
+
+@overload
+def TryGetFieldFromValue[TEnum: Enum, TValue](e: Type[TEnum], v: TValue) -> TEnum|None: ... # pyright: ignore[reportInvalidTypeVarUse]
+@overload
+def TryGetFieldFromValue[T: Enum](e: Type[T], v: Any) -> T|None: ...
+
+def TryGetFieldFromValue[TEnum: Enum, TValue](e: Type[TEnum], v: TValue|Any) -> TEnum|None: # pyright: ignore[reportInvalidTypeVarUse]
     """Tries to get an enum field by its value.
 
     Args:
@@ -245,18 +295,29 @@ def TryGetValueFromName(e: Type[StringEnum], n: str) -> str:
 def TryGetValueFromValue(e: Type[StringEnum], v: str) -> str:
     return StringifyIfNone(TryGetFieldFromValue(e, v))
 
-def EnumerateNames(t: Type[Enum]) -> Generator[str]:
+def EnumerateNames[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[str]:
     return Select(t, lambda item: item.name)
-def EnumerateValues(t: Type[Enum]) -> Generator[Any]:
+
+@overload
+def EnumerateValues[T](t: Type[_TypedEnum[T]]) -> Generator[T]: ...
+@overload
+def EnumerateValues(t: Type[Enum]) -> Generator[Any]: ...
+
+def EnumerateValues[T](t: Type[_TypedEnum[T]|Enum]) -> Generator[T|Any]:
     return Select(t, lambda item: item.value)
 
 def EnumerateFieldNames(value: Flag) -> Generator[str]:
-    return SelectWhereNotNone(value, lambda value: value.name)
+    return SelectWhereNotNone(value, lambda item: item.name)
 def EnumerateFieldValues(value: Flag) -> Generator[int]:
     return Select(value, lambda item: item.value)
 
-def Enumerate[T: Enum](t: Type[T]) -> Generator[T]:
-    return Select(t, lambda value: value)
+@overload
+def Enumerate[TValue](t: Type[_TypedEnum[TValue]]) -> Generator[_TypedEnum[TValue]]: ...
+@overload
+def Enumerate[TEnum: Enum](t: Type[TEnum]) -> Generator[TEnum]: ...
+
+def Enumerate[TValue, TEnum: Enum](t: Type[_TypedEnum[TValue]|TEnum]) -> Generator[_TypedEnum[TValue]|TEnum]:
+    yield from t
 
 def Print(value: Flag) -> str: return CommaJoin(EnumerateFieldNames(value))
 
