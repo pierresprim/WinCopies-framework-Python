@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum as _Enum, IntEnum as _IntEnum, StrEnum as _StrEnum
+from collections.abc import Iterable
+from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
+                  EnumMeta as _EnumMeta, Enum as _Enum, FlagBoundary, IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import final, Generic, Self, Type, TypeVar
+from typing import Any, final, Generic, Self, Type, TypeVar
 
+from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
@@ -23,7 +26,17 @@ class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityCompa
 class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
     def __init__(self) -> None: super().__init__()
 
-class Enum(IEquatableObjectBase[_T]):
+class _EnumTypeBase(type, Iterable["Any"]):
+    def __init__(self, name: str, bases: ReadOnlyArray[type], dict: dict[str, Any], /, **kwds: Any) -> None: super().__init__(name, bases, dict, **kwds)
+    def __new__(cls: type[_EnumTypeBase], name: str, bases: ReadOnlyArray[type], namespace: dict[str, Any], /, **kwds: Any) -> Any: return super().__new__(cls, name, bases, namespace, **kwds)
+class _EnumType(_EnumTypeBase, _EnumMeta):
+    def __init__(self, name: str, bases: ReadOnlyArray[type], dict: dict[str, Any], /, **kwds: Any) -> None: # pyright: ignore[reportInconsistentConstructor]
+        super().__init__(name, bases, dict, **kwds)
+
+    def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
+        return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
+
+class Enum(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
     def __init__(self, value: _T) -> None: super().__init__()
 
     @classmethod
@@ -66,7 +79,10 @@ class OrderedEnum(Generic[_TComparableEnum, _V], EquatableEnum[_TComparableEnum,
     
     def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
 
-class IntEnum(OrderedEnum["IntEnum", int], _Enum):
+class _EnumBase(_Enum, metaclass=_EnumType):
+    def __init__(self) -> None: super().__init__()
+
+class IntEnum(OrderedEnum["IntEnum", int], _EnumBase):
     def __init__(self, value: int) -> None: super().__init__(value)
 
     def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
@@ -77,7 +93,7 @@ class IntEnum(OrderedEnum["IntEnum", int], _Enum):
 
     @final
     def GetEnumValue(self) -> IntEnum: return self
-class StrEnum(EquatableEnum["StrEnum", str], _Enum):
+class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
     def __init__(self, value: str) -> None: super().__init__(value)
     
     def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
