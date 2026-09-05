@@ -2,8 +2,7 @@ from collections.abc import Iterable, Iterator, Collection
 from contextlib import AbstractContextManager
 from typing import Callable, Type
 
-from WinCopies.Bool import NullableBoolean
-from WinCopies.Collections import Generator, ScanResult, IterableScanResult
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Util import MakeGenerator
@@ -577,90 +576,6 @@ def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) 
     """
     return None if items is None else Any(items, predicate)
 
-def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> ScanResult:
-    """Validates that exactly one or no item matches a predicate.
-
-    Args:
-        items: The items to check.
-        predicate: The condition to validate.
-
-    Returns:
-        - ScanResult.Null if items is None
-        - ScanResult.Empty if no items exist
-        - ScanResult.Success if exactly one item matches
-        - ScanResult.Error if more than one item matches
-    """
-    if items is None: return ScanResult.Null
-
-    validator: Predicate[T]|None = None
-
-    def validate(value: T) -> bool:
-        nonlocal validator
-
-        if predicate(value): validator = predicate # Stop iteration if a second item validated the given predicate.
-
-        return False # Do not stop iteration.
-
-    validator = validate
-
-    enumerator: IEnumerator[T]|None = AsEnumerable(items).TryGetEnumerator()
-
-    if enumerator is None: return ScanResult.Empty
-
-    for item in enumerator.AsIterator():
-        # The validator result, unlike the predicate result indicates that the validation failed because the predicate validated two items in the given iterable.
-        if validator(item): return ScanResult.Error
-
-    return ScanResult.Success if enumerator.GetStatus().HasProcessedItems() else ScanResult.Empty # Validation succeeded or iterable is empty.
-def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
-    """Validates that exactly one item matches a predicate.
-
-    Args:
-        items: The items to check.
-        predicate: The condition to validate.
-
-    Returns:
-        - None if items is None
-        - True if exactly one item matches
-        - False if zero or more than one item matches
-    """
-    match ValidateOnlyOne(items, predicate):
-        case ScanResult.Success: return True
-        case ScanResult.Null: return None
-        
-        case _: return False
-
-def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
-    """Ensures exactly one item matches a predicate, ignoring null or empty cases.
-
-    Args:
-        items: The items to check.
-        predicate: The condition to validate.
-        errorMessage: Optional custom error message.
-
-    Raises:
-        ValueError: If more than one item matches the predicate.
-    """
-    if not ValidateOnlyOne(items, predicate): raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
-def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
-    """Ensures exactly one item matches a predicate, with null-safe validation.
-
-    Args:
-        items: The items to check.
-        predicate: The condition to validate.
-        errorMessage: Optional custom error message.
-
-    Raises:
-        ValueError: If no iterable given, if no items are found or if zero or more than one item matches the predicate.
-    """
-    def raiseError(msg: str) -> None: raise ValueError(msg if errorMessage is None else errorMessage)
-
-    match ValidateOnlyOne(items, predicate).ToNullableBoolean():
-        case NullableBoolean.Null: raiseError("No item found.")
-        case NullableBoolean.BoolFalse: raiseError("More than one value validating the given predicate were found.")
-        
-        case _: pass
-
 def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
     current: T2|None = None
 
@@ -694,16 +609,6 @@ def IterateWith[T](itemsProvider: Function[AbstractContextManager[Iterable[T]]],
     with itemsProvider() as items: return func(items)
 def IterateFrom[TIn, TOut](value: TIn, itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> bool|None:
     return IterateWith(lambda: itemsProvider(value), func)
-
-def TryIterateWith[T](checker: Function[bool], itemsProvider: Function[AbstractContextManager[Iterable[T]]], func: Converter[Iterable[T], bool|None]) -> IterableScanResult:
-    if checker():
-        result: bool|None = IterateWith(itemsProvider, func)
-
-        return IterableScanResult.Empty if result == None else (IterableScanResult.Success if result else IterableScanResult.Error)
-    
-    return IterableScanResult.DoesNotExist
-def TryIterateFrom[TIn, TOut](value: TIn, checker: Predicate[TIn], itemsProvider: Converter[TIn, AbstractContextManager[Iterable[TOut]]], func: Converter[Iterable[TOut], bool|None]) -> IterableScanResult:
-    return TryIterateWith(lambda: checker(value), lambda: itemsProvider(value), func)
 
 def RetrieveValues[T](items: Iterable[Function[T]]) -> Iterable[T]:
     return Select(items, RetrieveValue)
