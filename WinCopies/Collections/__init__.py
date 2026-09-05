@@ -5,7 +5,6 @@ from enum import Flag
 from typing import Callable
 
 from WinCopies import Abstract
-from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Predicate
 
@@ -19,23 +18,6 @@ class EnumerationOrder(Flag):
     Both = 3
 
 def GetInvalidEnumerationOrderError(order: EnumerationOrder) -> Exception: return ValueError("Unknown enumeration order.", order)
-
-class IterableScanResult(BooleanableEnum):
-    DoesNotExist = -2
-    Empty = -1
-    Success = 0
-    Error = 1
-    
-    def Not(self) -> IterableScanResult: return (IterableScanResult.Error if self == IterableScanResult.Success else IterableScanResult.Success) if self else self
-class ScanResult(BooleanableEnum):
-    Error = -1
-    Success = 0
-    Empty = 1
-    Null = 2
-    
-    def ToNullableBool(self) -> bool|None: return True if self == ScanResult.Success else (None if self.value > 0 else False)
-    
-    def ToNullableBoolean(self) -> NullableBoolean: return NullableBoolean.BoolTrue if self == ScanResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
 
 class EmptyException(Error):
     def __init__(self, *args: object) -> None: super().__init__("The collection is empty.", *args)
