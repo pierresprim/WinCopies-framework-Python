@@ -407,11 +407,10 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             try: return func()
             except StopIteration: return False
         
-        def isRunning() -> bool:
-            return self.GetStatus().GetState() < IterationState.Ended
+        def isStarted() -> bool: return self.IsStarted()
 
         def setMoveNextFunc(func: Function[bool]) -> None:
-            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func), isRunning)
+            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func), isStarted)
 
         def _moveFirst() -> bool:
             def moveNext() -> bool:
@@ -433,7 +432,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         def onError() -> bool:
             if self.IsStarted(): setMoveNextFunc(_moveFirst)
 
-            return isRunning()
+            return isStarted()
 
         def moveFirst() -> bool:
             if tryAction(self._OnStarting):
