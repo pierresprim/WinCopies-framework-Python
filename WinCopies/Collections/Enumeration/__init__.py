@@ -755,31 +755,15 @@ class AbstractEnumerator[T](Selector[T, T]):
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None: super().__init__(enumerator)
     
-    def _OnCompleting(self, enumerator: TEnumerator) -> None:
-        pass
-    
     def _OnStopping(self, enumerator: TEnumerator) -> None:
         pass
     @abstractmethod
     def _OnStoppedOverride(self) -> None:
         ...
-
-    def _OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
-        pass
-    def _OnEnding(self, enumerator: TEnumerator) -> None:
-        pass
-
-    @final
-    def __OnTerminating(self, enumerator: TEnumerator, completed: bool) -> None:
-        self._OnTerminating(enumerator, completed)
-        self._OnEnding(enumerator)
     
     @final
     def _OnStopped(self) -> None:
-        enumerator: TEnumerator = self._GetContainer()
-
-        self._OnStopping(enumerator)
-        self.__OnTerminating(enumerator, False)
+        self._OnStopping(self._GetContainer())
 
         super()._OnStopped()
 
