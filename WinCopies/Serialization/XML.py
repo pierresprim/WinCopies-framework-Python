@@ -7,10 +7,10 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
-from WinCopies.Enum import EnumerateFieldNames, TryConvertFromString
 from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
 from WinCopies.Serialization import TextDataReader
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
+from WinCopies.Typing.Reflection.Enum import EnumerateFieldNames, TryConvertFromString
 
 def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyValuePair[Element, Events]]:
     event: Events|None = None
