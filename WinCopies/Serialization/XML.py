@@ -1,21 +1,30 @@
 from __future__ import annotations
 
-from typing import final
+from typing import final, Literal
 from xml.etree.ElementTree import Element, iterparse
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ManagedGeneratorProvider
+from WinCopies.Collections.Util import MakeSequence
 from WinCopies.IO.Stream import IStreamReader, ITextStreamReader
 from WinCopies.Serialization import TextDataReader
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
-from WinCopies.Typing.Reflection.Enum import EnumerateFieldNames, TryConvertFromString
+from WinCopies.Typing.Reflection.Enum import EnumerateFieldValues, TryConvertFromString
 
 def GetGenerator(stream: IStreamReader[str], events: Events) -> Generator[IKeyValuePair[Element, Events]]:
+    def getEventNames() -> Generator[Literal["start"]|Literal["end"]]:
+        for event in EnumerateFieldValues(events):
+            match event:
+                case Events.Start: yield "start"
+                case Events.End: yield "end"
+
+                case _: pass
+
     event: Events|None = None
 
-    for item in iterparse(stream.AsReader(), events=tuple(event.lower() for event in EnumerateFieldNames(events))):
+    for item in iterparse(stream.AsReader(), events=MakeSequence(*getEventNames())):
         if (event := TryConvertFromString(Events, item[0], lambda name, value: name is not None and name.lower() == value.lower())) is not None: yield CreateDualResult(item[1], event)
 def GetEnumerator(stream: ITextStreamReader, events: Events) -> IEnumerator[IKeyValuePair[Element, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
