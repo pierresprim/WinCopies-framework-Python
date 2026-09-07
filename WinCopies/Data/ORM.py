@@ -21,7 +21,8 @@ from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEn
 from WinCopies.Collections.Expression import IConnector, ICompositeExpression, ICompositeExpressionNodeBase, ICompositeExpressionNode, ICompositeExpressionRoot, CompositeExpressionValueNode, CompositeExpressionNode, CompositeExpressionValueRoot, CompositeExpressionRoot
 from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IReadOnlySet, IReadOnlyDictionary, ISet, IKeyedSet, IDictionary
 from WinCopies.Collections.Generation.Iteration import IIterator
-from WinCopies.Collections.Iteration import Any as HasAny, AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, TryConcatenateItems, ConcatenateEnumerables, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration import AppendItem, Concatenate as ConcatenateIterables, ConcatenateValues, GetFirstOfType, Include, Exclude, Select, Match, SelectWhereNotNone, WhereSelect, WhereOfType, WhereNotOfType
+from WinCopies.Collections.Iteration.Enumeration import Any as HasAny, TryConcatenateItems, ConcatenateEnumerables
 from WinCopies.Collections.Iteration.Loop import DoForEachItem
 from WinCopies.Collections.Linked.Singly import IEnumerableList, ICountableEnumerableList, EnumerableQueue, CountableEnumerableQueue
 from WinCopies.Collections.Linked.Doubly.Welded import IList as ILinkedList, CreateList

@@ -10,7 +10,7 @@ import os
 from typing import Callable, Iterable, AnyStr
 
 from WinCopies.Collections import FinderPredicate
-from WinCopies.Collections.Iteration.Extensions import IterableScanResult, TryIterateFrom
+from WinCopies.Collections.Iteration.Enumeration import IterableScanResult, TryIterateFrom
 from WinCopies.Collections.Loop import ForEachItemUntil, DoForEachItem, ScanItems
 from WinCopies.Delegates import GetPredicateAction, GetAndPredicate, GetAndAlsoPredicate
 from WinCopies.IO import FileKind, GetDirectoryPredicate, GetFilePredicate, TryCheckExtension

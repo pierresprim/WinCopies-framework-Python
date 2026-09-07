@@ -14,7 +14,8 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Array
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
 from WinCopies.Collections.Extensions import IArray
-from WinCopies.Collections.Iteration import Append, Select, EnsureOnlyOne
+from WinCopies.Collections.Iteration import Append, Select
+from WinCopies.Collections.Iteration.Enumeration import EnsureOnlyOne
 from WinCopies.Collections.Linked.Singly import IList, Queue
 
 from WinCopies.Enum import HasFlag
