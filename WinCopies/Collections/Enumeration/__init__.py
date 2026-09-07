@@ -487,9 +487,10 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def __Clear(self, clear: bool) -> None:
         def _clear() -> None:
-            self.__invalidationRegistrar.Unregister()
-
-            if clear: self._Clear()
+            if clear:
+                self.__invalidationRegistrar.Unregister()
+                
+                self._Clear()
 
         self.__TryAction(_clear)
 
