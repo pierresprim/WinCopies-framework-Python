@@ -6,7 +6,7 @@ import unittest
 
 from WinCopies.Delegates import (
     Self,
-    BoolTrue, BoolFalse, FuncNone, NoAction,
+    BoolTrue, BoolFalse, FuncNone, NoAction, DoNothing,
     CompareEquality,
     PredicateAction, GetPredicateAction,
     BoolFuncAction, GetBoolFuncAction,
@@ -104,8 +104,8 @@ class TestBasicDelegates(unittest.TestCase):
         """NoAction accepts any argument and returns None implicitly."""
         
         self.assertIsNone(NoAction()) # type: ignore[func-returns-value]
-        self.assertIsNone(NoAction(42)) # type: ignore[func-returns-value]
-        self.assertIsNone(NoAction(None)) # type: ignore[func-returns-value]
+        self.assertIsNone(DoNothing(42)) # type: ignore[func-returns-value]
+        self.assertIsNone(DoNothing(None)) # type: ignore[func-returns-value]
 
     def test_compare_equality_equal_values(self) -> None:
         """CompareEquality returns True for equal values."""
