@@ -121,7 +121,7 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         self.__start = start
         self.__stop = DoNothing
 
-        if faulted: self.__status.Fault()
+        if faulted: self.__status.Abort()
         else: self.__status.Complete()
 
     def __Send(self, _: TData) -> TItem:

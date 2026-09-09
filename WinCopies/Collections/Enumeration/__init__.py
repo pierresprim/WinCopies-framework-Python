@@ -171,6 +171,12 @@ class IterationStatus(Abstract, IIterationStatusBase):
         self.__result = IterationResult.Running
 
     @final
+    def Abort(self) -> None:
+        self.__Terminate(IterationResult.Faulted)
+
+        self.__AddFlag(IterationData.Faulted)
+
+    @final
     def AsReadOnly(self) -> IIterationStatus:
         return self.__readOnly
 
