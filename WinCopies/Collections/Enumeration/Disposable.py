@@ -97,10 +97,10 @@ class Cursor[TRoot, THandle, TItem](ConverterEnumeratorBase[THandle, TItem], Dis
     def _OnHandleProcessed(self, handle: THandle) -> bool:
         return True
 
-    def _OnStopping(self, enumerator: IEnumerator[THandle]) -> None:
-        self._DisposeHandle(enumerator.GetCurrent())
+    def _Clear(self) -> None:
+        self._DisposeHandle(self._GetContainer().GetCurrent())
 
-        super()._OnStopping(enumerator)
+        super()._Clear()
 
     @abstractmethod
     def _DisposeHandle(self, handle: THandle) -> None:

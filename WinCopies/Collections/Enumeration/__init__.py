@@ -361,6 +361,9 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def __Process[U](self, func: Function[U]) -> U:
         return _Process(self.__monitor, func)
+    @final
+    def __DoWork(self, action: Action) -> None:
+        _DoWork(self.__monitor, action)
 
     @final
     def __TryAction(self, action: Action) -> None:
@@ -466,7 +469,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__Terminate(self.__status.Stop)
     @final
     def __Invalidate(self) -> None:
-        self.__Terminate(self.__status.Invalidate)
+        self.__DoWork(lambda: self.__Terminate(self.__status.Invalidate))
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -489,12 +492,11 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def __Clear(self, clear: bool) -> None:
         def _clear() -> None:
-            if clear:
-                self.__invalidationRegistrar.Unregister()
-                
-                self._Clear()
+            self.__invalidationRegistrar.Unregister()
+            
+            self._Clear()
 
-        self.__TryAction(_clear)
+        if clear: self.__TryAction(_clear)
 
     def _OnStarting(self) -> bool:
         return True
@@ -521,7 +523,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
     
     @final
-    def Stop(self) -> None: _DoWork(self.__monitor, self.__Stop)
+    def Stop(self) -> None: self.__DoWork(self.__Stop)
     
     @final
     def TryReset(self) -> bool|None:
