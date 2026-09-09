@@ -14,12 +14,12 @@ def FuncNone() -> None:
 
 def NoAction() -> None:
     pass
-def DoNothing(*values: object) -> None:
+def DoNothing(*values: Any) -> None:
     pass
 
-def AlwaysTrue(obj: Any) -> bool:
+def AlwaysTrue(*obj: Any) -> bool:
     return True
-def AlwaysFalse(obj: Any) -> bool:
+def AlwaysFalse(*obj: Any) -> bool:
     return False
 
 def CompareEquality[T](x: T, y: T) -> bool:
