@@ -764,7 +764,7 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Abstrac
     
     @final
     def _OnStopped(self) -> None:
-        self._OnStopping(self._GetContainer())
+        if self.IsStarted(): self._OnStopping(self._GetContainer())
 
         super()._OnStopped()
 
