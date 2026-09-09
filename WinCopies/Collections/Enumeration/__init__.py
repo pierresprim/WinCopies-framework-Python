@@ -12,7 +12,7 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Invalidation import ManagedInvalidationRegistrar
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
-from WinCopies.Delegates import NoAction, BoolTrue, BoolFalse, GetActionBoolFunc
+from WinCopies.Delegates import NoAction, BoolFalse, GetActionBoolFunc
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
@@ -63,12 +63,19 @@ class IterationData(Flag):
     HasProcessedItems = auto()
     Faulted = auto()
 
-class IIterationStatus(IInterface):
+class IIterationStatusBase(IInterface):
     def __init__(self) -> None: super().__init__()
-
+    
     @abstractmethod
     def GetState(self) -> IterationState:
         ...
+    
+    @final
+    def IsStarted(self) -> bool:
+        return self.GetState() == IterationState.Started
+class IIterationStatus(IIterationStatusBase):
+    def __init__(self) -> None: super().__init__()
+
     @abstractmethod
     def GetResult(self) -> IterationResult:
         ...
@@ -79,10 +86,6 @@ class IIterationStatus(IInterface):
     @final
     def HasProcessedItems(self) -> bool:
         return HasFlag(self.GetData(), IterationData.HasProcessedItems)
-    
-    @final
-    def IsStarted(self) -> bool:
-        return self.GetState() == IterationState.Started
 
 @final
 class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
@@ -95,7 +98,7 @@ class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
     def GetResult(self) -> IterationResult: return self.__iterationStatus.GetResult()
 
     def GetData(self) -> IterationData: return self.__iterationStatus.GetData()
-class IterationStatus(Abstract):
+class IterationStatus(Abstract, IIterationStatusBase):
     def __init__(self) -> None:
         super().__init__()
 
@@ -155,10 +158,14 @@ class IterationStatus(Abstract):
         self.__Terminate(IterationResult.Invalidated)
 
     @final
-    def Fault(self, running: bool) -> None:
-        if running: self.__result = IterationResult.Faulted
+    def Fault(self, notify: bool = True) -> bool:
+        running: bool = self.IsStarted()
+
+        if notify and running: self.__result = IterationResult.Faulted
 
         self.__AddFlag(IterationData.Faulted)
+
+        return running
     @final
     def Unfault(self) -> None:
         self.__result = IterationResult.Running
@@ -366,20 +373,20 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         _DoWork(self.__monitor, action)
 
     @final
-    def __TryAction(self, action: Action) -> None:
+    def __TryAction(self, action: Action, notify: bool = True) -> None:
         try: action()
 
         except Exception:
-            self.__status.Fault(False)
+            self.__status.Fault(notify)
 
             raise
 
     @final
-    def __TryFunction[U](self, func: Function[U], onError: Function[bool]) -> U:
+    def __TryFunction[U](self, func: Function[U], onError: Action|None = None) -> U:
         try: return func()
 
         except Exception:
-            self.__status.Fault(onError())
+            if self.__status.Fault() and onError is not None: onError()
 
             raise
     
@@ -410,10 +417,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             try: return func()
             except StopIteration: return False
         
-        def isStarted() -> bool: return self.IsStarted()
-
         def setMoveNextFunc(func: Function[bool]) -> None:
-            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func), isStarted)
+            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func))
 
         def _moveFirst() -> bool:
             def moveNext() -> bool:
@@ -432,11 +437,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
             return onCompleted(True)
 
-        def onError() -> bool:
-            if self.IsStarted(): setMoveNextFunc(_moveFirst)
-
-            return isStarted()
-
         def moveFirst() -> bool:
             if tryAction(self._OnStarting):
                 self.__status.Start()
@@ -446,7 +446,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
             return onCompleted(False)
 
-        return self.__TryFunction(moveFirst, onError)
+        return self.__TryFunction(moveFirst, lambda: setMoveNextFunc(_moveFirst))
     
     @final
     def __Terminate(self, action: Action) -> None:
@@ -496,7 +496,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             
             self._Clear()
 
-        if clear: self.__TryAction(_clear)
+        if clear: self.__TryAction(_clear, False)
 
     def _OnStarting(self) -> bool:
         return True
@@ -515,7 +515,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def GetCurrent(self) -> T:
-        if self.IsStarted(): return self.__TryFunction(self._GetCurrent, BoolTrue)
+        if self.IsStarted(): return self.__TryFunction(self._GetCurrent)
         
         raise GetIterationInactiveError()
 
@@ -533,7 +533,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
                 self.__Stop()
                 
-                if self.__TryFunction(self._ResetOverride, BoolFalse):
+                if self.__TryFunction(self._ResetOverride):
                     self.__moveNextFunc = self.__MoveFirst
 
                     self.__status.Reset()
