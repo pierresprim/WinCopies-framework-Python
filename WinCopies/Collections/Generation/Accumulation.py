@@ -7,10 +7,10 @@ from typing import final, Self, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Enumeration import IterationState, IIterationStatus, IterationStatus, GetIterationInactiveError
-from WinCopies.Delegates import NoAction
+from WinCopies.Delegates import DoNothing
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, INullableItem, CreateNullableItem
-from WinCopies.Typing.Delegate import Action, Function, Converter as ConverterDelegate
+from WinCopies.Typing.Delegate import Action, Method, Function, Converter as ConverterDelegate
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
 
 class IAccumulatorAbstract(IInterface):
@@ -78,7 +78,7 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         self.__send: ConverterDelegate[TData, TItem] = self.__Send
 
         self.__start: Function[bool|None] = self.__Start
-        self.__stop: Action = self.__Stop
+        self.__stop: Method[bool] = self.__Stop
 
     def __MoveNext(self) -> None:
         if not self.Start(): raise StopIteration()
@@ -87,7 +87,7 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         def start() -> bool: return False
 
         def stop() -> None:
-            self.__Stop()
+            self.__Stop(False)
 
             raise StopIteration()
         
@@ -107,7 +107,7 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         self.Stop()
 
         return None
-    def __Stop(self) -> None:
+    def __Stop(self, faulted: bool) -> None:
         def start() -> bool: return False
 
         def moveNext() -> None: raise StopIteration()
@@ -119,9 +119,10 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         self.__send = send
 
         self.__start = start
-        self.__stop = NoAction
+        self.__stop = DoNothing
 
-        self.__status.Complete()
+        if faulted: self.__status.Fault()
+        else: self.__status.Complete()
 
     def __Send(self, _: TData) -> TItem:
         raise GetIterationInactiveError()
@@ -150,13 +151,16 @@ class _AccumulatorEngine[TItem, TData](Abstract):
         return self.__send(data)
 
     def Stop(self) -> None:
-        return self.__stop()
+        self.__stop(False)
     
     def GetStatus(self) -> IIterationStatus:
         return self.__status.AsReadOnly()
 
     def TryGetValue(self) -> INullable[TItem]:
         return self.__value.AsReadOnly()
+
+    def NotifyFault(self) -> None:
+        self.__stop(True)
 
     def Reset(self) -> None:
         self.__moveNext = self.__MoveNext
@@ -170,19 +174,28 @@ class _AccumulatorEngine[TItem, TData](Abstract):
 class AccumulatorBase[TItem, TData](Abstract, Generator[TItem, TData, BaseException], IAccumulatorBase[TItem, TData]):
     @final
     class _Cookie[_TItem, _TData](Abstract, _IAccumulatorCookie[_TItem, _TData]):
-        def __init__(self, accumulator: AccumulatorBase[_TItem, _TData]) -> None:
+        def __init__(self, accumulator: AccumulatorBase[_TItem, _TData], notifier: Action) -> None:
             super().__init__()
 
             self.__accumulator: AccumulatorBase[_TItem, _TData] = accumulator
+            self.__notifier: Action = notifier
 
-        def GetInitialValue(self) -> INullable[_TItem]: return self.__accumulator._GetInitialValue()
+        def __Process[T](self, selector: ConverterDelegate[AccumulatorBase[_TItem, _TData], T]) -> T:
+            try: return selector(self.__accumulator)
 
-        def Send(self, data: _TData) -> _TItem: return self.__accumulator._Send(data)
+            except Exception:
+                self.__notifier()
+
+                raise
+
+        def GetInitialValue(self) -> INullable[_TItem]: return self.__Process(lambda accumulator: accumulator._GetInitialValue())
+
+        def Send(self, data: _TData) -> _TItem: return self.__Process(lambda accumulator: accumulator._Send(data))
     
     def __init__(self) -> None:
         super().__init__()
 
-        self.__engine: _AccumulatorEngine[TItem, TData] = _AccumulatorEngine[TItem, TData](AccumulatorBase._Cookie[TItem, TData](self))
+        self.__engine: _AccumulatorEngine[TItem, TData] = _AccumulatorEngine[TItem, TData](AccumulatorBase._Cookie[TItem, TData](self, lambda: self.__engine.NotifyFault()))
         self.__monitor: IMonitor = Monitor()
 
     @final
