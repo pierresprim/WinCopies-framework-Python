@@ -559,7 +559,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         def moveNext() -> bool:
             try: return self.__Process(self.__moveNextFunc)
 
-            except StopIteration: return False
             except Exception:
                 self.__moveNext(False)
 

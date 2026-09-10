@@ -33,7 +33,7 @@ class Monitor(Abstract, IMonitor):
 
 def GetMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
     return InvalidOperationError(GetValueOrDefault(errorMessage, "The given monitor is already busy."))
-def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
+def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> None:
     raise GetMonitorBusyError(errorMessage)
 
 def __CheckMonitor(monitor: IMonitor, errorMessage: str|ErrorMessages|None = None) -> None:
