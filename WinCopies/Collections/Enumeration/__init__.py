@@ -531,7 +531,10 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def GetCurrent(self) -> T:
-        if self.IsStarted(): return self.__TryFunction(self._GetCurrent)
+        if self.IsStarted():
+            current: T = self.__TryFunction(self._GetCurrent)
+
+            if self.IsStarted(): return current
         
         raise GetIterationInactiveError()
 
