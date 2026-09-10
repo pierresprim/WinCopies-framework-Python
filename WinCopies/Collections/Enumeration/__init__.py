@@ -557,6 +557,9 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return ProcessData(invalidationRegistrar, self.__monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
+    
+    @final
+    def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
 
     @final
     def GetCurrent(self) -> T:
@@ -599,9 +602,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             return None
 
         return self.__Process(tryReset)
-    
-    @final
-    def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None: super().__init__()
