@@ -11,7 +11,7 @@ from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, MutableSequence, Count
+from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, ISizedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Collection import IViewProvider
 from WinCopies.Collections.Generation.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration.Enumeration import Zip
@@ -349,23 +349,6 @@ class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
 
     @final
     def GetMutability(self) -> Mutability|None: return Mutability.Mutable
-
-class ISizedList[T](IList[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def GetMaxLength(self) -> int:
-        ...
-    
-    @abstractmethod
-    def ValidateLength(self, count: int) -> bool:
-        ...
-    
-    @abstractmethod
-    def TryInsertAt(self, index: int, value: T) -> bool|None:
-        ...
-    @final
-    def TryInsert(self, index: int, value: T) -> bool: return self.TryInsertAt(index, value) is True
 
 class SizedList[T](ListBase[T], ISizedList[T]):
     def __init__(self, initializer: _ISizedListInitializer[T]) -> None:

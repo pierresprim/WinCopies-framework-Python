@@ -310,6 +310,23 @@ class ISortedList[T](IListBase[T], ISortedListBase[T], ISortedTuple[T]):
     def SliceAt(self, key: slice) -> ISortedList[T]:
         ...
 
+class ISizedList[T](IList[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def GetMaxLength(self) -> int:
+        ...
+    
+    @abstractmethod
+    def ValidateLength(self, count: int) -> bool:
+        ...
+    
+    @abstractmethod
+    def TryInsertAt(self, index: int, value: T) -> bool|None:
+        ...
+    @final
+    def TryInsert(self, index: int, value: T) -> bool: return self.TryInsertAt(index, value) is True
+
 # TODO: Should implement a Mapping abstractor provider.
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionaryBase[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self) -> None: super().__init__()
