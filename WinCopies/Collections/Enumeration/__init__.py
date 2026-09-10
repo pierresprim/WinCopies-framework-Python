@@ -343,11 +343,6 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
-def _Process[T](monitor: IMonitor, func: Function[T]) -> T:
-    return Process(monitor, func, ErrorMessages.ReentrancyNotAllowed)
-def _DoWork(monitor: IMonitor, action: Action) -> None:
-    DoWork(monitor, action, ErrorMessages.ReentrancyNotAllowed)
-
 @final
 class _EnumeratorInvalidator(Invalidatable):
     def __init__(self, action: Action) -> None:
@@ -375,10 +370,10 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
-        return _Process(self.__monitor, func)
+        return Process(self.__monitor, func, ErrorMessages.ReentrancyNotAllowed)
     @final
     def __DoWork(self, action: Action) -> None:
-        _DoWork(self.__monitor, action)
+        DoWork(self.__monitor, action, ErrorMessages.ReentrancyNotAllowed)
 
     @final
     def __TryAction(self, action: Action, notify: bool = True) -> None:
