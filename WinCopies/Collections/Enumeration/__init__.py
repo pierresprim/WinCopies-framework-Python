@@ -370,6 +370,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__monitor: IMonitor = Monitor()
 
         self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
+
+        self.__invalidated: bool = False
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
@@ -475,7 +477,15 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__Terminate(self.__status.Stop)
     @final
     def __Invalidate(self) -> None:
-        self.__DoWork(lambda: self.__Terminate(self.__status.Invalidate))
+        if self.__monitor.IsBusy(): self.__invalidated = True
+
+        else: self.__DoWork(lambda: self.__Terminate(self.__status.Invalidate))
+    @final
+    def __TryInvalidate(self) -> None:
+        if self.__invalidated:
+            self.__invalidated = False
+
+            self.__Invalidate()
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -526,7 +536,13 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         raise GetIterationInactiveError()
 
     @final
-    def MoveNext(self) -> bool: return self.__Process(self.__moveNextFunc)
+    def MoveNext(self) -> bool:
+        def moveNext() -> bool:
+            try: return self.__Process(self.__moveNextFunc)
+
+            finally: self.__TryInvalidate()
+        
+        return moveNext() and self.IsStarted()
     
     @final
     def Stop(self) -> None: self.__DoWork(self.__Stop)
