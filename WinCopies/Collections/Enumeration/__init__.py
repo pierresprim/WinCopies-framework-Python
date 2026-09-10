@@ -359,7 +359,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__getCurrent: Function[T] = self.__GetCurrent
+        self.__getCurrentFunc: Function[T] = self.__GetCurrent
+        self.__getCurrent: SelectorDelegate[T] = SameValue
 
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
         self.__moveNext: SelectorDelegate[bool] = SameValue
@@ -412,18 +413,22 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def __UpdateMoveNext(self, func: Function[bool]) -> None:
-        self.__getCurrent = self.__GetCurrent
+        self.__getCurrentFunc = self.__GetCurrent
         self.__moveNextFunc = func
     
     @final
     def __SetMoveNext(self) -> None:
+        self.__getCurrent = self.__GetCurrent
+        
         self.__UpdateMoveNext(BoolFalse)
     @final
     def __ResetMoveNext(self) -> None:
+        self.__getCurrent = self.__GetCurrent
+        
         self.__UpdateMoveNext(self.__MoveFirst)
 
     @final
-    def __GetCurrent(self) -> T:
+    def __GetCurrent(self, *obj: Any) -> T:
         raise GetIterationInactiveError()
     
     @final
@@ -462,7 +467,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
                 self.__status.Start()
                 self.__invalidationRegistrar.Register()
 
-                self.__getCurrent = lambda: self.__TryFunction(self._GetCurrent)
+                self.__getCurrentFunc = lambda: self.__TryFunction(self._GetCurrent)
+                self.__getCurrent = SameValue
                 
                 return _moveFirst()
 
@@ -546,7 +552,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def GetCurrent(self) -> T:
-        return self.__getCurrent()
+        return self.__getCurrent(self.__getCurrentFunc())
 
     @final
     def MoveNext(self) -> bool:
