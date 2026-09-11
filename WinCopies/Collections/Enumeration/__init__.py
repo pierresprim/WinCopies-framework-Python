@@ -87,6 +87,16 @@ class IIterationStatus(IIterationStatusBase):
     @final
     def HasProcessedItems(self) -> bool:
         return HasFlag(self.GetData(), IterationData.HasProcessedItems)
+    @final
+    def HasFaulted(self, strict: bool|None = None) -> bool:
+        def hasResult() -> bool: return self.GetResult() < IterationResult.Stopped
+        def hasFlag() -> bool: return HasFlag(self.GetData(), IterationData.Faulted)
+
+        match strict:
+            case True: return hasResult()
+            case False: return hasFlag()
+            
+            case _: return hasResult() or hasFlag()
     
     @final
     def IsErrored(self, strict: bool|None = None) -> bool:
