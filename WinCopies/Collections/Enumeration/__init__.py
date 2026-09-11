@@ -12,7 +12,7 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Invalidation import ManagedInvalidationRegistrar
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
-from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue, GetActionBoolFunc
+from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
@@ -440,18 +440,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             raise
     
     @final
-    def __OnErrored(self) -> None:
-        if self.__status.Fault(): self.__Terminate(None)
-    @final
-    def __TryMove(self, func: Function[bool]) -> bool:
-        try: return func()
-
-        except Exception:
-            self.__OnErrored()
-
-            raise
-    
-    @final
     def __SetCompletedMoveNext(self, completed: bool) -> None:
         def onCompleted() -> None:
             self._OnCompleted()
@@ -505,9 +493,17 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         def tryAction(func: Function[bool]) -> bool:
             try: return func()
             except StopIteration: return False
+
+        def tryMove(func: Function[bool]) -> bool:
+            try: return func()
+
+            except Exception:
+                if self.__status.Fault(): self.__Terminate(None)
+
+                raise
         
         def setMoveNextFunc(func: Function[bool]) -> None:
-            self.__moveNextFunc = lambda: self.__TryMove(func)
+            self.__moveNextFunc = lambda: tryMove(func)
 
         def _moveFirst() -> bool:
             def moveNext() -> bool:
@@ -538,7 +534,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
             return onCompleted(False)
 
-        return self.__TryMove(moveFirst)
+        return tryMove(moveFirst)
     
     @final
     def __Terminate(self, action: Action|None) -> None:
