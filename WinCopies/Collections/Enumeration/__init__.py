@@ -83,9 +83,20 @@ class IIterationStatus(IIterationStatusBase):
     @abstractmethod
     def GetData(self) -> IterationData:
         ...
+    
     @final
     def HasProcessedItems(self) -> bool:
         return HasFlag(self.GetData(), IterationData.HasProcessedItems)
+    @final
+    def HasFaulted(self, strict: bool|None = None) -> bool:
+        def getValue() -> IterationResult:
+            match strict:
+                case True: return IterationResult.Faulted
+                case False: return IterationResult.Invalidated
+
+                case _: return IterationResult.Failed
+        
+        return self.GetResult() < getValue() or HasFlag(self.GetData(), IterationData.Faulted)
 
 @final
 class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
