@@ -590,7 +590,7 @@ class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TI
 
         super()._OnEnded()
     
-    def _OnStopped(self) -> None: self.__handler.OnStoppedEnumeration()
+    def _OnAborted(self) -> None: self.__handler.OnStoppedEnumeration()
 
 class RecursiveEnumerator[T](RecursiveEnumeratorBase[T, None, IEnumerator[T]]):
     def __init__(self, enumerator: IEnumerator[T], handler: IRecursiveEnumerationHandler[T]|None = None) -> None: super().__init__(enumerator, _FIFO[T, None, IEnumerator[T]](self._GetCookie), handler)

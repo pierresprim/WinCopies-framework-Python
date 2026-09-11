@@ -866,7 +866,7 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     
     def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
     
-    def _OnStopped(self) -> None: self._GetContainer().Stop()
+    def _OnAborted(self) -> None: self._GetContainer().Stop()
     
     def _ResetOverride(self) -> bool: return self._GetContainer().TryReset() is True
 class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
@@ -1010,7 +1010,7 @@ class IncrementalEnumerator[T](EnumeratorBase[T]):
 
         return False
     
-    def _OnStopped(self) -> None: self.__Reset()
+    def _OnAborted(self) -> None: self.__Reset()
     
     def _ResetOverride(self) -> bool:
         self.__Reset()

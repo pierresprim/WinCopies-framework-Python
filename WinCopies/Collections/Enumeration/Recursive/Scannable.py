@@ -214,8 +214,8 @@ class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
     
     def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
-    def _OnStopped(self) -> None:
-        super()._OnStopped()
+    def _OnAborted(self) -> None:
+        super()._OnAborted()
 
         self.__moveNext = BoolFalse
 
