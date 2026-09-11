@@ -442,11 +442,11 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             raise
 
     @final
-    def __TryFunction[U](self, func: Function[U], onError: Action|None = None) -> U:
+    def __TryFunction[U](self, func: Function[U]) -> U:
         try: return func()
 
         except Exception:
-            if self.__status.Fault() and onError is not None: onError()
+            self.__status.Fault()
 
             raise
     
