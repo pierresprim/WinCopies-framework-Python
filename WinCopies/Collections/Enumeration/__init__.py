@@ -440,6 +440,18 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             raise
     
     @final
+    def __OnErrored(self) -> None:
+        if self.__status.Fault(): self.__Terminate(None)
+    @final
+    def __TryMove(self, func: Function[bool]) -> bool:
+        try: return func()
+
+        except Exception:
+            self.__OnErrored()
+
+            raise
+    
+    @final
     def __SetCompletedMoveNext(self, completed: bool) -> None:
         def onCompleted() -> None:
             self._OnCompleted()
@@ -495,7 +507,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             except StopIteration: return False
         
         def setMoveNextFunc(func: Function[bool]) -> None:
-            self.__moveNextFunc = lambda: self.__TryFunction(GetActionBoolFunc(self.__status.Unfault, func))
+            self.__moveNextFunc = lambda: self.__TryMove(func)
 
         def _moveFirst() -> bool:
             def moveNext() -> bool:
@@ -526,19 +538,20 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
             return onCompleted(False)
 
-        return self.__TryFunction(moveFirst, lambda: setMoveNextFunc(_moveFirst))
+        return self.__TryMove(moveFirst)
     
     @final
-    def __Terminate(self, action: Action) -> None:
+    def __Terminate(self, action: Action|None) -> None:
         def cancel() -> None:
-            self._OnStopped()
+            self._OnErrored() if action is None else self._OnStopped()
+
             self.__OnTerminated(False)
 
         if self.GetStatus().GetState() >= IterationState.Ended: return
 
         try: self.__Clear(self.IsStarted())
         finally:
-            action()
+            self.__status.Abort() if action is None else action()
 
             self.__SetMoveNext()
 
@@ -590,6 +603,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def _OnStarting(self) -> bool:
         return True
     def _OnCompleted(self) -> None:
+        pass
+    def _OnErrored(self) -> None:
         pass
     @abstractmethod
     def _OnStopped(self) -> None:
