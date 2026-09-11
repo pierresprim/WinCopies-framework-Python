@@ -87,8 +87,9 @@ class IIterationStatus(IIterationStatusBase):
     @final
     def HasProcessedItems(self) -> bool:
         return HasFlag(self.GetData(), IterationData.HasProcessedItems)
+    
     @final
-    def HasFaulted(self, strict: bool|None = None) -> bool:
+    def IsErrored(self, strict: bool|None = None) -> bool:
         def getValue() -> IterationResult:
             match strict:
                 case True: return IterationResult.Invalidated
@@ -225,7 +226,7 @@ class IEnumeratorBase(IInterface):
     @final
     def MoveNext(self, raiseOnCompletion: bool = False) -> bool:
         if self.TryMoveNext(): return True
-        if self.GetStatus().HasFaulted(): raise InvalidOperationError("The enumerator is in error mode.")
+        if self.GetStatus().IsErrored(): raise InvalidOperationError("The enumerator is in error mode.")
         if raiseOnCompletion: raise StopIteration()
 
         return False
