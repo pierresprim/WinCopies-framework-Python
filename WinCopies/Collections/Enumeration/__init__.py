@@ -879,20 +879,20 @@ class AbstractEnumerator[T](Selector[T, T]):
 class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](AbstractEnumeratorBase[TIn, TOut, TEnumerator]):
     def __init__(self, enumerator: TEnumerator) -> None: super().__init__(enumerator)
     
-    def _OnStopping(self, enumerator: TEnumerator) -> None:
+    def _OnAborting(self, enumerator: TEnumerator) -> None:
         pass
-    def _OnStoppedOverride(self) -> None:
+    def _OnAbortedOverride(self) -> None:
         pass
     
     @final
-    def _OnStopped(self) -> None:
+    def _OnAborted(self) -> None:
         enumerator: TEnumerator = self._GetContainer()
         
-        if enumerator.IsStarted(): self._OnStopping(enumerator)
+        if enumerator.IsStarted(): self._OnAborting(enumerator)
 
-        super()._OnStopped()
+        super()._OnAborted()
 
-        self._OnStoppedOverride()
+        self._OnAbortedOverride()
 class AbstractionEnumerator[TIn, TOut](AbstractionEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
 
