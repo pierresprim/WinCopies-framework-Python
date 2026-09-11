@@ -196,7 +196,7 @@ class IterationStatus(Abstract, IIterationStatusBase):
         return running
     @final
     def Unfault(self) -> None:
-        self.__result = IterationResult.Running
+        if self.IsStarted(): self.__result = IterationResult.Running
 
     @final
     def Abort(self) -> None:
