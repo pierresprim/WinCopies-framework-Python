@@ -91,8 +91,8 @@ class IIterationStatus(IIterationStatusBase):
     def HasFaulted(self, strict: bool|None = None) -> bool:
         def getValue() -> IterationResult:
             match strict:
-                case True: return IterationResult.Faulted
-                case False: return IterationResult.Invalidated
+                case True: return IterationResult.Invalidated
+                case False: return IterationResult.Stopped
 
                 case _: return IterationResult.Failed
         
