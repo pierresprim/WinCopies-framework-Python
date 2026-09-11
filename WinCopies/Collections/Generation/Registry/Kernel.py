@@ -249,7 +249,7 @@ class WeakReferenceRegistry[T: IInvalidatable](RegistryBase[IWeakReferenceRegist
         
         super().__init__()
         
-        self.__readOnly: IFunction[IReadOnlyList[T]] = _ReadOnlyListUpdater[T](self.__items, update) # type: ignore[no-redef]
+        self.__readOnly: IFunction[IReadOnlyList[T]] = _ReadOnlyListUpdater[T](self._GetItems(), update) # type: ignore[no-redef]
 
     @final
     def _CreateList(self) -> IReadWriteList[IWeakReference[T]]: return _List[T]()
