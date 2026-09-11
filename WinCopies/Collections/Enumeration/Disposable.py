@@ -17,7 +17,7 @@ class _EmptyCursor[T](_IteratorBase[T], ICursor[T]):
     def __init__(self) -> None: super().__init__()
     
     def GetCurrent(self) -> T: raise GetIterationInactiveError()
-    def MoveNext(self) -> bool: return False
+    def TryMoveNext(self) -> bool: return False
     def Stop(self) -> None: pass
     def TryReset(self) -> bool|None: return None
     def IsResetSupported(self) -> bool: return False

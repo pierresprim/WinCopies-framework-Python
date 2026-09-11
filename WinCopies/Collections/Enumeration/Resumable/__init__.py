@@ -169,7 +169,7 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
     def GetStatus(self) -> IIterationStatus: return GetEmptyEnumerator().GetStatus()
     
     def GetCurrent(self) -> T: return GetEmptyEnumerator().GetCurrent() # pyright: ignore[reportUnknownVariableType]
-    def MoveNext(self) -> bool: return GetEmptyEnumerator().MoveNext()
+    def TryMoveNext(self) -> bool: return GetEmptyEnumerator().TryMoveNext()
     def Stop(self) -> None: GetEmptyEnumerator().Stop()
     def TryReset(self) -> bool|None: return GetEmptyEnumerator().TryReset()
     def IsResetSupported(self) -> bool: return GetEmptyEnumerator().IsResetSupported()

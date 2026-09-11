@@ -220,8 +220,16 @@ class IEnumeratorBase(IInterface):
         ...
     
     @abstractmethod
-    def MoveNext(self) -> bool:
+    def TryMoveNext(self) -> bool:
         ...
+    @final
+    def MoveNext(self, raiseOnCompletion: bool = False) -> bool:
+        if self.TryMoveNext(): return True
+        if self.GetStatus().HasFaulted(): raise InvalidOperationError("The enumerator is in error mode.")
+        if raiseOnCompletion: raise StopIteration()
+
+        return False
+    
     @abstractmethod
     def Stop(self) -> None:
         ...
@@ -236,10 +244,26 @@ class IInvalidatableEnumeratorBase(IEnumeratorBase):
         ...
 class IEnumerator[T](IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __GetCurrent(self, succeeded: bool) -> INullable[T]:
+        return GetNullable(self.GetCurrent()) if succeeded else GetNullValue()
     
     @abstractmethod
     def GetCurrent(self) -> T:
         ...
+    @final
+    def TryGetCurrent(self) -> INullable[T]:
+        return self.__GetCurrent(self.IsStarted())
+
+    @final
+    def TryGetNext(self) -> INullable[T]:
+        return self.__GetCurrent(self.TryMoveNext())
+    @final
+    def GetNext(self) -> T:
+        self.MoveNext(True)
+        
+        return self.GetCurrent()
 
     @abstractmethod
     def AsIterator(self) -> SystemIterator[T]:
@@ -252,9 +276,7 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     
     @final
     def __next__(self) -> T:
-        if self.MoveNext(): return self.GetCurrent()
-        
-        raise StopIteration()
+        return self.GetNext()
     
     @final
     def AsIterator(self) -> SystemIterator[T]: return self
@@ -340,7 +362,7 @@ class _EmptyEnumerator[T](IteratorBase[T]):
     def __init__(self) -> None: super().__init__()
     
     def GetCurrent(self) -> T: raise GetIterationInactiveError()
-    def MoveNext(self) -> bool: return False
+    def TryMoveNext(self) -> bool: return False
     def Stop(self) -> None: pass
     def TryReset(self) -> bool|None: return None
     def IsResetSupported(self) -> bool: return False
@@ -577,7 +599,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         return self.__GetCurrentValue(self.__getCurrentFunc())
 
     @final
-    def MoveNext(self) -> bool:
+    def TryMoveNext(self) -> bool:
         def moveNext() -> bool:
             try: return self.__Process(self.__moveNextFunc)
 
