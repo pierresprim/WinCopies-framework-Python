@@ -399,11 +399,16 @@ class _EnumeratorInvalidator(Invalidatable):
 
         self.__action = NoAction
 
+def _GetCurrent[T](*_: T) -> T:
+    raise GetIterationInactiveError()
+def _GetCurrentValue() -> Any:
+    raise GetIterationInactiveError()
+
 class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__getCurrentFunc: Function[T] = self.__GetCurrent
+        self.__getCurrentFunc: Function[T] = _GetCurrentValue
         self.__getCurrent: SelectorDelegate[T] = SameValue
 
         self.__moveNextFunc: Function[bool] = self.__MoveFirst
@@ -456,26 +461,19 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__TryAction(onCompleted)
 
     @final
-    def __ResetGetCurrent(self) -> None:
-        self.__getCurrent = self.__GetCurrent
-
-    @final
     def __UpdateMoveNext(self, func: Function[bool]) -> None:
-        self.__getCurrentFunc = self.__GetCurrent
+        self.__getCurrent = _GetCurrent
+        self.__getCurrentFunc = _GetCurrentValue
+
         self.__moveNextFunc = func
     
     @final
     def __SetMoveNext(self) -> None:
-        self.__ResetGetCurrent()
         self.__UpdateMoveNext(BoolFalse)
     @final
     def __ResetMoveNext(self) -> None:
-        self.__ResetGetCurrent()
         self.__UpdateMoveNext(self.__MoveFirst)
 
-    @final
-    def __GetCurrent(self, *obj: Any) -> T:
-        raise GetIterationInactiveError()
     @final
     def __GetCurrentValue(self, result: T) -> T: # Indirection needed to resolve calls in the right order.
         return self.__getCurrent(result)
