@@ -96,7 +96,7 @@ class IIterationStatus(IIterationStatusBase):
 
                 case _: return IterationResult.Failed
         
-        return self.GetResult() < getValue() or HasFlag(self.GetData(), IterationData.Faulted)
+        return self.GetResult() < getValue()
 
 @final
 class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
