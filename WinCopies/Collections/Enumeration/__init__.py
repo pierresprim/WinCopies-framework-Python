@@ -600,9 +600,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         pass
     def _OnErrored(self) -> None:
         pass
-    @abstractmethod
     def _OnStopped(self) -> None:
-        ...
+        pass
     def _OnTerminated(self, completed: bool) -> None:
         pass
     def _OnEnded(self) -> None:
@@ -784,8 +783,6 @@ class Iterator[T](Enumerator[T]):
         
         except StopIteration: return False
     
-    def _OnStopped(self) -> None: pass
-
     def _ResetOverride(self) -> bool: return False
 
 class IterableBase[T](Enumerable[T]):
@@ -863,9 +860,8 @@ class AbstractionEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Abstrac
     
     def _OnStopping(self, enumerator: TEnumerator) -> None:
         pass
-    @abstractmethod
     def _OnStoppedOverride(self) -> None:
-        ...
+        pass
     
     @final
     def _OnStopped(self) -> None:
@@ -939,9 +935,6 @@ class ConverterEnumeratorBase[TIn, TOut](AbstractionEnumerator[TIn, TOut]):
         
         super()._OnEnded()
     
-    def _OnStoppedOverride(self) -> None:
-        pass
-
     def _ResetOverride(self) -> bool: return True
     
     @final

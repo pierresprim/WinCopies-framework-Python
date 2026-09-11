@@ -175,9 +175,6 @@ class RangeEnumerator(ResumableEnumerator[Iterable[int]], IRangeEnumerator):
 
         return True
     
-    def _OnStopped(self) -> None:
-        pass
-    
     def IsResetSupported(self) -> bool: return True
     
     @final
@@ -238,9 +235,6 @@ class IndexableBatchEnumeratorBase[T](CountableBatchEnumerator[T]):
     
     def _TryResumeOverride(self) -> bool: return self.__rangeEnumerator.TryResume()
     def _ResetOverride(self) -> bool: return self.__rangeEnumerator.TryReset() is True
-    
-    def _OnStopped(self) -> None:
-        pass
     
     def _OnEnded(self) -> None:
         self.__rangeEnumerator.Stop()
@@ -488,9 +482,6 @@ class ResumableBatchEnumeratorBase[TItem, TEnumerable](ResumableBatchEnumeratorA
 
         return True
     
-    def _OnStopped(self) -> None:
-        pass
-    
     def _OnEnded(self) -> None:
         self.__moveNext = BoolFalse
         self.__tryResume = BoolFalse
@@ -610,9 +601,6 @@ class LazyBatchEnumeratorBase[T](BatchEnumerator[T]):
     @final
     def _UnsetMoveNext(self) -> None:
         self.__moveNext = BoolFalse
-    
-    def _OnStopped(self) -> None:
-        pass
     
     def _OnEnded(self) -> None:
         self._UnsetMoveNext()
@@ -772,9 +760,6 @@ class ResumableBufferedBatchEnumerator[T](ResumableBatchEnumeratorAbstract[T]):
             return True
         
         return False
-
-    def _OnStopped(self) -> None:
-        pass
 
     def _OnEnded(self) -> None:
         self.__moveNext = BoolFalse

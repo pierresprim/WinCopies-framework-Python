@@ -1210,9 +1210,6 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
                 self.__canMoveNext = True
                 
                 return True
-            
-            def _OnStopped(self) -> None:
-                pass
         
         def __init__(self, key: EntityKey[_T]) -> None:
             super().__init__()

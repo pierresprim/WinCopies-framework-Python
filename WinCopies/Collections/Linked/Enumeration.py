@@ -59,8 +59,6 @@ class NodeEnumeratorBase[T: INode](Enumerator[T]):
 
         super()._OnEnded()
     
-    def _OnStopped(self) -> None: pass
-    
     def _ResetOverride(self) -> bool:
         self.__OnEnded()
 

@@ -34,8 +34,6 @@ class ConditionalEnumerator[T](AbstractEnumerator[T]):
         
         return False
     
-    def _OnStopped(self) -> None:
-        pass
     def _OnEnded(self) -> None: self.__current = GetNullValue()
 
 class _PredicateEnumerator[T](Abstract):

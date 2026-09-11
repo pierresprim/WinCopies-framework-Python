@@ -131,9 +131,6 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
 
         super()._OnEnded()
     
-    def _OnStopped(self) -> None:
-        pass
-    
     def _ResetOverride(self) -> bool: return True
 
 class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnumerable[TItem]):

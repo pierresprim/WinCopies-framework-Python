@@ -124,7 +124,6 @@ class _Enumerator[T](EnumeratorBase[T]):
         
         return False
     
-    def _OnStopped(self) -> None: pass
     def _OnEnded(self) -> None: self.__token = _NullToken[T]()
     
     def _ResetOverride(self) -> bool:
@@ -208,11 +207,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
 
         super()._OnEnded()
     
-    def _OnStoppedOverride(self) -> None:
-        pass
-    
-    def _ResetOverride(self) -> bool:
-        return True
+    def _ResetOverride(self) -> bool: return True
 
 @final
 class _ItemEnumerable[T](Enumerable[T]):
