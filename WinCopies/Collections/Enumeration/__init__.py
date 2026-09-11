@@ -15,7 +15,7 @@ from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateU
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Enums import ErrorMessages
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter, Selector as SelectorDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, Invalidatable
@@ -62,6 +62,12 @@ class IterationData(Flag):
     Null = 0
     HasProcessedItems = auto()
     Faulted = auto()
+
+class EnumerationAbortReason(IntEnum):
+    Null = 0
+    Stopped = 1
+    Invalidated = 2
+    Errored = 3
 
 class IIterationStatusBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -496,7 +502,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             try: return func()
 
             except Exception:
-                self.__Terminate(None)
+                self.__Terminate(EnumerationAbortReason.Errored)
 
                 raise
         
@@ -535,17 +541,30 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         return tryMove(moveFirst)
     
     @final
-    def __Terminate(self, action: Action|None) -> None:
+    def __Terminate(self, reason: EnumerationAbortReason) -> None:
         def cancel() -> None:
-            self._OnErrored() if action is None else self._OnStopped()
+            action: Action|None = delegates[1]
 
+            if action is not None: action()
+
+            self._OnAborted()
             self.__OnTerminated(False)
 
         if self.GetStatus().GetState() >= IterationState.Ended: return
 
+        def getDelegates() -> tuple[Action, Action|None]:
+            match reason:
+                case EnumerationAbortReason.Stopped: return self.__status.Stop, self._OnStopped
+                case EnumerationAbortReason.Invalidated: return self.__status.Invalidate, None
+                case EnumerationAbortReason.Errored: return self.__status.Abort, self._OnErrored
+
+                case _: raise GetUnexpectedError()
+
+        delegates: tuple[Action, Action|None] = getDelegates()
+
         try: self.__Clear(self.IsStarted())
         finally:
-            self.__status.Abort() if action is None else action()
+            delegates[0]()
 
             self.__SetMoveNext()
 
@@ -553,7 +572,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     
     @final
     def __Stop(self) -> None:
-        self.__Terminate(self.__status.Stop)
+        self.__Terminate(EnumerationAbortReason.Stopped)
     @final
     def __Invalidate(self) -> None:
         def invalidate(_: bool) -> bool:
@@ -565,7 +584,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
         if self.__monitor.IsBusy(): self.__moveNext = invalidate
 
-        else: self.__DoWork(lambda: self.__Terminate(self.__status.Invalidate))
+        else: self.__DoWork(lambda: self.__Terminate(EnumerationAbortReason.Invalidated))
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -597,6 +616,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def _OnStarting(self) -> bool:
         return True
     def _OnCompleted(self) -> None:
+        pass
+    def _OnAborted(self) -> None:
         pass
     def _OnErrored(self) -> None:
         pass
