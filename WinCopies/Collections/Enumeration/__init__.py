@@ -498,7 +498,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             try: return func()
 
             except Exception:
-                if self.__status.Fault(): self.__Terminate(None)
+                self.__Terminate(None)
 
                 raise
         
