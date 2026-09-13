@@ -1,7 +1,7 @@
 from enum import Flag
 
 from WinCopies.Enum import HasFlag
-from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison, SupportsEqualityAndRichComparison
 
 class Closed(Flag):
     Null = 0
@@ -27,7 +27,7 @@ def IsOutside[T: SupportsRichComparison](x: T, value: T, y: T, b: Closed = Close
 def Equals(x: SupportsEqualityComparison, y: SupportsEqualityComparison) -> bool:
     return x == y
 
-def CompareFrom(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
+def CompareFrom(x: SupportsEqualityAndRichComparison, y: SupportsEqualityAndRichComparison) -> bool|None:
     return None if x == y else x < y
-def CompareTo(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
+def CompareTo(x: SupportsEqualityAndRichComparison, y: SupportsEqualityAndRichComparison) -> bool|None:
     return None if x == y else x > y

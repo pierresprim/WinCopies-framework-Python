@@ -4,7 +4,7 @@ from typing import runtime_checkable, final, Protocol, Self, Type
 from WinCopies import IInterface, IsTruthy, IsFalsy
 from WinCopies.Delegates import BoolFalse
 from WinCopies.Typing.Delegate import Function, Converter, Comparison
-from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsRichComparison, SupportsEqualityAndRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
 class IEquatableBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -278,7 +278,7 @@ class IComparableItemBase[TItem: HashableProtocol, TValue](IEquatableItem[TItem]
 class IComparableItem[T: HashableProtocol](IComparableItemBase[T, T]):
     def __init__(self) -> None: super().__init__()
 
-def __CompareTo(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
+def __CompareTo(x: SupportsEqualityAndRichComparison, y: SupportsEqualityAndRichComparison) -> bool|None:
     from WinCopies.Comparison import CompareTo
 
     global __comparisonDelegate
@@ -287,9 +287,9 @@ def __CompareTo(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|No
 
     return CompareTo(x, y)
 
-__comparisonDelegate: Comparison[SupportsRichComparison] = __CompareTo
+__comparisonDelegate: Comparison[SupportsEqualityAndRichComparison] = __CompareTo
 
-def _CompareTo(x: SupportsRichComparison, y: SupportsRichComparison) -> bool|None:
+def _CompareTo(x: SupportsEqualityAndRichComparison, y: SupportsEqualityAndRichComparison) -> bool|None:
     return __comparisonDelegate(x, y)
 
 class IHashableComparableItem[T](IComparableItemBase[T, T|object], IHashableItemBase[T]):
