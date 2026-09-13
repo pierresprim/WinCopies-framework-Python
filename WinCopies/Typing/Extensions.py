@@ -1,4 +1,4 @@
-
+from abc import abstractmethod
 from typing import Iterable
 
 from WinCopies.Collections.Generation.Buffering import IGroupBuilder, GroupBuilder
@@ -7,6 +7,7 @@ from WinCopies.Collections.Util import MakeSequence
 class IExceptionGroupBuilder(IGroupBuilder[Exception, ExceptionGroup]):
     def __init__(self) -> None: super().__init__()
 
+    @abstractmethod
     def TryThrow(self) -> None:
         ...
 class ExceptionGroupBuilder(GroupBuilder[Exception, ExceptionGroup], IExceptionGroupBuilder):
