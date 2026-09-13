@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Iteration import PrependValues, Select
 from WinCopies.Collections.Util import MakeSequence
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method
 from WinCopies.Typing.Generic import IGenericConstraint
 
@@ -58,28 +58,31 @@ class IBuilder[T](IBuilderBase[T]):
         ...
 class Builder[T](Abstract, IBuilder[T]):
     def __init__(self) -> None:
+        super().__init__()
+
         self.__first: _BuilderNode[T]|None = None
         self.__last: _BuilderNode[T]|None = None
 
+        self.__push: Method[T] = self.__Push
+
+    @final
+    def __Push(self, value: T) -> None:
         def push(value: T) -> None:
-            def push(value: T) -> None:
-                last: _BuilderNode[T] = self.__last # type: ignore[assignment]
+            last: _BuilderNode[T] = self.__last # type: ignore[assignment]
 
-                self.__last = last.SetNext(value) # pyright: ignore[reportOptionalMemberAccess]
+            self.__last = last.SetNext(value)
 
-            first: _BuilderNode[T] = _BuilderNode[T](value)
+        first: _BuilderNode[T] = _BuilderNode[T](value)
 
-            self.__first = first
-            self.__last = first
+        self.__first = first
+        self.__last = first
 
-            self.__push = push
-
-        super().__init__()
-
-        self.__push: Method[T] = push # type: ignore[no-redef]
+        self.__push = push
 
     @final
     def __Build(self, includeFirst: bool) -> BuildResult[T]|None:
+        def push(_: T) -> None: raise InvalidOperationError("A value can't be added when building.")
+
         def build(first: _BuilderNode[T]) -> BuildResult[T]:
             def build(node: _BuilderNode[T]|None) -> Generator[_BuilderNode[T]]:
                 while node is not None:
@@ -102,8 +105,12 @@ class Builder[T](Abstract, IBuilder[T]):
         if first is None: return None
 
         self.__first = None
+        self.__last = None
 
-        return build(first)
+        self.__push = push
+
+        try: return build(first)
+        finally: self.__push = self.__Push
 
     @final
     def Push(self, value: T) -> None:
