@@ -59,7 +59,7 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
         ...
     
     @abstractmethod
-    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
+    def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
         ...
     
     @abstractmethod
@@ -111,7 +111,7 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
         return self.__Bisect(key) is not None
     
     @final
-    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
+    def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
         index: BisectResult[TKey, TValue]|None = self.__Bisect(key)
 
         if index is None: return None
@@ -159,7 +159,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     
     @final
     def __TryGetNode(self, key: TKey) -> ISortedNode[TKey, TOut]|None:
-        return self._GetSortedItems().TryGetValue(key)
+        return self._GetSortedItems().TryGetNode(key)
     
     @final
     def _GetSortedItems(self) -> ISortedList[TKey, TOut]:
