@@ -13,17 +13,17 @@ from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegi
 from WinCopies.Collections.Util import TryGetAt
 from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, GetNullableValue
-from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem
+from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
-class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
+class ISortedNode[TKey: SupportsEqualityAndRichComparison, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _AsComparableValue(self) -> TKey: return self.GetKey()
 @final
-class _SortedNode[TKey: ComparableProtocol, TValue: IInvalidatable](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
+class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatable](Node[TKey, TValue], ISortedNode[TKey, TValue], IRemovable):
     def __init__(self, key: TKey, obj: TValue, items: ISortedList[TKey, TValue]) -> None:
         super().__init__(key, obj)
 
@@ -41,7 +41,7 @@ class _SortedNode[TKey: ComparableProtocol, TValue: IInvalidatable](Node[TKey, T
 
         items.TryRemove(self.GetKey())
 
-class ISortedList[TKey: ComparableProtocol, TValue](IReadOnlyCollection, IClearable):
+class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -66,7 +66,7 @@ class ISortedList[TKey: ComparableProtocol, TValue](IReadOnlyCollection, ICleara
     @abstractmethod
     def TryRemove(self, key: TKey) -> bool:
         ...
-class SortedList[TKey: ComparableProtocol, TValue](Countable, ISortedList[TKey, TValue]):
+class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -121,7 +121,7 @@ class ISortedObjectRegistryBase[TKey, TIn, TOut](IKeyableObjectRegistryBase[TKey
 class ISortedObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
-class SortedObjectRegistryBase[TKey: ComparableProtocol, TIn, TOut: IInvalidatable](ObjectRegistryBase[TIn, TOut], ISortedObjectRegistryBase[TKey, TIn, TOut]):
+class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOut: IInvalidatable](ObjectRegistryBase[TIn, TOut], ISortedObjectRegistryBase[TKey, TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -170,10 +170,10 @@ class SortedObjectRegistryBase[TKey: ComparableProtocol, TIn, TOut: IInvalidatab
     def InvalidateObjects(self) -> None:
         try: super().InvalidateObjects()
         finally: self._GetSortedItems().Clear()
-class SortedObjectRegistry[TKey: ComparableProtocol, TValue](SortedObjectRegistryBase[TKey, TValue, IInvalidatable]):
+class SortedObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue](SortedObjectRegistryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class SortedDisposableObjectRegistry[TKey: ComparableProtocol, TValue: IInvalidatable](SortedObjectRegistryBase[TKey, TValue, TValue], ISortedObjectRegistry[TKey, TValue]):
+class SortedDisposableObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatable](SortedObjectRegistryBase[TKey, TValue, TValue], ISortedObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
