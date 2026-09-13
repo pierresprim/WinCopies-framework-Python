@@ -450,13 +450,37 @@ class IList[T](IArray[T], IListBase[T]):
 
 class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __Bisect(self, index: int|None, right: bool) -> int:
+        return (self.GetCount() if right else 0) if index is None else index
+
+    @abstractmethod
+    def TryBisect(self, item: T, right: bool = False) -> int|None:
+        ...
+    @abstractmethod
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None:
+        ...
     
-    @abstractmethod
-    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+    @final
+    def Bisect(self, item: T, right: bool = False) -> int:
+        return self.__Bisect(self.TryBisect(item, right), right)
+    @final
+    def BisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int:
+        return self.__Bisect(self.TryBisectWithKey(item, converter, right), right)
+    
+    @overload
+    def ContainsValue(self, value: T, converter: None = None) -> bool:
         ...
-    @abstractmethod
-    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+    @overload
+    def ContainsValue[_T: SupportsEqualityAndRichComparison](self, value: _T, converter: Converter[T, _T]) -> bool:
         ...
+    
+    @final
+    def ContainsValue[_T: SupportsEqualityAndRichComparison](self, value: T|_T, converter: Converter[T, _T]|None = None) -> bool:
+        return self.TryBisect(
+            value, converter # type: ignore[arg-type]
+            ) is not None # pyright: ignore[reportCallIssue]
     
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedTuple[T]:

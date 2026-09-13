@@ -112,8 +112,8 @@ class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_Reversed[T, IS
     
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
-    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectLeft(item, converter)
-    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectRight(item, converter)
+    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     def _SliceAt(self, key: slice) -> ISortedTuple[T]:
         return self._GetContainer().SliceAt(key)
@@ -172,8 +172,8 @@ class _ReadOnlySortedTuple[T: SupportsEqualityAndRichComparison](SortedCollectio
 
         self.__reversed: IFunction[ISortedTuple[T]] = _ReversedSortedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
-    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectLeft(item, converter)
-    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectRight(item, converter)
+    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     @final
     def AsReversed(self) -> ISortedTuple[T]: return self.__reversed.GetValue()
@@ -809,8 +809,8 @@ class _ReversedSortedList[T: SupportsEqualityAndRichComparison](ReversedSortedLi
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     
-    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectRight(item, converter)
-    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return self._GetContainer().BisectLeft(item, converter)
+    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     def _GetInnerContainerAsList(self, container: ISortedList[T]) -> ISortedList[T]:
         return container

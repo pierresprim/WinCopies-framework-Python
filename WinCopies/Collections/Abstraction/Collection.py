@@ -18,9 +18,10 @@ from WinCopies.Collections.Iteration.Enumeration import Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
 from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
+from WinCopies.Delegates import Self
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
+from WinCopies.Typing.Delegate import Function, Method, Converter, Selector, EqualityComparison, IFunction, IStruct, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
@@ -464,6 +465,9 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
+def _FindIndex(index: int|None) -> int:
+    return -1 if index is None else index
+
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
@@ -471,14 +475,25 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence
     def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionRegistries()
     
     @final
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return bisect_left(self.AsSequence(), item) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item)) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
     @final
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return bisect_right(self.AsSequence(), item) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
-    
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item, True)) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
+
     @final
-    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_left(self.AsSequence(), item, key = converter)
+    def __TryBisect[_T: SupportsEqualityAndRichComparison](self, item: _T, right: bool, func: Converter[bool, Callable[[Sequence[T], _T], int]], selector: Converter[T, _T]) -> int|None:
+        def bisect(action: Callable[[Sequence[T], _T], int], _func: Function[T], _selector: Selector[int]) -> int|None:
+            index: int = action(self.AsSequence(), item)
+
+            return _selector(index) if selector(_func()) == item else None
+
+        return bisect(func(True), self.GetLastItem, Self) if right else bisect(func(False), self.GetFirstItem, lambda _: 0)
+
     @final
-    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_right(self.AsSequence(), item, key = converter)
+    def TryBisect(self, item: T, right: bool = False) -> int|None:
+        return self.__TryBisect(item, right, lambda right: bisect_right if right else bisect_left, Self)
+    @final
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None:
+        return self.__TryBisect(item, right, lambda right: (lambda items, item: bisect_right(items, item, key=converter)) if right else (lambda items, item: bisect_left(items, item, key=converter)), converter)
 
     @final
     def __Add(self, item: T, adder: Callable[[MutableSequenceBase[T], T], None]) -> None:
