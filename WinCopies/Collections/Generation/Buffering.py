@@ -10,6 +10,7 @@ from WinCopies.Collections.Iteration import PrependValues, Select
 from WinCopies.Collections.Util import MakeSequence
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method
+from WinCopies.Typing.Generic import IGenericConstraint
 
 class _BuilderNode[T](Abstract):
     def __init__(self, value: T) -> None:
@@ -143,15 +144,34 @@ class AbstractionBuilder[TItem, TList](Abstract, IAbstractionBuilder[TItem, TLis
         ...
 
     @final
-    def Push(self, value: TItem) -> None: return self.__builder.Push(value)
+    def _GetBuilder(self) -> IBuilder[TItem]:
+        return self.__builder
+
+    @final
+    def Push(self, value: TItem) -> None: return self._GetBuilder().Push(value)
 
     @final
     def Build(self) -> TList|None:
-        items: Iterable[TItem]|None = self.__builder.Build()
+        items: Iterable[TItem]|None = self._GetBuilder().Build()
 
         return None if items is None else self._CreateList(items)
     @final
     def TryBuild(self) -> INullable[TItem]|TList:
-        result: INullable[TItem]|Iterable[TItem] = self.__builder.TryBuild()
+        result: INullable[TItem]|Iterable[TItem] = self._GetBuilder().TryBuild()
 
         return result if isinstance(result, INullable) else self._CreateList(result)
+
+class IGroupBuilder[TItem, TList](IAbstractionBuilder[TItem, TList], IGenericConstraint[TList, TItem]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryBuildGroup(self) -> INullable[TItem]:
+        ...
+class GroupBuilder[TItem, TList](AbstractionBuilder[TItem, TList], IGroupBuilder[TItem, TList]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def TryBuildGroup(self) -> INullable[TItem]:
+        result: INullable[TItem]|Iterable[TItem] = self._GetBuilder().TryBuild()
+        
+        return result if isinstance(result, INullable) else GetNullable(self._AsContainer(self._CreateList(result)))
