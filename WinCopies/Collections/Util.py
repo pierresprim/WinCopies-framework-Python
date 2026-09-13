@@ -288,7 +288,7 @@ def MakeGenerator[T](*items: T) -> Generator[T]:
 def MakeList[T](count: int, value: T|None = None) -> list[T|None]:
     return [value] * count
     
-def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T]|None) -> int:
+def FindIndex[T](sequence: Sequence[T], item: T, predicate: EqualityComparison[T]|None = None) -> int:
     result: int|None = IndexOf(sequence, item, predicate)
 
     return -1 if result is None else result
