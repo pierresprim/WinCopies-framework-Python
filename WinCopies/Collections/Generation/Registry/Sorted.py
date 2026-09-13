@@ -41,6 +41,8 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatabl
 
         items.TryRemove(self.GetKey())
 
+type BisectResult[TKey: SupportsEqualityAndRichComparison, TValue] = tuple[int, ISortedNode[TKey, TValue]|None]
+
 class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
@@ -50,6 +52,10 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
         ...
     @abstractmethod
     def BisectRight(self, key: TKey) -> int:
+        ...
+    
+    @abstractmethod
+    def ContainsKey(self, key: TKey) -> bool:
         ...
     
     @abstractmethod
@@ -71,6 +77,10 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
         super().__init__()
 
         self.__items: MutableSequence[ISortedNode[TKey, TValue]] = list[ISortedNode[TKey, TValue]]()
+
+    @final
+    def __TryGetAt(self, index: int) -> ISortedNode[TKey, TValue]|None:
+        return TryGetAt(self.__items, index)
     
     @final
     def GetCount(self) -> int: return len(self.__items)
@@ -84,27 +94,47 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     def BisectRight(self, key: TKey) -> int: return bisect_right(self.__items, key, key = GetKey)
     
     @final
-    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None: return TryGetAt(self.__items, self.BisectLeft(key))
+    def __Bisect(self, key: TKey) -> BisectResult[TKey, TValue]|None:
+        index: int = self.BisectLeft(key)
+
+        if index < self.GetCount():
+            if index > 0: return index, None
+
+            node: ISortedNode[TKey, TValue]|None = self.__TryGetAt(index)
+
+            return (index, node) if node is not None and node.GetKey() == key else None
+
+        return None
+    
+    @final
+    def ContainsKey(self, key: TKey) -> bool:
+        return self.__Bisect(key) is not None
+    
+    @final
+    def TryGetValue(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
+        index: BisectResult[TKey, TValue]|None = self.__Bisect(key)
+
+        if index is None: return None
+
+        node: ISortedNode[TKey, TValue]|None = index[1]
+
+        return self.__TryGetAt(index[0]) if node is None else node
 
     @final
     def Add(self, item: ISortedNode[TKey, TValue]) -> None: insort_right(self.__items, item)
-
-    @final
-    def __Remove(self, index: int) -> None:
-        self.__items.pop(index)
     
     @final
-    def Remove(self, key: TKey) -> None: self.__Remove(self.BisectLeft(key))
-    @final
     def TryRemove(self, key: TKey) -> bool:
-        index: int = self.BisectLeft(key)
+        index: BisectResult[TKey, TValue]|None = self.__Bisect(key)
 
-        if self.ValidateIndex(index):
-            self.__Remove(index)
+        if index is None: return False
 
-            return True
+        self.__items.pop(index[0])
 
-        return False
+        return True
+    @final
+    def Remove(self, key: TKey) -> None:
+        if not self.TryRemove(key): raise ValueError(key)
 
     @final
     def Clear(self) -> None: return self.__items.clear()
@@ -152,9 +182,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
-        node: ISortedNode[TKey, TOut]|None = self.__TryGetNode(key)
-
-        return node is not None and node.GetKey() == key
+        return self._GetSortedItems().ContainsKey(key)
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TOut]:
