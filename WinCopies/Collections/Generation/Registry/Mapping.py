@@ -77,9 +77,8 @@ class KeyedObjectRegistryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable]
     def ContainsKey(self, key: TKey) -> bool: return self.__TryGetValue(key) is not None
     
     def InvalidateObjects(self) -> None:
-        super().InvalidateObjects()
-        
-        self._GetKeyedItems().Clear()
+        try: super().InvalidateObjects()
+        finally: self._GetKeyedItems().Clear()
 
 class KeyedObjectRegistry[TKey: HashableProtocol, TValue](KeyedObjectRegistryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()

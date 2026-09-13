@@ -149,9 +149,8 @@ class SortedObjectRegistryBase[TKey: ComparableProtocol, TIn, TOut: IInvalidatab
     def BisectRight(self, key: TKey) -> int: return self._GetSortedItems().BisectRight(key)
     
     def InvalidateObjects(self) -> None:
-        super().InvalidateObjects()
-        
-        self._GetSortedItems().Clear()
+        try: super().InvalidateObjects()
+        finally: self._GetSortedItems().Clear()
 class SortedObjectRegistry[TKey: ComparableProtocol, TValue](SortedObjectRegistryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
