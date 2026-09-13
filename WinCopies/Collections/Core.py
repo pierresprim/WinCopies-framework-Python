@@ -12,7 +12,7 @@ from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, Equatab
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
-from WinCopies.Typing.Protocols import SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class Mutability(IntEnum):
     ReadOnly = 0
@@ -444,10 +444,10 @@ class ISortedTuple[T](ITuple[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
         ...
     @abstractmethod
-    def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
+    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int:
         ...
     
     @abstractmethod

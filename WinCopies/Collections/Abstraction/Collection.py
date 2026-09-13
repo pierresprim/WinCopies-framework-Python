@@ -22,7 +22,7 @@ from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import IFunction, IStruct, Method, Converter, EqualityComparison, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
-from WinCopies.Typing.Protocols import SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
 
 class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Collection.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
@@ -464,7 +464,7 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-class SortedList[T: SupportsRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
     @final
@@ -476,9 +476,9 @@ class SortedList[T: SupportsRichComparison](ListAbstract[T], Sequence[T], Collec
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return bisect_right(self.AsSequence(), item) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
     
     @final
-    def BisectLeft[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_left(self.AsSequence(), item, key = converter)
+    def BisectLeft[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_left(self.AsSequence(), item, key = converter)
     @final
-    def BisectRight[_T: SupportsRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_right(self.AsSequence(), item, key = converter)
+    def BisectRight[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T]) -> int: return bisect_right(self.AsSequence(), item, key = converter)
 
     @final
     def __Add(self, item: T, adder: Callable[[MutableSequenceBase[T], T], None]) -> None:
@@ -540,9 +540,9 @@ def TryCreateSizedList[T](length: int, items: MutableSequenceBase[T]|None) -> IS
 def CreateArrayList[T](length: int, func: IFunction[T]) -> IArray[T]:
     return ArrayList[T](length, func)
 
-def CreateSortedList[T: SupportsRichComparison](items: Iterable[T]) -> ISortedList[T]:
+def CreateSortedList[T: SupportsEqualityAndRichComparison](items: Iterable[T]) -> ISortedList[T]:
     return SortedList[T](items)
-def MakeSortedList[T: SupportsRichComparison](*items: T) -> ISortedList[T]:
+def MakeSortedList[T: SupportsEqualityAndRichComparison](*items: T) -> ISortedList[T]:
     return CreateSortedList(items)
 
 
@@ -561,5 +561,5 @@ def GetList[T](items: IList[T]|MutableSequenceBase[T]|Iterable[T]|None = None) -
     return items if isinstance(items, IList) else CreateList(items)
 def GetSizedList[T](items: ISizedList[T]|MutableSequenceBase[T]) -> ISizedList[T]:
     return items if isinstance(items, ISizedList) else CreateSizedList(items)
-def GetSortedList[T: SupportsRichComparison](items: ISortedList[T]|Iterable[T]) -> ISortedList[T]:
+def GetSortedList[T: SupportsEqualityAndRichComparison](items: ISortedList[T]|Iterable[T]) -> ISortedList[T]:
     return items if isinstance(items, ISortedList) else CreateSortedList(items)
