@@ -20,7 +20,7 @@ from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
 from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import IFunction, IStruct, Method, Converter, EqualityComparison, Handle
+from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass

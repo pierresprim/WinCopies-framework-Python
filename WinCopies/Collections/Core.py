@@ -448,7 +448,7 @@ class IList[T](IArray[T], IListBase[T]):
     def InsertValues(self, index: int, *values: T) -> None:
         if self.TryInsertValues(index, *values) is None: raise IndexError(index)
 
-class ISortedTuple[T](ITuple[T]):
+class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -465,7 +465,7 @@ class ISortedTuple[T](ITuple[T]):
     @abstractmethod
     def AsReversed(self) -> ISortedTuple[T]:
         ...
-class ISortedList[T](IListBase[T], ISortedTuple[T]):
+class ISortedList[T: SupportsEqualityAndRichComparison](IListBase[T], ISortedTuple[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -620,5 +620,5 @@ class Array[T](ArrayBase[T], IArray[T]):
 
 class List[T](Array[T], IList[T]):
     def __init__(self) -> None: super().__init__()
-class SortedList[T](ArrayBase[T], ISortedList[T]):
+class SortedList[T: SupportsEqualityAndRichComparison](ArrayBase[T], ISortedList[T]):
     def __init__(self) -> None: super().__init__()

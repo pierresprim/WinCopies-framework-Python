@@ -23,6 +23,7 @@ from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Discard import DiscardReason
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -285,7 +286,7 @@ class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     def SliceAt(self, key: slice) -> IList[T]:
         ...
 
-class ISortedTuple[T](ITuple[T], ISortedTupleBase[T]):
+class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T], ISortedTupleBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -295,7 +296,7 @@ class ISortedTuple[T](ITuple[T], ISortedTupleBase[T]):
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedTuple[T]:
         ...
-class ISortedList[T](IListBase[T], ISortedListBase[T], ISortedTuple[T]):
+class ISortedList[T: SupportsEqualityAndRichComparison](IListBase[T], ISortedListBase[T], ISortedTuple[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod

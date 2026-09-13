@@ -107,7 +107,7 @@ class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     def _GetValue(self) -> ITuple[T]: return _ReversedTuple[T](self.__array)
 
 @final
-class _ReversedSortedTuple[T](_Reversed[T, ISortedTuple[T]], SequenceAbstract[T], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
+class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_Reversed[T, ISortedTuple[T]], SequenceAbstract[T], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
     def __init__(self, items: ISortedTuple[T]) -> None: super().__init__(items)
     
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -124,7 +124,7 @@ class _ReversedSortedTuple[T](_Reversed[T, ISortedTuple[T]], SequenceAbstract[T]
     
     def AsReadOnly(self) -> ITuple[T]: return self
 @final
-class _ReversedSortedTupleUpdater[T](ValueFunctionUpdater[ISortedTuple[T]]):
+class _ReversedSortedTupleUpdater[T: SupportsEqualityAndRichComparison](ValueFunctionUpdater[ISortedTuple[T]]):
     def __init__(self, array: ISortedTuple[T], updater: Method[IFunction[ISortedTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -164,7 +164,7 @@ class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]]):
     
     @final
     def AsReadOnly(self) -> ITuple[T]: return self
-class _ReadOnlySortedTuple[T](SortedCollectionBase[T], _IReadOnlyTuple[T, ISortedTuple[T]]):
+class _ReadOnlySortedTuple[T: SupportsEqualityAndRichComparison](SortedCollectionBase[T], _IReadOnlyTuple[T, ISortedTuple[T]]):
     def __init__(self, items: ISortedList[T]) -> None:
         def update(func: IFunction[ISortedTuple[T]]) -> None: self.__reversed = func
         
@@ -451,7 +451,7 @@ class _ReadOnlyReversedArrayUpdater[T](ValueFunctionUpdater[ITuple[T]]):
     
     def _GetValue(self) -> ITuple[T]: return _ReadOnlyTuple[T](self.__array)
 @final
-class _ReadOnlyReversedSortedArrayUpdater[T](ValueFunctionUpdater[ISortedTuple[T]]):
+class _ReadOnlyReversedSortedArrayUpdater[T: SupportsEqualityAndRichComparison](ValueFunctionUpdater[ISortedTuple[T]]):
     def __init__(self, array: ISortedList[T], updater: Method[IFunction[ISortedTuple[T]]]) -> None:
         super().__init__(updater)
 
@@ -745,7 +745,7 @@ class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
     @final
     def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainerAsList(self.ToSlicedAt(key))
 
-class ReversedSortedListAbstract[TItem, TList](ReversedCollectionAbstract[TItem, TList], Sequence[TItem], ISortedList[TItem]):
+class ReversedSortedListAbstract[TItem: SupportsEqualityAndRichComparison, TList](ReversedCollectionAbstract[TItem, TList], Sequence[TItem], ISortedList[TItem]):
     def __init__(self, items: TList) -> None:
         def update(func: IFunction[ISortedTuple[TItem]]) -> None: self.__readOnly = func
         
@@ -804,7 +804,7 @@ class _ReversedListUpdater[T](ValueFunctionUpdater[IList[T]]):
     def _GetValue(self) -> IList[T]: return _ReversedList[T](self.__array)
 
 @final
-class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
+class _ReversedSortedList[T: SupportsEqualityAndRichComparison](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
     def __init__(self, items: ISortedList[T]) -> None: super().__init__(items)
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
@@ -820,7 +820,7 @@ class _ReversedSortedList[T](ReversedSortedListAbstract[T, ISortedList[T]], Sequ
     def _SliceAt(self, key: slice) -> ISortedList[T]:
         return self._GetContainerAsList().SliceAt(key)
 @final
-class _ReversedSortedListUpdater[T](ValueFunctionUpdater[ISortedList[T]]):
+class _ReversedSortedListUpdater[T: SupportsEqualityAndRichComparison](ValueFunctionUpdater[ISortedList[T]]):
     def __init__(self, array: ISortedList[T], updater: Method[IFunction[ISortedList[T]]]) -> None:
         super().__init__(updater)
 
@@ -847,7 +847,7 @@ class Collection[T](_List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstra
     
     @final
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
-class SortedCollection[T](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T]):
+class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T]):
     def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ISortedTuple[T]]) -> None: self.__readOnly = func
         
@@ -866,7 +866,7 @@ class SortedCollection[T](_SortedList[T], _ArrayCollectionAbstract[T, ISortedLis
 
 class List[T](ArrayBase[T, IList[T]], Collection[T]):
     def __init__(self) -> None: super().__init__()
-class SortedList[T](_ArrayAbstract[T, ISortedList[T]], SortedCollection[T]):
+class SortedList[T: SupportsEqualityAndRichComparison](_ArrayAbstract[T, ISortedList[T]], SortedCollection[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
