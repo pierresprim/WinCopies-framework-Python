@@ -11,7 +11,7 @@ from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import IntEnum
-from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool
+from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class Mutability(IntEnum):
@@ -150,7 +150,7 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
     
     @final
     def TryGetAt[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        def getResult(value: TValue|TDefault, info: bool) -> DualValueBool[TValue|TDefault]: return DualValueBool[TValue|TDefault](value, info)
+        def getResult(value: TValue|TDefault, info: bool) -> DualValueBool[TValue|TDefault]: return CreateDualValueBool(value, info)
         
         result: INullable[TValue] = self.TryGetValue(key)
 
@@ -246,6 +246,10 @@ class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], IIndexableCollection
     @final
     def TryGetFirstItem(self) -> INullable[T]:
         return self.TryGetValue(0)
+
+    @final
+    def GetFirstItem(self) -> T:
+        return self.GetAt(0)
     
     @final
     def TryGetLast[TDefault](self, defaultValue: TDefault) -> DualValueBool[T|TDefault]:
@@ -253,6 +257,10 @@ class IReadOnlyCountableIndexable[T](IReadOnlyIndexable[T], IIndexableCollection
     @final
     def TryGetLastItem(self) -> INullable[T]:
         return self.TryGetValue(self.GetLastIndex())
+
+    @final
+    def GetLastItem(self) -> T:
+        return self.GetAt(self.GetLastIndex())
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyCountableIndexable[T]:
