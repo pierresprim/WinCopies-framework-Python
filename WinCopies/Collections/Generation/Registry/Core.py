@@ -10,6 +10,7 @@ from WinCopies.Collections.Generation.Registry.Kernel import IWeakReferenceRegis
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Delegates import NoAction
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
@@ -64,9 +65,9 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         self.__push = self.__PushFirst
         self.__clear = NoAction
 
-        exception: Exception|None = exceptions.Build()
+        exception: INullable[Exception]|ExceptionGroup[Exception] = exceptions.TryBuild()
 
-        if exception is not None: raise exception
+        raise exception.GetValue() if isinstance(exception, INullable) else exception
     
     @final
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
