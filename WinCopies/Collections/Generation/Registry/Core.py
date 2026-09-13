@@ -120,11 +120,9 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
         exceptions: IExceptionGroupBuilder = ExceptionGroupBuilder()
 
         while node is not None:
-            try:
-                node.GetValue().InvalidateObjects()
-
-                node = node.GetNext()
-
+            try: node.GetValue().InvalidateObjects()
             except Exception as e: exceptions.Push(e)
+            
+            node = node.GetNext()
 
         exceptions.TryThrow()
