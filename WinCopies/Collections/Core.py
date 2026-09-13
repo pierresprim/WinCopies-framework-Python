@@ -99,10 +99,12 @@ class ICountable(IInterface):
         ...
 
     @final
-    def GetLastIndex(self) -> int: return self.GetCount() - 1
+    def GetLastIndex(self) -> int:
+        return self.GetCount() - 1
     
     @final
-    def ValidateIndex(self, index: int, permissive: bool = False) -> bool: return ValidateIndex(index, self.GetCount(), permissive)
+    def ValidateIndex(self, index: int, permissive: bool = False) -> bool:
+        return ValidateIndex(index, self.GetCount(), permissive)
     
     @abstractmethod
     def AsSized(self) -> Sized:

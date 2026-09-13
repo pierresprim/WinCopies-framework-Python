@@ -39,7 +39,7 @@ class _SortedNode[TKey: ComparableProtocol, TValue: IInvalidatable](Node[TKey, T
     def Remove(self) -> None:
         items: ISortedList[TKey, TValue] = self.__items
 
-        items.Remove(self.GetKey())
+        items.TryRemove(self.GetKey())
 
 class ISortedList[TKey: ComparableProtocol, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
@@ -59,8 +59,12 @@ class ISortedList[TKey: ComparableProtocol, TValue](IReadOnlyCollection, ICleara
     @abstractmethod
     def Add(self, item: ISortedNode[TKey, TValue]) -> None:
         ...
+    
     @abstractmethod
     def Remove(self, key: TKey) -> None:
+        ...
+    @abstractmethod
+    def TryRemove(self, key: TKey) -> bool:
         ...
 class SortedList[TKey: ComparableProtocol, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:
@@ -84,8 +88,23 @@ class SortedList[TKey: ComparableProtocol, TValue](Countable, ISortedList[TKey, 
 
     @final
     def Add(self, item: ISortedNode[TKey, TValue]) -> None: insort_right(self.__items, item)
+
     @final
-    def Remove(self, key: TKey) -> None: self.__items.pop(self.BisectLeft(key))
+    def __Remove(self, index: int) -> None:
+        self.__items.pop(index)
+    
+    @final
+    def Remove(self, key: TKey) -> None: self.__Remove(self.BisectLeft(key))
+    @final
+    def TryRemove(self, key: TKey) -> bool:
+        index: int = self.BisectLeft(key)
+
+        if self.ValidateIndex(index):
+            self.__Remove(index)
+
+            return True
+
+        return False
 
     @final
     def Clear(self) -> None: return self.__items.clear()
