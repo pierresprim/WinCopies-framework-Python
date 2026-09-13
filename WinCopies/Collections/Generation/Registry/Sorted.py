@@ -15,7 +15,7 @@ from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import ComparableProtocol, IHashableComparableItem
 from WinCopies.Typing.Discard import IInvalidatable
-from WinCopies.Typing.Protocols import SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class ISortedNode[TKey: ComparableProtocol, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
     def __init__(self) -> None: super().__init__()
@@ -32,7 +32,7 @@ class _SortedNode[TKey: ComparableProtocol, TValue: IInvalidatable](Node[TKey, T
     def _CompareTo(self, item: _SortedNode[TKey, TValue]|TKey|object) -> bool|None:
         value: object = ExtractKey(item)
 
-        if isinstance(value, SupportsRichComparison): return CompareTo(self.GetKey(), value)
+        if isinstance(value, SupportsEqualityAndRichComparison): return CompareTo(self.GetKey(), value)
 
         raise NotImplementedError()
     
