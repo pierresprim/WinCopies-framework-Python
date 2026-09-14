@@ -27,7 +27,7 @@ def __Outside(x: SupportsRichComparison, value: SupportsRichComparison, y: Suppo
 
     __outsideComparisonDelegate = Outside
 
-    return Outside(x, value, y)
+    return Outside(x, value, y, bx, by)
 
 __betweenComparisonDelegate: __BoundComparison = __Between
 __outsideComparisonDelegate: __BoundComparison = __Outside
