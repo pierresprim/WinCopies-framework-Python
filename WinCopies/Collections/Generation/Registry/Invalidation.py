@@ -39,4 +39,7 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
 
         self.__Process(lambda registrar: registrar.Register(cookie))
     @final
-    def Unregister(self) -> None: self.__Process(lambda registrar: registrar.Unregister())
+    def Unregister(self) -> None:
+        self.__Process(lambda registrar: registrar.Unregister())
+
+        self.__cookie.Dispose()
