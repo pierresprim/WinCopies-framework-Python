@@ -451,23 +451,19 @@ class IList[T](IArray[T], IListBase[T]):
 class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()
 
-    @final
-    def __Bisect(self, index: int|None, right: bool) -> int:
-        return (self.GetCount() if right else 0) if index is None else index
-
     @abstractmethod
-    def TryBisect(self, item: T, right: bool = False) -> int|None:
+    def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]:
         ...
     @abstractmethod
-    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None:
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]:
         ...
     
     @final
     def Bisect(self, item: T, right: bool = False) -> int:
-        return self.__Bisect(self.TryBisect(item, right), right)
+        return self.TryBisect(item, right).GetKey()
     @final
     def BisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int:
-        return self.__Bisect(self.TryBisectWithKey(item, converter, right), right)
+        return self.TryBisectWithKey(item, converter, right).GetKey()
     
     @overload
     def ContainsValue(self, value: T, converter: None = None) -> bool:

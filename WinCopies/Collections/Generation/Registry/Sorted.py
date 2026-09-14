@@ -14,6 +14,7 @@ from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Discard import IInvalidatable
+from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class ISortedNode[TKey: SupportsEqualityAndRichComparison, TValue](INode[TKey, TValue], IHashableComparableItem[TKey]):
@@ -40,15 +41,17 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatabl
 
         items.TryRemove(self.GetKey())
 
-def _Bisect(index: int|None) -> int|None:
-    return None if index is not None and index < 0 else index
+def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
+    assert index is not None
+
+    return index
 
 class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def Bisect(self, key: TKey, right: bool = False) -> int|None:
+    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
         ...
     
     @abstractmethod
@@ -86,30 +89,31 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     def IsEmpty(self) -> bool: return self.GetCount() < 1
 
     @final
-    def Bisect(self, key: TKey, right: bool = False) -> int|None: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
+    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
-        return self.Bisect(key) is not None
+        return self.Bisect(key).GetValue() is True
     
     @final
     def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
-        index: int|None = self.Bisect(key)
+        index: DualValueBool[int] = self.Bisect(key)
 
-        return None if index is None else self.__TryGetAt(index)
+        return self.__TryGetAt(index.GetKey()) if index.GetValue() is True else None
 
     @final
     def Add(self, item: ISortedNode[TKey, TValue]) -> None: Insort(self.__items, item, True)
     
     @final
     def TryRemove(self, key: TKey) -> bool:
-        index: int|None = self.Bisect(key)
+        index: DualValueBool[int] = self.Bisect(key)
 
-        if index is None: return False
+        if index.GetValue():
+            self.__items.pop(index.GetKey())
 
-        self.__items.pop(index)
+            return True
 
-        return True
+        return False
     @final
     def Remove(self, key: TKey) -> None:
         if not self.TryRemove(key): raise ValueError(key)
@@ -166,7 +170,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
-    def Bisect(self, key: TKey, right: bool = False) -> int|None: return self._GetSortedItems().Bisect(key, right)
+    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().Bisect(key, right)
     
     def InvalidateObjects(self) -> None:
         try: super().InvalidateObjects()

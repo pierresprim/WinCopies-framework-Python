@@ -25,6 +25,7 @@ from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
@@ -112,8 +113,8 @@ class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_Reversed[T, IS
     
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
-    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
-    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
+    def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     def _SliceAt(self, key: slice) -> ISortedTuple[T]:
         return self._GetContainer().SliceAt(key)
@@ -172,8 +173,8 @@ class _ReadOnlySortedTuple[T: SupportsEqualityAndRichComparison](SortedCollectio
 
         self.__reversed: IFunction[ISortedTuple[T]] = _ReversedSortedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
-    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
-    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
+    def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     @final
     def AsReversed(self) -> ISortedTuple[T]: return self.__reversed.GetValue()
@@ -809,8 +810,8 @@ class _ReversedSortedList[T: SupportsEqualityAndRichComparison](ReversedSortedLi
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     
-    def TryBisect(self, item: T, right: bool = False) -> int|None: return self._GetContainer().TryBisect(item, right)
-    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None: return self._GetContainer().TryBisectWithKey(item, converter, right)
+    def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisect(item, right)
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     def _GetInnerContainerAsList(self, container: ISortedList[T]) -> ISortedList[T]:
         return container

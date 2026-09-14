@@ -23,6 +23,7 @@ from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
 
@@ -465,11 +466,13 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-def _FindIndex(index: int|None) -> int:
-    return -1 if index is None else index
+def _FindIndex(index: DualValueBool[int]|None) -> int:
+    return index.GetKey() if (index := _Bisect(index)).GetValue() else -1
 
-def _Bisect(index: int|None) -> int|None:
-    return None if index is not None and index < 0 else index
+def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
+    assert index is not None
+
+    return index
 
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
@@ -483,10 +486,10 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item, True)) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
     @final
-    def TryBisect(self, item: T, right: bool = False) -> int|None:
+    def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]:
         return _Bisect(TryBisect(self.AsSequence(), item, right))
     @final
-    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None:
+    def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]:
         return _Bisect(TryBisectWithKey(self.AsSequence(), item, converter, right))
 
     @final
