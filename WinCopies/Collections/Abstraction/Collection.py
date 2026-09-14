@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from bisect import bisect_left, bisect_right, insort_left, insort_right
 from collections.abc import Iterable, Sequence, MutableSequence as MutableSequenceBase
 from heapq import merge
 from typing import overload, final, Callable, SupportsIndex
@@ -17,11 +16,12 @@ from WinCopies.Collections.Generation.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration.Enumeration import Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
-from WinCopies.Collections.Util import FindIndex, CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence, Move
-from WinCopies.Delegates import Self
+from WinCopies.Collections.Util import (FindIndex, Move,
+                                        CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
+                                        TryBisect, TryBisectWithKey, Insort)
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Function, Method, Converter, Selector, EqualityComparison, IFunction, IStruct, Handle
+from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
@@ -468,6 +468,9 @@ class ArrayList[T](ArrayCollection[T]):
 def _FindIndex(index: int|None) -> int:
     return -1 if index is None else index
 
+def _Bisect(index: int|None) -> int|None:
+    return None if index is not None and index < 0 else index
+
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
@@ -480,31 +483,22 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item, True)) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
     @final
-    def __TryBisect[_T: SupportsEqualityAndRichComparison](self, item: _T, right: bool, func: Converter[bool, Callable[[Sequence[T], _T], int]], selector: Converter[T, _T]) -> int|None:
-        def bisect(action: Callable[[Sequence[T], _T], int], _func: Function[T], _selector: Selector[int]) -> int|None:
-            index: int = action(self.AsSequence(), item)
-
-            return _selector(index) if selector(_func()) == item else None
-
-        return bisect(func(True), self.GetLastItem, Self) if right else bisect(func(False), self.GetFirstItem, lambda _: 0)
-
-    @final
     def TryBisect(self, item: T, right: bool = False) -> int|None:
-        return self.__TryBisect(item, right, lambda right: bisect_right if right else bisect_left, Self)
+        return _Bisect(TryBisect(self.AsSequence(), item, right))
     @final
     def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> int|None:
-        return self.__TryBisect(item, right, lambda right: (lambda items, item: bisect_right(items, item, key=converter)) if right else (lambda items, item: bisect_left(items, item, key=converter)), converter)
+        return _Bisect(TryBisectWithKey(self.AsSequence(), item, converter, right))
 
     @final
-    def __Add(self, item: T, adder: Callable[[MutableSequenceBase[T], T], None]) -> None:
+    def __Add(self, item: T, right: bool) -> None:
         self._InvalidateViews()
 
-        adder(self._GetContainer(), item)
+        Insort(self._GetContainer(), item, right)
     
     @final
-    def AddLeft(self, item: T) -> None: self.__Add(item, insort_left)
+    def AddLeft(self, item: T) -> None: self.__Add(item, False)
     @final
-    def Add(self, item: T) -> None: self.__Add(item, insort_right)
+    def Add(self, item: T) -> None: self.__Add(item, True)
     @final
     def AddRange(self, items: Iterable[T]) -> None:
         def _merge(items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))

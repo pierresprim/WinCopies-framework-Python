@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from bisect import bisect_left, bisect_right, insort_right
 from collections.abc import MutableSequence
 from typing import final
 
@@ -10,7 +9,7 @@ from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Registry.Core import ObjectRegistryBase
 from WinCopies.Collections.Generation.Registry.Kernel import CompositeRemovable
 from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
-from WinCopies.Collections.Util import TryGetAt
+from WinCopies.Collections.Util import TryGetAt, TryBisectWithKey, Insort
 from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import IHashableComparableItem
@@ -41,17 +40,15 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatabl
 
         items.TryRemove(self.GetKey())
 
-type BisectResult[TKey: SupportsEqualityAndRichComparison, TValue] = tuple[int, ISortedNode[TKey, TValue]|None]
+def _Bisect(index: int|None) -> int|None:
+    return None if index is not None and index < 0 else index
 
 class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
         super().__init__()
     
     @abstractmethod
-    def BisectLeft(self, key: TKey) -> int:
-        ...
-    @abstractmethod
-    def BisectRight(self, key: TKey) -> int:
+    def Bisect(self, key: TKey, right: bool = False) -> int|None:
         ...
     
     @abstractmethod
@@ -87,49 +84,30 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     
     @final
     def IsEmpty(self) -> bool: return self.GetCount() < 1
-    
+
     @final
-    def BisectLeft(self, key: TKey) -> int: return bisect_left(self.__items, key, key = GetKey)
-    @final
-    def BisectRight(self, key: TKey) -> int: return bisect_right(self.__items, key, key = GetKey)
-    
-    @final
-    def __Bisect(self, key: TKey) -> BisectResult[TKey, TValue]|None:
-        index: int = self.BisectLeft(key)
-
-        if index < self.GetCount():
-            if index > 0: return index, None
-
-            node: ISortedNode[TKey, TValue]|None = self.__TryGetAt(index)
-
-            return (index, node) if node is not None and node.GetKey() == key else None
-
-        return None
+    def Bisect(self, key: TKey, right: bool = False) -> int|None: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
-        return self.__Bisect(key) is not None
+        return self.Bisect(key) is not None
     
     @final
     def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
-        index: BisectResult[TKey, TValue]|None = self.__Bisect(key)
+        index: int|None = self.Bisect(key)
 
-        if index is None: return None
-
-        node: ISortedNode[TKey, TValue]|None = index[1]
-
-        return self.__TryGetAt(index[0]) if node is None else node
+        return None if index is None else self.__TryGetAt(index)
 
     @final
-    def Add(self, item: ISortedNode[TKey, TValue]) -> None: insort_right(self.__items, item)
+    def Add(self, item: ISortedNode[TKey, TValue]) -> None: Insort(self.__items, item, True)
     
     @final
     def TryRemove(self, key: TKey) -> bool:
-        index: BisectResult[TKey, TValue]|None = self.__Bisect(key)
+        index: int|None = self.Bisect(key)
 
         if index is None: return False
 
-        self.__items.pop(index[0])
+        self.__items.pop(index)
 
         return True
     @final
@@ -143,10 +121,7 @@ class ISortedObjectRegistryBase[TKey, TIn, TOut](IKeyableObjectRegistryBase[TKey
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def BisectLeft(self, key: TKey) -> int:
-        ...
-    @abstractmethod
-    def BisectRight(self, key: TKey) -> int:
+    def Bisect(self, key: TKey, right: bool = False) -> int|None:
         ...
 class ISortedObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
@@ -191,9 +166,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
-    def BisectLeft(self, key: TKey) -> int: return self._GetSortedItems().BisectLeft(key)
-    @final
-    def BisectRight(self, key: TKey) -> int: return self._GetSortedItems().BisectRight(key)
+    def Bisect(self, key: TKey, right: bool = False) -> int|None: return self._GetSortedItems().Bisect(key, right)
     
     def InvalidateObjects(self) -> None:
         try: super().InvalidateObjects()
