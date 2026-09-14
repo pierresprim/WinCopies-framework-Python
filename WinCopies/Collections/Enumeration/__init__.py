@@ -18,7 +18,7 @@ from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter, Selector as SelectorDelegate, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, Invalidatable
+from WinCopies.Typing.Discard import DiscardReason, Invalidatable, InvalidatedError, BrokenObjectError
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
@@ -114,6 +114,19 @@ class IIterationStatus(IIterationStatusBase):
                 case _: return IterationResult.Failed
         
         return self.GetResult() < getValue()
+    @final
+    def TryGetIterationError(self) -> InvalidOperationError|None:
+        match self.GetResult():
+            case IterationResult.Faulted: return BrokenObjectError("The iteration has faulted.")
+            case IterationResult.Invalidated: return InvalidatedError()
+            case IterationResult.Stopped: return InvalidOperationError("The iteration has been stopped.")
+
+            case _: return None
+    @final
+    def Validate(self) -> None:
+        exception: InvalidOperationError|None = self.TryGetIterationError()
+
+        if exception is not None: raise exception
 
 @final
 class _ReadOnlyIterationStatus(Abstract, IIterationStatus):
@@ -242,7 +255,9 @@ class IEnumeratorBase(IInterface):
     @final
     def MoveNext(self, raiseOnCompletion: bool = False) -> bool:
         if self.TryMoveNext(): return True
-        if self.GetStatus().IsErrored(): raise InvalidOperationError("The enumerator is in error mode.")
+
+        self.GetStatus().Validate()
+
         if raiseOnCompletion: raise StopIteration()
 
         return False
