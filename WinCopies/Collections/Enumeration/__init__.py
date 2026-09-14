@@ -56,7 +56,7 @@ class IterationResult(IntEnum):
         return self > IterationResult.Running
     @final
     def HasTerminated(self) -> bool:
-        return _Outside(IterationResult.Idle, self, IterationResult.Running, False, False)
+        return _Outside(IterationResult.Idle, self, IterationResult.Running)
 
 class IterationData(Flag):
     Null = 0
