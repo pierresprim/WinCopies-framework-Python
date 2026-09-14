@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Iterable, Container
-from typing import overload, final, Callable
+from typing import overload, final, Any, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
@@ -474,9 +474,9 @@ class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     
     @final
     def ContainsValue[_T: SupportsEqualityAndRichComparison](self, value: T|_T, converter: Converter[T, _T]|None = None) -> bool:
-        return self.TryBisect(
-            value, converter # type: ignore[arg-type]
-            ) is not None # pyright: ignore[reportCallIssue]
+        def contains(value: Any) -> bool: return (self.TryBisect(value) if converter is None else self.TryBisectWithKey(value, converter)).GetValue()
+
+        return contains(value)
     
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedTuple[T]:
