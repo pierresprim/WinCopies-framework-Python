@@ -368,7 +368,13 @@ def __Bisect[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, se
 
     length: int = len(l)
 
-    if high < 0: high = length
+    if high > length: raise ValueError(high)
+
+    if low > ((high := length) if high < 0 else high): return None
+
+    if length < 1: return CreateDualValueNullableBool(0, False)
+
+    if low == high: return None
 
     middle: int = 0
     _item: TOut|None = None
@@ -378,8 +384,6 @@ def __Bisect[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, se
         nonlocal _item
         
         return (_item := selector(l, middle := (low + high) // 2))
-
-    if low >= high: return None
 
     return bisect(moveRight) if right else bisect(moveLeft)
 
