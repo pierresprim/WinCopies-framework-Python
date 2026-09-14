@@ -6,9 +6,9 @@ from WinCopies.Collections import ReadOnlyArray, Generator
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Converter, Function, EqualityComparison
+from WinCopies.Typing.Delegate import Action, Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualNullableValueInfo, CreateDualNullableValueInfo
-from WinCopies.Typing.Protocols import SupportsRichComparison
+from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityAndRichComparison
 
 type __BoundComparison = Callable[[SupportsRichComparison, SupportsRichComparison, SupportsRichComparison, bool, bool], bool]
 
@@ -316,3 +316,103 @@ def CreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence
     return list[T]() if items is None else __CreateList(items)
 def TryCreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
     return None if items is None else __CreateList(items)
+
+def TryInsert[T](l: MutableSequence[T], index: int, item: T) -> bool|None:
+    length: int = len(l)
+    
+    if index == length:
+        l.append(item)
+
+        return False
+
+    if _Outside(0, index, length): return None
+
+    l.insert(index, item)
+
+    return True
+
+def __Insort[T](l: MutableSequence[T], index: int, item: T, right: bool) -> bool:
+    def insert(index: int) -> None: TryInsert(l, index, item)
+
+    if index < 0:
+        if right: l.append(item)
+        else: insert(0)
+        
+        return False
+
+    insert(index)
+
+    return True
+
+def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> bool:
+    return __Insort(l, Bisect(l, item, right, low, high), item, right)
+def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool:
+    return __Insort(l, BisectWithKey(l, selector(item), selector, right, low, high), item, right)
+
+def __Bisect[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Callable[[Sequence[TIn], int], TOut], right: bool, check: bool, low: int, high: int) -> int|None:
+    def _getIndex(_item: TOut) -> int:
+        return low if ((item == _item) if isinstance(item, SupportsEqualityAndRichComparison) else ((_item == item) if isinstance(_item, SupportsEqualityAndRichComparison) else item <= _item)) else -1
+    def getIndex(index: int) -> int:
+        return _getIndex(
+            _item # type: ignore
+            ) if check and low == index else low
+
+    def setLow() -> None:
+        nonlocal low
+
+        low = middle + 1
+    def setHigh() -> None:
+        nonlocal high
+
+        high = middle
+
+    def moveLeft() -> None:
+        if getItem() < item: setLow()
+        else: setHigh()
+    def moveRight() -> None:
+        if item < getItem(): setHigh()
+        else: setLow()
+
+    def bisect(action: Action, index: int) -> int:
+        action()
+        
+        while low < high: action()
+
+        return getIndex(index)
+
+    if low < 0: raise ValueError(low)
+
+    length: int = len(l)
+
+    if high < 0: high = length
+
+    middle: int = 0
+    _item: TOut|None = None
+
+    def getItem() -> TOut:
+        nonlocal middle
+        nonlocal _item
+        
+        return (_item := selector(l, middle := (low + high) // 2))
+
+    if low >= high: return None
+
+    return bisect(moveRight, length) if right else bisect(moveLeft, 0)
+
+def __GetBisectionIndex(index: int|None, low: int) -> int:
+    return low if index is None else index
+
+def __GetAt[T](items: Sequence[T], index: int) -> T:
+    return items[index]
+def __GetSelector[TIn, TOut](selector: Converter[TIn, TOut]) -> Callable[[Sequence[TIn], int], TOut]:
+    return lambda items, index: selector(items[index])
+
+def Bisect[T: SupportsRichComparison](l: Sequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> int:
+    return __GetBisectionIndex(__Bisect(l, item, __GetAt, right, False, low, high), low)
+def BisectWithKey[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> int:
+    return __GetBisectionIndex(__Bisect(l, item, __GetSelector(selector), right, False, low, high), low)
+
+def TryBisect[T: SupportsRichComparison](l: Sequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> int|None:
+    return __Bisect(l, item, __GetAt, right, True, low, high)
+def TryBisectWithKey[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> int|None:
+    return __Bisect(l, item, __GetSelector(selector), right, True, low, high)
