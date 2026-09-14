@@ -331,24 +331,6 @@ def TryInsert[T](l: MutableSequence[T], index: int, item: T) -> bool|None:
 
     return True
 
-def __Insort[T](l: MutableSequence[T], index: int, item: T, right: bool) -> bool:
-    def insert(index: int) -> None: TryInsert(l, index, item)
-
-    if index < 0:
-        if right: l.append(item)
-        else: insert(0)
-        
-        return False
-
-    insert(index)
-
-    return True
-
-def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> bool:
-    return __Insort(l, Bisect(l, item, right, low, high), item, right)
-def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool:
-    return __Insort(l, BisectWithKey(l, selector(item), selector, right, low, high), item, right)
-
 def __Bisect[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Callable[[Sequence[TIn], int], TOut], right: bool, check: bool, low: int, high: int) -> int|None:
     def _getIndex(_item: TOut) -> int:
         return low if ((item == _item) if isinstance(item, SupportsEqualityAndRichComparison) else ((_item == item) if isinstance(_item, SupportsEqualityAndRichComparison) else item <= _item)) else -1
@@ -416,3 +398,21 @@ def TryBisect[T: SupportsRichComparison](l: Sequence[T], item: T, right: bool = 
     return __Bisect(l, item, __GetAt, right, True, low, high)
 def TryBisectWithKey[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> int|None:
     return __Bisect(l, item, __GetSelector(selector), right, True, low, high)
+
+def __Insort[T](l: MutableSequence[T], index: int, item: T, right: bool) -> bool:
+    def insert(index: int) -> None: TryInsert(l, index, item)
+
+    if index < 0:
+        if right: l.append(item)
+        else: insert(0)
+        
+        return False
+
+    insert(index)
+
+    return True
+
+def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> bool:
+    return __Insort(l, Bisect(l, item, right, low, high), item, right)
+def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool:
+    return __Insort(l, BisectWithKey(l, selector(item), selector, right, low, high), item, right)
