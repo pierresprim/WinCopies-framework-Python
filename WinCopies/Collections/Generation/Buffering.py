@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Iteration import PrependValues, Select
 from WinCopies.Collections.Util import MakeSequence
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Method
 from WinCopies.Typing.Generic import IGenericConstraint
 
@@ -81,8 +81,6 @@ class Builder[T](Abstract, IBuilder[T]):
 
     @final
     def __Build(self, includeFirst: bool) -> BuildResult[T]|None:
-        def push(_: T) -> None: raise InvalidOperationError("A value can't be added when building.")
-
         def build(first: _BuilderNode[T]) -> BuildResult[T]:
             def build(node: _BuilderNode[T]|None) -> Generator[_BuilderNode[T]]:
                 while node is not None:
@@ -107,10 +105,9 @@ class Builder[T](Abstract, IBuilder[T]):
         self.__first = None
         self.__last = None
 
-        self.__push = push
+        self.__push = self.__Push
 
-        try: return build(first)
-        finally: self.__push = self.__Push
+        return build(first)
 
     @final
     def Push(self, value: T) -> None:
