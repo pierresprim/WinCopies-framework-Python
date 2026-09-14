@@ -123,7 +123,7 @@ class IIterationStatus(IIterationStatusBase):
 
             case _: return None
     @final
-    def Validate(self) -> None:
+    def ThrowIfErrored(self) -> None:
         exception: InvalidOperationError|None = self.TryGetIterationError()
 
         if exception is not None: raise exception
@@ -256,7 +256,7 @@ class IEnumeratorBase(IInterface):
     def MoveNext(self, raiseOnCompletion: bool = False) -> bool:
         if self.TryMoveNext(): return True
 
-        self.GetStatus().Validate()
+        self.GetStatus().ThrowIfErrored()
 
         if raiseOnCompletion: raise StopIteration()
 
