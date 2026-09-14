@@ -471,8 +471,11 @@ def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
 
     return index
 
-def _FindIndex(index: DualValueBool[int]|None) -> int:
-    return index.GetKey() if (index := _Bisect(index)).GetValue() else -1
+def _FindIndex(index: DualValueBool[int]|None, right: bool) -> int:
+    def getIndex(index: DualValueBool[int]) -> int:
+        return (index.GetKey() - 1) if right else index.GetKey()
+
+    return getIndex(index) if (index := _Bisect(index)).GetValue() else -1
 
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
@@ -481,9 +484,9 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence
     def _GetCollectionMonitors(self) -> IObjectMonitor: return self._GetCollectionRegistries()
     
     @final
-    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item)) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
+    def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item), False) if predicate is None else FindIndex(self.AsSequence(), item, predicate)
     @final
-    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item, True)) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
+    def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return _FindIndex(self.TryBisect(item, True), True) if predicate is None else FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
     @final
     def TryBisect(self, item: T, right: bool = False) -> DualValueBool[int]:
