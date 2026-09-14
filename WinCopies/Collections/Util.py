@@ -410,20 +410,19 @@ def TryBisect[T: SupportsRichComparison](l: Sequence[T], item: T, right: bool = 
 def TryBisectWithKey[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> DualValueBool[int]|None:
     return __TryBisect(__Bisect(l, item, __GetSelector(selector), right, True, low, high))
 
-def __Insort[T](l: MutableSequence[T], index: int, item: T, right: bool) -> bool:
+def __Insort[T](l: MutableSequence[T], index: DualValueBool[int]|None, item: T, low: int) -> bool|None:
     def insert(index: int) -> None: TryInsert(l, index, item)
 
-    if index < 0:
-        if right: l.append(item)
-        else: insert(0)
-        
-        return False
+    if index is None:
+        insert(low)
 
-    insert(index)
+        return None
 
-    return True
+    insert(index.GetKey())
 
-def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> bool:
-    return __Insort(l, Bisect(l, item, right, low, high), item, right)
-def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool:
-    return __Insort(l, BisectWithKey(l, selector(item), selector, right, low, high), item, right)
+    return index.GetValue()
+
+def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: bool = False, low: int = 0, high: int = -1) -> bool|None:
+    return __Insort(l, TryBisect(l, item, right, low, high), item, low)
+def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool|None:
+    return __Insort(l, TryBisectWithKey(l, selector(item), selector, right, low, high), item, low)

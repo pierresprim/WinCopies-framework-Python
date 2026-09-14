@@ -93,7 +93,7 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
-        return self.TryBisect(key).GetValue() is True
+        return self.TryBisect(key).GetValue()
     
     @final
     def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
