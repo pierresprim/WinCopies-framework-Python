@@ -18,7 +18,7 @@ from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Converter, Selector as SelectorDelegate, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, Invalidatable, InvalidatedError, BrokenObjectError
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatedError, BrokenObjectError
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
@@ -409,16 +409,19 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
 @final
-class _EnumeratorInvalidator(Invalidatable):
+class _EnumeratorInvalidator(Abstract, IInvalidatable):
     def __init__(self, action: Action) -> None:
         super().__init__()
 
         self.__action: Action = action
+        self.__processor: Action = NoAction
 
-    def _DisposeOverride(self, reason: DiscardReason) -> None:
-        if reason == DiscardReason.Invalidated: self.__action()
+    def Initialize(self) -> None: self.__processor = self.__action
 
-        self.__action = NoAction
+    def _Dispose(self, reason: DiscardReason) -> None:
+        if reason == DiscardReason.Invalidated: self.__processor()
+
+        self.__processor = NoAction
 
 def _GetCurrent[T](*_: T) -> T:
     raise GetIterationInactiveError()
@@ -438,7 +441,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
-        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(lambda: _EnumeratorInvalidator(self.__Invalidate))
+        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
