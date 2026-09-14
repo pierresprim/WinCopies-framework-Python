@@ -472,10 +472,7 @@ def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
     return index
 
 def _FindIndex(index: DualValueBool[int]|None, right: bool) -> int:
-    def getIndex(index: DualValueBool[int]) -> int:
-        return (index.GetKey() - 1) if right else index.GetKey()
-
-    return getIndex(index) if (index := _Bisect(index)).GetValue() else -1
+    return ((index.GetKey() - 1) if right else index.GetKey()) if (index := _Bisect(index)).GetValue() else -1
 
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
