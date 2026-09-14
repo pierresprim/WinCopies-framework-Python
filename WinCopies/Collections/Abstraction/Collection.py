@@ -466,13 +466,13 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
 
-def _FindIndex(index: DualValueBool[int]|None) -> int:
-    return index.GetKey() if (index := _Bisect(index)).GetValue() else -1
-
 def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
     assert index is not None
 
     return index
+
+def _FindIndex(index: DualValueBool[int]|None) -> int:
+    return index.GetKey() if (index := _Bisect(index)).GetValue() else -1
 
 class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))

@@ -51,7 +51,7 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
         super().__init__()
     
     @abstractmethod
-    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
+    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
         ...
     
     @abstractmethod
@@ -89,15 +89,15 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     def IsEmpty(self) -> bool: return self.GetCount() < 1
 
     @final
-    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
+    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
-        return self.Bisect(key).GetValue() is True
+        return self.TryBisect(key).GetValue() is True
     
     @final
     def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
-        index: DualValueBool[int] = self.Bisect(key)
+        index: DualValueBool[int] = self.TryBisect(key)
 
         return self.__TryGetAt(index.GetKey()) if index.GetValue() is True else None
 
@@ -106,7 +106,7 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     
     @final
     def TryRemove(self, key: TKey) -> bool:
-        index: DualValueBool[int] = self.Bisect(key)
+        index: DualValueBool[int] = self.TryBisect(key)
 
         if index.GetValue():
             self.__items.pop(index.GetKey())
@@ -170,7 +170,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
     @final
-    def Bisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().Bisect(key, right)
+    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().TryBisect(key, right)
     
     def InvalidateObjects(self) -> None:
         try: super().InvalidateObjects()
