@@ -5,15 +5,15 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Kernel import IItemRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Node import ILinkedNode
-from WinCopies.Typing.Delegate import Method
+from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Discard import IInvalidatable
 
 class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
-    def __init__(self, cookie: IInvalidatable) -> None:
+    def __init__(self, cookie: Function[IInvalidatable]) -> None:
         super().__init__()
 
         self.__items: IItemRegistry[IInvalidationRegistrar] = CreateItemRegistry()
-        self.__cookie: IInvalidatable = cookie
+        self.__cookie: Function[IInvalidatable] = cookie
 
     @final
     def __Process(self, action: Method[IInvalidationRegistrar]) -> None:
@@ -32,6 +32,9 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
         return self.__items.Push(invalidationRegistrar)
 
     @final
-    def Register(self) -> None: self.__Process(lambda registrar: registrar.Register(self.__cookie))
+    def Register(self) -> None:
+        cookie: IInvalidatable = self.__cookie()
+
+        self.__Process(lambda registrar: registrar.Register(cookie))
     @final
     def Unregister(self) -> None: self.__Process(lambda registrar: registrar.Unregister())

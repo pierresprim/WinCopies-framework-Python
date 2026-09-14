@@ -202,7 +202,7 @@ class DiscardableAbstract(IDiscardableItem):
         ...
 
     def _Initialize(self) -> None:
-        ...
+        pass
     @final
     def Initialize(self) -> None: return self._GetDisposableCookie().Initialize()
 

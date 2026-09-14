@@ -438,7 +438,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
-        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
+        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(lambda: _EnumeratorInvalidator(self.__Invalidate))
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
