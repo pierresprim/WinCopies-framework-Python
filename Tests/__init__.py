@@ -345,15 +345,23 @@ class TestBitDepthLevel(unittest.TestCase):
     def test_values(self) -> None:
         """BitDepthLevel members represent bit widths as multiples of 8."""
 
-        self.assertEqual(BitDepthLevel.One.value, 8)
-        self.assertEqual(BitDepthLevel.Two.value, 16)
-        self.assertEqual(BitDepthLevel.Three.value, 32)
-        self.assertEqual(BitDepthLevel.Four.value, 64)
+        def assertEqual(level: BitDepthLevel, value: int) -> None: self.assertEqual(level.value, value)
+
+        assertEqual(BitDepthLevel.One, 8)
+        assertEqual(BitDepthLevel.Two, 16)
+        assertEqual(BitDepthLevel.Three, 32)
+        assertEqual(BitDepthLevel.Four, 64)
+        assertEqual(BitDepthLevel.Five, 128)
+        assertEqual(BitDepthLevel.Six, 256)
+        assertEqual(BitDepthLevel.Seven, 512)
+        assertEqual(BitDepthLevel.Eight, 1024)
+        assertEqual(BitDepthLevel.Nine, 2048)
+        assertEqual(BitDepthLevel.Ten, 4096)
 
     def test_member_count(self) -> None:
         """BitDepthLevel has exactly four members."""
 
-        self.assertEqual(len(list(BitDepthLevel)), 4)
+        self.assertEqual(len(list(BitDepthLevel)), 10)
 
 if __name__ == '__main__':
     unittest.main()
