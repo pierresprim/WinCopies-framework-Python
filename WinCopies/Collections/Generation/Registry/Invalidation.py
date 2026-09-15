@@ -5,8 +5,37 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Kernel import IItemRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Method
 from WinCopies.Typing.Discard import IInvalidatable
+
+def GetRegistrationActiveError() -> InvalidOperationError:
+    return InvalidOperationError("Registrars cannot be added or removed while a registration is in progress.")
+
+@final
+class _RegistrationState(Abstract):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__registered: bool = False
+
+    def IsRegistered(self) -> bool:
+        return self.__registered
+    def SetRegistered(self, registered: bool) -> None:
+        self.__registered = registered
+
+@final
+class _RegistrarCookie(Abstract, IRemovable):
+    def __init__(self, node: IRemovable, state: _RegistrationState) -> None:
+        super().__init__()
+
+        self.__node: IRemovable = node
+        self.__state: _RegistrationState = state
+
+    def Remove(self) -> None:
+        if self.__state.IsRegistered(): raise GetRegistrationActiveError()
+
+        self.__node.Remove()
 
 class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
     def __init__(self, cookie: IInvalidatable) -> None:
@@ -14,6 +43,7 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
 
         self.__items: IItemRegistry[IInvalidationRegistrar] = CreateItemRegistry()
         self.__cookie: IInvalidatable = cookie
+        self.__state: _RegistrationState = _RegistrationState()
 
     @final
     def __Process(self, action: Method[IInvalidationRegistrar]) -> None:
@@ -29,7 +59,9 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
 
     @final
     def Push(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
-        return self.__items.Push(invalidationRegistrar)
+        if self.__state.IsRegistered(): raise GetRegistrationActiveError()
+
+        return _RegistrarCookie(self.__items.Push(invalidationRegistrar), self.__state)
 
     @final
     def Register(self) -> None:
@@ -37,9 +69,13 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
 
         cookie.Initialize()
 
+        self.__state.SetRegistered(True)
+
         self.__Process(lambda registrar: registrar.Register(cookie))
     @final
     def Unregister(self) -> None:
         self.__Process(lambda registrar: registrar.Unregister())
+
+        self.__state.SetRegistered(False)
 
         self.__cookie.Dispose()
