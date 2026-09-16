@@ -121,7 +121,7 @@ class ISortedObjectRegistryBase[TKey, TIn, TOut](IKeyableObjectRegistryBase[TKey
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def Bisect(self, key: TKey, right: bool = False) -> int|None:
+    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
         ...
 class ISortedObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
@@ -159,7 +159,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     def TryGetValue(self, key: TKey) -> INullable[TOut]:
         node: ISortedNode[TKey, TOut]|None = self._GetSortedItems().TryGetNode(key)
         
-        return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
+        return GetNullableValue(None if node is None else node.TryGetValue())
     
     @final
     def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().TryBisect(key, right)
