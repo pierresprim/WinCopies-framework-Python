@@ -232,6 +232,9 @@ def GetNullValue[T]() -> INullable[T]: # pyright: ignore[reportInvalidTypeVarUse
 def GetNullableValue[T](value: T|None) -> INullable[T]:
     return GetNullValue() if value is None else GetNullable(value)
 
+def TryGetNullable[T](value: INullable[T]|None) -> INullable[T]:
+    return GetNullValue() if value is None else value
+
 def GetNullableItem[T](value: T|None) -> INullableItem[T]:
     return CreateNullableItem(None if value is None else NullableValue[T](value))
 
