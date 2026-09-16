@@ -9,7 +9,7 @@ from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Registry.Core import ObjectRegistryBase
 from WinCopies.Collections.Generation.Registry.Kernel import CompositeRemovable
 from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
-from WinCopies.Collections.Util import TryGetAt, TryBisectWithKey, Insort
+from WinCopies.Collections.Util import TryBisectWithKey, Insort
 from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import IHashableComparableItem
@@ -40,11 +40,6 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatabl
         items: ISortedList[TKey, TValue] = self.__items
 
         items.TryRemove(self.GetKey())
-
-def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
-    assert index is not None
-
-    return index
 
 class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
     def __init__(self) -> None:
@@ -77,10 +72,6 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
         super().__init__()
 
         self.__items: MutableSequence[ISortedNode[TKey, TValue]] = list[ISortedNode[TKey, TValue]]()
-
-    @final
-    def __TryGetAt(self, index: int) -> ISortedNode[TKey, TValue]|None:
-        return TryGetAt(self.__items, index)
     
     @final
     def GetCount(self) -> int: return len(self.__items)
@@ -89,7 +80,12 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     def IsEmpty(self) -> bool: return self.GetCount() < 1
 
     @final
-    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return _Bisect(TryBisectWithKey(self.__items, key, GetKey, right))
+    def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
+        index: DualValueBool[int]|None = TryBisectWithKey(self.__items, key, GetKey, right)
+
+        assert index is not None
+
+        return index
     
     @final
     def ContainsKey(self, key: TKey) -> bool:
@@ -99,7 +95,7 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     def TryGetNode(self, key: TKey) -> ISortedNode[TKey, TValue]|None:
         index: DualValueBool[int] = self.TryBisect(key)
 
-        return self.__TryGetAt(index.GetKey()) if index.GetValue() is True else None
+        return self.__items[index.GetKey()] if index.GetValue() else None
 
     @final
     def Add(self, item: ISortedNode[TKey, TValue]) -> None: Insort(self.__items, item, True)
@@ -137,10 +133,6 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         self.__items: ISortedList[TKey, TOut] = SortedList[TKey, TOut]()
     
     @final
-    def __TryGetNode(self, key: TKey) -> ISortedNode[TKey, TOut]|None:
-        return self._GetSortedItems().TryGetNode(key)
-    
-    @final
     def _GetSortedItems(self) -> ISortedList[TKey, TOut]:
         return self.__items
     
@@ -165,7 +157,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TOut]:
-        node: ISortedNode[TKey, TOut]|None = self.__TryGetNode(key)
+        node: ISortedNode[TKey, TOut]|None = self._GetSortedItems().TryGetNode(key)
         
         return GetNullableValue(None if node is None else (node.TryGetValue() if node.GetKey() == key else None))
     
