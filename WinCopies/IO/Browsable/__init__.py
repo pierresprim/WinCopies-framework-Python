@@ -5,7 +5,7 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import SortedList
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursivelyEnumerable
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Extensions import ISortedList

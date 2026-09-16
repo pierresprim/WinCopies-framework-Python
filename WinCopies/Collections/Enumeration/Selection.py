@@ -2,7 +2,8 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration import IEnumerator, AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Delegates import GetAndAlsoFunc
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Predicate

@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import overload, final
 
 from WinCopies.Collections import Generator, EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerator, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import INode, ITwoWayNode, ILinkedNode, ITwoWayLinkedNode
 

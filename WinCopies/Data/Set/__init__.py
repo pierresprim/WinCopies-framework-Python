@@ -6,7 +6,7 @@ from typing import final
 
 
 from WinCopies import IInterface
-from WinCopies.Collections.Enumeration import IEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable
 from WinCopies.Collections.Expression import ICompositeExpression
 from WinCopies.Collections.Extensions import IDictionary

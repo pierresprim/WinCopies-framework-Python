@@ -7,7 +7,7 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract

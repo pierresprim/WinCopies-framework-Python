@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import Abstract
 
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
 from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry

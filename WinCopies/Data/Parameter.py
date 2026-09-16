@@ -6,7 +6,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, IterableBase, TryAsEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, IterableBase, TryAsEnumerable
 from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, GetNotNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder

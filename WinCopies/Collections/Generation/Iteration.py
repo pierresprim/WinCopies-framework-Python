@@ -4,7 +4,7 @@ from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerable, GetIterable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, AsEnumerable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import TryEnumerate, Select

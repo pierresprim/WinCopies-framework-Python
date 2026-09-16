@@ -8,8 +8,7 @@ import sqlite3
 
 
 from WinCopies import String, Abstract
-from WinCopies.Collections import Enumeration
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryAsIterable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, Iterator, TryAsIterable
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Util import CreateList
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
@@ -63,7 +62,7 @@ class _Query(QueryExceptionMapper, ITableNameFormater):
 @final
 class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelectionQueryExecutionResult, IEnumerable[Sequence[object]]):
     @final
-    class _Enumerator(Enumeration.Iterator[Sequence[object]]):
+    class _Enumerator(Iterator[Sequence[object]]):
         def __init__(self, cursor: sqlite3.Cursor, enumeratorUpdater: Action) -> None:
             super().__init__(cursor)
 

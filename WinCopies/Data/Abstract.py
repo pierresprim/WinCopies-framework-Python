@@ -10,7 +10,7 @@ from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IteratorProvider
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList, IDictionary, IReadOnlyKeyedSet
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import GetFirstItem, SelectWhereNotNone

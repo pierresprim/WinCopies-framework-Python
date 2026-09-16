@@ -1,5 +1,5 @@
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.IO import IDirEntry
 from WinCopies.IO.DirEntry import DirEntry
 

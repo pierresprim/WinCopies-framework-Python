@@ -11,7 +11,7 @@ import os
 
 from typing import final
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Iteration import Select
 from WinCopies.IO import IDirEntry, GetFileName, GetExtension, GetExtensionFromArray

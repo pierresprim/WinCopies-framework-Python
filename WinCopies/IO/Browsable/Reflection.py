@@ -3,7 +3,7 @@ from types import ModuleType
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration import IEnumerable, CreateIteratorProvider
+from WinCopies.Collections.Enumeration.Core import IEnumerable, CreateIteratorProvider
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.IO.Browsable import BrowsableUpdater, IBrowsableNameInfo, IBrowsablePathInfo, IExplorable, BrowsableBase, BrowsableNameInfo
 from WinCopies.Typing.Delegate import IFunction, Method

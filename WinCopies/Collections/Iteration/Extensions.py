@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from WinCopies.Collections.Enumeration import IEnumerable, IReversableEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IReversableEnumerable
 from WinCopies.Collections.Linked.Singly import CreateStack, CreateEnumerableStack
 
 def GetReversed[T](items: Iterable[T]) -> IEnumerable[T]:

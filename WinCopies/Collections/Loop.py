@@ -2,7 +2,7 @@ from collections.abc import Iterable, Iterator
 from typing import Callable
 
 from WinCopies import Not
-from WinCopies.Collections.Enumeration import IEnumerator, AsEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerator, AsEnumerable
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,

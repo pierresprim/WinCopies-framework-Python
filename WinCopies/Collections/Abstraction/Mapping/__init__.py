@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator, MutableMapping
+from collections.abc import Iterable, Iterator as _Iterator, MutableMapping
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections import Enumeration
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, TryAsEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, Iterator, TryAsEnumerator
 from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -100,14 +99,14 @@ class DictionaryEnumerator[TKey: HashableProtocol, TValue](EnumeratorBase[IKeyVa
         super().__init__()
 
         self.__dictionary: MutableMapping[TKey, TValue] = dictionary
-        self.__iterator: Enumeration.Iterator[tuple[TKey, TValue]]|None = None
+        self.__iterator: Iterator[tuple[TKey, TValue]]|None = None
         self.__current: INullable[IKeyValuePair[TKey, TValue]] = GetNullValue()
     
     def IsResetSupported(self) -> bool: return True
     
     def _OnStarting(self) -> bool:
         if super()._OnStarting():
-            self.__iterator = Enumeration.Iterator(self.__dictionary.items().__iter__())
+            self.__iterator = Iterator(self.__dictionary.items().__iter__())
             
             return True
         
@@ -177,12 +176,12 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     class _KeyEnumerable[_TKey: HashableProtocol, _TValue](_Enumerable[_TKey, _TValue, _TKey]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None: super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[_TKey]|None: return iter(self._GetInnerDictionary().keys())
+        def _TryGetIterator(self) -> _Iterator[_TKey]|None: return iter(self._GetInnerDictionary().keys())
     @final
     class _ValueEnumerable[_TKey: HashableProtocol, _TValue](_Enumerable[_TKey, _TValue, _TValue]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None: super().__init__(dic)
         
-        def _TryGetIterator(self) -> Iterator[_TValue]|None: return iter(self._GetInnerDictionary().values())
+        def _TryGetIterator(self) -> _Iterator[_TValue]|None: return iter(self._GetInnerDictionary().values())
     
     def __init__(self, dictionary: MutableMapping[TKey, TValue]|None = None) -> None:
         super().__init__()

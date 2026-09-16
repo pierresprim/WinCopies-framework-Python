@@ -8,7 +8,7 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, ISizedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Collection import IViewProvider

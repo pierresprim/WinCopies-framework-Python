@@ -7,7 +7,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerableBase, IEnumerable, IEnumerator, EnumeratorProvider, GetEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerableBase, IEnumerable, IEnumerator, EnumeratorProvider, GetEnumerator
 
 from WinCopies.Typing.Delegate import Converter, Method, IFunction, ValueFunctionUpdater
 

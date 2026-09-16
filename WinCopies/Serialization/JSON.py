@@ -8,7 +8,9 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Tuple
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, AbstractionEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ObjectGeneratorProvider
 from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary

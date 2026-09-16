@@ -3,7 +3,8 @@ import collections.abc
 from typing import final
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase, AbstractEnumeratorBase, AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, AbstractEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 

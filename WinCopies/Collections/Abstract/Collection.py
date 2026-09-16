@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstract import StringableConverter, StringableTwoWay
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, CollectionViewMonitorBase, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import Collection, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollection, HashableTupleCollection, ArrayList

@@ -8,7 +8,7 @@ from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList

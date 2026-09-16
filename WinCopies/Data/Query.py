@@ -12,7 +12,7 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
 from WinCopies.Collections.Extensions import ICollection, IDictionary

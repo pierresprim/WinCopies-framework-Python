@@ -5,7 +5,9 @@ from typing import Callable, final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IReadOnlyCountableIndexable
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AbstractEnumeratorBase, AsEnumerable, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import  GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, NullableEnumerator, AsEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator as IResumableEnumeratorAbstract, IResumableEnumerationCursor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.AdaptiveRefinement import IAdaptiveRefinement

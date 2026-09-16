@@ -2,7 +2,7 @@ from os import pathsep
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration import IEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.IO import IDirEntry
 from WinCopies.IO.Browsable import BrowsableUpdater, IBrowsableInfo, IBrowsableNameInfo, IBrowsablePathInfo, IExplorable, Browsable

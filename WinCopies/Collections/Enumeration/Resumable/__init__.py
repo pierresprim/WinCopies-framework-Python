@@ -6,7 +6,9 @@ from typing import final, Any
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
-from WinCopies.Collections.Enumeration import IIterationStatus, IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, AbstractEnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import IIterationStatus, GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Generation.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError

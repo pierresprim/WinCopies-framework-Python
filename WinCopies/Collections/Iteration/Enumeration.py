@@ -5,7 +5,7 @@ from contextlib import AbstractContextManager
 
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator

@@ -7,7 +7,9 @@ from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, AbstractEnumerator, TryAsEnumerator, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
 from WinCopies.Collections.Iteration import Select, WhereSelect
 from WinCopies.Delegates import BoolFalse

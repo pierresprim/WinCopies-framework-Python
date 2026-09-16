@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
 from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
-from WinCopies.Collections.Enumeration import IEnumerable, ICountableEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Linked.Singly import ICountableQueue, CreateCountableQueue, CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex

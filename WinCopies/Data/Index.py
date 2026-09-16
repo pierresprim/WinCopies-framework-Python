@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import IStringable, Abstract
 from WinCopies.Collections.Abstraction.Collection import CreateHashableTuple
 from WinCopies.Collections.Abstraction.Mapping.Extensions import OrderedSet
-from WinCopies.Collections.Enumeration import IEnumerable, IHashableEnumerable, IEnumerator, IterableBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IHashableEnumerable, IEnumerator, IterableBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple, IOrderedSet, ReadOnlyCollection
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue

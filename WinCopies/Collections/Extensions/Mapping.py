@@ -7,7 +7,7 @@ from typing import overload, final
 
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Enumeration import ICountableEnumerable, IEnumerator, CountableEnumerable
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Extensions import IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container
 
 from WinCopies.Typing import INullable

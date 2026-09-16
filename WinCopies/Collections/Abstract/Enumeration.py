@@ -5,7 +5,8 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstract import ConverterBase
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Selector
+from WinCopies.Collections.Enumeration.Abstraction import Selector
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Generic import IGenericConstraintImplementation

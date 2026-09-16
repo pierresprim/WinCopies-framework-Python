@@ -7,7 +7,9 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, AbstractionEnumerator, GetEmptyEnumerable, GetIterationInactiveError
+from WinCopies.Collections.Enumeration import GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, GetEmptyEnumerable
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse

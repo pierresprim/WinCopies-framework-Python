@@ -3,7 +3,9 @@ from collections.abc import Iterator as _SystemIterator
 from typing import final, Any
 
 from WinCopies import IInterface, IDisposableAbstract, Abstract
-from WinCopies.Collections.Enumeration import IIterationStatus, IEnumeratorBase, IEnumerator, IteratorBase as _IteratorBase, Iterator as _Iterator, ConverterEnumeratorBase, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IIterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration.Abstraction import ConverterEnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, IteratorBase as _IteratorBase, Iterator as _Iterator
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Discard import DiscardReason, IDisposableCookie, IDisposable, DisposableAbstract
 

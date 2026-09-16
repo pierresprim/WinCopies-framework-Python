@@ -5,7 +5,8 @@ from collections.abc import Iterable
 from typing import final, Self
 
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import IEnumerable, IEnumerator, ConverterEnumeratorBase, EnumeratorProvider
+from WinCopies.Collections.Enumeration.Abstraction import ConverterEnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator

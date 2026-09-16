@@ -6,7 +6,7 @@ import unittest
 from typing import Callable, List as PyList
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Node import INode
