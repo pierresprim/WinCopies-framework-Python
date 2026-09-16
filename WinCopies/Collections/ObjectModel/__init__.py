@@ -4,6 +4,7 @@ from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, Seque
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
+from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class ReadOnlyCollectionBase[TItem, TList](SequenceAbstract[TItem], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -37,7 +38,7 @@ class ReadOnlyCollection[T](ReadOnlyCollectionBase[T, ITuple[T]], IGenericConstr
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
 
-class SortedCollection[T](ReadOnlyCollectionBase[T, ISortedTuple[T]], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
+class SortedCollection[T: SupportsEqualityAndRichComparison](ReadOnlyCollectionBase[T, ISortedTuple[T]], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
     def __init__(self, items: ISortedTuple[T]) -> None: super().__init__(items)
     
     @final
