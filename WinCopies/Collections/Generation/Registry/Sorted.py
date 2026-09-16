@@ -11,7 +11,7 @@ from WinCopies.Collections.Generation.Registry.Kernel import CompositeRemovable
 from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryBisectWithKey, Insort
 from WinCopies.Comparison import CompareTo
-from WinCopies.Typing import INullable, GetNullableValue
+from WinCopies.Typing import INullable, TryGetNullable, GetNullableValue
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Pairing import DualValueBool
@@ -123,6 +123,10 @@ class ISortedObjectRegistryBase[TKey, TIn, TOut](IKeyableObjectRegistryBase[TKey
     @abstractmethod
     def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]:
         ...
+    
+    @abstractmethod
+    def TryGetItem(self, key: TKey) -> INullable[TOut]|None:
+        ...
 class ISortedObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
@@ -156,10 +160,13 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         return self._GetSortedItems().ContainsKey(key)
     
     @final
-    def TryGetValue(self, key: TKey) -> INullable[TOut]:
+    def TryGetItem(self, key: TKey) -> INullable[TOut]|None:
         node: ISortedNode[TKey, TOut]|None = self._GetSortedItems().TryGetNode(key)
         
-        return GetNullableValue(None if node is None else node.TryGetValue())
+        return None if node is None else GetNullableValue(node.TryGetValue())
+    @final
+    def TryGetValue(self, key: TKey) -> INullable[TOut]:
+        return TryGetNullable(self.TryGetItem(key))
     
     @final
     def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().TryBisect(key, right)
