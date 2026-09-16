@@ -104,7 +104,7 @@ class ResumableIncrementalEnumerator[T](IncrementalEnumerator[T], IDefaultInvali
         
         cursors: IResumableIncrementalEnumerationCursorRegistry[_ResumableIncrementalEnumerationCursor] = self.__cursors
         index: int = self._GetValue()
-        cursor: IResumableIncrementalEnumerationCursor|None = cursors.TryGetValue(cursors.BisectLeft(index)).TryGetValue()
+        cursor: IResumableIncrementalEnumerationCursor|None = cursors.TryGetValue(index).TryGetValue()
 
         return add(index) if cursor is None else (cursor if cursor.Equals(index) else add(index))
     
