@@ -332,17 +332,16 @@ def TryInsert[T](l: MutableSequence[T], index: int, item: T) -> bool|None:
     return True
 
 def __Bisect[TIn, TOut: SupportsRichComparison](l: Sequence[TIn], item: TOut, selector: Callable[[Sequence[TIn], int], TOut], right: bool, check: bool, low: int, high: int) -> DualValueNullableBool[int]|None:
-    def getResult(info: bool|None) -> DualValueNullableBool[int]: return CreateDualValueNullableBool(low, info)
-
-    def equals(_item: TOut) -> bool:
-        return (item == _item) if isinstance(item, SupportsEqualityAndRichComparison) else ((_item == item) if isinstance(_item, SupportsEqualityAndRichComparison) else item <= _item)
     def getIndex() -> DualValueNullableBool[int]:
         def contains() -> bool:
+            def equals(_item: TOut) -> bool:
+                return (item == _item) if isinstance(item, SupportsEqualityAndRichComparison) else ((_item == item) if isinstance(_item, SupportsEqualityAndRichComparison) else item <= _item)
+            
             index: int = low - 1 if right else low
 
             return ValidateIndex(index, length) and equals(selector(l, index))
 
-        return getResult(contains() if check else None)
+        return CreateDualValueNullableBool(low, contains() if check else None)
 
     def setLow() -> None:
         nonlocal low
