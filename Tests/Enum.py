@@ -7,14 +7,17 @@ import unittest
 from enum import Enum, Flag
 
 from WinCopies.Enum import (
+    ToKeyValuePair, ToKeyValuePairs,
+    ToTuple,
+    HasFlag, EnsureHasFlag
+)
+from WinCopies.Typing.Reflection.Enum import (
     IsMemberOf, EnsureMemberOf,
     IsValueOf, EnsureValueOf,
-    ToKeyValuePair, ToKeyValuePairs,
-    ToTuple, ToTuples,
+    ToTuples,
     IsIn, EnsureIn,
     TryGetMember, TryGetName, TryGetValue,
     TryGetField, TryGetFieldFromName, TryGetFieldFromValue,
-    HasFlag, EnsureHasFlag,
     EnumerateNames, EnumerateValues,
     EnumerateFieldNames, EnumerateFieldValues,
     Print

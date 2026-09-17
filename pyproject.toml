@@ -122,6 +122,11 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
+# The suite mirrors the WinCopies package layout: a test module is named after
+# the module it covers (`Tests/Collections/Registry.py`), not prefixed. Without
+# this line pytest's default `test_*.py` matches nothing here and the whole
+# suite is silently collected as empty.
+python_files = ["*.py"]
 testpaths = ["Tests"]
 pythonpath = ["."]
 
