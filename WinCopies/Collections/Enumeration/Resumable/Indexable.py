@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Callable, final
 
-from WinCopies.Collections.Enumeration.Core import IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultInvalidatableResumableEnumerator, ResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
 from WinCopies.Collections.Generation.Registry.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry

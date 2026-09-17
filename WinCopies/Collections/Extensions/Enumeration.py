@@ -4,7 +4,8 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IncrementalEnumerator
+from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IInvalidatableEnumerator
+from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
