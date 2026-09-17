@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import final, Callable
+from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryCreateEnumerator
@@ -225,16 +225,8 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
         self.__last: INodeCookie[T]|None = None
 
         self.__readOnly: IFunction[IReadOnlyBufferedQueue[T]] = _ReadOnlyBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
-        self.__updater: Callable[[INodeCookie[T], INodeCookie[T]], None] = self._GetUpdater()
 
         self.TryPushItems(values)
-    
-    @final
-    def _GetUpdater(self) -> Callable[[INodeCookie[T], INodeCookie[T]], None]:
-        return self.__updater
-    @final
-    def _SetUpdater(self, updater: Callable[[INodeCookie[T], INodeCookie[T]], None]) -> None:
-        self.__updater = updater
     
     @final
     def _GetFirstCookie(self) -> INodeCookie[T]|None:

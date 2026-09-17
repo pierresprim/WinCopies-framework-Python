@@ -25,8 +25,7 @@ class PriorityLevel(IntEnum):
     Highest = 4
 
 class IPriorityListDictionary[T](IInterface):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsEmpty(self) -> bool:
@@ -153,9 +152,9 @@ class PriorityListDictionary[T](PriorityListDictionaryBase[T, IArray[IList[T]]])
 
 class _PriorityListDictionary[T](PriorityListDictionary[T]):
     def __init__(self, func: IFunction[IList[T]]) -> None:
-        super().__init__()
-
         self.__func: IFunction[IList[T]] = func
+
+        super().__init__()
     
     @final
     def _CreateArray(self) -> IArray[IList[T]]: return ArrayList[IList[T]](len(PriorityLevel), self.__func)
