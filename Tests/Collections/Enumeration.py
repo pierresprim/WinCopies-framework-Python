@@ -22,47 +22,58 @@ Unlike the standalone harness, this module needs no abort-time reporting: each
 point is a test method, so a point that dies takes only itself down.
 """
 
+from __future__ import annotations
+
 import gc
 import unittest
 import weakref
-from typing import Any, Callable
+
+from enum import StrEnum
+from typing import Any, Callable, Type, cast
+
+
 
 from WinCopies import Abstract
-import WinCopies.Collections.Enumeration as E
+
+from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
-from WinCopies.Collections.Enumeration.Core import EnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, EnumeratorBase
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
-from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar
+from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar # pyright: ignore[reportPrivateUsage]
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import InvalidationRegistrar
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Discard import BrokenObjectError, DiscardedError, InvalidatedError
+from WinCopies.Typing.Delegate import Function, Converter
+from WinCopies.Typing.Discard import IInvalidatable, BrokenObjectError, DiscardedError, InvalidatedError
 
 # ---------------------------------------------------------------------------
 # Probes
 # ---------------------------------------------------------------------------
 
-def _st(e: Any) -> str:
+def _st(e: IEnumerator[int]) -> str:
     """`State/Result` of an enumerator, as a single readable token."""
     status = e.GetStatus()
 
     return f"{status.GetState().name}/{status.GetResult().name}"
 
-def _data(e: Any) -> str:
+def _data(e: _Base) -> str:
     return e.GetStatus().GetData().name or "Null"
 
-def _snap(e: Any) -> tuple[str, str]:
+def _snap(e: _Base) -> tuple[str, str]:
     status = e.GetStatus()
 
     return (status.GetState().name, status.GetResult().name)
 
-def _drain(e: Any) -> None:
+def _drain(e: EnumeratorBase[int]) -> None:
     try:
         while e.MoveNext(): pass
+    
     except Exception: pass
 
-def _raises(f: Callable[[], Any]) -> BaseException|None:
+def _raises(f: Function[Any]) -> BaseException|None:
     """Returns the exception `f` raises, or `None` — the harness idiom that lets
     a point assert the *type* of a refusal instead of merely its occurrence."""
     try:
@@ -72,7 +83,7 @@ def _raises(f: Callable[[], Any]) -> BaseException|None:
 
     except BaseException as ex: return ex
 
-def _seq(e: Any, *acts: Callable[[Any], Any]) -> Any:
+def _seq(e: _Base, *acts: Converter[_Base, Any]) -> Any:
     for act in acts:
         try: act(e)
         except Exception: pass
@@ -83,22 +94,26 @@ def _seq(e: Any, *acts: Callable[[Any], Any]) -> Any:
 # Concrete helpers
 # ---------------------------------------------------------------------------
 
+class Action(StrEnum):
+    REGISTER = "REGISTER"
+    UNREGISTER = "UNREGISTER"
+
 class _Spy(InvalidationRegistrar):
     """One-instance-per-enumeration registrar: a single slot, Set/Unset."""
     def __init__(self, sink: list[str]) -> None:
         super().__init__()
 
         self.__sink: list[str] = sink
-        self.cookie = None
+        self.cookie: IInvalidatable|None = None
 
-    def Register(self, cookie) -> None:
+    def Register(self, cookie: IInvalidatable) -> None:
         self.cookie = cookie
 
-        self.__sink.append("REGISTER")
+        self.__sink.append(Action.REGISTER)
 
-    def Unregister(self) -> None: self.__sink.append("UNREGISTER")
+    def Unregister(self) -> None: self.__sink.append(Action.UNREGISTER)
 
-    def Fire(self) -> None: self.cookie.Invalidate()
+    def Fire(self) -> None: cast(IInvalidatable, self.cookie).Invalidate()
 
 class _Cookies(InvalidationRegistrar):
     """Registrar that keeps everything it is handed — including beyond
@@ -107,46 +122,46 @@ class _Cookies(InvalidationRegistrar):
     def __init__(self) -> None:
         super().__init__()
 
-        self.seen: list[Any] = []
-        self.trace: list[str] = []
+        self.seen: list[IInvalidatable] = []
+        self.trace: list[Action] = []
 
-    def Register(self, cookie) -> None:
+    def Register(self, cookie: IInvalidatable) -> None:
         self.seen.append(cookie)
-        self.trace.append("REGISTER")
+        self.trace.append(Action.REGISTER)
 
-    def Unregister(self) -> None: self.trace.append("UNREGISTER")
+    def Unregister(self) -> None: self.trace.append(Action.UNREGISTER)
 
 class _Forgets(InvalidationRegistrar):
     """Does not retain the cookie: isolates what the removable itself adds to
     retention. `_Cookies` would not do here — by keeping cookies it holds the
     enumerator alive through a path other than the one under test."""
-    def Register(self, cookie) -> None: pass
+    def Register(self, cookie: IInvalidatable) -> None: pass
     def Unregister(self) -> None: pass
 
 class _Meddler(InvalidationRegistrar):
     """Tries to mutate the registrar set from the notifications themselves."""
-    def __init__(self, enumerator) -> None:
+    def __init__(self, enumerator: _Base) -> None:
         super().__init__()
 
-        self.e = enumerator
-        self.node = None
+        self.e: _Base = enumerator
+        self.node: IRemovable|None = None
         self.onRegister: BaseException|None = None
         self.onUnregister: BaseException|None = None
 
-    def Register(self, cookie) -> None: self.onRegister = _raises(lambda: self.e.AddRegistrar(_Cookies()))
-    def Unregister(self) -> None: self.onUnregister = _raises(self.node.Remove)
+    def Register(self, cookie: IInvalidatable) -> None: self.onRegister = _raises(lambda: self.e.AddRegistrar(_Cookies()))
+    def Unregister(self) -> None: self.onUnregister = _raises(cast(IRemovable, self.node).Remove)
 
 class _Base(EnumeratorBase[int]):
     """Instrumented enumerator: every hook writes to `sink` with the status read
     *at that point*, and raises when its name is in `raiseIn`."""
-    def __init__(self, items, raiseIn=(), start: bool = True, sink: list[str]|None = None) -> None:
+    def __init__(self, items: ReadOnlyArray[int]|range, raiseIn: set[str]|None=None, start: bool = True, sink: list[str]|None = None) -> None:
         super().__init__()
 
         self._items: list[int] = list(items)
         self._i: int = -1
-        self._cur = None
+        self._cur: int|None = None
 
-        self.raiseIn: set[str] = set(raiseIn)
+        self.raiseIn: set[str] = set(() if raiseIn is None else raiseIn)
         self.start: bool = start
         self.sink: list[str] = [] if sink is None else sink
 
@@ -157,7 +172,7 @@ class _Base(EnumeratorBase[int]):
 
     def IsResetSupported(self) -> bool: return True
 
-    def _GetCurrent(self) -> int: return self._cur
+    def _GetCurrent(self) -> int: return cast(int, self._cur)
 
     def _MoveNextOverride(self) -> bool:
         self._t(f"_MoveNextOverride#{self._i + 1}")
@@ -200,33 +215,34 @@ class _Base(EnumeratorBase[int]):
 
     def _OnEnded(self) -> None: self._t("_OnEnded")
 
-class _FakeStatus(Abstract, E.IIterationStatus):
+class _FakeStatus(Abstract, IIterationStatus):
     """Synthetic status: the only way to exercise all eight results without
     depending on the paths that produce them."""
-    def __init__(self, result, data = E.IterationData.Null) -> None:
+    def __init__(self, result: IterationResult, data: IterationData = IterationData.Null) -> None:
         super().__init__()
 
-        self.__result = result
-        self.__data = data
+        self.__result: IterationResult = result
+        self.__data: IterationData = data
 
-    def GetState(self): return E.IterationState.Ended
+    def GetState(self): return IterationState.Ended
     def GetResult(self): return self.__result
     def GetData(self): return self.__data
 
-def _build(items, raiseIn = (), start: bool = True, curBoom: bool = False) -> _Base:
+def _build(items: ReadOnlyArray[int], raiseIn: set[str]|None = None, start: bool = True, curBoom: bool = False) -> _Base:
     class _Current(_Base):
-        def _GetCurrent(self):
+        def __init__(self, items: ReadOnlyArray[int], raiseIn: set[str]|None = None, start: bool = True, sink: list[str]|None = None) -> None: super().__init__(items, raiseIn, start, sink)
+
+        def _GetCurrent(self) -> int:
             if curBoom: raise RuntimeError("_GetCurrent")
 
-            return self._cur
+            return cast(int, self._cur)
 
     return _Current(items, raiseIn = raiseIn, start = start)
 
 def _invalidated() -> _Base:
     """An enumerator ended by invalidation, through the registrar path."""
-    sink: list[str] = []
-    registrar = _Spy(sink)
-    e = _build([1, 2, 3])
+    registrar = _Spy([])
+    e = _build((1, 2, 3))
 
     e.AddRegistrar(registrar)
     e.MoveNext()
@@ -255,35 +271,33 @@ class TestRaiseDomain(unittest.TestCase):
     """The raise contract, exercised on all eight results at once."""
 
     def test_is_errored_and_try_get_iteration_error_cover_the_same_domain(self) -> None:
-        divergent = [r.name for r in E.IterationResult
+        divergent = [r.name for r in IterationResult
                      if _FakeStatus(r).IsErrored() != (_FakeStatus(r).TryGetIterationError() is not None)]
 
-        self.assertEqual(divergent, [], f"{len(list(E.IterationResult))} results should agree")
+        self.assertEqual(divergent, [], f"{len(list(IterationResult))} results should agree")
 
     def test_the_raised_type_names_the_cause(self) -> None:
-        expected = {
-            E.IterationResult.Faulted: BrokenObjectError,
-            E.IterationResult.Invalidated: InvalidatedError,
-            E.IterationResult.Stopped: InvalidOperationError}
+        expected: dict[IterationResult, Type[InvalidOperationError]] = {
+            IterationResult.Faulted: BrokenObjectError,
+            IterationResult.Invalidated: InvalidatedError,
+            IterationResult.Stopped: InvalidOperationError}
 
         for result, errorType in expected.items():
-            with self.subTest(result = result.name):
-                self.assertIs(type(_FakeStatus(result).TryGetIterationError()), errorType)
+            with self.subTest(result = result.name): self.assertIs(type(_FakeStatus(result).TryGetIterationError()), errorType)
 
     def test_stopped_is_not_a_discard(self) -> None:
         """A stop requested by the consumer does not make the object unusable."""
-        self.assertNotIsInstance(_FakeStatus(E.IterationResult.Stopped).TryGetIterationError(), DiscardedError)
+        self.assertNotIsInstance(_FakeStatus(IterationResult.Stopped).TryGetIterationError(), DiscardedError)
 
     def test_invalidated_is_a_discard(self) -> None:
         """Invalidation is exogenous: the object has become unusable."""
-        self.assertIsInstance(_FakeStatus(E.IterationResult.Invalidated).TryGetIterationError(), DiscardedError)
+        self.assertIsInstance(_FakeStatus(IterationResult.Invalidated).TryGetIterationError(), DiscardedError)
 
     def test_all_types_remain_catchable_as_invalid_operation_error(self) -> None:
         """`UnusableError` derives from `InvalidOperationError`: the
         specialisation breaks no existing caller."""
-        for result in (E.IterationResult.Faulted, E.IterationResult.Invalidated, E.IterationResult.Stopped):
-            with self.subTest(result = result.name):
-                self.assertIsInstance(_FakeStatus(result).TryGetIterationError(), InvalidOperationError)
+        for result in (IterationResult.Faulted, IterationResult.Invalidated, IterationResult.Stopped):
+            with self.subTest(result = result.name): self.assertIsInstance(_FakeStatus(result).TryGetIterationError(), InvalidOperationError)
 
 # ---------------------------------------------------------------------------
 # The terminal sequence
@@ -295,7 +309,7 @@ class TestTerminalSequence(unittest.TestCase):
     def setUp(self) -> None:
         self.sink: list[str] = []
 
-        e = _Base([1, 2], sink = self.sink)
+        e = _Base((1, 2), sink = self.sink)
 
         e.AddRegistrar(_Spy(self.sink))
 
@@ -303,17 +317,17 @@ class TestTerminalSequence(unittest.TestCase):
 
         self.names: list[str] = [line.split(" ")[0] for line in self.sink]
 
-    def _index(self, name: str) -> int: return self.names.index(name)
+    def _index(self, name: str|Action) -> int: return self.names.index(name if isinstance(name, Action) else name)
 
     def test_registration_follows_on_starting_and_precedes_the_first_move_next(self) -> None:
         """1.5"""
-        self.assertLess(self._index("_OnStarting"), self._index("REGISTER"), " < ".join(self.names[:3]))
-        self.assertLess(self._index("REGISTER"), self._index("_MoveNextOverride#0"), " < ".join(self.names[:3]))
+        self.assertLess(self._index("_OnStarting"), self._index(Action.REGISTER), " < ".join(self.names[:3]))
+        self.assertLess(self._index(Action.REGISTER), self._index("_MoveNextOverride#0"), " < ".join(self.names[:3]))
 
     def test_unregistration_heads_the_terminal_sequence(self) -> None:
         """1.6 — UNREGISTER precedes `_Clear`: the sequence is atomic with
         respect to invalidation."""
-        self.assertLess(self._index("UNREGISTER"), self._index("_Clear"))
+        self.assertLess(self._index(Action.UNREGISTER), self._index("_Clear"))
 
     def test_clear_then_switch_then_specific_then_terminated_then_ended(self) -> None:
         """2.1"""
@@ -331,8 +345,7 @@ class TestTerminalSequence(unittest.TestCase):
     def test_notification_hooks_observe_the_terminal_state(self) -> None:
         """2.6"""
         for name in ("_OnCompleted", "_OnTerminated(True)", "_OnEnded"):
-            with self.subTest(hook = name):
-                self.assertIn("[Ended/Completed]", self.sink[self._index(name)])
+            with self.subTest(hook = name): self.assertIn("[Ended/Completed]", self.sink[self._index(name)])
 
 # ---------------------------------------------------------------------------
 # Hook attribution — the endogenous/exogenous rule
@@ -343,16 +356,16 @@ class TestHookAttribution(unittest.TestCase):
         """The deliberate absence on `Invalidated`: `__Invalidate()` is private
         and only registries borrow it, so the implementer is not the party
         addressed by that cause. Asserted so a later reader does not 'fix' it."""
-        cases: list[tuple[str, Callable[[Any], Any], str]] = [
+        cases: ReadOnlyArray[tuple[str, Converter[_Base, Any], str]] = (
             ("Completed", _drain, "_OnCompleted"),
             ("Failed", lambda x: x.MoveNext(), "_OnCompleted"),
             ("Stopped", lambda x: (x.MoveNext(), x.Stop()), "_OnStopped"),
-            ("Faulted", lambda x: (x.MoveNext(), setattr(x, "raiseIn", {"_MoveNextOverride#1"}), _drain(x)), "_OnErrored")]
+            ("Faulted", lambda x: (x.MoveNext(), cast(Any, setattr(x, "raiseIn", {"_MoveNextOverride#1"})), cast(Any, _drain(x))), "_OnErrored"))
 
         for label, act, expected in cases:
             with self.subTest(outcome = label):
                 sink: list[str] = []
-                e = _Base([1, 2], start = label != "Failed", sink = sink)
+                e = _Base((1, 2), start = label != "Failed", sink = sink)
 
                 try: act(e)
                 except Exception: pass
@@ -362,7 +375,7 @@ class TestHookAttribution(unittest.TestCase):
         with self.subTest(outcome = "Invalidated"):
             sink = []
             registrar = _Spy(sink)
-            e = _Base([1, 2, 3], sink = sink)
+            e = _Base((1, 2, 3), sink = sink)
 
             e.AddRegistrar(registrar)
             e.MoveNext()
@@ -373,14 +386,17 @@ class TestHookAttribution(unittest.TestCase):
     def test_on_aborted_fires_on_the_three_interruptions_and_only_them(self) -> None:
         """§4 — the common treatment of every outcome going through
         `__Terminate`."""
+        def getItems() -> ReadOnlyArray[tuple[str, Converter[_Base, Any]]]:
+            return (("Completed", _drain),
+                    ("Failed", lambda x: x.MoveNext()),
+                    ("Stopped", lambda x: (x.MoveNext(), x.Stop())),
+                    ("Faulted", lambda x: (x.MoveNext(), cast(Any, setattr(x, "raiseIn", {"_MoveNextOverride#1"})), cast(Any, _drain(x)))))
+        
         aborted: dict[str, bool] = {}
 
-        for label, act in (("Completed", _drain),
-                           ("Failed", lambda x: x.MoveNext()),
-                           ("Stopped", lambda x: (x.MoveNext(), x.Stop())),
-                           ("Faulted", lambda x: (x.MoveNext(), setattr(x, "raiseIn", {"_MoveNextOverride#1"}), _drain(x)))):
+        for label, act in getItems():
             sink: list[str] = []
-            e = _Base([1, 2], start = label != "Failed", sink = sink)
+            e = _Base((1, 2), start = label != "Failed", sink = sink)
 
             try: act(e)
             except Exception: pass
@@ -389,7 +405,7 @@ class TestHookAttribution(unittest.TestCase):
 
         sink = []
         registrar = _Spy(sink)
-        e = _Base([1, 2, 3], sink = sink)
+        e = _Base((1, 2, 3), sink = sink)
 
         e.AddRegistrar(registrar)
         e.MoveNext()
@@ -408,12 +424,12 @@ class TestFaultAttribution(unittest.TestCase):
     def test_attribution_table_over_both_source_lengths(self) -> None:
         """3.x — the outcome is the same whatever the `MoveNext()` that reaches
         the terminal sequence."""
-        table = [("_OnStarting", [], "Ended/Faulted"), ("_MoveNextOverride#0", [1], "Ended/Faulted"),
-                 ("_ResetOverride", [1], "Ended/Stopped"),
-                 ("_Clear", [1], "Ended/Completed"), ("_OnCompleted", [1], "Ended/Completed"),
-                 ("_OnTerminated", [1], "Ended/Completed"), ("_OnEnded", [1], "Ended/Completed"),
-                 ("_Clear", [], "Ended/Completed"), ("_OnCompleted", [], "Ended/Completed"),
-                 ("_OnTerminated", [], "Ended/Completed"), ("_OnEnded", [], "Ended/Completed")]
+        table: ReadOnlyArray[tuple[str, ReadOnlyArray[int], str]] = (("_OnStarting", (), "Ended/Faulted"), ("_MoveNextOverride#0", (1,), "Ended/Faulted"),
+                 ("_ResetOverride", (1,), "Ended/Stopped"),
+                 ("_Clear", (1,), "Ended/Completed"), ("_OnCompleted", (1,), "Ended/Completed"),
+                 ("_OnTerminated", (1,), "Ended/Completed"), ("_OnEnded", (1,), "Ended/Completed"),
+                 ("_Clear", (), "Ended/Completed"), ("_OnCompleted", (), "Ended/Completed"),
+                 ("_OnTerminated", (), "Ended/Completed"), ("_OnEnded", (), "Ended/Completed"))
 
         for origin, items, expected in table:
             with self.subTest(origin = origin, length = len(items)):
@@ -430,7 +446,7 @@ class TestFaultAttribution(unittest.TestCase):
                 self.assertEqual(_st(e), expected)
 
     def _assertPropagates(self, origin: str) -> None:
-        e = _Base([1], raiseIn = {origin})
+        e = _Base((1,), raiseIn = {origin})
 
         e.MoveNext()
 
@@ -453,7 +469,7 @@ class TestFaultAttribution(unittest.TestCase):
         """3.10"""
         sink: list[str] = []
 
-        _drain(_Base([1], raiseIn = {"_OnCompleted"}, sink = sink))
+        _drain(_Base((1,), raiseIn = {"_OnCompleted"}, sink = sink))
 
         self.assertFalse(any(line.startswith("_OnEnded") for line in sink))
 
@@ -461,7 +477,7 @@ class TestFaultAttribution(unittest.TestCase):
         """3.12 — the only residual path where a fault precedes a classic
         outcome: `_Clear()` and the notification hooks raise *after* the outcome
         is played, hence without bearing on the result."""
-        e = _Base([1, 2], raiseIn = {"_Clear"})
+        e = _Base((1, 2), raiseIn = {"_Clear"})
 
         _drain(e)
 
@@ -470,7 +486,7 @@ class TestFaultAttribution(unittest.TestCase):
 
     def test_the_faulted_flag_is_monotonic_until_the_next_reset(self) -> None:
         """3.12"""
-        e = _Base([1, 2], raiseIn = {"_Clear"})
+        e = _Base((1, 2), raiseIn = {"_Clear"})
 
         _drain(e)
 
@@ -484,7 +500,7 @@ class TestFaultAttribution(unittest.TestCase):
 
     def test_a_move_next_fault_ends_the_enumeration(self) -> None:
         """3.13"""
-        e = _Base([1, 2, 3, 4])
+        e = _Base((1, 2, 3, 4))
 
         e.MoveNext()
 
@@ -498,7 +514,7 @@ class TestFaultAttribution(unittest.TestCase):
 
     def test_no_resumption_after_a_move_next_fault(self) -> None:
         """3.13"""
-        e = _Base([1, 2, 3, 4])
+        e = _Base((1, 2, 3, 4))
 
         e.MoveNext()
 
@@ -513,7 +529,7 @@ class TestFaultAttribution(unittest.TestCase):
     def test_the_terminal_fault_unrolls_its_own_sequence(self) -> None:
         """3.14"""
         sink: list[str] = []
-        e = _Base([1, 2, 3], sink = sink)
+        e = _Base((1, 2, 3), sink = sink)
 
         e.MoveNext()
 
@@ -528,7 +544,7 @@ class TestFaultAttribution(unittest.TestCase):
     def test_a_fault_in_on_starting_also_closes_the_enumeration(self) -> None:
         """3.15"""
         sink: list[str] = []
-        e = _Base([1, 2, 3], raiseIn = {"_OnStarting"}, sink = sink)
+        e = _Base((1, 2, 3), raiseIn = {"_OnStarting"}, sink = sink)
 
         try: e.MoveNext()
         except Exception: pass
@@ -545,7 +561,7 @@ class TestFaultAttribution(unittest.TestCase):
 
     def test_try_reset_clears_the_flag_after_a_start_fault(self) -> None:
         """3.17"""
-        e = _Base([1, 2, 3], raiseIn = {"_OnStarting"})
+        e = _Base((1, 2, 3), raiseIn = {"_OnStarting"})
 
         try: e.MoveNext()
         except Exception: pass
@@ -559,13 +575,13 @@ class TestFaultAttribution(unittest.TestCase):
 
     def test_register_and_unregister_stay_paired_on_faulty_paths(self) -> None:
         """3.16"""
-        cases = (("advance fault", lambda x: (x.MoveNext(), setattr(x, "raiseIn", {"_MoveNextOverride#1"}), x.MoveNext())),
+        cases: ReadOnlyArray[tuple[str, Converter[_Base, Any]]] = (("advance fault", lambda x: (x.MoveNext(), cast(Any, setattr(x, "raiseIn", {"_MoveNextOverride#1"})), x.MoveNext())),
                  ("start fault then resumption", lambda x: (x.MoveNext(),)))
 
         for label, act in cases:
             with self.subTest(path = label):
                 sink: list[str] = []
-                e = _Base([1, 2], raiseIn = {"_OnStarting"} if "start" in label else (), sink = sink)
+                e = _Base((1, 2), raiseIn = {"_OnStarting"} if "start" in label else None, sink = sink)
 
                 e.AddRegistrar(_Spy(sink))
 
@@ -577,7 +593,7 @@ class TestFaultAttribution(unittest.TestCase):
 
                     _drain(e)
 
-                self.assertEqual(sink.count("REGISTER"), sink.count("UNREGISTER"))
+                self.assertEqual(sink.count(Action.REGISTER), sink.count(Action.UNREGISTER))
 
 # ---------------------------------------------------------------------------
 # Registrar pairing and the Stop() guard
@@ -586,7 +602,7 @@ class TestFaultAttribution(unittest.TestCase):
 class TestRegistrarPairing(unittest.TestCase):
     def test_register_and_unregister_are_paired_never_unset_on_an_empty_slot(self) -> None:
         """§1"""
-        cases = (("full enumeration", _drain),
+        cases: ReadOnlyArray[tuple[str, Converter[_Base, Any]]] = (("full enumeration", _drain),
                  ("Stop() while running", lambda x: (x.MoveNext(), x.Stop())),
                  ("Stop() before start", lambda x: x.Stop()),
                  ("start refused", lambda x: x.MoveNext()))
@@ -594,39 +610,38 @@ class TestRegistrarPairing(unittest.TestCase):
         for label, act in cases:
             with self.subTest(path = label):
                 sink: list[str] = []
-                e = _Base([1, 2], start = label != "start refused", sink = sink)
+                e = _Base((1, 2), start = label != "start refused", sink = sink)
 
                 e.AddRegistrar(_Spy(sink))
                 act(e)
 
-                self.assertEqual(sink.count("REGISTER"), sink.count("UNREGISTER"))
+                self.assertEqual(sink.count(Action.REGISTER), sink.count(Action.UNREGISTER))
 
     def test_the_stop_guard_passes_on_the_five_combinations(self) -> None:
         """P1"""
         combos: list[tuple[str, str]] = []
 
-        e = _Base([1, 2, 3]); e.Stop(); combos.append(("Idle/Idle", _st(e)))
-        e = _Base([1, 2, 3]); e.MoveNext(); e.Stop(); combos.append(("Started/Running", _st(e)))
+        e = _Base((1, 2, 3)); e.Stop(); combos.append(("Idle/Idle", _st(e)))
+        e = _Base((1, 2, 3)); e.MoveNext(); e.Stop(); combos.append(("Started/Running", _st(e)))
 
-        e = _Base([1, 2, 3]); e.MoveNext(); e.raiseIn = {"_MoveNextOverride#1"}
+        e = _Base((1, 2, 3)); e.MoveNext(); e.raiseIn = {"_MoveNextOverride#1"}
 
         try: e.MoveNext()
         except Exception: pass
 
         e.raiseIn = set(); e.Stop(); combos.append(("Started/Faulted", _st(e)))
 
-        e = _Base([1], raiseIn = {"_OnStarting"})
+        e = _Base((1,), raiseIn = {"_OnStarting"})
 
         try: e.MoveNext()
         except Exception: pass
 
         e.raiseIn = set(); e.Stop(); combos.append(("Idle/Faulted", _st(e)))
 
-        e = _Base([1]); _drain(e); e.Stop(); combos.append(("Ended/Completed", _st(e)))
+        e = _Base((1,)); _drain(e); e.Stop(); combos.append(("Ended/Completed", _st(e)))
 
         for entry, result in combos:
-            with self.subTest(entry = entry):
-                self.assertTrue(result.startswith("Ended"), result)
+            with self.subTest(entry = entry): self.assertTrue(result.startswith("Ended"), result)
 
 # ---------------------------------------------------------------------------
 # The -ing pair, on the abstraction enumerator
@@ -641,7 +656,7 @@ class TestAbstractionHooks(unittest.TestCase):
         class _Abs(AbstractionEnumerator[int, int]):
             def _GetCurrent(self) -> int: return self._GetContainer().GetCurrent()
 
-            def _OnAborting(self, enumerator) -> None:
+            def _OnAborting(self, enumerator: IEnumerator[int]) -> None:
                 positions.append(f"_OnAborting: container {enumerator.GetStatus().GetState().name}, "
                                  f"wrapper {self.GetStatus().GetState().name}")
 
@@ -657,7 +672,7 @@ class TestAbstractionHooks(unittest.TestCase):
 
     def test_the_ing_pair_frames_the_container_stop(self) -> None:
         """§4"""
-        a = self.Abs(_Base([1, 2, 3]))
+        a = self.Abs(_Base((1, 2, 3)))
 
         a.MoveNext()
         a.Stop()
@@ -674,7 +689,7 @@ class TestAbstractionHooks(unittest.TestCase):
 
                 return result
 
-        a = _AbsBoom(_Base([1, 2, 3]))
+        a: _AbsBoom = _AbsBoom(_Base((1, 2, 3)))
 
         a.MoveNext()
 
@@ -685,7 +700,7 @@ class TestAbstractionHooks(unittest.TestCase):
 
     def test_no_ing_observation_when_the_container_ended_by_itself(self) -> None:
         """§4"""
-        inner = _Base([1, 2, 3])
+        inner: _Base = _Base((1, 2, 3))
         a = self.Abs(inner)
 
         a.MoveNext()
@@ -700,7 +715,7 @@ class TestAbstractionHooks(unittest.TestCase):
 
     def test_no_ing_hook_on_the_endogenous_branch(self) -> None:
         """§4 — conforms to the endogenous/exogenous rule."""
-        _drain(self.Abs(_Base([1])))
+        _drain(self.Abs(_Base((1,))))
 
         self.assertEqual(self.positions, [])
 
@@ -709,19 +724,21 @@ class TestUnfaultEnvelope(unittest.TestCase):
         """C6 — stacking the `Unfault` envelope assumed resumption after a fault.
         Resumption having disappeared, the cause is checked to be gone rather
         than the symptom patched."""
-        calls: list[int] = [0]
-        original = E.IterationStatus.Unfault
+        calls: int = 0
+        original = IterationStatus.Unfault
 
-        def _counting(self):
-            calls[0] += 1
+        def _counting(self: IterationStatus) -> None:
+            nonlocal calls
+
+            calls += 1
 
             return original(self)
 
-        E.IterationStatus.Unfault = _counting
+        IterationStatus.Unfault = _counting
 
-        self.addCleanup(setattr, E.IterationStatus, "Unfault", original)
+        self.addCleanup(setattr, IterationStatus, "Unfault", original)
 
-        e = _Base(range(50))
+        e: _Base = _Base(range(50))
 
         for _ in range(50):
             try:
@@ -734,7 +751,7 @@ class TestUnfaultEnvelope(unittest.TestCase):
         try: e.TryMoveNext()
         except Exception: pass
 
-        self.assertEqual(calls[0], 0, f"{calls[0]} call(s) to Unfault over a full run — resumption no longer exists")
+        self.assertEqual(calls, 0, f"{calls} call(s) to Unfault over a full run — resumption no longer exists")
 
 # ---------------------------------------------------------------------------
 # The invalidation cookie life cycle
@@ -751,8 +768,8 @@ class TestInvalidationCookie(unittest.TestCase):
         keeps a strong reference, so it would hold alive the very thing it claims
         to measure. The real registry only observes weakly — which is the whole
         point here."""
-        collection = List([1, 2, 3])
-        cursor = collection.TryGetEnumerator()
+        collection = List[int]((1, 2, 3))
+        cursor: IEnumerator[int] = collection.TryGetEnumerator()
 
         cursor.MoveNext()
         gc.collect()
@@ -766,13 +783,13 @@ class TestInvalidationCookie(unittest.TestCase):
         captured: list[Any] = []
 
         class _Weak(InvalidationRegistrar):
-            def Register(self, cookie) -> None: captured.append(weakref.ref(cookie))
+            def Register(self, cookie: IInvalidatable) -> None: captured.append(weakref.ref(cookie))
             def Unregister(self) -> None: pass
 
-        collection = List([1, 2, 3])
+        collection = List((1, 2, 3))
         cursor = collection.TryGetEnumerator()
 
-        cursor.AddRegistrar(_Weak())
+        cast(IInvalidatableEnumerator[int], cursor).AddRegistrar(_Weak())
         cursor.MoveNext()
         gc.collect()
 
@@ -781,8 +798,8 @@ class TestInvalidationCookie(unittest.TestCase):
 
     def test_the_registration_invalidation_cycle_holds_over_four_rounds(self) -> None:
         """§D"""
-        e = _Base(range(9))
-        spy = _Cookies()
+        e: _Base = _Base(range(9))
+        spy: _Cookies = _Cookies()
 
         e.AddRegistrar(spy)
 
@@ -814,14 +831,14 @@ class TestInvalidationCookie(unittest.TestCase):
 
     def test_a_cookie_held_beyond_its_registration_is_inert(self) -> None:
         """§D"""
-        cases = (("completion", _drain),
+        cases: ReadOnlyArray[tuple[str, Converter[_Base, object]]] = (("completion", _drain),
                  ("requested stop", lambda x: (x.MoveNext(), x.Stop())),
                  ("advance fault", lambda x: (x.MoveNext(), x.MoveNext())))
 
         for label, terminate in cases:
             with self.subTest(termination = label):
-                e = _Base([1, 2, 3], raiseIn = {"_MoveNextOverride#1"} if label == "advance fault" else ())
-                spy = _Cookies()
+                e: _Base = _Base((1, 2, 3), raiseIn = {"_MoveNextOverride#1"} if label == "advance fault" else None)
+                spy: _Cookies = _Cookies()
 
                 e.AddRegistrar(spy)
 
@@ -835,8 +852,8 @@ class TestInvalidationCookie(unittest.TestCase):
 
     def test_a_refused_start_emits_no_cookie(self) -> None:
         """§D"""
-        e = _Base([1], start = False)
-        spy = _Cookies()
+        e: _Base = _Base((1,), start = False)
+        spy: _Cookies = _Cookies()
 
         e.AddRegistrar(spy)
         e.MoveNext()
@@ -847,7 +864,7 @@ class TestInvalidationCookie(unittest.TestCase):
 
     def test_the_registrars_of_one_registration_receive_the_same_cookie(self) -> None:
         """§D"""
-        e = _Base([1, 2])
+        e: _Base = _Base((1, 2))
         a, b = _Cookies(), _Cookies()
 
         e.AddRegistrar(a)
@@ -860,7 +877,7 @@ class TestInvalidationCookie(unittest.TestCase):
 
     def test_one_invalidation_unregisters_every_registrar(self) -> None:
         """§D"""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
         a, b = _Cookies(), _Cookies()
 
         e.AddRegistrar(a)
@@ -868,13 +885,13 @@ class TestInvalidationCookie(unittest.TestCase):
         e.MoveNext()
         a.seen[0].Invalidate()
 
-        self.assertEqual(a.trace, ["REGISTER", "UNREGISTER"])
-        self.assertEqual(b.trace, ["REGISTER", "UNREGISTER"])
+        self.assertEqual(a.trace, [Action.REGISTER, Action.UNREGISTER])
+        self.assertEqual(b.trace, [Action.REGISTER, Action.UNREGISTER])
 
     def test_register_and_unregister_stay_paired_over_three_full_cycles(self) -> None:
         """§D"""
-        e = _Base([1, 2])
-        spy = _Cookies()
+        e: _Base = _Base((1, 2))
+        spy: _Cookies = _Cookies()
 
         e.AddRegistrar(spy)
 
@@ -882,8 +899,8 @@ class TestInvalidationCookie(unittest.TestCase):
             e.TryReset()
             _drain(e)
 
-        self.assertEqual(spy.trace.count("REGISTER"), 3)
-        self.assertEqual(spy.trace.count("UNREGISTER"), 3)
+        self.assertEqual(spy.trace.count(Action.REGISTER), 3)
+        self.assertEqual(spy.trace.count(Action.UNREGISTER), 3)
 
 # ---------------------------------------------------------------------------
 # The registrar set is frozen while a registration is in progress
@@ -898,7 +915,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
     def test_adding_during_a_registration_raises(self) -> None:
         """§E — a late registrar protected nothing and still received the end
         notification."""
-        e = _Base([1, 2, 3])
+        e = _Base((1, 2, 3))
 
         e.AddRegistrar(_Cookies())
         e.MoveNext()
@@ -907,7 +924,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
 
     def test_removing_during_a_registration_raises(self) -> None:
         """§E"""
-        e = _Base([1, 2, 3])
+        e = _Base((1, 2, 3))
         node = e.AddRegistrar(_Cookies())
 
         e.MoveNext()
@@ -918,8 +935,9 @@ class TestFrozenRegistrarSet(unittest.TestCase):
         """§E — an accepted removal used to leave an entry that invalidated every
         subsequent iteration."""
         registry = EnumeratorRegistry()
-        e = _Base([1, 2, 3])
-        node = e.AddRegistrar(_Registrar(registry._GetRegistry()))
+        e = _Base((1, 2, 3))
+        node = e.AddRegistrar(_Registrar(
+            registry._GetRegistry())) # pyright: ignore[reportPrivateUsage]
 
         e.MoveNext()
 
@@ -939,7 +957,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
 
     def test_outside_a_registration_removal_is_free_and_idempotent(self) -> None:
         """§E"""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
         a, b, c = _Cookies(), _Cookies(), _Cookies()
 
         e.AddRegistrar(a)
@@ -952,13 +970,13 @@ class TestFrozenRegistrarSet(unittest.TestCase):
         e.MoveNext()
         e.Stop()
 
-        self.assertEqual(a.trace, ["REGISTER", "UNREGISTER"])
-        self.assertEqual(c.trace, ["REGISTER", "UNREGISTER"])
+        self.assertEqual(a.trace, [Action.REGISTER, Action.UNREGISTER])
+        self.assertEqual(c.trace, [Action.REGISTER, Action.UNREGISTER])
         self.assertEqual(b.trace, [])
 
     def test_outside_a_registration_addition_is_free_and_effective_next_cycle(self) -> None:
         """§E"""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
 
         e.AddRegistrar(_Cookies())
         _drain(e)
@@ -970,11 +988,11 @@ class TestFrozenRegistrarSet(unittest.TestCase):
         e.TryReset()
         e.MoveNext()
 
-        self.assertEqual(late.trace, ["REGISTER"])
+        self.assertEqual(late.trace, [Action.REGISTER])
 
     def test_mutating_the_set_from_a_notification_raises_on_both_sides(self) -> None:
         """§E"""
-        e = _Base([1, 2, 3])
+        e = _Base((1, 2, 3))
         meddler = _Meddler(e)
 
         meddler.node = e.AddRegistrar(meddler)
@@ -988,7 +1006,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
     def test_the_removable_adds_no_retention(self) -> None:
         """§E — the removable's guard must not create a link back to the
         manager."""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
         kept = e.AddRegistrar(_Forgets())
 
         e.MoveNext()
@@ -1007,7 +1025,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
         """§E — expected: the cookie holds the enumerator strongly. This is not a
         defect but a clause — keeping the cookie is functionally harmless, not
         free in lifetime."""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
         holder = _Cookies()
 
         e.AddRegistrar(holder)
@@ -1024,7 +1042,7 @@ class TestFrozenRegistrarSet(unittest.TestCase):
 
     def test_pairing_is_total_over_three_cycles_and_two_registrars(self) -> None:
         """§E"""
-        e = _Base([1, 2])
+        e = _Base((1, 2))
         a, b = _Cookies(), _Cookies()
 
         e.AddRegistrar(a)
@@ -1034,8 +1052,8 @@ class TestFrozenRegistrarSet(unittest.TestCase):
             e.TryReset()
             _drain(e)
 
-        self.assertEqual(a.trace, ["REGISTER", "UNREGISTER"] * 3)
-        self.assertEqual(b.trace, ["REGISTER", "UNREGISTER"] * 3)
+        self.assertEqual(a.trace, [Action.REGISTER, Action.UNREGISTER] * 3)
+        self.assertEqual(b.trace, [Action.REGISTER, Action.UNREGISTER] * 3)
 
 # ---------------------------------------------------------------------------
 # The table of valid (state, result) combinations
@@ -1053,23 +1071,23 @@ _VALID: set[tuple[str, str]] = {
     ("Ended",   "Invalidated")} # invalidation
 
 _PATHS: list[tuple[str, Callable[[], Any]]] = [
-    ("new",                    lambda: _build([1, 2])),
-    ("in progress",            lambda: _seq(_build([1, 2]), lambda x: x.MoveNext())),
-    ("completion",             lambda: _seq(_build([1, 2]), _drain)),
-    ("empty source",           lambda: _seq(_build([]), _drain)),
-    ("start refused",          lambda: _seq(_build([1], start = False), lambda x: x.MoveNext())),
-    ("Stop before start",      lambda: _seq(_build([1, 2]), lambda x: x.Stop())),
-    ("Stop while running",     lambda: _seq(_build([1, 2, 3]), lambda x: x.MoveNext(), lambda x: x.Stop())),
-    ("Stop after the end",     lambda: _seq(_build([1]), _drain, lambda x: x.Stop())),
-    ("TryReset",               lambda: _seq(_build([1, 2]), lambda x: x.MoveNext(), lambda x: x.TryReset())),
-    ("_OnStarting fault",      lambda: _seq(_build([1], {"_OnStarting"}), lambda x: x.MoveNext())),
-    ("first MoveNext fault",   lambda: _seq(_build([1], {"_MoveNextOverride#0"}), lambda x: x.MoveNext())),
-    ("later MoveNext fault",   lambda: _seq(_build([1, 2], {"_MoveNextOverride#1"}), lambda x: x.MoveNext(), lambda x: x.MoveNext())),
-    ("_Clear fault",           lambda: _seq(_build([1], {"_Clear"}), _drain)),
-    ("notification fault",     lambda: _seq(_build([1], {"_OnCompleted"}), _drain)),
-    ("_ResetOverride fault",   lambda: _seq(_build([1], {"_ResetOverride"}), lambda x: x.MoveNext(), lambda x: x.TryReset())),
-    ("_GetCurrent fault",      lambda: _seq(_build([1, 2], curBoom = True), lambda x: x.MoveNext(), lambda x: x.GetCurrent())),
-    ("advance fault",          lambda: _seq(_build([1, 2, 3], {"_MoveNextOverride#1"}),
+    ("new",                    lambda: _build((1, 2))),
+    ("in progress",            lambda: _seq(_build((1, 2)), lambda x: x.MoveNext())),
+    ("completion",             lambda: _seq(_build((1, 2)), _drain)),
+    ("empty source",           lambda: _seq(_build(()), _drain)),
+    ("start refused",          lambda: _seq(_build((1,), start = False), lambda x: x.MoveNext())),
+    ("Stop before start",      lambda: _seq(_build((1, 2)), lambda x: x.Stop())),
+    ("Stop while running",     lambda: _seq(_build((1, 2, 3)), lambda x: x.MoveNext(), lambda x: x.Stop())),
+    ("Stop after the end",     lambda: _seq(_build((1,)), _drain, lambda x: x.Stop())),
+    ("TryReset",               lambda: _seq(_build((1, 2)), lambda x: x.MoveNext(), lambda x: x.TryReset())),
+    ("_OnStarting fault",      lambda: _seq(_build((1,), {"_OnStarting"}), lambda x: x.MoveNext())),
+    ("first MoveNext fault",   lambda: _seq(_build((1,), {"_MoveNextOverride#0"}), lambda x: x.MoveNext())),
+    ("later MoveNext fault",   lambda: _seq(_build((1, 2), {"_MoveNextOverride#1"}), lambda x: x.MoveNext(), lambda x: x.MoveNext())),
+    ("_Clear fault",           lambda: _seq(_build((1,), {"_Clear"}), _drain)),
+    ("notification fault",     lambda: _seq(_build((1,), {"_OnCompleted"}), _drain)),
+    ("_ResetOverride fault",   lambda: _seq(_build((1,), {"_ResetOverride"}), lambda x: x.MoveNext(), lambda x: x.TryReset())),
+    ("_GetCurrent fault",      lambda: _seq(_build((1, 2), curBoom = True), lambda x: x.MoveNext(), lambda x: x.GetCurrent())),
+    ("advance fault",          lambda: _seq(_build((1, 2, 3), {"_MoveNextOverride#1"}),
                                             lambda x: x.MoveNext(), lambda x: x.MoveNext(),
                                             lambda x: setattr(x, "raiseIn", set()), lambda x: x.MoveNext())),
     ("invalidation",           _invalidated)]
@@ -1091,7 +1109,7 @@ class TestStateTable(unittest.TestCase):
 # The raise, on the real enumeration paths
 # ---------------------------------------------------------------------------
 
-def _raised(e: Any, *args: Any) -> Any:
+def _raised(e: _Base, *args: Any) -> bool|BaseException:
     try: return e.MoveNext(*args)
     except BaseException as ex: return ex
 
@@ -1099,8 +1117,8 @@ class TestRealPaths(unittest.TestCase):
     def test_move_next_raises_the_expected_type_on_the_three_real_paths(self) -> None:
         """§C"""
         paths = (("invalidation", _invalidated(), InvalidatedError),
-                 ("requested stop", _seq(_build([1, 2, 3]), lambda x: x.MoveNext(), lambda x: x.Stop()), InvalidOperationError),
-                 ("advance fault", _seq(_build([1, 2], {"_MoveNextOverride#1"}),
+                 ("requested stop", _seq(_build((1, 2, 3)), lambda x: x.MoveNext(), lambda x: x.Stop()), InvalidOperationError),
+                 ("advance fault", _seq(_build((1, 2), {"_MoveNextOverride#1"}),
                                         lambda x: x.MoveNext(), lambda x: x.MoveNext()), BrokenObjectError))
 
         for label, e, errorType in paths:
@@ -1121,13 +1139,13 @@ class TestRealPaths(unittest.TestCase):
 
     @staticmethod
     def _classic() -> list[tuple[str, Any]]:
-        return [("completion", _seq(_build([1, 2]), _drain)),
-                ("empty source", _seq(_build([]), _drain)),
-                ("start refused", _seq(_build([1], start = False), lambda x: x.MoveNext()))]
+        return [("completion", _seq(_build((1, 2)), _drain)),
+                ("empty source", _seq(_build(()), _drain)),
+                ("start refused", _seq(_build((1,), start = False), lambda x: x.MoveNext()))]
 
     def test_has_faulted_keeps_history_and_result_as_two_axes(self) -> None:
         """§C"""
-        F, D = E.IterationResult, E.IterationData
+        F, D = IterationResult, IterationData
         table = ((F.Faulted, D.Null, True, False, True),
                  (F.Invalidated, D.Null, True, False, True),
                  (F.Stopped, D.Null, False, False, False),

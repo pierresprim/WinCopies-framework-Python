@@ -15,38 +15,48 @@ measurements are wrong:
   * the "mutate first, observe second" order is exercised explicitly: that is
     where the registry disarming of D-2 used to hide.
 
-This module is not discovered by the line that runs the rest of the suite; it
-has to be named:
+This module is discovered by the line that runs the rest of the suite, and no
+longer has to be named. The default unittest pattern, test*.py, matches no file
+here and finds only the two packages; the suite is run with the pattern that
+takes every module once:
 
-    python3 -m unittest Tests.Collections.Registry
+    python3 -m unittest discover -s Tests -t . -p '[!_]*.py'
 """
 
 import contextlib
 import gc
 import unittest
-from collections.abc import Generator
-from typing import Any, Callable
 
+from abc import abstractmethod
+from collections.abc import Generator
+from typing import final, Any, Callable, cast
+
+
+
+from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstraction.Selection import (
     EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
+from WinCopies.Collections.Core import ICountable, ICollection, IWriteOnlyIndexable, ITuple, IList, ISortedList
+from WinCopies.Collections.Enumeration.Core import IEnumerator
+from WinCopies.Collections.Extensions import ITupleBase, IList as _IList
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
-from WinCopies.Typing.Delegate import IFunction
+from WinCopies.Typing.Delegate import Function, Converter, IFunction
 from WinCopies.Typing.Discard import DiscardedError
 
-type Factory = Callable[[], Any]
-type Action = Callable[[Any], Any]
+type Factory[T] = Function[T]
+type Action[T] = Converter[T, Any]
 
 class _Handle(IFunction[int]):
     """Cell initialiser for ArrayList, which takes a provider rather than a sequence."""
 
     def GetValue(self) -> int: return 0
 
-def _source() -> Any: return List[int]([1, 2, 3])
+def _source() -> List[int]: return List[int]([1, 2, 3])
 
-def _arrayList() -> Any:
+def _arrayList() -> ArrayList[int]:
     """ArrayList initialises from a provider, so every cell starts equal. The values are
     told apart afterwards: otherwise Move and Swap would take effect without the
     observable content showing it."""
@@ -80,9 +90,9 @@ def _sizedList() -> Any:
 # Mutation recipes, by member name. No type carries them all; the harness exercises
 # only those a type exposes, which gives C5 coverage without writing one test per
 # (type, mutator) pair.
-_MUTATORS: dict[str, Action] = {
+_MUTATORS: dict[str, Action[IList[int]]] = {
     "Add":            lambda o: o.Add(9),
-    "AddLeft":        lambda o: o.AddLeft(9),
+    "AddLeft":        lambda o: cast(ISortedList[int], o).AddLeft(9),
     "AddRange":       lambda o: o.AddRange((7, 8)),
     "TryAddRange":    lambda o: o.TryAddRange((7, 8)),
     "Insert":         lambda o: o.Insert(1, 9),
@@ -105,33 +115,58 @@ _MUTATORS: dict[str, Action] = {
     "Clear":          lambda o: o.Clear(),
 }
 
-class _Case:
+class _CaseBase:
+    @abstractmethod
+    def GetName(self) -> str: ...
+
+    @abstractmethod
+    def Create(self) -> Any: ...
+class _Case[T](_CaseBase):
     """A concrete type and its factory."""
 
-    def __init__(self, name: str, factory: Factory) -> None:
+    def __init__(self, name: str, factory: Factory[T]) -> None:
         self.name = name
         self.factory = factory
 
-    def Create(self) -> Any: return self.factory()
+    @final
+    def GetName(self) -> str: return self.name
 
-class _MutableCase(_Case):
+    def Create(self) -> T: return self.factory()
+
+class _MutableCaseBase(_CaseBase):
+    @abstractmethod
+    def Mutate(self, items: IList[int]) -> object: ...
+    @abstractmethod
+    def Refuse(self, items: IList[int]) -> object: ...
+
+    @abstractmethod
+    def GetMutators(self, items: Any) -> ReadOnlyArray[tuple[str, Action[Any]]]: ...
+class _MutableCase[T](_Case[T], _MutableCaseBase):
     """A mutable type, with a way to mutate it effectively and a way to be refused.
 
     'refuse' applies a mutation the type must reject: it is what checks C6, and its
     wording differs depending on whether the type is resizable or fixed-size.
     """
 
-    def __init__(self, name: str, factory: Factory, mutate: Action, refuse: Action, sourced: bool = False) -> None:
+    def __init__(self, name: str, factory: Factory[T], mutate: Action[T], refuse: Action[T], sourced: bool = False) -> None:
         super().__init__(name, factory)
 
         self.mutate = mutate
         self.refuse = refuse
         self.sourced = sourced   # the type routes its registry to a source's
 
-    def GetMutators(self, items: Any) -> list[tuple[str, Action]]:
-        return [(n, f) for n, f in _MUTATORS.items() if callable(getattr(items, n, None))]
+    @final
+    def __Process(self, items: IList[int], action: Action[T]) -> object: return action(cast(T, items))
 
-def _snapshot(items: Any) -> tuple[Any, ...]:
+    @final
+    def Mutate(self, items: IList[int]) -> object: return self.__Process(items, self.mutate)
+    @final
+    def Refuse(self, items: IList[int]) -> object: return self.__Process(items, self.refuse)
+    
+    def GetMutators(self, items: T) -> ReadOnlyArray[tuple[str, Action[IList[int]]]]:
+        return tuple((n, f) for n, f in _MUTATORS.items() if callable(getattr(items, n, None)))
+
+def _snapshot(items: ITuple[int]) -> ReadOnlyArray[int]:
     """Observable content, used to establish that a mutation actually took place."""
 
     return tuple(items.GetAt(i) for i in range(items.GetCount()))
@@ -139,50 +174,49 @@ def _snapshot(items: Any) -> tuple[Any, ...]:
 # Derivation forms a type may expose. Each one is a second level between the root and
 # the revocable, and the failure mode C7 targets is registration with the immediate
 # parent rather than the root: one level works, two levels break.
-_PROJECTIONS: tuple[str, ...] = ("AsReversed", "AsReadOnly", "AsFixedSize")
+_PROJECTIONS: ReadOnlyArray[str] = ("AsReversed", "AsReadOnly", "AsFixedSize")
 
 def _projections(items: Any) -> list[tuple[str, Any]]:
     return [(n, getattr(items, n)()) for n in _PROJECTIONS if callable(getattr(items, n, None))]
 
-def _resizable(items: Any) -> Any: return items.TryRemoveAt(99)
-def _fixed(items: Any) -> Any: return items.TrySetAt(99, 9)
+def _resizable(items: ICollection[int]) -> bool|None: return items.TryRemoveAt(99)
+def _fixed(items: IWriteOnlyIndexable[int]) -> bool: return items.TrySetAt(99, 9)
 
 # Abstraction stratum: own registry. ObjectModel stratum: registry routed to the
 # source. The Abstract stratum is absent — its types are abstract, hence not
 # instantiable; Selection has its own test class further down.
-_IMMUTABLE: list[_Case] = [
+_IMMUTABLE: ReadOnlyArray[_CaseBase] = (
     _Case("Tuple",          lambda: Tuple[int]((1, 2, 3))),
     _Case("EquatableTuple", lambda: EquatableTuple[int]((1, 2, 3))),
-    _Case("HashableTuple",  lambda: HashableTuple[int]((1, 2, 3))),
-]
+    _Case("HashableTuple",  lambda: HashableTuple[int]((1, 2, 3))))
 
 # ObjectModel.Collection is absent on purpose: it is abstract by design, and
 # ObservableCollection is its concrete type. It does instantiate at runtime, for want
 # of an abstractness constraint; pyright, for its part, rejects it.
-_MUTABLE: list[_MutableCase] = [
+_MUTABLE: ReadOnlyArray[_MutableCaseBase] = (
     _MutableCase("List",       lambda: List[int]([1, 2, 3]),       lambda o: o.Add(9),      _resizable),
     _MutableCase("SortedList", lambda: SortedList[int]([3, 1, 2]), lambda o: o.Add(9),      _resizable),
     _MutableCase("SizedList",  _sizedList,                         lambda o: o.SetAt(0, 9), _resizable),
     _MutableCase("Array",      lambda: Array[int]([1, 2, 3]),      lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("ArrayList",  _arrayList,                         lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("SizedArray", _sizedArray,                        lambda o: o.SetAt(0, 9), _fixed),
-    _MutableCase("ObservableCollection", lambda: ObservableCollection[int](_source()), lambda o: o.Add(9), _resizable, True),
-]
-_ALL: list[_Case] = _IMMUTABLE + list(_MUTABLE)
+    _MutableCase("ObservableCollection", lambda: ObservableCollection[int](_source()), lambda o: o.Add(9), _resizable, True))
+
+_ALL: ReadOnlyArray[_CaseBase] = _IMMUTABLE + _MUTABLE
 
 # ArrayList is held out of three benches below, each time by an open defect. Every one of
 # those exclusions has a matching expectedFailure in TestArrayCollectionStratum, so the
 # defect itself is recorded — but nothing lifts the exclusion when the defect goes. A fix
 # leaves it behind, and the coverage silently stays reduced without anything turning red.
 # Lift each one when its named counterpart turns green.
-_EXCEPT_ARRAY_LIST: list[_MutableCase] = [c for c in _MUTABLE if c.name != "ArrayList"]
+_EXCEPT_ARRAY_LIST: ReadOnlyArray[_MutableCaseBase] = tuple(c for c in _MUTABLE if c.GetName() != "ArrayList")
 
-def _revoked(view: Any) -> bool:
+def _revoked(view: ICountable) -> bool:
     try:
         view.GetCount()
+
         return False
-    except DiscardedError:
-        return True
+    except DiscardedError: return True
 
 def _countCookies() -> int:
     """Live revocation cookies. The type is private, so it is recognised by name rather
@@ -201,7 +235,7 @@ def _cookieType() -> Any:
     return getattr(revocable, "_RevocableViewCookie")
 
 @contextlib.contextmanager
-def _counting() -> Generator[Callable[[], int]]:
+def _counting() -> Generator[Function[int]]:
     """Counts the revocation cookies *constructed* inside the block.
 
     C4 forbids an allocation, which is a flow. A census of live cookies is a stock and
@@ -232,20 +266,20 @@ class TestGenerationIdentity(unittest.TestCase):
 
     def test_same_instance_within_a_generation(self) -> None:
         for case in _ALL:
-            with self.subTest(type = case.name):
+            with self.subTest(type = case.GetName()):
                 items = case.Create()
 
                 self.assertIs(items.AsImmutable(), items.AsImmutable())
 
     def test_new_and_distinct_instance_after_mutation(self) -> None:
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                first: Any = items.AsImmutable()
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
+                first: ITuple[int] = items.AsImmutable()
 
-                case.mutate(items)
+                case.Mutate(items)
 
-                second: Any = items.AsImmutable()
+                second = items.AsImmutable()
 
                 self.assertIsNot(second, first)
                 self.assertFalse(_revoked(second))
@@ -254,14 +288,14 @@ class TestGenerationIdentity(unittest.TestCase):
         """Revocation is not one-shot: every generation dies in turn."""
 
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
                 views: list[Any] = []
 
                 for _ in range(4):
                     views.append(items.AsImmutable())
 
-                    case.mutate(items)
+                    case.Mutate(items)
 
                 for index, view in enumerate(views):
                     with self.subTest(generation = index):
@@ -276,11 +310,11 @@ class TestLazyCreation(unittest.TestCase):
 
     def test_mutating_without_asking_allocates_nothing(self) -> None:
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
+            with self.subTest(type = case.GetName()):
                 items = case.Create()
 
                 with _counting() as allocated:
-                    for _ in range(20): case.mutate(items)
+                    for _ in range(20): case.Mutate(items)
 
                     self.assertEqual(allocated(), 0)
 
@@ -297,7 +331,7 @@ class TestLazyCreation(unittest.TestCase):
             for _ in range(20):
                 items.Add(9)
 
-                view: Any = items.AsImmutable()
+                view = items.AsImmutable()
 
                 del view
 
@@ -314,11 +348,11 @@ class TestRegistryRetention(unittest.TestCase):
 
     def test_mutating_without_asking_retains_no_cookie(self) -> None:
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
+            with self.subTest(type = case.GetName()):
                 items = case.Create()
                 before: int = _countCookies()
 
-                for _ in range(20): case.mutate(items)
+                for _ in range(20): case.Mutate(items)
 
                 self.assertEqual(_countCookies(), before)
 
@@ -332,10 +366,10 @@ class TestWritePathCoverage(unittest.TestCase):
 
         for case in _MUTABLE:
             for name, mutate in case.GetMutators(case.Create()):
-                with self.subTest(type = case.name, mutator = name):
-                    items = case.Create()
-                    view: Any = items.AsImmutable()
-                    before: tuple[Any, ...] = _snapshot(items)
+                with self.subTest(type = case.GetName(), mutator = name):
+                    items = cast(ITupleBase[int], case.Create())
+                    view = items.AsImmutable()
+                    before: ReadOnlyArray[int] = _snapshot(items)
 
                     try: mutate(items)
                     except Exception as error:
@@ -349,12 +383,12 @@ class TestIneffectiveMutation(unittest.TestCase):
 
     def test_a_refused_mutation_leaves_the_view_valid(self) -> None:
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                view: Any = items.AsImmutable()
-                before: tuple[Any, ...] = _snapshot(items)
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
+                view = items.AsImmutable()
+                before: ReadOnlyArray[int] = _snapshot(items)
 
-                self.assertIsNot(case.refuse(items), True)
+                self.assertIsNot(case.Refuse(items), True)
                 self.assertEqual(_snapshot(items), before)
                 self.assertFalse(_revoked(view))
 
@@ -364,7 +398,7 @@ class TestRootRegistration(unittest.TestCase):
     def test_mutating_the_source_revokes_a_view_taken_on_the_wrapper(self) -> None:
         source = _source()
         items = ObservableCollection[int](source)
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
 
@@ -381,12 +415,12 @@ class TestRootRegistration(unittest.TestCase):
             items = case.Create()
 
             for name, _ in _projections(items):
-                with self.subTest(type = case.name, projection = name):
-                    items = case.Create()
-                    projection: Any = getattr(items, name)()
-                    view: Any = projection.AsImmutable()
+                with self.subTest(type = case.GetName(), projection = name):
+                    items = cast(IList[int], case.Create())
+                    projection = cast(ITupleBase[int], getattr(items, name)())
+                    view = projection.AsImmutable()
 
-                    case.mutate(items)
+                    case.Mutate(items)
 
                     self.assertTrue(_revoked(view))
 
@@ -400,13 +434,13 @@ class TestProjectionsSurvive(unittest.TestCase):
             items = case.Create()
 
             for name, _ in _projections(items):
-                with self.subTest(type = case.name, projection = name):
-                    items = case.Create()
-                    projection: Any = getattr(items, name)()
-                    view: Any = projection.AsImmutable()
+                with self.subTest(type = case.GetName(), projection = name):
+                    items = cast(IList[int], case.Create())
+                    projection = cast(ITupleBase[int], getattr(items, name)())
+                    view = projection.AsImmutable()
                     expected: int = items.GetCount()
 
-                    case.mutate(items)
+                    case.Mutate(items)
 
                     self.assertTrue(_revoked(view))
                     self.assertEqual(projection.GetCount(), items.GetCount())
@@ -422,12 +456,12 @@ class TestRevocationIsTotal(unittest.TestCase):
 
     def test_every_read_path_raises(self) -> None:
         for case in _MUTABLE:
-            items = case.Create()
-            view: Any = items.AsImmutable()
+            items = cast(_IList[int], case.Create())
+            view = items.AsImmutable()
 
-            case.mutate(items)
+            case.Mutate(items)
 
-            reads: dict[str, Callable[[], Any]] = {
+            reads: dict[str, Function[Any]] = {
                 "GetCount":  view.GetCount,
                 "GetAt":     lambda: view.GetAt(0),
                 "Contains":  lambda: view.Contains(1),
@@ -435,8 +469,7 @@ class TestRevocationIsTotal(unittest.TestCase):
                 "iteration": lambda: list(view.AsIterable())}
 
             for name, read in reads.items():
-                with self.subTest(type = case.name, read = name):
-                    self.assertRaises(DiscardedError, read)
+                with self.subTest(type = case.GetName(), read = name): self.assertRaises(DiscardedError, read)
 
     def test_the_error_names_the_cause(self) -> None:
         """A consumer must be able to tell invalidation from disposal."""
@@ -444,7 +477,7 @@ class TestRevocationIsTotal(unittest.TestCase):
         from WinCopies.Typing.Discard import DiscardReason, InvalidatedError
 
         items = List[int]([1, 2, 3])
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         items.Add(9)
 
@@ -467,8 +500,8 @@ class TestEqualityContract(unittest.TestCase):
         """D-31: fifteen read paths raise, == and != answer as though nothing happened."""
 
         items = List[int]([1, 2, 3])
-        view: Any = items.AsImmutable()
-        other: Any = List[int]([1, 2, 3]).AsImmutable()
+        view = items.AsImmutable()
+        other = List[int]([1, 2, 3]).AsImmutable()
 
         items.Add(9)
 
@@ -479,7 +512,7 @@ class TestEqualityContract(unittest.TestCase):
         """D-31, second half: a revoked view still answers hash()."""
 
         items = List[int]([1, 2, 3])
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         items.Add(9)
 
@@ -490,8 +523,8 @@ class TestEqualityContract(unittest.TestCase):
         """D-32: the subject compares by content, its view by identity, so AsImmutable()
         returns something that is not substitutable for what it exposes."""
 
-        subject: Any = EquatableTuple[int]((1, 2, 3))
-        other: Any = EquatableTuple[int]((1, 2, 3))
+        subject = EquatableTuple[int]((1, 2, 3))
+        other = EquatableTuple[int]((1, 2, 3))
 
         self.assertTrue(subject.Equals(other))
         self.assertEqual(subject.AsImmutable(), other.AsImmutable())
@@ -501,7 +534,7 @@ class TestEqualityContract(unittest.TestCase):
         """D-32, the other way round: EquatableTuple is deliberately unhashable, and its own
         view hands out object.__hash__. A type that cannot be a key has a view that can."""
 
-        subject: Any = EquatableTuple[int]((1, 2, 3))
+        subject = EquatableTuple[int]((1, 2, 3))
 
         self.assertRaises(TypeError, lambda: hash(subject))
         self.assertRaises(TypeError, lambda: hash(subject.AsImmutable()))
@@ -521,15 +554,15 @@ class TestRepresentationDegrades(unittest.TestCase):
         """
 
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                before: tuple[Any, ...] = _snapshot(items)
-                view: Any = items.AsImmutable()
+            with self.subTest(type = case.GetName()):
+                items = cast(_IList[int], case.Create())
+                before: ReadOnlyArray[int] = _snapshot(items)
+                view = items.AsImmutable()
 
-                case.mutate(items)
+                case.Mutate(items)
 
-                contents: tuple[str, ...] = tuple(", ".join(str(value) for value in content)
-                                                  for content in (before, _snapshot(items)) if content)
+                contents: ReadOnlyArray[str] = tuple(", ".join(str(value) for value in content)
+                                                     for content in (before, _snapshot(items)) if content)
 
                 for text in (view.ToString(), repr(view)):
                     self.assertIsInstance(text, str)
@@ -544,11 +577,11 @@ class TestSourceRelease(unittest.TestCase):
         import weakref
 
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                view: Any = items.AsImmutable()
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
+                view = items.AsImmutable()
 
-                case.mutate(items)
+                case.Mutate(items)
 
                 reference = weakref.ref(items)
 
@@ -577,14 +610,14 @@ class TestDerivedTransitivity(unittest.TestCase):
 
         for case in _MUTABLE:
             for name, read in reads.items():
-                with self.subTest(type = case.name, derivative = name):
-                    items = case.Create()
-                    view: Any = items.AsImmutable()
-                    derived: Any = getattr(view, name)()
+                with self.subTest(type = case.GetName(), derivative = name):
+                    items = cast(IList[int], case.Create())
+                    view = items.AsImmutable()
+                    derived = getattr(view, name)()
 
                     self.assertIsNotNone(derived)
 
-                    case.mutate(items)
+                    case.Mutate(items)
 
                     self.assertRaises(DiscardedError, lambda: read(derived))
 
@@ -592,11 +625,11 @@ class TestDerivedTransitivity(unittest.TestCase):
         """Obtaining a slice is a data access, so it falls under D1."""
 
         for case in _MUTABLE:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                view: Any = items.AsImmutable()
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
+                view = items.AsImmutable()
 
-                case.mutate(items)
+                case.Mutate(items)
 
                 self.assertRaises(DiscardedError, lambda: view.SliceAt(slice(0, 2)))
 
@@ -606,13 +639,13 @@ class TestDerivedTransitivity(unittest.TestCase):
 
         # Lift with TestArrayCollectionStratum.test_a_slice_is_an_independent_collection.
         for case in _EXCEPT_ARRAY_LIST:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                view: Any = items.AsImmutable()
-                taken: Any = view.SliceAt(slice(0, 2))
-                expected: tuple[Any, ...] = _snapshot(taken)
+            with self.subTest(type = case.GetName()):
+                items = cast(IList[int], case.Create())
+                view = items.AsImmutable()
+                taken = view.SliceAt(slice(0, 2))
+                expected: ReadOnlyArray[int] = _snapshot(taken)
 
-                case.mutate(items)
+                case.Mutate(items)
 
                 self.assertEqual(_snapshot(taken), expected)
 
@@ -636,10 +669,11 @@ class TestCursorContract(unittest.TestCase):
 
         registry = RevocableViewRegistry()
         items = List[int]([1, 2, 3])
-        view: Any = registry.CreateRevocableView(items.AsReadOnly())
-        cursor: Any = view.TryGetEnumerator()
+        view = registry.CreateRevocableView(items.AsReadOnly())
+        cursor = view.TryGetEnumerator()
 
         self.assertIsNotNone(cursor)
+        cursor = cast(IEnumerator[int], cursor)
         self.assertTrue(cursor.MoveNext())
 
         registry.InvalidateObjects()
@@ -662,10 +696,11 @@ class TestCursorContract(unittest.TestCase):
 
         registry = RevocableViewRegistry()
         items = List[int]([1, 2, 3])
-        view: Any = registry.CreateRevocableView(items.AsReadOnly())
-        cursor: Any = view.TryGetEnumerator()
+        view = registry.CreateRevocableView(items.AsReadOnly())
+        cursor = view.TryGetEnumerator()
 
         self.assertIsNotNone(cursor)
+        cursor = cast(IEnumerator[int], cursor)
         self.assertTrue(cursor.MoveNext())
 
         items.Add(9)
@@ -676,15 +711,16 @@ class TestCursorContract(unittest.TestCase):
     def test_a_cursor_does_not_outlive_a_mutation_of_the_source(self) -> None:
         # Lift with TestArrayCollectionStratum.test_a_cursor_obtained_through_a_view_dies_on_mutation.
         for case in _EXCEPT_ARRAY_LIST:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                view: Any = items.AsImmutable()
-                cursor: Any = view.TryGetEnumerator()
+            with self.subTest(type = case.GetName()):
+                items = cast(_IList[int], case.Create())
+                view = items.AsImmutable()
+                cursor = view.TryGetEnumerator()
 
                 self.assertIsNotNone(cursor)
+                cursor = cast(IEnumerator[int], cursor)
                 self.assertTrue(cursor.MoveNext())
 
-                case.mutate(items)
+                case.Mutate(items)
 
                 self.assertRaises(DiscardedError, cursor.MoveNext)
 
@@ -694,24 +730,25 @@ class TestEnumeratorInvalidation(unittest.TestCase):
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
         # Lift with TestArrayCollectionStratum.test_an_active_enumerator_dies_on_mutation.
         for case in _EXCEPT_ARRAY_LIST:
-            with self.subTest(type = case.name):
-                items = case.Create()
-                enumerator: Any = items.TryGetEnumerator()
+            with self.subTest(type = case.GetName()):
+                items = cast(_IList[int], case.Create())
+                enumerator = items.TryGetEnumerator()
 
                 self.assertIsNotNone(enumerator)
+                enumerator = cast(IEnumerator[int], enumerator)
                 self.assertTrue(enumerator.MoveNext())
 
-                case.mutate(items)
+                case.Mutate(items)
 
                 self.assertRaises(DiscardedError, enumerator.MoveNext)
 
     def test_a_view_and_an_enumerator_die_on_the_same_notification(self) -> None:
         items = List[int]([1, 2, 3])
-        enumerator: Any = items.TryGetEnumerator()
+        enumerator = items.TryGetEnumerator()
 
         enumerator.MoveNext()
 
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         items.Add(9)
 
@@ -724,14 +761,14 @@ class TestMutateBeforeObserving(unittest.TestCase):
     def test_mutating_before_the_first_view_does_not_disarm_the_registry(self) -> None:
         for case in _MUTABLE:
             for count in (1, 2, 5):
-                with self.subTest(type = case.name, mutationsBefore = count):
-                    items = case.Create()
+                with self.subTest(type = case.GetName(), mutationsBefore = count):
+                    items = cast(IList[int], case.Create())
 
-                    for _ in range(count): case.mutate(items)
+                    for _ in range(count): case.Mutate(items)
 
-                    view: Any = items.AsImmutable()
+                    view = items.AsImmutable()
 
-                    case.mutate(items)
+                    case.Mutate(items)
 
                     self.assertTrue(_revoked(view))
 
@@ -743,7 +780,7 @@ class TestArrayCollectionStratum(unittest.TestCase):
     @unittest.expectedFailure
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
         items = _arrayList()
-        enumerator: Any = items.TryGetEnumerator()
+        enumerator = cast(IEnumerator[int], items.TryGetEnumerator())
 
         enumerator.MoveNext()
         items.SetAt(0, 9)
@@ -756,12 +793,12 @@ class TestArrayCollectionStratum(unittest.TestCase):
         this one does whether it was obtained from the collection or through a view."""
 
         items = _arrayList()
-        view: Any = items.AsImmutable()
-        cursor: Any = view.TryGetEnumerator()
+        view = items.AsImmutable()
+        cursor = view.TryGetEnumerator()
 
         items.SetAt(0, 9)
 
-        self.assertRaises(DiscardedError, cursor.MoveNext)
+        self.assertRaises(DiscardedError, cast(IEnumerator[int], cursor).MoveNext)
 
     @unittest.expectedFailure
     def test_a_slice_is_an_independent_collection(self) -> None:
@@ -778,8 +815,8 @@ class TestArrayCollectionStratum(unittest.TestCase):
         """
 
         items = _arrayList()
-        taken: Any = items.SliceAt(slice(0, 2))
-        expected: tuple[Any, ...] = _snapshot(taken)
+        taken = items.SliceAt(slice(0, 2))
+        expected: ReadOnlyArray[int] = _snapshot(taken)
 
         items.SetAt(0, 9)
 
@@ -833,7 +870,7 @@ class TestSelectionStratum(unittest.TestCase):
     def test_mutating_the_source_revokes_a_selection_view(self) -> None:
         source = _source()
         items = SelectionList[int, str](source, str, int)
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         source.Add(9)
 
@@ -842,7 +879,7 @@ class TestSelectionStratum(unittest.TestCase):
     @unittest.expectedFailure
     def test_mutating_the_selection_itself_revokes_its_view(self) -> None:
         items = SelectionList[int, str](_source(), str, int)
-        view: Any = items.AsImmutable()
+        view = items.AsImmutable()
 
         items.Add("9")
 
