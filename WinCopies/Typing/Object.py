@@ -373,13 +373,13 @@ class IEnumValue[TEnum: EquatableEnumProtocol, TValue: EquatableObjectProtocol](
 
     @classmethod
     @final
-    def GetObjectType(cls) -> TypeBase[IEnumValue[TEnum, TValue]]: return IEnumValue[TEnum, TValue]
+    def GetObjectType(cls) -> TypeBase[IEnumValue[TEnum, TValue]]: return IEnumValue
 class IComparableEnumValue[TEnum: ComparableEnumProtocol, TValue: ComparableObjectProtocol](IEnumValueBase[TEnum, TValue], IComparableComplexValueObject[TEnum, TValue, IEnum[TEnum]|TEnum], IEnum[TEnum], IComparableValueItemBase["IComparableEnumValue[TEnum, TValue]", IEnum[TEnum]|TEnum, TEnum]):
     def __init__(self) -> None: super().__init__()
     
     @classmethod
     @final
-    def GetObjectType(cls) -> TypeBase[IComparableEnumValue[TEnum, TValue]]: return IComparableEnumValue[TEnum, TValue]
+    def GetObjectType(cls) -> TypeBase[IComparableEnumValue[TEnum, TValue]]: return IComparableEnumValue
 
 class IIntegerEnumValue[T: IntegerEnum](IComparableEnumValue[T, int]):
     def __init__(self) -> None: super().__init__()
@@ -504,7 +504,7 @@ class IType[T](IEquatableValueItem['IType[T]', TypeBase[T]]):
 
     @classmethod
     @final
-    def GetObjectType(cls) -> TypeBase[IType[T]]: return IType[T]
+    def GetObjectType(cls) -> TypeBase[IType[T]]: return IType
     @final
     def GetValueType(self) -> TypeBase[type]: return type
 class Type[T](ValueObjectBase[TypeBase[T], IType[T]], IType[T], EquatableValueItemAbstract[IType[T], TypeBase[T]], IHashableValue[IType[T], TypeBase[T]]):
@@ -523,7 +523,7 @@ class IReference[T](IEquatableValueItem['IReference[T]', T]):
 
     @classmethod
     @final
-    def GetObjectType(cls) -> TypeBase[IReference[T]]: return IReference[T]
+    def GetObjectType(cls) -> TypeBase[IReference[T]]: return IReference
 
 class Reference[T](ValueObjectBase[T, IReference[T]], EquatableValueItemAbstract[IReference[T], T], IReference[T]):
     def __init__(self, value: T) -> None: super().__init__(value)
