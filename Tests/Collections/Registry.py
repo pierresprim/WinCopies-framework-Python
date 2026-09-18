@@ -15,10 +15,12 @@ measurements are wrong:
   * the "mutate first, observe second" order is exercised explicitly: that is
     where the registry disarming of D-2 used to hide.
 
-This module is not discovered by the line that runs the rest of the suite; it
-has to be named:
+This module is discovered by the line that runs the rest of the suite, and no
+longer has to be named. The default unittest pattern, test*.py, matches no file
+here and finds only the two packages; the suite is run with the pattern that
+takes every module once:
 
-    python3 -m unittest Tests.Collections.Registry
+    python3 -m unittest discover -s Tests -t . -p '[!_]*.py'
 """
 
 import contextlib

@@ -59,14 +59,15 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+# WinCopies/Serialization/JSON.py imports ijson unconditionally at module level.
+dependencies = ["ijson"]
+
 [project.urls]
 Homepage = "https://wincopies.com"
 # Documentation = "https://wincopies.readthedocs.io"
 Repository = "https://github.com/pierresprim/WinCopies-framework-Python"
 "Bug Tracker" = "https://github.com/pierresprim/WinCopies-framework-Python/issues"
 Changelog = "https://github.com/pierresprim/WinCopies-framework-Python/blob/main/CHANGELOG.md"
-
-# dependencies = []
 
 [project.optional-dependencies]
 dev = [
