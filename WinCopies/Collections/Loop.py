@@ -9,6 +9,7 @@ from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
 from WinCopies.Typing import INullable, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
+from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
 from WinCopies.Typing.Pairing import DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
 
 def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
@@ -74,7 +75,47 @@ def IterateItems[T](items: Iterable[T], action: Method[Iterable[T]], firstAction
 def TryIterateItems[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Function[bool]) -> bool|None:
     return None if items is None else IterateItems(items, action, firstAction)
 
-def While(func: Function[bool], action: Action) -> bool:
+def __ProcessSafe(func: Predicate[Method[Exception]], finalizer: Method[bool]|None) -> bool:
+    exceptions: IExceptionGroupBuilder = ExceptionGroupBuilder()
+    
+    result: bool = func(lambda e: exceptions.Push(e))
+
+    if finalizer is not None: finalizer(exceptions.HasItems())
+
+    exceptions.TryThrow()
+
+    return result
+
+def __IterateSafe(iterator: Predicate[Action], action: Action, safe: bool|Method[bool]) -> bool:
+    def iterate(finalizer: Method[bool]|None = None) -> bool:
+        def process(onError: Method[Exception]) -> None:
+            try: action()
+            except Exception as e: onError(e)
+        
+        return __ProcessSafe(lambda onError: iterator(lambda: process(onError)), finalizer)
+    
+    return (iterate() if safe else iterator(action)) if isinstance(safe, bool) else iterate(safe)
+def __EnumerateSafe[T](items: Iterable[T], iterator: Callable[[Iterator[T], Method[T]], None], action: Method[T], safe: bool|Method[bool]) -> bool:
+    def enumerate(enumerator: IEnumerator[T], action: Method[T]) -> bool:
+        iterator(enumerator.AsIterator(), action)
+
+        return enumerator.GetStatus().HasProcessedItems()
+    
+    def iterate(enumerator: IEnumerator[T]) -> bool:
+        def iterate(finalizer: Method[bool]|None = None) -> bool:
+            def process(item: T, onError: Method[Exception]) -> None:
+                try: action(item)
+                except Exception as e: onError(e)
+
+            return __ProcessSafe(lambda onError: enumerate(enumerator, lambda item: process(item, onError)), finalizer)
+
+        return (iterate() if safe else enumerate(enumerator, action)) if isinstance(safe, bool) else iterate(safe)
+    
+    enumerator: IEnumerator[T]|None = AsEnumerable(items).TryGetEnumerator()
+
+    return enumerator is not None and iterate(enumerator)
+
+def While(func: Function[bool], action: Action, safe: bool|Method[bool] = False) -> bool:
     """Executes the given action while the given condition is True.
 
     Args:
@@ -84,13 +125,18 @@ def While(func: Function[bool], action: Action) -> bool:
     Returns:
         True if the loop executed at least once, False otherwise.
     """
-    if (func := GetBoolFuncAction(func, action))():
-        while func(): pass
-        
-        return True
+    def iterate(action: Action) -> bool:
+        nonlocal func
 
-    return False
-def Until(func: Function[bool], action: Action) -> bool:
+        if (func := GetBoolFuncAction(func, action))():
+            while func(): pass
+            
+            return True
+
+        return False
+    
+    return __IterateSafe(iterate, action, safe)
+def Until(func: Function[bool], action: Action, safe: bool|Method[bool] = False) -> bool:
     """Executes the given action until the given condition is True.
 
     Args:
@@ -100,13 +146,14 @@ def Until(func: Function[bool], action: Action) -> bool:
     Returns:
         True if the loop executed at least once, False if the condition was already True.
     """
-    if func(): return False
-    
-    action()
-    
-    while not func(): action()
+    def iterate(action: Action) -> bool:
+        action()
+        
+        while not func(): action()
 
-    return True
+        return True
+    
+    return (not func()) and __IterateSafe(iterate, action, safe)
 
 def __Do(action: Action, func: Function[bool], loop: Callable[[Function[bool], Action], bool]) -> bool:
     action()
@@ -255,7 +302,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     """
     return ForEachItem(values, predicate)
 
-def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
+def DoForEachItem[T](items: Iterable[T], action: Method[T], safe: bool|Method[bool] = False) -> bool:
     """Executes the given action for each item in items.
 
     Args:
@@ -265,11 +312,10 @@ def DoForEachItem[T](items: Iterable[T], action: Method[T]) -> bool:
     Returns:
         True if completed all values or False if the source was empty.
     """
-    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
+    def iterate(iterator: Iterator[T], action: Method[T]) -> None:
+        for entry in iterator: action(entry)
 
-    for entry in enumerator.AsIterator(): action(entry)
-    
-    return enumerator.GetStatus().HasProcessedItems()
+    return __EnumerateSafe(items, iterate, action, safe)
 def DoForEachArg[T](action: Method[T], *values: T) -> bool:
     """Executes the given action for each variadic value.
 
