@@ -45,6 +45,10 @@ class IBuilderBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
+    def HasItems(self) -> bool:
+        ...
+
+    @abstractmethod
     def Push(self, value: T) -> None:
         ...
 class IBuilder[T](IBuilderBase[T]):
@@ -110,6 +114,9 @@ class Builder[T](Abstract, IBuilder[T]):
         return build(first)
 
     @final
+    def HasItems(self) -> bool: return self.__first is not None
+
+    @final
     def Push(self, value: T) -> None:
         self.__push(value)
 
@@ -150,6 +157,9 @@ class AbstractionBuilder[TItem, TList](Abstract, IAbstractionBuilder[TItem, TLis
     @final
     def _GetBuilder(self) -> IBuilder[TItem]:
         return self.__builder
+
+    @final
+    def HasItems(self) -> bool: return self._GetBuilder().HasItems()
 
     @final
     def Push(self, value: TItem) -> None: return self._GetBuilder().Push(value)
