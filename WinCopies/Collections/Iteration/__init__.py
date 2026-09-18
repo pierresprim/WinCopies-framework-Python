@@ -37,6 +37,13 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
 def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
+def Expand[T](items: Iterable[Iterable[T]]) -> Generator[T]:
+    for item in items:
+        for _item in item: yield _item
+def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Iterable[TOut]]) -> Generator[TOut]:
+    for item in items:
+        for _item in converter(item): yield _item
+
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
     """Appends values to the end of items.
 
@@ -283,13 +290,6 @@ def PrependIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|Non
         All values from concatenated iterables followed by each item.
     """
     return PrependIterableTo(items, values)
-
-def Expand[T](items: Iterable[Iterable[T]]) -> Generator[T]:
-    for item in items:
-        for _item in item: yield _item
-def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Iterable[TOut]]) -> Generator[TOut]:
-    for item in items:
-        for _item in converter(item): yield _item
 
 def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """Transforms items using a converter function.
