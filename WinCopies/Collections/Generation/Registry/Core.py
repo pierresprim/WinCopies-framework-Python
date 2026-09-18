@@ -7,13 +7,13 @@ from WinCopies import Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Generation.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
+from WinCopies.Collections.Iteration import Iterate, Generate
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
-from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
 from WinCopies.Typing.Discard import IInvalidatable
-from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
-from WinCopies.Typing.Object import IWeakReferenceRegister, IWeakReference, CreateWeakReferenceRegister
+from WinCopies.Typing.Object import IWeakReferenceRegister, CreateWeakReferenceRegister
 
 class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn]):
     def __init__(self) -> None:
@@ -54,17 +54,11 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     
     @final
     def __Clear(self) -> None:
-        cookie: IWeakReference[TOut]|None = None
-        exceptions: IExceptionGroupBuilder = ExceptionGroupBuilder()
+        def finalize(_: bool) -> None:
+            self.__push = self.__PushFirst
+            self.__clear = NoAction
 
-        while (cookie := self.__items.TryRemoveFirst()) is not None:
-            try: cookie.Invalidate()
-            except Exception as e: exceptions.Push(e)
-        
-        self.__push = self.__PushFirst
-        self.__clear = NoAction
-
-        exceptions.TryThrow()
+        DoForEachItem(Generate(self.__items.TryRemoveFirst), lambda cookie: cookie.Invalidate(), finalize)
     
     @final
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
@@ -116,13 +110,4 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
 
     def InvalidateObjects(self) -> None:
-        node: ILinkedNode[T]|None = self.__items.TryGetFirstNode()
-        exceptions: IExceptionGroupBuilder = ExceptionGroupBuilder()
-
-        while node is not None:
-            try: node.GetValue().InvalidateObjects()
-            except Exception as e: exceptions.Push(e)
-            
-            node = node.GetNext()
-
-        exceptions.TryThrow()
+        DoForEachItem(Iterate(self.__items.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
