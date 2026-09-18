@@ -6,7 +6,7 @@ from typing import Callable, final
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, IResumableEnumerationCursor, IDefaultResumableEnumerationCursorRegistry, IDefaultInvalidatableResumableEnumerator, ResumableEnumerationCursor
 from WinCopies.Collections.Generation import INode
-from WinCopies.Collections.Generation.Registry.Sorted import ISortedObjectRegistry, SortedDisposableObjectRegistry
+from WinCopies.Collections.Generation.Registry.Sorted import ISortedDisposableObjectRegistry, SortedDisposableObjectRegistry
 from WinCopies.Typing.Comparison import IHashableComparableItem
 from WinCopies.Typing.Object import UnderlyingValueEquals, CompareUnderlyingValue
 
@@ -39,7 +39,7 @@ class _ResumableIncrementalEnumerationCursor(ResumableEnumerationCursor[int], IR
 
     def _GetDefaultCursorValue(self) -> int: return -1
 
-class IResumableIncrementalEnumerationCursorRegistry[T: IResumableIncrementalEnumerationCursor](ISortedObjectRegistry[int, T], IDefaultResumableEnumerationCursorRegistry[T]):
+class IResumableIncrementalEnumerationCursorRegistry[T: IResumableIncrementalEnumerationCursor](ISortedDisposableObjectRegistry[int, T], IDefaultResumableEnumerationCursorRegistry[T]):
     def __init__(self) -> None: super().__init__()
 class ResumableIncrementalEnumerationCursorRegistry[T: IResumableIncrementalEnumerationCursor](SortedDisposableObjectRegistry[int, T], IResumableIncrementalEnumerationCursorRegistry[T]):
     def __init__(self, cookie: ICookie) -> None:

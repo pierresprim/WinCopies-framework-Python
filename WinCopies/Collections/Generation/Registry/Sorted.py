@@ -127,7 +127,7 @@ class ISortedObjectRegistryBase[TKey, TIn, TOut](IKeyableObjectRegistryBase[TKey
     @abstractmethod
     def TryGetItem(self, key: TKey) -> INullable[TOut]|None:
         ...
-class ISortedObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
+class ISortedDisposableObjectRegistry[TKey, TValue](ISortedObjectRegistryBase[TKey, TValue, TValue], IKeyableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
 class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOut: IInvalidatable](ObjectRegistryBase[TIn, TOut], ISortedObjectRegistryBase[TKey, TIn, TOut]):
@@ -177,7 +177,7 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
 class SortedObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue](SortedObjectRegistryBase[TKey, TValue, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class SortedDisposableObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatable](SortedObjectRegistryBase[TKey, TValue, TValue], ISortedObjectRegistry[TKey, TValue]):
+class SortedDisposableObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatable](SortedObjectRegistryBase[TKey, TValue, TValue], ISortedDisposableObjectRegistry[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
