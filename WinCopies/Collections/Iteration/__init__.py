@@ -539,3 +539,15 @@ def CheckOr[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
             return True
 
     return False
+
+def Iterate[T](func: Function[T|None], selector: Converter[T, T|None]) -> Generator[T]:
+    item: T|None = func()
+
+    while item is not None:
+        yield item
+
+        item = selector(item)
+def Generate[T](func: Function[T|None]) -> Generator[T]:
+    item: T|None = None
+
+    while (item := func()) is not None: yield item
