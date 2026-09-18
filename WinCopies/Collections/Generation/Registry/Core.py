@@ -5,7 +5,7 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry
 from WinCopies.Collections.Generation.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
 from WinCopies.Collections.Iteration import Iterate, Generate
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
@@ -15,6 +15,23 @@ from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Object import IWeakReferenceRegister, CreateWeakReferenceRegister
 
+@final
+class _Monitor(Abstract, IObjectMonitor):
+    def __init__(self, monitor: IObjectMonitor) -> None:
+        super().__init__()
+
+        self.__monitor: IObjectMonitor = monitor
+
+    def InvalidateObjects(self) -> None: self.__monitor.InvalidateObjects()
+@final
+class _Registrar[T](Abstract, IObjectRegistrar[T]):
+    def __init__(self, registrar: IObjectRegistrar[T]) -> None:
+        super().__init__()
+
+        self.__registrar: IObjectRegistrar[T] = registrar
+
+    def RegisterObject(self, item: T) -> None: self.__registrar.RegisterObject(item)
+
 class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn]):
     def __init__(self) -> None:
         super().__init__()
@@ -23,6 +40,9 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
 
         self.__push: ConverterDelegate[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
+
+        self.__monitor: IObjectMonitor = _Monitor(self)
+        self.__registrar: IObjectRegistrar[TIn] = _Registrar(self)
     
     @final
     def _GetItems(self) -> IReadOnlyList[TOut]:
@@ -64,6 +84,11 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
     
     def InvalidateObjects(self) -> None: self.__clear()
+
+    @final
+    def AsMonitor(self) -> IObjectMonitor: return self.__monitor
+    @final
+    def AsRegistrar(self) -> IObjectRegistrar[TIn]: return self.__registrar
 class ObjectRegistry[T](ObjectRegistryBase[T, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
@@ -96,6 +121,9 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
 
         self.__items: IItemRegistry[T] = CreateItemRegistry()
 
+        self.__monitor: IObjectMonitor = _Monitor(self)
+        self.__registrar: IObjectRegistrar[T] = _Registrar(self)
+
     @final
     def __Register(self, item: T) -> IRemovable:
         return self.__items.Push(item)
@@ -111,3 +139,8 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
 
     def InvalidateObjects(self) -> None:
         DoForEachItem(Iterate(self.__items.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
+
+    @final
+    def AsMonitor(self) -> IObjectMonitor: return self.__monitor
+    @final
+    def AsRegistrar(self) -> IObjectRegistrar[T]: return self.__registrar

@@ -10,11 +10,20 @@ class IObjectMonitor(IInterface):
     @abstractmethod
     def InvalidateObjects(self) -> None:
         ...
-class IObjectRegistry[T](IObjectMonitor):
+class IObjectRegistrar[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def RegisterObject(self, item: T) -> None:
+        ...
+class IObjectRegistry[T](IObjectRegistrar[T], IObjectMonitor):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsMonitor(self) -> IObjectMonitor:
+        ...
+    @abstractmethod
+    def AsRegistrar(self) -> IObjectRegistrar[T]:
         ...
 
 class IInvalidationRegistrarBase(IInterface):
