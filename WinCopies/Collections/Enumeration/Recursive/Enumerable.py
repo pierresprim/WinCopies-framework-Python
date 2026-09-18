@@ -11,7 +11,7 @@ from WinCopies.Bool import NullableBoolean, ToNullableBoolean
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider, GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Linked.Singly import Stack
 
