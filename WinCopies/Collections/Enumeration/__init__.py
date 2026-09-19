@@ -22,8 +22,9 @@ class IterationState(IntEnum):
     Ended = 2
     """Iteration has terminated."""
 class IterationResult(IntEnum):
-    Faulted = -5
+    Faulted = -6
     "Iteration terminated because an error occurred."
+    Revoked = -5
     Invalidated = -4
     """Iteration was invalidated because the source mutated."""
     Stopped = -3
@@ -55,7 +56,8 @@ class EnumerationAbortReason(IntEnum):
     Null = 0
     Stopped = 1
     Invalidated = 2
-    Errored = 3
+    Revoked = 3
+    Errored = 4
 
 class IIterationStatusBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -96,7 +98,7 @@ class IIterationStatus(IIterationStatusBase):
     def IsErrored(self, strict: bool|None = None) -> bool:
         def getValue() -> IterationResult:
             match strict:
-                case True: return IterationResult.Invalidated
+                case True: return IterationResult.Revoked
                 case False: return IterationResult.Stopped
 
                 case _: return IterationResult.Failed
@@ -106,7 +108,7 @@ class IIterationStatus(IIterationStatusBase):
     def TryGetIterationError(self) -> InvalidOperationError|None:
         match self.GetResult():
             case IterationResult.Faulted: return BrokenObjectError("The iteration has faulted.")
-            case IterationResult.Invalidated: return InvalidatedError()
+            case IterationResult.Invalidated|IterationResult.Revoked: return InvalidatedError()
             case IterationResult.Stopped: return InvalidOperationError("The iteration has been stopped.")
 
             case _: return None
@@ -185,6 +187,9 @@ class IterationStatus(Abstract, IIterationStatusBase):
     @final
     def Invalidate(self) -> None:
         self.__Terminate(IterationResult.Invalidated)
+    @final
+    def Revoke(self) -> None:
+        self.__Terminate(IterationResult.Revoked)
 
     @final
     def Fault(self, notify: bool = True) -> bool:

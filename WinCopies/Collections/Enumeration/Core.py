@@ -5,8 +5,9 @@ from typing import final, Any, Self
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Generation.Registry import IObjectRegistrar
 from WinCopies.Collections.Generation.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enums import ErrorMessages
@@ -54,6 +55,9 @@ class IInvalidatableEnumeratorBase(IEnumeratorBase):
 
     @abstractmethod
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        ...
+    @abstractmethod
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
         ...
 class IEnumerator[T](IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
@@ -355,6 +359,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             match reason:
                 case EnumerationAbortReason.Stopped: return self.__status.Stop, self._OnStopped
                 case EnumerationAbortReason.Invalidated: return self.__status.Invalidate, None
+                case EnumerationAbortReason.Revoked: return self.__status.Revoke, lambda: self._OnTerminated(self.GetStatus().GetResult().HasCompleted())
                 case EnumerationAbortReason.Errored: return self.__status.Abort, self._OnErrored
 
                 case _: raise GetUnexpectedError()
@@ -368,22 +373,27 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             self.__SetMoveNext()
 
         self.__TryAction(cancel)
+    @final
+    def __Abort(self, revoke: bool) -> None:
+        def invalidate(_: bool) -> bool:
+            self.__moveNext = SameValue
+
+            self.__Abort(revoke)
+
+            return False
+
+        if self.__monitor.IsBusy(): self.__moveNext = invalidate
+        else: self.__DoWork(lambda: self.__Terminate(EnumerationAbortReason.Revoked if revoke else EnumerationAbortReason.Invalidated))
     
     @final
     def __Stop(self) -> None:
         self.__Terminate(EnumerationAbortReason.Stopped)
     @final
     def __Invalidate(self) -> None:
-        def invalidate(_: bool) -> bool:
-            self.__moveNext = SameValue
-
-            self.__Invalidate()
-
-            return False
-
-        if self.__monitor.IsBusy(): self.__moveNext = invalidate
-
-        else: self.__DoWork(lambda: self.__Terminate(EnumerationAbortReason.Invalidated))
+        self.__Abort(False)
+    @final
+    def __Revoke(self) -> None:
+        self.__Abort(True)
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -429,6 +439,8 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
 
     @final
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return ProcessData(invalidationRegistrar, self.__monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
+    @final
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self.__DoWork(lambda: registry.RegisterObject(_EnumeratorInvalidator(self.__Revoke)))
     
     @final
     def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
@@ -456,14 +468,17 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     def TryReset(self) -> bool|None:
         def tryReset() -> bool|None:
             if self.IsResetSupported():
-                if self.GetStatus().GetState() == IterationState.Idle: return True
+                status: IterationStatus = self.__status
+
+                if status.GetState() == IterationState.Idle: return True
+                if status.GetResult() == IterationResult.Revoked: return False
 
                 self.__Stop()
                 
                 if self.__TryFunction(self._ResetOverride):
                     self.__ResetMoveNext()
 
-                    self.__status.Reset()
+                    status.Reset()
                     
                     return True
                 

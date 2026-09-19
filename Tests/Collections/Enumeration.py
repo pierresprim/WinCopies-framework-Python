@@ -280,6 +280,7 @@ class TestRaiseDomain(unittest.TestCase):
         expected: dict[IterationResult, Type[InvalidOperationError]] = {
             IterationResult.Faulted: BrokenObjectError,
             IterationResult.Invalidated: InvalidatedError,
+            IterationResult.Revoked: InvalidatedError,
             IterationResult.Stopped: InvalidOperationError}
 
         for result, errorType in expected.items():
@@ -293,10 +294,14 @@ class TestRaiseDomain(unittest.TestCase):
         """Invalidation is exogenous: the object has become unusable."""
         self.assertIsInstance(_FakeStatus(IterationResult.Invalidated).TryGetIterationError(), DiscardedError)
 
+    def test_revoked_is_a_discard(self) -> None:
+        """Revocation is exogenous: the object has become unusable."""
+        self.assertIsInstance(_FakeStatus(IterationResult.Revoked).TryGetIterationError(), DiscardedError)
+
     def test_all_types_remain_catchable_as_invalid_operation_error(self) -> None:
         """`UnusableError` derives from `InvalidOperationError`: the
         specialisation breaks no existing caller."""
-        for result in (IterationResult.Faulted, IterationResult.Invalidated, IterationResult.Stopped):
+        for result in (IterationResult.Faulted, IterationResult.Invalidated, IterationResult.Revoked, IterationResult.Stopped):
             with self.subTest(result = result.name): self.assertIsInstance(_FakeStatus(result).TryGetIterationError(), InvalidOperationError)
 
 # ---------------------------------------------------------------------------
@@ -1148,6 +1153,7 @@ class TestRealPaths(unittest.TestCase):
         F, D = IterationResult, IterationData
         table = ((F.Faulted, D.Null, True, False, True),
                  (F.Invalidated, D.Null, True, False, True),
+                 (F.Revoked, D.Null, True, False, True),
                  (F.Stopped, D.Null, False, False, False),
                  (F.Completed, D.Faulted, False, True, True),
                  (F.Completed, D.Null, False, False, False))
