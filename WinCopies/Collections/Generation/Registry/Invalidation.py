@@ -1,8 +1,8 @@
+from abc import abstractmethod
 from typing import final
 
-from WinCopies import Abstract
+from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
 from WinCopies.Collections.Generation.Registry.Kernel import IItemRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Typing import InvalidOperationError
@@ -12,6 +12,33 @@ from WinCopies.Typing.Monitoring import IWorker, IMonitor, Monitor
 
 def GetRegistrationActiveError() -> InvalidOperationError:
     return InvalidOperationError("Registrars cannot be added or removed while a registration is in progress.")
+
+class IInvalidationRegistrarBase(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Unregister(self) -> None:
+        ...
+
+class IInvalidationRegistrar(IInvalidationRegistrarBase):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Register(self, cookie: IInvalidatable) -> None:
+        ...
+class InvalidationRegistrar(Abstract, IInvalidationRegistrar):
+    def __init__(self) -> None: super().__init__()
+
+class IManagedInvalidationRegistrar(IInvalidationRegistrarBase):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Push(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        ...
+
+    @abstractmethod
+    def Register(self) -> None:
+        ...
 
 @final
 class _RegistrarCookie(Abstract, IRemovable):

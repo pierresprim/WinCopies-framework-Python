@@ -1,4 +1,3 @@
-
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
 from typing import final, Any, Self
@@ -8,8 +7,7 @@ from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Enumeration import IterationState, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry import IInvalidationRegistrar, IManagedInvalidationRegistrar
-from WinCopies.Collections.Generation.Registry.Invalidation import ManagedInvalidationRegistrar
+from WinCopies.Collections.Generation.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetUnexpectedError
