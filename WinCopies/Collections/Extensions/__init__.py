@@ -121,13 +121,13 @@ class IEnumeratorMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateEnumerator[T](self, items: ITuple[T]) -> IInvalidatableEnumerator[T]:
+    def CreateEnumerator[T](self, items: ITuple[T], strict: bool = False) -> IInvalidatableEnumerator[T]:
         ...
 class IResumableEnumeratorMonitor(IEnumeratorMonitor):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def CreateResumableEnumerator[T](self, items: ITuple[T]) -> IInvalidatableResumableEnumerator[T]:
+    def CreateResumableEnumerator[T](self, items: ITuple[T], strict: bool = False) -> IInvalidatableResumableEnumerator[T]:
         ...
 
 class IRevocableViewMonitor(IInterface):
