@@ -10,7 +10,7 @@ from WinCopies import Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
+from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
 from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Generation.Registry.Core import InvalidatableObjectRegistry
 
@@ -96,6 +96,10 @@ class RevocableViewBase[T](SequenceAbstract[T]):
 
         self.__monitor: IFunction[ICollectionViewMonitor[T]] = RevocableViewBase._MonitorUpdater[T](self, update) # type: ignore[no-redef]
 
+    @final
+    def __GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
+        return self.GetCollectionMonitors().GetEnumeratorMonitor()
+
     @abstractmethod
     def _GetItems(self) -> ITuple[T]:
         ...
@@ -123,9 +127,9 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetItems().GetCollectionMonitors()
 
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetItems().TryGetEnumerator()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__GetEnumeratorMonitor().CreateEnumerator(self._GetItems(), True)
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self._GetItems().TryGetResumableEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__GetEnumeratorMonitor().CreateResumableEnumerator(self._GetItems(), True)
 
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key) # TODO: The return type should reflect the type of the inner collection (IArray, IList, etc).
