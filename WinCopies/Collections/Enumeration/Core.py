@@ -207,6 +207,17 @@ class _EnumeratorInvalidator(Abstract, IInvalidatable):
         if reason == DiscardReason.Invalidated: self.__processor()
 
         self.__processor = NoAction
+@final
+class _EnumeratorRevocator(Abstract, IInvalidatable):
+    def __init__(self, action: Action) -> None:
+        super().__init__()
+
+        self.__action: Action = action
+
+    def _Dispose(self, reason: DiscardReason) -> None:
+        if reason == DiscardReason.Invalidated: self.__action()
+
+        self.__action = NoAction
 
 def _GetCurrent[T](*_: T) -> T:
     raise GetIterationInactiveError()
@@ -226,6 +237,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
+        self.__revocator: IInvalidatable = _EnumeratorRevocator(self.__Revoke)
         self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
     
     @final
@@ -440,7 +452,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return ProcessData(invalidationRegistrar, self.__monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
     @final
-    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self.__DoWork(lambda: registry.RegisterObject(_EnumeratorInvalidator(self.__Revoke)))
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self.__DoWork(lambda: registry.RegisterObject(self.__revocator))
     
     @final
     def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
