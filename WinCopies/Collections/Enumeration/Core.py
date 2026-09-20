@@ -366,7 +366,12 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             self._OnAborted()
             self.__OnTerminated(False)
 
-        if self.GetStatus().GetState() >= IterationState.Ended: return
+        status: IterationStatus = self.__status
+
+        if status.GetState() >= IterationState.Ended:
+            if reason == EnumerationAbortReason.Revoked: status.Revoke()
+
+            return
 
         def getDelegates() -> tuple[Action, Action|None]:
             match reason:
