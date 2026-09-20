@@ -127,9 +127,9 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetItems().GetCollectionMonitors()
 
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__GetEnumeratorMonitor().CreateEnumerator(self._GetItems(), True)
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self.__GetEnumeratorMonitor().CreateEnumerator(self._GetItems(), True)
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__GetEnumeratorMonitor().CreateResumableEnumerator(self._GetItems(), True)
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__GetEnumeratorMonitor().CreateResumableEnumerator(self._GetItems(), True)
 
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key) # TODO: The return type should reflect the type of the inner collection (IArray, IList, etc).

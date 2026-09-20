@@ -74,9 +74,9 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TIte
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
+    def TryGetEnumerator(self) -> IEnumerator[TItem]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
 
     @final
     def AsImmutable(self) -> ITuple[TItem]: return self.__monitor.GetImmutableView()
