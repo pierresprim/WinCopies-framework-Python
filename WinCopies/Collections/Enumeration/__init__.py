@@ -50,6 +50,7 @@ class IterationResult(IntEnum):
 class IterationData(Flag):
     Null = 0
     HasProcessedItems = auto()
+    Revoked = auto()
     Faulted = auto()
 
 class EnumerationAbortReason(IntEnum):
@@ -189,7 +190,9 @@ class IterationStatus(Abstract, IIterationStatusBase):
         self.__Terminate(IterationResult.Invalidated)
     @final
     def Revoke(self) -> None:
-        self.__Terminate(IterationResult.Revoked)
+        if self.__state < IterationState.Ended: self.__Terminate(IterationResult.Revoked)
+
+        self.__AddFlag(IterationData.Revoked)
 
     @final
     def Fault(self, notify: bool = True) -> bool:

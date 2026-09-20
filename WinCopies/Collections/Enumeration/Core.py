@@ -5,11 +5,12 @@ from typing import final, Any, Self
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, IterationResult, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IObjectRegistrar
 from WinCopies.Collections.Generation.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
+from WinCopies.Enum import HasFlag
 from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
@@ -483,7 +484,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
                 status: IterationStatus = self.__status
 
                 if status.GetState() == IterationState.Idle: return True
-                if status.GetResult() == IterationResult.Revoked: return False
+                if HasFlag(status.GetData(), IterationData.Revoked): return False
 
                 self.__Stop()
                 
