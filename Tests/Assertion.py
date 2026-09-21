@@ -44,15 +44,14 @@ class TestGetAssertionError(unittest.TestCase):
     def test_none_message(self) -> None:
         """GetAssertionError with None as message stores None."""
 
-        error = GetAssertionError(None)
-
-        self.assertIsInstance(error, AssertionError)
+        self.assertIsInstance(GetAssertionError(None), AssertionError)
 
 class TestThrow(unittest.TestCase):
     """Tests for Throw."""
 
     def test_always_raises(self) -> None:
         """Throw always raises AssertionError."""
+
         with self.assertRaises(AssertionError): Throw()
 
     def test_raises_with_custom_message(self) -> None:

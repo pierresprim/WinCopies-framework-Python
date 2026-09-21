@@ -247,8 +247,7 @@ class TestExecute(unittest.TestCase):
 
         log: list[int] = []
 
-        action = ConcatenateActions(lambda: log.append(1), lambda: log.append(2))
-        action()
+        ConcatenateActions(lambda: log.append(1), lambda: log.append(2))()
 
         self.assertEqual(log, [1, 2])
 
@@ -276,8 +275,7 @@ class TestExecute(unittest.TestCase):
 
         results: list[int] = []
 
-        action = JoinMethods(7, lambda x: results.append(x), lambda x: results.append(x + 1))
-        action()
+        JoinMethods(7, lambda x: results.append(x), lambda x: results.append(x + 1))()
 
         self.assertEqual(results, [7, 8])
 

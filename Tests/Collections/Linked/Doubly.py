@@ -76,8 +76,7 @@ def _assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConv
     def enumerate(enumerator: IEnumerator[T]) -> None:
         values: PyList[int] = []
         
-        for value in enumerator.AsIterator():
-            values.append(valueConverter(value))
+        for value in enumerator.AsIterator(): values.append(valueConverter(value))
 
         test.assertEqual(values, [1, 2, 3])
 
@@ -208,10 +207,8 @@ class TestList(unittest.TestCase):
 
         l: IList[int] = self.__list
 
-        def addFirst(value: int) -> None:
-            l.AddFirst(value)
-        def addLast(value: int) -> None:
-            l.AddLast(value)
+        def addFirst(value: int) -> None: l.AddFirst(value)
+        def addLast(value: int) -> None: l.AddLast(value)
         
         addLast(2)      # [2]
         addFirst(1)     # [1, 2]

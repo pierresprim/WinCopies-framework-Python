@@ -4,6 +4,7 @@ Unit tests for WinCopies.Enum module.
 
 import unittest
 
+from collections.abc import Iterable
 from enum import Enum, Flag
 
 from WinCopies.Enum import (
@@ -34,21 +35,26 @@ class Permission(Flag):
     Write = 2
     Execute = 4
 
+def _assertItemsEqual[T](case: unittest.TestCase, items: Iterable[T], *values: T) -> None:
+    case.assertEqual(tuple(items), values)
+def _assertLengthEqual[T](case: unittest.TestCase, items: Iterable[T], length: int) -> None:
+    case.assertEqual(tuple(items), length)
+
 class TestIsMemberOf(unittest.TestCase):
     """Tests for IsMemberOf and EnsureMemberOf."""
 
     def test_member_exists(self) -> None:
         """IsMemberOf returns True for valid member names."""
 
-        self.assertTrue(IsMemberOf(Color, "Red"))
-        self.assertTrue(IsMemberOf(Color, "Green"))
-        self.assertTrue(IsMemberOf(Color, "Blue"))
+        self.assertTrue(IsMemberOf(Color, Color.Red.name))
+        self.assertTrue(IsMemberOf(Color, Color.Green.name))
+        self.assertTrue(IsMemberOf(Color, Color.Blue.name))
 
     def test_member_not_exists(self) -> None:
         """IsMemberOf returns False for unknown or wrong-case names."""
         
         self.assertFalse(IsMemberOf(Color, "Yellow"))
-        self.assertFalse(IsMemberOf(Color, "red"))  # Case-sensitive
+        self.assertFalse(IsMemberOf(Color, Color.Red.name.lower()))  # Case-sensitive
 
     def test_not_an_enum_raises_assertion(self) -> None:
         """IsMemberOf raises AssertionError if the type is not an enum."""
@@ -58,7 +64,7 @@ class TestIsMemberOf(unittest.TestCase):
     def test_ensure_member_exists(self) -> None:
         """EnsureMemberOf does not raise for a valid member name."""
 
-        EnsureMemberOf(Color, "Red")
+        EnsureMemberOf(Color, Color.Red.name)
 
     def test_ensure_member_not_exists_raises(self) -> None:
         """EnsureMemberOf raises ValueError for an unknown member name."""
@@ -104,15 +110,15 @@ class TestConversion(unittest.TestCase):
 
         kvp = ToKeyValuePair(Color.Red)
 
-        self.assertEqual(kvp.GetKey(), "Red")
+        self.assertEqual(kvp.GetKey(), Color.Red.name)
         self.assertEqual(kvp.GetValue(), 1)
 
     def test_to_key_value_pair_all_members(self) -> None:
         """ToKeyValuePair works correctly for every member of the enum."""
         
-        self.assertEqual(ToKeyValuePair(Color.Green).GetKey(), "Green")
+        self.assertEqual(ToKeyValuePair(Color.Green).GetKey(), Color.Green.name)
         self.assertEqual(ToKeyValuePair(Color.Green).GetValue(), 2)
-        self.assertEqual(ToKeyValuePair(Color.Blue).GetKey(), "Blue")
+        self.assertEqual(ToKeyValuePair(Color.Blue).GetKey(), Color.Blue.name)
         self.assertEqual(ToKeyValuePair(Color.Blue).GetValue(), 3)
 
     def test_to_key_value_pairs_count(self) -> None:
@@ -125,26 +131,26 @@ class TestConversion(unittest.TestCase):
         
         pairs = list(ToKeyValuePairs(Color))
 
-        self.assertEqual(pairs[0].GetKey(), "Red")
+        self.assertEqual(pairs[0].GetKey(), Color.Red.name)
         self.assertEqual(pairs[0].GetValue(), 1)
-        self.assertEqual(pairs[1].GetKey(), "Green")
+        self.assertEqual(pairs[1].GetKey(), Color.Green.name)
         self.assertEqual(pairs[1].GetValue(), 2)
-        self.assertEqual(pairs[2].GetKey(), "Blue")
+        self.assertEqual(pairs[2].GetKey(), Color.Blue.name)
         self.assertEqual(pairs[2].GetValue(), 3)
 
     def test_to_tuple(self) -> None:
         """ToTuple converts an enum member to a (name, value) tuple."""
         
-        self.assertEqual(ToTuple(Color.Red), ("Red", 1))
-        self.assertEqual(ToTuple(Color.Green), ("Green", 2))
-        self.assertEqual(ToTuple(Color.Blue), ("Blue", 3))
+        self.assertEqual(ToTuple(Color.Red), (Color.Red.name, 1))
+        self.assertEqual(ToTuple(Color.Green), (Color.Green.name, 2))
+        self.assertEqual(ToTuple(Color.Blue), (Color.Blue.name, 3))
 
     def test_to_tuples(self) -> None:
         """ToTuples yields a (name, value) tuple for each enum member in order."""
         
         self.assertEqual(
             tuple(ToTuples(Color)),
-            (("Red", 1), ("Green", 2), ("Blue", 3)))
+            ((Color.Red.name, 1), (Color.Green.name, 2), (Color.Blue.name, 3)))
 
 class TestIsIn(unittest.TestCase):
     """Tests for IsIn and EnsureIn."""
@@ -152,13 +158,13 @@ class TestIsIn(unittest.TestCase):
     def test_is_in_valid_tuple(self) -> None:
         """IsIn returns True for a matching (name, value) tuple."""
 
-        self.assertTrue(IsIn(Color, ("Red", 1)))
-        self.assertTrue(IsIn(Color, ("Blue", 3)))
+        self.assertTrue(IsIn(Color, (Color.Red.name, 1)))
+        self.assertTrue(IsIn(Color, (Color.Blue.name, 3)))
 
     def test_is_in_tuple_wrong_value(self) -> None:
         """IsIn returns False when the value does not match the name."""
 
-        self.assertFalse(IsIn(Color, ("Red", 2)))
+        self.assertFalse(IsIn(Color, (Color.Red.name, 2)))
 
     def test_is_in_tuple_unknown_name(self) -> None:
         """IsIn returns False for a name absent from the enum."""
@@ -168,12 +174,12 @@ class TestIsIn(unittest.TestCase):
     def test_is_in_valid_kvp(self) -> None:
         """IsIn returns True for a matching IKeyValuePair."""
 
-        self.assertTrue(IsIn(Color, KeyValuePair("Green", 2)))
+        self.assertTrue(IsIn(Color, KeyValuePair(Color.Green.name, 2)))
 
     def test_is_in_invalid_kvp(self) -> None:
         """IsIn returns False for an IKeyValuePair with a wrong value."""
 
-        self.assertFalse(IsIn(Color, KeyValuePair("Green", 99)))
+        self.assertFalse(IsIn(Color, KeyValuePair(Color.Green.name, 99)))
 
     def test_not_an_enum_raises_assertion(self) -> None:
         """IsIn raises AssertionError if the type is not an enum."""
@@ -183,12 +189,12 @@ class TestIsIn(unittest.TestCase):
     def test_ensure_in_valid_tuple(self) -> None:
         """EnsureIn does not raise for a valid entry."""
         
-        EnsureIn(Color, ("Red", 1))
+        EnsureIn(Color, (Color.Red.name, 1))
 
     def test_ensure_in_invalid_raises(self) -> None:
         """EnsureIn raises ValueError for an entry absent from the enum."""
         
-        with self.assertRaises(ValueError): EnsureIn(Color, ("Red", 99))
+        with self.assertRaises(ValueError): EnsureIn(Color, (Color.Red.name, 99))
 
 class TestTryGet(unittest.TestCase):
     """Tests for TryGetMember, TryGetName, TryGetValue, TryGetField,
@@ -197,16 +203,12 @@ class TestTryGet(unittest.TestCase):
     def test_try_get_member_found(self) -> None:
         """TryGetMember returns the selected value when the predicate matches."""
 
-        result = TryGetMember(Color, lambda o: o.value == 2, lambda o: o.name)
-
-        self.assertEqual(result, "Green")
+        self.assertEqual(TryGetMember(Color, lambda o: o.value == 2, lambda o: o.name), Color.Green.name)
 
     def test_try_get_member_not_found(self) -> None:
         """TryGetMember returns None when no member satisfies the predicate."""
-        
-        result = TryGetMember(Color, lambda o: o.value == 99, lambda o: o.name)
 
-        self.assertIsNone(result)
+        self.assertIsNone(TryGetMember(Color, lambda o: o.value == 99, lambda o: o.name)) # pyright: ignore[reportUnnecessaryComparison]
 
     def test_try_get_member_not_an_enum_raises(self) -> None:
         """TryGetMember raises AssertionError if the type is not an enum."""
@@ -216,8 +218,8 @@ class TestTryGet(unittest.TestCase):
     def test_try_get_name_found(self) -> None:
         """TryGetName returns the name corresponding to a valid value."""
         
-        self.assertEqual(TryGetName(Color, 1), "Red")
-        self.assertEqual(TryGetName(Color, 3), "Blue")
+        self.assertEqual(TryGetName(Color, 1), Color.Red.name)
+        self.assertEqual(TryGetName(Color, 3), Color.Blue.name)
 
     def test_try_get_name_not_found(self) -> None:
         """TryGetName returns None for a value absent from the enum."""
@@ -227,8 +229,8 @@ class TestTryGet(unittest.TestCase):
     def test_try_get_value_found(self) -> None:
         """TryGetValue returns the integer value corresponding to a valid name."""
         
-        self.assertEqual(TryGetValue(Color, "Red"), 1)
-        self.assertEqual(TryGetValue(Color, "Blue"), 3)
+        self.assertEqual(TryGetValue(Color, Color.Red.name), 1)
+        self.assertEqual(TryGetValue(Color, Color.Blue.name), 3)
 
     def test_try_get_value_not_found(self) -> None:
         """TryGetValue returns None for a name absent from the enum."""
@@ -237,10 +239,8 @@ class TestTryGet(unittest.TestCase):
 
     def test_try_get_field_found(self) -> None:
         """TryGetField returns the first member matching the predicate."""
-        
-        result = TryGetField(Color, lambda o: o.value > 1)
 
-        self.assertEqual(result, Color.Green)
+        self.assertEqual(TryGetField(Color, lambda o: o.value > 1), Color.Green)
 
     def test_try_get_field_not_found(self) -> None:
         """TryGetField returns None when no member satisfies the predicate."""
@@ -250,7 +250,7 @@ class TestTryGet(unittest.TestCase):
     def test_try_get_field_from_name_found(self) -> None:
         """TryGetFieldFromName returns the member with the matching name."""
         
-        self.assertIs(TryGetFieldFromName(Color, "Green"), Color.Green)
+        self.assertIs(TryGetFieldFromName(Color, Color.Green.name), Color.Green)
 
     def test_try_get_field_from_name_not_found(self) -> None:
         """TryGetFieldFromName returns None for an unknown name."""
@@ -306,24 +306,22 @@ class TestFlag(unittest.TestCase):
         """EnumerateFieldNames yields the name of each active flag."""
 
         perm = Permission.Read | Permission.Write
-        names = list(EnumerateFieldNames(perm))
+        names = tuple(EnumerateFieldNames(perm))
 
-        self.assertIn("Read", names)
-        self.assertIn("Write", names)
-        self.assertNotIn("Execute", names)
+        self.assertIn(Permission.Read.name, names)
+        self.assertIn(Permission.Write.name, names)
+        self.assertNotIn(Permission.Execute, names)
 
     def test_enumerate_field_names_single(self) -> None:
         """EnumerateFieldNames yields a single name for a single flag."""
-        
-        names = list(EnumerateFieldNames(Permission.Execute))
 
-        self.assertEqual(names, ["Execute"])
+        _assertItemsEqual(self, EnumerateFieldNames(Permission.Execute), Permission.Execute.name)
 
     def test_enumerate_field_values_combined(self) -> None:
         """EnumerateFieldValues yields the integer value of each active flag."""
         
         perm = Permission.Read | Permission.Execute
-        values = list(EnumerateFieldValues(perm))
+        values = tuple(EnumerateFieldValues(perm))
 
         self.assertIn(1, values)   # Read
         self.assertIn(4, values)   # Execute
@@ -337,15 +335,15 @@ class TestFlag(unittest.TestCase):
     def test_print_single_flag(self) -> None:
         """Print returns just the flag name for a single flag."""
         
-        self.assertEqual(Print(Permission.Read), "Read")
+        self.assertEqual(Print(Permission.Read), Permission.Read.name)
 
     def test_print_multiple_flags(self) -> None:
         """Print returns a comma-separated string of active flag names."""
         
         result = Print(Permission.Read | Permission.Write)
 
-        self.assertIn("Read", result)
-        self.assertIn("Write", result)
+        self.assertIn(Permission.Read.name, result)
+        self.assertIn(Permission.Write.name, result)
         self.assertIn(",", result)
 
 class TestEnumerate(unittest.TestCase):
@@ -354,22 +352,22 @@ class TestEnumerate(unittest.TestCase):
     def test_enumerate_names_order(self) -> None:
         """EnumerateNames yields names in enum declaration order."""
         
-        self.assertEqual(list(EnumerateNames(Color)), ["Red", "Green", "Blue"])
+        _assertItemsEqual(self, EnumerateNames(Color), Color.Red.name, Color.Green.name, Color.Blue.name)
 
     def test_enumerate_names_count(self) -> None:
         """EnumerateNames yields exactly one name per member."""
         
-        self.assertEqual(len(list(EnumerateNames(Color))), 3)
+        _assertLengthEqual(self, EnumerateNames(Color), 3)
 
     def test_enumerate_values_order(self) -> None:
         """EnumerateValues yields values in enum declaration order."""
         
-        self.assertEqual(list(EnumerateValues(Color)), [1, 2, 3])
+        _assertItemsEqual(self, EnumerateValues(Color), 1, 2, 3)
 
     def test_enumerate_values_count(self) -> None:
         """EnumerateValues yields exactly one value per member."""
         
-        self.assertEqual(len(list(EnumerateValues(Color))), 3)
+        _assertLengthEqual(self, EnumerateValues(Color), 3)
 
 if __name__ == '__main__':
     unittest.main()

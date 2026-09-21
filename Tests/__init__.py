@@ -169,14 +169,12 @@ class TestRoundTrip(unittest.TestCase):
     def test_round_trip_from_nullable_boolean(self) -> None:
         """ToNullableBoolean(ToNullableBool(x)) == x for all NullableBoolean members."""
 
-        for member in NullableBoolean:
-            self.assertIs(ToNullableBoolean(ToNullableBool(member)), member)
+        for member in NullableBoolean: self.assertIs(ToNullableBoolean(ToNullableBool(member)), member)
 
     def test_round_trip_from_nullable_bool(self) -> None:
         """ToNullableBool(ToNullableBoolean(x)) == x for True, False, and None."""
 
-        for value in (True, False, None):
-            self.assertEqual(ToNullableBool(ToNullableBoolean(value)), value)
+        for value in (True, False, None): self.assertEqual(ToNullableBool(ToNullableBoolean(value)), value)
 
 # ---------------------------------------------------------------------------
 # Not
@@ -267,9 +265,7 @@ class TestIDisposable(unittest.TestCase):
     def test_context_manager_protocol(self) -> None:
         """The with statement calls Initialize() on entry and Dispose() on exit."""
 
-        obj = _ConcreteDisposable()
-
-        with obj:
+        with _ConcreteDisposable() as obj:
             self.assertTrue(obj.IsInitialized())
             self.assertFalse(obj.IsDisposed())
 
@@ -296,9 +292,7 @@ class TestIStringable(unittest.TestCase):
     def test_str_returns_to_string_result(self) -> None:
         """str() on an IStringable returns whatever ToString() returns."""
 
-        obj = _ConcreteStringable("hello world")
-
-        self.assertEqual(str(obj), "hello world")
+        self.assertEqual(str(_ConcreteStringable("hello world")), "hello world")
 
     def test_str_with_empty_string(self) -> None:
         """str() returns an empty string when ToString() returns one."""

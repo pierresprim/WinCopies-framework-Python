@@ -144,7 +144,7 @@ class TestGetNullable(unittest.TestCase):
     def test_wrapping_none_is_valid(self) -> None:
         """GetNullable can wrap None as a legitimate value."""
 
-        n = GetNullable(None)
+        n: INullable[None] = GetNullable(None)
 
         self.assertTrue(n.HasValue())
         self.assertIsNone(n.GetValue())
@@ -172,7 +172,7 @@ class TestGetNullable(unittest.TestCase):
     def test_convert_to_nullable_wraps_result(self) -> None:
         """ConvertToNullable wraps the converted result in an INullable."""
 
-        result = GetNullable(3).ConvertToNullable(lambda x: x * 10)
+        result: INullable[int] = GetNullable(3).ConvertToNullable(lambda x: x * 10)
 
         self.assertIsInstance(result, INullable)
         self.assertTrue(result.HasValue())
@@ -181,7 +181,7 @@ class TestGetNullable(unittest.TestCase):
     def test_try_convert_to_nullable_returns_nullable_with_value(self) -> None:
         """TryConvertToNullable returns a value-bearing INullable when HasValue is True."""
 
-        result = GetNullable(2).TryConvertToNullable(lambda x: str(x))
+        result: INullable[str] = GetNullable(2).TryConvertToNullable(lambda x: str(x))
 
         self.assertTrue(result.HasValue())
         self.assertEqual(result.GetValue(), "2")
@@ -266,7 +266,7 @@ class TestFreeNullableFunctions(unittest.TestCase):
     def test_get_nullable_value_wraps_non_none(self) -> None:
         """GetNullableValue wraps a non-None value in an INullable."""
 
-        result = GetNullableValue(10)
+        result: INullable[int] = GetNullableValue(10)
 
         self.assertTrue(result.HasValue())
         self.assertEqual(result.GetValue(), 10)
@@ -304,8 +304,8 @@ class TestDisposableProvider(unittest.TestCase):
     def test_get_item_returns_wrapped_item(self) -> None:
         """GetItem returns the item passed to the constructor."""
 
-        item = _ConcreteDisposableInfo()
-        provider = DisposableProvider(item)
+        item: _ConcreteDisposableInfo = _ConcreteDisposableInfo()
+        provider: DisposableProvider[_ConcreteDisposableInfo] = DisposableProvider(item)
 
         self.assertIs(provider.GetItem(), item)
 
@@ -317,7 +317,7 @@ class TestDisposableProvider(unittest.TestCase):
     def test_dispose_marks_as_disposed(self) -> None:
         """IsDisposed returns True after Dispose is called."""
 
-        provider = DisposableProvider(_ConcreteDisposableInfo())
+        provider: DisposableProvider[_ConcreteDisposableInfo] = DisposableProvider(_ConcreteDisposableInfo())
         provider.Dispose()
 
         self.assertTrue(provider.IsDisposed())
@@ -325,7 +325,7 @@ class TestDisposableProvider(unittest.TestCase):
     def test_get_item_after_dispose_raises(self) -> None:
         """GetItem raises InvalidOperationError after disposal."""
 
-        provider = DisposableProvider(_ConcreteDisposableInfo())
+        provider: DisposableProvider[_ConcreteDisposableInfo] = DisposableProvider(_ConcreteDisposableInfo())
         provider.Dispose()
 
         with self.assertRaises(InvalidOperationError): provider.GetItem()
@@ -333,9 +333,9 @@ class TestDisposableProvider(unittest.TestCase):
     def test_try_get_item_before_dispose_has_value(self) -> None:
         """TryGetItem returns an INullable with HasValue=True before disposal."""
 
-        item = _ConcreteDisposableInfo()
-        provider = DisposableProvider(item)
-        result = provider.TryGetItem()
+        item: _ConcreteDisposableInfo = _ConcreteDisposableInfo()
+        provider: DisposableProvider[_ConcreteDisposableInfo] = DisposableProvider(item)
+        result: INullable[_ConcreteDisposableInfo] = provider.TryGetItem()
 
         self.assertTrue(result.HasValue())
         self.assertIs(result.GetValue(), item)
@@ -343,7 +343,7 @@ class TestDisposableProvider(unittest.TestCase):
     def test_try_get_item_after_dispose_is_null(self) -> None:
         """TryGetItem returns a null INullable after disposal."""
 
-        provider = DisposableProvider(_ConcreteDisposableInfo())
+        provider: DisposableProvider[_ConcreteDisposableInfo] = DisposableProvider(_ConcreteDisposableInfo())
         provider.Dispose()
 
         self.assertFalse(provider.TryGetItem().HasValue())
@@ -420,7 +420,6 @@ class TestTryGetAs(unittest.TestCase):
         """TryGetAs returns None when the value does not match the requested type."""
 
         self.assertIsNone(TryGetAs(int, "not an int"))
-
 
 if __name__ == '__main__':
     unittest.main()
