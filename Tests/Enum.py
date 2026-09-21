@@ -38,7 +38,7 @@ class Permission(Flag):
 def _assertItemsEqual[T](case: unittest.TestCase, items: Iterable[T], *values: T) -> None:
     case.assertEqual(tuple(items), values)
 def _assertLengthEqual[T](case: unittest.TestCase, items: Iterable[T], length: int) -> None:
-    case.assertEqual(tuple(items), length)
+    case.assertEqual(len(tuple(items)), length)
 
 class TestIsMemberOf(unittest.TestCase):
     """Tests for IsMemberOf and EnsureMemberOf."""
