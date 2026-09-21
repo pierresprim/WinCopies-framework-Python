@@ -720,7 +720,8 @@ class TestCursorContract(unittest.TestCase):
         self.assertRaises(DiscardedError, cursor.MoveNext)  # the cursor follows the source all the same
 
     def test_a_cursor_does_not_outlive_a_mutation_of_the_source(self) -> None:
-        # Lift with TestArrayCollectionStratum.test_a_cursor_obtained_through_a_view_dies_on_mutation.
+        # ArrayList was held out here until the revocation wiring reached the view's cursor;
+        # its counterpart turned green, so the exclusion is lifted and every type is covered.
             def subTest(case: _MutableCaseBase, items: _IList[int]) -> None:
                 view: _ITuple[int] = items.AsImmutable()
                 cursor: IEnumerator[int] = _assertIsNotNone(self, view.TryGetEnumerator())
@@ -731,7 +732,7 @@ class TestCursorContract(unittest.TestCase):
 
                 self.assertRaises(DiscardedError, cursor.MoveNext)
 
-            _arrayListSubTests(self, subTest)
+            _subTests(self, subTest)
 
 class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
@@ -782,7 +783,8 @@ class TestMutateBeforeObserving(unittest.TestCase):
 class TestArrayCollectionStratum(unittest.TestCase):
     """ArrayCollection — hence ArrayList — registers its enumerators with its source's
     registry while invalidating its own. This is the D-5 residue: the view is revoked,
-    the enumerator is not. Expected to fail, and marked as such rather than softened."""
+    the enumerator is not. The benches still marked expectedFailure record what remains of
+    it; the one that is no longer marked records the half the revocation wiring closed."""
 
     @unittest.expectedFailure
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
@@ -794,10 +796,11 @@ class TestArrayCollectionStratum(unittest.TestCase):
 
         self.assertRaises(DiscardedError, enumerator.MoveNext)
 
-    @unittest.expectedFailure
     def test_a_cursor_obtained_through_a_view_dies_on_mutation(self) -> None:
-        """Same cause, second path: a cursor must not outlive a mutation of its source, and
-        this one does whether it was obtained from the collection or through a view."""
+        """Second path, and it holds now: a cursor must not outlive a mutation of its source,
+        whether it was obtained from the collection or through a view. This one lifted the
+        exclusion on TestCursorContract.test_a_cursor_does_not_outlive_a_mutation_of_the_source,
+        which now covers ArrayList with every other type."""
 
         items: ArrayList[int] = _arrayList()
         view: _ITuple[int] = items.AsImmutable()
