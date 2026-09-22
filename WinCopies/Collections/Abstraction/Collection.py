@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence, MutableSequence as MutableSequenceBase
 from heapq import merge
-from typing import overload, final, Callable, SupportsIndex
+from typing import cast, overload, final, Callable, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections import Extensions
@@ -13,12 +13,13 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, ISizedList, MutableSequence, Count
 from WinCopies.Collections.Extensions.Collection import IViewProvider
 from WinCopies.Collections.Generation.Registry import IObjectMonitor
-from WinCopies.Collections.Iteration.Enumeration import Zip
+from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
 from WinCopies.Collections.Util import (FindIndex, Move,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
                                         TryBisect, TryBisectWithKey, Insort)
+from WinCopies.Delegates import GetEqualityComparison
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
@@ -433,7 +434,7 @@ class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], 
     def GetCount(self) -> int: return self._GetItems().GetCount()
     
     @final
-    def Contains(self, value: T|object) -> bool: return value in self.AsSequence()
+    def Contains(self, value: T|object) -> bool: return Contains(self._GetItems(), GetEqualityComparison(cast(T, value)), lambda item: item.GetValue())
     
     @final
     def _Move(self, x: int, y: int) -> None:
