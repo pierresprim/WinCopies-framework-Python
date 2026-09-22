@@ -28,9 +28,11 @@ Contract shared by every family:
   unspecified results.
 """
 
+from operator import add, sub, mul
 from sys import maxsize
 from typing import Final, NoReturn
 
+from WinCopies.Typing.Delegate import Operator
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 
 _MAX_WORD_LENGTH: Final[int] = maxsize.bit_length() + 1
@@ -138,8 +140,9 @@ def TryPow(x: int, exponent: int, limit: int|None = None) -> int|None:
 
 def SaturatingAdd(x: int, y: int, limit: int|None = None) -> int:
     """Return ``x + y``, clamped to ``limit``."""
+    def add(limit: int) -> int: return min(x + y, limit)
 
-    return min(x + y, _GetLimitFor(x, y, limit))
+    return add(_GetLimitFor(x, y, limit))
 
 def SaturatingSub(x: int, y: int, limit: int|None = None) -> int:
     """Return ``x - y``, clamped to ``0``."""
@@ -164,23 +167,25 @@ def SaturatingPow(x: int, exponent: int, limit: int|None = None) -> int:
 
 # Wrapping: modulo limit + 1 (C unsigned semantics when limit == GetMaxValue(n)).
 
-def _Wrap(value: int, x: int, y: int, limit: int|None) -> int:
-    return value % (_GetLimitFor(x, y, limit) + 1)
+def _Wrap(operator: Operator[int], x: int, y: int, limit: int|None) -> int:
+    def wrap(limit: int) -> int: return operator(x, y) % limit
+
+    return wrap(_GetLimitFor(x, y, limit) + 1)
 
 def WrappingAdd(x: int, y: int, limit: int|None = None) -> int:
     """Return ``(x + y) % (limit + 1)``."""
 
-    return _Wrap(x + y, x, y, limit)
+    return _Wrap(add, x, y, limit)
 
 def WrappingSub(x: int, y: int, limit: int|None = None) -> int:
     """Return ``(x - y) % (limit + 1)``."""
 
-    return _Wrap(x - y, x, y, limit)
+    return _Wrap(sub, x, y, limit)
 
 def WrappingMul(x: int, y: int, limit: int|None = None) -> int:
     """Return ``(x * y) % (limit + 1)``."""
 
-    return _Wrap(x * y, x, y, limit)
+    return _Wrap(mul, x, y, limit)
 
 def WrappingPow(x: int, exponent: int, limit: int|None = None) -> int:
     """Return ``(x ** exponent) % (limit + 1)``.
@@ -193,30 +198,35 @@ def WrappingPow(x: int, exponent: int, limit: int|None = None) -> int:
 # Overflowing: wrapped result and overflow flag.
 # Invariant: OverflowingX(...) == (WrappingX(...), TryX(...) is None)
 
-def _Overflow(result: int, limit: int) -> DualValueBool[int]:
-    return CreateDualValueBool(result % (limit + 1), result > limit)
+def _Overflow(operator: Operator[int], x: int, y: int, limit: int|None = None) -> DualValueBool[int]:
+    def overflow(limit: int) -> DualValueBool[int]:
+        result: int = operator(x, y)
+
+        return CreateDualValueBool(result % (limit + 1), not 0 <= result <= limit)
+
+    return overflow(_GetLimitFor(x, y, limit))
 
 def OverflowingAdd(x: int, y: int, limit: int|None = None) -> DualValueBool[int]:
     """Return ``(x + y) % (limit + 1)``, paired with whether ``x + y`` exceeds ``limit``."""
 
-    return _Overflow(x + y, _GetLimitFor(x, y, limit))
+    return _Overflow(add, x, y, limit)
 
 def OverflowingSub(x: int, y: int, limit: int|None = None) -> DualValueBool[int]:
     """Return ``(x - y) % (limit + 1)``, paired with whether ``y > x``."""
 
-    return CreateDualValueBool((x - y) % (_GetLimitFor(x, y, limit) + 1), y > x)
+    return _Overflow(sub, x, y, limit)
 
 def OverflowingMul(x: int, y: int, limit: int|None = None) -> DualValueBool[int]:
     """Return ``(x * y) % (limit + 1)``, paired with whether ``x * y`` exceeds ``limit``."""
 
-    return _Overflow(x * y, _GetLimitFor(x, y, limit))
+    return _Overflow(mul, x, y, limit)
 
 def OverflowingPow(x: int, exponent: int, limit: int|None = None) -> DualValueBool[int]:
     """Return ``(x ** exponent) % (limit + 1)``, paired with whether ``x ** exponent`` exceeds ``limit``.
 
     Neither the result nor the flag requires computing the full power.
     """
+    def _pow(limit: int) -> DualValueBool[int]:
+        return CreateDualValueBool(pow(x, exponent, limit + 1), _Pow(x, exponent, limit) is None)
 
-    limit = _GetLimitForPow(x, exponent, limit)
-
-    return CreateDualValueBool(pow(x, exponent, limit + 1), _Pow(x, exponent, limit) is None)
+    return _pow(_GetLimitForPow(x, exponent, limit))
