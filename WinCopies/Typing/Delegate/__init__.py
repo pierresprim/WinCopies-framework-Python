@@ -22,6 +22,7 @@ type IndexedValueAction[T] = IndexedValueFunction[T, None]
 type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
 type Selector[T] = Converter[T, T]
 type NullableSelector[T] = NullableConverter[T, T]
+type Operator[T] = ItemComparison[T, T]
 
 class IFunctionBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
