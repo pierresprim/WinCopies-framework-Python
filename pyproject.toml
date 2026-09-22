@@ -70,10 +70,16 @@ Repository = "https://github.com/pierresprim/WinCopies-framework-Python"
 Changelog = "https://github.com/pierresprim/WinCopies-framework-Python/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+# Analysis floors, not preferences. Below these versions the checkers report diagnostics
+# that are artefacts of the checker rather than facts of the code; a pass has already been
+# spent opening a defect that was only ever one of those, and a later pass nearly spent a
+# second re-opening it. Raise a floor only against a version known to change the behaviour
+# in question: two versions on the same side of a fix are not two independent witnesses.
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "mypy>=1.5"
+    "pyright>=1.1.413",
+    "mypy>=2.3.1"
 ]
 
 # ============================================================================
