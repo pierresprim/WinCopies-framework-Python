@@ -46,7 +46,6 @@ def GetMaxWordLength() -> int:
     Derived from ``sys.maxsize``, i.e. the width of ``Py_ssize_t``: 64 on
     64-bit platforms, 32 on 32-bit platforms.
     """
-
     return _MAX_WORD_LENGTH
 
 def GetMaxValue(bits: int) -> int:
@@ -54,7 +53,6 @@ def GetMaxValue(bits: int) -> int:
 
     Raises ``ValueError`` if ``bits`` is negative.
     """
-
     if bits < 0: raise ValueError("'bits' must be non-negative.")
 
     return (1 << bits) - 1
@@ -140,6 +138,7 @@ def TryPow(x: int, exponent: int, limit: int|None = None) -> int|None:
 
 def SaturatingAdd(x: int, y: int, limit: int|None = None) -> int:
     """Return ``x + y``, clamped to ``limit``."""
+
     def add(limit: int) -> int: return min(x + y, limit)
 
     return add(_GetLimitFor(x, y, limit))
@@ -192,13 +191,12 @@ def WrappingPow(x: int, exponent: int, limit: int|None = None) -> int:
 
     Uses modular exponentiation: the full power is never computed.
     """
-
     return pow(x, exponent, _GetLimitForPow(x, exponent, limit) + 1)
 
 # Overflowing: wrapped result and overflow flag.
 # Invariant: OverflowingX(...) == (WrappingX(...), TryX(...) is None)
 
-def _Overflow(operator: Operator[int], x: int, y: int, limit: int|None = None) -> DualValueBool[int]:
+def _Overflow(operator: Operator[int], x: int, y: int, limit: int|None) -> DualValueBool[int]:
     def overflow(limit: int) -> DualValueBool[int]:
         result: int = operator(x, y)
 
