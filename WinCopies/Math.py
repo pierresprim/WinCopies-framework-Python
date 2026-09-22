@@ -67,8 +67,8 @@ def _GetLimit(limit: int|None) -> int:
 def _CheckOperand(name: str, value: int, limit: int) -> None:
     def throw(msg: str) -> NoReturn: raise ValueError(f"'{name}' must {msg}.")
 
-    if value < 0: throw(f"be non-negative")
-    if value > limit: throw(f"not exceed limit")
+    if value < 0: throw("be non-negative")
+    if value > limit: throw("not exceed limit")
 
 def _GetLimitFor(x: int, y: int, limit: int|None) -> int:
     _CheckOperand("x", x, limit := _GetLimit(limit))
