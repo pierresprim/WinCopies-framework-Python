@@ -37,13 +37,16 @@ from typing import final, Any, Callable, cast
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
+from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Selection import (
     EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
-from WinCopies.Collections.Core import ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
+from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
+from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Extensions import ITupleBase, ITuple as _ITuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter, IFunction
 from WinCopies.Typing.Discard import DiscardReason, InvalidatedError, DiscardedError
 
@@ -177,6 +180,32 @@ def _snapshot(items: ITuple[int]) -> ReadOnlyArray[int]:
     """Observable content, used to establish that a mutation actually took place."""
 
     return tuple(items.GetAt(i) for i in range(items.GetCount()))
+
+# Converting collections: TIn inside, TOut outside. S10 asks for the registration to reach
+# the root across a conversion, which no projection form exercises — a converter is the one
+# derivation that changes the element type rather than the order or the write surface.
+class _ConvertingTuple(ConvertingTuple[int, str]):
+    """Read-only converter over an inner tuple of ints."""
+
+    def _Clone(self, items: Any) -> "_ConvertingTuple": return _ConvertingTuple(items)
+
+    def _Convert(self, item: int) -> str: return str(item)
+
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
+class _ConvertingList(ConvertingList[int, str]):
+    """Two-way converter over an inner list of ints."""
+
+    def _Clone(self, items: Any) -> "_ConvertingList": return _ConvertingList(items)
+
+    def _Convert(self, item: int) -> str: return str(item)
+    def _ConvertBack(self, item: str) -> int: return int(item)
+
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
+
+# Depth at which the generation chain is attested. Addendum 5 §1 records fifty, measured
+# out of tree; the figure is carried here so that the claim and its check are the same
+# object.
+_GENERATIONS: int = 50
 
 # Derivation forms a type may expose. Each one is a second level between the root and
 # the revocable, and the failure mode C7 targets is registration with the immediate
@@ -316,6 +345,34 @@ class TestGenerationIdentity(unittest.TestCase):
                 with self.subTest(generation = index): self.assertTrue(_revoked(view))
 
         _subTests(self, subTest)
+
+    def test_the_chain_holds_at_fifty_generations(self) -> None:
+        """The depth the dossier attests, brought into the repository.
+
+        `test_generations_chain` establishes the shape on four generations, which is what
+        T1 asks; the fifty of addendum 5 §1 were measured once, out of tree, and nothing
+        in the harness said at what depth the chain still held. Depth is the axis on which
+        a latch degrades without the shape changing — D-2 was exactly a two-position latch
+        that looked right for one generation — so it is worth asserting rather than
+        remembering.
+
+        One type is enough here: the shape is already covered on every type above, and
+        what this bench adds is depth, not breadth.
+        """
+
+        items: IList[int] = _source()
+        views: list[ITuple[int]] = []
+
+        for _ in range(_GENERATIONS):
+            views.append(items.AsImmutable())
+
+            items.Add(9)
+
+        self.assertEqual(len(views), _GENERATIONS)
+
+        revoked: int = sum(1 for view in views if _revoked(view))
+
+        self.assertEqual(revoked, _GENERATIONS, f"{revoked} of {_GENERATIONS} generations were revoked")
 
 class TestLazyCreation(unittest.TestCase):
     """C4: no revocable is allocated until one is asked for.
@@ -458,6 +515,20 @@ class TestProjectionsSurvive(unittest.TestCase):
 
         _project(self, project)
 
+def _readPaths(view: _ITuple[int]) -> dict[str, Function[Any]]:
+    """The read surface D1 speaks of, shared by the two benches below.
+
+    They are two halves of one statement: these paths answer while the view is alive, and
+    they raise once it is revoked. Asserting only the second half would pass just as well
+    on a path that never answers at all.
+    """
+
+    return {"GetCount":  view.GetCount,
+            "GetAt":     lambda: view.GetAt(0),
+            "Contains":  lambda: view.Contains(1),
+            "len":       lambda: len(view.AsSequence()),
+            "iteration": lambda: list(view.AsIterable())}
+
 class TestRevocationIsTotal(unittest.TestCase):
     """D1: every read raises. None returns stale content.
 
@@ -466,6 +537,53 @@ class TestRevocationIsTotal(unittest.TestCase):
     hole reads as a known defect rather than as a claim of totality that happens to pass.
     """
 
+    def test_every_read_path_answers_before_revocation(self) -> None:
+        """The control the bench below needs in order to mean anything.
+
+        `test_every_read_path_raises` is satisfied by a path that raises for the wrong
+        reason, or that cannot answer at all. D-33 was exactly that: `Contains` recursed
+        without bound on ArrayList, and the sweep never saw it because it only ever ran
+        against a revoked view, where revocation raised first. A read path has to be shown
+        working before its refusal proves anything.
+
+        The values are checked, not merely the absence of an exception: a path that
+        answers wrongly would otherwise read as healthy.
+        """
+
+        expected: dict[str, Callable[[ReadOnlyArray[int]], Any]] = {
+            "GetCount":  lambda content: len(content),
+            "GetAt":     lambda content: content[0],
+            "Contains":  lambda content: content[0] in content,
+            "len":       lambda content: len(content),
+            "iteration": lambda content: list(content)}
+
+        for case in _ALL:
+            items = cast(_ITuple[int], case.Create())
+            content: ReadOnlyArray[int] = _snapshot(items)
+            view: _ITuple[int] = items.AsImmutable()
+
+            for name, read in _readPaths(view).items():
+                with self.subTest(type = case.GetName(), read = name):
+                    self.assertEqual(read(), expected[name](content))
+
+    def test_a_read_path_reports_an_absent_value_as_absent(self) -> None:
+        """The other half of D-33's lesson, and the more dangerous one.
+
+        The correction that suggests itself for a containment test is to delegate to the
+        inner container, which on the array strata holds boxes rather than values: it
+        answers False for everything, present or not. That trades a loud failure for a
+        silent wrong answer, so the absent case is asserted alongside the present one.
+        """
+
+        for case in _ALL:
+            items = cast(_ITuple[int], case.Create())
+            absent: int = max(_snapshot(items)) + 1
+            view: _ITuple[int] = items.AsImmutable()
+
+            with self.subTest(type = case.GetName()):
+                self.assertTrue(view.Contains(_snapshot(items)[0]))
+                self.assertFalse(view.Contains(absent))
+
     def test_every_read_path_raises(self) -> None:
         for case in _MUTABLE:
             items: _IList[int] = cast(_IList[int], case.Create())
@@ -473,14 +591,7 @@ class TestRevocationIsTotal(unittest.TestCase):
 
             case.Mutate(items)
 
-            reads: dict[str, Function[Any]] = {
-                "GetCount":  view.GetCount,
-                "GetAt":     lambda: view.GetAt(0),
-                "Contains":  lambda: view.Contains(1),
-                "len":       lambda: len(view.AsSequence()),
-                "iteration": lambda: list(view.AsIterable())}
-
-            for name, read in reads.items():
+            for name, read in _readPaths(view).items():
                 with self.subTest(type = case.GetName(), read = name): self.assertRaises(DiscardedError, read)
 
     def test_the_error_names_the_cause(self) -> None:
@@ -894,6 +1005,367 @@ class TestSelectionStratum(unittest.TestCase):
         items.Add("9")
 
         self.assertTrue(_revoked(view))
+
+class TestProjectionGenerationIdentity(unittest.TestCase):
+    """C2 by producer: a projection is a producer of views in its own right.
+
+    The benches above establish identity and distinctness on root types. A projection sits
+    one level below, and the failure mode it is exposed to is a registry shared upward or
+    a deduplicator keyed on the root rather than on the producer — neither of which a
+    sweep over roots can see.
+    """
+
+    def test_two_views_of_one_projection_are_the_same_instance(self) -> None:
+        """S11. One producer, one generation — the producer here being the projection."""
+
+        def project(_: _MutableCaseBase, __: IList[int], projection: ITupleBase[int], ___: ITuple[int]) -> None:
+            self.assertIs(projection.AsImmutable(), projection.AsImmutable())
+
+        _project(self, project)
+
+    def test_a_source_and_its_reversal_yield_distinct_views_that_die_together(self) -> None:
+        """S12, on the projection it names.
+
+        Distinctness alone would be satisfied by a projection whose views are simply never
+        registered — which is D-8's shape — so the death of both on one mutation is
+        asserted in the same breath.
+        """
+
+        for case in _MUTABLE:
+            with self.subTest(type = case.GetName()):
+                items: IList[int] = cast(IList[int], case.Create())
+                reversal: ITupleBase[int] = cast(ITupleBase[int], items.AsReversed())
+
+                rootView: ITuple[int] = items.AsImmutable()
+                reversedView: ITuple[int] = reversal.AsImmutable()
+
+                self.assertIsNot(rootView, reversedView)
+                self.assertFalse(_revoked(rootView))
+                self.assertFalse(_revoked(reversedView))
+
+                case.Mutate(items)
+
+                self.assertTrue(_revoked(rootView))
+                self.assertTrue(_revoked(reversedView))
+
+    def test_a_projection_that_preserves_the_content_shares_the_view(self) -> None:
+        """The other face of S12, and evidence for the sharing rule step 4 has to settle.
+
+        S12 pairs a source with its reversal, which presents a different content. The two
+        remaining projection forms do not: AsReadOnly and AsFixedSize narrow the write
+        surface and leave the observable content identical. Measured here, both hand back
+        the very instance the root hands back — which is the candidate rule of `4.1` §4.1,
+        *one revocable per distinct observable content*, showing up as behaviour rather
+        than as a proposal.
+
+        Recorded as an observation, not endorsed as a contract: what step 4 has to decide
+        is whether this is the rule or an accident of the current wiring. Either way, a
+        change here should be deliberate, and this bench is what makes it visible.
+        """
+
+        shared: tuple[str, ...] = ("AsReadOnly", "AsFixedSize")
+
+        for case in _MUTABLE:
+            items = cast(IList[int], case.Create())
+
+            for name, projection in _projections(items):
+                if name not in shared: continue
+
+                with self.subTest(type = case.GetName(), projection = name):
+                    self.assertIsNot(projection, items)
+                    self.assertIs(cast(ITupleBase[int], projection).AsImmutable(), items.AsImmutable())
+
+class TestConversionStratum(unittest.TestCase):
+    """S10 and C7 across a conversion.
+
+    Every derivation the benches above exercise keeps the element type: reversal changes
+    the order, read-only and fixed-size narrow the write surface. A converter changes what
+    the elements *are*, and it is the one form where the registration could plausibly stop
+    at the adapter — the adapter holds a container of TIn and presents TOut, so it has a
+    reason of its own to own a registry.
+    """
+
+    def test_mutating_the_inner_source_revokes_a_view_on_the_converter(self) -> None:
+        """S10 proper: the registration reaches the root across the conversion."""
+
+        source: _IList[int] = _source()
+        items: _ConvertingTuple = _ConvertingTuple(cast(Any, source))
+        view: ITuple[str] = items.AsImmutable()
+
+        self.assertEqual(_snapshot(cast(ITuple[Any], view)), ("1", "2", "3"))
+
+        source.Add(9)
+        gc.collect()
+
+        self.assertTrue(_revoked(view))
+
+    def test_the_converter_routes_to_the_registry_of_its_source(self) -> None:
+        """C7 read on the wiring rather than on the effect, so that a pass that revokes for
+        the wrong reason does not read as conformant."""
+
+        source: _IList[int] = _source()
+
+        self.assertIs(_ConvertingTuple(cast(Any, source)).GetCollectionMonitors(), source.GetCollectionMonitors())
+
+    @unittest.expectedFailure
+    def test_the_converting_list_routes_to_the_registry_of_its_source(self) -> None:
+        """D-8, measured one level above where the dossier placed it.
+
+        D-8 was characterised on `Abstraction.Selection`'s types. It is not theirs: the
+        converting *list* of `Abstract.Collection` builds a registry of its own, while the
+        converting *tuple* beside it routes to the source, and Selection's types inherit
+        the gap rather than introduce it. Lift this with the D-8 correction, and target
+        the correction at this level.
+        """
+
+        source: _IList[int] = _source()
+
+        self.assertIs(_ConvertingList(cast(Any, source)).GetCollectionMonitors(), source.GetCollectionMonitors())
+
+    @unittest.expectedFailure
+    def test_mutating_the_inner_source_revokes_a_view_on_the_converting_list(self) -> None:
+        """The behavioural face of the bench above: the view stays alive and goes on
+        reading through to a source that has changed under it."""
+
+        source: _IList[int] = _source()
+        view: ITuple[str] = _ConvertingList(cast(Any, source)).AsImmutable()
+
+        source.Add(9)
+        gc.collect()
+
+        self.assertTrue(_revoked(view))
+
+class TestStatusCarriesTheCause(unittest.TestCase):
+    """G11', the half that belongs to this chantier.
+
+    The original G11 asked for two distinct enumerator substitutions and that the registry
+    path take the second. No enumerator substitution exists any more — the whole
+    `IInvalidatable*Enumerator` family was removed and the cause now travels through an
+    iteration status — so the invariant was reformulated on the correspondence table.
+
+    The mapping half of that table already lives in `Tests/Collections/Enumeration.py`,
+    asserted on a synthetic status, `Faulted` included. What no synthetic status can show
+    is that a real revocation reaches `Revoked` at all, and that is precisely what G11
+    guarded: a path that keeps taking the old route by inertia compiles, passes, and never
+    raises. So what is asserted here is the path, not the mapping.
+
+    `Faulted` is absent by decision, not by omission: producing a genuine fault of the
+    iteration body calls for a synthetic enumerator, which is the other module's business
+    and where it is already covered.
+    """
+
+    def __GetStates(self) -> dict[str, tuple[IterationResult, type[InvalidOperationError]|None]]:
+        return {"idle":        (IterationResult.Idle,        None),
+                "completed":   (IterationResult.Completed,   None),
+                "stopped":     (IterationResult.Stopped,     InvalidOperationError),
+                "invalidated": (IterationResult.Invalidated, InvalidatedError),
+                "revoked":     (IterationResult.Revoked,     InvalidatedError)}
+
+    def __Build(self, state: str) -> IEnumerator[int]:
+        items: _IList[int] = _source()
+
+        match state:
+            case "idle":
+                return _assertIsNotNone(self, items.TryGetEnumerator())
+
+            case "completed":
+                enumerator: IEnumerator[int] = _assertIsNotNone(self, items.TryGetEnumerator())
+
+                while enumerator.MoveNext(): pass
+
+                return enumerator
+
+            case "stopped":
+                enumerator = _assertIsNotNone(self, items.TryGetEnumerator())
+
+                enumerator.MoveNext()
+                enumerator.Stop()
+
+                return enumerator
+
+            case "invalidated":
+                enumerator = _assertIsNotNone(self, items.TryGetEnumerator())
+
+                enumerator.MoveNext()
+                items.Add(9)
+
+                return enumerator
+
+            case "revoked":
+                cursor: IEnumerator[int] = _assertIsNotNone(self, items.AsImmutable().TryGetEnumerator())
+
+                cursor.MoveNext()
+                items.Add(9)
+
+                return cursor
+
+            case _: raise AssertionError(state)
+
+    def test_the_table_holds_on_every_state(self) -> None:
+        """Five states, reached through real collections rather than declared."""
+
+        for state, (result, errorType) in self.__GetStates().items():
+            with self.subTest(state = state):
+                enumerator: IEnumerator[int] = self.__Build(state)
+
+                gc.collect()
+
+                status = enumerator.GetStatus()
+                error = status.TryGetIterationError()
+
+                self.assertEqual(status.GetResult(), result)
+
+                if errorType is None: self.assertIsNone(error)
+                else: self.assertIs(type(error), errorType)
+
+    def test_revocation_does_not_fall_back_on_the_generic_error(self) -> None:
+        """The clause G11 existed for.
+
+        A revoked cursor and an invalidated enumerator must both name the cause, and a
+        consumer must not have to tell them apart. Landing on a bare InvalidOperationError
+        — what a path taking the old route by inertia would produce — is the failure this
+        rules out, and `assertIs` on the type is what rules it out: InvalidatedError is
+        itself an InvalidOperationError, so an isinstance check would accept the bug.
+        """
+
+        for state in ("invalidated", "revoked"):
+            with self.subTest(state = state):
+                error = self.__Build(state).GetStatus().TryGetIterationError()
+
+                self.assertIs(type(error), InvalidatedError)
+                self.assertIsInstance(error, DiscardedError)
+
+# ---------------------------------------------------------------------------
+# The non-vacuity control, domiciled
+# ---------------------------------------------------------------------------
+# `2.5` §10 recorded that this control had no home: rebuilt at every pass, living outside
+# the repository, reproducible only as far as a report described it. The C4 counter in
+# TestLazyCreation is the counter-example it also carried — a check that the instrument
+# bites, kept in the tree. This is that model applied to the harness as a whole.
+
+# A floor, deliberately, not the figure. Measured on f26e751: the four witnesses shed 162
+# assertions, and the whole suite 242 over 13 methods. An equality would be a magic number
+# that churns with every type added to the tables above, and would be repaired by raising
+# it — which is the one repair that destroys the control.
+_NON_VACUITY_FLOOR: int = 100
+
+@contextlib.contextmanager
+def _breakingRevocation() -> Generator[None]:
+    """Rebuilds D-28 for the length of the block.
+
+    The defect: the revocation cookie overrode `_DisposeOverride` without calling
+    `super()`, so the substitution installing the throwing value provider never happened
+    and the view went on reading through to a live source. The replacement drops the
+    `super()` call and keeps everything else the override does, so what is rebuilt is
+    D-28 and not a blanket no-op.
+
+    This is the second and last place in this module that reaches past the public API;
+    like `_counting()` it is confined here and restored on the way out. The substitution
+    is a class attribute, hence global while it is installed: the control is sound only
+    on a single-threaded run, which is how the suite runs.
+    """
+
+    cookieType: Any = _cookieType()
+    original: Any = cookieType._DisposeOverride
+
+    def broken(self: Any, reason: DiscardReason) -> None:
+        getattr(self, "_RevocableViewCookie__onDisposed")(reason)
+
+    cookieType._DisposeOverride = broken
+
+    try: yield
+    finally: cookieType._DisposeOverride = original
+
+def _runBenches(benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]]) -> unittest.TestResult:
+    """Runs the named benches through a real result object.
+
+    Calling a bench method directly would work — `subTest` is a passthrough with no active
+    outcome — but only the first failing assertion would surface, and that behaviour is an
+    implementation detail of unittest. A suite and a result are the public API, count every
+    sub-test that falls, and keep the per-bench attribution the control is built on.
+    """
+
+    result: unittest.TestResult = unittest.TestResult()
+
+    unittest.TestSuite(benchType(name) for benchType, name in benches).run(result)
+
+    return result
+
+def _fallen(result: unittest.TestResult) -> int:
+    """Assertions that fell. Errors count with failures: an artificial state may produce
+    either — D-33 turned one into the other without changing the total — and the control
+    has no reason to distinguish them."""
+
+    return len(result.failures) + len(result.errors)
+
+def _fellIn(result: unittest.TestResult, name: str) -> bool:
+    """Whether a named bench is among those that fell. A sub-test reports as _SubTest; the
+    bench that owns it is reachable through test_case."""
+
+    return any(getattr(getattr(test, "test_case", test), "_testMethodName", None) == name
+               for test, _ in result.failures + result.errors)
+
+class TestHarnessNonVacuity(unittest.TestCase):
+    """A green harness is worth nothing unless it can go red.
+
+    Rather than assert a count, which would churn, this names the benches that must fall
+    and checks each one: four invariants, four distinct ways of falling. This class is
+    never among them, which is what keeps the control from running itself.
+    """
+
+    def __GetWitnesses(self) -> ReadOnlyArray[tuple[type[unittest.TestCase], str]]:
+        return ((TestWritePathCoverage, "test_every_mutator_revokes"),               # C5
+                (TestRevocationIsTotal, "test_every_read_path_raises"),              # D1
+                (TestGenerationIdentity, "test_generations_chain"),                  # C3
+                (TestSourceRelease, "test_a_revoked_view_does_not_pin_its_source"))  # D5
+
+    def test_the_rebuilt_defect_is_a_violation(self) -> None:
+        """`2.5` §7, paid for with a false positive: establish that the violation is one
+        before concluding anything from what it makes fall. A violation that leaves the
+        harness green proves nothing about the harness.
+
+        Two clauses, because D-28 has two faces. The view keeps answering; and it keeps
+        answering while its own cookie already reports itself discarded — the substitution
+        of the cookie lives in the private body, out of reach of the override, so H8 holds
+        and the divergence is exactly the gap D-28 opens.
+        """
+
+        with _breakingRevocation():
+            items: _IList[int] = _source()
+            view: _ITuple[int] = items.AsImmutable()
+
+            items.Add(9)
+            gc.collect()
+
+            self.assertFalse(_revoked(view), "D-28 rebuilt, yet the view still refuses to read")
+            self.assertIn("revoked", view.ToString().lower(),
+                          "the cookie should report itself discarded while the view still answers")
+
+        restored: _IList[int] = _source()
+        survivor: _ITuple[int] = restored.AsImmutable()
+
+        restored.Add(9)
+        gc.collect()
+
+        self.assertTrue(_revoked(survivor), "the seam was not restored on the way out")
+
+    def test_the_named_benches_fall_on_it(self) -> None:
+        """Both halves are asserted. Green on an intact seam is what makes the fall
+        attributable to the violation rather than to something already broken."""
+
+        witnesses: ReadOnlyArray[tuple[type[unittest.TestCase], str]] = self.__GetWitnesses()
+        intact: unittest.TestResult = _runBenches(witnesses)
+
+        self.assertEqual(_fallen(intact), 0, "the witnesses are expected to pass on an intact seam")
+
+        with _breakingRevocation(): broken: unittest.TestResult = _runBenches(witnesses)
+
+        for benchType, name in witnesses:
+            with self.subTest(bench = f"{benchType.__name__}.{name}"):
+                self.assertTrue(_fellIn(broken, name), f"{benchType.__name__}.{name} did not fall on the rebuilt defect")
+
+        self.assertGreater(_fallen(broken), _NON_VACUITY_FLOOR,
+                           f"only {_fallen(broken)} assertions fell; the control is losing its grip")
 
 if __name__ == "__main__":
     unittest.main()
