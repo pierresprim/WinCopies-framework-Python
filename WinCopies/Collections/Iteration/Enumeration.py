@@ -9,6 +9,7 @@ from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICo
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
+from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
@@ -60,8 +61,8 @@ def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         predicate: The condition to continue excluding.
 
     Yields:
-        Items starting from the first one that doesn't match the predicate.
-    """
+        Items starting from the first one that doesn't match the predicate."""
+    
     return __Exclude(items, lambda enumerator: ExcluerEnumerator(enumerator, predicate))
 def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items until one matches a predicate, then includes the rest.
@@ -71,48 +72,54 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         predicate: The condition to stop excluding.
 
     Yields:
-        Items starting from the first one that matches the predicate.
-    """
+        Items starting from the first one that matches the predicate."""
+    
     return __Exclude(items, lambda enumerator: ExcluerUntilEnumerator(enumerator, predicate))
 
-def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: Predicate[T]|None = None) -> bool:
-    def any(length: int) -> bool: return length > 0
-    
-    def _any(items: ICountableEnumerable[T]) -> bool: return any(items.GetCount())
-    def __any(items: Collection[T]) -> bool: return any(len(items))
+def _Any(length: int) -> bool: return length > 0
 
-    def parse(items: Iterable[T], predicate: Predicate[T]) -> bool:
-        for _ in Include(items, predicate): return True
+def _AnyValue[T](items: ICountableEnumerable[T]) -> bool: return _Any(items.GetCount())
+def _AnyItem[T](items: Collection[T]) -> bool: return _Any(len(items))
+
+def _Parse[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[TIn], predicate: Predicate[TOut], selector: Converter[Iterable[TIn], Iterable[TOut]]) -> bool:
+    def parse(items: Iterable[TIn], predicate: Predicate[TOut]) -> bool:
+        for _ in Include(selector(items), predicate): return True
 
         return False
 
-    if predicate is None:
-        match items:
-            case ICountableEnumerable(): return _any(items)
-            case Collection(): return __any(items)
-            
-            case Iterable():
-                for _ in items: return True
+    match items:
+        case ICountableEnumerable(): return _AnyValue(items) and parse(items.AsIterable(), predicate)
+        case Collection(): return _AnyItem(items) and parse(items, predicate)
+        
+        case Iterable(): return parse(items, predicate)
 
-                return False
-    
-    else:
-        match items:
-            case ICountableEnumerable(): return _any(items) and parse(items.AsIterable(), predicate)
-            case Collection(): return __any(items) and parse(items, predicate)
-            
-            case Iterable():
-                return parse(items, predicate)
-def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) -> bool|None:
+def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: Predicate[T]|None = None) -> bool:
     """Checks if an iterable contains any items.
 
     Args:
         items: The items to check.
 
     Returns:
-        True if any items exist, False otherwise.
-    """
+        True if any items exist, False otherwise."""
+    
+    if predicate is None:
+        match items:
+            case ICountableEnumerable(): return _AnyValue(items)
+            case Collection(): return _AnyItem(items)
+            
+            case Iterable():
+                for _ in items: return True
+
+                return False
+    
+    else: return _Parse(items, predicate, Self)
+def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) -> bool|None:
     return None if items is None else Any(items, predicate)
+
+def Contains[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[TIn], predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool:
+    return _Parse(items, predicate, lambda items: Select(items, selector))
+def CheckIfContains[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool|None:
+    return None if items is None else Contains(items, predicate, selector)
 
 def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
     current: T2|None = None
@@ -154,8 +161,8 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Scan
         - ScanResult.Null if items is None
         - ScanResult.Empty if no items exist
         - ScanResult.Success if exactly one item matches
-        - ScanResult.Error if more than one item matches
-    """
+        - ScanResult.Error if more than one item matches"""
+    
     if items is None: return ScanResult.Null
 
     validator: Predicate[T]|None = None
@@ -188,8 +195,8 @@ def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -
     Returns:
         - None if items is None
         - True if exactly one item matches
-        - False if zero or more than one item matches
-    """
+        - False if zero or more than one item matches"""
+    
     match ValidateOnlyOne(items, predicate):
         case ScanResult.Success: return True
         case ScanResult.Null: return None
@@ -205,8 +212,8 @@ def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMess
         errorMessage: Optional custom error message.
 
     Raises:
-        ValueError: If more than one item matches the predicate.
-    """
+        ValueError: If more than one item matches the predicate."""
+    
     if not ValidateOnlyOne(items, predicate): raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
 def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
     """Ensures exactly one item matches a predicate, with null-safe validation.
