@@ -1,5 +1,5 @@
 from sys import maxsize
-from typing import Final
+from typing import Final, NoReturn
 
 from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 
@@ -12,7 +12,7 @@ def GetMaxWordLength() -> int:
     return _MAX_WORD_LENGTH
 
 def GetMaxValue(bits: int) -> int:
-    if bits < 0: raise ValueError("Bits must be non-negative.")
+    if bits < 0: raise ValueError("'bits' must be non-negative.")
 
     return (1 << bits) - 1
 
@@ -25,7 +25,7 @@ def _GetLimit(limit: int|None) -> int:
     return limit
 
 def _CheckOperand(name: str, value: int, limit: int) -> None:
-    def throw(msg: str) -> None: raise ValueError(f"'{name}' must {msg}.")
+    def throw(msg: str) -> NoReturn: raise ValueError(f"'{name}' must {msg}.")
 
     if value < 0: throw(f"be non-negative")
     if value > limit: throw(f"not exceed limit")
@@ -39,7 +39,7 @@ def _GetLimitFor(x: int, y: int, limit: int|None) -> int:
 def _GetLimitForPow(x: int, exponent: int, limit: int|None) -> int:
     _CheckOperand("x", x, limit := _GetLimit(limit))
 
-    if exponent < 0: raise ValueError("Exponent must be non-negative.")
+    if exponent < 0: raise ValueError("'exponent' must be non-negative.")
 
     return limit
 
