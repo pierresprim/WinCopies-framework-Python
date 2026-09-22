@@ -25,8 +25,7 @@ Contract shared by every family:
 - Certain overflow of a product or a power is detected from bit lengths, in
   constant time, without computing the full result.
 - Argument types are not checked at runtime: non-``int`` arguments give
-  unspecified results.
-"""
+  unspecified results."""
 
 from operator import add, sub, mul
 from sys import maxsize
@@ -44,15 +43,15 @@ def GetMaxWordLength() -> int:
     """Return the bit width of an unsigned machine word on this platform.
 
     Derived from ``sys.maxsize``, i.e. the width of ``Py_ssize_t``: 64 on
-    64-bit platforms, 32 on 32-bit platforms.
-    """
+    64-bit platforms, 32 on 32-bit platforms. """
+
     return _MAX_WORD_LENGTH
 
 def GetMaxValue(bits: int) -> int:
     """Return the maximum value of an unsigned integer of ``bits`` bits: ``2**bits - 1``.
 
-    Raises ``ValueError`` if ``bits`` is negative.
-    """
+    Raises ``ValueError`` if ``bits`` is negative."""
+    
     if bits < 0: raise ValueError("'bits' must be non-negative.")
 
     return (1 << bits) - 1
@@ -189,8 +188,8 @@ def WrappingMul(x: int, y: int, limit: int|None = None) -> int:
 def WrappingPow(x: int, exponent: int, limit: int|None = None) -> int:
     """Return ``(x ** exponent) % (limit + 1)``.
 
-    Uses modular exponentiation: the full power is never computed.
-    """
+    Uses modular exponentiation: the full power is never computed. """
+
     return pow(x, exponent, _GetLimitForPow(x, exponent, limit) + 1)
 
 # Overflowing: wrapped result and overflow flag.
@@ -222,8 +221,8 @@ def OverflowingMul(x: int, y: int, limit: int|None = None) -> DualValueBool[int]
 def OverflowingPow(x: int, exponent: int, limit: int|None = None) -> DualValueBool[int]:
     """Return ``(x ** exponent) % (limit + 1)``, paired with whether ``x ** exponent`` exceeds ``limit``.
 
-    Neither the result nor the flag requires computing the full power.
-    """
+    Neither the result nor the flag requires computing the full power."""
+
     def _pow(limit: int) -> DualValueBool[int]:
         return CreateDualValueBool(pow(x, exponent, limit + 1), _Pow(x, exponent, limit) is None)
 
