@@ -389,6 +389,33 @@ class TupleCollectionBase[T](_TupleCollectionBase[T]):
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
+class EquatableTupleCollectionBase[T: EquatableProtocol](_TupleCollectionBase[T], IEquatableTuple[T], INotHashableValue):
+    def __init__(self) -> None:
+        def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__reversed = func
+        
+        super().__init__()
+
+        self.__reversed: IFunction[IEquatableTuple[T]] = _ReversedEquatableTupleUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
+
+    @final
+    def AsReadOnly(self) -> IEquatableTuple[T]: return self
+class HashableTupleCollectionBase[T: HashableProtocol](_TupleCollectionBase[T], IHashableTuple[T]):
+    def __init__(self) -> None:
+        def update(func: IFunction[IHashableTuple[T]]) -> None: self.__reversed = func
+        
+        super().__init__()
+
+        self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, update) # type: ignore[no-redef]
+    
+    @final
+    def AsReversed(self) -> IHashableTuple[T]: return self.__reversed.GetValue()
+
+    @final
+    def AsReadOnly(self) -> IHashableTuple[T]: return self
+
 class TupleCollection[T](_TupleCollection[T]):
     def __init__(self) -> None:
         def update(func: IFunction[ITuple[T]]) -> None: self.__reversed = func
@@ -829,7 +856,7 @@ class CollectionAbstract[T](IArrayAbstract[T, IList[T]], IList[T]):
     @final
     def _GetReversedUpdater(self, func: Method[IFunction[IList[T]]]) -> IFunction[IList[T]]: return _ReversedListUpdater[T](self, func)
 
-class Collection[T](_List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstract[T]):
+class _CollectionBase[T](_List[T], CollectionAbstract[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
         
@@ -838,10 +865,18 @@ class Collection[T](_List[T], ArrayCollectionBase[T, IList[T]], CollectionAbstra
         self.__fixedSize: IFunction[IArray[T]] = _FixedSizeArrayUpdater[T](self, update) # type: ignore[no-redef]
     
     @final
-    def AsReversed(self) -> IList[T]: return self._AsReversed()
+    def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
+class CollectionBase[T](_CollectionBase[T], ArrayCollectionAbstract[T, IList[T]]):
+    def __init__(self) -> None: super().__init__()
     
     @final
-    def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
+    def AsReversed(self) -> IList[T]: return self._AsReversed()
+class Collection[T](_CollectionBase[T], ArrayCollectionBase[T, IList[T]]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def AsReversed(self) -> IList[T]: return self._AsReversed()
+
 class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T]):
     def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ISortedTuple[T]]) -> None: self.__readOnly = func
