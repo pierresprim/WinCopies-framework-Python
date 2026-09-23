@@ -12,7 +12,7 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, CollectionViewMonitorBase, Sequence, MutableSequence
-from WinCopies.Collections.Extensions.Collection import Collection, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollection, HashableTupleCollection, ArrayList
+from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method
@@ -92,11 +92,17 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
     
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
-class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](TupleBase[TIn, TOut, IEquatableTuple[TIn]], EquatableTupleCollection[TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
+class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IEquatableTuple[TIn]], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IEquatableTuple[TIn] = GetEquatableTuple(items)
+        self.__items: IEquatableTuple[TIn] = (items := GetEquatableTuple(items))
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
+    @final
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
     @final
     def _GetContainer(self) -> IEquatableTuple[TIn]: return self.__items
@@ -111,11 +117,17 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](TupleBase[
 
     @final
     def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
-class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](TupleBase[TIn, TOut, IHashableTuple[TIn]], HashableTupleCollection[TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IHashableTuple[TIn]], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IHashableTuple[TIn] = GetHashableTuple(items)
+        self.__items: IHashableTuple[TIn] = (items := GetHashableTuple(items))
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
+    @final
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
     @final
     def _GetContainer(self) -> IHashableTuple[TIn]: return self.__items
@@ -171,11 +183,17 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     @final
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
-class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], Collection[TOut], MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
+class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut], MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
     def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
-        self.__items: IList[TIn] = GetList(items)
+        self.__items: IList[TIn] = (items := GetList(items))
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
+    @final
+    def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
     @final
     def _GetContainer(self) -> IList[TIn]: return self.__items
