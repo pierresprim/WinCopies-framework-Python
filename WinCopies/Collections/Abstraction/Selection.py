@@ -1,19 +1,75 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Iterable, Sequence, MutableSequence, MutableMapping
 from typing import final
 
-from WinCopies.Collections.Abstract import Collection, Mapping
+from WinCopies import IInterface, Abstract
+from WinCopies.Collections.Abstract import ConverterBase as ConverterAbstract, TwoWayConverterBase
+from WinCopies.Collections.Abstract.Collection import (Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
+                                                       Array as _Array, List as _List)
+from WinCopies.Collections.Abstract.Mapping import Set as _Set, Dictionary as _Dictionary
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISet, IDictionary
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Delegate import Converter as _Converter
 
-class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
-    def __init__(self, items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> None:
+class IConverter[TIn, TOut](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Convert(self, item: TIn) -> TOut:
+        ...
+class IConverters[TIn, TOut](IConverter[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def ConvertBack(self, item: TOut) -> TIn:
+        ...
+
+class Converter[TIn, TOut](Abstract, IConverter[TIn, TOut]):
+    def __init__(self, converter: _Converter[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__converter: _Converter[TIn, TOut] = converter
+
+    @final
+    def Convert(self, item: TIn) -> TOut: return self.__converter(item)
+class Converters[TIn, TOut](Converter[TIn, TOut], IConverters[TIn, TOut]):
+    def __init__(self, converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> None:
+        super().__init__(converter)
+
+        self.__backConverter: _Converter[TOut, TIn] = backConverter
+
+    @final
+    def ConvertBack(self, item: TOut) -> TIn: return self.__backConverter(item)
+
+class ConverterBase[TIn, TOut](ConverterAbstract[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetConverter(self) -> _Converter[TIn, TOut]:
+        ...
+    
+    @final
+    def _Convert(self, item: TIn) -> TOut: return self._GetConverter()(item)
+class TwoWayConverter[TIn, TOut](TwoWayConverterBase[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetConverters(self) -> IConverters[TIn, TOut]:
+        ...
+    
+    @final
+    def _Convert(self, item: TIn) -> TOut: return self._GetConverters().Convert(item)
+    @final
+    def _ConvertBack(self, item: TOut) -> TIn: return self._GetConverters().ConvertBack(item)
+
+class Tuple[TIn, TOut](_Tuple[TIn, TOut]):
+    def __init__(self, items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
+        self.__converter: _Converter[TIn, TOut] = converter
     
     def _Clone(self, items: ITuple[TIn]) -> Tuple[TIn, TOut]: return Tuple[TIn, TOut](items, self.__converter)
     
@@ -22,11 +78,11 @@ class Tuple[TIn, TOut](Collection.Tuple[TIn, TOut]):
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
-class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](Collection.EquatableTuple[TIn, TOut]):
-    def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> None:
+class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](_EquatableTuple[TIn, TOut]):
+    def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
+        self.__converter: _Converter[TIn, TOut] = converter
     
     def _Clone(self, items: IEquatableTuple[TIn]) -> EquatableTuple[TIn, TOut]: return EquatableTuple[TIn, TOut](items, self.__converter)
     
@@ -35,23 +91,23 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](Collection
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
-class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](Collection.HashableTuple[TIn, TOut]):
-    def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> None:
+class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](_HashableTuple[TIn, TOut]):
+    def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
+        self.__converter: _Converter[TIn, TOut] = converter
     
     def _Clone(self, items: IHashableTuple[TIn]) -> HashableTuple[TIn, TOut]: return HashableTuple[TIn, TOut](items, self.__converter)
     
     @final
     def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
 
-class Array[TIn, TOut](Collection.Array[TIn, TOut]):
-    def __init__(self, items: IArray[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
+class Array[TIn, TOut](_Array[TIn, TOut]):
+    def __init__(self, items: IArray[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
-        self.__backConverter: Converter[TOut, TIn] = backConverter
+        self.__converter: _Converter[TIn, TOut] = converter
+        self.__backConverter: _Converter[TOut, TIn] = backConverter
     
     def _Clone(self, items: IArray[TIn]) -> Array[TIn, TOut]: return Array[TIn, TOut](items, self.__converter, self.__backConverter)
     
@@ -63,12 +119,12 @@ class Array[TIn, TOut](Collection.Array[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
 
-class List[TIn, TOut](Collection.List[TIn, TOut]):
-    def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
+class List[TIn, TOut](_List[TIn, TOut]):
+    def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
-        self.__backConverter: Converter[TOut, TIn] = backConverter
+        self.__converter: _Converter[TIn, TOut] = converter
+        self.__backConverter: _Converter[TOut, TIn] = backConverter
     
     def _Clone(self, items: IList[TIn]) -> List[TIn, TOut]: return List[TIn, TOut](items, self.__converter, self.__backConverter)
     
@@ -80,59 +136,59 @@ class List[TIn, TOut](Collection.List[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
 
-class Set[TIn: HashableProtocol, TOut: HashableProtocol](Mapping.Set[TIn, TOut]):
-    def __init__(self, items: ISet[TIn]|set[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
+class Set[TIn: HashableProtocol, TOut: HashableProtocol](_Set[TIn, TOut]):
+    def __init__(self, items: ISet[TIn]|set[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TIn, TOut] = converter
-        self.__backConverter: Converter[TOut, TIn] = backConverter
+        self.__converter: _Converter[TIn, TOut] = converter
+        self.__backConverter: _Converter[TOut, TIn] = backConverter
     
     @final
     def _Convert(self, item: TIn) -> TOut: return self.__converter(item)
     @final
     def _ConvertBack(self, item: TOut) -> TIn: return self.__backConverter(item)
 
-class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Mapping.Dictionary[TKey, TValueIn, TValueOut]):
-    def __init__(self, items: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> None:
+class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](_Dictionary[TKey, TValueIn, TValueOut]):
+    def __init__(self, items: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converter: _Converter[TValueIn, TValueOut], backConverter: _Converter[TValueOut, TValueIn]) -> None:
         super().__init__(items)
 
-        self.__converter: Converter[TValueIn, TValueOut] = converter
-        self.__backConverter: Converter[TValueOut, TValueIn] = backConverter
+        self.__converter: _Converter[TValueIn, TValueOut] = converter
+        self.__backConverter: _Converter[TValueOut, TValueIn] = backConverter
     
     @final
     def _Convert(self, item: TValueIn) -> TValueOut: return self.__converter(item)
     @final
     def _ConvertBack(self, item: TValueOut) -> TValueIn: return self.__backConverter(item)
 
-def CreateTuple[TIn, TOut](items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> ITuple[TOut]:
+def CreateTuple[TIn, TOut](items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> ITuple[TOut]:
     return Tuple[TIn, TOut](items, converter)
-def MakeTuple[TIn, TOut](converter: Converter[TIn, TOut], *items: TIn) -> ITuple[TOut]:
+def MakeTuple[TIn, TOut](converter: _Converter[TIn, TOut], *items: TIn) -> ITuple[TOut]:
     return CreateTuple(items, converter)
 
-def CreateEquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> IEquatableTuple[TOut]:
+def CreateEquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> IEquatableTuple[TOut]:
     return EquatableTuple[TIn, TOut](items, converter)
-def MakeEquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](converter: Converter[TIn, TOut], *items: TIn) -> IEquatableTuple[TOut]:
+def MakeEquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](converter: _Converter[TIn, TOut], *items: TIn) -> IEquatableTuple[TOut]:
     return CreateEquatableTuple(items, converter)
 
-def CreateHashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut]) -> IHashableTuple[TOut]:
+def CreateHashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut]) -> IHashableTuple[TOut]:
     return HashableTuple[TIn, TOut](items, converter)
-def MakeHashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](converter: Converter[TIn, TOut], *items: TIn) -> IHashableTuple[TOut]:
+def MakeHashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](converter: _Converter[TIn, TOut], *items: TIn) -> IHashableTuple[TOut]:
     return CreateHashableTuple(items, converter)
 
-def CreateArray[TIn, TOut](items: IArray[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> IArray[TOut]:
+def CreateArray[TIn, TOut](items: IArray[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> IArray[TOut]:
     return Array[TIn, TOut](items, converter, backConverter)
-def MakeArray[TIn, TOut](converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn], *items: TIn) -> IArray[TOut]:
+def MakeArray[TIn, TOut](converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn], *items: TIn) -> IArray[TOut]:
     return CreateArray(items, converter, backConverter)
 
-def CreateList[TIn, TOut](items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> IList[TOut]:
+def CreateList[TIn, TOut](items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> IList[TOut]:
     return List[TIn, TOut](items, converter, backConverter)
-def MakeList[TIn, TOut](converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn], *items: TIn) -> IList[TOut]:
+def MakeList[TIn, TOut](converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn], *items: TIn) -> IList[TOut]:
     return CreateList(items, converter, backConverter)
 
-def CreateSet[TIn: HashableProtocol, TOut: HashableProtocol](items: ISet[TIn]|set[TIn]|Iterable[TIn], converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> ISet[TOut]:
+def CreateSet[TIn: HashableProtocol, TOut: HashableProtocol](items: ISet[TIn]|set[TIn]|Iterable[TIn], converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn]) -> ISet[TOut]:
     return Set[TIn, TOut](items, converter, backConverter)
-def MakeSet[TIn: HashableProtocol, TOut: HashableProtocol](converter: Converter[TIn, TOut], backConverter: Converter[TOut, TIn], *items: TIn) -> ISet[TOut]:
+def MakeSet[TIn: HashableProtocol, TOut: HashableProtocol](converter: _Converter[TIn, TOut], backConverter: _Converter[TOut, TIn], *items: TIn) -> ISet[TOut]:
     return CreateSet(items, converter, backConverter)
 
-def CreateDictionary[TKey: HashableProtocol, TValueIn, TValueOut](dictionary: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converter: Converter[TValueIn, TValueOut], backConverter: Converter[TValueOut, TValueIn]) -> IDictionary[TKey, TValueOut]:
+def CreateDictionary[TKey: HashableProtocol, TValueIn, TValueOut](dictionary: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converter: _Converter[TValueIn, TValueOut], backConverter: _Converter[TValueOut, TValueIn]) -> IDictionary[TKey, TValueOut]:
     return Dictionary[TKey, TValueIn, TValueOut](dictionary, converter, backConverter)
