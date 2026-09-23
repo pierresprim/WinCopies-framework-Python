@@ -39,7 +39,7 @@ from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Selection import (
-    EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
+    Converters, EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
@@ -176,8 +176,12 @@ class _MutableCase[T](_Case[T], _MutableCaseBase):
     def GetMutators(self, items: T) -> ReadOnlyArray[tuple[str, Action[IList[int]]]]:
         return tuple((n, f) for n, f in _MUTATORS.items() if callable(getattr(items, n, None)))
 
-def _snapshot(items: ITuple[int]) -> ReadOnlyArray[int]:
-    """Observable content, used to establish that a mutation actually took place."""
+def _snapshot[T](items: ITuple[T]) -> ReadOnlyArray[T]:
+    """Observable content, used to establish that a mutation actually took place.
+
+    Generic over the element type: the selection stratum converts, so its benches read
+    a tuple of str out of a source of int.
+    """
 
     return tuple(items.GetAt(i) for i in range(items.GetCount()))
 
@@ -944,63 +948,78 @@ class TestArrayCollectionStratum(unittest.TestCase):
         self.assertEqual(_snapshot(taken), expected)
 
 class TestSelectionStratum(unittest.TestCase):
-    """The Selection stratum routes three of its four types to a registry of their own
-    instead of their source's. This is D-8, and these tests record it — expected to
-    fail, marked as such, never softened.
+    """The Selection stratum routes to its source's registry rather than keeping one.
 
-    Two of the three carry a third status. Their defect is established structurally —
-    the registries measurably differ — but cannot be exercised behaviourally, because
-    their source is immutable and no mutation can therefore revoke anything. Those are
-    skipped with a reason that names the defect, so that it stays visible in the report
-    without inflating the failure count. A skip here is a finding, not an omission.
+    This class recorded D-8 for five passes: three types kept a registry of their own,
+    and the two whose source is immutable carried a third status — the defect was
+    established structurally but could not be exercised, so it sat under a skip.
+
+    The defect was architectural, not local: the adapters inherited the registry
+    ownership of a root collection, so they neither routed nor armed what they owned.
+    Missing base classes were added and the three now route like the other two. The
+    benches below are what is left of it — the conformance, asserted rather than the
+    defect recorded.
+
+    Two shapes are exercised, because the constructors take either road depending on
+    what they are handed: a source that already satisfies the target interface is kept
+    and routed to, one that does not is materialised and becomes the source itself.
     """
 
-    @unittest.expectedFailure
     def test_selection_list_routes_to_its_source_registry(self) -> None:
+        """The road where the source is kept: a List already satisfies IList."""
+
         source: _IList[int] = _source()
-        items: _IList[str] = SelectionList[int, str](source, str, int)
+        items: _IList[str] = SelectionList[int, str](source, Converters[int, str](str, int))
 
         self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
 
-    @unittest.expectedFailure
     def test_selection_equatable_tuple_routes_to_its_source_registry(self) -> None:
-        """Structural half of the defect for the immutable-sourced types: exerciseable,
-        and failing."""
-
         source: IEquatableTuple[int] = _equatableSource()
         items: IEquatableTuple[str] = SelectionEquatableTuple[int, str](source, str)
 
         self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
 
-    @unittest.expectedFailure
     def test_selection_hashable_tuple_routes_to_its_source_registry(self) -> None:
         source: IHashableTuple[int] = _hashableSource()
         items: IHashableTuple[str] = SelectionHashableTuple[int, str](source, str)
 
         self.assertIs(items.GetCollectionMonitors(), source.GetCollectionMonitors())
 
-    def test_selection_tuples_cannot_be_exercised_behaviourally(self) -> None:
-        """Behavioural half: not exerciseable. Recorded rather than silently dropped."""
+    def test_an_incompatible_source_is_materialised_and_becomes_the_source(self) -> None:
+        """The other road, stated positively — it used to sit here as a skip.
 
-        self.skipTest("D-8, third status: Selection.EquatableTuple and Selection.HashableTuple keep a "
-                      "registry of their own — measured by test_selection_equatable_tuple_routes_to_its_source_registry — "
-                      "but their source is immutable, so no mutation can revoke a view and the consequence "
-                      "cannot be exercised. Defect established, not exerciseable.")
+        A List does not satisfy IEquatableTuple, so it is materialised. What the wrapper
+        then holds is the materialisation, and the object handed in is no longer its
+        source: mutating it must leave both the content and the view untouched. The two
+        clauses belong together. The surviving view alone would read as a revocation that
+        failed to happen; paired with the unchanged content it says the opposite, which is
+        that nothing happened to revoke.
+        """
 
-    @unittest.expectedFailure
+        source: _IList[int] = _source()
+        items: IEquatableTuple[str] = SelectionEquatableTuple[int, str](cast(Any, source), str)
+        content: ReadOnlyArray[str] = _snapshot(cast(ITuple[str], items))
+        view: ITuple[str] = cast(_ITuple[str], items).AsImmutable()
+
+        source.Add(9)
+        gc.collect()
+
+        self.assertEqual(_snapshot(cast(ITuple[str], items)), content)
+        self.assertFalse(_revoked(view))
+        self.assertEqual(_snapshot(view), content)
+
     def test_mutating_the_source_revokes_a_selection_view(self) -> None:
         source: _IList[int] = _source()
-        items: IList[str] = SelectionList[int, str](source, str, int)
-        view: ITuple[str] = items.AsImmutable()
+        items: IList[str] = SelectionList[int, str](source, Converters[int, str](str, int))
+        view: ITuple[str] = cast(_ITuple[str], items).AsImmutable()
 
         source.Add(9)
 
         self.assertTrue(_revoked(view))
 
-    @unittest.expectedFailure
     def test_mutating_the_selection_itself_revokes_its_view(self) -> None:
-        items: IList[str] = SelectionList[int, str](_source(), str, int)
-        view: ITuple[str] = items.AsImmutable()
+        items: IList[str] = SelectionList[int, str](_source(), Converters[int, str](str, int))
+        view: ITuple[str] = cast(_ITuple[str], items).AsImmutable()
 
         items.Add("9")
 
@@ -1107,25 +1126,23 @@ class TestConversionStratum(unittest.TestCase):
 
         self.assertIs(_ConvertingTuple(cast(Any, source)).GetCollectionMonitors(), source.GetCollectionMonitors())
 
-    @unittest.expectedFailure
     def test_the_converting_list_routes_to_the_registry_of_its_source(self) -> None:
-        """D-8, measured one level above where the dossier placed it.
+        """Where D-8 actually lived, and where it was fixed.
 
-        D-8 was characterised on `Abstraction.Selection`'s types. It is not theirs: the
-        converting *list* of `Abstract.Collection` builds a registry of its own, while the
-        converting *tuple* beside it routes to the source, and Selection's types inherit
-        the gap rather than introduce it. Lift this with the D-8 correction, and target
-        the correction at this level.
+        The dossier characterised D-8 on `Abstraction.Selection`. It was not theirs: the
+        converting *list* of `Abstract.Collection` kept a registry of its own while the
+        converting *tuple* beside it routed, and Selection inherited the gap rather than
+        introducing it. The correction landed here, by supplying the base classes the
+        hierarchy was missing.
         """
 
         source: _IList[int] = _source()
 
         self.assertIs(_ConvertingList(cast(Any, source)).GetCollectionMonitors(), source.GetCollectionMonitors())
 
-    @unittest.expectedFailure
     def test_mutating_the_inner_source_revokes_a_view_on_the_converting_list(self) -> None:
-        """The behavioural face of the bench above: the view stays alive and goes on
-        reading through to a source that has changed under it."""
+        """The behavioural face of the bench above. It is the one that matters: routing
+        is the mechanism, revocation is what the consumer sees."""
 
         source: _IList[int] = _source()
         view: ITuple[str] = _ConvertingList(cast(Any, source)).AsImmutable()
