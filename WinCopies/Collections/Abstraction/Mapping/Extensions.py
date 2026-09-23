@@ -252,7 +252,7 @@ class _ReadOnlyOrderedSetTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[
 
         self.__items: IOrderedSet[T] = items
     
-    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple[T](self.__items.AsList().AsReadOnly())
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple[T](self.__items.AsList())
 
 @final
 class _ReadOnlyOrderedSetList[T: HashableProtocol](CountableEnumerable[T], IReadOnlyOrderedSet[T]):

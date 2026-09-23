@@ -46,11 +46,17 @@ class CircularBase[TItem, TList](CircularAbstract[TItem, TList]):
 
 class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], IGenericConstraintImplementation[ICircularTuple[T]]):
     def __init__(self, items: ICircularTuple[T]) -> None: super().__init__(items)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
 class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[ICircularEquatableTuple[T]]):
     def __init__(self, items: ICircularEquatableTuple[T]) -> None: super().__init__(items)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
@@ -129,6 +135,9 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
     
     @final
     def _GetReversedUpdater(self, func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]: return _ArrayUpdater[T](self, func)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.FixedSize
     
     @final
     def AsReversed(self) -> IArray[T]: return self._AsReversed()
@@ -140,6 +149,9 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     
     @final
     def _GetReversedUpdater(self, func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]: return _ListUpdater[T](self, func)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
     
     @final
     def AsReversed(self) -> IList[T]: return self._AsReversed()

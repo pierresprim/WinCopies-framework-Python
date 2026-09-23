@@ -3,6 +3,7 @@ from collections.abc import Iterable, Sequence as SequenceBase
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
@@ -51,6 +52,10 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
         start, stop, step = key.indices(count)
         
         return slice(getIndex(start), getIndex(stop), step)
+
+    @final
+    def TryGetSourceMutability(self) -> Mutability|None:
+        return self._GetInnerContainer().TryGetSourceMutability()
     
     @final
     def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
@@ -77,11 +82,17 @@ class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem
 
 class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T], start: int) -> None: super().__init__(items, start)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(self._GetKey(key))
 class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, IEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], start: int) -> None: super().__init__(items, start)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
@@ -104,6 +115,9 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecial
         self._GetSpecializedContainer().SetAt(self.GetCircularIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int) -> None: super().__init__(items, start)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.FixedSize
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(self._GetKey(key))
@@ -117,6 +131,9 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     @final
     def _SetAt(self, key: int, value: T) -> None:
         return self._GetContainer().SetAt(self.GetCircularIndex(key), value)
+
+    @final
+    def GetMutability(self) -> Mutability: return Mutability.Mutable
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))
