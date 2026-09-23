@@ -38,6 +38,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import (
     Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
 from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
+from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import (
     Converters, EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
@@ -1007,6 +1008,38 @@ class TestSelectionStratum(unittest.TestCase):
         self.assertEqual(_snapshot(cast(ITuple[str], items)), content)
         self.assertFalse(_revoked(view))
         self.assertEqual(_snapshot(view), content)
+
+    def test_a_kept_source_that_can_change_revokes_through_the_converter(self) -> None:
+        """The hardest case the correction has to hold, and the one that could not be
+        built when the defect was being argued about.
+
+        Exercising a missing route on the equatable stratum needs a source that is both
+        an IEquatableTuple — so that it is kept rather than materialised — and able to
+        change. A census found none: the concrete ones are tuple-backed, the circular one
+        changes but takes no part in the mechanism, and the ordered set's tuple would have
+        served but its only public entry recursed without end. That entry was repaired,
+        so the case exists now.
+
+        It is the sharpest check available on this stratum: the source is kept, it does
+        change, and the view has to die. Keep it whatever else moves — it is the one bench
+        standing between this stratum and a silent return of the defect.
+        """
+
+        items = CreateOrderedSet([1, 2, 3])
+        source: IEquatableTuple[int] = items.AsTuple()
+        converted: IEquatableTuple[str] = SelectionEquatableTuple[int, str](source, str)
+
+        self.assertIs(converted.GetCollectionMonitors(), source.GetCollectionMonitors())
+
+        view: ITuple[str] = cast(_ITuple[str], converted).AsImmutable()
+
+        self.assertEqual(_snapshot(cast(ITuple[str], converted)), ("1", "2", "3"))
+
+        items.Add(9)
+        gc.collect()
+
+        self.assertEqual(_snapshot(source), (1, 2, 3, 9), "the kept source is expected to change")
+        self.assertTrue(_revoked(view))
 
     def test_mutating_the_source_revokes_a_selection_view(self) -> None:
         source: _IList[int] = _source()
