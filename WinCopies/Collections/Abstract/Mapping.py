@@ -5,8 +5,8 @@ from collections.abc import Iterable, Iterator, MutableMapping
 from typing import final
 
 from WinCopies import IInterface
-from WinCopies.Collections.Abstract import Selector
 from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, Enumerator
+from WinCopies.Collections.Abstract.Selection import Selector
 from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import IDictionary, ISet

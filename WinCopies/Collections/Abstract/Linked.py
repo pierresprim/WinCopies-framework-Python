@@ -2,8 +2,8 @@ from collections.abc import Iterable
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Abstract import TwoWayConverterBase
 from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract
+from WinCopies.Collections.Abstract.Selection import TwoWayConverterBase
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, IEnumerableList, ICountableList, ICountableEnumerableList

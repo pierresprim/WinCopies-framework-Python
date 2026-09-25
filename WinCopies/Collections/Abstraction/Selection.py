@@ -5,10 +5,10 @@ from collections.abc import Iterable, Sequence, MutableSequence, MutableMapping
 from typing import final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Abstract import ConverterBase as ConverterAbstract, TwoWayConverterBase
 from WinCopies.Collections.Abstract.Collection import (Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
                                                        Array as _Array, List as _List)
 from WinCopies.Collections.Abstract.Mapping import Set as _Set, Dictionary as _Dictionary
+from WinCopies.Collections.Abstract.Selection import ConverterBase as ConverterAbstract, TwoWayConverterBase
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISet, IDictionary
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol

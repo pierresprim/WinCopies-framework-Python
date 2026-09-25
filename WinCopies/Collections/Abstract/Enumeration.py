@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Abstract import ConverterBase
+from WinCopies.Collections.Abstract.Selection import ConverterBase
 from WinCopies.Collections.Enumeration.Abstraction import Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
