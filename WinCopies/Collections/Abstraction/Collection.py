@@ -10,8 +10,17 @@ from WinCopies.Collections import Extensions
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISortedList, ISizedList, MutableSequence, Count
-from WinCopies.Collections.Extensions.Collection import IViewProvider
+from WinCopies.Collections.Extensions import (ITuple, IEquatableTuple, IHashableTuple,
+                                              IArray,
+                                              IList, ISortedList, ISizedList,
+                                              MutableSequence,
+                                              Count)
+from WinCopies.Collections.Extensions.Collection import (IViewProvider,
+                                                         TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
+                                                         Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
+                                                         ArrayAbstractBase as _ArrayAbstractBase, ArrayAbstract as _ArrayAbstract, ArrayBase as _ArrayBase,
+                                                         Array as _Array, ArrayCollection as _ArrayCollection,
+                                                         List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Generation.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
@@ -28,7 +37,7 @@ from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 from WinCopies.Typing.Reflection import AreSameClass
 
-class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Collection.TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
+class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], _TupleAbstractBase[TItem], GenericConstraint[TSequence, Sequence[TItem]], IStringable):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -40,9 +49,9 @@ class TupleAbstractBase[TItem, TSequence](Extensions.Sequence[TItem], Collection
     
     @final
     def Contains(self, value: TItem|object) -> bool: return value in self._GetInnerContainer()
-class TupleAbstract[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.TupleAbstract[TItem]):
+class TupleAbstract[TItem, TSequence](TupleAbstractBase[TItem, TSequence], _TupleAbstract[TItem]):
     def __init__(self) -> None: super().__init__()
-class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], Collection.TupleBase[TItem]):
+class TupleBase[TItem, TSequence](TupleAbstract[TItem, TSequence], _TupleBase[TItem]):
     def __init__(self, items: TSequence) -> None:
         super().__init__()
 
@@ -72,7 +81,7 @@ class _IEquatableTuple[T: EquatableProtocol](IEquatableTuple[T], IContainer[Sequ
             
             case _: return False
 
-class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class Tuple[T](TupleBase[T, Sequence[T]], _Tuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None:
         mutability: Mutability|None = None
         _items: Sequence[T]|None = None
@@ -96,7 +105,7 @@ class Tuple[T](TupleBase[T, Sequence[T]], Collection.Tuple[T], IGenericConstrain
     def SliceAt(self, key: slice) -> ITuple[T]: return Tuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str: return str(self._GetContainer())
-class EquatableTuple[T: EquatableProtocol](TupleBase[T, Sequence[T]], Collection.EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class EquatableTuple[T: EquatableProtocol](TupleBase[T, Sequence[T]], _EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
@@ -108,7 +117,7 @@ class EquatableTuple[T: EquatableProtocol](TupleBase[T, Sequence[T]], Collection
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return EquatableTuple[T](self._GetContainer()[key])
     
     def ToString(self) -> str: return str(self._GetContainer())
-class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], Collection.HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
+class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], _HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[Sequence[T]]):
     def __init__(self, items: Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
     @final
@@ -121,7 +130,7 @@ class HashableTuple[T: HashableProtocol](TupleBase[T, Sequence[T]], Collection.H
     
     def ToString(self) -> str: return str(self._GetContainer())
 
-class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], Collection.ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]], IViewProvider):
+class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], _ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]], IViewProvider):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -129,7 +138,7 @@ class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], C
         self._InvalidateViews()
 
         Move(self._GetSpecializedContainer(), x, y)
-class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], Collection.ArrayAbstract[TItem, IArray[TItem]]):
+class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], TupleAbstract[TItem, TSequence], _ArrayAbstract[TItem, IArray[TItem]]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -137,9 +146,9 @@ class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], Tuple
         self._InvalidateViews()
 
         self._GetSpecializedContainer()[key] = value
-class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], Collection.ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
+class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], _ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, Sequence[TItem], MutableSequenceBase[TItem]]):
     def __init__(self, items: TSequence) -> None: super().__init__(items)
-class Array[T](ArrayBase[T, MutableSequenceBase[T]], Collection.Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class Array[T](ArrayBase[T, MutableSequenceBase[T]], _Array[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]) -> None:
         mutability: Mutability|None = None
         _items: MutableSequenceBase[T]|None = None
@@ -207,7 +216,7 @@ class ListAbstract[T](ArrayAbstractBase[T, MutableSequenceBase[T]], Extensions.I
             self._GetContainer().clear()
     
     def ToString(self) -> str: return str(self._GetContainer())
-class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], Collection.List[T]):
+class ListBase[T](ListAbstract[T], ArrayAbstract[T, MutableSequenceBase[T]], MutableSequence[T], _List[T]):
     def __init__(self, items: MutableSequenceBase[T]|Iterable[T]|None) -> None: super().__init__(items)
     
     @final
@@ -402,7 +411,7 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     def Create(length: int) -> ISizedList[T]:
         return SizedList[T](_SizedListLengthInitializer[T](length))
 
-class ArrayCollection[T](Extensions.Sequence[T], Collection.ArrayCollection[T], IArray[T]):
+class ArrayCollection[T](Extensions.Sequence[T], _ArrayCollection[T], IArray[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
         super().__init__()
 
@@ -475,7 +484,7 @@ def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
 def _FindIndex(index: DualValueBool[int]|None, right: bool) -> int:
     return ((index.GetKey() - 1) if right else index.GetKey()) if (index := _Bisect(index)).GetValue() else -1
 
-class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], Collection.SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
+class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], Sequence[T], _SortedList[T], IGenericSpecializedConstraintImplementation[Sequence[T], MutableSequenceBase[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None: super().__init__(None if items is None else sorted(items))
     
     @final
