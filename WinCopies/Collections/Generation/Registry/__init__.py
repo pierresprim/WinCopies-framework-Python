@@ -31,5 +31,3 @@ class ICollectionRegistry[T: IObjectMonitor](IObjectRegistry[T]):
     @abstractmethod
     def RegisterMonitor(self, item: T) -> IRemovable:
         ...
-
-    def RegisterObject(self, item: T) -> None: self.RegisterMonitor(item)
