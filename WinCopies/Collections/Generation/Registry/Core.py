@@ -5,7 +5,7 @@ from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
-from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry
+from WinCopies.Collections.Generation.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
 from WinCopies.Collections.Generation.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
 from WinCopies.Collections.Iteration import Iterate, Generate
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
@@ -107,14 +107,6 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
 
     def Remove(self) -> None: self.__node.Remove()
 
-class ICollectionRegistry[T: IObjectMonitor](IObjectRegistry[T]):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def RegisterMonitor(self, item: T) -> IRemovable:
-        ...
-
-    def RegisterObject(self, item: T) -> None: self.RegisterMonitor(item)
 class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def __init__(self) -> None:
         super().__init__()
@@ -137,8 +129,7 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     @final
     def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
 
-    def InvalidateObjects(self) -> None:
-        DoForEachItem(Iterate(self.__items.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
+    def InvalidateObjects(self) -> None: DoForEachItem(Iterate(self.__items.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
 
     @final
     def AsMonitor(self) -> IObjectMonitor: return self.__monitor

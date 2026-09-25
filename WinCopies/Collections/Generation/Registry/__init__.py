@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 from WinCopies import IInterface
+from WinCopies.Collections.Generation import IRemovable
 
 class IObjectMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -23,3 +24,12 @@ class IObjectRegistry[T](IObjectRegistrar[T], IObjectMonitor):
     @abstractmethod
     def AsRegistrar(self) -> IObjectRegistrar[T]:
         ...
+
+class ICollectionRegistry[T: IObjectMonitor](IObjectRegistry[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def RegisterMonitor(self, item: T) -> IRemovable:
+        ...
+
+    def RegisterObject(self, item: T) -> None: self.RegisterMonitor(item)
