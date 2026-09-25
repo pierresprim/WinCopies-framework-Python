@@ -6,20 +6,22 @@ from heapq import merge
 from typing import cast, overload, final, Callable, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
+from WinCopies.Collections.Abstract.Monitor import CollectionAbstractionViewMonitor
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import (ICollection,
+from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor, ICollectionViewMonitor,
+                                              ICollection,
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray,
                                               IList, ISortedList, ISizedList,
                                               Sequence, MutableSequence,
                                               Count)
-from WinCopies.Collections.Extensions.Collection import (IViewProvider,
+from WinCopies.Collections.Extensions.Collection import (IViewProvider, ICollectionRegistries, ICollectionRegistryProvider, IManagedCollection, CollectionRegistryProviderBase,
                                                          TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
                                                          Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
                                                          ArrayAbstractBase as _ArrayAbstractBase, ArrayAbstract as _ArrayAbstract, ArrayBase as _ArrayBase,
-                                                         Array as _Array, ArrayCollection as _ArrayCollection,
+                                                         Array as _Array, ArrayList as _ArrayList,
                                                          List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Generation.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
@@ -411,15 +413,31 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     def Create(length: int) -> ISizedList[T]:
         return SizedList[T](_SizedListLengthInitializer[T](length))
 
-class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T]):
+class ArrayCollectionRegistryProvider[T](CollectionRegistryProviderBase[T]):
+    def __init__(self, array: IArray[IStruct[T]], items: IArray[T]) -> None: super().__init__(CollectionAbstractionViewMonitor[IStruct[T], T](array, items))
+
+class ArrayCollection[T](Sequence[T], _ArrayList[T], IArray[T], IManagedCollection[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
         super().__init__()
 
+        registryProvider: ICollectionRegistryProvider[T] = ArrayCollectionRegistryProvider[T](array, self)
+
         self.__array: IArray[IStruct[T]] = array
+        self.__registryProvider: ICollectionRegistryProvider[T] = registryProvider
+
+        array.GetCollectionMonitors().RegisterObject(registryProvider.GetRegistries())
     
     @final
     def _GetItems(self) -> IArray[IStruct[T]]:
         return self.__array
+
+    @final
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registryProvider.GetRegistries()
+    @final
+    def _GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
+        return self.GetCollectionMonitors().GetEnumeratorMonitor()
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__registryProvider.GetMonitor()
     
     @final
     def _GetStructAt(self, index: int) -> IStruct[T]:
@@ -455,9 +473,9 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T]):
     def SliceAt(self, key: slice) -> IArray[T]: return ArrayCollection[T](self._GetItems().SliceAt(key))
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__array.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self._GetEnumeratorMonitor().CreateEnumerator(self)
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__array.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self._GetEnumeratorMonitor().CreateResumableEnumerator(self)
 
     @final
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
