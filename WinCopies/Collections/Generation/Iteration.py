@@ -119,10 +119,8 @@ class IteratorBase[T](Abstract, IIterator[T]):
     
     @final
     def WhereOfType[TResult](self, t: Type[TResult]) -> GeneratorCollection[TResult]:
-        _item: T|None = None
-        
-        for item in self._GetItems():
-            if isinstance(_item := item, t):
+        for item, _item in Select(self._GetItems(), lambda item: (item, item)): # Necessary for pyright.
+            if isinstance(_item, t):
                 yield _item
 
                 self._ProcessItem(item)
