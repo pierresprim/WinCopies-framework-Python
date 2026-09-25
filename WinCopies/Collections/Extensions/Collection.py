@@ -15,6 +15,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, CollectionViewMonitor, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Registry import IObjectMonitor, ICollectionRegistry
 from WinCopies.Collections.Generation.Registry.Core import CollectionRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
@@ -336,6 +337,9 @@ class _Monitors(Abstract, ICollectionMonitors):
         super().__init__()
 
         self.__registries: ICollectionRegistries = registries
+
+    def RegisterMonitor(self, item: IObjectMonitor) -> IRemovable: return self.__registries.RegisterMonitor(item)
+    def RegisterObject(self, item: IObjectMonitor) -> None: self.RegisterMonitor(item)
 
     def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__registries.GetEnumeratorRegistry().AsMonitor()
     

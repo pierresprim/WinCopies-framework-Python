@@ -18,6 +18,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
+from WinCopies.Collections.Generation.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Discard import DiscardReason
@@ -137,7 +138,7 @@ class IRevocableViewMonitor(IInterface):
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]:
         ...
 
-class ICollectionMonitors(IInterface):
+class ICollectionMonitors(ICollectionRegistrar[IObjectMonitor]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
