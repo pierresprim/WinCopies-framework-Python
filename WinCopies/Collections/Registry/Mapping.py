@@ -8,9 +8,9 @@ from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary
 from WinCopies.Collections.Extensions import IDictionary
 from WinCopies.Collections.Generation import IRemovable, INode
-from WinCopies.Collections.Generation.Registry.Core import ObjectRegistryBase
-from WinCopies.Collections.Generation.Registry.Kernel import CompositeRemovable
-from WinCopies.Collections.Generation.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry
+from WinCopies.Collections.Registry.Core import ObjectRegistryBase
+from WinCopies.Collections.Registry.Kernel import CompositeRemovable
+from WinCopies.Collections.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry
 from WinCopies.Typing import INullable, GetNullableValue
 from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Discard import IInvalidatable

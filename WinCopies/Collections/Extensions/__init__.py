@@ -18,7 +18,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
-from WinCopies.Collections.Generation.Registry import IObjectMonitor, ICollectionRegistrar
+from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function
 from WinCopies.Typing.Discard import DiscardReason

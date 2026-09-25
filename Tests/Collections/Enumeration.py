@@ -44,7 +44,7 @@ from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEn
 # the real registry chain, and no public entry point exposes it.
 from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar # pyright: ignore[reportPrivateUsage]
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry.Invalidation import InvalidationRegistrar
+from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter
 from WinCopies.Typing.Discard import IInvalidatable, BrokenObjectError, DiscardedError, InvalidatedError

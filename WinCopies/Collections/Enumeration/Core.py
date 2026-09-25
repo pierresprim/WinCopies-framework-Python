@@ -7,8 +7,8 @@ from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Enumeration import IterationState, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry import IObjectRegistrar
-from WinCopies.Collections.Generation.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
+from WinCopies.Collections.Registry import IObjectRegistrar
+from WinCopies.Collections.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enum import HasFlag
 from WinCopies.Enums import ErrorMessages

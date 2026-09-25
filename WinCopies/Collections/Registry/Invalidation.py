@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry.Kernel import IItemRegistry, CreateItemRegistry
+from WinCopies.Collections.Registry.Kernel import IItemRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Method

@@ -10,7 +10,7 @@ from WinCopies.Collections.Enumeration import IIterationStatus, GetIterationInac
 from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
-from WinCopies.Collections.Generation.Registry import IObjectRegistry
+from WinCopies.Collections.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProviderBase

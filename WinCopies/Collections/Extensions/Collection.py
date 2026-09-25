@@ -16,8 +16,8 @@ from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollection
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Generation.Registry import IObjectMonitor, ICollectionRegistry
-from WinCopies.Collections.Generation.Registry.Core import CollectionRegistry
+from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistry
+from WinCopies.Collections.Registry.Core import CollectionRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
 from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast

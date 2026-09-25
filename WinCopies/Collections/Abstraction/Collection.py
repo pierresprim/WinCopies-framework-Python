@@ -22,7 +22,7 @@ from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManaged
                                                          ArrayAbstractBase as _ArrayAbstractBase, ArrayAbstract as _ArrayAbstract, ArrayBase as _ArrayBase,
                                                          Array as _Array, ArrayCollection as _ArrayCollection,
                                                          List as _List, SortedList as _SortedList)
-from WinCopies.Collections.Generation.Registry import IObjectMonitor
+from WinCopies.Collections.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
