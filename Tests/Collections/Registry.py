@@ -854,17 +854,16 @@ class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
-        # Lift with TestArrayCollectionStratum.test_an_active_enumerator_dies_on_mutation.
-            def subTest(case: _MutableCaseBase, items: _IList[int]) -> None:
-                enumerator: IEnumerator[int] = _assertIsNotNone(self, items.TryGetEnumerator())
+        def subTest(case: _MutableCaseBase, items: _IList[int]) -> None:
+            enumerator: IEnumerator[int] = _assertIsNotNone(self, items.TryGetEnumerator())
 
-                self.assertTrue(enumerator.MoveNext())
+            self.assertTrue(enumerator.MoveNext())
 
-                case.Mutate(items)
+            case.Mutate(items)
 
-                self.assertRaises(DiscardedError, enumerator.MoveNext)
+            self.assertRaises(DiscardedError, enumerator.MoveNext)
 
-            _arrayListSubTests(self, subTest)
+        _subTests(self, subTest)
 
     def test_a_view_and_an_enumerator_die_on_the_same_notification(self) -> None:
         items: _IList[int] = _source()
@@ -897,13 +896,27 @@ class TestMutateBeforeObserving(unittest.TestCase):
                     self.assertTrue(_revoked(view))
 
 class TestArrayCollectionStratum(unittest.TestCase):
-    """ArrayCollection — hence ArrayList — registers its enumerators with its source's
-    registry while invalidating its own. This is the D-5 residue: the view is revoked,
-    the enumerator is not. The benches still marked expectedFailure record what remains of
-    it; the one that is no longer marked records the half the revocation wiring closed."""
+    """What was once a stratum of its own, and what is left of it.
 
-    @unittest.expectedFailure
+    ArrayCollection — hence ArrayList — used to register its enumerators with its source's
+    registry while invalidating its own: one object, two registries, and the dependant that
+    landed on the wrong one died or survived depending on its kind. That was the D-5
+    residue. It was settled structurally rather than locally — the type moved onto the base
+    that owns its registries, so both kinds now reach the same one — and the two benches
+    that recorded it are green.
+
+    They are kept as dedicated non-regression benches on the type that carried the defect,
+    even though the parameterised benches upstream now cover it among the seven. Whether a
+    named bench earns its place beside a parameterised one that subsumes it is a question of
+    harness structure, raised once already at the previous lift and still open.
+
+    One registration remains, and it is a different defect: SliceAt aliases its parent.
+    """
+
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
+        """The half the architectural correction closed. Its counterpart, the exclusion on
+        TestEnumeratorInvalidation.test_an_active_enumerator_dies_on_mutation, fell with it."""
+
         items: ArrayList[int] = _arrayList()
         enumerator: IEnumerator[int] = _assertIsNotNone(self, items.TryGetEnumerator())
 
