@@ -6,34 +6,17 @@ from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
+from WinCopies.Collections.Abstract.Monitor import CollectionAbstractionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, CollectionViewMonitorBase, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method
-from WinCopies.Typing.Discard import DiscardReason
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
-
-class CollectionAbstractionViewMonitorBase[TIn, TOut](CollectionViewMonitorBase[TOut]):
-    def __init__(self, source: ITuple[TIn], items: ITuple[TOut]) -> None:
-        super().__init__(items)
-
-        self.__source: ITuple[TIn] = source
-
-    @final
-    def _GetSource(self) -> ITuple[TIn]:
-        return self.__source
-class CollectionAbstractionViewMonitor[TIn, TOut](CollectionAbstractionViewMonitorBase[TIn, TOut]):
-    def __init__(self, source: ITuple[TIn], items: ITuple[TOut]) -> None: super().__init__(source, items)
-
-    @final
-    def _CreateView(self, items: ITuple[TOut], onDisposed: Method[DiscardReason]) -> ITuple[TOut]:
-        return self._GetSource().GetCollectionMonitors().GetRevocableViewMonitor().CreateRevocableView(items, onDisposed)
 
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
