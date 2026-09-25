@@ -25,9 +25,11 @@ class IObjectRegistry[T](IObjectRegistrar[T], IObjectMonitor):
     def AsRegistrar(self) -> IObjectRegistrar[T]:
         ...
 
-class ICollectionRegistry[T: IObjectMonitor](IObjectRegistry[T]):
+class ICollectionRegistrar[T: IObjectMonitor](IObjectRegistrar[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def RegisterMonitor(self, item: T) -> IRemovable:
         ...
+class ICollectionRegistry[T: IObjectMonitor](ICollectionRegistrar[T], IObjectRegistry[T]):
+    def __init__(self) -> None: super().__init__()
