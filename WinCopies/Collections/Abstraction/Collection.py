@@ -6,7 +6,6 @@ from heapq import merge
 from typing import cast, overload, final, Callable, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract, IsTrue
-from WinCopies.Collections.Abstract.Monitor import CollectionAbstractionViewMonitor
 from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -17,7 +16,7 @@ from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
                                               IList, ISortedList, ISizedList,
                                               Sequence, MutableSequence,
                                               Count)
-from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManagedCollection, CollectionRegistryProviderBase,
+from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManagedCollection,
                                                          TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
                                                          Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
                                                          ArrayAbstractBase as _ArrayAbstractBase, ArrayAbstract as _ArrayAbstract, ArrayBase as _ArrayBase,
@@ -412,9 +411,6 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     @staticmethod
     def Create(length: int) -> ISizedList[T]:
         return SizedList[T](_SizedListLengthInitializer[T](length))
-
-class ArrayCollectionRegistryProvider[T](CollectionRegistryProviderBase[T]):
-    def __init__(self, array: IArray[IStruct[T]], items: IArray[T]) -> None: super().__init__(CollectionAbstractionViewMonitor[IStruct[T], T](array, items))
 
 class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCollection[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
