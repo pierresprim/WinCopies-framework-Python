@@ -232,7 +232,7 @@ class ITupleBase[T](ITupleAbstract[T]):
     @abstractmethod
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]:
         ...
-class _ITuple[T](ITupleBase[T], IViewProvider):
+class IManagedCollection[T](ITupleBase[T], IViewProvider):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -245,7 +245,7 @@ class _ITuple[T](ITupleBase[T], IViewProvider):
     @final
     def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
 
-class _TupleBase[T](TupleAbstractBase[T], _ITuple[T]):
+class _TupleBase[T](TupleAbstractBase[T], IManagedCollection[T]):
     def __init__(self) -> None: super().__init__()
 
     def __RegisterEnumerator[U: IInvalidatableEnumeratorBase](self, enumerator: U) -> U:
@@ -340,8 +340,7 @@ class _Monitors(Abstract, ICollectionMonitors):
     def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__registries.GetEnumeratorRegistry().AsMonitor()
     
     def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__registries.GetRevocableViewRegistry().AsMonitor()
-@final
-class _CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegistries):
+class CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegistries):
     def __init__(self) -> None:
         def createRegistry[U: IObjectMonitor](registry: U) -> U:
             self.RegisterObject(registry)
@@ -355,26 +354,54 @@ class _CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegis
         self.__registry: IResumableEnumeratorRegistry = createRegistry(ResumableEnumeratorRegistry())
         self.__view: IRevocableViewRegistry = createRegistry(RevocableViewRegistry())
 
+    @final
     def AsMonitors(self) -> ICollectionMonitors: return self.__monitors
 
+    @final
     def GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry: return self.__registry
     
+    @final
     def GetRevocableViewRegistry(self) -> IRevocableViewRegistry: return self.__view
 
-class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
+class ICollectionRegistryProvider[T](IInterface):
     def __init__(self) -> None: super().__init__()
-class _TupleCollection[T](_TupleCollectionBase[T], _ITuple[T]):
+
+    @abstractmethod
+    def GetRegistries(self) -> ICollectionRegistries:
+        ...
+    @abstractmethod
+    def GetMonitor(self) -> ICollectionViewMonitor[T]:
+        ...
+
+class CollectionRegistryProviderBase[T](Abstract, ICollectionRegistryProvider[T]):
+    def __init__(self, monitor: ICollectionViewMonitor[T]) -> None:
+        super().__init__()
+
+        self.__registries: ICollectionRegistries = CollectionRegistries()
+        self.__monitor: ICollectionViewMonitor[T] = monitor
+
+    @final
+    def GetRegistries(self) -> ICollectionRegistries: return self.__registries
+    @final
+    def GetMonitor(self) -> ICollectionViewMonitor[T]: return self.__monitor
+class CollectionRegistryProvider[T](CollectionRegistryProviderBase[T]):
+    def __init__(self, items: ITuple[T]) -> None: super().__init__(CollectionViewMonitor[T](items))
+
+class ManagedCollection[T](Abstract, ITuple[T], IManagedCollection[T]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__registries: ICollectionRegistries = _CollectionRegistries()
-        self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](self)
+        self.__registryProvider: ICollectionRegistryProvider[T] = CollectionRegistryProvider[T](self)
 
     @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registries
-
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registryProvider.GetRegistries()
     @final
-    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__monitor
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__registryProvider.GetMonitor()
+
+class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
+    def __init__(self) -> None: super().__init__()
+class _TupleCollection[T](ManagedCollection[T], _TupleCollectionBase[T], IManagedCollection[T]):
+    def __init__(self) -> None: super().__init__()
 
 class TupleCollectionBase[T](_TupleCollectionBase[T]):
     def __init__(self) -> None:
@@ -513,7 +540,7 @@ class ArrayAbstractBase[TItem, TCollection](TupleAbstractBase[TItem], GetterBase
 
 class ArrayListBase[TItem, TCollection](ArrayAbstractBase[TItem, TCollection], KeyableBase[int, TItem], TupleAbstract[TItem], IArray[TItem], ITupleBase[TItem]):
     def __init__(self) -> None: super().__init__()
-class ArrayAbstract[TItem, TCollection](ArrayListBase[TItem, TCollection], _ITuple[TItem]):
+class ArrayAbstract[TItem, TCollection](ArrayListBase[TItem, TCollection], IManagedCollection[TItem]):
     def __init__(self) -> None: super().__init__()
 
 class _ArrayCollectionAbstractBase[TItem, TCollection](ArrayAbstractBase[TItem, TCollection], ITupleBase[TItem]):
@@ -541,24 +568,13 @@ class _ArrayListBase[TItem, TCollection](_ArrayListAbstract[TItem, TCollection])
     @final
     def AsReadOnly(self) -> ITuple[TItem]: return self.__readOnly.GetValue()
 
-class _ArrayCollectionAbstract[TItem, TCollection](_ArrayCollectionAbstractBase[TItem, TCollection], _ITuple[TItem]):
+class _ArrayCollectionAbstract[TItem, TCollection](ManagedCollection[TItem], _ArrayCollectionAbstractBase[TItem, TCollection], IManagedCollection[TItem]):
     def __init__(self) -> None:
         def updateReversed(func: IFunction[TCollection]) -> None: self.__reversed = func
         
         super().__init__()
 
-        registry: ICollectionRegistries = _CollectionRegistries()
-
-        self.__registry: ICollectionRegistries = registry
-        self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
-
         self.__reversed: IFunction[TCollection] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
-    
-    @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registry
-
-    @final
-    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self.__monitor
     
     @final
     def _AsReversed(self) -> TCollection:
