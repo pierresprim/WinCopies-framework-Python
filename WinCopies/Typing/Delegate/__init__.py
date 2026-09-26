@@ -319,7 +319,9 @@ class StructBase[T](Abstract, IStruct[T]):
     @final
     def Copy(self) -> IStruct[T]: return Struct[T](self.GetValue())
     
+    @final
     def AsFunction(self) -> IFunction[T]: return self.__function.GetValue()
+    @final
     def AsMethod(self) -> IMethod[T]: return self.__method.GetValue()
 @final
 class Struct[T](StructBase[T]):
