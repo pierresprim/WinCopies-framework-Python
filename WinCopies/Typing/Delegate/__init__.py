@@ -260,6 +260,10 @@ class IStructBase[T](IFunctionBase[T], IMethodBase[T]):
     def __init__(self) -> None: super().__init__()
 class IStruct[T](IStructBase[T]):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Copy(self) -> IStruct[T]:
+        ...
     
     @abstractmethod
     def AsFunction(self) -> IFunction[T]:
@@ -311,6 +315,9 @@ class StructBase[T](Abstract, IStruct[T]):
 
         self.__function: IFunction[IFunction[T]] = _StructFunctionUpdater[T](self, updateFunction) # type: ignore[no-redef]
         self.__method: IFunction[IMethod[T]] = _StructMethodUpdater[T](self, updateMethod) # type: ignore[no-redef]
+
+    @final
+    def Copy(self) -> IStruct[T]: return Struct[T](self.GetValue())
     
     def AsFunction(self) -> IFunction[T]: return self.__function.GetValue()
     def AsMethod(self) -> IMethod[T]: return self.__method.GetValue()
