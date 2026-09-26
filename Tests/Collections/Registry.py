@@ -297,14 +297,25 @@ def _counting() -> Generator[Function[int]]:
 
 def _subTest(test: unittest.TestCase, case: _MutableCaseBase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
     with test.subTest(type = case.GetName()): action(case, cast(_IList[int], case.Create()))
-# Every mutable case, with no subset variant. Three benches once ran on _MUTABLE minus
-# ArrayList, one open defect each, and every such exclusion was paired with an
-# expectedFailure in TestArrayCollectionStratum: the named counterpart signals by turning
-# into an unexpected success, an exclusion signals nothing and has to be lifted by hand.
-# The three defects are closed, so the subset is gone rather than left standing empty. A
-# new exclusion comes back with its counterpart, or not at all.
+def _subTestsOf(test: unittest.TestCase, cases: ReadOnlyArray[_MutableCaseBase], action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
+    for case in cases: _subTest(test, case, action)
+
+# Every mutable case. Three benches once ran on _MUTABLE minus ArrayList, one open defect
+# each, and every such exclusion was paired with an expectedFailure in
+# TestArrayCollectionStratum: the named counterpart signals by turning into an unexpected
+# success, an exclusion by name signals nothing and has to be lifted by hand. The three
+# defects are closed and no subset by name is left. The one subset that remains, below, is
+# computed from what the types expose and its complement is asserted by a bench of its own —
+# which is what makes it a fact about the family rather than the marker of an open defect.
 def _subTests(test: unittest.TestCase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
-    for case in _MUTABLE: _subTest(test, case, action)
+    _subTestsOf(test, _MUTABLE, action)
+
+def _writableSlices() -> ReadOnlyArray[_MutableCaseBase]:
+    """The cases whose slice offers a positional write, measured rather than listed: a type
+    that gains or loses one is picked up here without anything to edit. The complement is
+    asserted by TestSliceIndependence.test_one_type_alone_slices_without_a_write_surface."""
+
+    return tuple(case for case in _MUTABLE if isinstance(case.Create().SliceAt(slice(0, 2)), IArray))
 
 class TestGenerationIdentity(unittest.TestCase):
     """C2 and C3: one generation, one instance; one mutation, a fresh generation."""
@@ -773,6 +784,50 @@ class TestDerivedTransitivity(unittest.TestCase):
 
         _subTests(self, subTest)
 
+class TestSliceIndependence(unittest.TestCase):
+    """A slice is an independent collection: neither side sees the other's writes.
+
+    One direction is covered upstream. TestDerivedTransitivity asserts, over the seven types,
+    that writing to the source leaves a slice taken beforehand alone — and it does reach each
+    type's own SliceAt, the revocable view it slices through delegating straight to it. What
+    that road cannot reach is the other direction: a view is read-only, so the slice it hands
+    back has no write surface at all.
+
+    The slice is therefore taken directly here, over the types whose slice can be written.
+    That subset is computed rather than named, and its complement is asserted by the second
+    bench: a list of names drifts, and in this module a subset by name meant an open defect
+    until the last one was retired, so one written here would be misread as a defect marker
+    instead of the structural fact it is.
+    """
+
+    def test_writing_through_a_slice_does_not_reach_the_source(self) -> None:
+        """The direction the defect exhibited: ArrayCollection's slice held the parent's own
+        cells, so the parent saw the write. The source is read before the slice is written,
+        which is the only order that establishes anything — see
+        TestArrayCollectionStratum.test_a_slice_is_an_independent_collection."""
+
+        def subTest(case: _MutableCaseBase, items: IList[int]) -> None:
+            taken: IArray[int] = items.SliceAt(slice(0, 2))
+            untouched: ReadOnlyArray[int] = _snapshot(items)
+
+            taken.SetAt(1, 77)
+
+            self.assertEqual(_snapshot(items), untouched)
+
+        _subTestsOf(self, _writableSlices(), subTest)
+
+    def test_one_type_alone_slices_without_a_write_surface(self) -> None:
+        """The counterpart of the subset above, and what allows it to stay implicit.
+
+        SortedList is the one, on structural grounds rather than by defect: a sorted list
+        cannot take an arbitrary positional write and stay sorted. A type that gains or loses
+        a writable slice turns this red, so the subset cannot quietly widen.
+        """
+
+        written: ReadOnlyArray[str] = tuple(case.GetName() for case in _writableSlices())
+
+        self.assertEqual(tuple(case.GetName() for case in _MUTABLE if case.GetName() not in written), ("SortedList",))
+
 def _assertIsNotNone[T](case: unittest.TestCase, value: T|None) -> T:
     case.assertIsNotNone(value)
 
@@ -905,17 +960,19 @@ class TestArrayCollectionStratum(unittest.TestCase):
     that owns its registries, so both kinds now reach the same one — and the two benches
     that recorded it are green.
 
-    They are kept as dedicated non-regression benches on the type that carried the defect,
-    even though the parameterised benches upstream now cover it among the seven. Whether a
-    named bench earns its place beside a parameterised one that subsumes it is a question of
-    harness structure, raised once already at the previous lift and still open for those
-    two.
+    A third bench recorded a second and unrelated defect: SliceAt aliased its parent,
+    sharing the boxes rather than copying them. That one is closed too, the copy now
+    descending to the box.
 
-    It is settled for the third, which recorded a second and unrelated defect: SliceAt
-    aliased its parent, sharing the boxes rather than copying them. That one is closed too,
-    and the bench stays because it is not subsumed — it asserts the direction the
-    parameterised benches cannot reach, a write through the slice, their slices being taken
-    from a read-only view.
+    All three are kept as dedicated non-regression benches on the type that carried the
+    defect, and all three are subsumed: the parameterised benches upstream cover the first
+    two among the seven, and TestSliceIndependence covers the third among the six whose
+    slice can be written. Whether a named bench earns its place beside a parameterised one
+    that subsumes it is a question of harness structure, raised at each lift and still open.
+
+    The third briefly looked like the exception, holding the one direction no parameterised
+    bench reached. It was not an exception but a gap, and the gap is filled; the reading was
+    a reminder that subsumption is verified rather than presumed.
     """
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
@@ -972,9 +1029,9 @@ class TestArrayCollectionStratum(unittest.TestCase):
 
         self.assertEqual(_snapshot(taken), expected)
 
-        # The slice is written: the source must keep its own. No parameterised bench
-        # upstream reaches this direction — the slices they take come from a read-only
-        # view, which offers no write surface.
+        # The slice is written: the source must keep its own. TestSliceIndependence asserts
+        # this over the six types whose slice can be written; here it is the non-regression
+        # case on the one type that carried the defect.
         items = _arrayList()
         untouched: ReadOnlyArray[int] = _snapshot(items)
         taken = items.SliceAt(key)
