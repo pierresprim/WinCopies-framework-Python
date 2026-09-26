@@ -23,6 +23,7 @@ from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManaged
                                                          Array as _Array, ArrayCollection as _ArrayCollection,
                                                          List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Registry import IObjectMonitor
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
@@ -459,7 +460,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
         self._GetItems().Move(x, y)
     
     @final
-    def SliceAt(self, key: slice) -> IArray[T]: return ArrayCollection[T](self._GetItems().SliceAt(key))
+    def SliceAt(self, key: slice) -> IArray[T]: return ArrayCollection[T](CreateArray(Select(self._GetItems().SliceAt(key).AsIterable(), lambda item: item.Copy())))
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]: return self._GetEnumeratorMonitor().CreateEnumerator(self)
@@ -481,7 +482,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     def __getitem__(self, index: SupportsIndex|slice) -> T|_Sequence[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class ArrayList[T](ArrayCollection[T]):
-    def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Handle[T](func) for _ in range(length))))
+    def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Select(range(length), lambda _: Handle[T](func)))))
 
 def _Bisect(index: DualValueBool[int]|None) -> DualValueBool[int]:
     assert index is not None
