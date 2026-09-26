@@ -245,13 +245,6 @@ _MUTABLE: ReadOnlyArray[_MutableCaseBase] = (
 
 _ALL: ReadOnlyArray[_CaseBase] = _IMMUTABLE + _MUTABLE
 
-# ArrayList is held out of three benches below, each time by an open defect. Every one of
-# those exclusions has a matching expectedFailure in TestArrayCollectionStratum, so the
-# defect itself is recorded — but nothing lifts the exclusion when the defect goes. A fix
-# leaves it behind, and the coverage silently stays reduced without anything turning red.
-# Lift each one when its named counterpart turns green.
-_EXCEPT_ARRAY_LIST: ReadOnlyArray[_MutableCaseBase] = tuple(c for c in _MUTABLE if c.GetName() != "ArrayList")
-
 def _revoked(view: ICountable) -> bool:
     try:
         view.GetCount()
@@ -304,13 +297,14 @@ def _counting() -> Generator[Function[int]]:
 
 def _subTest(test: unittest.TestCase, case: _MutableCaseBase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
     with test.subTest(type = case.GetName()): action(case, cast(_IList[int], case.Create()))
-def __subTests(test: unittest.TestCase, cases: ReadOnlyArray[_MutableCaseBase], action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
-    for case in cases: _subTest(test, case, action)
-
+# Every mutable case, with no subset variant. Three benches once ran on _MUTABLE minus
+# ArrayList, one open defect each, and every such exclusion was paired with an
+# expectedFailure in TestArrayCollectionStratum: the named counterpart signals by turning
+# into an unexpected success, an exclusion signals nothing and has to be lifted by hand.
+# The three defects are closed, so the subset is gone rather than left standing empty. A
+# new exclusion comes back with its counterpart, or not at all.
 def _subTests(test: unittest.TestCase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
-    __subTests(test, _MUTABLE, action)
-def _arrayListSubTests(test: unittest.TestCase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
-    __subTests(test, _EXCEPT_ARRAY_LIST, action)
+    for case in _MUTABLE: _subTest(test, case, action)
 
 class TestGenerationIdentity(unittest.TestCase):
     """C2 and C3: one generation, one instance; one mutation, a fresh generation."""
@@ -759,19 +753,25 @@ class TestDerivedTransitivity(unittest.TestCase):
 
     def test_a_slice_taken_before_revocation_is_a_snapshot(self) -> None:
         """A slice is an independent collection, so one obtained while the revocable was
-        alive keeps the content it was given."""
+        alive keeps the content it was given.
+
+        The expected content is read from the source rather than from the slice. Reading the
+        slice first is what fixes its content, so a copy that defers its read would pass
+        either way — the order of the two reads is itself a coverage dimension here. See
+        TestArrayCollectionStratum.test_a_slice_is_an_independent_collection.
+        """
 
         def subTest(case: _MutableCaseBase, items: IList[int]) -> None:
+            key: slice = slice(0, 2)
+            expected: ReadOnlyArray[int] = _snapshot(items)[key]
             view: ITuple[int] = items.AsImmutable()
-            taken = view.SliceAt(slice(0, 2))
-            expected: ReadOnlyArray[int] = _snapshot(taken)
+            taken = view.SliceAt(key)
 
             case.Mutate(items)
 
             self.assertEqual(_snapshot(taken), expected)
 
-        # Lift with TestArrayCollectionStratum.test_a_slice_is_an_independent_collection.
-        _arrayListSubTests(self, subTest)
+        _subTests(self, subTest)
 
 def _assertIsNotNone[T](case: unittest.TestCase, value: T|None) -> T:
     case.assertIsNotNone(value)
@@ -908,9 +908,14 @@ class TestArrayCollectionStratum(unittest.TestCase):
     They are kept as dedicated non-regression benches on the type that carried the defect,
     even though the parameterised benches upstream now cover it among the seven. Whether a
     named bench earns its place beside a parameterised one that subsumes it is a question of
-    harness structure, raised once already at the previous lift and still open.
+    harness structure, raised once already at the previous lift and still open for those
+    two.
 
-    One registration remains, and it is a different defect: SliceAt aliases its parent.
+    It is settled for the third, which recorded a second and unrelated defect: SliceAt
+    aliased its parent, sharing the boxes rather than copying them. That one is closed too,
+    and the bench stays because it is not subsumed — it asserts the direction the
+    parameterised benches cannot reach, a write through the slice, their slices being taken
+    from a read-only view.
     """
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
@@ -939,27 +944,44 @@ class TestArrayCollectionStratum(unittest.TestCase):
 
         self.assertRaises(DiscardedError, cursor.MoveNext)
 
-    @unittest.expectedFailure
     def test_a_slice_is_an_independent_collection(self) -> None:
-        """ArrayCollection holds an array of cells rather than of values, and its slice
-        copies the list of cells rather than the cells: parent and slice share the very
-        same boxes, and writing through either is visible from the other. Every other
+        """ArrayCollection holds an array of cells rather than of values, and its slice used
+        to copy the list of cells rather than the cells: parent and slice shared the very
+        same boxes, and writing through either was visible from the other. Every other
         indexable type returns a snapshot.
 
-        This is not recorded as a defect. Holding references rather than values is what
-        the type is for, so sharing them may well be the intent; whether a slice should
-        copy the boxes is a design question, pending arbitration. The test states the
-        rule the rest of the family follows, and will turn green on its own should the
-        arbitration go that way.
+        The arbitration went to the snapshot, and the copy now descends to the box. It is
+        the box that states what its copy is, through IStruct.Copy(), rather than the call
+        site deciding for every box kind it may be handed.
+
+        Neither direction reads the slice before the source is written, and that order is
+        the assertion. Reading the slice is what fixes its content, so a copy that deferred
+        its read would satisfy the forward direction whenever the slice is read first:
+        measured on such a variant, it stays green with the read first and falls with it
+        removed.
         """
 
+        key: slice = slice(0, 2)
+
+        # The source is written: the slice must keep the content it was given.
         items: ArrayList[int] = _arrayList()
-        taken: IArray[int] = items.SliceAt(slice(0, 2))
-        expected: ReadOnlyArray[int] = _snapshot(taken)
+        expected: ReadOnlyArray[int] = _snapshot(items)[key]
+        taken: IArray[int] = items.SliceAt(key)
 
         items.SetAt(0, 9)
 
         self.assertEqual(_snapshot(taken), expected)
+
+        # The slice is written: the source must keep its own. No parameterised bench
+        # upstream reaches this direction — the slices they take come from a read-only
+        # view, which offers no write surface.
+        items = _arrayList()
+        untouched: ReadOnlyArray[int] = _snapshot(items)
+        taken = items.SliceAt(key)
+
+        taken.SetAt(1, 77)
+
+        self.assertEqual(_snapshot(items), untouched)
 
 class TestSelectionStratum(unittest.TestCase):
     """The Selection stratum routes to its source's registry rather than keeping one.
