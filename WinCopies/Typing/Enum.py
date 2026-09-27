@@ -6,7 +6,7 @@ from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
                   Flag as _Flag,
                   IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import final, Any, Generic, Self, Type, TypeVar
+from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
@@ -40,7 +40,7 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
 class EnumBase(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
-    def __init__(self, value: _T) -> None: super().__init__()
+    def __init__(self, value: _T|Self) -> None: super().__init__()
 
     @classmethod
     @final
@@ -53,11 +53,13 @@ class EnumBase(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
     def CheckValueType(cls, value: _T|object) -> None:
         if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.")
 
-    def __new__(cls, value: _T) -> Self:
+    def __new__(cls, value: _T|Self) -> Self:
+        if isinstance(value, cls): value = value.value
+        
         cls.CheckValueType(value)
         
         member: Self = object.__new__(cls)
-        member._value_ = value
+        member._value_ = cast(_T, value)
 
         return member
 
@@ -68,9 +70,9 @@ class EnumBase(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
         return self._value_
 
 class Enum(EnumBase[_T]):
-    def __init__(self, value: _T) -> None: super().__init__(value)
+    def __init__(self, value: _T|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _T) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
 
     _name_: str
 
@@ -78,9 +80,9 @@ class Enum(EnumBase[_T]):
     def name(self) -> str:
         return self._name_
 class Flag(EnumBase[_T]):
-    def __init__(self, value: _T) -> None: super().__init__(value)
+    def __init__(self, value: _T|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _T) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
 
     _name_: str|None
 
@@ -89,33 +91,33 @@ class Flag(EnumBase[_T]):
         return self._name_
 
 class EquatableEnumBase(Generic[_TEquatableEnum, _U], EnumBase[_U], IEquatableEnum[_TEquatableEnum, _U]):
-    def __init__(self, value: _U) -> None: super().__init__(value)
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
     @final
     def _AsComparableValue(self) -> _U: return self.value
 class EquatableEnum(EquatableEnumBase[_TEquatableEnum, _U], Enum[_U]):
-    def __init__(self, value: _U) -> None: super().__init__(value)
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 class EquatableFlag(EquatableEnumBase[_TEquatableEnum, _U], Flag[_U]):
-    def __init__(self, value: _U) -> None: super().__init__(value)
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
 class OrderedEnumBase(EquatableEnumBase[_TComparableEnum, _V], IComparableEnum[_TComparableEnum, _V]):
-    def __init__(self, value: _V) -> None: super().__init__(value)
+    def __init__(self, value: _V|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
 class OrderedEnum(OrderedEnumBase[_TComparableEnum, _V], EquatableEnum[_TComparableEnum, _V]):
-    def __init__(self, value: _V) -> None: super().__init__(value)
+    def __init__(self, value: _V|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
 class OrderedFlag(OrderedEnumBase[_TComparableEnum, _V], EquatableFlag[_TComparableEnum, _V]):
-    def __init__(self, value: _V) -> None: super().__init__(value)
+    def __init__(self, value: _V|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
 
 class _EnumBase(_Enum, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
@@ -123,9 +125,9 @@ class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
 class IntFlag(OrderedFlag["IntFlag", int], IAdditionable["IntFlag", int], _FlagBase): # type: ignore[misc]
-    def __init__(self, value: int) -> None: super().__init__(value)
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
 
-    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
     @classmethod
     @final
@@ -135,16 +137,16 @@ class IntFlag(OrderedFlag["IntFlag", int], IAdditionable["IntFlag", int], _FlagB
     def GetEnumValue(self) -> IntFlag: return self
 
 class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
-    def __init__(self, value: int) -> None: super().__init__(value)
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
 
-    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
     @final
     def GetEnumValue(self) -> UnorderedIntEnum: return self
 class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumBase):
-    def __init__(self, value: int) -> None: super().__init__(value)
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
 
-    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
     @classmethod
     @final
@@ -159,9 +161,9 @@ class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumB
     @final
     def _CreateNew(self, value: int) -> IntEnum: return type(self)(value)
 class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
-    def __init__(self, value: str) -> None: super().__init__(value)
+    def __init__(self, value: str|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: str|Self) -> Self: return super().__new__(cls, value)
 
     @classmethod
     @final
