@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from enum import Enum, StrEnum, Flag
+from enum import Flag
 from typing import Callable, final
 
 from WinCopies import Abstract
@@ -21,11 +21,12 @@ from WinCopies.Serialization import BinaryDataReader
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
+from WinCopies.Typing.Enum import IntEnum, UnorderedIntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 from ijson import parse
 
-class Event(Enum):
+class Event(UnorderedIntEnum):
     NoEvent = 0
     StartMap = 1
     EndMap = 2
@@ -73,7 +74,7 @@ class EventNames(StrEnum):
             
             case _: return None
 
-class ValueType(Enum):
+class ValueType(IntEnum):
     NotApplicable = 0
     Null = 1
     Boolean = 2
@@ -395,7 +396,7 @@ class _GeneratorAbstract(Abstract):
             
             valueType: ValueType = getType()
 
-            if valueType.value > ValueType.NotApplicable.value: append(CreateDualResult(value, valueType))
+            if valueType > ValueType.NotApplicable: append(CreateDualResult(value, valueType))
         
         match event:
             case Event.NullValue: append(CreateDualResult(None, ValueType.Null))
