@@ -965,14 +965,27 @@ class TestArrayCollectionStratum(unittest.TestCase):
     descending to the box.
 
     All three are kept as dedicated non-regression benches on the type that carried the
-    defect, and all three are subsumed: the parameterised benches upstream cover the first
-    two among the seven, and TestSliceIndependence covers the third among the six whose
-    slice can be written. Whether a named bench earns its place beside a parameterised one
-    that subsumes it is a question of harness structure, raised at each lift and still open.
+    defect. Whether a named bench earns its place beside a parameterised one that subsumes
+    it is a question of harness structure, raised at each lift and still open — but it is
+    not one question, because the three are not in the same position, and the difference
+    was measured rather than read:
 
-    The third briefly looked like the exception, holding the one direction no parameterised
-    bench reached. It was not an exception but a gap, and the gap is filled; the reading was
-    a reminder that subsumption is verified rather than presumed.
+      * the enumerator bench is subsumed, and strictly weaker than its counterpart in
+        TestEnumeratorInvalidation, which asserts the first MoveNext() this one only calls.
+        Two independent violations were tried — the enumerator monitor routed back to the
+        source, and the deferred registration removed — and each makes both fall, the
+        parameterised one on ArrayList among the others;
+      * the slice bench is subsumed by TestSliceIndependence, among the six types whose
+        slice can be written: restoring the aliasing makes that bench fall on ArrayList and
+        on nothing else;
+      * the cursor bench is NOT established as subsumed. Its counterpart in
+        TestCursorContract mutates an already advanced cursor, where this one mutates a
+        cursor that has never moved, and by this module's own rule the order of calls is a
+        coverage dimension. No violation separating the two was found: both violations above
+        leave a view's cursor dying in either state, on all seven types, because it dies of
+        the view being revoked rather than through the enumerator registry. The distinction
+        is real in the code and inert in measurement, which is a reason to keep the bench
+        and not a demonstration that it is needed.
     """
 
     def test_an_active_enumerator_dies_on_mutation(self) -> None:
