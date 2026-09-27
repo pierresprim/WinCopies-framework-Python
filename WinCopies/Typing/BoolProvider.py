@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface
-from WinCopies.Typing.Protocols import SupportsBooleanConversion
+from WinCopies.Typing.Protocols import SupportsBool
 
 class IBoolProvider(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -35,4 +35,4 @@ def AsBool(value: IBoolProvider|None) -> bool:
 def AsNullableBool(value: IBoolProvider|INullableBoolProvider|None) -> bool|None:
     return None if value is None else (value.AsBool() if isinstance(value, IBoolProvider) else value.AsNullableBool())
 
-type BooleanableProtocol = bool|SupportsBooleanConversion
+type BooleanableProtocol = bool|SupportsBool

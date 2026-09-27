@@ -2,7 +2,7 @@ from types import TracebackType
 from typing import runtime_checkable, Any, Protocol, Self
 
 @runtime_checkable
-class SupportsBooleanConversion(Protocol):
+class SupportsBool(Protocol):
     def __bool__(self) -> bool:
         ...
 
