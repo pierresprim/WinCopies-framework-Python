@@ -4,10 +4,11 @@ from collections.abc import Iterable
 from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
                   EnumMeta as _EnumMeta, Enum as _Enum, FlagBoundary, IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import Any, final, Generic, Self, Type, TypeVar
+from typing import final, Any, Generic, Self, Type, TypeVar
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
+from WinCopies.Typing.Arithmetic import IAdditionable
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
@@ -82,7 +83,7 @@ class OrderedEnum(Generic[_TComparableEnum, _V], EquatableEnum[_TComparableEnum,
 class _EnumBase(_Enum, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IntEnum(OrderedEnum["IntEnum", int], _EnumBase):
+class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumBase):
     def __init__(self, value: int) -> None: super().__init__(value)
 
     def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
@@ -93,6 +94,12 @@ class IntEnum(OrderedEnum["IntEnum", int], _EnumBase):
 
     @final
     def GetEnumValue(self) -> IntEnum: return self
+
+    @final
+    def _GetArithmeticValue(self) -> int: return self.value
+
+    @final
+    def _CreateNew(self, value: int) -> IntEnum: return type(self)(value)
 class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
     def __init__(self, value: str) -> None: super().__init__(value)
     
