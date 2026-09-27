@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Collection
 from contextlib import AbstractContextManager
+from typing import final
 
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
@@ -25,10 +26,16 @@ class ScanResult(BooleanableEnum):
     Success = 0
     Empty = 1
     Null = 2
+
+    @final
+    def IsSuccessful(self) -> bool:
+        return self > self.Success
     
-    def ToNullableBool(self) -> bool|None: return True if self == ScanResult.Success else (None if self.value > 0 else False)
+    @final
+    def ToNullableBool(self) -> bool|None: return True if self == ScanResult.Success else (None if self.IsSuccessful() else False)
     
-    def ToNullableBoolean(self) -> NullableBoolean: return NullableBoolean.BoolTrue if self == ScanResult.Success else (NullableBoolean.Null if self.value > 0 else NullableBoolean.BoolFalse)
+    @final
+    def ToNullableBoolean(self) -> NullableBoolean: return NullableBoolean.BoolTrue if self == ScanResult.Success else (NullableBoolean.Null if self.IsSuccessful() else NullableBoolean.BoolFalse)
 
 def TryAsIterables[T](collection: Iterable[IEnumerable[T]|None]|None) -> Generator[Iterable[T]|None]:
     return Select(collection, TryAsIterable)
