@@ -16,7 +16,7 @@ _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-type EquatableEnumProtocol = IntegerEnum|StringEnum
+type EquatableEnumProtocol = IntegerEnum|UnorderedIntEnum|StringEnum
 type ComparableEnumProtocol = IntegerEnum
 
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
@@ -119,7 +119,7 @@ class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
     @final
     def GetEnumValue(self) -> StrEnum: return self
 
-type IntegerEnum = IntEnum|UnorderedIntEnum|_IntEnum
+type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
 type TypedEnum = IntegerEnum|StringEnum
