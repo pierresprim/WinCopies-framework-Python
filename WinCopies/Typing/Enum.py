@@ -83,6 +83,13 @@ class OrderedEnum(Generic[_TComparableEnum, _V], EquatableEnum[_TComparableEnum,
 class _EnumBase(_Enum, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
+class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
+    def __init__(self, value: int) -> None: super().__init__(value)
+
+    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+
+    @final
+    def GetEnumValue(self) -> UnorderedIntEnum: return self
 class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumBase):
     def __init__(self, value: int) -> None: super().__init__(value)
 
@@ -112,7 +119,7 @@ class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
     @final
     def GetEnumValue(self) -> StrEnum: return self
 
-type IntegerEnum = IntEnum|_IntEnum
+type IntegerEnum = IntEnum|UnorderedIntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
 type TypedEnum = IntegerEnum|StringEnum
