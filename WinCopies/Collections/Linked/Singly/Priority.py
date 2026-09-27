@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Iterable, final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Abstraction.Collection import ArrayList, SortedList
+from WinCopies.Collections.Abstraction.Collection import SortedList, CreateArrayList
 from WinCopies.Collections.Core import IArray
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
@@ -157,7 +157,7 @@ class _PriorityListDictionary[T](PriorityListDictionary[T]):
         super().__init__()
     
     @final
-    def _CreateArray(self) -> IArray[IList[T]]: return ArrayList[IList[T]](len(PriorityLevel), self.__func)
+    def _CreateArray(self) -> IArray[IList[T]]: return CreateArrayList(len(PriorityLevel), self.__func)
 
 class IPriorityItemList[TItem, TLevel](IInterface):
     def __init__(self) -> None: super().__init__()
@@ -243,7 +243,7 @@ class PriorityItemList[T](PriorityItemListBase[T, PriorityLevel]):
         ...
     
     @final
-    def _Convert(self, level: PriorityLevel) -> int: return level.value - PriorityLevel.Lowest.value
+    def _Convert(self, level: PriorityLevel) -> int: return (level - PriorityLevel.Lowest).value
 
 class PriorityItemQueue[T](PriorityItemList[T]):
     def __init__(self) -> None: super().__init__()
