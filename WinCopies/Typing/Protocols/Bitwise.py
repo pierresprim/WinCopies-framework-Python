@@ -1,0 +1,16 @@
+from typing import runtime_checkable, Protocol, Self
+
+@runtime_checkable
+class SupportsLogic(Protocol):
+    def __and__(self, other: Self, /) -> Self: ...
+    def __or__(self, other: Self, /) -> Self: ...
+    def __xor__(self, other: Self, /) -> Self: ...
+
+@runtime_checkable
+class SupportsShift(Protocol):
+    def __lshift__(self, other: int, /) -> Self: ...
+    def __rshift__(self, other: int, /) -> Self: ...
+
+@runtime_checkable
+class SupportsBitwise(SupportsLogic, SupportsShift, Protocol):
+    pass
