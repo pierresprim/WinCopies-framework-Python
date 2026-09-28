@@ -33,7 +33,7 @@ class SupportsShift[TOther, TResult](SupportsLeftShift[TOther, TResult], Support
     pass
 
 @runtime_checkable
-class SupportsBitwise[TOther, TResult](SupportsLogic[TOther, TResult], SupportsShift[TOther, TResult], Protocol):
+class SupportsBitwise[TOther, TResult](SupportsBasicBitwise[TOther, TResult], SupportsShift[TOther, TResult], Protocol):
     pass
 
 @runtime_checkable
