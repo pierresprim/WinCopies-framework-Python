@@ -137,6 +137,12 @@ class IntFlag(OrderedFlag["IntFlag", int], IAdditionableItem["IntFlag", int], IB
     @final
     def GetEnumValue(self) -> IntFlag: return self
 
+    @final
+    def _GetUnderlyingValue(self) -> int: return self.value
+
+    @final
+    def _CreateNew(self, value: int) -> IntFlag: return type(self)(value)
+
 class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
@@ -157,7 +163,7 @@ class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _E
     def GetEnumValue(self) -> IntEnum: return self
 
     @final
-    def _GetArithmeticValue(self) -> int: return self.value
+    def _GetUnderlyingValue(self) -> int: return self.value
 
     @final
     def _CreateNew(self, value: int) -> IntEnum: return type(self)(value)
