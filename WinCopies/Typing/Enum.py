@@ -49,19 +49,19 @@ class EnumBase(IInterface, Generic[_T], metaclass=_EnumTypeBase):
 
     @classmethod
     @abstractmethod
-    def _GetComparableType(cls) -> Type[_T]:
+    def _GetValueType(cls) -> Type[_T]:
         ...
 
     @classmethod
     @final
     def ValidateValueType(cls, value: _T|object) -> bool:
-        type: Type[_T] = cls._GetComparableType()
+        type: Type[_T] = cls._GetValueType()
         
         return isinstance(value, type)
     @classmethod
     @final
     def CheckValueType(cls, value: _T|object) -> None:
-        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an instance of {cls._GetComparableType().__name__}.")
+        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an instance of {cls._GetValueType().__name__}.")
 
     def __new__(cls, value: _T|Self) -> Self:
         if isinstance(value, cls): value = value.value
@@ -137,7 +137,7 @@ class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], 
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[int]: return int
+    def _GetValueType(cls) -> Type[int]: return int
 
     @final
     def GetEnumValue(self) -> IntFlag: return self
@@ -159,7 +159,7 @@ class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[int]: return int
+    def _GetValueType(cls) -> Type[int]: return int
 
     @final
     def GetEnumValue(self) -> UnorderedIntEnum: return self
@@ -170,7 +170,7 @@ class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _E
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[int]: return int
+    def _GetValueType(cls) -> Type[int]: return int
 
     @final
     def GetEnumValue(self) -> IntEnum: return self
@@ -184,7 +184,7 @@ class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[str]: return str
+    def _GetValueType(cls) -> Type[str]: return str
 
     @final
     def GetEnumValue(self) -> StrEnum: return self
