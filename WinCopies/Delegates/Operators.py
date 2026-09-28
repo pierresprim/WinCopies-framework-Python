@@ -1,13 +1,9 @@
 from typing import overload, Any
 
-from WinCopies.Typing.Protocols.Bitwise import (SupportsAnd, SupportsOr, SupportsXor,
-                                                SupportsRAnd, SupportsROr, SupportsRXor,
-
-                                                SupportsLeftShift, SupportsRightShift,
-                                                SupportsRLeftShift, SupportsRRightShift)
+from WinCopies.Typing.Protocols.Bitwise import SupportsAnd, SupportsOr, SupportsXor, SupportsLeftShift, SupportsRightShift
 from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _SupportsAnd, SupportsOr as _SupportsOr, SupportsXor as _SupportsXor,
                                                         SupportsRAnd as _SupportsRAnd, SupportsROr as _SupportsROr, SupportsRXor as _SupportsRXor,
-                                                        
+
                                                         SupportsLeftShift as _SupportsLeftShift, SupportsRightShift as _SupportsRightShift,
                                                         SupportsRLeftShift as _SupportsRLeftShift, SupportsRRightShift as _SupportsRRightShift)
 
@@ -15,7 +11,7 @@ from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _Supports
 # so the reflected overloads alone would type `And(value, value)` as the bound rather than as the type variable.
 
 @overload
-def And[T: SupportsAnd|SupportsRAnd](x: T, y: T, /) -> T: ...
+def And[T: SupportsAnd](x: T, y: T, /) -> T: ...
 @overload
 def And[TOther, TResult](x: _SupportsAnd[TOther, TResult], y: TOther, /) -> TResult: ...
 @overload
@@ -23,7 +19,7 @@ def And[TOther, TResult](x: TOther, y: _SupportsRAnd[TOther, TResult], /) -> TRe
 def And(x: Any, y: Any, /) -> Any: return x & y
 
 @overload
-def Or[T: SupportsOr|SupportsROr](x: T, y: T, /) -> T: ...
+def Or[T: SupportsOr](x: T, y: T, /) -> T: ...
 @overload
 def Or[TOther, TResult](x: _SupportsOr[TOther, TResult], y: TOther, /) -> TResult: ...
 @overload
@@ -31,7 +27,7 @@ def Or[TOther, TResult](x: TOther, y: _SupportsROr[TOther, TResult], /) -> TResu
 def Or(x: Any, y: Any, /) -> Any: return x | y
 
 @overload
-def Xor[T: SupportsXor|SupportsRXor](x: T, y: T, /) -> T: ...
+def Xor[T: SupportsXor](x: T, y: T, /) -> T: ...
 @overload
 def Xor[TOther, TResult](x: _SupportsXor[TOther, TResult], y: TOther, /) -> TResult: ...
 @overload
@@ -39,7 +35,7 @@ def Xor[TOther, TResult](x: TOther, y: _SupportsRXor[TOther, TResult], /) -> TRe
 def Xor(x: Any, y: Any, /) -> Any: return x ^ y
 
 @overload
-def LeftShift[T: SupportsLeftShift|SupportsRLeftShift](x: T, y: int, /) -> T: ...
+def LeftShift[T: SupportsLeftShift](x: T, y: int, /) -> T: ...
 @overload
 def LeftShift[TOther, TResult](x: _SupportsLeftShift[TOther, TResult], y: TOther, /) -> TResult: ...
 @overload
@@ -47,7 +43,7 @@ def LeftShift[TOther, TResult](x: TOther, y: _SupportsRLeftShift[TOther, TResult
 def LeftShift(x: Any, y: Any, /) -> Any: return x << y
 
 @overload
-def RightShift[T: SupportsRightShift|SupportsRRightShift](x: T, y: int, /) -> T: ...
+def RightShift[T: SupportsRightShift](x: T, y: int, /) -> T: ...
 @overload
 def RightShift[TOther, TResult](x: _SupportsRightShift[TOther, TResult], y: TOther, /) -> TResult: ...
 @overload
