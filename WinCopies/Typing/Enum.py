@@ -153,6 +153,10 @@ class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
+    @classmethod
+    @final
+    def _GetComparableType(cls) -> Type[int]: return int
+
     @final
     def GetEnumValue(self) -> UnorderedIntEnum: return self
 class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _EnumBase):
