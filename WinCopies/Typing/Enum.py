@@ -139,6 +139,10 @@ class IntFlag(EquatableFlag["IntFlag", int], IBitwiseItem["IntFlag", int], _Flag
     def _GetUnderlyingValue(self) -> int: return self.value
 
     @final
+    def _GetInvertedValue(self) -> int:
+        return _Flag.__invert__(self).value
+
+    @final
     def _CreateNew(self, value: int) -> IntFlag: return type(self)(value)
 
 class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):

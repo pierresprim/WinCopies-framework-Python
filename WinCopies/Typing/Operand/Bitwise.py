@@ -1,12 +1,17 @@
+from abc import abstractmethod
 from types import NotImplementedType
 from typing import overload, final, Literal, Self
 
-from WinCopies.Delegates.Operators import And, Or, Xor, Invert, LeftShift, RightShift
+from WinCopies.Delegates.Operators import And, Or, Xor, LeftShift, RightShift
 from WinCopies.Typing.Operand import IOperand
 from WinCopies.Typing.Protocols.Bitwise import SupportsBitwise
 
 class IBitwiseItem[TObject, TValue: SupportsBitwise](IOperand[TObject, TValue]):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetInvertedValue(self) -> TValue:
+        ...
 
     @overload
     def And(self, other: Self, strict: Literal[True] = True) -> Self: ...
@@ -41,9 +46,9 @@ class IBitwiseItem[TObject, TValue: SupportsBitwise](IOperand[TObject, TValue]):
     def Invert(self, strict: Literal[False]) -> TValue: ...
     @final
     def Invert(self, strict: bool = True) -> Self|TValue:
-        def invert() -> TValue: return Invert(self._GetUnderlyingValue())
-        
-        return self._CreateNew(invert()) if strict else invert()
+        value: TValue = self._GetInvertedValue()
+
+        return self._CreateNew(value) if strict else value
 
     @overload
     def LeftShift(self, other: int, strict: Literal[True] = True) -> Self: ...
