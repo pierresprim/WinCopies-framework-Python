@@ -21,7 +21,7 @@ class IOperand[TObject, TValue](IInterface):
         ...
 
     @final
-    def __Compute(self, operator: Operator[TValue], other: Self|TObject, value: TValue) -> TValue|NotImplementedType: return operator(self._GetUnderlyingValue(), value) if isinstance(other, type(self)) else NotImplemented
+    def __Compute(self, operator: Operator[TValue], other: Self|TObject) -> TValue|NotImplementedType: return operator(self._GetUnderlyingValue(), other._GetUnderlyingValue()) if isinstance(other, type(self)) else NotImplemented
     @final
     def __ComputeValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T) -> TValue|NotImplementedType: return operator(self._GetUnderlyingValue(), other) if isinstance(other, t) else NotImplemented
 
@@ -36,10 +36,10 @@ class IOperand[TObject, TValue](IInterface):
 
     @final
     def _ComputeObject(self, operator: Operator[TValue], other: Self, strict: bool = True) -> Self|TValue:
-        return self.__ComputeObject(strict, lambda: self.__Compute(operator, other, other._GetUnderlyingValue()))
+        return self.__ComputeObject(strict, lambda: self.__Compute(operator, other))
     @final
     def _ComputeItem(self, operator: Operator[TValue], other: Self) -> Self|NotImplementedType:
-        return self.__ComputeItem(self.__Compute(operator, other, other._GetUnderlyingValue()))
+        return self.__ComputeItem(self.__Compute(operator, other))
 
     @final
     def _ComputeObjectValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T, strict: bool = True) -> Self|TValue:
