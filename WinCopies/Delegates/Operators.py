@@ -1,6 +1,9 @@
 from typing import overload, Any
 
+from WinCopies.Typing.Protocols.Arithmetic import SupportsAdd, SupportsSub
 from WinCopies.Typing.Protocols.Bitwise import SupportsAnd, SupportsOr, SupportsXor, SupportsLeftShift, SupportsRightShift
+from WinCopies.Typing.Protocols.Generic.Arithmetic import (SupportsAdd as _SupportsAdd, SupportsSub as _SupportsSub,
+                                                           SupportsRAdd as _SupportsRAdd, SupportsRSub as _SupportsRSub)
 from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _SupportsAnd, SupportsOr as _SupportsOr, SupportsXor as _SupportsXor,
                                                         SupportsRAnd as _SupportsRAnd, SupportsROr as _SupportsROr, SupportsRXor as _SupportsRXor,
 
@@ -9,6 +12,22 @@ from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _Supports
 
 # The homogeneous overload comes first: for a type variable bounded by a Self-typed protocol (such as `TValue: SupportsBitwise`), mypy binds `Self` to the bound,
 # so the reflected overloads alone would type `And(value, value)` as the bound rather than as the type variable.
+
+@overload
+def Add[T: SupportsAdd](x: T, y: T, /) -> T: ...
+@overload
+def Add[TOther, TResult](x: _SupportsAdd[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def Add[TOther, TResult](x: TOther, y: _SupportsRAdd[TOther, TResult], /) -> TResult: ...
+def Add(x: Any, y: Any, /) -> Any: return x + y
+
+@overload
+def Sub[T: SupportsSub](x: T, y: T, /) -> T: ...
+@overload
+def Sub[TOther, TResult](x: _SupportsSub[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def Sub[TOther, TResult](x: TOther, y: _SupportsRSub[TOther, TResult], /) -> TResult: ...
+def Sub(x: Any, y: Any, /) -> Any: return x - y
 
 @overload
 def And[T: SupportsAnd](x: T, y: T, /) -> T: ...

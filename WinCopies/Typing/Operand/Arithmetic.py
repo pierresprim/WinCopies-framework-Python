@@ -1,7 +1,7 @@
-from operator import add, sub
 from types import NotImplementedType
 from typing import overload, final, Literal, Self
 
+from WinCopies.Delegates.Operators import Add, Sub
 from WinCopies.Typing.Operand import IOperand
 from WinCopies.Typing.Protocols.Arithmetic import SupportsAddSub
 
@@ -15,7 +15,7 @@ class IAdditionableItem[TObject, TValue: SupportsAddSub](IOperand[TObject, TValu
 
     @final
     def Add(self, other: Self, strict: bool = True) -> Self|TValue:
-        return self._ComputeObject(add, other, strict)
+        return self._ComputeObject(Add, other, strict)
 
     @overload
     def Sub(self, other: Self, strict: Literal[True] = True) -> Self: ...
@@ -24,11 +24,11 @@ class IAdditionableItem[TObject, TValue: SupportsAddSub](IOperand[TObject, TValu
 
     @final
     def Sub(self, other: Self, strict: bool = True) -> Self|TValue:
-        return self._ComputeObject(sub, other, strict)
+        return self._ComputeObject(Sub, other, strict)
 
     @final
     def __add__(self, other: Self, /) -> Self|NotImplementedType:
-        return self._ComputeItem(add, other)
+        return self._ComputeItem(Add, other)
     @final
     def __sub__(self, other: Self, /) -> Self|NotImplementedType:
-        return self._ComputeItem(sub, other)
+        return self._ComputeItem(Sub, other)
