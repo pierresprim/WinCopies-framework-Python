@@ -10,8 +10,8 @@ from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
-from WinCopies.Typing.Operand.Arithmetic import IAdditionable
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
+from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
 _T = TypeVar('_T')
@@ -124,7 +124,7 @@ class _EnumBase(_Enum, metaclass=_EnumType):
 class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IntFlag(OrderedFlag["IntFlag", int], IAdditionable["IntFlag", int], _FlagBase): # type: ignore[misc]
+class IntFlag(OrderedFlag["IntFlag", int], IAdditionableItem["IntFlag", int], _FlagBase): # type: ignore[misc]
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
@@ -143,7 +143,7 @@ class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
 
     @final
     def GetEnumValue(self) -> UnorderedIntEnum: return self
-class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumBase):
+class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _EnumBase):
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
