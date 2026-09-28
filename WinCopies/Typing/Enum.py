@@ -12,7 +12,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
 from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
-from WinCopies.Typing.Operand.Bitwise import IBitwiseItem
+from WinCopies.Typing.Operand.Bitwise import IBasicBitwiseItem
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
 _T = TypeVar('_T')
@@ -123,7 +123,7 @@ class _EnumBase(_Enum, metaclass=_EnumType):
 class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IntFlag(EquatableFlag["IntFlag", int], IBitwiseItem["IntFlag", int], _FlagBase): # type: ignore[misc]
+class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], _FlagBase): # type: ignore[misc]
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
