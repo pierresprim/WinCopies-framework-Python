@@ -1,11 +1,11 @@
 from typing import overload, Any
 
 from WinCopies.Typing.Protocols.Arithmetic import SupportsAdd, SupportsSub
-from WinCopies.Typing.Protocols.Bitwise import (SupportsAnd, SupportsOr, SupportsXor,
+from WinCopies.Typing.Protocols.Bitwise import (SupportsAnd, SupportsOr, SupportsXor, SupportsInversion,
                                                 SupportsLeftShift, SupportsRightShift)
 from WinCopies.Typing.Protocols.Generic.Arithmetic import (SupportsAdd as _SupportsAdd, SupportsSub as _SupportsSub,
                                                            SupportsRAdd as _SupportsRAdd, SupportsRSub as _SupportsRSub)
-from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _SupportsAnd, SupportsOr as _SupportsOr, SupportsXor as _SupportsXor,
+from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _SupportsAnd, SupportsOr as _SupportsOr, SupportsXor as _SupportsXor, SupportsInversion as _SupportsInversion,
                                                         SupportsRAnd as _SupportsRAnd, SupportsROr as _SupportsROr, SupportsRXor as _SupportsRXor,
 
                                                         SupportsLeftShift as _SupportsLeftShift, SupportsRightShift as _SupportsRightShift,
@@ -53,6 +53,12 @@ def Xor[TOther, TResult](x: _SupportsXor[TOther, TResult], y: TOther, /) -> TRes
 @overload
 def Xor[TOther, TResult](x: TOther, y: _SupportsRXor[TOther, TResult], /) -> TResult: ...
 def Xor(x: Any, y: Any, /) -> Any: return x ^ y
+
+@overload
+def Invert[T: SupportsInversion](obj: T, /) -> T: ...
+@overload
+def Invert[T](obj: _SupportsInversion[T], /) -> T: ...
+def Invert(obj: Any, /) -> Any: return ~obj
 
 @overload
 def LeftShift[T: SupportsLeftShift](x: T, y: int, /) -> T: ...
