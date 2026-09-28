@@ -10,12 +10,15 @@ def ThrowIfNotImplemented[T](value: T|NotImplementedType) -> T:
 
     return value
 
-class IOperand[TObject, TValue](IInterface):
+class IOperandBase[TValue](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetUnderlyingValue(self) -> TValue:
         ...
+class IOperand[TObject, TValue](IOperandBase[TValue]):
+    def __init__(self) -> None: super().__init__()
+
     @abstractmethod
     def _CreateNew(self, value: TValue) -> Self:
         ...
