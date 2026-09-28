@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Iterable
 from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
                   EnumMeta as _EnumMeta, Enum as _Enum, FlagBoundary,
@@ -8,11 +9,12 @@ from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
 from types import DynamicClassAttribute
 from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
+from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
-from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
 from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
 from WinCopies.Typing.Operand.Bitwise import IBasicBitwiseItem
+from WinCopies.Typing.Operand.Comparison import IHashableOperand, IHashableComparableOperand
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
 _T = TypeVar('_T')
@@ -27,9 +29,9 @@ type ComparableEnumProtocol = IntegerEnum
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
 
-class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]): # pyright: ignore[reportInvalidTypeArguments]
+class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashableOperand[TValue]): # pyright: ignore[reportInvalidTypeArguments]
     def __init__(self) -> None: super().__init__()
-class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
+class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
 
 class _EnumTypeBase(type, Iterable["Any"]):
@@ -42,8 +44,13 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
     def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
-class EnumBase(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
+class EnumBase(IInterface, Generic[_T], metaclass=_EnumTypeBase):
     def __init__(self, value: _T|Self) -> None: super().__init__()
+
+    @classmethod
+    @abstractmethod
+    def _GetComparableType(cls) -> Type[_T]:
+        ...
 
     @classmethod
     @final
@@ -99,7 +106,7 @@ class EquatableEnumBase(Generic[_TEquatableEnum, _U], EnumBase[_U], IEquatableEn
     def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
     @final
-    def _AsComparableValue(self) -> _U: return self.value
+    def _GetUnderlyingValue(self) -> _U: return self.value
 class EquatableEnum(EquatableEnumBase[_TEquatableEnum, _U], Enum[_U]):
     def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
@@ -136,9 +143,6 @@ class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], 
     def GetEnumValue(self) -> IntFlag: return self
 
     @final
-    def _GetUnderlyingValue(self) -> int: return self.value
-
-    @final
     def _GetInvertedValue(self) -> int:
         # Inverting a flag means complementing it within the flags this type defines, which ~self.value does not do: it yields a negative int.
         # enum.Flag's implementation is called explicitly rather than through ~self: type checkers resolve ~self to IBasicBitwiseItem.__invert__, which calls
@@ -170,9 +174,6 @@ class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _E
 
     @final
     def GetEnumValue(self) -> IntEnum: return self
-
-    @final
-    def _GetUnderlyingValue(self) -> int: return self.value
 
     @final
     def _CreateNew(self, value: int) -> IntEnum: return type(self)(value)

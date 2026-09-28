@@ -23,6 +23,7 @@ from WinCopies.Typing.Delegate import Function, Method
 from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum, UnorderedIntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
+from WinCopies.Typing.Reflection.Enum import TryGetFieldFromValue
 
 from ijson import parse # pyright: ignore[reportMissingTypeStubs]
 
@@ -55,7 +56,7 @@ class EventNames(StrEnum):
 
     @staticmethod
     def TryConvertToEvent(eventName: str) -> Event|None:
-        match eventName:
+        match TryGetFieldFromValue(EventNames, eventName):
             case EventNames.StartMap: return Event.StartMap
             case EventNames.EndMap: return Event.EndMap
             
