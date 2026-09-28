@@ -80,7 +80,7 @@ class SupportsFullShift(SupportsShift, SupportsReflectedShift, Protocol):
     pass
 
 @runtime_checkable
-class SupportsFullBitwise(SupportsBitwise, SupportsReflectedBitwise, SupportsFullBasicBitwise, SupportsFullShift, Protocol):
+class SupportsFullBitwise(SupportsFullBasicBitwise, SupportsFullShift, SupportsBitwise, SupportsReflectedBitwise, Protocol):
     pass
 
 type LogicProtocol = SupportsLogic|SupportsReflectedLogic

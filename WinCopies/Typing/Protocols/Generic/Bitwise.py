@@ -11,6 +11,10 @@ class SupportsXor[TOther, TResult](Protocol):
     def __xor__(self, other: TOther, /) -> TResult: ...
 
 @runtime_checkable
+class SupportsInversion[T](Protocol):
+    def __invert__(self) -> T: ...
+
+@runtime_checkable
 class SupportsLeftShift[TOther, TResult](Protocol):
     def __lshift__(self, other: TOther, /) -> TResult: ...
 @runtime_checkable
@@ -20,6 +24,10 @@ class SupportsRightShift[TOther, TResult](Protocol):
 @runtime_checkable
 class SupportsLogic[TOther, TResult](SupportsAnd[TOther, TResult], SupportsOr[TOther, TResult], SupportsXor[TOther, TResult], Protocol):
     pass
+@runtime_checkable
+class SupportsBasicBitwise[TOther, TResult](SupportsLogic[TOther, TResult], SupportsInversion[TResult], Protocol):
+    pass
+
 @runtime_checkable
 class SupportsShift[TOther, TResult](SupportsLeftShift[TOther, TResult], SupportsRightShift[TOther, TResult], Protocol):
     pass
@@ -49,15 +57,30 @@ class SupportsRRightShift[TOther, TResult](Protocol):
 class SupportsReflectedLogic[TOther, TResult](SupportsRAnd[TOther, TResult], SupportsROr[TOther, TResult], SupportsRXor[TOther, TResult], Protocol):
     pass
 @runtime_checkable
+class SupportsReflectedBasicBitwise[TOther, TResult](SupportsReflectedLogic[TOther, TResult], SupportsInversion[TResult], Protocol):
+    pass
+
+@runtime_checkable
 class SupportsReflectedShift[TOther, TResult](SupportsRLeftShift[TOther, TResult], SupportsRRightShift[TOther, TResult], Protocol):
     pass
 
 @runtime_checkable
-class SupportsReflectedBitwise[TOther, TResult](SupportsReflectedLogic[TOther, TResult], SupportsReflectedShift[TOther, TResult], Protocol):
+class SupportsReflectedBitwise[TOther, TResult](SupportsReflectedBasicBitwise[TOther, TResult], SupportsReflectedShift[TOther, TResult], Protocol):
     pass
 
 @runtime_checkable
-class SupportsFullBitwise[TOther, TResult](SupportsBitwise[TOther, TResult], SupportsReflectedBitwise[TOther, TResult], Protocol):
+class SupportsFullLogic[TOther, TResult](SupportsLogic[TOther, TResult], SupportsReflectedLogic[TOther, TResult], Protocol):
+    pass
+@runtime_checkable
+class SupportsFullBasicBitwise[TOther, TResult](SupportsFullLogic[TOther, TResult], SupportsBasicBitwise[TOther, TResult], SupportsReflectedBasicBitwise[TOther, TResult], Protocol):
+    pass
+
+@runtime_checkable
+class SupportsFullShift[TOther, TResult](SupportsShift[TOther, TResult], SupportsReflectedShift[TOther, TResult], Protocol):
+    pass
+
+@runtime_checkable
+class SupportsFullBitwise[TOther, TResult](SupportsFullBasicBitwise[TOther, TResult], SupportsFullShift[TOther, TResult], SupportsBitwise[TOther, TResult], SupportsReflectedBitwise[TOther, TResult], Protocol):
     pass
 
 type LogicProtocol[TOther, TResult] = SupportsLogic[TOther, TResult]|SupportsReflectedLogic[TOther, TResult]
