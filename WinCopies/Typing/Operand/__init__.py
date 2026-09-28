@@ -35,14 +35,14 @@ class IOperand[TObject, TValue](IInterface):
         return NotImplemented if isinstance(value, NotImplementedType) else self._CreateNew(value)
 
     @final
-    def _ComputeObject(self, operator: Operator[TValue], other: Self, strict: bool = True) -> Self|TValue:
+    def _ComputeObject(self, operator: Operator[TValue], other: Self, strict: bool) -> Self|TValue:
         return self.__ComputeObject(operator, other, strict, self.__Compute)
     @final
     def _ComputeItem(self, operator: Operator[TValue], other: Self) -> Self|NotImplementedType:
         return self.__ComputeItem(self.__Compute(operator, other))
 
     @final
-    def _ComputeObjectValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T, strict: bool = True) -> Self|TValue:
+    def _ComputeObjectValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T, strict: bool) -> Self|TValue:
         return self.__ComputeObject(operator, other, strict, lambda operator, other: self.__ComputeValue(operator, t, other))
     @final
     def _ComputeValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T) -> Self|NotImplementedType:
