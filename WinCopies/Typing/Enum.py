@@ -141,7 +141,7 @@ class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], 
     @final
     def _GetInvertedValue(self) -> int:
         # Inverting a flag means complementing it within the flags this type defines, which ~self.value does not do: it yields a negative int.
-        # enum.Flag's implementation is called explicitly rather than through ~self: type checkers resolve ~self to IBitwiseItem.__invert__, which calls
+        # enum.Flag's implementation is called explicitly rather than through ~self: type checkers resolve ~self to IBasicBitwiseItem.__invert__, which calls
         # Invert and then this method again; ~self only reaches enum.Flag.__invert__ because enum replaces __invert__ on every Flag subclass at runtime.
         return _Flag.__invert__(self).value
 
