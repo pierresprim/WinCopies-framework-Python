@@ -22,12 +22,12 @@ _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 type EquatableEnumProtocol = IntegerEnum|UnorderedIntEnum|StringEnum
 type ComparableEnumProtocol = IntegerEnum
 
-_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
-_TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
+_TEquatableEnum = TypeVar('_TEquatableEnum', bound=_Enum)
+_TComparableEnum = TypeVar('_TComparableEnum', bound=_Enum)
 
-class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]):
+class IEquatableEnum[TEnum: _Enum, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]):
     def __init__(self) -> None: super().__init__()
-class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
+class IComparableEnum[TEnum: _Enum, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
     def __init__(self) -> None: super().__init__()
 
 class _EnumTypeBase(type, Iterable["Any"]):

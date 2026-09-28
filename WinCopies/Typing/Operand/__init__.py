@@ -1,14 +1,14 @@
 from abc import abstractmethod
 from types import NotImplementedType
-from typing import final, Self, Type, cast
+from typing import final, Self, Type
 
 from WinCopies import IInterface
 from WinCopies.Typing.Delegate import Function, Operator, RichOperator
 
 def ThrowIfNotImplemented[T](value: T|NotImplementedType) -> T:
-    if value is NotImplemented: raise NotImplementedError()
+    if isinstance(value, NotImplementedType): raise NotImplementedError()
 
-    return cast(T, value)
+    return value
 
 class IOperand[TObject, TValue](IInterface):
     def __init__(self) -> None: super().__init__()
@@ -32,7 +32,7 @@ class IOperand[TObject, TValue](IInterface):
         return self._CreateNew(compute()) if strict else compute()
     @final
     def __ComputeItem(self, value: TValue|NotImplementedType) -> Self|NotImplementedType:
-        return NotImplemented if value is NotImplemented else self._CreateNew(cast(TValue, value))
+        return NotImplemented if isinstance(value, NotImplementedType) else self._CreateNew(value)
 
     @final
     def _ComputeObject(self, operator: Operator[TValue], other: Self, strict: bool = True) -> Self|TValue:
