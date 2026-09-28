@@ -739,7 +739,7 @@ class TestUnfaultEnvelope(unittest.TestCase):
 
             return original(self)
 
-        IterationStatus.Unfault = _counting
+        IterationStatus.Unfault = _counting # pyright: ignore[reportAttributeAccessIssue]
 
         self.addCleanup(setattr, IterationStatus, "Unfault", original)
 

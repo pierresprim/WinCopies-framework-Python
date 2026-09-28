@@ -24,7 +24,7 @@ from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum, UnorderedIntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
-from ijson import parse
+from ijson import parse # pyright: ignore[reportMissingTypeStubs]
 
 class Event(UnorderedIntEnum):
     NoEvent = 0
