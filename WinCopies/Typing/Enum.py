@@ -115,10 +115,6 @@ class OrderedEnum(OrderedEnumBase[_TComparableEnum, _V], EquatableEnum[_TCompara
     def __init__(self, value: _V|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
-class OrderedFlag(OrderedEnumBase[_TComparableEnum, _V], EquatableFlag[_TComparableEnum, _V]):
-    def __init__(self, value: _V|Self) -> None: super().__init__(value)
-    
-    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
 
 class _EnumBase(_Enum, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
