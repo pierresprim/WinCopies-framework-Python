@@ -1,8 +1,48 @@
-from WinCopies.Typing.Protocols.Bitwise import SupportsLogic, SupportsShift
+from typing import overload, Any
 
-def And[T: SupportsLogic](x: T, y: T, /) -> T: return x & y
-def Or[T: SupportsLogic](x: T, y: T, /) -> T: return x | y
-def Xor[T: SupportsLogic](x: T, y: T, /) -> T: return x ^ y
+from WinCopies.Typing.Protocols.Bitwise import (SupportsLogic, SupportsShift,
+                                              SupportsAnd, SupportsRAnd, SupportsOr, SupportsROr, SupportsXor, SupportsRXor,
+                                              SupportsLShift, SupportsRLShift, SupportsRShift, SupportsRRShift)
 
-def LeftShift[T: SupportsShift](x: T, y: int, /) -> T: return x << y
-def RightShift[T: SupportsShift](x: T, y: int, /) -> T: return x >> y
+# The homogeneous overload comes first: for a type variable bounded by a Self-typed protocol (such as `TValue: SupportsBitwise`), mypy binds `Self` to the bound,
+# so the reflected overloads alone would type `And(value, value)` as the bound rather than as the type variable.
+
+@overload
+def And[T: SupportsLogic](x: T, y: T, /) -> T: ...
+@overload
+def And[TOther, TResult](x: SupportsAnd[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def And[TOther, TResult](x: TOther, y: SupportsRAnd[TOther, TResult], /) -> TResult: ...
+def And(x: Any, y: Any, /) -> Any: return x & y
+
+@overload
+def Or[T: SupportsLogic](x: T, y: T, /) -> T: ...
+@overload
+def Or[TOther, TResult](x: SupportsOr[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def Or[TOther, TResult](x: TOther, y: SupportsROr[TOther, TResult], /) -> TResult: ...
+def Or(x: Any, y: Any, /) -> Any: return x | y
+
+@overload
+def Xor[T: SupportsLogic](x: T, y: T, /) -> T: ...
+@overload
+def Xor[TOther, TResult](x: SupportsXor[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def Xor[TOther, TResult](x: TOther, y: SupportsRXor[TOther, TResult], /) -> TResult: ...
+def Xor(x: Any, y: Any, /) -> Any: return x ^ y
+
+@overload
+def LeftShift[T: SupportsShift](x: T, y: int, /) -> T: ...
+@overload
+def LeftShift[TOther, TResult](x: SupportsLShift[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def LeftShift[TOther, TResult](x: TOther, y: SupportsRLShift[TOther, TResult], /) -> TResult: ...
+def LeftShift(x: Any, y: Any, /) -> Any: return x << y
+
+@overload
+def RightShift[T: SupportsShift](x: T, y: int, /) -> T: ...
+@overload
+def RightShift[TOther, TResult](x: SupportsRShift[TOther, TResult], y: TOther, /) -> TResult: ...
+@overload
+def RightShift[TOther, TResult](x: TOther, y: SupportsRRShift[TOther, TResult], /) -> TResult: ...
+def RightShift(x: Any, y: Any, /) -> Any: return x >> y
