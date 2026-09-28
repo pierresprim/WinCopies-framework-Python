@@ -1,8 +1,8 @@
 from typing import overload, Any
 
-from WinCopies.Typing.Protocols.Bitwise import (SupportsLogic, SupportsShift,
-                                              SupportsAnd, SupportsRAnd, SupportsOr, SupportsROr, SupportsXor, SupportsRXor,
-                                              SupportsLShift, SupportsRLShift, SupportsRShift, SupportsRRShift)
+from WinCopies.Typing.Protocols.Bitwise import (SupportsLogic, SupportsShift)
+from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd, SupportsRAnd, SupportsOr, SupportsROr, SupportsXor, SupportsRXor,
+                                                        SupportsLShift, SupportsRLShift, SupportsRShift, SupportsRRShift)
 
 # The homogeneous overload comes first: for a type variable bounded by a Self-typed protocol (such as `TValue: SupportsBitwise`), mypy binds `Self` to the bound,
 # so the reflected overloads alone would type `And(value, value)` as the bound rather than as the type variable.
