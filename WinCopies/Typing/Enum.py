@@ -61,7 +61,7 @@ class EnumBase(IInterface, Generic[_T], metaclass=_EnumTypeBase):
     @classmethod
     @final
     def CheckValueType(cls, value: _T|object) -> None:
-        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.")
+        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an instance of {cls._GetComparableType().__name__}.")
 
     def __new__(cls, value: _T|Self) -> Self:
         if isinstance(value, cls): value = value.value

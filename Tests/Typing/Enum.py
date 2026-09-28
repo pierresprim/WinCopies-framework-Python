@@ -103,7 +103,7 @@ class TestUnorderedIntEnum(unittest.TestCase):
         self.assertIs(Code(1), Code.A)
 
     def test_non_integer_value_is_rejected(self) -> None:
-        with self.assertRaises(TypeError):
+        with self.assertRaisesRegex(TypeError, "value 'a' is not an instance of int"):
             class _Invalid(UnorderedIntEnum): # pyright: ignore[reportUnusedClass]
                 A = "a" # pyright: ignore[reportArgumentType]
 
