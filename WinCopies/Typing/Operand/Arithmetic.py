@@ -7,12 +7,8 @@ from typing import overload, final, Literal, Self, cast
 
 from WinCopies import IInterface
 from WinCopies.Typing.Delegate import Operator
+from WinCopies.Typing.Operand import ThrowIfNotImplemented
 from WinCopies.Typing.Protocols.Arithmetic import SupportsAddSub
-
-def ThrowIfNotImplemented[T](value: T|NotImplementedType) -> T:
-    if value is NotImplemented: raise NotImplementedError()
-
-    return cast(T, value)
 
 class IArithmeticItem[T: SupportsAddSub](IInterface):
     def __init__(self) -> None: super().__init__()

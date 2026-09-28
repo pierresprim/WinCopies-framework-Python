@@ -10,7 +10,7 @@ from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
-from WinCopies.Typing.Arithmetic import IAdditionable
+from WinCopies.Typing.Operand.Arithmetic import IAdditionable
 from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
