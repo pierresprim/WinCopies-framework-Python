@@ -1,7 +1,8 @@
 from typing import overload, Any
 
 from WinCopies.Typing.Protocols.Arithmetic import SupportsAdd, SupportsSub
-from WinCopies.Typing.Protocols.Bitwise import SupportsAnd, SupportsOr, SupportsXor, SupportsLeftShift, SupportsRightShift
+from WinCopies.Typing.Protocols.Bitwise import (SupportsAnd, SupportsOr, SupportsXor,
+                                                SupportsLeftShift, SupportsRightShift)
 from WinCopies.Typing.Protocols.Generic.Arithmetic import (SupportsAdd as _SupportsAdd, SupportsSub as _SupportsSub,
                                                            SupportsRAdd as _SupportsRAdd, SupportsRSub as _SupportsRSub)
 from WinCopies.Typing.Protocols.Generic.Bitwise import (SupportsAnd as _SupportsAnd, SupportsOr as _SupportsOr, SupportsXor as _SupportsXor,
