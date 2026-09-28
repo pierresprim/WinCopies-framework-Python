@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from types import NotImplementedType
-from typing import final, Self, Type
+from typing import final, Callable, Self, Type
 
 from WinCopies import IInterface
-from WinCopies.Typing.Delegate import Function, Operator, RichOperator
+from WinCopies.Typing.Delegate import Operator, RichOperator
 
 def ThrowIfNotImplemented[T](value: T|NotImplementedType) -> T:
     if isinstance(value, NotImplementedType): raise NotImplementedError()
@@ -26,8 +26,8 @@ class IOperand[TObject, TValue](IInterface):
     def __ComputeValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T) -> TValue|NotImplementedType: return operator(self._GetUnderlyingValue(), other) if isinstance(other, t) else NotImplemented
 
     @final
-    def __ComputeObject(self, strict: bool, func: Function[TValue|NotImplementedType]) -> Self|TValue:
-        def compute() -> TValue: return ThrowIfNotImplemented(func())
+    def __ComputeObject[TOperator, TOther](self, operator: TOperator, other: TOther, strict: bool, func: Callable[[TOperator, TOther], TValue|NotImplementedType]) -> Self|TValue:
+        def compute() -> TValue: return ThrowIfNotImplemented(func(operator, other))
         
         return self._CreateNew(compute()) if strict else compute()
     @final
@@ -36,14 +36,14 @@ class IOperand[TObject, TValue](IInterface):
 
     @final
     def _ComputeObject(self, operator: Operator[TValue], other: Self, strict: bool = True) -> Self|TValue:
-        return self.__ComputeObject(strict, lambda: self.__Compute(operator, other))
+        return self.__ComputeObject(operator, other, strict, self.__Compute)
     @final
     def _ComputeItem(self, operator: Operator[TValue], other: Self) -> Self|NotImplementedType:
         return self.__ComputeItem(self.__Compute(operator, other))
 
     @final
     def _ComputeObjectValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T, strict: bool = True) -> Self|TValue:
-        return self.__ComputeObject(strict, lambda: self.__ComputeValue(operator, t, other))
+        return self.__ComputeObject(operator, other, strict, lambda operator, other: self.__ComputeValue(operator, t, other))
     @final
     def _ComputeValue[T](self, operator: RichOperator[TValue, T], t: Type[T], other: T) -> Self|NotImplementedType:
         return self.__ComputeItem(self.__ComputeValue(operator, t, other))
