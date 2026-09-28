@@ -11,10 +11,10 @@ class SupportsXor[TOther, TResult](Protocol):
     def __xor__(self, other: TOther, /) -> TResult: ...
 
 @runtime_checkable
-class SupportsLShift[TOther, TResult](Protocol):
+class SupportsLeftShift[TOther, TResult](Protocol):
     def __lshift__(self, other: TOther, /) -> TResult: ...
 @runtime_checkable
-class SupportsRShift[TOther, TResult](Protocol):
+class SupportsRightShift[TOther, TResult](Protocol):
     def __rshift__(self, other: TOther, /) -> TResult: ...
 
 @runtime_checkable
@@ -28,8 +28,8 @@ class SupportsRXor[TOther, TResult](Protocol):
     def __rxor__(self, other: TOther, /) -> TResult: ...
 
 @runtime_checkable
-class SupportsRLShift[TOther, TResult](Protocol):
+class SupportsRLeftShift[TOther, TResult](Protocol):
     def __rlshift__(self, other: TOther, /) -> TResult: ...
 @runtime_checkable
-class SupportsRRShift[TOther, TResult](Protocol):
+class SupportsRRightShift[TOther, TResult](Protocol):
     def __rrshift__(self, other: TOther, /) -> TResult: ...
