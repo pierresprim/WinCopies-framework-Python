@@ -22,10 +22,12 @@ _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 type EquatableEnumProtocol = IntegerEnum|UnorderedIntEnum|IntFlag|StringEnum
 type ComparableEnumProtocol = IntegerEnum
 
-_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
+# IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableEnumProtocol in their own base classes. Whenever another module is analyzed before
+# this one, pyright reports that cycle below, although it still enforces the bound; hence the ignores, which keep the bound closed.
+_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
 
-class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]):
+class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]): # pyright: ignore[reportInvalidTypeArguments]
     def __init__(self) -> None: super().__init__()
 class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
     def __init__(self) -> None: super().__init__()
