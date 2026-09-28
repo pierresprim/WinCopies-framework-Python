@@ -123,7 +123,7 @@ class _EnumBase(_Enum, metaclass=_EnumType):
 class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IntFlag(EquatableFlag["IntFlag", int], IAdditionableItem["IntFlag", int], IBitwiseItem["IntFlag", int], _FlagBase): # type: ignore[misc]
+class IntFlag(EquatableFlag["IntFlag", int], IBitwiseItem["IntFlag", int], _FlagBase): # type: ignore[misc]
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
