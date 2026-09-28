@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from abc import abstractmethod
 from operator import add, sub
 from types import NotImplementedType
