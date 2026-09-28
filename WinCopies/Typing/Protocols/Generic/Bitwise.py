@@ -55,3 +55,12 @@ class SupportsReflectedShift[TOther, TResult](SupportsRLeftShift[TOther, TResult
 @runtime_checkable
 class SupportsReflectedBitwise[TOther, TResult](SupportsReflectedLogic[TOther, TResult], SupportsReflectedShift[TOther, TResult], Protocol):
     pass
+
+@runtime_checkable
+class SupportsFullBitwise[TOther, TResult](SupportsBitwise[TOther, TResult], SupportsReflectedBitwise[TOther, TResult], Protocol):
+    pass
+
+type LogicProtocol[TOther, TResult] = SupportsLogic[TOther, TResult]|SupportsReflectedLogic[TOther, TResult]
+type ShiftProtocol[TOther, TResult] = SupportsShift[TOther, TResult]|SupportsReflectedShift[TOther, TResult]
+
+type BitwiseProtocol[TOther, TResult] = SupportsBitwise[TOther, TResult]|SupportsReflectedBitwise[TOther, TResult]

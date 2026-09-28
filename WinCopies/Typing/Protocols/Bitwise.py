@@ -55,3 +55,12 @@ class SupportsReflectedShift(SupportsRLeftShift, SupportsRRightShift, Protocol):
 @runtime_checkable
 class SupportsReflectedBitwise(SupportsReflectedLogic, SupportsReflectedShift, Protocol):
     pass
+
+@runtime_checkable
+class SupportsFullBitwise(SupportsBitwise, SupportsReflectedBitwise, Protocol):
+    pass
+
+type LogicProtocol = SupportsLogic|SupportsReflectedLogic
+type ShiftProtocol = SupportsShift|SupportsReflectedShift
+
+type BitwiseProtocol = SupportsBitwise|SupportsReflectedBitwise
