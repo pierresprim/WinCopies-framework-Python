@@ -5,7 +5,7 @@ from typing import overload, final, Literal, Self
 from WinCopies.Typing.Operand import IOperand
 from WinCopies.Typing.Protocols.Arithmetic import SupportsAddSub
 
-class IAdditionable[TObject, TValue: SupportsAddSub](IOperand[TObject, TValue]):
+class IAdditionableItem[TObject, TValue: SupportsAddSub](IOperand[TObject, TValue]):
     def __init__(self) -> None: super().__init__()
 
     @overload
