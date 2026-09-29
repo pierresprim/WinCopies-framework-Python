@@ -21,15 +21,16 @@ _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-# IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableEnumProtocol in their own base classes. Whenever another module is analyzed before
-# this one, pyright reports that cycle below, although it still enforces the bound; hence the ignores, which keep the bound closed.
+# IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableProtocol in their own base classes. Whenever another module is analyzed before
+# this one, pyright reports that cycle below, although it still enforces the bound; hence the ignore, which keeps the bound closed. EquatableProtocol lists these
+# classes rather than aliasing Typed: through that extra alias, pyright stops enforcing the bound whenever it reports the cycle.
+type EquatableProtocol = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
+type ComparableProtocol = IntEnum
+
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableProtocol)
 
-type EquatableProtocol = Typed
-type ComparableProtocol = IntEnum
-
-class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityComparison](_IEnum[TEnum], IHashableOperand[TValue]): # pyright: ignore[reportInvalidTypeArguments]
+class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityComparison](_IEnum[TEnum], IHashableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
 class IComparableEnum[TEnum: ComparableProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
@@ -44,7 +45,7 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
     def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
-class IEnum(Generic[_T], IInterface):
+class IEnum(IInterface, Generic[_T]):
     def __init__(self) -> None: super().__init__()
 
     @classmethod
