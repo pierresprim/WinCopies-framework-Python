@@ -3,7 +3,7 @@ from typing import overload, Any, Type
 
 from WinCopies.Collections import Generator
 from WinCopies.Typing import IEnumBase, IEnum, INullable, GetNullable, GetNullableValue
-from WinCopies.Typing.Enum import Enum as _TypedEnum, TypedEnum, IntegerEnum, StringEnum
+from WinCopies.Typing.Enum import Enum as _TypedEnum, EnumProtocol, IntegerEnum, StringEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 
 @overload
@@ -113,9 +113,9 @@ def EnsureOneAndOnlyOneFlag(e: Flag) -> None:
 @overload
 def AsEnumValue[T](item: _TypedEnum[T]) -> _TypedEnum[T]: ...
 @overload
-def AsEnumValue[T: TypedEnum|Enum](item: IEnum[T]|IEnumBase|Enum) -> Enum: ...
+def AsEnumValue[T: EnumProtocol|Enum](item: IEnum[T]|IEnumBase|Enum) -> Enum: ...
 
-def AsEnumValue[TValue, TEnum: TypedEnum|Enum](item: _TypedEnum[TValue]|TypedEnum|IEnum[TEnum]|IEnumBase|Enum) -> _TypedEnum[TValue]|TypedEnum|Enum: return item.GetEnumValue() if isinstance(item, IEnumBase) else item
+def AsEnumValue[TValue, TEnum: EnumProtocol|Enum](item: _TypedEnum[TValue]|EnumProtocol|IEnum[TEnum]|IEnumBase|Enum) -> _TypedEnum[TValue]|EnumProtocol|Enum: return item.GetEnumValue() if isinstance(item, IEnumBase) else item
 
 @overload
 def AsUnderlyingEnumValue[T](item: _TypedEnum[T]) -> T: ...

@@ -11,7 +11,7 @@ from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Typing import IEnum as _IEnum
+from WinCopies.Typing import IEnum
 from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
 from WinCopies.Typing.Operand.Bitwise import IBasicBitwiseItem
 from WinCopies.Typing.Operand.Comparison import IHashableOperand, IHashableComparableOperand
@@ -30,7 +30,7 @@ type ComparableProtocol = IntEnum
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableProtocol)
 
-class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityComparison](_IEnum[TEnum], IHashableOperand[TValue]):
+class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
 class IComparableEnum[TEnum: ComparableProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
@@ -47,7 +47,7 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
 
 # IInterface must precede Generic[_T]: classes declared with the PEP 695 syntax, such as IEquatableEnum, list Generic last, and EquatableEnumBase inherits from
 # both; with Generic first, no consistent MRO exists and importing this module raises TypeError.
-class IEnum(IInterface, Generic[_T]):
+class ITypedEnum(IInterface, Generic[_T]):
     def __init__(self) -> None: super().__init__()
 
     @classmethod
@@ -55,7 +55,7 @@ class IEnum(IInterface, Generic[_T]):
     def _GetValueType(cls) -> Type[_T]:
         ...
 
-class EnumBase(IEnum[_T], metaclass=_EnumTypeBase):
+class EnumBase(ITypedEnum[_T], metaclass=_EnumTypeBase):
     def __init__(self, value: _T|Self) -> None: super().__init__()
 
     @classmethod
@@ -136,7 +136,7 @@ class _EnumBase(_Enum, metaclass=_EnumType):
 class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IIntEnum(IEnum[int]):
+class IIntEnum(ITypedEnum[int]):
     def __init__(self) -> None: super().__init__()
 
     @classmethod
@@ -194,7 +194,7 @@ type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
 type Typed = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
-type TypedEnum = Typed|IntegerEnum|StringEnum
+type EnumProtocol = Typed|IntegerEnum|StringEnum
 
-type EquatableEnumProtocol = TypedEnum
+type EquatableEnumProtocol = EnumProtocol
 type ComparableEnumProtocol = IntegerEnum
