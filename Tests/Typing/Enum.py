@@ -4,7 +4,10 @@ Unit tests for WinCopies.Typing.Enum module.
 
 import unittest
 
-from WinCopies.Typing.Enum import IntEnum, IntFlag, StrEnum, UnorderedIntEnum
+from collections.abc import Iterable
+from typing import cast, Any
+
+from WinCopies.Typing.Enum import Typed, IntEnum, IntFlag, StrEnum, UnorderedIntEnum
 
 class Priority(IntEnum):
     Low = 1
@@ -27,24 +30,26 @@ class Name(StrEnum):
 
 class TestEquality(unittest.TestCase):
     def test_member_equals_itself(self) -> None:
-        for member in (Priority.Low, Code.A, Permission.Read, Name.A):
-            with self.subTest(member=member):
-                self.assertTrue(member == member)
+        enums: Iterable[Typed] = (Priority.Low, Code.A, Permission.Read, Name.A)
 
-        self.assertTrue(Priority.Low.Equals(Priority.Low))
-        self.assertTrue(Code.A.Equals(Code.A))
-        self.assertTrue(Permission.Read.Equals(Permission.Read))
-        self.assertTrue(Name.A.Equals(Name.A))
+        for member in enums:
+            with self.subTest(member=member): self.assertTrue(member == member)
+
+        for member in enums: self.assertTrue(member.Equals(cast(Any, member)))
 
     def test_members_with_different_values_differ(self) -> None:
         self.assertTrue(Priority.Low != Priority.High) # pyright: ignore[reportUnnecessaryComparison]
         self.assertFalse(Priority.Low.Equals(Priority.High))
 
     def test_member_does_not_equal_its_raw_value(self) -> None:
+        def assertNotEqual(x: Typed|int|str, y: int|str|Typed) -> None:
+            self.assertFalse(x == y)
+
         for member, value in ((Priority.Low, 1), (Code.A, 1), (Permission.Read, 1), (Name.A, "a")):
             with self.subTest(member=member):
-                self.assertFalse(member == value)
-                self.assertFalse(value == member)
+                assertNotEqual(member, value)
+                assertNotEqual(value, member)
+
                 self.assertTrue(member != value)
 
     def test_members_of_different_enums_with_equal_values_differ(self) -> None:
@@ -107,5 +112,4 @@ class TestUnorderedIntEnum(unittest.TestCase):
             class _Invalid(UnorderedIntEnum): # pyright: ignore[reportUnusedClass]
                 A = "a" # pyright: ignore[reportArgumentType]
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()
