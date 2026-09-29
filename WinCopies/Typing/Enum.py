@@ -23,7 +23,7 @@ _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
 # IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableProtocol in their own base classes. Whenever another module is analyzed before
 # this one, pyright reports that cycle below, although it still enforces the bound; hence the ignore, which keeps the bound closed. EquatableProtocol lists these
-# classes rather than aliasing TypedEnum: through that extra alias, pyright stops enforcing the bound whenever it reports the cycle.
+# classes rather than aliasing TypedEnumProtocol: through that extra alias, pyright stops enforcing the bound whenever it reports the cycle.
 type EquatableProtocol = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
 type ComparableProtocol = IntEnum
 
@@ -193,8 +193,8 @@ class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
 type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
-type TypedEnum = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
-type EnumProtocol = TypedEnum|IntegerEnum|StringEnum
+type TypedEnumProtocol = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
+type EnumProtocol = TypedEnumProtocol|IntegerEnum|StringEnum
 
 type EquatableEnumProtocol = EnumProtocol
 type ComparableEnumProtocol = IntegerEnum
