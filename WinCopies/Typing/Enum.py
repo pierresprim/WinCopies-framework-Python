@@ -11,7 +11,7 @@ from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Typing import IEnum
+from WinCopies.Typing import IEnum as _IEnum
 from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
 from WinCopies.Typing.Operand.Bitwise import IBasicBitwiseItem
 from WinCopies.Typing.Operand.Comparison import IHashableOperand, IHashableComparableOperand
@@ -29,7 +29,7 @@ type ComparableEnumProtocol = IntegerEnum
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
 
-class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashableOperand[TValue]): # pyright: ignore[reportInvalidTypeArguments]
+class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](_IEnum[TEnum], IHashableOperand[TValue]): # pyright: ignore[reportInvalidTypeArguments]
     def __init__(self) -> None: super().__init__()
 class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
@@ -44,13 +44,16 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
     def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
-class EnumBase(IInterface, Generic[_T], metaclass=_EnumTypeBase):
-    def __init__(self, value: _T|Self) -> None: super().__init__()
+class IEnum(Generic[_T], IInterface):
+    def __init__(self) -> None: super().__init__()
 
     @classmethod
     @abstractmethod
     def _GetValueType(cls) -> Type[_T]:
         ...
+
+class EnumBase(IEnum[_T], metaclass=_EnumTypeBase):
+    def __init__(self, value: _T|Self) -> None: super().__init__()
 
     @classmethod
     @final
@@ -130,14 +133,17 @@ class _EnumBase(_Enum, metaclass=_EnumType):
 class _FlagBase(_Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], _FlagBase): # type: ignore[misc]
-    def __init__(self, value: int|Self) -> None: super().__init__(value)
-
-    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
+class IIntEnum(IEnum[int]):
+    def __init__(self) -> None: super().__init__()
 
     @classmethod
     @final
     def _GetValueType(cls) -> Type[int]: return int
+
+class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], IIntEnum, _FlagBase): # type: ignore[misc]
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
+
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
     @final
     def GetEnumValue(self) -> IntFlag: return self
@@ -152,25 +158,17 @@ class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], 
     @final
     def _CreateNew(self, value: int) -> IntFlag: return type(self)(value)
 
-class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
+class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], IIntEnum, _EnumBase):
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
-
-    @classmethod
-    @final
-    def _GetValueType(cls) -> Type[int]: return int
 
     @final
     def GetEnumValue(self) -> UnorderedIntEnum: return self
-class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], _EnumBase):
+class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], IIntEnum, _EnumBase):
     def __init__(self, value: int|Self) -> None: super().__init__(value)
 
     def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
-
-    @classmethod
-    @final
-    def _GetValueType(cls) -> Type[int]: return int
 
     @final
     def GetEnumValue(self) -> IntEnum: return self

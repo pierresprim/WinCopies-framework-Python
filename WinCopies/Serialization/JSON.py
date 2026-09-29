@@ -56,7 +56,11 @@ class EventNames(StrEnum):
 
     @staticmethod
     def TryConvertToEvent(eventName: str) -> Event|None:
-        match TryGetFieldFromValue(EventNames, eventName):
+        event: EventNames|None = TryGetFieldFromValue(EventNames, eventName)
+
+        if event is None: return None
+
+        match event:
             case EventNames.StartMap: return Event.StartMap
             case EventNames.EndMap: return Event.EndMap
             
