@@ -7,7 +7,7 @@ import unittest
 from collections.abc import Iterable
 from typing import cast, Any
 
-from WinCopies.Typing.Enum import TypedEnumProtocol, IntEnum, IntFlag, StrEnum, UnorderedIntEnum
+from WinCopies.Typing.Enum import TypedEnumProtocol, IntEnum, UnorderedIntEnum, StrEnum, IntFlag
 
 class Priority(IntEnum):
     Low = 1

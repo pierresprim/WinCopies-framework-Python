@@ -3,8 +3,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable
 from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
-                  EnumMeta as _EnumMeta, Enum as _Enum, FlagBoundary,
-                  Flag as _Flag,
+                  EnumMeta as _EnumMeta, FlagBoundary,
+                  Enum, Flag,
                   IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
 from typing import final, Any, Generic, Self, Type, TypeVar, cast
@@ -55,7 +55,7 @@ class ITypedEnum(IInterface, Generic[_T]):
     def _GetValueType(cls) -> Type[_T]:
         ...
 
-class EnumBase(ITypedEnum[_T], metaclass=_EnumTypeBase):
+class TypedEnumBase(ITypedEnum[_T], metaclass=_EnumTypeBase):
     def __init__(self, value: _T|Self) -> None: super().__init__()
 
     @classmethod
@@ -85,7 +85,7 @@ class EnumBase(ITypedEnum[_T], metaclass=_EnumTypeBase):
     def value(self) -> _T:
         return self._value_
 
-class Enum(EnumBase[_T]):
+class TypedEnum(TypedEnumBase[_T]):
     def __init__(self, value: _T|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
@@ -95,7 +95,7 @@ class Enum(EnumBase[_T]):
     @DynamicClassAttribute
     def name(self) -> str:
         return self._name_
-class Flag(EnumBase[_T]):
+class TypedFlag(TypedEnumBase[_T]):
     def __init__(self, value: _T|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
@@ -106,18 +106,18 @@ class Flag(EnumBase[_T]):
     def name(self) -> str|None:
         return self._name_
 
-class EquatableEnumBase(Generic[_TEquatableEnum, _U], EnumBase[_U], IEquatableEnum[_TEquatableEnum, _U]):
+class EquatableEnumBase(Generic[_TEquatableEnum, _U], TypedEnumBase[_U], IEquatableEnum[_TEquatableEnum, _U]):
     def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
     @final
     def _GetUnderlyingValue(self) -> _U: return self.value
-class EquatableEnum(EquatableEnumBase[_TEquatableEnum, _U], Enum[_U]):
+class EquatableEnum(EquatableEnumBase[_TEquatableEnum, _U], TypedEnum[_U]):
     def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
-class EquatableFlag(EquatableEnumBase[_TEquatableEnum, _U], Flag[_U]):
+class EquatableFlag(EquatableEnumBase[_TEquatableEnum, _U], TypedFlag[_U]):
     def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
     def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
@@ -131,9 +131,9 @@ class OrderedEnum(OrderedEnumBase[_TComparableEnum, _V], EquatableEnum[_TCompara
     
     def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
 
-class _EnumBase(_Enum, metaclass=_EnumType):
+class _EnumBase(Enum, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
-class _FlagBase(_Flag, metaclass=_EnumType):
+class _FlagBase(Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
 class IIntEnum(ITypedEnum[int]):
@@ -156,7 +156,7 @@ class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], 
         # Inverting a flag means complementing it within the flags this type defines, which ~self.value does not do: it yields a negative int.
         # enum.Flag's implementation is called explicitly rather than through ~self: type checkers resolve ~self to IBasicBitwiseItem.__invert__, which calls
         # Invert and then this method again; ~self only reaches enum.Flag.__invert__ because enum replaces __invert__ on every Flag subclass at runtime.
-        return _Flag.__invert__(self).value
+        return Flag.__invert__(self).value
 
     @final
     def _CreateNew(self, value: int) -> IntFlag: return type(self)(value)
