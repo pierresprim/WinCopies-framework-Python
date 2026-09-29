@@ -2,6 +2,7 @@ from types import NotImplementedType
 from typing import final, Self
 
 from WinCopies import IsTruthy, IsFalsy
+from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Operand import IOperandBase, ThrowIfNotImplemented
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
@@ -21,8 +22,7 @@ class IEquatableOperand[TValue: SupportsEqualityComparison](IOperandBase[TValue]
         return self._GetUnderlyingValue() == other._GetUnderlyingValue() if isinstance(other, type(self)) else None
 
     @final
-    def Equals(self, other: Self) -> bool:
-        return self.__Equals(other) is True
+    def Equals(self, other: Self) -> bool: return self.__Equals(other) is True
 
     @final
     def __eq__(self, other: object, /) -> bool:
@@ -35,8 +35,7 @@ class IHashableOperand[TValue: SupportsEqualityComparison](IEquatableOperand[TVa
     def __init__(self) -> None: super().__init__()
 
     @final
-    def Hash(self) -> int:
-        return hash(self._GetUnderlyingValue())
+    def Hash(self) -> int: return hash(self._GetUnderlyingValue())
 
     @final
     def __hash__(self) -> int:
@@ -46,8 +45,14 @@ class IComparableOperand[TValue: SupportsEqualityAndRichComparison](IEquatableOp
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __CompareTo(self, other: object) -> bool|None|NotImplementedType:
+    def __CompareTo(self, other: Self) -> bool|None|NotImplementedType:
         return _CompareValues(self._GetUnderlyingValue(), other._GetUnderlyingValue()) if isinstance(other, type(self)) else NotImplemented
+
+    @final
+    def __Compare(self, other: Self, selector: Converter[bool|None, bool]) -> bool:
+        result: bool|None|NotImplementedType = self.__CompareTo(other)
+
+        return NotImplemented if isinstance(result, NotImplementedType) else selector(result)
 
     @final
     def CompareTo(self, other: Self) -> bool|None:
@@ -68,24 +73,16 @@ class IComparableOperand[TValue: SupportsEqualityAndRichComparison](IEquatableOp
 
     @final
     def __lt__(self, other: Self, /) -> bool:
-        result: bool|None|NotImplementedType = self.__CompareTo(other)
-
-        return NotImplemented if isinstance(result, NotImplementedType) else result is False
+        return self.__Compare(other, lambda result: result is False)
     @final
     def __le__(self, other: Self, /) -> bool:
-        result: bool|None|NotImplementedType = self.__CompareTo(other)
-
-        return NotImplemented if isinstance(result, NotImplementedType) else IsFalsy(result)
+        return self.__Compare(other, IsFalsy)
     @final
     def __gt__(self, other: Self, /) -> bool:
-        result: bool|None|NotImplementedType = self.__CompareTo(other)
-
-        return NotImplemented if isinstance(result, NotImplementedType) else IsTruthy(result)
+        return self.__Compare(other, IsTruthy)
     @final
     def __ge__(self, other: Self, /) -> bool:
-        result: bool|None|NotImplementedType = self.__CompareTo(other)
-
-        return NotImplemented if isinstance(result, NotImplementedType) else result is not False
+        return self.__Compare(other, lambda result: result is not False)
 
 class IHashableComparableOperand[TValue: SupportsEqualityAndRichComparison](IHashableOperand[TValue], IComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
