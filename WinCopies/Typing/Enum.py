@@ -29,6 +29,9 @@ type ComparableEnumProtocol = IntegerEnum
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol) # pyright: ignore[reportGeneralTypeIssues]
 _TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
 
+type EquatableProtocol = Typed
+type ComparableProtocol = IntEnum
+
 class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](_IEnum[TEnum], IHashableOperand[TValue]): # pyright: ignore[reportInvalidTypeArguments]
     def __init__(self) -> None: super().__init__()
 class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
