@@ -191,4 +191,4 @@ type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
 type Typed = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
-type TypedEnum = IntegerEnum|StringEnum
+type TypedEnum = Typed|IntegerEnum|StringEnum
