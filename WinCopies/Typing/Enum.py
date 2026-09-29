@@ -45,6 +45,8 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
     def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
+# IInterface must precede Generic[_T]: classes declared with the PEP 695 syntax, such as IEquatableEnum, list Generic last, and EquatableEnumBase inherits from
+# both; with Generic first, no consistent MRO exists and importing this module raises TypeError.
 class IEnum(IInterface, Generic[_T]):
     def __init__(self) -> None: super().__init__()
 
