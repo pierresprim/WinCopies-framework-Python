@@ -1166,3 +1166,5 @@ class TestRealPaths(unittest.TestCase):
 
                 self.assertEqual((status.HasFaulted(True), status.HasFaulted(False), status.HasFaulted(None)),
                                  (strict, nonStrict, either))
+
+if __name__ == "__main__": unittest.main()
