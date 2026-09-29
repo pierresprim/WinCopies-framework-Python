@@ -21,7 +21,7 @@ _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-type EquatableEnumProtocol = IntegerEnum|UnorderedIntEnum|IntFlag|StringEnum
+type EquatableEnumProtocol = TypedEnum
 type ComparableEnumProtocol = IntegerEnum
 
 # IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableEnumProtocol in their own base classes. Whenever another module is analyzed before
