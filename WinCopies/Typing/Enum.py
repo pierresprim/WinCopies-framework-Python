@@ -21,9 +21,6 @@ _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-type EquatableEnumProtocol = TypedEnum
-type ComparableEnumProtocol = IntegerEnum
-
 # IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableEnumProtocol in their own base classes. Whenever another module is analyzed before
 # this one, pyright reports that cycle below, although it still enforces the bound; hence the ignores, which keep the bound closed.
 _TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol) # pyright: ignore[reportGeneralTypeIssues]
@@ -195,3 +192,6 @@ type StringEnum = StrEnum|_StrEnum
 
 type Typed = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
 type TypedEnum = Typed|IntegerEnum|StringEnum
+
+type EquatableEnumProtocol = TypedEnum
+type ComparableEnumProtocol = IntegerEnum
