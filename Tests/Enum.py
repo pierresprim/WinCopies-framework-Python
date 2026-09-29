@@ -10,8 +10,7 @@ from enum import Enum, Flag
 from WinCopies.Enum import (
     ToKeyValuePair, ToKeyValuePairs,
     ToTuple,
-    HasFlag, EnsureHasFlag
-)
+    HasFlag, EnsureHasFlag)
 from WinCopies.Typing.Reflection.Enum import (
     IsMemberOf, EnsureMemberOf,
     IsValueOf, EnsureValueOf,
@@ -21,8 +20,7 @@ from WinCopies.Typing.Reflection.Enum import (
     TryGetField, TryGetFieldFromName, TryGetFieldFromValue,
     EnumerateNames, EnumerateValues,
     EnumerateFieldNames, EnumerateFieldValues,
-    Print
-)
+    Print)
 from WinCopies.Typing.Pairing import KeyValuePair
 
 class Color(Enum):
@@ -369,5 +367,4 @@ class TestEnumerate(unittest.TestCase):
         
         _assertLengthEqual(self, EnumerateValues(Color), 3)
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

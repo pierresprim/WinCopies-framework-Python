@@ -421,5 +421,4 @@ class TestTryGetAs(unittest.TestCase):
 
         self.assertIsNone(TryGetAs(int, "not an int"))
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

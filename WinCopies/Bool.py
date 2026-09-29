@@ -7,7 +7,7 @@ from WinCopies import IInterface
 from WinCopies.Typing.Enum import IntEnum
 
 class BooleanableEnum(IntEnum):
-    def __bool__(self) -> bool: return self >= 0
+    def __bool__(self) -> bool: return self.value >= 0
 
 class NullableBoolean(BooleanableEnum):
     BoolFalse = -1

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod, ABCMeta
 from decimal import Decimal as decimal
 from enum import Enum
-from typing import final, overload, Any, Type as SystemType
+from typing import overload, final, Any, Type as SystemType
 
 from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Typing.Delegate import Converter

@@ -78,7 +78,7 @@ Changelog = "https://github.com/pierresprim/WinCopies-framework-Python/blob/main
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "pyright>=1.1.413",
+    "pyright>=1.1.414",
     "mypy>=2.3.1"
 ]
 

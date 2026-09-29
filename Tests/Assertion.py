@@ -11,8 +11,7 @@ from WinCopies.Assertion import (
     EnsureFalse, EnsureTrue, TryEnsureFalse, TryEnsureTrue,
     EnsureNone, EnsureValue,
     EnsureSubclass,
-    EnsureEnum, EnsureFlagEnum
-)
+    EnsureEnum, EnsureFlagEnum)
 
 class _SampleEnum(Enum):
     A = 1
@@ -275,5 +274,4 @@ class TestEnsureEnum(unittest.TestCase):
         
         EnsureFlagEnum(Flag)
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

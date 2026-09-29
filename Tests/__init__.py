@@ -357,5 +357,4 @@ class TestBitDepthLevel(unittest.TestCase):
 
         self.assertEqual(len(list(BitDepthLevel)), 10)
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

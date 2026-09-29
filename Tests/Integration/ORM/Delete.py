@@ -19,9 +19,9 @@ from WinCopies.Data.Abstract import IConnection, IDataBase
 from WinCopies.Data.Factory import IFieldFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, TextMode, IntegerField, TextField
 from WinCopies.Data.ORM import (DataContextBase, DataContext, Entity, EntityCollection, IColumnAbstract,
-                                autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig,
                                 PrimaryKeyMutationError, RowVanishedError, UnresolvedRollbackError,
                                 EntityNotPersistedError, DeletedEntityError,
+                                autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig,
                                 _GetColumns) # pyright: ignore[reportPrivateUsage]
 from WinCopies.Data.SQLite import Connection
 

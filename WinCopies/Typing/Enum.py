@@ -1,30 +1,38 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Iterable
 from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
-                  EnumMeta as _EnumMeta, Enum as _Enum, FlagBoundary, IntEnum as _IntEnum, StrEnum as _StrEnum)
+                  EnumMeta as _EnumMeta, FlagBoundary,
+                  Enum, Flag,
+                  IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import final, Any, Generic, Self, Type, TypeVar
+from typing import final, Any, Generic, Self, Type, TypeVar, cast
 
+from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Typing import IEnum
-from WinCopies.Typing.Arithmetic import IAdditionable
-from WinCopies.Typing.Comparison import IEquatableObjectBase, IHashable, IHashableComparable
+from WinCopies.Typing.Operand.Arithmetic import IAdditionableItem
+from WinCopies.Typing.Operand.Bitwise import IBasicBitwiseItem
+from WinCopies.Typing.Operand.Comparison import IHashableOperand, IHashableComparableOperand
 from WinCopies.Typing.Protocols import SupportsEqualityComparison, SupportsEqualityAndRichComparison
 
 _T = TypeVar('_T')
 _U = TypeVar('_U', bound=SupportsEqualityComparison)
 _V = TypeVar('_V', bound=SupportsEqualityAndRichComparison)
 
-type EquatableEnumProtocol = IntegerEnum|StringEnum
-type ComparableEnumProtocol = IntegerEnum
+# IntEnum, UnorderedIntEnum, IntFlag and StrEnum are all checked against EquatableProtocol in their own base classes. Whenever another module is analyzed before
+# this one, pyright reports that cycle below, although it still enforces the bound; hence the ignore, which keeps the bound closed. EquatableProtocol lists these
+# classes rather than aliasing TypedEnumProtocol: through that extra alias, pyright stops enforcing the bound whenever it reports the cycle.
+type EquatableProtocol = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
+type ComparableProtocol = IntEnum
 
-_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableEnumProtocol)
-_TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableEnumProtocol)
+_TEquatableEnum = TypeVar('_TEquatableEnum', bound=EquatableProtocol) # pyright: ignore[reportGeneralTypeIssues]
+_TComparableEnum = TypeVar('_TComparableEnum', bound=ComparableProtocol)
 
-class IEquatableEnum[TEnum: EquatableEnumProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashable[TValue]):
+class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityComparison](IEnum[TEnum], IHashableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
-class IComparableEnum[TEnum: ComparableEnumProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparable[TValue]):
+class IComparableEnum[TEnum: ComparableProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
 
 class _EnumTypeBase(type, Iterable["Any"]):
@@ -37,89 +45,156 @@ class _EnumType(_EnumTypeBase, _EnumMeta):
     def __new__(metacls: type[_EnumType], cls: str, bases: ReadOnlyArray[type], classdict: _EnumDict, *, boundary: FlagBoundary|None = None, _simple: bool = False, **kwds: Any) -> Any:
         return super().__new__(metacls, cls, bases, classdict, boundary=boundary, _simple=_simple, **kwds)
 
-class Enum(IEquatableObjectBase[_T], metaclass=_EnumTypeBase):
-    def __init__(self, value: _T) -> None: super().__init__()
+# IInterface must precede Generic[_T]: classes declared with the PEP 695 syntax, such as IEquatableEnum, list Generic last, and EquatableEnumBase inherits from
+# both; with Generic first, no consistent MRO exists and importing this module raises TypeError.
+class ITypedEnum(IInterface, Generic[_T]):
+    def __init__(self) -> None: super().__init__()
+
+    @classmethod
+    @abstractmethod
+    def _GetValueType(cls) -> Type[_T]:
+        ...
+
+class TypedEnumBase(ITypedEnum[_T], metaclass=_EnumTypeBase):
+    def __init__(self, value: _T|Self) -> None: super().__init__()
 
     @classmethod
     @final
     def ValidateValueType(cls, value: _T|object) -> bool:
-        type: Type[_T] = cls._GetComparableType()
+        type: Type[_T] = cls._GetValueType()
         
         return isinstance(value, type)
     @classmethod
     @final
     def CheckValueType(cls, value: _T|object) -> None:
-        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an {type}.")
+        if not cls.ValidateValueType(value): raise TypeError(f"{cls.__name__}: value {value!r} is not an instance of {cls._GetValueType().__name__}.")
 
-    def __new__(cls, value: _T) -> Self:
+    def __new__(cls, value: _T|Self) -> Self:
+        if isinstance(value, cls): value = value.value
+        
         cls.CheckValueType(value)
         
         member: Self = object.__new__(cls)
-        member._value_ = value
+        member._value_ = cast(_T, value)
 
         return member
 
-    _name_: str
     _value_: _T
+
+    @DynamicClassAttribute
+    def value(self) -> _T:
+        return self._value_
+
+class TypedEnum(TypedEnumBase[_T]):
+    def __init__(self, value: _T|Self) -> None: super().__init__(value)
+    
+    def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
+
+    _name_: str
 
     @DynamicClassAttribute
     def name(self) -> str:
         return self._name_
-    @DynamicClassAttribute
-    def value(self) -> _T:
-        return self._value_
-class EquatableEnum(Generic[_TEquatableEnum, _U], Enum[_U], IEquatableEnum[_TEquatableEnum, _U]):
-    def __init__(self, value: _U) -> None: super().__init__(value)
+class TypedFlag(TypedEnumBase[_T]):
+    def __init__(self, value: _T|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _U) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _T|Self) -> Self: return super().__new__(cls, value)
+
+    _name_: str|None
+
+    @DynamicClassAttribute
+    def name(self) -> str|None:
+        return self._name_
+
+class EquatableEnumBase(Generic[_TEquatableEnum, _U], TypedEnumBase[_U], IEquatableEnum[_TEquatableEnum, _U]):
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
+    
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
     @final
-    def _AsComparableValue(self) -> _U: return self.value
-class OrderedEnum(Generic[_TComparableEnum, _V], EquatableEnum[_TComparableEnum, _V], IComparableEnum[_TComparableEnum, _V]):
-    def __init__(self, value: _V) -> None: super().__init__(value)
+    def _GetUnderlyingValue(self) -> _U: return self.value
+class EquatableEnum(EquatableEnumBase[_TEquatableEnum, _U], TypedEnum[_U]):
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: _V) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
+class EquatableFlag(EquatableEnumBase[_TEquatableEnum, _U], TypedFlag[_U]):
+    def __init__(self, value: _U|Self) -> None: super().__init__(value)
+    
+    def __new__(cls, value: _U|Self) -> Self: return super().__new__(cls, value)
 
-class _EnumBase(_Enum, metaclass=_EnumType):
+class OrderedEnumBase(EquatableEnumBase[_TComparableEnum, _V], IComparableEnum[_TComparableEnum, _V]):
+    def __init__(self, value: _V|Self) -> None: super().__init__(value)
+    
+    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
+class OrderedEnum(OrderedEnumBase[_TComparableEnum, _V], EquatableEnum[_TComparableEnum, _V]):
+    def __init__(self, value: _V|Self) -> None: super().__init__(value)
+    
+    def __new__(cls, value: _V|Self) -> Self: return super().__new__(cls, value)
+
+class _EnumBase(Enum, metaclass=_EnumType):
+    def __init__(self) -> None: super().__init__()
+class _FlagBase(Flag, metaclass=_EnumType):
     def __init__(self) -> None: super().__init__()
 
-class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], _EnumBase):
-    def __init__(self, value: int) -> None: super().__init__(value)
-
-    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
-
-    @final
-    def GetEnumValue(self) -> UnorderedIntEnum: return self
-class IntEnum(OrderedEnum["IntEnum", int], IAdditionable["IntEnum", int], _EnumBase):
-    def __init__(self, value: int) -> None: super().__init__(value)
-
-    def __new__(cls, value: int) -> Self: return super().__new__(cls, value)
+class IIntEnum(ITypedEnum[int]):
+    def __init__(self) -> None: super().__init__()
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[int]: return int
+    def _GetValueType(cls) -> Type[int]: return int
+
+class IntFlag(EquatableFlag["IntFlag", int], IBasicBitwiseItem["IntFlag", int], IIntEnum, _FlagBase): # type: ignore[misc]
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
+
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
+
+    @final
+    def GetEnumValue(self) -> IntFlag: return self
+
+    @final
+    def _GetInvertedValue(self) -> int:
+        # Inverting a flag means complementing it within the flags this type defines, which ~self.value does not do: it yields a negative int.
+        # enum.Flag's implementation is called explicitly rather than through ~self: type checkers resolve ~self to IBasicBitwiseItem.__invert__, which calls
+        # Invert and then this method again; ~self only reaches enum.Flag.__invert__ because enum replaces __invert__ on every Flag subclass at runtime.
+        return Flag.__invert__(self).value
+
+    @final
+    def _CreateNew(self, value: int) -> IntFlag: return type(self)(value)
+
+class UnorderedIntEnum(EquatableEnum["UnorderedIntEnum", int], IIntEnum, _EnumBase):
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
+
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
+
+    @final
+    def GetEnumValue(self) -> UnorderedIntEnum: return self
+class IntEnum(OrderedEnum["IntEnum", int], IAdditionableItem["IntEnum", int], IIntEnum, _EnumBase):
+    def __init__(self, value: int|Self) -> None: super().__init__(value)
+
+    def __new__(cls, value: int|Self) -> Self: return super().__new__(cls, value)
 
     @final
     def GetEnumValue(self) -> IntEnum: return self
 
     @final
-    def _GetArithmeticValue(self) -> int: return self.value
-
-    @final
     def _CreateNew(self, value: int) -> IntEnum: return type(self)(value)
 class StrEnum(EquatableEnum["StrEnum", str], _EnumBase):
-    def __init__(self, value: str) -> None: super().__init__(value)
+    def __init__(self, value: str|Self) -> None: super().__init__(value)
     
-    def __new__(cls, value: str) -> Self: return super().__new__(cls, value)
+    def __new__(cls, value: str|Self) -> Self: return super().__new__(cls, value)
 
     @classmethod
     @final
-    def _GetComparableType(cls) -> Type[str]: return str
+    def _GetValueType(cls) -> Type[str]: return str
 
     @final
     def GetEnumValue(self) -> StrEnum: return self
 
-type IntegerEnum = IntEnum|UnorderedIntEnum|_IntEnum
+type IntegerEnum = IntEnum|_IntEnum
 type StringEnum = StrEnum|_StrEnum
 
-type TypedEnum = IntegerEnum|StringEnum
+type TypedEnumProtocol = IntEnum|UnorderedIntEnum|StrEnum|IntFlag
+type EnumProtocol = TypedEnumProtocol|IntegerEnum|StringEnum
+
+type EquatableEnumProtocol = EnumProtocol
+type ComparableEnumProtocol = IntegerEnum

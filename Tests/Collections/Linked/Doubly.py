@@ -11,12 +11,9 @@ from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Node import INode
 from WinCopies.Collections.Linked.Doubly.Welded import (
-    IList,
-    ICountableList,
-    IDoublyLinkedNode,
-    ICountableLinkedListNode,
-    List,
-    CountableList)
+    IDoublyLinkedNode, ICountableLinkedListNode,
+    IList, ICountableList,
+    List, CountableList)
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector
@@ -849,5 +846,4 @@ class TestEdgeCases(unittest.TestCase):
         # Backward navigation
         navigate(l.GetLast, lambda node: node.GetPrevious(), [5, 4, 3, 2, 1])
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

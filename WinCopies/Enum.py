@@ -3,15 +3,15 @@ from typing import overload, Any, Type
 
 from WinCopies.Collections import Generator
 from WinCopies.Typing import IEnumBase, IEnum, INullable, GetNullable, GetNullableValue
-from WinCopies.Typing.Enum import Enum as _TypedEnum, TypedEnum, IntegerEnum, StringEnum
+from WinCopies.Typing.Enum import TypedEnum, EnumProtocol, IntegerEnum, StringEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair
 
 @overload
-def ToKeyValuePair[T](e: _TypedEnum[T]) -> IKeyValuePair[str, T]: ...
+def ToKeyValuePair[T](e: TypedEnum[T]) -> IKeyValuePair[str, T]: ...
 @overload
 def ToKeyValuePair(e: Enum) -> IKeyValuePair[str, Any]: ...
 
-def ToKeyValuePair[T](e: _TypedEnum[T]|Enum) -> IKeyValuePair[str, T|Any]:
+def ToKeyValuePair[T](e: TypedEnum[T]|Enum) -> IKeyValuePair[str, T|Any]:
     """Converts an enum member to a key-value pair.
 
     Args:
@@ -23,11 +23,11 @@ def ToKeyValuePair[T](e: _TypedEnum[T]|Enum) -> IKeyValuePair[str, T|Any]:
     return CreateKeyValuePair(e.name, e.value)
 
 @overload
-def ToKeyValuePairs[T](e: Type[_TypedEnum[T]]) -> Generator[IKeyValuePair[str, T]]: ...
+def ToKeyValuePairs[T](e: Type[TypedEnum[T]]) -> Generator[IKeyValuePair[str, T]]: ...
 @overload
 def ToKeyValuePairs(e: Type[Enum]) -> Generator[IKeyValuePair[str, Any]]: ...
 
-def ToKeyValuePairs[T](e: Type[_TypedEnum[T]|Enum]) -> Generator[IKeyValuePair[str, T|Any]]:
+def ToKeyValuePairs[T](e: Type[TypedEnum[T]|Enum]) -> Generator[IKeyValuePair[str, T|Any]]:
     """Converts all members of an enum to key-value pairs.
 
     Args:
@@ -39,11 +39,11 @@ def ToKeyValuePairs[T](e: Type[_TypedEnum[T]|Enum]) -> Generator[IKeyValuePair[s
     for value in e: yield ToKeyValuePair(value)
 
 @overload
-def ToTuple[T](e: _TypedEnum[T]) -> tuple[str, T]: ...
+def ToTuple[T](e: TypedEnum[T]) -> tuple[str, T]: ...
 @overload
 def ToTuple(e: Enum) -> tuple[str, Any]: ...
 
-def ToTuple[T](e: _TypedEnum[T]|Enum) -> tuple[str, T|Any]:
+def ToTuple[T](e: TypedEnum[T]|Enum) -> tuple[str, T|Any]:
     """Converts an enum member to a tuple.
 
     Args:
@@ -111,18 +111,18 @@ def EnsureOneAndOnlyOneFlag(e: Flag) -> None:
     if not HasOneAndOnlyOneFlag(e): raise ValueError(f"One and only one value was expected; got {e}.")
 
 @overload
-def AsEnumValue[T](item: _TypedEnum[T]) -> _TypedEnum[T]: ...
+def AsEnumValue[T](item: TypedEnum[T]) -> TypedEnum[T]: ...
 @overload
-def AsEnumValue[T: TypedEnum|Enum](item: IEnum[T]|IEnumBase|Enum) -> Enum: ...
+def AsEnumValue[T: EnumProtocol|Enum](item: IEnum[T]|IEnumBase|Enum) -> Enum: ...
 
-def AsEnumValue[TValue, TEnum: TypedEnum|Enum](item: _TypedEnum[TValue]|TypedEnum|IEnum[TEnum]|IEnumBase|Enum) -> _TypedEnum[TValue]|TypedEnum|Enum: return item.GetEnumValue() if isinstance(item, IEnumBase) else item
+def AsEnumValue[TValue, TEnum: EnumProtocol|Enum](item: TypedEnum[TValue]|EnumProtocol|IEnum[TEnum]|IEnumBase|Enum) -> TypedEnum[TValue]|EnumProtocol|Enum: return item.GetEnumValue() if isinstance(item, IEnumBase) else item
 
 @overload
-def AsUnderlyingEnumValue[T](item: _TypedEnum[T]) -> T: ...
+def AsUnderlyingEnumValue[T](item: TypedEnum[T]) -> T: ...
 @overload
 def AsUnderlyingEnumValue(item: IEnumBase|Enum) -> Any: ...
 
-def AsUnderlyingEnumValue[T](item: _TypedEnum[T]|IEnumBase|Enum) -> T|Any: return AsEnumValue(item).value
+def AsUnderlyingEnumValue[T](item: TypedEnum[T]|IEnumBase|Enum) -> T|Any: return AsEnumValue(item).value
 
 def AreEnumsEqual(x: IEnumBase|Enum, y: IEnumBase|Enum) -> bool: return AsEnumValue(x) == AsEnumValue(y)
 def TryAreEnumsEqual(x: IEnumBase|Enum|None, y: IEnumBase|Enum|None) -> bool: return False if x is None or y is None else AreEnumsEqual(x, y)

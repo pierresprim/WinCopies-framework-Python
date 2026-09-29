@@ -739,7 +739,7 @@ class TestUnfaultEnvelope(unittest.TestCase):
 
             return original(self)
 
-        IterationStatus.Unfault = _counting
+        IterationStatus.Unfault = _counting # pyright: ignore[reportAttributeAccessIssue]
 
         self.addCleanup(setattr, IterationStatus, "Unfault", original)
 
@@ -1151,12 +1151,14 @@ class TestRealPaths(unittest.TestCase):
     def test_has_faulted_keeps_history_and_result_as_two_axes(self) -> None:
         """§C"""
         F, D = IterationResult, IterationData
-        table = ((F.Faulted, D.Null, True, False, True),
-                 (F.Invalidated, D.Null, True, False, True),
-                 (F.Revoked, D.Null, True, False, True),
-                 (F.Stopped, D.Null, False, False, False),
-                 (F.Completed, D.Faulted, False, True, True),
-                 (F.Completed, D.Null, False, False, False))
+
+        table: ReadOnlyArray[tuple[IterationResult, IterationData, bool, bool, bool]] = (
+            (F.Faulted, D.Null, True, False, True),
+            (F.Invalidated, D.Null, True, False, True),
+            (F.Revoked, D.Null, True, False, True),
+            (F.Stopped, D.Null, False, False, False),
+            (F.Completed, D.Faulted, False, True, True),
+            (F.Completed, D.Null, False, False, False))
 
         for result, data, strict, nonStrict, either in table:
             with self.subTest(result = result.name, data = data.name or "Null"):
@@ -1164,3 +1166,5 @@ class TestRealPaths(unittest.TestCase):
 
                 self.assertEqual((status.HasFaulted(True), status.HasFaulted(False), status.HasFaulted(None)),
                                  (strict, nonStrict, either))
+
+if __name__ == "__main__": unittest.main()
