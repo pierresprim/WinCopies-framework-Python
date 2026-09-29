@@ -7,7 +7,7 @@ import unittest
 from collections.abc import Iterable
 from typing import cast, Any
 
-from WinCopies.Typing.Enum import Typed, IntEnum, IntFlag, StrEnum, UnorderedIntEnum
+from WinCopies.Typing.Enum import TypedEnum, IntEnum, IntFlag, StrEnum, UnorderedIntEnum
 
 class Priority(IntEnum):
     Low = 1
@@ -30,7 +30,7 @@ class Name(StrEnum):
 
 class TestEquality(unittest.TestCase):
     def test_member_equals_itself(self) -> None:
-        enums: Iterable[Typed] = (Priority.Low, Code.A, Permission.Read, Name.A)
+        enums: Iterable[TypedEnum] = (Priority.Low, Code.A, Permission.Read, Name.A)
 
         for member in enums:
             with self.subTest(member=member): self.assertTrue(member == member)
@@ -42,7 +42,7 @@ class TestEquality(unittest.TestCase):
         self.assertFalse(Priority.Low.Equals(Priority.High))
 
     def test_member_does_not_equal_its_raw_value(self) -> None:
-        def assertNotEqual(x: Typed|int|str, y: int|str|Typed) -> None:
+        def assertNotEqual(x: TypedEnum|int|str, y: int|str|TypedEnum) -> None:
             self.assertFalse(x == y)
 
         for member, value in ((Priority.Low, 1), (Code.A, 1), (Permission.Read, 1), (Name.A, "a")):
