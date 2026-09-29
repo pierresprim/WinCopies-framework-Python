@@ -10,9 +10,9 @@ from WinCopies.Data.Abstract import IConnection, IDataBase
 from WinCopies.Data.Factory import IFieldFactory
 from WinCopies.Data.Field import FieldAttributes, IntegerMode, TextMode, IntegerField, TextField
 from WinCopies.Data.ORM import (ITransaction, DataContextBase, DataContext, Entity, EntityCollection,
-                                autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig,
                                 PrimaryKeyMutationError, UnpersistedReferenceError, RowVanishedError,
-                                UnresolvedRollbackError, EntityNotPersistedError)
+                                UnresolvedRollbackError, EntityNotPersistedError,
+                                autoPrimaryKeyConfig, primaryKeyConfig, columnConfig, entityColumnConfig)
 from WinCopies.Data.SQLite import Connection
 
 # ------------------------------------------------------------------ entities

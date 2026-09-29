@@ -13,7 +13,7 @@ from typing import Callable
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import CreateList, CreateSizedList
-from WinCopies.Collections.Extensions import IList, ITuple
+from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetValues
 from WinCopies.Collections.Util import MakeSequence, CreateSequence, CreateTuple, CreateList as CreatePyList
@@ -259,5 +259,4 @@ class TestEmptyRange(unittest.TestCase):
 
         self.assertEqual(_dump(collection), _SOURCE)
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == "__main__": unittest.main()

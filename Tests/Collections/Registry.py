@@ -35,12 +35,15 @@ from typing import final, Any, Callable, cast
 
 
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Collections.Abstraction.Collection import (
-    Array, ArrayList, EquatableTuple, HashableTuple, List, SizedArray, SortedList, TryCreateSizedList, Tuple)
+from WinCopies.Collections.Abstraction.Collection import (Tuple, EquatableTuple, HashableTuple,
+                                                          Array, ArrayList, SizedArray,
+                                                          List, SortedList,
+                                                          TryCreateSizedList)
 from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-from WinCopies.Collections.Abstraction.Selection import (
-    Converters, EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple, List as SelectionList)
+from WinCopies.Collections.Abstraction.Selection import (Converters,
+                                                         EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple,
+                                                         List as SelectionList)
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
@@ -1509,5 +1512,4 @@ class TestHarnessNonVacuity(unittest.TestCase):
         self.assertGreater(_fallen(broken), _NON_VACUITY_FLOOR,
                            f"only {_fallen(broken)} assertions fell; the control is losing its grip")
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == "__main__": unittest.main()

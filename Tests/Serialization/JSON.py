@@ -19,17 +19,14 @@ class TestEventNames(unittest.TestCase):
             EventNames.Integer: Event.Integer,
             EventNames.Double: Event.Double,
             EventNames.Number: Event.Number,
-            EventNames.String: Event.String
-        }
+            EventNames.String: Event.String}
 
         self.assertEqual(len(expected), len(EventNames))
 
         for name, event in expected.items():
-            with self.subTest(name=name):
-                self.assertIs(EventNames.TryConvertToEvent(name.value), event)
+            with self.subTest(name=name): self.assertIs(EventNames.TryConvertToEvent(name.value), event)
 
     def test_unknown_event_name_converts_to_none(self) -> None:
         self.assertIsNone(EventNames.TryConvertToEvent("unknown"))
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()

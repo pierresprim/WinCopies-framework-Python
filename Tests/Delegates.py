@@ -35,8 +35,7 @@ from WinCopies.Delegates import (
     GetIndexedValueValueComparison,
     GetIndexedValueComparison,
     GetSelectedEqualityComparison,
-    TryGetSelectedEqualityComparison
-)
+    TryGetSelectedEqualityComparison)
 from WinCopies.Typing.Delegate import EqualityComparison, Function, IndexedValueComparison, Method, Predicate
 
 # ---------------------------------------------------------------------------
@@ -832,5 +831,4 @@ class TestComparisonFactories(unittest.TestCase):
         
         self.assertIsNone(comp)
 
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == '__main__': unittest.main()
