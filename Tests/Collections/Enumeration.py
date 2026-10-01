@@ -728,7 +728,30 @@ class TestUnfaultEnvelope(unittest.TestCase):
     def test_the_unfault_envelope_can_no_longer_stack(self) -> None:
         """C6 — stacking the `Unfault` envelope assumed resumption after a fault.
         Resumption having disappeared, the cause is checked to be gone rather
-        than the symptom patched."""
+        than the symptom patched.
+
+        Unfault() is public API, offered to consumers that need it. That the framework
+        never calls it establishes nothing by itself — its callers would be outside this
+        repository. What is asserted here is narrower and is the thing C6 is about: a run
+        that faults does not reach it on its own.
+
+        Counting is the only observation available on this route, which is why the patch is
+        not a convenience. An exception out of the override terminates the enumerator through
+        Abort, leaving the status ended; Unfault only rewrites the result of a *started* one,
+        so on this route it would change nothing even if it were called. Its effect cannot be
+        asserted here — only its invocation.
+
+        Counting it means assigning over a final method of a concrete class, which both
+        checkers reject by design and which no formulation makes type-clean — a string-keyed
+        setattr or a cast to Any silences them by hiding the intent rather than declaring it.
+        The suppression is kept narrow and named instead.
+
+        The fault is raised on the terminating call, so the run is a full one and a fault
+        really happens, and that is asserted before the count: a count of zero over a run
+        that never faulted holds whatever the envelope does, which is what this bench used
+        to do — the fault was armed after the run had ended, where an ended enumerator never
+        re-enters the override.
+        """
         calls: int = 0
         original = IterationStatus.Unfault
 
@@ -743,20 +766,17 @@ class TestUnfaultEnvelope(unittest.TestCase):
 
         self.addCleanup(setattr, IterationStatus, "Unfault", original)
 
-        e: _Base = _Base(range(50))
+        count: int = 50
+        e: _Base = _Base(range(count), {f"_MoveNextOverride#{count}"})
 
-        for _ in range(50):
+        for _ in range(count + 1):  # the items, then the terminating call, which faults
             try:
                 if not e.TryMoveNext(): break
 
             except Exception: break
 
-        e.raiseIn = {"_MoveNextOverride#10"}
-
-        try: e.TryMoveNext()
-        except Exception: pass
-
-        self.assertEqual(calls, 0, f"{calls} call(s) to Unfault over a full run — resumption no longer exists")
+        self.assertTrue(e.GetStatus().HasFaulted(), "the run did not fault: the count below would hold either way")
+        self.assertEqual(calls, 0, f"{calls} call(s) to Unfault over a faulting run — resumption no longer exists")
 
 # ---------------------------------------------------------------------------
 # The invalidation cookie life cycle
