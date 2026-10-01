@@ -172,7 +172,10 @@ class _Base(EnumeratorBase[int]):
 
     def IsResetSupported(self) -> bool: return True
 
-    def _GetCurrent(self) -> int: return cast(int, self._cur)
+    def _GetCurrent(self) -> int:
+        self._t("_GetCurrent")
+
+        return cast(int, self._cur)
 
     def _MoveNextOverride(self) -> bool:
         self._t(f"_MoveNextOverride#{self._i + 1}")
@@ -777,6 +780,48 @@ class TestUnfaultEnvelope(unittest.TestCase):
 
         self.assertTrue(e.GetStatus().HasFaulted(), "the run did not fault: the count below would hold either way")
         self.assertEqual(calls, 0, f"{calls} call(s) to Unfault over a faulting run — resumption no longer exists")
+
+    def test_a_fault_on_a_started_run_is_not_undone(self) -> None:
+        """C6 again, on the one route where the effect can be asserted instead of the call
+        counted — so this bench needs no patch and no suppression.
+
+        Every other route faults a status that is already ended. An exception out of the
+        override terminates through Abort; one out of a hook reached after Stop or Complete
+        faults a status those have already terminated. Unfault only rewrites the result of a
+        *started* status, so on all of them it would change nothing even if called, and the
+        bench above can observe its invocation alone.
+
+        A raising _GetCurrent is the exception. It faults a started status without
+        terminating it, and the enumerator goes on: the next read moves, a later successful
+        GetCurrent returns its item, the drain reaches the end. Through all of it the result
+        must stay Faulted rather than revert to Running, which is exactly what an Unfault
+        envelope would have done. The two axes then part company at the end — the run
+        completes, and the fault remains in the data.
+        """
+
+        e: _Base = _Base(range(5), {"_GetCurrent"})
+        status: IIterationStatus = e.GetStatus()
+
+        self.assertTrue(e.TryMoveNext())
+        self.assertEqual(status.GetResult(), IterationResult.Running, "the run must be live, or the fault below means nothing")
+
+        self.assertRaises(RuntimeError, e.GetCurrent)
+
+        self.assertEqual(status.GetState(), IterationState.Started, "the fault must not have terminated the run")
+        self.assertEqual(status.GetResult(), IterationResult.Faulted)
+
+        e.raiseIn = set()
+
+        self.assertTrue(e.TryMoveNext())
+        self.assertEqual(status.GetResult(), IterationResult.Faulted, "moving on undid the fault")
+
+        self.assertEqual(e.GetCurrent(), 1)
+        self.assertEqual(status.GetResult(), IterationResult.Faulted, "a successful read undid the fault")
+
+        while e.TryMoveNext(): pass
+
+        self.assertEqual(status.GetResult(), IterationResult.Completed)
+        self.assertTrue(status.HasFaulted(), "the fault must survive the completion as data")
 
 # ---------------------------------------------------------------------------
 # The invalidation cookie life cycle
