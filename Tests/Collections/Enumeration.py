@@ -785,18 +785,28 @@ class TestUnfaultEnvelope(unittest.TestCase):
         """C6 again, on the one route where the effect can be asserted instead of the call
         counted — so this bench needs no patch and no suppression.
 
-        Every other route faults a status that is already ended. An exception out of the
-        override terminates through Abort; one out of a hook reached after Stop or Complete
-        faults a status those have already terminated. Unfault only rewrites the result of a
-        *started* status, so on all of them it would change nothing even if called, and the
-        bench above can observe its invocation alone.
+        Which route that is follows from a rule rather than from a list. Advancement is part
+        of the process, so an exception there compromises the process and the enumerator is
+        terminated; retrieval is a one-off event, so an exception there is a local incident
+        and the run goes on. The flag is kept either way, so that something which did happen
+        is not hidden.
 
-        A raising _GetCurrent is the exception. It faults a started status without
-        terminating it, and the enumerator goes on: the next read moves, a later successful
-        GetCurrent returns its item, the drain reaches the end. Through all of it the result
-        must stay Faulted rather than revert to Running, which is exactly what an Unfault
-        envelope would have done. The two axes then part company at the end — the run
-        completes, and the fault remains in the data.
+        The six sites that fault all follow it, measured. Out of _MoveNextOverride: Abort,
+        ended Faulted. Out of _ResetOverride: Stop then Fault twice, ended Stopped, and reset
+        refused afterwards. Out of _OnCompleted or _OnStopped: the transition first, then
+        Fault on a status it has already ended. Out of _Clear, which runs *during* the
+        termination: Fault on a still-started status, but with notify off, so the result is
+        left to the Stop that follows. Out of _GetCurrent: Fault alone, notifying, on a
+        started status.
+
+        So what singles this route out is not startedness alone — _Clear faults a started
+        status too — but startedness and notification together: only here does the result
+        actually become Faulted while the run is live, which is the one state Unfault could
+        undo. The enumerator then goes on: the next read moves, a later successful GetCurrent
+        returns its item, the drain reaches the end. Through all of it the result must stay
+        Faulted rather than revert to Running, which is exactly what an Unfault envelope
+        would have done. The two axes part company at the end — the run completes, and the
+        fault remains in the data.
         """
 
         e: _Base = _Base(range(5), {"_GetCurrent"})
