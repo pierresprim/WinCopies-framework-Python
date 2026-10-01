@@ -96,6 +96,27 @@ WinCopies = ["py.typed"]
 
 
 # ============================================================================
+# PYRIGHT CONFIGURATION - Type checker
+# ============================================================================
+# Declared here rather than left to each editor. Pyright takes its settings from
+# .vscode/settings.json when nothing else supplies them, and that file is ignored,
+# so until now the project had no shared pyright configuration at all: two people
+# checking the same tree could disagree about whether it is clean without either
+# being wrong. Measured on this tree the three modes agree — basic, standard and
+# strict all report nothing — so the divergence was latent, not actual; it becomes
+# actual on the first diagnostic that strict reports and standard does not.
+#
+# pythonVersion matches [tool.mypy] below. The two checkers were aimed at two
+# language versions, which costs nothing today and settles nothing either.
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+include = ["WinCopies", "Tests"]
+exclude = ["**/__pycache__"]
+reportMissingTypeStubs = "warning"
+
+
+# ============================================================================
 # MYPY CONFIGURATION - Type checker
 # ============================================================================
 [tool.mypy]
