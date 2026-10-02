@@ -304,10 +304,10 @@ def _subTestsOf(test: unittest.TestCase, cases: ReadOnlyArray[_MutableCaseBase],
     for case in cases: _subTest(test, case, action)
 
 # Every mutable case. Three benches once ran on _MUTABLE minus ArrayList, one open defect
-# each, and every such exclusion was paired with an expectedFailure in
-# TestArrayCollectionStratum: the named counterpart signals by turning into an unexpected
-# success, an exclusion by name signals nothing and has to be lifted by hand. The three
-# defects are closed and no subset by name is left. The one subset that remains, below, is
+# each, and each exclusion was paired with a named bench on that type: the named counterpart
+# signals by turning into an unexpected success, an exclusion by name signals nothing and has
+# to be lifted by hand. The three defects are closed, the exclusions and their counterparts
+# are both gone, and no subset by name is left. The one subset that remains, below, is
 # computed from what the types expose and its complement is asserted by a bench of its own —
 # which is what makes it a fact about the family rather than the marker of an open defect.
 def _subTests(test: unittest.TestCase, action: Callable[[_MutableCaseBase, _IList[int]], None]) -> None:
@@ -771,8 +771,8 @@ class TestDerivedTransitivity(unittest.TestCase):
 
         The expected content is read from the source rather than from the slice. Reading the
         slice first is what fixes its content, so a copy that defers its read would pass
-        either way — the order of the two reads is itself a coverage dimension here. See
-        TestArrayCollectionStratum.test_a_slice_is_an_independent_collection.
+        either way — the order of the two reads is itself a coverage dimension here. The
+        other direction is asserted by TestSliceIndependence.
         """
 
         def subTest(case: _MutableCaseBase, items: IList[int]) -> None:
@@ -806,8 +806,8 @@ class TestSliceIndependence(unittest.TestCase):
     def test_writing_through_a_slice_does_not_reach_the_source(self) -> None:
         """The direction the defect exhibited: ArrayCollection's slice held the parent's own
         cells, so the parent saw the write. The source is read before the slice is written,
-        which is the only order that establishes anything — see
-        TestArrayCollectionStratum.test_a_slice_is_an_independent_collection."""
+        which is the only order that establishes anything, for the reason given on
+        TestDerivedTransitivity.test_a_slice_taken_before_revocation_is_a_snapshot."""
 
         def subTest(case: _MutableCaseBase, items: IList[int]) -> None:
             taken: IArray[int] = items.SliceAt(slice(0, 2))
@@ -894,19 +894,33 @@ class TestCursorContract(unittest.TestCase):
         self.assertRaises(DiscardedError, cursor.MoveNext)  # the cursor follows the source all the same
 
     def test_a_cursor_does_not_outlive_a_mutation_of_the_source(self) -> None:
-        # ArrayList was held out here until the revocation wiring reached the view's cursor;
-        # its counterpart turned green, so the exclusion is lifted and every type is covered.
-            def subTest(case: _MutableCaseBase, items: _IList[int]) -> None:
-                view: _ITuple[int] = items.AsImmutable()
+        """Both cursor states are exercised, not only the advanced one.
+
+        A cursor that has moved and one that never has are different states, and by this
+        module's own rule the order of calls is a coverage dimension. No violation was found
+        that separates them — a view's cursor dies of the view being revoked rather than
+        through the enumerator registry, so removing that registration entirely leaves both
+        states dying on all seven types. The second state is covered here rather than left
+        to a named bench on one type, so that the absence of a separating violation stops
+        being the reason anything is believed.
+        """
+
+        def subTest(case: _MutableCaseBase, items: _IList[int]) -> None:
+            def exercise(source: _IList[int], advanced: bool) -> None:
+                view: _ITuple[int] = source.AsImmutable()
                 cursor: IEnumerator[int] = _assertIsNotNone(self, view.TryGetEnumerator())
 
-                self.assertTrue(cursor.MoveNext())
+                if advanced: self.assertTrue(cursor.MoveNext())
 
-                case.Mutate(items)
+                case.Mutate(source)
 
                 self.assertRaises(DiscardedError, cursor.MoveNext)
 
-            _subTests(self, subTest)
+            # One collection per state: the first mutation would otherwise reach the second.
+            with self.subTest(advanced = False): exercise(items, False)
+            with self.subTest(advanced = True): exercise(cast(_IList[int], case.Create()), True)
+
+        _subTests(self, subTest)
 
 class TestEnumeratorInvalidation(unittest.TestCase):
     """F1': proof that the mechanism runs, not proof that it has not changed."""
@@ -952,109 +966,6 @@ class TestMutateBeforeObserving(unittest.TestCase):
                     case.Mutate(items)
 
                     self.assertTrue(_revoked(view))
-
-class TestArrayCollectionStratum(unittest.TestCase):
-    """What was once a stratum of its own, and what is left of it.
-
-    ArrayCollection — hence ArrayList — used to register its enumerators with its source's
-    registry while invalidating its own: one object, two registries, and the dependant that
-    landed on the wrong one died or survived depending on its kind. That was the D-5
-    residue. It was settled structurally rather than locally — the type moved onto the base
-    that owns its registries, so both kinds now reach the same one — and the two benches
-    that recorded it are green.
-
-    A third bench recorded a second and unrelated defect: SliceAt aliased its parent,
-    sharing the boxes rather than copying them. That one is closed too, the copy now
-    descending to the box.
-
-    All three are kept as dedicated non-regression benches on the type that carried the
-    defect. Whether a named bench earns its place beside a parameterised one that subsumes
-    it is a question of harness structure, raised at each lift and still open — but it is
-    not one question, because the three are not in the same position, and the difference
-    was measured rather than read:
-
-      * the enumerator bench is subsumed, and strictly weaker than its counterpart in
-        TestEnumeratorInvalidation, which asserts the first MoveNext() this one only calls.
-        Two independent violations were tried — the enumerator monitor routed back to the
-        source, and the deferred registration removed — and each makes both fall, the
-        parameterised one on ArrayList among the others;
-      * the slice bench is subsumed by TestSliceIndependence, among the six types whose
-        slice can be written: restoring the aliasing makes that bench fall on ArrayList and
-        on nothing else;
-      * the cursor bench is NOT established as subsumed. Its counterpart in
-        TestCursorContract mutates an already advanced cursor, where this one mutates a
-        cursor that has never moved, and by this module's own rule the order of calls is a
-        coverage dimension. No violation separating the two was found: both violations above
-        leave a view's cursor dying in either state, on all seven types, because it dies of
-        the view being revoked rather than through the enumerator registry. The distinction
-        is real in the code and inert in measurement, which is a reason to keep the bench
-        and not a demonstration that it is needed.
-    """
-
-    def test_an_active_enumerator_dies_on_mutation(self) -> None:
-        """The half the architectural correction closed. Its counterpart, the exclusion on
-        TestEnumeratorInvalidation.test_an_active_enumerator_dies_on_mutation, fell with it."""
-
-        items: ArrayList[int] = _arrayList()
-        enumerator: IEnumerator[int] = _assertIsNotNone(self, items.TryGetEnumerator())
-
-        enumerator.MoveNext()
-        items.SetAt(0, 9)
-
-        self.assertRaises(DiscardedError, enumerator.MoveNext)
-
-    def test_a_cursor_obtained_through_a_view_dies_on_mutation(self) -> None:
-        """Second path, and it holds now: a cursor must not outlive a mutation of its source,
-        whether it was obtained from the collection or through a view. This one lifted the
-        exclusion on TestCursorContract.test_a_cursor_does_not_outlive_a_mutation_of_the_source,
-        which now covers ArrayList with every other type."""
-
-        items: ArrayList[int] = _arrayList()
-        view: _ITuple[int] = items.AsImmutable()
-        cursor: IEnumerator[int] = _assertIsNotNone(self, view.TryGetEnumerator())
-
-        items.SetAt(0, 9)
-
-        self.assertRaises(DiscardedError, cursor.MoveNext)
-
-    def test_a_slice_is_an_independent_collection(self) -> None:
-        """ArrayCollection holds an array of cells rather than of values, and its slice used
-        to copy the list of cells rather than the cells: parent and slice shared the very
-        same boxes, and writing through either was visible from the other. Every other
-        indexable type returns a snapshot.
-
-        The arbitration went to the snapshot, and the copy now descends to the box. It is
-        the box that states what its copy is, through IStruct.Copy(), rather than the call
-        site deciding for every box kind it may be handed.
-
-        Neither direction reads the slice before the source is written, and that order is
-        the assertion. Reading the slice is what fixes its content, so a copy that deferred
-        its read would satisfy the forward direction whenever the slice is read first:
-        measured on such a variant, it stays green with the read first and falls with it
-        removed.
-        """
-
-        key: slice = slice(0, 2)
-
-        # The source is written: the slice must keep the content it was given.
-        items: ArrayList[int] = _arrayList()
-        expected: ReadOnlyArray[int] = _snapshot(items)[key]
-        taken: IArray[int] = items.SliceAt(key)
-
-        items.SetAt(0, 9)
-
-        self.assertEqual(_snapshot(taken), expected)
-
-        # The slice is written: the source must keep its own. TestSliceIndependence asserts
-        # this over the six types whose slice can be written; here it is the non-regression
-        # case on the one type that carried the defect.
-        items = _arrayList()
-        untouched: ReadOnlyArray[int] = _snapshot(items)
-        taken = items.SliceAt(key)
-
-        taken.SetAt(1, 77)
-
-        self.assertEqual(_snapshot(items), untouched)
 
 class TestSelectionStratum(unittest.TestCase):
     """The Selection stratum routes to its source's registry rather than keeping one.
