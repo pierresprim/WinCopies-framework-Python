@@ -68,7 +68,7 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
     def _GetContainer(self) -> ITuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
 
     @final
     def AsReadOnly(self) -> ITuple[TOut]: return self
@@ -91,7 +91,7 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
     def _GetContainer(self) -> IEquatableTuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
     def Equals(self, item: object) -> bool: return self is item or self._GetContainer().Equals(item)
     
@@ -116,7 +116,7 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     def _GetContainer(self) -> IHashableTuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
     def Equals(self, item: object) -> bool: return self is item or self._GetContainer().Equals(item)
     def Hash(self) -> int: return self._GetContainer().Hash()
@@ -158,7 +158,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     def _GetContainer(self) -> IArray[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
     @final
     def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)
@@ -182,7 +182,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def _GetContainer(self) -> IList[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
     @final
     def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)

@@ -70,7 +70,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self._GetInnerContainer().Clear()
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
 
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
@@ -266,7 +266,7 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def GetCount(self) -> int: return self._GetInnerContainer().GetCount()

@@ -55,7 +55,7 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
 
     @final
     def TryGetSourceMutability(self) -> Mutability|None:
-        return self._GetInnerContainer().TryGetSourceMutability()
+        return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)

@@ -72,7 +72,7 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TIte
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
@@ -143,7 +143,7 @@ class _IReadOnlyTuple[TItem, TList](ITuple[TItem], GenericConstraint[TList, ITup
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryCreateEnumerator(self._GetInnerContainer().TryGetEnumerator())
@@ -698,7 +698,7 @@ class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T]):
         self.__reversed: IFunction[IArray[T]] = _ReversedArrayUpdater[T](self, update) # type: ignore[no-redef]
     
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetContainer().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetContainer().GetSourceMutability()
     
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     

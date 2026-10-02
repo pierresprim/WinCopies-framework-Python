@@ -445,7 +445,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetItems().TryGetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability|None: return self._GetItems().GetSourceMutability()
     
     @final
     def GetCount(self) -> int: return self._GetItems().GetCount()
