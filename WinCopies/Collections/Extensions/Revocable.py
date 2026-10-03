@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final
+from typing import overload, final
 
 
 
@@ -10,7 +10,7 @@ from WinCopies import Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ITuple, CollectionViewMonitor, SequenceAbstract
+from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ITuple, IEquatableTuple, IHashableTuple, CollectionViewMonitor, SequenceAbstract
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
 
@@ -36,8 +36,15 @@ class RevocableViewMonitor(Abstract, IRevocableViewMonitor):
     @final
     def _GetRegistry(self) -> IRevocableViewRegistry: return self.__registry
     
+    @overload
+    def CreateRevocableView[T](self, items: IHashableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]: ...
+    @overload
+    def CreateRevocableView[T](self, items: IEquatableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IEquatableTuple[T]: ...
+    @overload
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: ...
+
     @final
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: return self._GetRegistry().CreateRevocableView(items, onDisposed)
+    def CreateRevocableView[T](self, items: IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]|IEquatableTuple[T]|ITuple[T]: return self._GetRegistry().CreateRevocableView(items, onDisposed)
 @final
 class _RevocableViewMonitorUpdater(ValueFunctionUpdater[IRevocableViewMonitor]):
     def __init__(self, registry: IRevocableViewRegistry, updater: Method[IFunction[IRevocableViewMonitor]]) -> None:
@@ -158,7 +165,14 @@ class _RevocableView[T](RevocableViewBase[T]):
 
         return cookie.GetItems().ToString() if discardReason == DiscardReason.Null else f"<RevocableView (revoked: view {discardReason.ToString().lower()})>"
 
-def _CreateRevocableView[T](items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[ITuple[T], IInvalidatable]:
+@overload
+def _CreateRevocableView[T](items: IHashableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[IHashableTuple[T], IInvalidatable]: ...
+@overload
+def _CreateRevocableView[T](items: IEquatableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[IEquatableTuple[T], IInvalidatable]: ...
+@overload
+def _CreateRevocableView[T](items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[ITuple[T], IInvalidatable]: ...
+
+def _CreateRevocableView[T](items: IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> tuple[IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], IInvalidatable]:
     cookie: _RevocableViewCookie[T] = _RevocableViewCookie(items, onDisposed)
     view: _RevocableView[T] = _RevocableView[T](cookie)
 
@@ -179,9 +193,16 @@ class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
     def _GetRegistry(self) -> IObjectRegistry[IInvalidatable]:
         return self.__registry
     
+    @overload
+    def CreateRevocableView[T](self, items: IHashableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]: ...
+    @overload
+    def CreateRevocableView[T](self, items: IEquatableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IEquatableTuple[T]: ...
+    @overload
+    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: ...
+    
     @final
-    def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]:
-        view: tuple[ITuple[T], IInvalidatable] = _CreateRevocableView(items, onDisposed)
+    def CreateRevocableView[T](self, items: IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]|IEquatableTuple[T]|ITuple[T]:
+        view: tuple[IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], IInvalidatable] = _CreateRevocableView(items, onDisposed)
 
         self._GetRegistry().RegisterObject(view[1])
 
