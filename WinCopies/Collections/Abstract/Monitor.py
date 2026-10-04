@@ -1,10 +1,10 @@
 from typing import final
 
-from WinCopies.Collections.Extensions import CollectionViewMonitorBase, ITuple
+from WinCopies.Collections.Extensions import CollectionViewMonitorBase as _CollectionViewMonitorBase, ITuple
 from WinCopies.Typing.Delegate import Method
 from WinCopies.Typing.Discard import DiscardReason
 
-class CollectionAbstractionViewMonitorBase[TIn, TOut](CollectionViewMonitorBase[TOut]):
+class CollectionViewMonitorBase[TIn, TOut](_CollectionViewMonitorBase[TOut]):
     def __init__(self, source: ITuple[TIn], items: ITuple[TOut]) -> None:
         super().__init__(items)
 
@@ -13,7 +13,7 @@ class CollectionAbstractionViewMonitorBase[TIn, TOut](CollectionViewMonitorBase[
     @final
     def _GetSource(self) -> ITuple[TIn]:
         return self.__source
-class CollectionAbstractionViewMonitor[TIn, TOut](CollectionAbstractionViewMonitorBase[TIn, TOut]):
+class CollectionViewMonitor[TIn, TOut](CollectionViewMonitorBase[TIn, TOut]):
     def __init__(self, source: ITuple[TIn], items: ITuple[TOut]) -> None: super().__init__(source, items)
 
     @final

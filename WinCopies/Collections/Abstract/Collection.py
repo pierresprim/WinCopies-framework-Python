@@ -6,7 +6,7 @@ from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
-from WinCopies.Collections.Abstract.Monitor import CollectionAbstractionViewMonitor
+from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Core import Mutability
@@ -57,7 +57,7 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
         super().__init__()
 
         self.__items: ITuple[TIn] = (items := GetTuple(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -80,7 +80,7 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
         super().__init__()
 
         self.__items: IEquatableTuple[TIn] = (items := GetEquatableTuple(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -105,7 +105,7 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
         super().__init__()
 
         self.__items: IHashableTuple[TIn] = (items := GetHashableTuple(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -147,7 +147,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
         super().__init__()
 
         self.__items: IArray[TIn] = (items := GetArray(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -171,7 +171,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
         super().__init__()
 
         self.__items: IList[TIn] = (items := GetList(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionAbstractionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
