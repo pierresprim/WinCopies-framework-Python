@@ -17,7 +17,7 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple,
                                               IArray,
                                               IListBase, IList, ISortedList,
-                                              CollectionViewMonitor, EquatableCollectionViewMonitor, HashableCollectionViewMonitor,
+                                              CollectionViewMonitor, EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
@@ -620,7 +620,7 @@ class EquatableTuple[T: EquatableProtocol](EquatableTupleCollection[T], TupleBas
     @final
     def AsImmutable(self) -> IEquatableTuple[T]: return self._GetInnerCollectionViewMonitor().GetImmutableView()
 
-class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T, IHashableCollectionRegistryProvider[T], IHashableCollectionViewMonitor[T]], IHashableTuple[T]):
+class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None: self.__reversed = func
         
@@ -629,15 +629,15 @@ class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T, IHashable
         self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
-    def _AsRegistries(self, registryProvider: IHashableCollectionRegistryProvider[T]) -> ICollectionRegistries: return registryProvider.GetRegistries()
+    def _AsRegistries(self, registryProvider: ICollectionRegistryProvider[T]) -> ICollectionRegistries: return registryProvider.GetRegistries()
     
     @final
-    def _AsCollectionViewMonitor(self, registryProvider: IHashableCollectionRegistryProvider[T]) -> IHashableCollectionViewMonitor[T]: return registryProvider.GetMonitor()
+    def _AsCollectionViewMonitor(self, registryProvider: ICollectionRegistryProvider[T]) -> ICollectionViewMonitor[T]: return registryProvider.GetMonitor()
     @final
-    def _AsMonitor(self, monitor: IHashableCollectionViewMonitor[T]) -> IHashableCollectionViewMonitor[T]: return monitor
+    def _AsMonitor(self, monitor: ICollectionViewMonitor[T]) -> ICollectionViewMonitor[T]: return monitor
 
     @final
-    def _CreateRegistryProvider(self) -> IHashableCollectionRegistryProvider[T]: return HashableCollectionRegistryProvider[T](self)
+    def _CreateRegistryProvider(self) -> ICollectionRegistryProvider[T]: return CollectionRegistryProvider[T](self)
     
     @final
     def AsReversed(self) -> IHashableTuple[T]: return self.__reversed.GetValue()
