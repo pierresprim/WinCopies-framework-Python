@@ -201,7 +201,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
-    def ToString(self) -> str: return self.ToString()
+    def ToString(self) -> str: return self._GetInnerContainer().ToString()
 
 @final
 class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
@@ -224,7 +224,7 @@ class _ReadOnlyOrderedSetReversedTupleUpdater[T: HashableProtocol](ValueFunction
 
         self.__items: IEquatableTuple[T] = items
     
-    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items.AsReversed())
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items) # The _ReadOnlyOrderedSetReversedTuple type already reverses indices.
 
 @final
 class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
