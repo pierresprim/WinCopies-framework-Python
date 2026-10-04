@@ -58,7 +58,7 @@ class TupleAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBa
     
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> TOut|SequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
-class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], ITupleBase[TOut]):
+class TupleBase[TIn, TOut, TSequence: IStringable](TupleAbstract[TIn, TOut, TSequence], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
 
 class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TIn]], IGenericConstraintImplementation[ITuple[TIn]]):
