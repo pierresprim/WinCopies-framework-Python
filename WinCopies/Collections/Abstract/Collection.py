@@ -6,13 +6,17 @@ from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
-from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor
+from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor,
+                                              ICollectionMonitors,
+                                              ITuple, IEquatableTuple, IHashableTuple,
+                                              IArray, IList,
+                                              Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -80,10 +84,10 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
         super().__init__()
 
         self.__items: IEquatableTuple[TIn] = (items := GetEquatableTuple(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
+        self.__monitor: IEquatableCollectionViewMonitor[TOut] = EquatableCollectionViewMonitor[TIn, TOut](items, self)
 
     @final
-    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
+    def _GetCollectionViewMonitor(self) -> IEquatableCollectionViewMonitor[TOut]: return self.__monitor
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
@@ -99,16 +103,13 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
     @final
-    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
+    def AsImmutable(self) -> IEquatableTuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
 class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IHashableTuple[TIn]], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
         self.__items: IHashableTuple[TIn] = (items := GetHashableTuple(items))
-        self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
-    @final
-    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
     
@@ -123,9 +124,6 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
-
-    @final
-    def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
 
 class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], StringableTwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self) -> None: super().__init__()
