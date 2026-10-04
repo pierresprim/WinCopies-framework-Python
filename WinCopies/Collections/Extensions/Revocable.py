@@ -76,7 +76,7 @@ class _RevocableViewCookie[T](InvalidatableObjectProvider[ITuple[T]]):
 
         return onDisposed(reason)
 
-class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
+class _ReversedCollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonitor[T]]):
     def __init__(self, updater: Method[IFunction[ICollectionViewMonitor[T]]]) -> None: super().__init__(updater)
 
     @abstractmethod
@@ -88,7 +88,7 @@ class _CollectionViewMonitorUpdater[T](ValueFunctionUpdater[ICollectionViewMonit
 
 class RevocableViewBase[T](SequenceAbstract[T]):
     @final
-    class _MonitorUpdater[_T](_CollectionViewMonitorUpdater[_T]):
+    class _ReversedCollectionMonitorUpdater[_T](_ReversedCollectionViewMonitorUpdater[_T]):
         def __init__(self, items: RevocableViewBase[_T], updater: Method[IFunction[ICollectionViewMonitor[_T]]]) -> None:
             super().__init__(updater)
 
@@ -97,11 +97,11 @@ class RevocableViewBase[T](SequenceAbstract[T]):
         def _GetItems(self) -> ITuple[_T]: return self.__items._GetItems()
     
     def __init__(self) -> None:
-        def update(func: IFunction[ICollectionViewMonitor[T]]) -> None: self.__monitor = func
+        def update(func: IFunction[ICollectionViewMonitor[T]]) -> None: self.__reversedCollectionMonitor = func
         
         super().__init__()
 
-        self.__monitor: IFunction[ICollectionViewMonitor[T]] = RevocableViewBase._MonitorUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversedCollectionMonitor: IFunction[ICollectionViewMonitor[T]] = RevocableViewBase._ReversedCollectionMonitorUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
     def __GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor:
@@ -142,11 +142,10 @@ class RevocableViewBase[T](SequenceAbstract[T]):
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetItems().SliceAt(key) # TODO: The return type should reflect the type of the inner collection (IArray, IList, etc).
 
     @final
-    def AsReversed(self) -> ITuple[T]: return self.__monitor.GetValue().GetImmutableView()
+    def AsReversed(self) -> ITuple[T]: return self.__reversedCollectionMonitor.GetValue().GetImmutableView()
     
     @final
     def AsReadOnly(self) -> ITuple[T]: return self
-
     @final
     def AsImmutable(self) -> ITuple[T]: return self
 @final
