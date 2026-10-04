@@ -320,6 +320,43 @@ def _writableSlices() -> ReadOnlyArray[_MutableCaseBase]:
 
     return tuple(case for case in _MUTABLE if isinstance(case.Create().SliceAt(slice(0, 2)), IArray))
 
+# The equatable and hashable subjects, enumerated by family. AsImmutable() promises a
+# narrowed return type per family, and the unit of that promise is the family and not one
+# representative: of the five equatable paths below, three miss it and two keep it, and no
+# single representative would have shown both.
+def _equatableSubjects() -> ReadOnlyArray[_CaseBase]:
+    """Every constructible IEquatableTuple.
+
+    The reversed form of the ordered-set tuple is absent, and cannot be added: its
+    AsReversed() recurses without terminating — a defect older than this bench, reported on
+    its own. Listing it here would hang the suite rather than fail it.
+    """
+
+    return (
+        _Case("EquatableTuple",                     _equatableSource),
+        _Case("EquatableTuple.AsReversed",          lambda: _equatableSource().AsReversed()),
+        _Case("SelectionEquatableTuple",            lambda: SelectionEquatableTuple[int, str](_equatableSource(), str)),
+        _Case("SelectionEquatableTuple.AsReversed", lambda: SelectionEquatableTuple[int, str](_equatableSource(), str).AsReversed()),
+        _Case("OrderedSetTuple",                    lambda: CreateOrderedSet(_createTuple()).AsTuple()))
+
+def _hashableSubjects() -> ReadOnlyArray[_CaseBase]:
+    """Every constructible IHashableTuple, reversed and converting forms included."""
+
+    return (
+        _Case("HashableTuple",                     _hashableSource),
+        _Case("HashableTuple.AsReversed",          lambda: _hashableSource().AsReversed()),
+        _Case("SelectionHashableTuple",            lambda: SelectionHashableTuple[int, str](_hashableSource(), str)),
+        _Case("SelectionHashableTuple.AsReversed", lambda: SelectionHashableTuple[int, str](_hashableSource(), str).AsReversed()))
+
+def _allocatesAView(subject: _ITuple[Any]) -> bool:
+    """Whether AsImmutable() went through the revocable registry, read as a flow of cookie
+    constructions and not as a census — the distinction _counting exists for. Takes a fresh
+    subject each time, since a view is memoised after its first request."""
+
+    with _counting() as count: subject.AsImmutable()
+
+    return count() > 0
+
 class TestGenerationIdentity(unittest.TestCase):
     """C2 and C3: one generation, one instance; one mutation, a fresh generation."""
 
@@ -672,6 +709,68 @@ class TestEqualityContract(unittest.TestCase):
 
         self.assertRaises(TypeError, lambda: hash(subject))
         self.assertRaises(TypeError, lambda: hash(subject.AsImmutable()))
+
+class TestImmutableViewTyping(unittest.TestCase):
+    """AsImmutable() promises a narrowed return type per family — an IEquatableTuple for an
+    equatable subject, an IHashableTuple for a hashable one. On the equatable side nothing
+    holds that promise.
+
+    Three things could, and none does. The revocable view has a single concrete class, so the
+    narrowed overloads of CreateRevocableView cannot be honoured whatever they declare.
+    Neither checker sees it: on a minimal probe of the same shape — overloads from narrowest
+    to widest, an implementation returning the union and constructing only the widest class —
+    pyright 1.1.414 and mypy 2.3.1, both strict, report nothing. And nothing in the suite read
+    the type of what AsImmutable() returns until this class, which is how a green suite sat on
+    top of it.
+
+    The hashable side is held, and by construction rather than by care: IHashableTuple
+    declares AsImmutable @final and answers with itself, so there is no view to be wrong
+    about. The last override of that @final has since been removed; while it stood, the
+    hashable path through Selection returned a revocable view under an IHashableTuple
+    signature, and the first two benches below are what keeps that from coming back.
+    """
+
+    def test_a_hashable_subject_is_its_own_immutable_view(self) -> None:
+        """A hashable tuple cannot mutate — it is part of the contract — so it is already its
+        own immutable view. Four paths, the two the removed override went through included."""
+
+        for case in _hashableSubjects():
+            with self.subTest(type = case.GetName()):
+                subject: IHashableTuple[Any] = case.Create()
+
+                self.assertIs(subject.AsImmutable(), subject)
+
+    def test_a_hashable_subject_allocates_no_view(self) -> None:
+        """The same contract read as a cost instead of a type. An override returning something
+        of the right type but allocating to get there would pass the bench above and fall
+        here, which is why both are kept."""
+
+        for case in _hashableSubjects():
+            with self.subTest(type = case.GetName()):
+                self.assertFalse(_allocatesAView(case.Create()))
+
+    @unittest.expectedFailure
+    def test_an_equatable_subject_gets_an_equatable_view(self) -> None:
+        """The promise itself, asserted as the enumeration of the paths that break it so that
+        the failure names them instead of stopping at the first. It turns green in one step,
+        the day a concrete equatable revocable view exists."""
+
+        self.assertEqual(tuple(case.GetName() for case in _equatableSubjects() if not isinstance(case.Create().AsImmutable(), IEquatableTuple)), ())
+
+    def test_the_promise_breaks_exactly_where_the_registry_allocates(self) -> None:
+        """Perimeter of the defect above, and the measurement that explains it: an equatable
+        view misses its type exactly on the paths where the revocable registry allocates it,
+        and keeps it exactly where the subject is already immutable and answers with itself.
+        A listing by name would have said as much and said nothing about why.
+
+        Green today, and meant to fall the day the registry hands out a concrete equatable
+        view: the two sides stop coinciding, and the expectedFailure above becomes an
+        unexpected success. It is the signal of the fix, not a property to preserve.
+        """
+
+        for case in _equatableSubjects():
+            with self.subTest(type = case.GetName()):
+                self.assertEqual(not isinstance(case.Create().AsImmutable(), IEquatableTuple), _allocatesAView(case.Create()))
 
 class TestRepresentationDegrades(unittest.TestCase):
     """D2: ToString() and repr() do not raise — they are called once something has
