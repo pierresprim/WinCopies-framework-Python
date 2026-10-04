@@ -17,12 +17,12 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray, IList,
                                               Sequence, MutableSequence)
-from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
+from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
-class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut], ITupleBase[TOut]):
+class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], _TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -45,7 +45,10 @@ class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](StringableConve
     @final
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
         return self._GetInnerContainer().TryGetResumableEnumerator()
-class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence]):
+class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBase[TIn, TOut, TSequence], ITupleBase[TOut]):
+    def __init__(self) -> None: super().__init__()
+
+class TupleAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBase[TIn, TOut, TSequence]):
     def __init__(self) -> None: super().__init__()
     
     @overload
@@ -55,6 +58,8 @@ class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, 
     
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> TOut|SequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
+class TupleBase[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], ITupleBase[TOut]):
+    def __init__(self) -> None: super().__init__()
 
 class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TIn]], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
@@ -104,7 +109,7 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
 
     @final
     def AsImmutable(self) -> IEquatableTuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
-class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IHashableTuple[TIn]], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleAbstract[TIn, TOut, IHashableTuple[TIn]], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
         super().__init__()
 
