@@ -44,8 +44,4 @@ class HashableCollectionViewMonitorBase[TIn, TOut](CollectionViewMonitorAbstract
 
     @final
     def GetImmutableView(self) -> IHashableTuple[TOut]: return self._GetImmutableView()
-class HashableCollectionViewMonitor[TIn, TOut](HashableCollectionViewMonitorBase[TIn, TOut]):
-    def __init__(self, source: ITuple[TIn], items: IHashableTuple[TOut]) -> None: super().__init__(source, items)
-
-    @final
-    def _CreateView(self, items: IHashableTuple[TOut], onDisposed: Method[DiscardReason]) -> IHashableTuple[TOut]: return self._GetMonitor().CreateRevocableView(items, onDisposed)
+# A HashableCollectionViewMonitor would not make sense as IHashableTuple always returns itself as its immutable view.

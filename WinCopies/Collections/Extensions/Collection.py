@@ -466,8 +466,6 @@ class EquatableCollectionRegistryProvider[T](EquatableCollectionRegistryProvider
 
 class HashableCollectionRegistryProviderBase[T](CollectionRegistryProviderAbstract[T, IHashableCollectionViewMonitor[T]], IHashableCollectionRegistryProvider[T]):
     def __init__(self, monitor: IHashableCollectionViewMonitor[T]) -> None: super().__init__(monitor)
-class HashableCollectionRegistryProvider[T](HashableCollectionRegistryProviderBase[T]):
-    def __init__(self, items: IHashableTuple[T]) -> None: super().__init__(HashableCollectionViewMonitor[T](items))
 
 class IGenericManagedCollection[TItem, TRegistryProvider, TMonitor](IManagedCollection[TItem]):
     def __init__(self) -> None: super().__init__()
