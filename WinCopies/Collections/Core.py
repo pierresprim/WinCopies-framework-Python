@@ -328,6 +328,10 @@ class IEquatableTuple[T: EquatableProtocol](ITuple[T], IEquatableValue):
         ...
     
     @abstractmethod
+    def AsImmutable(self) -> IEquatableTuple[T]:
+        ...
+    
+    @abstractmethod
     def SliceAt(self, key: slice) -> IEquatableTuple[T]:
         ...
 class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
@@ -338,6 +342,10 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     
     @abstractmethod
     def AsReversed(self) -> IHashableTuple[T]:
+        ...
+    
+    @abstractmethod
+    def AsImmutable(self) -> IHashableTuple[T]:
         ...
     
     @abstractmethod

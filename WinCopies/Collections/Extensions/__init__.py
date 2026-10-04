@@ -201,6 +201,7 @@ class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], 
     @abstractmethod
     def SliceAt(self, key: slice) -> ITuple[T]:
         ...
+
 class IEquatableTuple[T: EquatableProtocol](IEquatableTupleBase[T], IEquatableEnumerable[T], ITuple[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -208,6 +209,9 @@ class IEquatableTuple[T: EquatableProtocol](IEquatableTupleBase[T], IEquatableEn
     def AsReversed(self) -> IEquatableTuple[T]:
         ...
     
+    @abstractmethod
+    def AsImmutable(self) -> IEquatableTuple[T]:
+        ...
     @abstractmethod
     def AsReadOnly(self) -> IEquatableTuple[T]:
         ...
@@ -222,6 +226,9 @@ class IHashableTuple[T: HashableProtocol](IHashableTupleBase[T], IEquatableTuple
     def AsReversed(self) -> IHashableTuple[T]:
         ...
     
+    @final
+    def AsImmutable(self) -> IHashableTuple[T]:
+        return self
     @abstractmethod
     def AsReadOnly(self) -> IHashableTuple[T]:
         ...

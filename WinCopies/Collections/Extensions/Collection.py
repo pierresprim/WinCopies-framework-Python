@@ -30,10 +30,20 @@ from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
+
+class _IReversed[T](ITuple[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]:
+        ...
+
+    @final
+    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
 
 class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem], ITuple[TItem], GenericConstraint[TCollectionIn, ITuple[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
@@ -69,10 +79,7 @@ class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem
     @final
     def ToString(self) -> str: return self._GetInnerContainer().ToString()
 class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TItem, TCollectionIn, TCollectionOut]):
-    def __init__(self, items: TCollectionIn) -> None:
-        super().__init__(items)
-
-        self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
+    def __init__(self, items: TCollectionIn) -> None: super().__init__(items)
     
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
@@ -85,15 +92,53 @@ class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TIte
     @final
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
 
-    @final
-    def AsImmutable(self) -> ITuple[TItem]: return self.__monitor.GetImmutableView()
-
 class _Reversed[TItem, TCollection](_ReversedBase[TItem, TCollection, TCollection]):
     def __init__(self, items: TCollection) -> None: super().__init__(items)
 
 @final
+class _RevocableTupleProviderUpdater[T](ValueFunctionUpdater[ITuple[T]]):
+    def __init__(self, items: ITuple[T], updater: Method[IFunction[ITuple[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](items)
+
+    def _GetValue(self) -> ITuple[T]: return self.__monitor.GetImmutableView()
+@final
+class _RevocableTupleProvider[T](Abstract, IFunction[ITuple[T]]):
+    def __init__(self, items: ITuple[T]) -> None:
+        def update(func: IFunction[ITuple[T]]) -> None: self.__items = func
+        
+        super().__init__()
+
+        self.__items: IFunction[ITuple[T]] = _RevocableTupleProviderUpdater[T](items, update) # type: ignore[no-redef]
+
+    def GetValue(self) -> ITuple[T]: return self.__items.GetValue()
+
+@final
+class _RevocableEquatableTupleProviderUpdater[T](ValueFunctionUpdater[IEquatableTuple[T]]):
+    def __init__(self, items: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
+        super().__init__(updater)
+
+        self.__monitor: IEquatableCollectionViewMonitor[T] = EquatableCollectionViewMonitor[T](items)
+
+    def _GetValue(self) -> IEquatableTuple[T]: return self.__monitor.GetImmutableView()
+@final
+class _RevocableEquatableTupleProvider[T](Abstract, IFunction[IEquatableTuple[T]]):
+    def __init__(self, items: IEquatableTuple[T]) -> None:
+        def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__items = func
+        
+        super().__init__()
+
+        self.__items: IFunction[IEquatableTuple[T]] = _RevocableEquatableTupleProviderUpdater[T](items, update) # type: ignore[no-redef]
+
+    def GetValue(self) -> IEquatableTuple[T]: return self.__items.GetValue()
+
+@final
 class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericConstraintImplementation[ITuple[T]]):
-    def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
+    def __init__(self, items: ITuple[T]) -> None:
+        super().__init__(items)
+
+        self.__func: Function[ITuple[T]] = (lambda: self) if items.IsImmutable() else _RevocableTupleProvider[T](self)
     
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
@@ -103,7 +148,8 @@ class _ReversedTuple[T](_Reversed[T, ITuple[T]], SequenceAbstract[T], IGenericCo
         return self.ToSlicedAt(key)
 
     def AsReversed(self) -> ITuple[T]: return self._GetContainer()
-    
+
+    def AsImmutable(self) -> ITuple[T]: return self.__func()
     def AsReadOnly(self) -> ITuple[T]: return self
 @final
 class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
@@ -116,7 +162,10 @@ class _ReversedTupleUpdater[T](ValueFunctionUpdater[ITuple[T]]):
 
 @final
 class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_Reversed[T, ISortedTuple[T]], SequenceAbstract[T], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
-    def __init__(self, items: ISortedTuple[T]) -> None: super().__init__(items)
+    def __init__(self, items: ISortedTuple[T]) -> None:
+        super().__init__(items)
+
+        self.__monitor: ICollectionViewMonitor[T] = CollectionViewMonitor[T](items)
     
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
@@ -129,7 +178,8 @@ class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_Reversed[T, IS
         return self.ToSlicedAt(key)
 
     def AsReversed(self) -> ISortedTuple[T]: return self._GetContainer()
-    
+
+    def AsImmutable(self) -> ITuple[T]: return self.__monitor.GetImmutableView()
     def AsReadOnly(self) -> ITuple[T]: return self
 @final
 class _ReversedSortedTupleUpdater[T: SupportsEqualityAndRichComparison](ValueFunctionUpdater[ISortedTuple[T]]):
@@ -267,16 +317,16 @@ class _TupleBase[T](TupleAbstractBase[T], IManagedCollection[T]):
     def TryGetEnumerator(self) -> IEnumerator[T]: return self.__RegisterEnumerator(TupleEnumerator[T](self))
     @final
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.__RegisterEnumerator(ResumableTupleEnumerator[T](self))
-
-    @final
-    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
 class TupleBase[T](_TupleBase[T], TupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
 @final
 class _ReversedEquatableTuple[T: EquatableProtocol](_Reversed[T, IEquatableTuple[T]], SequenceAbstract[T], IEquatableTuple[T], INotHashableValue, IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
-    
+    def __init__(self, items: IEquatableTuple[T]) -> None:
+        super().__init__(items)
+
+        self.__func: Function[IEquatableTuple[T]] = (lambda: self) if items.IsImmutable() else _RevocableEquatableTupleProvider[T](self)
+
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
@@ -288,7 +338,8 @@ class _ReversedEquatableTuple[T: EquatableProtocol](_Reversed[T, IEquatableTuple
     def Equals(self, item: object) -> bool: return self._GetContainer().Equals(item)
 
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
-    
+
+    def AsImmutable(self) -> IEquatableTuple[T]: return self.__func()
     def AsReadOnly(self) -> IEquatableTuple[T]: return self
 @final
 class _ReversedHashableTuple[T: HashableProtocol](_Reversed[T, IHashableTuple[T]], SequenceAbstract[T], IHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
@@ -303,7 +354,7 @@ class _ReversedHashableTuple[T: HashableProtocol](_Reversed[T, IHashableTuple[T]
     def Hash(self) -> int: return self._GetContainer().Hash()
 
     def AsReversed(self) -> IHashableTuple[T]: return self._GetContainer()
-    
+
     def AsReadOnly(self) -> IHashableTuple[T]: return self
 @final
 class _ReversedEquatableTupleUpdater[T: EquatableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
@@ -478,7 +529,7 @@ class ManagedCollection[T](ManagedCollectionBase[T, ICollectionRegistryProvider[
 
 class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
-class _TupleCollection[T](ManagedCollection[T], _TupleCollectionBase[T]):
+class _TupleCollection[TItem, TRegistryProvider, TMonitor](ManagedCollectionBase[TItem, TRegistryProvider, TMonitor], _TupleCollectionBase[TItem]):
     def __init__(self) -> None: super().__init__()
 
 class TupleCollectionBase[T](_TupleCollectionBase[T]):
@@ -521,7 +572,7 @@ class HashableTupleCollectionBase[T: HashableProtocol](_TupleCollectionBase[T], 
     @final
     def AsReadOnly(self) -> IHashableTuple[T]: return self
 
-class TupleCollection[T](_TupleCollection[T]):
+class TupleCollection[T](_TupleCollection[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]], DefaultGenericManagedCollection[T]):
     def __init__(self) -> None:
         def update(func: IFunction[ITuple[T]]) -> None: self.__reversed = func
         
@@ -535,15 +586,28 @@ class Tuple[T](TupleCollection[T], TupleBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
+    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
+    @final
     def AsReadOnly(self) -> ITuple[T]: return self
 
-class EquatableTupleCollection[T: EquatableProtocol](_TupleCollection[T], IEquatableTuple[T], INotHashableValue):
+class EquatableTupleCollection[T: EquatableProtocol](_TupleCollection[T, IEquatableCollectionRegistryProvider[T], IEquatableCollectionViewMonitor[T]], GenericManagedCollectionBase[T, IEquatableCollectionRegistryProvider[T], IEquatableCollectionViewMonitor[T]], IEquatableTuple[T], INotHashableValue):
     def __init__(self) -> None:
         def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__reversed = func
         
         super().__init__()
 
         self.__reversed: IFunction[IEquatableTuple[T]] = _ReversedEquatableTupleUpdater[T](self, update) # type: ignore[no-redef]
+
+    @final
+    def _AsRegistries(self, registryProvider: IEquatableCollectionRegistryProvider[T]) -> ICollectionRegistries: return registryProvider.GetRegistries()
+    
+    @final
+    def _AsCollectionViewMonitor(self, registryProvider: IEquatableCollectionRegistryProvider[T]) -> IEquatableCollectionViewMonitor[T]: return registryProvider.GetMonitor()
+    @final
+    def _AsMonitor(self, monitor: ICollectionViewMonitor[T]) -> ICollectionViewMonitor[T]: return monitor
+
+    @final
+    def _CreateRegistryProvider(self) -> IEquatableCollectionRegistryProvider[T]: return EquatableCollectionRegistryProvider[T](self)
     
     @final
     def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
@@ -553,13 +617,27 @@ class EquatableTupleCollection[T: EquatableProtocol](_TupleCollection[T], IEquat
 class EquatableTuple[T: EquatableProtocol](EquatableTupleCollection[T], TupleBase[T], IEquatableTuple[T]):
     def __init__(self) -> None: super().__init__()
 
-class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T], IHashableTuple[T]):
+    @final
+    def AsImmutable(self) -> IEquatableTuple[T]: return self._GetInnerCollectionViewMonitor().GetImmutableView()
+
+class HashableTupleCollection[T: HashableProtocol](_TupleCollection[T, IHashableCollectionRegistryProvider[T], IHashableCollectionViewMonitor[T]], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None: self.__reversed = func
         
         super().__init__()
 
         self.__reversed: IFunction[IHashableTuple[T]] = _ReversedHashableTupleUpdater[T](self, update) # type: ignore[no-redef]
+
+    @final
+    def _AsRegistries(self, registryProvider: IHashableCollectionRegistryProvider[T]) -> ICollectionRegistries: return registryProvider.GetRegistries()
+    
+    @final
+    def _AsCollectionViewMonitor(self, registryProvider: IHashableCollectionRegistryProvider[T]) -> IHashableCollectionViewMonitor[T]: return registryProvider.GetMonitor()
+    @final
+    def _AsMonitor(self, monitor: IHashableCollectionViewMonitor[T]) -> IHashableCollectionViewMonitor[T]: return monitor
+
+    @final
+    def _CreateRegistryProvider(self) -> IHashableCollectionRegistryProvider[T]: return HashableCollectionRegistryProvider[T](self)
     
     @final
     def AsReversed(self) -> IHashableTuple[T]: return self.__reversed.GetValue()
@@ -586,8 +664,14 @@ class _ReadOnlyReversedSortedArrayUpdater[T: SupportsEqualityAndRichComparison](
     
     def _GetValue(self) -> ISortedTuple[T]: return _ReadOnlySortedTuple[T](self.__array)
 
-class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedBase[TItem, TCollectionIn, TCollectionOut], ITuple[TItem]):
-    def __init__(self, items: TCollectionIn) -> None: super().__init__(items)
+class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedBase[TItem, TCollectionIn, TCollectionOut], _IReversed[TItem]):
+    def __init__(self, items: TCollectionIn) -> None:
+        super().__init__(items)
+
+        self.__monitor: ICollectionViewMonitor[TItem] = CollectionViewMonitor[TItem](self)
+
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self.__monitor
 class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
         def update(func: IFunction[ITuple[TItem]]) -> None: self.__readOnly = func
@@ -679,6 +763,9 @@ class _ArrayBase[TItem, TCollection](_ArrayCollectionBase[TItem, TCollection], _
     def __init__(self) -> None: super().__init__()
 class ArrayBase[TItem, TCollection](_ArrayBase[TItem, TCollection], ArrayCollectionBase[TItem, TCollection], TupleBase[TItem]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def AsImmutable(self) -> ITuple[TItem]: return self._GetCollectionViewMonitor().GetImmutableView()
 
 @final
 class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
@@ -979,6 +1066,8 @@ class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _Ar
 
         self.__readOnly: IFunction[ISortedTuple[T]] = _ReadOnlyReversedSortedArrayUpdater[T](self, updateReadOnly) # type: ignore[no-redef]
     
+    @final
+    def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
     @final
     def AsReadOnly(self) -> ISortedTuple[T]: return self.__readOnly.GetValue()
     
