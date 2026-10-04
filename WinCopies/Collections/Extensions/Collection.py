@@ -478,7 +478,7 @@ class ManagedCollection[T](ManagedCollectionBase[T, ICollectionRegistryProvider[
 
 class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
-class _TupleCollection[T](ManagedCollection[T], _TupleCollectionBase[T], IManagedCollection[T]):
+class _TupleCollection[T](ManagedCollection[T], _TupleCollectionBase[T]):
     def __init__(self) -> None: super().__init__()
 
 class TupleCollectionBase[T](_TupleCollectionBase[T]):
