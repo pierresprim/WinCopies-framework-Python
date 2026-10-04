@@ -10,7 +10,7 @@ from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, SequenceAbstract, MutableSequence
+from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -146,6 +146,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
         super().__init__()
         
         self.__items: TCollection = items
+        self.__monitor: IEquatableCollectionViewMonitor[TItem] = EquatableCollectionViewMonitor[TItem](self)
     
     @final
     def _GetContainer(self) -> TCollection: return self.__items
@@ -198,7 +199,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     @final
     def AsReadOnly(self) -> IEquatableTuple[TItem]: return self
     @final
-    def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
+    def AsImmutable(self) -> IEquatableTuple[TItem]: return self.__monitor.GetImmutableView()
     
     @final
     def ToString(self) -> str: return self._GetInnerContainer().ToString()

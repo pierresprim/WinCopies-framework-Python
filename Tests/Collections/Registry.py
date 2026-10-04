@@ -772,6 +772,45 @@ class TestImmutableViewTyping(unittest.TestCase):
             with self.subTest(type = case.GetName()):
                 self.assertEqual(not isinstance(case.Create().AsImmutable(), IEquatableTuple), _allocatesAView(case.Create()))
 
+def _immutableViewSubjects() -> ReadOnlyArray[_CaseBase]:
+    """Every case of the harness, plus the ordered set's tuple.
+
+    That tuple is not in _ALL — it is not an indexable collection in its own right — but it is
+    a subject of AsImmutable all the same, and it is where D-39 lived. A property that holds
+    of every subject is enumerated over every subject, not over the ones that happen to be
+    listed for other reasons.
+    """
+
+    return _ALL + (_Case("OrderedSetTuple", lambda: CreateOrderedSet(_createTuple()).AsTuple()),)
+
+class TestImmutableViewContent(unittest.TestCase):
+    """D-39: a subject's immutable view shows the subject's content.
+
+    The ordered set's tuple delegated AsImmutable to its container instead of taking itself as
+    the subject. On a reversed form that meant the view carried the direct order — (1, 2, 3)
+    where the subject read (3, 2, 1) — silently, and out of reach of any type check: the
+    declared return type was merely too wide, while the content was plainly wrong.
+
+    Giving the class its own equatable view monitor fixed both at once, which is why this
+    bench sits beside TestImmutableViewTyping rather than inside it. The type was the symptom;
+    the subject was the cause, and a bench on the symptom would not have found it.
+
+    Measured as local when it was found — one case in twenty-two — but the property is
+    universal, so the enumeration is too.
+    """
+
+    def test_an_immutable_view_carries_the_content_of_its_subject(self) -> None:
+        """One fresh collection per form: a view is memoised on first request, so reusing the
+        subject would let the direct form's view answer for the reversed one's."""
+
+        def assertCarries(subject: _ITuple[Any]) -> None:
+            self.assertEqual(_snapshot(subject.AsImmutable()), _snapshot(subject))
+
+        for case in _immutableViewSubjects():
+            with self.subTest(type = case.GetName()):
+                with self.subTest(form = "direct"):   assertCarries(case.Create())
+                with self.subTest(form = "reversed"): assertCarries(case.Create().AsReversed())
+
 class TestRepresentationDegrades(unittest.TestCase):
     """D2: ToString() and repr() do not raise — they are called once something has
     already gone wrong — and they do not leak the content."""
@@ -960,8 +999,8 @@ def _orderPreservingSlices() -> ReadOnlyArray[_CaseBase]:
 class TestSliceConformance(unittest.TestCase):
     """SliceAt translates indices, and the reference for that translation is Python itself.
 
-    Written for the defect fixed in f035e0d: ReverseKey mirrored a slice's bounds and kept
-    its step, which makes a descending slice with a positive step — empty. SliceAt on a
+    Written for D-38, fixed in f035e0d: ReverseKey mirrored a slice's bounds and kept its
+    step, which makes a descending slice with a positive step — empty. SliceAt on a
     reversed form returned nothing, on every type; assigning through a reversed slice raised
     IndexError; deleting through one silently removed nothing. None of it was covered. The
     slice benches above read the direct forms only, and the one type whose reversed slice
