@@ -12,7 +12,13 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, T
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionViewMonitor, ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection, ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IArray, IListBase, IList, ISortedList, CollectionViewMonitor, SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
+                                              ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection,
+                                              ITupleBase as ITupleAbstract, ITuple, ISortedTuple, IEquatableTuple, IHashableTuple,
+                                              IArray,
+                                              IListBase, IList, ISortedList,
+                                              CollectionViewMonitor, EquatableCollectionViewMonitor, HashableCollectionViewMonitor,
+                                              SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
 from WinCopies.Collections.Generation import IRemovable
@@ -25,7 +31,7 @@ from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
@@ -367,40 +373,108 @@ class CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegist
     @final
     def GetRevocableViewRegistry(self) -> IRevocableViewRegistry: return self.__view
 
-class ICollectionRegistryProvider[T](IInterface):
+class ICollectionRegistryProviderBase[TItem, TMonitor](IGenericConstraint[TMonitor, ICollectionViewMonitor[TItem]]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def GetRegistries(self) -> ICollectionRegistries:
         ...
     @abstractmethod
-    def GetMonitor(self) -> ICollectionViewMonitor[T]:
+    def GetMonitor(self) -> TMonitor:
         ...
 
-class CollectionRegistryProviderBase[T](Abstract, ICollectionRegistryProvider[T]):
-    def __init__(self, monitor: ICollectionViewMonitor[T]) -> None:
+class ICollectionRegistryProvider[T](ICollectionRegistryProviderBase[T, ICollectionViewMonitor[T]], IGenericConstraintImplementation[ICollectionViewMonitor[T]]):
+    def __init__(self) -> None: super().__init__()
+
+class IEquatableCollectionRegistryProvider[T](ICollectionRegistryProviderBase[T, IEquatableCollectionViewMonitor[T]], IGenericConstraintImplementation[IEquatableCollectionViewMonitor[T]]):
+    def __init__(self) -> None: super().__init__()
+class IHashableCollectionRegistryProvider[T](ICollectionRegistryProviderBase[T, IHashableCollectionViewMonitor[T]], IGenericConstraintImplementation[IHashableCollectionViewMonitor[T]]):
+    def __init__(self) -> None: super().__init__()
+
+class CollectionRegistryProviderAbstract[TItem, TMonitor](Abstract, ICollectionRegistryProviderBase[TItem, TMonitor]):
+    def __init__(self, monitor: TMonitor) -> None:
         super().__init__()
 
         self.__registries: ICollectionRegistries = CollectionRegistries()
-        self.__monitor: ICollectionViewMonitor[T] = monitor
+        self.__monitor: TMonitor = monitor
 
     @final
     def GetRegistries(self) -> ICollectionRegistries: return self.__registries
     @final
-    def GetMonitor(self) -> ICollectionViewMonitor[T]: return self.__monitor
+    def GetMonitor(self) -> TMonitor: return self.__monitor
+
+class CollectionRegistryProviderBase[T](CollectionRegistryProviderAbstract[T, ICollectionViewMonitor[T]], ICollectionRegistryProvider[T]):
+    def __init__(self, monitor: ICollectionViewMonitor[T]) -> None: super().__init__(monitor)
 class CollectionRegistryProvider[T](CollectionRegistryProviderBase[T]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(CollectionViewMonitor[T](items))
 
-class ManagedCollection[T](Abstract, ITuple[T], IManagedCollection[T]):
+class EquatableCollectionRegistryProviderBase[T](CollectionRegistryProviderAbstract[T, IEquatableCollectionViewMonitor[T]], IEquatableCollectionRegistryProvider[T]):
+    def __init__(self, monitor: IEquatableCollectionViewMonitor[T]) -> None: super().__init__(monitor)
+class EquatableCollectionRegistryProvider[T](EquatableCollectionRegistryProviderBase[T]):
+    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(EquatableCollectionViewMonitor[T](items))
+
+class HashableCollectionRegistryProviderBase[T](CollectionRegistryProviderAbstract[T, IHashableCollectionViewMonitor[T]], IHashableCollectionRegistryProvider[T]):
+    def __init__(self, monitor: IHashableCollectionViewMonitor[T]) -> None: super().__init__(monitor)
+class HashableCollectionRegistryProvider[T](HashableCollectionRegistryProviderBase[T]):
+    def __init__(self, items: IHashableTuple[T]) -> None: super().__init__(HashableCollectionViewMonitor[T](items))
+
+class IGenericManagedCollection[TItem, TRegistryProvider, TMonitor](IManagedCollection[TItem]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _AsRegistries(self, registryProvider: TRegistryProvider) -> ICollectionRegistries:
+        ...
+    
+    @abstractmethod
+    def _AsCollectionViewMonitor(self, registryProvider: TRegistryProvider) -> TMonitor:
+        ...
+    @abstractmethod
+    def _AsMonitor(self, monitor: TMonitor) -> ICollectionViewMonitor[TItem]:
+        ...
+
+class GenericManagedCollectionBase[TItem, TRegistryProvider, TMonitor](ITuple[TItem], IGenericManagedCollection[TItem, TRegistryProvider, TMonitor]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _CreateRegistryProvider(self) -> TRegistryProvider:
+        ...
+class GenericManagedCollection[TItem, TRegistryProvider, TMonitor](Abstract, GenericManagedCollectionBase[TItem, TRegistryProvider, TMonitor]):
+    def __init__(self) -> None: super().__init__()
+
+class IDefaultGenericManagedCollectionBase[T](IGenericManagedCollection[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsRegistries(self, registryProvider: ICollectionRegistryProvider[T]) -> ICollectionRegistries: return registryProvider.GetRegistries()
+    
+    @final
+    def _AsCollectionViewMonitor(self, registryProvider: ICollectionRegistryProvider[T]) -> ICollectionViewMonitor[T]: return registryProvider.GetMonitor()
+    @final
+    def _AsMonitor(self, monitor: ICollectionViewMonitor[T]) -> ICollectionViewMonitor[T]: return monitor
+class IDefaultGenericManagedCollection[T](GenericManagedCollectionBase[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]], IDefaultGenericManagedCollectionBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+class DefaultGenericManagedCollection[T](IDefaultGenericManagedCollection[T], GenericManagedCollectionBase[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CreateRegistryProvider(self) -> ICollectionRegistryProvider[T]: return CollectionRegistryProvider[T](self)
+
+class ManagedCollectionBase[TItem, TRegistryProvider, TMonitor](GenericManagedCollection[TItem, TRegistryProvider, TMonitor]):
     def __init__(self) -> None:
         super().__init__()
 
-        self.__registryProvider: ICollectionRegistryProvider[T] = CollectionRegistryProvider[T](self)
+        self.__registryProvider: TRegistryProvider = self._CreateRegistryProvider()
 
     @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__registryProvider.GetRegistries()
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self._AsRegistries(self.__registryProvider)
+    
     @final
-    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]: return self.__registryProvider.GetMonitor()
+    def _GetInnerCollectionViewMonitor(self) -> TMonitor: return self._AsCollectionViewMonitor(self.__registryProvider)
+    @final
+    def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self._AsMonitor(self._GetInnerCollectionViewMonitor())
+class ManagedCollection[T](ManagedCollectionBase[T, ICollectionRegistryProvider[T], ICollectionViewMonitor[T]], DefaultGenericManagedCollection[T]):
+    def __init__(self) -> None: super().__init__()
 
 class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
