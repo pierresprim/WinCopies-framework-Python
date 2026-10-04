@@ -85,8 +85,8 @@ class _IEquatableTuple[T: EquatableProtocol](IEquatableTuple[T], IContainer[_Seq
 
 class Tuple[T](TupleBase[T, _Sequence[T]], _Tuple[T], IGenericConstraintImplementation[_Sequence[T]]):
     def __init__(self, items: _Sequence[T]|Iterable[T]) -> None:
-        mutability: Mutability|None = None
         _items: _Sequence[T]|None = None
+        mutability: Mutability|None = None
 
         if isinstance(items, _Sequence):
             _items = items
