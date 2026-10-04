@@ -556,7 +556,7 @@ class EquatableTupleCollectionBase[T: EquatableProtocol](_TupleCollectionBase[T]
 
     @final
     def AsReadOnly(self) -> IEquatableTuple[T]: return self
-class HashableTupleCollectionBase[T: HashableProtocol](_TupleCollectionBase[T], IHashableTuple[T]):
+class HashableTupleCollectionBase[T: HashableProtocol](TupleAbstract[T], IHashableTuple[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IHashableTuple[T]]) -> None: self.__reversed = func
         
