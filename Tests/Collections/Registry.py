@@ -47,7 +47,7 @@ from WinCopies.Collections.Abstraction.Selection import (Converters,
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
-from WinCopies.Collections.Extensions import ITupleBase, ITuple as _ITuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
+from WinCopies.Collections.Extensions import ITupleBase, ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
 from WinCopies.Typing import InvalidOperationError
@@ -929,6 +929,127 @@ class TestSliceIndependence(unittest.TestCase):
         written: ReadOnlyArray[str] = tuple(case.GetName() for case in _writableSlices())
 
         self.assertEqual(tuple(case.GetName() for case in _MUTABLE if case.GetName() not in written), ("SortedList",))
+
+# The keys the conformance benches sweep, grouped by what each one reaches. A key set chosen
+# for coverage is the substance of an index-translation bench, not its decoration: the
+# ReverseKey defect was wrong on exactly the keys that reach the first element, and five
+# hand-picked keys, all at step 1, had all passed before the sweep was widened.
+_SLICE_KEYS: ReadOnlyArray[slice] = (
+    slice(0, 2),             # an interior window
+    slice(1, 4),             # one running past the end
+    slice(1, 4, 2),          # a step above one
+    slice(0, None, 2),       # a step above one, open-ended
+    slice(None, None, None), # the whole thing, spelt as Python spells it
+    slice(None, None, -1),   # descending, reaching index 0 — the case None exists for
+    slice(4, 0, -1),         # descending, stopping short of index 0
+    slice(-2, None),         # bounds counted from the end
+    slice(3, 1),             # empty: start past stop
+    slice(1, 1),             # empty: bounds coincide
+    slice(9, 99))            # wholly out of range
+
+def _orderPreservingSlices() -> ReadOnlyArray[_CaseBase]:
+    """The cases whose slice keeps the order it was asked for, measured rather than named.
+
+    A sorted collection slices into a sorted collection, so it cannot honour a descending
+    key — and that is read off the returned type, not assumed from the name. The complement
+    is asserted by TestSliceConformance.test_only_a_sorted_slice_reorders_its_content.
+    """
+
+    return tuple(case for case in _ALL if not isinstance(case.Create().SliceAt(slice(0, 2)), ISortedTuple))
+
+class TestSliceConformance(unittest.TestCase):
+    """SliceAt translates indices, and the reference for that translation is Python itself.
+
+    Written for the defect fixed in f035e0d: ReverseKey mirrored a slice's bounds and kept
+    its step, which makes a descending slice with a positive step — empty. SliceAt on a
+    reversed form returned nothing, on every type; assigning through a reversed slice raised
+    IndexError; deleting through one silently removed nothing. None of it was covered. The
+    slice benches above read the direct forms only, and the one type whose reversed slice
+    would have been read recursed before reaching it, so the gap was held open by a second
+    defect.
+
+    These benches compare against `snapshot[key]` rather than against expected content. A
+    table of expected results would have to be rewritten for every type and would encode one
+    reading of the semantics; Python's own slicing *is* the semantics, and comparing against
+    it is what makes a wrong translation visible instead of merely different.
+    """
+
+    def __Sweep(self, taken: Converter[_CaseBase, _ITuple[Any]]) -> None:
+        for case in _orderPreservingSlices():
+            with self.subTest(type = case.GetName()):
+                items: _ITuple[Any] = taken(case)
+                content: ReadOnlyArray[Any] = _snapshot(items)
+
+                for key in _SLICE_KEYS:
+                    with self.subTest(key = f"{key.start}:{key.stop}:{key.step}"):
+                        self.assertEqual(_snapshot(items.SliceAt(key)), content[key])
+
+    def test_a_slice_agrees_with_python(self) -> None:
+        """The direct forms. Green before f035e0d as well — which is the point of having it:
+        it is what establishes that the fix changed the reversed forms and nothing else."""
+
+        self.__Sweep(lambda case: case.Create())
+
+    def test_a_slice_of_a_reversed_form_agrees_with_python(self) -> None:
+        """The reversed forms, which is what the defect emptied. Nine types, eleven keys, and
+        the reversed form is reached through AsReversed() rather than built here: the defect
+        was in the shared ReverseKey, so what matters is that every type's own reversed class
+        goes through it."""
+
+        self.__Sweep(lambda case: case.Create().AsReversed())
+
+    def test_the_key_translation_agrees_with_python_over_its_domain(self) -> None:
+        """The eleven keys above hold the *effects* of the translation on three elements;
+        this holds the translation itself.
+
+        Three elements are too few to separate a wrong formula from a right one: before
+        f035e0d, one of the eleven keys passed by coincidence — [1:4:2] wanted (2,) and the
+        broken formula happened to return (2,). And the formula that preceded the one in
+        place was wrong on a bound the eleven keys never produce, which is how it passed five
+        hand-picked cases before a sweep found it wrong on 1400 of 18432.
+
+        So the domain is swept instead: every start and stop from -8 to 8 plus None, every
+        step from -3 to 3 plus None, over lengths 0 to 6, against Python's own slicing of the
+        reversed content. One collection per length, since ReverseKey reads only the count.
+        """
+
+        keys: ReadOnlyArray[slice] = tuple(slice(start, stop, step)
+                                           for start in (None, *range(-8, 9))
+                                           for stop in (None, *range(-8, 9))
+                                           for step in (None, -3, -2, -1, 1, 2, 3))
+
+        for length in range(0, 7):
+            with self.subTest(length = length):
+                items: _ITuple[int] = Tuple[int](tuple(range(1, length + 1)))
+                reversed_: _ITuple[int] = items.AsReversed()
+                content: ReadOnlyArray[int] = _snapshot(reversed_)
+                wrong: list[str] = [f"[{key.start}:{key.stop}:{key.step}]"
+                                    for key in keys if _snapshot(reversed_.SliceAt(key)) != content[key]]
+
+                # The count and a sample, not the list: a failing sweep otherwise prints thousands of
+                # keys and assertEqual truncates the message that names the scale.
+                self.assertEqual(len(wrong), 0, f"{len(wrong)} of {len(keys)} keys disagree with Python at length {length}; first {', '.join(wrong[:5])}")
+
+    def test_only_a_sorted_slice_reorders_its_content(self) -> None:
+        """The complement of the subset above, and what lets it stay computed.
+
+        SortedList is the one, on structural grounds and not by defect: its slice is itself a
+        sorted collection, so a descending key comes back ascending. Asserted twice over —
+        the name, so a type that gains or loses the property turns this red, and the content,
+        so the exclusion states what the type *does* rather than only how it differs.
+        """
+
+        preserving: ReadOnlyArray[str] = tuple(case.GetName() for case in _orderPreservingSlices())
+        reordering: ReadOnlyArray[str] = tuple(case.GetName() for case in _ALL if case.GetName() not in preserving)
+
+        self.assertEqual(reordering, ("SortedList",))
+
+        for case in _ALL:
+            if case.GetName() in reordering:
+                with self.subTest(type = case.GetName()):
+                    taken: ReadOnlyArray[Any] = _snapshot(case.Create().SliceAt(slice(None, None, -1)))
+
+                    self.assertEqual(taken, tuple(sorted(taken)))
 
 def _assertIsNotNone[T](case: unittest.TestCase, value: T|None) -> T:
     case.assertIsNotNone(value)
