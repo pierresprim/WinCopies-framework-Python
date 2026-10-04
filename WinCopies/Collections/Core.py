@@ -227,9 +227,14 @@ class IIndexableCollectionBase(ICountable):
     
     @final
     def ReverseKey(self, key: slice) -> slice:
-        start, stop, step = key.indices(self.GetCount())
+        indices: range = range(*key.indices(self.GetCount()))
         
-        return slice(self.ReverseIndex(start), self.ReverseIndex(stop), step)
+        if len(indices) == 0: return slice(0, 0)
+        
+        step: int = -indices.step
+        stop: int = self.ReverseIndex(indices[-1]) + step
+        
+        return slice(self.ReverseIndex(indices[0]), None if stop < 0 else stop, step)
     
     @final
     def ReverseRangeStartIndex(self, index: int, count: int) -> int:
