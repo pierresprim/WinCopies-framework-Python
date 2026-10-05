@@ -106,11 +106,14 @@ WinCopies = ["py.typed"]
 # strict all report nothing — so the divergence was latent, not actual; it becomes
 # actual on the first diagnostic that strict reports and standard does not.
 #
-# pythonVersion matches [tool.mypy] below. The two checkers were aimed at two
-# language versions, which costs nothing today and settles nothing either.
+# pythonVersion matches [tool.mypy] below, and both match requires-python above. They
+# were left at 3.12 when the floor moved to 3.13, which is not harmless: a checker aimed
+# at an older version reasons about a language the project no longer targets, and 3.12 in
+# particular mangles private names differently inside a class with a generic nested
+# class, so the two versions do not even agree on what an attribute is called.
 [tool.pyright]
 typeCheckingMode = "strict"
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 include = ["WinCopies", "Tests"]
 exclude = ["**/__pycache__"]
 reportMissingTypeStubs = "warning"
@@ -120,7 +123,7 @@ reportMissingTypeStubs = "warning"
 # MYPY CONFIGURATION - Type checker
 # ============================================================================
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

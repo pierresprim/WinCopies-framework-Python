@@ -565,19 +565,44 @@ class TestProjectionsSurvive(unittest.TestCase):
 
         _project(self, project)
 
+# The value the containment and search paths look for. Named rather than written twice: the
+# bench compares what a path returns against what the content says it should, and the two
+# sides have to be asking the same question for the comparison to mean anything.
+_PROBE_VALUE: int = 1
+
 def _readPaths(view: _ITuple[int]) -> dict[str, Function[Any]]:
     """The read surface D1 speaks of, shared by the two benches below.
 
     They are two halves of one statement: these paths answer while the view is alive, and
     they raise once it is revoked. Asserting only the second half would pass just as well
     on a path that never answers at all.
+
+    The Python protocol surface is swept alongside the named one, and for the same reason it
+    exists: a consumer reaches a view through len(), iteration and indexing without thinking
+    about it, so a hole there would be the one nobody notices. An adversarial sweep of a
+    revoked view found none — every path below refuses — but the finding deserves an assertion
+    rather than a note, since one point of passage holds them all and a refactoring moves
+    points of passage.
+
+    Those paths go through AsSequence(), which is measured to be the view itself, so the
+    object and the methods are the same ones a consumer reaches with len() or a subscript.
+    What changes is the typing: ITuple does not statically promise Sized, Iterable, indexable
+    or Reversible, and both checkers say so on the direct form. Reaching the surface through
+    the API that declares it costs nothing at runtime and keeps the sweep type-clean.
     """
 
-    return {"GetCount":  view.GetCount,
-            "GetAt":     lambda: view.GetAt(0),
-            "Contains":  lambda: view.Contains(1),
-            "len":       lambda: len(view.AsSequence()),
-            "iteration": lambda: list(view.AsIterable())}
+    return {"GetCount":       view.GetCount,
+            "GetAt":          lambda: view.GetAt(0),
+            "Contains":       lambda: view.Contains(_PROBE_VALUE),
+            "TryGetValue":    lambda: view.TryGetValue(0).GetValue(),
+            "FindFirstIndex": lambda: view.FindFirstIndex(_PROBE_VALUE),
+            "len":            lambda: len(view.AsSequence()),
+            "iteration":      lambda: list(view.AsIterable()),
+            "getitem":        lambda: view.AsSequence()[0],
+            "slice":          lambda: list(view.AsSequence()[0:2]),
+            "in":             lambda: _PROBE_VALUE in view.AsSequence(),
+            "reversed()":     lambda: list(reversed(view.AsSequence())),
+            "bool()":         lambda: bool(view.AsSequence())}
 
 class TestRevocationIsTotal(unittest.TestCase):
     """D1: every read raises. None returns stale content.
@@ -601,11 +626,18 @@ class TestRevocationIsTotal(unittest.TestCase):
         """
 
         expected: dict[str, Callable[[ReadOnlyArray[int]], Any]] = {
-            "GetCount":  lambda content: len(content),
-            "GetAt":     lambda content: content[0],
-            "Contains":  lambda content: content[0] in content,
-            "len":       lambda content: len(content),
-            "iteration": lambda content: list(content)}
+            "GetCount":       lambda content: len(content),
+            "GetAt":          lambda content: content[0],
+            "Contains":       lambda content: _PROBE_VALUE in content,
+            "TryGetValue":    lambda content: content[0],
+            "FindFirstIndex": lambda content: content.index(_PROBE_VALUE),
+            "len":            lambda content: len(content),
+            "iteration":      lambda content: list(content),
+            "getitem":        lambda content: content[0],
+            "slice":          lambda content: list(content[0:2]),
+            "in":             lambda content: _PROBE_VALUE in content,
+            "reversed()":     lambda content: list(reversed(content)),
+            "bool()":         lambda content: bool(content)}
 
         for case in _ALL:
             items = cast(_ITuple[int], case.Create())
@@ -656,19 +688,69 @@ class TestRevocationIsTotal(unittest.TestCase):
 
         self.assertEqual(caught.exception.GetDiscardReason(), DiscardReason.Invalidated)
 
-class TestEqualityContract(unittest.TestCase):
-    """B4 files Equals under content reading, alongside Contains and Count: a revocable
-    must expose it, and must raise once revoked. It does neither. And one view type serves
-    every subject, so what the subject decided about equality is neither carried nor
-    withheld faithfully.
+def _revocableEquatableView() -> tuple[IEquatableTuple[int], Action[Any]]:
+    """An equatable view that can actually be revoked, with the mutation that revokes it.
 
-    D-31 and D-32, recorded here so that a fix has something to turn green. Without these
-    the two defects would live in a report and nowhere else.
+    The ordered set's tuple is the only equatable subject in reach whose source is mutable:
+    EquatableTuple and HashableTuple are both ReadOnly over a ReadOnly source, so their views
+    are never revoked and could not carry a bench about revocation at all.
     """
 
-    @unittest.expectedFailure
-    def test_equality_raises_on_a_revoked_view(self) -> None:
-        """D-31: fifteen read paths raise, == and != answer as though nothing happened."""
+    items = CreateOrderedSet(_createTuple())
+
+    return (items.AsTuple().AsImmutable(), lambda _: items.Add(9))
+
+class TestEqualityContract(unittest.TestCase):
+    """D-31 and D-32, and what became of them.
+
+    D-32 is closed. A view used to compare by identity where its subject compared by content,
+    and to hand out object.__hash__ where its subject refused to be hashed — one view class
+    served every subject, so what the subject decided was neither carried nor withheld
+    faithfully. Two concrete view classes closed both halves, and the two benches that
+    recorded them are now ordinary green benches.
+
+    D-31 is closed for the equatable family and deliberately open for the plain one. An
+    equatable view refuses equality once revoked, because its Equals goes through the same
+    guard as every other read. A plain view has no equality of its own: it falls back to
+    object, which compares by identity and hashes by address, and neither touches the guard.
+    That is an exclusion by omission, not by choice — the design rule gives a plain view no
+    equality to refuse — so the second bench asserts the exclusion rather than wishing it
+    away. It turns red the day a plain view acquires an equality, which is when the question
+    would need answering again.
+
+    The symmetrical bench on hashing is absent on purpose: an equatable view is unhashable
+    before revocation as well as after, so "hashing raises once revoked" would pass without
+    measuring revocation at all. Measured, not assumed.
+    """
+
+    def test_a_revoked_equatable_view_refuses_equality(self) -> None:
+        """D-31 for the family that has an equality to refuse.
+
+        Both halves are asserted. A bench that only checks the refusal passes just as well on
+        a view whose equality never answered in the first place — the lesson of D-33, applied
+        here to the one read path the revocation sweep cannot reach, since it lives on the
+        type rather than on the guard.
+        """
+
+        view, revoke = _revocableEquatableView()
+        other, _ = _revocableEquatableView()
+
+        self.assertEqual(view, other)
+
+        revoke(None)
+
+        self.assertRaises(DiscardedError, lambda: view == other)
+        self.assertRaises(DiscardedError, lambda: view.Equals(other))
+
+    def test_a_plain_view_is_excluded_from_the_equality_contract(self) -> None:
+        """The exclusion, asserted rather than wished away — the counterpart of the bench
+        above and the record of what D-31 leaves open.
+
+        A plain view inherits object's equality and hashing, so a revoked one still answers
+        both: identity remains well defined once the content is gone. These assertions are
+        what makes the omission visible, and what turns red the day a plain view is given an
+        equality of its own — at which point it owes the refusal too.
+        """
 
         items: IList[int] = _source()
         view: ITuple[int] = items.AsImmutable()
@@ -676,23 +758,14 @@ class TestEqualityContract(unittest.TestCase):
 
         items.Add(9)
 
-        self.assertRaises(DiscardedError, lambda: view == other)
+        self.assertTrue(_revoked(view), "the view must be revoked here, or the two assertions below mean nothing")
+        self.assertFalse(view == other)
+        self.assertIsInstance(hash(view), int)
 
-    @unittest.expectedFailure
-    def test_hashing_raises_on_a_revoked_view(self) -> None:
-        """D-31, second half: a revoked view still answers hash()."""
-
-        items: IList[int] = _source()
-        view: ITuple[int] = items.AsImmutable()
-
-        items.Add(9)
-
-        self.assertRaises(DiscardedError, lambda: hash(view))
-
-    @unittest.expectedFailure
     def test_a_view_carries_the_equality_of_its_subject(self) -> None:
-        """D-32: the subject compares by content, its view by identity, so AsImmutable()
-        returns something that is not substitutable for what it exposes."""
+        """D-32: the subject compares by content, and so must its view, or AsImmutable()
+        returns something that is not substitutable for what it exposes. Was an expected
+        failure while one view class served every subject."""
 
         subject: IEquatableTuple[int] = _equatableSource()
         other: IEquatableTuple[int] = _equatableSource()
@@ -700,10 +773,9 @@ class TestEqualityContract(unittest.TestCase):
         self.assertTrue(subject.Equals(other))
         self.assertEqual(subject.AsImmutable(), other.AsImmutable())
 
-    @unittest.expectedFailure
     def test_a_view_does_not_grant_a_hashability_its_subject_refuses(self) -> None:
-        """D-32, the other way round: EquatableTuple is deliberately unhashable, and its own
-        view hands out object.__hash__. A type that cannot be a key has a view that can."""
+        """D-32, the other way round: EquatableTuple is deliberately unhashable, so a type
+        that cannot be a key must not have a view that can."""
 
         subject: IEquatableTuple[int] = _equatableSource()
 
@@ -711,23 +783,24 @@ class TestEqualityContract(unittest.TestCase):
         self.assertRaises(TypeError, lambda: hash(subject.AsImmutable()))
 
 class TestImmutableViewTyping(unittest.TestCase):
-    """AsImmutable() promises a narrowed return type per family — an IEquatableTuple for an
-    equatable subject, an IHashableTuple for a hashable one. On the equatable side nothing
-    holds that promise.
+    """AsImmutable() promises a narrowed return type per family, and the promise is now kept.
 
-    Three things could, and none does. The revocable view has a single concrete class, so the
-    narrowed overloads of CreateRevocableView cannot be honoured whatever they declare.
-    Neither checker sees it: on a minimal probe of the same shape — overloads from narrowest
-    to widest, an implementation returning the union and constructing only the widest class —
-    pyright 1.1.414 and mypy 2.3.1, both strict, report nothing. And nothing in the suite read
-    the type of what AsImmutable() returns until this class, which is how a green suite sat on
-    top of it.
+    It was not when this class was written. The revocable view had a single concrete class, so
+    the narrowed overloads of CreateRevocableView could not be honoured whatever they
+    declared, and neither checker saw it: on a minimal probe of the same shape — overloads
+    from narrowest to widest, an implementation returning the union and constructing only the
+    widest class — pyright 1.1.414 and mypy 2.3.1, both strict, reported nothing. Nothing in
+    the suite read the returned type either, which is how a green suite sat on top of it.
 
-    The hashable side is held, and by construction rather than by care: IHashableTuple
-    declares AsImmutable @final and answers with itself, so there is no view to be wrong
-    about. The last override of that @final has since been removed; while it stood, the
-    hashable path through Selection returned a revocable view under an IHashableTuple
-    signature, and the first two benches below are what keeps that from coming back.
+    Two concrete views and a runtime dispatch closed it. The benches are kept as they are: the
+    promise is held by a class choice made at one point in the code, and a class choice is
+    exactly what a refactoring moves without noticing.
+
+    The hashable family is held differently — by construction rather than by care.
+    IHashableTuple declares AsImmutable @final and answers with itself, so there is no view to
+    be wrong about, and the overload that once promised one is gone. While an override of that
+    @final stood, the hashable path through Selection returned a revocable view under an
+    IHashableTuple signature; the first two benches keep that from coming back.
     """
 
     def test_a_hashable_subject_is_its_own_immutable_view(self) -> None:
@@ -749,28 +822,37 @@ class TestImmutableViewTyping(unittest.TestCase):
             with self.subTest(type = case.GetName()):
                 self.assertFalse(_allocatesAView(case.Create()))
 
-    @unittest.expectedFailure
     def test_an_equatable_subject_gets_an_equatable_view(self) -> None:
         """The promise itself, asserted as the enumeration of the paths that break it so that
-        the failure names them instead of stopping at the first. It turns green in one step,
-        the day a concrete equatable revocable view exists."""
+        a failure names them instead of stopping at the first. It was an expected failure
+        until the equatable view became a class of its own."""
 
         self.assertEqual(tuple(case.GetName() for case in _equatableSubjects() if not isinstance(case.Create().AsImmutable(), IEquatableTuple)), ())
 
-    def test_the_promise_breaks_exactly_where_the_registry_allocates(self) -> None:
-        """Perimeter of the defect above, and the measurement that explains it: an equatable
-        view misses its type exactly on the paths where the revocable registry allocates it,
-        and keeps it exactly where the subject is already immutable and answers with itself.
-        A listing by name would have said as much and said nothing about why.
+    def test_an_equatable_view_is_allocated_exactly_when_it_is_not_the_subject_itself(self) -> None:
+        """What replaced the perimeter bench this class used to carry.
 
-        Green today, and meant to fall the day the registry hands out a concrete equatable
-        view: the two sides stop coinciding, and the expectedFailure above becomes an
-        unexpected success. It is the signal of the fix, not a property to preserve.
+        That one asserted the defect's extent — the type was missed exactly where the registry
+        allocated — and it was written to fall when the fix landed. It did. The dichotomy it
+        measured is still the useful one, read the other way round: a subject either answers
+        with itself and allocates nothing, or hands out a view the registry allocated, never
+        both. An allocation that produced the subject itself, or a self-answer that allocated
+        on the way, would each be a leak this catches.
+
+        Allocating is *not* the same as the subject being mutable: two of the five subjects
+        are already immutable and allocate anyway. That is the optional optimisation of the
+        design rule, applied to the reversed and hashable forms and not to the direct
+        equatable ones — reported rather than asserted here, since asserting it would freeze
+        the current state instead of the contract.
         """
 
         for case in _equatableSubjects():
             with self.subTest(type = case.GetName()):
-                self.assertEqual(not isinstance(case.Create().AsImmutable(), IEquatableTuple), _allocatesAView(case.Create()))
+                subject: _ITuple[Any] = case.Create()
+                view: _ITuple[Any] = subject.AsImmutable()
+
+                self.assertEqual(view is subject, not _allocatesAView(case.Create()))
+                self.assertIsInstance(view, IEquatableTuple)
 
 def _immutableViewSubjects() -> ReadOnlyArray[_CaseBase]:
     """Every case of the harness, plus the ordered set's tuple.
@@ -1597,7 +1679,16 @@ def _breakingRevocation() -> Generator[None]:
     original: Any = cookieType._DisposeOverride
 
     def broken(self: Any, reason: DiscardReason) -> None:
-        getattr(self, "_RevocableViewCookie__onDisposed")(reason)
+        # The private attribute is resolved by suffix rather than spelled out. Spelling it out
+        # worked until a generic nested class was added to the cookie: under CPython 3.12 a
+        # nested *generic* class makes the rest of the enclosing body mangle private names
+        # with the nested class's name instead of the enclosing one, so the spelled-out name
+        # silently became wrong and this control stopped reconstructing the defect. 3.13 fixes
+        # the mangling and is now the floor, but the technique has no reason to depend on it.
+        attributes: dict[str, Any] = cast(dict[str, Any], vars(self))
+        name: str = next(key for key in attributes.keys() if key.endswith("__onDisposed"))
+
+        getattr(self, name)(reason)
 
     cookieType._DisposeOverride = broken
 
