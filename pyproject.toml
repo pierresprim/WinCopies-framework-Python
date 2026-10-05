@@ -22,7 +22,7 @@ description = "A rigorous, architecture-first Python framework."
 
 readme = "README.md"
 
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
 # License (SPDX license identifier)
 license = {text = "GPL-3.0"}
