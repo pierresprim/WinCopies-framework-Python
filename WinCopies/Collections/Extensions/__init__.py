@@ -136,14 +136,12 @@ class IRevocableViewMonitor(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @overload
-    def CreateRevocableView[T](self, items: IHashableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]: ...
-    @overload
     def CreateRevocableView[T](self, items: IEquatableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IEquatableTuple[T]: ...
     @overload
     def CreateRevocableView[T](self, items: ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> ITuple[T]: ...
     
     @abstractmethod
-    def CreateRevocableView[T](self, items: IHashableTuple[T]|IEquatableTuple[T]|ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> IHashableTuple[T]|IEquatableTuple[T]|ITuple[T]:
+    def CreateRevocableView[T](self, items: IEquatableTuple[T]|ITuple[T], onDisposed: Method[DiscardReason]|None = None) -> IEquatableTuple[T]|ITuple[T]:
         ...
 
 class ICollectionMonitors(ICollectionRegistrar[IObjectMonitor]):
