@@ -45,7 +45,7 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     else:
         indices = range(start, stop, step)
 
-        if len(indices) != len(newItems): raise ValueError()
+        if len(indices) != len(newItems): raise ValueError(f"Attempt to assign a sequence of size {len(newItems)} to an extended slice of size {len(indices)}.")
 
     # Phase 1 — Validation only
     oldSet: set[T] = set[T]()
@@ -54,8 +54,11 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
 
     seen: ISet[T] = Set[T]()
 
+    # Two causes, so two messages: one refusal that cannot say which of the two it is would
+    # be no better than no message at all.
     for item in newItems:
-        if not seen.TryAdd(item) or __Conflicts(s, item, oldSet): raise ValueError()  # Internal duplicate of new items, OR conflict with an item the set keeps
+        if not seen.TryAdd(item): raise ValueError(f"Item {item} appears more than once in the values to assign.")
+        if __Conflicts(s, item, oldSet): raise ValueError(f"Item {item} already exists outside the slice.")
 
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))
@@ -106,7 +109,7 @@ def SetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int, v
         # index across every type: this write must not diverge from its siblings. Whether
         # KeyError is the right choice there at all is a question for IWriter, not for here.
         case None: raise KeyError(f"Key {index} does not exist.")
-        case False: raise ValueError()
+        case False: raise ValueError(f"Item {value} already exists at another position.")
 
         case _: return None
 

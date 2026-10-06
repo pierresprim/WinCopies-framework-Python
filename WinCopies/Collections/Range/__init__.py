@@ -78,7 +78,7 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     if s < 0: SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), values)
 
     elif s == 1:
-        if i > l: raise IndexError()
+        if i > l: raise IndexError(f"The slice start {i} is past its stop {l}.")
 
         length: int = l - i
 
@@ -87,12 +87,12 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
         lst.InsertRange(i, values.AsIterable() if isinstance(values, IEnumerable) else values)
 
     # step > 1
-    elif i >= l: raise IndexError()
+    elif i >= l: raise IndexError(f"The slice start {i} is not before its stop {l}.")
 
     else:
         items: tuple[Iterable[T], int] = getItems()
 
-        if len(range(i, l, s)) != items[1]: raise ValueError()
+        if len(range(i, l, s)) != items[1]: raise ValueError(f"Attempt to assign a sequence of size {items[1]} to an extended slice of size {len(range(i, l, s))}.")
 
         for item in items[0]:
             lst.SetAt(i, item)

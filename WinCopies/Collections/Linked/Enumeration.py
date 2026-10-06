@@ -92,7 +92,7 @@ class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]]):
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")
 
 def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]|TwoWayNodeEnumerator[T]) -> Generator[T]:
     return Select(nodeEnumerator, lambda node: node.GetValue())

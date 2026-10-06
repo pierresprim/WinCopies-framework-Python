@@ -200,4 +200,4 @@ class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]]
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")

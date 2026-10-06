@@ -186,7 +186,7 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TV
 
     @final
     def __ChangePosition(self, x: TKey, y: TKey, updater: Callable[[TKey, TKey], bool|None]) -> None:
-        if updater(x, y) is None: raise IndexError()
+        if updater(x, y) is None: raise IndexError(f"Position {x} or {y} does not exist.")
 
     @abstractmethod
     def TryMove(self, x: TKey, y: TKey) -> bool|None:

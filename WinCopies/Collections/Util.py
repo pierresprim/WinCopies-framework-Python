@@ -138,7 +138,7 @@ def TryMove[T](l: MutableSequence[T], x: int, y: int) -> bool|None:
 
     return None
 def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
-    if TryMove(l, x, y) is None: raise IndexError()
+    if TryMove(l, x, y) is None: raise IndexError(f"Position {x} or {y} does not exist.")
 
 def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()

@@ -1287,7 +1287,7 @@ class DoublyLinkedNodeEnumerator[T](TwoWayNodeEnumeratorBase[IDoublyLinkedNode[T
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")
 class CountableLinkedListNodeEnumerator[T](TwoWayNodeEnumeratorBase[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
@@ -1297,7 +1297,7 @@ class CountableLinkedListNodeEnumerator[T](TwoWayNodeEnumeratorBase[ICountableLi
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")
 
 class ResumableDoublyLinkedNodeEnumerator[T](TwoWayResumableNodeEnumerator[IDoublyLinkedNode[T]]):
     def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
@@ -1308,7 +1308,7 @@ class ResumableDoublyLinkedNodeEnumerator[T](TwoWayResumableNodeEnumerator[IDoub
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")
 class ResumableCountableLinkedListNodeEnumerator[T](TwoWayResumableNodeEnumerator[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
@@ -1318,7 +1318,7 @@ class ResumableCountableLinkedListNodeEnumerator[T](TwoWayResumableNodeEnumerato
             case EnumerationOrder.FIFO: return lambda node: node.GetNext()
             case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
             
-            case _: raise ValueError()
+            case _: raise ValueError(f"Unknown enumeration order: {order}.")
 
 def CreateList[T](items: Iterable[T]|None = None) -> List[T]:
     return List[T](items)

@@ -167,7 +167,7 @@ class _AdaptiveRefinement(Abstract, IAdaptiveRefinement):
     def ResetTo(self, hint: int, refine: bool) -> None:
         if hint == 0:
             if refine: hint = 1
-            else: raise ValueError()
+            else: raise ValueError("A hint of zero makes no sense without refinement.")
         
         self.__ResetTo(hint, refine)
     
@@ -180,8 +180,8 @@ def CreateFineRefinement(hint: int|None, refine: bool) -> IAdaptiveRefinement:
     if hint is None or hint == 0:
         if refine: return CreateAdaptiveRefinement()
         
-        raise ValueError()
+        raise ValueError("A hint of zero or none makes no sense without refinement.")
     
-    if hint < 0: raise ValueError()
+    if hint < 0: raise ValueError(f"The hint must not be negative: {hint}.")
     
     return _AdaptiveRefinement(hint, refine)
