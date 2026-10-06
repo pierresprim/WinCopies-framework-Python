@@ -929,6 +929,12 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     
     @final
     def insert(self, index: int, value: TItem) -> None: self.TryInsert(index, value)
+    # Reversing a reversed view is reversing its source, so this goes to the source whole
+    # rather than through 2n positional writes. That also keeps it out of reach of a source
+    # whose positional write is constrained -- an ordered set refuses a momentary duplicate,
+    # which the inherited pairwise implementation produces at every step.
+    @final
+    def reverse(self) -> None: self._GetContainerAsList().AsMutableSequence().reverse()
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...

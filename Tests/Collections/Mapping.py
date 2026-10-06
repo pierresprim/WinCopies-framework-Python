@@ -36,6 +36,43 @@ type returns an element taken from it. Verified by enumerating every use of the 
 Abstraction/Mapping/Extensions.py.
 """
 
+_REFUSABLE: frozenset[str] = frozenset((
+    "Add(0)", "AddRange([0])", "TryAddRange([0])", "TryAdd(0)", "TryAddRange([7, 0])",
+    "Insert(4, 7)", "TryInsert(4, 7)", "Insert(1, 0)", "TryInsert(1, 0)",
+    "InsertRange(1, [0])", "InsertRange(1, [7, 0])", "InsertRange(4, [7])", "TryInsertRange(1, [0])",
+    "InsertValues(1, 0)",
+    "SetAt(1, 0)", "SetAt(9, 7)", "TrySetAt(1, 0)", "TrySetAt(9, 7)",
+    "l[1] = 0", "l[9] = 7", "l[1:2] = [0]", "l[0:2] = [7, 7]",
+    "RemoveAt(9)", "TryRemoveAt(-1)", "TryRemoveAt(9)", "TryRemoveRange(9, 1)",
+    "Remove(7)", "TryRemove(7)", "TryMove(0, 9)", "TrySwap(0, 9)", "del l[9]",
+    "rev.SetAt(1, 0)", "rev[1] = 0", "rev.Insert(1, 0)"))
+"""The calls these benches build that the subject may legitimately refuse: an index outside
+its range, or a value the set already holds elsewhere.
+
+Everything else is legitimate on a (0, 1, 2) ordered set and must therefore succeed. That
+line is what the invariant alone cannot draw: a call that refuses leaves a correct state
+behind, so asserting the invariant passes over a member that does not work at all. D-52
+lived there for a session, and D-51 still does.
+"""
+
+_BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
+    ("D-51, Swap goes through positional assignment",
+     (("list", "Swap(0, 2)"), ("list", "TrySwap(0, 2)"), ("reversed", "rev.Swap(0, 2)"))),
+    ("D-53 and D-54, the protocol mixins reach for index -1",
+     (("list", "pop()"), ("list", "clear()"))),
+    ("D-24 on the set family, an empty range is a failure",
+     (("set", "AddRange([])"), ("set", "AddValues()"))))
+"""Legitimate calls that an open defect still refuses, each named with its carrier and
+grouped by the defect that refuses it, so every group signals on its own when its defect
+closes. The carrier is part of the name because the list view and the collection share
+labels: AddRange([]) succeeds on the first and fails on the second."""
+
+def _carriers() -> ReadOnlyArray[tuple[str, dict[str, _Call]]]:
+    return (("list", _listCalls()), ("set", _setCalls()), ("reversed", _reversedCalls()))
+
+def _blocked() -> frozenset[tuple[str, str]]:
+    return frozenset(call for _, calls in _BLOCKED for call in calls)
+
 def _create() -> _Carrier:
     items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
 
@@ -267,6 +304,61 @@ class TestOrderedSetInvariant(unittest.TestCase):
     def test_the_reversed_view_leaves_an_ordered_set(self) -> None:
         self.__run(_reversedCalls(), "reversed")
 
+class TestLegitimateCallsSucceed(unittest.TestCase):
+    """The half the invariant cannot assert: a call that should work does work.
+
+    A member that refuses leaves a correct state behind, so TestOrderedSetInvariant passes
+    over it -- it asserts that the state stays correct whatever the answer, and a refusal
+    that mutates nothing satisfies that. This asserts the other half, and it is the bench
+    that would have caught D-52 the day it was introduced.
+    """
+
+    def test_every_legitimate_call_succeeds(self) -> None:
+        blocked: frozenset[tuple[str, str]] = _blocked()
+
+        for carrier, calls in _carriers():
+            for label, call in calls.items():
+                if label in _REFUSABLE or (carrier, label) in blocked: continue
+
+                with self.subTest(carrier = carrier, call = label):
+                    items, view = _create()
+                    outcome: Any = _attempt(call, items, view)
+
+                    self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
+                    _assertInvariant(self, items, view, f"{carrier}.{label}")
+
+class TestCallsBlockedByOpenDefects(unittest.TestCase):
+    """Legitimate calls that an open defect still refuses, one bench per defect.
+
+    expectedFailure rather than an exclusion, for the reason 4.1 §2.6 established: an
+    exclusion that stays says nothing, while an expectedFailure becomes an unexpected
+    success -- and so a red run -- the day its defect closes. One bench per defect, so that
+    closing one of the three signals without waiting for the others.
+    """
+
+    def _assertGroupSucceeds(self, index: int) -> None:
+        defect, calls = _BLOCKED[index]
+        tables: dict[str, dict[str, _Call]] = dict(_carriers())
+
+        for carrier, label in calls:
+            with self.subTest(defect = defect, carrier = carrier, call = label):
+                items, view = _create()
+                outcome: Any = _attempt(tables[carrier][label], items, view)
+
+                self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
+
+    @unittest.expectedFailure
+    def test_swap_is_available(self) -> None:
+        self._assertGroupSucceeds(0)
+
+    @unittest.expectedFailure
+    def test_the_protocol_pop_and_clear_work(self) -> None:
+        self._assertGroupSucceeds(1)
+
+    @unittest.expectedFailure
+    def test_an_empty_range_is_not_a_failure(self) -> None:
+        self._assertGroupSucceeds(2)
+
 class TestRefusalLeavesNoTrace(unittest.TestCase):
     """A call that refuses must change nothing at all.
 
@@ -275,20 +367,8 @@ class TestRefusalLeavesNoTrace(unittest.TestCase):
     coherent state that is not the one the caller was promised.
     """
 
-    def __refusals(self) -> dict[str, _Call]:
-        return {name: call for name, call in _listCalls().items()
-                if name in ("Insert(4, 7)", "TryInsert(4, 7)", "Insert(1, 0)", "TryInsert(1, 0)",
-                            "InsertRange(4, [7])", "InsertRange(1, [0])", "InsertRange(1, [7, 0])",
-                            "TryInsertRange(1, [0])", "InsertValues(1, 0)",
-                            "SetAt(1, 0)", "SetAt(9, 7)", "TrySetAt(1, 0)", "TrySetAt(9, 7)",
-                            "l[1] = 0", "l[9] = 7", "l[1:2] = [0]", "l[0:2] = [7, 7]",
-                            "RemoveAt(9)", "TryRemoveAt(-1)", "TryRemoveAt(9)",
-                            "TryRemoveRange(9, 1)", "Remove(7)", "TryRemove(7)",
-                            "TryMove(0, 9)", "TrySwap(0, 9)", "del l[9]",
-                            "Add(0)", "AddRange([0])")}
-
     def test_a_refused_call_changes_nothing(self) -> None:
-        for label, call in self.__refusals().items():
+        for label, call in ((name, call) for name, call in _listCalls().items() if name in _REFUSABLE):
             with self.subTest(call = label):
                 items, view = _create()
                 before: ReadOnlyArray[int] = _snapshot(items)
