@@ -539,12 +539,12 @@ class Enumerator[T](_EnumeratorBase[T]):
         self.__current: INullable[T] = GetNullValue()
     
     def _OnCurrentUpdating(self, old: INullable[T], new: T) -> None:
-        ...
+        pass
     def _OnCurrentReset(self, old: T) -> None:
-        ...
+        pass
     
     def _OnCurrentInvalidated(self, old: T) -> None:
-        ...
+        pass
     
     @final
     def _TryGetCurrent(self) -> INullable[T]: return self.__current
@@ -639,8 +639,7 @@ class Iterator[T](Enumerator[T]):
     def _ResetOverride(self) -> bool: return False
 
 class IterableBase[T](Enumerable[T]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _TryGetIterator(self) -> SystemIterator[T]|None:
@@ -673,16 +672,16 @@ class IteratorProvider[T](Enumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
 class EnumeratorProvider[T](Enumerable[T]):
-    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None) -> None:
+    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]) -> None:
         super().__init__()
         
-        self.__enumeratorProvider: Function[IEnumerator[T]|None]|None = enumeratorProvider
+        self.__enumeratorProvider: Function[IEnumerator[T]|None] = enumeratorProvider
     
     @final
     def _TryGetIterator(self) -> SystemIterator[T]|None: return super()._TryGetIterator()
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return None if self.__enumeratorProvider is None else self.__enumeratorProvider()
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__enumeratorProvider()
 
 __emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
