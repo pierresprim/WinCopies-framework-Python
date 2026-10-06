@@ -15,7 +15,7 @@ from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IE
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
-from WinCopies.Collections.Range.Extensions import SetOrderedItems
+from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -56,14 +56,10 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     
     def TryGetValue(self, key: int) -> INullable[T]: return self.__list.TryGetValue(key)
     
-    def TrySetAt(self, key: int, value: T) -> bool:
-        if self.__TryAdd(key, value, False):
-            self.__RemoveAt(key)
-            self.__list.SetAt(key, value)
-
-            return True
-        
-        return False
+    # TrySetAt is bivalent by contract (IWriter), so the trivalence of the shared rule is
+    # collapsed here deliberately: a refused index and a refused value are both a failure
+    # to set. The protocol route keeps the distinction, since it raises rather than returns.
+    def TrySetAt(self, key: int, value: T) -> bool: return TrySetOrderedValue(self.__list, self.__innerSet, key, value) is True
     
     def Add(self, item: T) -> None: return self.__items.Add(item)
     
