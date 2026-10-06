@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable
-from typing import final
+from collections.abc import Sequence, Mapping, Iterable
+from typing import cast, final
 
 
 
@@ -279,3 +279,17 @@ class IterableBuilder[T](Enumerable[T]):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__iterable.TryGetEnumerator()
+
+def _BuildIterable[T](items: Iterable[T]) -> Iterable[T]:
+    match items:
+        case Sequence()|Mapping(): return cast(Iterable[T], items)
+        case IterableBuilder(): return items
+        
+        case _: return IterableBuilder[T](items)
+def _BuildEnumerable[T](items: IEnumerable[T]) -> IEnumerable[T]:
+    return items if items.IsResumable() else IterableBuilder[T](items)
+
+def BuildIterable[T](items: IEnumerable[T]|Iterable[T]) -> Iterable[T]:
+    return _BuildEnumerable(items).AsIterable() if isinstance(items, IEnumerable) else _BuildIterable(items)
+def BuildEnumerable[T](items: IEnumerable[T]|Iterable[T]) -> IEnumerable[T]:
+    return _BuildEnumerable(items) if isinstance(items, IEnumerable) else AsEnumerable(BuildIterable(items))
