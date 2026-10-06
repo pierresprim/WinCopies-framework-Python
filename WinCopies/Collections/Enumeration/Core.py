@@ -712,16 +712,20 @@ def AsEnumerable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
 def TryAsEnumerable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
     return None if iterable is None else AsEnumerable(iterable)
 
+def AsIterable[T](enumerable: IEnumerable[T]) -> SystemIterable[T]:
+    return enumerable if isinstance(enumerable, SystemIterable) else enumerable.AsIterable()
 def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
-    return None if enumerable is None else enumerable.AsIterable()
+    return None if enumerable is None else AsIterable(enumerable)
 
 def AsEnumerator[T](iterator: SystemIterator[T]) -> IEnumerator[T]:
     return iterator if isinstance(iterator, IEnumerator) else Iterator[T](iterator)
 def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
     return None if iterator is None else AsEnumerator(iterator)
 
+def AsIterator[T](enumerator: IEnumerator[T]) -> SystemIterator[T]:
+    return enumerator if isinstance(enumerator, SystemIterator) else enumerator.AsIterator()
 def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
-    return None if enumerator is None else enumerator.AsIterator()
+    return None if enumerator is None else AsIterator(enumerator)
 
 def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]) -> Enumerable[T]:
     return IteratorProvider[T](iteratorProvider)
