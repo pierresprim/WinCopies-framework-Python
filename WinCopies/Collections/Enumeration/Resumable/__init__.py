@@ -192,13 +192,13 @@ class _EmptyEnumerable[T](Iterable[T], IResumableEnumerable[T]):
     def __iter__(self) -> Iterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
 class ResumableEnumeratorProvider[T](EnumeratorProvider[T], IResumableEnumerable[T]):
-    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> None:
+    def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None], resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]) -> None:
         super().__init__(enumeratorProvider)
         
-        self.__resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None = resumableEnumeratorProvider
+        self.__resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None] = resumableEnumeratorProvider
     
     @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return None if self.__resumableEnumeratorProvider is None else self.__resumableEnumeratorProvider()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self.__resumableEnumeratorProvider()
 
 class ICursorCookie[T](ICookie[T], IRemovable):
     def __init__(self) -> None: super().__init__()
@@ -290,8 +290,8 @@ class NullableResumableEnumerationCursor[T](ResumableEnumerationCursorBase[T]):
 
         self.__value = None
 
-__emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
+__emptyEnumerator = _EmptyEnumerator[Any]()
 
 def TryGetResumableEnumerator[T](enumerable: IResumableEnumerable[T]|None) -> IResumableEnumerator[T]|None:
     return None if enumerable is None else enumerable.TryGetResumableEnumerator()
@@ -306,7 +306,7 @@ def GetResumableEnumerable[T](enumerable: IResumableEnumerable[T]|None) -> IResu
 def GetResumableEnumerator[T](enumerator: IResumableEnumerator[T]|None) -> IResumableEnumerator[T]:
     return GetEmptyResumableEnumerator() if enumerator is None else enumerator
 
-def CreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None], resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> IResumableEnumerable[T]:
+def CreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None], resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]) -> IResumableEnumerable[T]:
     return ResumableEnumeratorProvider[T](enumeratorProvider, resumableEnumeratorProvider)
-def TryCreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IResumableEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> IResumableEnumerable[T]|None:
-    return None if enumeratorProvider is None else CreateResumableEnumeratorProvider(enumeratorProvider, resumableEnumeratorProvider)
+def TryCreateResumableEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|None]|None, resumableEnumeratorProvider: Function[IResumableEnumerator[T]|None]|None) -> IResumableEnumerable[T]|None:
+    return None if enumeratorProvider is None or resumableEnumeratorProvider is None else CreateResumableEnumeratorProvider(enumeratorProvider, resumableEnumeratorProvider)
