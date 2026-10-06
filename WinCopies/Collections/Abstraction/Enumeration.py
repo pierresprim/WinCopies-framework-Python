@@ -1,5 +1,5 @@
-import collections.abc
-
+from abc import abstractmethod
+from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections import Generator
@@ -8,71 +8,69 @@ from WinCopies.Collections.Enumeration.Core import IEnumerable, IEquatableEnumer
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 
-def GetGenerator[T](iterable: collections.abc.Iterable[T]) -> Generator[T]:
+def GetGenerator[T](iterable: Iterable[T]) -> Generator[T]:
     yield from iterable
-def TryGetGenerator[T](iterable: collections.abc.Iterable[T]|None) -> Generator[T]|None:
+def TryGetGenerator[T](iterable: Iterable[T]|None) -> Generator[T]|None:
     return None if iterable is None else GetGenerator(iterable)
 
-class _Enumerable[T](Enumerable[T]):
+class _IEnumerable[T](IEnumerable[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetEnumerable(self) -> IEnumerable[T]:
+        ...
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
+class _IEquatableEnumerable[T](_IEnumerable[T], IEquatableEnumerable[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetEnumerable(self) -> IEquatableEnumerable[T]:
+        ...
+    
+    @final
+    def Equals(self, item: object) -> bool: return self._GetEnumerable().Equals(item)
+
+class _Enumerable[T](Enumerable[T], _IEnumerable[T]):
     def __init__(self, enumerable: IEnumerable[T]) -> None:
         super().__init__()
 
         self.__enumerable: IEnumerable[T] = enumerable
     
     @final
-    def _GetEnumerable(self) -> IEnumerable[T]:
-        return self.__enumerable
-    
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
+    def _GetEnumerable(self) -> IEnumerable[T]: return self.__enumerable
 
-class _EquatableEnumerable[T: EquatableProtocol](EquatableEnumerable[T]):
+class _EquatableEnumerable[T: EquatableProtocol](EquatableEnumerable[T], _IEquatableEnumerable[T]):
     def __init__(self, enumerable: IEquatableEnumerable[T]) -> None:
         super().__init__()
 
         self.__enumerable: IEquatableEnumerable[T] = enumerable
     
     @final
-    def _GetEnumerable(self) -> IEquatableEnumerable[T]:
-        return self.__enumerable
-    
-    @final
-    def Equals(self, item: object) -> bool: return self.__enumerable.Equals(item)
-    
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
-class _HashableEnumerable[T: HashableProtocol](HashableEnumerable[T]):
+    def _GetEnumerable(self) -> IEquatableEnumerable[T]: return self.__enumerable
+class _HashableEnumerable[T: HashableProtocol](HashableEnumerable[T], _IEquatableEnumerable[T]):
     def __init__(self, enumerable: IHashableEnumerable[T]) -> None:
         super().__init__()
 
         self.__enumerable: IHashableEnumerable[T] = enumerable
     
     @final
-    def _GetEnumerable(self) -> IHashableEnumerable[T]:
-        return self.__enumerable
+    def _GetEnumerable(self) -> IHashableEnumerable[T]: return self.__enumerable
     
     @final
-    def Equals(self, item: object) -> bool: return self.__enumerable.Equals(item)
-    @final
-    def Hash(self) -> int: return self.__enumerable.Hash()
-    
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
+    def Hash(self) -> int: return self._GetEnumerable().Hash()
 
-class _CountableEnumerable[T](CountableEnumerable[T]):
+class _CountableEnumerable[T](CountableEnumerable[T], _IEnumerable[T]):
     def __init__(self, enumerable: ICountableEnumerable[T]) -> None:
         super().__init__()
 
         self.__enumerable: ICountableEnumerable[T] = enumerable
     
     @final
-    def _GetEnumerable(self) -> ICountableEnumerable[T]:
-        return self.__enumerable
+    def _GetEnumerable(self) -> ICountableEnumerable[T]: return self.__enumerable
     
     @final
     def GetCount(self) -> int: return self._GetEnumerable().GetCount()
-    
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 
 class _Enumerator[T](AbstractEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
