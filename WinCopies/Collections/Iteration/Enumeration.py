@@ -29,7 +29,7 @@ class ScanResult(BooleanableEnum):
 
     @final
     def IsSuccessful(self) -> bool:
-        return self > self.Success
+        return self > ScanResult.Success
     
     @final
     def ToNullableBool(self) -> bool|None: return True if self == ScanResult.Success else (None if self.IsSuccessful() else False)
