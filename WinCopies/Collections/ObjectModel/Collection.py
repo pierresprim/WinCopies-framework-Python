@@ -380,15 +380,14 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         
         return False
     
-    def _InsertItems(self, index: int, items: Iterable[T]) -> bool:
+    def _InsertItems(self, index: int, items: Iterable[T]) -> bool|None:
         self.__AssertReentrancy()
 
-        if super()._InsertItems(index, items):
-            self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
+        result: bool|None = super()._InsertItems(index, items)
 
-            return True
+        if result is True: self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
         
-        return False
+        return result
     
     def _MoveItem(self, x: int, y: int) -> None:
         self.__AssertReentrancy()
