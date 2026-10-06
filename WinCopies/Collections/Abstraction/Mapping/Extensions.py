@@ -8,6 +8,7 @@ from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability
+from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
@@ -77,7 +78,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     @final
     def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         if self.ValidateIndex(index, True):
-            if self.__set.TryAddRange(items):
+            if self.__set.TryAddRange(items := BuildIterable(items)):
                 self.__list.InsertRange(index, items)
 
                 return True
