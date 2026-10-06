@@ -3,7 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList, ISet
-from WinCopies.Collections.Util import ReverseIndex
+from WinCopies.Collections.Util import ReverseIndex, MakeSequence
 from WinCopies.Typing.Comparison import HashableProtocol
 
 def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T]) -> bool:
@@ -18,6 +18,14 @@ def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T])
     return value in s and value not in leaving
 
 def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
+    def getRange(start: int, stop: int, step: int) -> range:
+        if step == 1: return range(start, max(start, stop))
+        
+        indices: range = range(start, stop, step)
+
+        if len(indices) == len(newItems): return indices
+        
+        raise ValueError(f"Attempt to assign a sequence of size {len(newItems)} to an extended slice of size {len(indices)}.")
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, lst.GetCount())
 
@@ -41,11 +49,7 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
 
     # Affected indices + size constraint
-    if step == 1: indices: range = range(start, max(start, stop))
-    else:
-        indices = range(start, stop, step)
-
-        if len(indices) != len(newItems): raise ValueError(f"Attempt to assign a sequence of size {len(newItems)} to an extended slice of size {len(indices)}.")
+    indices: range = getRange(start, stop, step)
 
     # Phase 1 — Validation only
     oldSet: set[T] = set[T]()
@@ -93,7 +97,7 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int
 
     # A one-tuple rather than a set: `leaving` holds one value here, so this is one equality
     # test instead of a hash and a lookup.
-    if __Conflicts(s, value, (old,)): return False
+    if __Conflicts(s, value, MakeSequence(old)): return False
 
     # Both sides are replaced unconditionally, as the slice write does: the position holds
     # the value passed, and the set holds the very object the list holds.

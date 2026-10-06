@@ -37,11 +37,6 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
     
-    def __TryAdd(self, index: int, value: T, permissive: bool) -> bool:
-        return self.ValidateIndex(index, permissive) and self.__set.TryAdd(value)
-    def __RemoveAt(self, index: int) -> None:
-        self.__set.Remove(self.__list.GetAt(index))
-    
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     def TryGetSourceMutability(self) -> None: return None
     
@@ -64,7 +59,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def Add(self, item: T) -> None: return self.__items.Add(item)
     
     def TryInsert(self, index: int, value: T) -> bool:
-        if self.__TryAdd(index, value, True):
+        if self.ValidateIndex(index, True) and self.__set.TryAdd(value):
             self.__list.Insert(index, value)
 
             return True
@@ -90,7 +85,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         if index < 0: return None
         if index >= self.GetCount(): return False
         
-        self.__RemoveAt(index)
+        self.__set.Remove(self.__list.GetAt(index))
         self.__list.RemoveAt(index)
         
         return True
