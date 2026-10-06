@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Iterable
 from typing import final
 
 
@@ -9,13 +10,12 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration import GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator, AsEnumerable
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing.Delegate import Function
-from WinCopies.Typing.Reflection import EnsureDirectModuleCall
+from WinCopies.Typing.Delegate import Action, Method, Function
 
 class _ICookie[T](IInterface):
     def __init__(self) -> None: super().__init__()
@@ -243,33 +243,30 @@ class _Enumerable[T](Enumerable[T]):
 class IterableBuilder[T](Enumerable[T]):
     @final
     class _Cookie[_T](Abstract, _ICookie[_T]):
-        def __init__(self, builder: IterableBuilder[_T]) -> None:
+        def __init__(self, setter: Method[IEnumerable[_T]], finalizer: Action) -> None:
             super().__init__()
 
-            self.__builder: IterableBuilder[_T] = builder
+            self.__setter: Method[IEnumerable[_T]] = setter
+            self.__finalizer: Action = finalizer
         
-        def SetIterable(self, iterable: IEnumerable[_T]) -> None: return self.__builder._SetIterable(iterable)
-        def UnsetIterable(self) -> None: return self.__builder._UnsetIterable()
+        def SetIterable(self, iterable: IEnumerable[_T]) -> None: return self.__setter(iterable)
+        def UnsetIterable(self) -> None: return self.__finalizer()
     
-    def __init__(self, iterable: IEnumerable[T]) -> None:
+    def __init__(self, iterable: IEnumerable[T]|Iterable[T]) -> None:
         super().__init__()
 
-        self.__iterable: IEnumerable[T] = _Enumerable[T](IterableBuilder[T]._Cookie(self), iterable)
+        self.__iterable: IEnumerable[T] = _Enumerable[T](IterableBuilder[T]._Cookie(self.__SetIterable, self.__UnsetIterable), AsEnumerable(iterable))
     
     @final
-    def __SetIterable(self, iterable: IEnumerable[T]) -> None:
+    def __UpdateIterable(self, iterable: IEnumerable[T]) -> None:
         self.__iterable = iterable
     
     @final
-    def _SetIterable(self, iterable: IEnumerable[T]) -> None:
-        EnsureDirectModuleCall()
-
-        self.__SetIterable(iterable)
+    def __SetIterable(self, iterable: IEnumerable[T]) -> None:
+        self.__UpdateIterable(iterable)
     @final
-    def _UnsetIterable(self) -> None:
-        EnsureDirectModuleCall()
-
-        self.__SetIterable(GetEmptyEnumerable())
+    def __UnsetIterable(self) -> None:
+        self.__UpdateIterable(GetEmptyEnumerable())
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__iterable.TryGetEnumerator()
