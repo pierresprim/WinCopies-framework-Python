@@ -47,7 +47,7 @@ from WinCopies.Collections.Abstraction.Selection import (Converters,
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
-from WinCopies.Collections.Extensions import ITupleBase, ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
+from WinCopies.Collections.Extensions import IDefaultMutableSequence, ITupleBase, ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
 from WinCopies.Typing import InvalidOperationError
@@ -200,7 +200,12 @@ class _ConvertingTuple(ConvertingTuple[int, str]):
     def _Convert(self, item: int) -> str: return str(item)
 
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
-class _ConvertingList(ConvertingList[int, str]):
+# The opt-in is the consumer's, not the template's: Abstract.Collection.List leaves
+# _Reverse abstract so that each subclass decides what a reversal means for it, exactly
+# as the framework's own Selection.List opts in rather than inheriting a decision. A
+# converter reorders without converting, so the pairwise default is right here -- and it
+# is what this double did before the hook existed.
+class _ConvertingList(ConvertingList[int, str], IDefaultMutableSequence[str]):
     """Two-way converter over an inner list of ints."""
 
     def _Clone(self, items: Any) -> "_ConvertingList": return _ConvertingList(items)
@@ -1644,6 +1649,67 @@ class TestStatusCarriesTheCause(unittest.TestCase):
 
                 self.assertIs(type(error), InvalidatedError)
                 self.assertIsInstance(error, DiscardedError)
+
+# Types whose protocol reversal is held open by a defect, named by defect rather than
+# listed by position: when one closes it leaves the set and nothing else has to move.
+_REVERSAL_BLOCKED: frozenset[str] = frozenset(("ObservableCollection",))   # D-55
+
+class TestProtocolReversal(unittest.TestCase):
+    """reverse() reverses, on every type that offers the door.
+
+    The mutator table above measures the named API only; the protocol face was measured
+    nowhere outside the ordered set's own module, which is how a reversal that silently
+    did nothing survived a whole commit. The door is AsMutableSequence(), so the types
+    that decline it -- a sorted list, any fixed-size array -- are absent here by their
+    own lattice position rather than by an exclusion, per 5.30.
+    """
+
+    def __GetSubjects(self, blocked: bool) -> ReadOnlyArray[tuple[str, Any]]:
+        """The instances to reverse, on one side of the blocked set or the other.
+
+        The conversion stratum is added by hand: it is the one type in this module that
+        offers the door without sitting in the registry table, and it is one of the two
+        the hook left behind.
+        """
+
+        subjects: list[tuple[str, Any]] = [(case.GetName(), case.Create()) for case in _MUTABLE]
+
+        subjects.append(("ConvertingList", _ConvertingList(_source())))
+
+        return tuple((name, items) for name, items in subjects
+                     if (name in _REVERSAL_BLOCKED) == blocked and callable(getattr(items, "AsMutableSequence", None)))
+
+    @staticmethod
+    def __Reverse(items: Any) -> tuple[ReadOnlyArray[Any], ReadOnlyArray[Any]]:
+        before: ReadOnlyArray[Any] = _snapshot(cast(_ITuple[Any], items))
+
+        items.AsMutableSequence().reverse()
+
+        return before, _snapshot(cast(_ITuple[Any], items))
+
+    def test_the_reversal_reverses(self) -> None:
+        subjects: ReadOnlyArray[tuple[str, Any]] = self.__GetSubjects(False)
+
+        self.assertGreaterEqual(len(subjects), 3, "the reversal perimeter has emptied; this bench would prove nothing")
+
+        for name, items in subjects:
+            with self.subTest(case = name):
+                before, after = self.__Reverse(items)
+
+                self.assertEqual(after, tuple(reversed(before)),
+                                 f"{name}.reverse() left the order unchanged" if after == before else f"{name}.reverse() produced {after}")
+
+    @unittest.expectedFailure
+    def test_the_reversal_blocked_by_D_55_reverses(self) -> None:
+        """Held open by D-55: ObservableCollection declares no _Reverse, so the sealed
+        reverse() reaches an abstract body and returns without reversing. An
+        expectedFailure rather than an exclusion -- when D-55 closes this reports an
+        unexpected success and has to be removed, where an exclusion would say nothing."""
+
+        for name, items in self.__GetSubjects(True):
+            before, after = self.__Reverse(items)
+
+            self.assertEqual(after, tuple(reversed(before)), f"{name}.reverse() left the order unchanged")
 
 # ---------------------------------------------------------------------------
 # The non-vacuity control, domiciled
