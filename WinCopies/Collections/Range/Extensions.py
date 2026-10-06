@@ -3,7 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList, ISet
-from WinCopies.Collections.Util import ReverseIndex
+from WinCopies.Collections.Util import ReverseIndex, MakeSequence
 from WinCopies.Typing.Comparison import HashableProtocol
 
 def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T]) -> bool:
@@ -90,7 +90,7 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int
 
     # A one-tuple rather than a set: `leaving` holds one value here, so this is one equality
     # test instead of a hash and a lookup.
-    if __Conflicts(s, value, (old,)): return False
+    if __Conflicts(s, value, MakeSequence(old)): return False
 
     # Both sides are replaced unconditionally, as the slice write does: the position holds
     # the value passed, and the set holds the very object the list holds.
