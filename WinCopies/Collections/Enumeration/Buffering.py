@@ -9,12 +9,12 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration import GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, GetEmptyEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorBase, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List, IDoublyLinkedNode
 
 from WinCopies.Delegates import BoolFalse
 
-from WinCopies.Typing.Delegate import Converter, Function, NullableFunction
+from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Reflection import EnsureDirectModuleCall
 
 class _ICookie[T](IInterface):
@@ -46,22 +46,23 @@ class _NullToken[T](Abstract, _IToken[T]):
     def MoveNext(self) -> bool: return False
 @final
 class _Token[T](Abstract, _IToken[T]):
-    def __init__(self, node: IDoublyLinkedNode[T]) -> None:
+    def __init__(self, node: IDoublyLinkedNode[T], first: bool) -> None:
         self.__node: IDoublyLinkedNode[T]|None = None
         self.__moveNext: Function[bool] = BoolFalse
 
         def moveNext() -> bool:
             def moveNext() -> bool:
-                if self.__node is None: return False
-                
-                else:
-                    self.__node = self.__node.GetNext()
+                node: IDoublyLinkedNode[T]|None = self.__node
 
-                    return self.__node is not None
+                if node is None: return False
+                
+                self.__node = (node := node.GetNext())
+
+                return node is not None
             
             self.__moveNext = moveNext
 
-            return True
+            return first
 
         super().__init__()
 
@@ -103,10 +104,10 @@ class _Enumerator[T](EnumeratorBase[T]):
         self.__token: _IToken[T] = token
     
     @staticmethod
-    def TryCreate(enumerator: _AbstractionEnumerator[T]) -> _Enumerator[T]|None:
+    def TryCreate(enumerator: _AbstractionEnumerator[T]) -> IEnumerator[T]:
         first: _IToken[T]|None = enumerator.GetFirst()
 
-        return None if first is None else _Enumerator[T](_AbstractEnumerator[T](enumerator), first)
+        return enumerator if first is None else _Enumerator[T](_AbstractEnumerator[T](enumerator), first)
     
     def IsResetSupported(self) -> bool: return True
     
@@ -142,17 +143,15 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
 
         self.__builder: _ICookie[T] = builder
         self.__items: IList[T]|None = None
-        self.__getEnumerator: NullableFunction[IEnumerator[T]]|None = None
+        self.__getEnumerator: Function[IEnumerator[T]] = self.__GetEnumerator
     
     def __GetEnumerator(self) -> IEnumerator[T]:
         self.__getEnumerator = lambda: _Enumerator[T].TryCreate(self)
 
         return self
     
-    def GetItemEnumerator(self) -> IEnumerator[T]|None:
-        getEnumerator: NullableFunction[IEnumerator[T]]|None = self.__getEnumerator
-
-        return None if getEnumerator is None else getEnumerator()
+    def GetItemEnumerator(self) -> IEnumerator[T]:
+        return self.__getEnumerator()
     
     def _GetCurrent(self) -> T:
         items: IList[T]|None = self.__items
@@ -161,23 +160,22 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
 
         return items.GetLastValue()
     
-    def __GetToken(self, func: Converter[IList[T], IDoublyLinkedNode[T]|None]) -> _IToken[T]|None:
+    def __GetToken(self, first: bool) -> _IToken[T]|None:
         items: IList[T]|None = self.__items
 
         if items is None: return None
         
-        node: IDoublyLinkedNode[T]|None = func(items)
+        node: IDoublyLinkedNode[T]|None = items.GetFirst() if first else items.GetLast()
 
-        return None if node is None else _Token[T](node)
+        return None if node is None else _Token[T](node, first)
     
     def GetFirst(self) -> _IToken[T]|None:
-        return self.__GetToken(lambda items: items.GetFirst())
+        return self.__GetToken(True)
     def GetToken(self) -> _IToken[T]|None:
-        return self.__GetToken(lambda items: items.GetLast())
+        return self.__GetToken(False)
     
     def _OnStarting(self) -> bool:
         if super()._OnStarting():
-            self.__getEnumerator = self.__GetEnumerator
             self.__items = List[T]()
 
             return True
@@ -205,7 +203,7 @@ class _AbstractionEnumerator[T](AbstractionEnumerator[T, T]):
     
     def _OnEnded(self) -> None:
         self.__items = None
-        self.__getEnumerator = None
+        self.__getEnumerator = lambda: GetEmptyEnumerator()
 
         super()._OnEnded()
     
