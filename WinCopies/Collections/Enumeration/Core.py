@@ -683,28 +683,34 @@ class EnumeratorProvider[T](Enumerable[T]):
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__enumeratorProvider()
 
-__emptyEnumerator = _EmptyEnumerator[Any]()
 __emptyEnumerable = _EmptyEnumerable[Any]()
+__emptyEnumerator = _EmptyEnumerator[Any]()
 
-def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
-    return None if enumerable is None else enumerable.TryGetEnumerator()
-
-def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyEnumerator
 def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyEnumerable
 def GetEmptyIterable[T]() -> SystemIterable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return GetEmptyEnumerable().AsIterable() # pyright: ignore[reportUnknownVariableType]
 
-def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
-    return GetEmptyEnumerator() if enumerator is None else enumerator
-def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
-    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # pyright: ignore[reportUnknownVariableType]
+def GetEmptyEnumerator[T]() -> IEnumerator[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyEnumerator
 
 def GetEnumerable[T](enumerable: IEnumerable[T]|None) -> IEnumerable[T]:
     return GetEmptyEnumerable() if enumerable is None else enumerable
 def GetIterable[T](iterable: SystemIterable[T]|None) -> SystemIterable[T]:
     return GetEmptyEnumerable().AsIterable() if iterable is None else iterable # pyright: ignore[reportUnknownVariableType]
+
+def GetEnumerator[T](enumerator: IEnumerator[T]|None) -> IEnumerator[T]:
+    return GetEmptyEnumerator() if enumerator is None else enumerator
+def TryGetEnumerator[T](enumerable: IEnumerable[T]|None) -> IEnumerator[T]|None:
+    return None if enumerable is None else enumerable.TryGetEnumerator()
+
+def GetIterator[T](iterator: SystemIterator[T]|None) -> SystemIterator[T]:
+    return GetEmptyEnumerator().AsIterator() if iterator is None else iterator # pyright: ignore[reportUnknownVariableType]
+
+def AsEnumerable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
+    return iterable if isinstance(iterable, IEnumerable) else Iterable[T](iterable)
+def TryAsEnumerable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
+    return None if iterable is None else AsEnumerable(iterable)
 
 def TryAsIterable[T](enumerable: IEnumerable[T]|None) -> SystemIterable[T]|None:
     return None if enumerable is None else enumerable.AsIterable()
@@ -716,11 +722,6 @@ def TryAsEnumerator[T](iterator: SystemIterator[T]|None) -> IEnumerator[T]|None:
 
 def TryAsIterator[T](enumerator: IEnumerator[T]|None) -> SystemIterator[T]|None:
     return None if enumerator is None else enumerator.AsIterator()
-
-def AsEnumerable[T](iterable: SystemIterable[T]) -> IEnumerable[T]:
-    return iterable if isinstance(iterable, IEnumerable) else Iterable[T](iterable)
-def TryAsEnumerable[T](iterable: SystemIterable[T]|None) -> IEnumerable[T]|None:
-    return None if iterable is None else AsEnumerable(iterable)
 
 def CreateIteratorProvider[T](iteratorProvider: Function[SystemIterator[T]|None]) -> Enumerable[T]:
     return IteratorProvider[T](iteratorProvider)
