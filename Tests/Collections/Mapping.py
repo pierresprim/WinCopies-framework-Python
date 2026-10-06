@@ -1,0 +1,493 @@
+"""
+Unit tests for the mapping family (WinCopies.Collections.Abstraction.Mapping).
+
+The ordered set is the subject these benches were written for. Five defects were found on
+that one type in a single session -- D-41 to D-45 -- of which three let the collection reach
+a state no ordered set may be in, and not one of them was caught by a bench, because the
+harness held none. All five were found by hand, with a probe.
+
+So these benches assert the invariant itself rather than the outcome of any one call. A
+bench per defect catches that defect; a bench on the invariant catches the class. Whatever a
+mutator returns, and whether it writes, refuses by return value or refuses by raising, the
+collection it leaves behind must still be an ordered set.
+"""
+
+import unittest
+from collections.abc import MutableSequence
+from typing import Any, Callable
+
+from WinCopies.Collections import ReadOnlyArray
+from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
+from WinCopies.Collections.Extensions import IList, IOrderedSet
+
+type _Carrier = tuple[IOrderedSet[int], IList[int]]
+type _Call = Callable[[IOrderedSet[int], IList[int]], Any]
+
+_CONTENT: ReadOnlyArray[int] = (0, 1, 2)
+
+_DOMAIN: ReadOnlyArray[int] = (-1, 0, 1, 2, 7, 8, 9, 99)
+"""Every value these benches hand to a mutator, plus values none of them inserts.
+
+The clause that catches a phantom -- something the set admits that the order does not carry
+-- has to be a biconditional over a finite declared domain rather than a comparison of two
+enumerations, because the set is reachable only as a membership oracle: no member of either
+type returns an element taken from it. Verified by enumerating every use of the set in
+Abstraction/Mapping/Extensions.py.
+"""
+
+def _create() -> _Carrier:
+    items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+
+    return (items, items.AsList())
+
+def _snapshot(items: IOrderedSet[int]) -> ReadOnlyArray[int]:
+    return tuple(items.AsIterable())
+
+def _mutable[T](view: IList[T]) -> MutableSequence[T]:
+    """The declared door to the Python protocol.
+
+    IList is an interface and carries no dunder; the framework's way to the subscript is
+    AsMutableSequence(), which is measured to be the view itself. So routing through it
+    exercises the very object a consumer writes to, and keeps the sweep type-clean -- the
+    lesson the read-path sweep of Registry.py already paid for.
+    """
+
+    return view.AsMutableSequence()
+
+def _assertInvariant(test: unittest.TestCase, items: IOrderedSet[int], view: IList[int], label: str) -> None:
+    """The four clauses that make a collection an ordered set.
+
+    Order carries no duplicate; the count agrees with the order; the set admits exactly what
+    the order carries, over the declared domain; and the list view reads the same order as
+    the collection itself.
+    """
+
+    content: ReadOnlyArray[int] = _snapshot(items)
+    carried: tuple[int, ...] = tuple(content)
+
+    test.assertEqual(len(set(carried)), len(carried), f"{label}: duplicate in {carried}")
+    test.assertEqual(items.GetCount(), len(carried), f"{label}: count {items.GetCount()} against {carried}")
+
+    for value in _DOMAIN:
+        test.assertEqual(items.Contains(value), value in carried,
+                         f"{label}: Contains({value}) is {items.Contains(value)} while the order carries {carried}")
+
+    test.assertEqual(tuple(view.AsSequence()), carried, f"{label}: the list view reads {tuple(view.AsSequence())}")
+
+def _setElements(candidate: object) -> ReadOnlyArray[Any]:
+    """The elements of `candidate` when it is a non-empty set, otherwise nothing.
+
+    One signature holds the whole reflective step, so the single thing a strict checker
+    cannot resolve -- the element type of a set reached by walking an object graph -- stays
+    on one line instead of spreading through the walk that needs it.
+    """
+
+    return tuple[Any](candidate) if isinstance(candidate, set) and len(candidate) > 0 else () # pyright: ignore[reportUnknownArgumentType]
+
+def _attempt(call: _Call, items: IOrderedSet[int], view: IList[int]) -> Any:
+    """Runs a mutator and swallows whatever it answers, including an exception.
+
+    The invariant is not conditional on success: a refusal must leave an ordered set behind
+    just as a write must, and a refusal that raises is still a refusal.
+    """
+
+    try: return call(items, view)
+    except Exception as exception: return exception
+
+def _listCalls() -> dict[str, _Call]:
+    """Every public mutator of the ordered set's list view, in every argument shape that
+    the type distinguishes: a value it holds, one it does not, an index inside, the append
+    position, an index outside, an empty range, and a one-pass iterable."""
+
+    return {
+        "Add(7)":                   lambda o, l: l.Add(7),
+        "Add(0)":                   lambda o, l: l.Add(0),
+        "AddRange([7, 8])":         lambda o, l: l.AddRange([7, 8]),
+        "AddRange([])":             lambda o, l: l.AddRange([]),
+        "AddRange([0])":            lambda o, l: l.AddRange([0]),
+        "AddRange(iter([7, 8]))":   lambda o, l: l.AddRange(iter([7, 8])),
+        "TryAddRange([7, 8])":      lambda o, l: l.TryAddRange([7, 8]),
+        "TryAddRange([])":          lambda o, l: l.TryAddRange([]),
+        "TryAddRange([0])":         lambda o, l: l.TryAddRange([0]),
+
+        "Insert(1, 7)":             lambda o, l: l.Insert(1, 7),
+        "Insert(3, 7)":             lambda o, l: l.Insert(3, 7),
+        "Insert(4, 7)":             lambda o, l: l.Insert(4, 7),
+        "Insert(1, 0)":             lambda o, l: l.Insert(1, 0),
+        "TryInsert(1, 7)":          lambda o, l: l.TryInsert(1, 7),
+        "TryInsert(3, 7)":          lambda o, l: l.TryInsert(3, 7),
+        "TryInsert(4, 7)":          lambda o, l: l.TryInsert(4, 7),
+        "TryInsert(1, 0)":          lambda o, l: l.TryInsert(1, 0),
+
+        "InsertRange(1, [7, 8])":   lambda o, l: l.InsertRange(1, [7, 8]),
+        "InsertRange(1, [])":       lambda o, l: l.InsertRange(1, []),
+        "InsertRange(1, [0])":      lambda o, l: l.InsertRange(1, [0]),
+        "InsertRange(1, [7, 0])":   lambda o, l: l.InsertRange(1, [7, 0]),
+        "InsertRange(4, [7])":      lambda o, l: l.InsertRange(4, [7]),
+        "InsertRange(1, iter)":     lambda o, l: l.InsertRange(1, iter([7, 8])),
+        "TryInsertRange(1, [7])":   lambda o, l: l.TryInsertRange(1, [7]),
+        "TryInsertRange(1, [])":    lambda o, l: l.TryInsertRange(1, []),
+        "TryInsertRange(1, [0])":   lambda o, l: l.TryInsertRange(1, [0]),
+        "TryInsertRange(1, iter)":  lambda o, l: l.TryInsertRange(1, iter([7, 8])),
+
+        "InsertValues(1, 7, 8)":    lambda o, l: l.InsertValues(1, 7, 8),
+        "InsertValues(1)":          lambda o, l: l.InsertValues(1),
+        "InsertValues(1, 0)":       lambda o, l: l.InsertValues(1, 0),
+        "TryInsertValues(1, 7)":    lambda o, l: l.TryInsertValues(1, 7),
+        "TryInsertValues(1)":       lambda o, l: l.TryInsertValues(1),
+
+        "SetAt(1, 7)":              lambda o, l: l.SetAt(1, 7),
+        "SetAt(1, 1)":              lambda o, l: l.SetAt(1, 1),
+        "SetAt(1, 0)":              lambda o, l: l.SetAt(1, 0),
+        "SetAt(9, 7)":              lambda o, l: l.SetAt(9, 7),
+        "TrySetAt(1, 7)":           lambda o, l: l.TrySetAt(1, 7),
+        "TrySetAt(1, 1)":           lambda o, l: l.TrySetAt(1, 1),
+        "TrySetAt(1, 0)":           lambda o, l: l.TrySetAt(1, 0),
+        "TrySetAt(9, 7)":           lambda o, l: l.TrySetAt(9, 7),
+
+        "l[1] = 7":                 lambda o, l: _mutable(l).__setitem__(1, 7),
+        "l[1] = 1":                 lambda o, l: _mutable(l).__setitem__(1, 1),
+        "l[1] = 0":                 lambda o, l: _mutable(l).__setitem__(1, 0),
+        "l[9] = 7":                 lambda o, l: _mutable(l).__setitem__(9, 7),
+        "l[0:2] = [7, 8]":          lambda o, l: _mutable(l).__setitem__(slice(0, 2), [7, 8]),
+        "l[1:2] = [0]":             lambda o, l: _mutable(l).__setitem__(slice(1, 2), [0]),
+        "l[0:2] = [1, 0]":          lambda o, l: _mutable(l).__setitem__(slice(0, 2), [1, 0]),
+        "l[1:1] = [7]":             lambda o, l: _mutable(l).__setitem__(slice(1, 1), [7]),
+        "l[1:1] = []":              lambda o, l: _mutable(l).__setitem__(slice(1, 1), []),
+        "l[0:2] = [7, 7]":          lambda o, l: _mutable(l).__setitem__(slice(0, 2), [7, 7]),
+
+        "RemoveAt(1)":              lambda o, l: l.RemoveAt(1),
+        "RemoveAt(9)":              lambda o, l: l.RemoveAt(9),
+        "TryRemoveAt(1)":           lambda o, l: l.TryRemoveAt(1),
+        "TryRemoveAt(-1)":          lambda o, l: l.TryRemoveAt(-1),
+        "TryRemoveAt(9)":           lambda o, l: l.TryRemoveAt(9),
+        "RemoveRange(0, 2)":        lambda o, l: l.RemoveRange(0, 2),
+        "TryRemoveRange(0, 2)":     lambda o, l: l.TryRemoveRange(0, 2),
+        "TryRemoveRange(0, 99)":    lambda o, l: l.TryRemoveRange(0, 99),
+        "TryRemoveRange(9, 1)":     lambda o, l: l.TryRemoveRange(9, 1),
+        "Remove(0)":                lambda o, l: l.Remove(0),
+        "Remove(7)":                lambda o, l: l.Remove(7),
+        "TryRemove(0)":             lambda o, l: l.TryRemove(0),
+        "TryRemove(7)":             lambda o, l: l.TryRemove(7),
+
+        "Move(0, 2)":               lambda o, l: l.Move(0, 2),
+        "TryMove(0, 2)":            lambda o, l: l.TryMove(0, 2),
+        "TryMove(0, 9)":            lambda o, l: l.TryMove(0, 9),
+        "Swap(0, 2)":               lambda o, l: l.Swap(0, 2),
+        "TrySwap(0, 2)":            lambda o, l: l.TrySwap(0, 2),
+        "TrySwap(0, 9)":            lambda o, l: l.TrySwap(0, 9),
+        "Clear()":                  lambda o, l: l.Clear(),
+
+        "insert(1, 7)":             lambda o, l: _mutable(l).insert(1, 7),
+        "append(7)":                lambda o, l: _mutable(l).append(7),
+        "extend([7, 8])":           lambda o, l: _mutable(l).extend([7, 8]),
+        "pop()":                    lambda o, l: _mutable(l).pop(),
+        "pop(0)":                   lambda o, l: _mutable(l).pop(0),
+        "remove(0)":                lambda o, l: _mutable(l).remove(0),
+        "reverse()":                lambda o, l: _mutable(l).reverse(),
+        "clear()":                  lambda o, l: _mutable(l).clear(),
+        "del l[1]":                 lambda o, l: _mutable(l).__delitem__(1),
+        "del l[9]":                 lambda o, l: _mutable(l).__delitem__(9),
+        "del l[0:2]":               lambda o, l: _mutable(l).__delitem__(slice(0, 2))}
+
+def _setCalls() -> dict[str, _Call]:
+    """Every public mutator of the ordered set itself."""
+
+    return {
+        "Add(7)":                   lambda o, l: o.Add(7),
+        "Add(0)":                   lambda o, l: o.Add(0),
+        "TryAdd(7)":                lambda o, l: o.TryAdd(7),
+        "TryAdd(0)":                lambda o, l: o.TryAdd(0),
+        "AddRange([7, 8])":         lambda o, l: o.AddRange([7, 8]),
+        "AddRange([])":             lambda o, l: o.AddRange([]),
+        "AddRange([0])":            lambda o, l: o.AddRange([0]),
+        "TryAddRange([7, 8])":      lambda o, l: o.TryAddRange([7, 8]),
+        "TryAddRange([])":          lambda o, l: o.TryAddRange([]),
+        "TryAddRange([7, 0])":      lambda o, l: o.TryAddRange([7, 0]),
+        "AddValues(7, 8)":          lambda o, l: o.AddValues(7, 8),
+        "AddValues()":              lambda o, l: o.AddValues(),
+        "TryAddValues(7, 8)":       lambda o, l: o.TryAddValues(7, 8),
+        "TryAddValues()":           lambda o, l: o.TryAddValues(),
+        "Remove(0)":                lambda o, l: o.Remove(0),
+        "Remove(7)":                lambda o, l: o.Remove(7),
+        "TryRemove(0)":             lambda o, l: o.TryRemove(0),
+        "TryRemove(7)":             lambda o, l: o.TryRemove(7),
+        "Clear()":                  lambda o, l: o.Clear()}
+
+def _reversedCalls() -> dict[str, _Call]:
+    """The same list surface, reached through the reversed view: it maps every index, so a
+    mapping that forgets the set is a distinct way to break the same invariant."""
+
+    def reversedView(l: IList[int]) -> IList[int]: return l.AsReversed()
+
+    return {
+        "rev.SetAt(1, 7)":          lambda o, l: reversedView(l).SetAt(1, 7),
+        "rev.SetAt(1, 1)":          lambda o, l: reversedView(l).SetAt(1, 1),
+        "rev.SetAt(1, 0)":          lambda o, l: reversedView(l).SetAt(1, 0),
+        "rev.TrySetAt(1, 7)":       lambda o, l: reversedView(l).TrySetAt(1, 7),
+        "rev[1] = 7":               lambda o, l: _mutable(reversedView(l)).__setitem__(1, 7),
+        "rev[1] = 0":               lambda o, l: _mutable(reversedView(l)).__setitem__(1, 0),
+        "rev[0:2] = [7, 8]":        lambda o, l: _mutable(reversedView(l)).__setitem__(slice(0, 2), [7, 8]),
+        "rev.Insert(1, 7)":         lambda o, l: reversedView(l).Insert(1, 7),
+        "rev.Insert(3, 7)":         lambda o, l: reversedView(l).Insert(3, 7),
+        "rev.Insert(1, 0)":         lambda o, l: reversedView(l).Insert(1, 0),
+        "rev.InsertRange(1, [7])":  lambda o, l: reversedView(l).InsertRange(1, [7]),
+        "rev.Add(7)":               lambda o, l: reversedView(l).Add(7),
+        "rev.AddRange([7, 8])":     lambda o, l: reversedView(l).AddRange([7, 8]),
+        "rev.RemoveAt(1)":          lambda o, l: reversedView(l).RemoveAt(1),
+        "rev.Remove(0)":            lambda o, l: reversedView(l).Remove(0),
+        "rev.Move(0, 2)":           lambda o, l: reversedView(l).Move(0, 2),
+        "rev.Swap(0, 2)":           lambda o, l: reversedView(l).Swap(0, 2),
+        "rev.reverse()":            lambda o, l: _mutable(reversedView(l)).reverse(),
+        "del rev[1]":               lambda o, l: _mutable(reversedView(l)).__delitem__(1),
+        "del rev[0:2]":             lambda o, l: _mutable(reversedView(l)).__delitem__(slice(0, 2))}
+
+class TestOrderedSetInvariant(unittest.TestCase):
+    """What defines the type, asserted after every mutator of every carrier.
+
+    D-41 and D-45 both reached a state where the set and the order disagreed, and D-42 left
+    values the set admitted and the order did not carry. The three are distinct bugs with one
+    shape, which is why the assertion is on the shape and not on the three.
+    """
+
+    def __run(self, calls: dict[str, _Call], carrier: str) -> None:
+        for label, call in calls.items():
+            with self.subTest(carrier = carrier, call = label):
+                items, view = _create()
+
+                _attempt(call, items, view)
+                _assertInvariant(self, items, view, f"{carrier}.{label}")
+
+    def test_the_list_view_leaves_an_ordered_set(self) -> None:
+        self.__run(_listCalls(), "list")
+
+    def test_the_ordered_set_leaves_an_ordered_set(self) -> None:
+        self.__run(_setCalls(), "set")
+
+    def test_the_reversed_view_leaves_an_ordered_set(self) -> None:
+        self.__run(_reversedCalls(), "reversed")
+
+class TestRefusalLeavesNoTrace(unittest.TestCase):
+    """A call that refuses must change nothing at all.
+
+    Half of what the five defects did was to refuse and mutate anyway, or to report success
+    and mutate half. Asserting the invariant catches an incoherent state; this catches a
+    coherent state that is not the one the caller was promised.
+    """
+
+    def __refusals(self) -> dict[str, _Call]:
+        return {name: call for name, call in _listCalls().items()
+                if name in ("Insert(4, 7)", "TryInsert(4, 7)", "Insert(1, 0)", "TryInsert(1, 0)",
+                            "InsertRange(4, [7])", "InsertRange(1, [0])", "InsertRange(1, [7, 0])",
+                            "TryInsertRange(1, [0])", "InsertValues(1, 0)",
+                            "SetAt(1, 0)", "SetAt(9, 7)", "TrySetAt(1, 0)", "TrySetAt(9, 7)",
+                            "l[1] = 0", "l[9] = 7", "l[1:2] = [0]", "l[0:2] = [7, 7]",
+                            "RemoveAt(9)", "TryRemoveAt(-1)", "TryRemoveAt(9)",
+                            "TryRemoveRange(9, 1)", "Remove(7)", "TryRemove(7)",
+                            "TryMove(0, 9)", "TrySwap(0, 9)", "del l[9]",
+                            "Add(0)", "AddRange([0])")}
+
+    def test_a_refused_call_changes_nothing(self) -> None:
+        for label, call in self.__refusals().items():
+            with self.subTest(call = label):
+                items, view = _create()
+                before: ReadOnlyArray[int] = _snapshot(items)
+
+                _attempt(call, items, view)
+
+                self.assertEqual(_snapshot(items), before, f"{label} changed the content")
+                _assertInvariant(self, items, view, label)
+
+class TestWriteRoutesAgree(unittest.TestCase):
+    """D-45. One request, three routes, one outcome.
+
+    A positional write is reachable by name, by subscript and by slice. The three went
+    through three different implementations, two of which did not maintain the set, so the
+    same request landed three different contents. The bench states the equality rather than
+    the three behaviours, because that is the property that was missing.
+    """
+
+    def __write(self, route: str, key: int, value: int) -> tuple[Any, ReadOnlyArray[int]]:
+        items, view = _create()
+
+        match route:
+            case "named": outcome: Any = _attempt(lambda o, l: l.SetAt(key, value), items, view)
+            case "scalar": outcome = _attempt(lambda o, l: _mutable(l).__setitem__(key, value), items, view)
+
+            case _: outcome = _attempt(lambda o, l: _mutable(l).__setitem__(slice(key, key + 1), [value]), items, view)
+
+        return (outcome, _snapshot(items))
+
+    def test_the_three_routes_land_the_same_content(self) -> None:
+        for key in range(0, len(_CONTENT)):
+            for value in _DOMAIN:
+                with self.subTest(key = key, value = value):
+                    named: ReadOnlyArray[int] = self.__write("named", key, value)[1]
+
+                    self.assertEqual(self.__write("scalar", key, value)[1], named)
+                    self.assertEqual(self.__write("slice", key, value)[1], named)
+
+    def test_every_route_refuses_a_value_the_set_keeps(self) -> None:
+        """The refusal is what D-45 lost: the scalar route wrote the duplicate instead."""
+
+        for route in ("named", "scalar", "slice"):
+            with self.subTest(route = route):
+                outcome, content = self.__write(route, 1, 0)
+
+                self.assertIsInstance(outcome, Exception, f"{route} did not refuse")
+                self.assertEqual(content, _CONTENT, f"{route} mutated while refusing")
+
+class TestUnicityCriterion(unittest.TestCase):
+    """D-44. The value a position gives up is out of the unicity test.
+
+    It is leaving, so it cannot conflict with the value replacing it. The slice write already
+    applied that criterion through the values of the range it overwrites; the scalar write
+    refused instead, so setting a position to the value it already held failed.
+    """
+
+    def test_a_position_accepts_the_value_it_already_holds(self) -> None:
+        for key in range(0, len(_CONTENT)):
+            with self.subTest(key = key):
+                items, view = _create()
+
+                self.assertTrue(view.TrySetAt(key, view.GetAt(key)))
+                _assertInvariant(self, items, view, f"TrySetAt({key}, GetAt({key}))")
+
+    def test_a_position_refuses_a_value_another_position_holds(self) -> None:
+        """The other half: the criterion excludes the value that leaves, not every value the
+        set already admits. A bench on the first half alone would pass on a write that had no
+        unicity test at all."""
+
+        for key in range(0, len(_CONTENT)):
+            for other in range(0, len(_CONTENT)):
+                if other == key: continue
+
+                with self.subTest(key = key, other = other):
+                    items, view = _create()
+
+                    self.assertFalse(view.TrySetAt(key, view.GetAt(other)))
+                    self.assertEqual(_snapshot(items), _CONTENT)
+
+    def test_the_criterion_excludes_by_identity_and_not_only_by_equality(self) -> None:
+        """A value never equal to itself -- float('nan') is one, and it is hashable, so an
+        ordered set may legitimately hold it -- is still the value the position gives up.
+        An inequality test refuses it; a membership test, which carries an identity shortcut,
+        does not."""
+
+        nan: float = float("nan")
+        items: IOrderedSet[float] = CreateOrderedSet((nan,))
+        view: IList[float] = items.AsList()
+
+        self.assertFalse(nan == nan)
+        self.assertTrue(items.Contains(nan))
+        self.assertTrue(view.TrySetAt(0, nan), "a position refused the very object it holds")
+        self.assertEqual(items.GetCount(), 1)
+
+class TestWriteReplacesInBothContainers(unittest.TestCase):
+    """The design decision D-44 and D-45 were closed on, which nothing else would catch.
+
+    A positional write replaces the object in the order AND in the set, so the two hold the
+    same object rather than two that merely compare equal. Every positional write in the
+    framework writes, and the slice write of this very type replaces in both -- so the scalar
+    write conforms. Replacing in the order alone passes every other bench in this module,
+    which is why this one exists.
+
+    The set is private and holds no public accessor to its elements, so it is reached by type
+    rather than by name, the way the revocable-view benches count cookies.
+    """
+
+    class _Value:
+        """Equal and hashable on `id`; `tag` is payload the equality ignores."""
+
+        def __init__(self, id: int, tag: str) -> None:
+            self.id: int = id
+            self.tag: str = tag
+
+        def __eq__(self, other: object) -> bool: return isinstance(other, TestWriteReplacesInBothContainers._Value) and other.id == self.id
+        def __hash__(self) -> int: return hash(self.id)
+        def __repr__(self) -> str: return f"{self.id}{self.tag}"
+
+    def __heldBy(self, items: object, value: Any) -> Any:
+        """The object the inner set holds for `value`, or None if it holds no such object.
+
+        The set is private and no member of either type returns an element taken from it, so
+        it is reached by type, the way the revocable-view benches reach cookies by name. The
+        walk is reflective by necessity, so pyright cannot type what it traverses; only one
+        element leaves this method, which keeps the unknown confined to the walk.
+        """
+
+        seen: set[int] = set[int]()
+        stack: list[object] = [items]
+
+        while len(stack) > 0:
+            current: object = stack.pop()
+
+            if id(current) in seen: continue
+
+            seen.add(id(current))
+
+            elements: ReadOnlyArray[Any] = _setElements(current)
+
+            if len(elements) > 0:
+                for element in elements:
+                    if element == value: return element
+
+                return None
+            if hasattr(current, "__dict__"): stack.extend(vars(current).values())
+
+        self.fail("the inner set was not reachable: this bench needs rewriting, not disabling")
+
+    def test_a_write_replaces_the_object_in_the_set_too(self) -> None:
+        routes: tuple[tuple[str, Callable[[IList[Any], Any], Any]], ...] = (
+            ("named", lambda v, x: v.SetAt(1, x)),
+            ("scalar", lambda v, x: _mutable(v).__setitem__(1, x)),
+            ("slice", lambda v, x: _mutable(v).__setitem__(slice(1, 2), [x])))
+
+        for route, write in routes:
+            with self.subTest(route = route):
+                values: tuple[Any, ...] = tuple(TestWriteReplacesInBothContainers._Value(i, "a") for i in range(3))
+                replacement: Any = TestWriteReplacesInBothContainers._Value(1, "b")
+
+                items: IOrderedSet[Any] = CreateOrderedSet(values)
+                view: IList[Any] = items.AsList()
+
+                # The write goes through _attempt: a route that refuses must read as this
+                # bench failing with its reason, not as it erroring out on the exception.
+                outcome: Any = _attempt(lambda o, l: write(view, replacement), items, view)
+
+                self.assertNotIsInstance(outcome, Exception, f"{route}: the write was refused ({outcome!r})")
+                self.assertIs(view.GetAt(1), replacement, f"{route}: the order kept the old object")
+
+                held: Any = self.__heldBy(items, replacement)
+
+                self.assertIsNotNone(held, f"{route}: the set no longer admits the value at all")
+                self.assertIs(held, replacement, f"{route}: the set kept the old object")
+
+class TestOrderedSetAddRangeIsSinglePass(unittest.TestCase):
+    """Open defect: the residual of D-42, on the ordered set's own TryAddRange.
+
+    TryAddRange hands `items` to the set and then to the order, so a one-pass iterable
+    reaches only the first of the two: the set admits the values, the order never receives
+    them, and the call reports success. The values then exist for Contains and for no other
+    member, and can never be added again.
+
+    The list view was corrected by buffering the iterable; the set itself was not, 254 lines
+    above in the same file. This is expectedFailure rather than an exclusion because it must
+    signal when the defect is closed, which an exclusion would not: an exclusion that stays
+    says nothing.
+    """
+
+    @unittest.expectedFailure
+    def test_a_one_pass_iterable_reaches_the_order(self) -> None:
+        calls: tuple[tuple[str, Callable[[IOrderedSet[int]], Any]], ...] = (
+            ("TryAddRange", lambda o: o.TryAddRange(iter([7, 8]))),
+            ("AddRange", lambda o: o.AddRange(iter([7, 8]))))
+
+        for label, call in calls:
+            with self.subTest(call = label):
+                items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+
+                call(items)
+
+                self.assertEqual(_snapshot(items), (0, 1, 2, 7, 8), f"{label} lost the values")
+                self.assertTrue(items.Contains(7))
