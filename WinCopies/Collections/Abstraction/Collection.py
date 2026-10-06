@@ -254,7 +254,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], Mutabl
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
         def extendAt(items: _MutableSequence[T], index: int, values: Iterable[T]) -> None: items[index:index] = values
 
-        return IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews) if  self.ValidateIndex(index, True) else None
+        return IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews) if self.ValidateIndex(index, True) else None
     @final
     def _RemoveRange(self, index: int, count: int) -> None:
         self._InvalidateViews()
