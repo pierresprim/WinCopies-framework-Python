@@ -934,10 +934,13 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     
     @final
     def insert(self, index: int, value: TItem) -> None: self.TryInsert(index, value)
-    # Reversing a reversed view is reversing its source, so this goes to the source whole
-    # rather than through 2n positional writes. That also keeps it out of reach of a source
-    # whose positional write is constrained -- an ordered set refuses a momentary duplicate,
-    # which the inherited pairwise implementation produces at every step.
+    # Reversing a reversed view is reversing its source -- which is what AsReversed() names
+    # on this class, though the delegation goes through _GetContainerAsList(): that is the
+    # accessor its eight siblings use, and the container by definition, where AsReversed()
+    # is the source here and a memoised wrapper elsewhere in the hierarchy. Delegating once
+    # also replaces the 2n positional writes of the inherited implementation, which a
+    # constrained source refuses one at a time -- an ordered set rejects the momentary
+    # duplicate each of those writes holds.
     @final
     def reverse(self) -> None: self._GetContainerAsList().AsMutableSequence().reverse()
 
