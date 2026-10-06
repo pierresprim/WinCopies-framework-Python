@@ -45,6 +45,10 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def Contains(self, value: T|object) -> bool: return self.__set.Contains(value)
     
     def _Move(self, x: int, y: int) -> None: self.__list.Move(x, y)
+    # An exchange is a permutation too, so it goes to the order alone. The default
+    # implementation performs it as two positional writes, the first of which holds a
+    # momentary duplicate that the unicity rule refuses.
+    def _Swap(self, x: int, y: int) -> None: self.__list.Swap(x, y)
     # A permutation leaves membership untouched, so it goes to the order alone, exactly as
     # _Move does. The inherited protocol implementation reverses by pairwise positional
     # assignment instead, and each of those assignments momentarily holds a duplicate that

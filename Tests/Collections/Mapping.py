@@ -56,8 +56,6 @@ lived there for a session, and D-51 still does.
 """
 
 _BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-51, Swap goes through positional assignment",
-     (("list", "Swap(0, 2)"), ("list", "TrySwap(0, 2)"), ("reversed", "rev.Swap(0, 2)"))),
     ("D-53 and D-54, the protocol mixins reach for index -1",
      (("list", "pop()"), ("list", "clear()"))),
     ("D-24 on the set family, an empty range is a failure",
@@ -336,8 +334,8 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
     closing one of the three signals without waiting for the others.
     """
 
-    def _assertGroupSucceeds(self, index: int) -> None:
-        defect, calls = _BLOCKED[index]
+    def _assertGroupSucceeds(self, defect: str) -> None:
+        calls: ReadOnlyArray[tuple[str, str]] = next(group for name, group in _BLOCKED if name.startswith(defect))
         tables: dict[str, dict[str, _Call]] = dict(_carriers())
 
         for carrier, label in calls:
@@ -348,16 +346,12 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
                 self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
 
     @unittest.expectedFailure
-    def test_swap_is_available(self) -> None:
-        self._assertGroupSucceeds(0)
-
-    @unittest.expectedFailure
     def test_the_protocol_pop_and_clear_work(self) -> None:
-        self._assertGroupSucceeds(1)
+        self._assertGroupSucceeds("D-53")
 
     @unittest.expectedFailure
     def test_an_empty_range_is_not_a_failure(self) -> None:
-        self._assertGroupSucceeds(2)
+        self._assertGroupSucceeds("D-24")
 
 class TestRefusalLeavesNoTrace(unittest.TestCase):
     """A call that refuses must change nothing at all.

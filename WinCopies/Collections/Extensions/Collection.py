@@ -683,6 +683,11 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))
+    # Delegated for the same reason as the reversal: the exchange goes to the source as
+    # one operation, with its indices transposed, instead of two positional writes that
+    # a constrained source may refuse one at a time.
+    @final
+    def _Swap(self, x: int, y: int) -> None: self._GetSpecializedContainer().Swap(self.ReverseIndex(x), self.ReverseIndex(y))
     
     @final
     def AsReadOnly(self) -> ITuple[TItem]: return self.__readOnly.GetValue()
