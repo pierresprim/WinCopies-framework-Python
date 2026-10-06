@@ -60,9 +60,9 @@ class _ValueEnumerable[TKey: HashableProtocol, TValueIn, TValueOut](CountableEnu
         self.__enumerable: ICountableEnumerable[TValueIn] = dic.GetValues()
         self.__iterable: Iterable[TValueOut] = Select(self.__enumerable.AsIterable(), converter)
     
-    def GetCount(self) -> int: return self.__enumerable.GetCount()
-    
     def _TryGetIterator(self) -> Iterator[TValueOut]|None: return iter(self.__iterable)
+    
+    def GetCount(self) -> int: return self.__enumerable.GetCount()
     
     def TryGetEnumerator(self) -> IEnumerator[TValueOut]|None: return TryAsEnumerator(self._TryGetIterator())
 @final
