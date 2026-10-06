@@ -26,6 +26,9 @@ class IterableDirEntry(RecursivelyEnumerable[IDirEntry], IDirEntry):
     
     @final
     def IsDirectory(self) -> bool: return os.path.isdir(self.GetPath())
+
+    @final
+    def IsResumable(self) -> bool|None: return False
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IterableDirEntry]|None: return AsEnumerator(Select(os.scandir(self.GetPath()), lambda dirEntry: SystemDirEntry(dirEntry))) if self.IsDirectory() else None

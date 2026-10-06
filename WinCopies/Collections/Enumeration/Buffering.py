@@ -215,6 +215,9 @@ class _ItemEnumerable[T](Enumerable[T]):
         super().__init__()
 
         self.__enumerator: _AbstractionEnumerator[T] = _AbstractionEnumerator[T](builder, enumerator)
+
+    @final
+    def IsResumable(self) -> bool|None: return None
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__enumerator.GetItemEnumerator()
 
@@ -225,6 +228,9 @@ class _Enumerable[T](Enumerable[T]):
 
         self.__builder: _ICookie[T] = builder
         self.__iterable: IEnumerable[T] = iterable
+
+    @final
+    def IsResumable(self) -> bool|None: return None
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None:
         enumerator: IEnumerator[T]|None = self.__iterable.TryGetEnumerator()
@@ -267,6 +273,9 @@ class IterableBuilder[T](Enumerable[T]):
     @final
     def __UnsetIterable(self) -> None:
         self.__UpdateIterable(GetEmptyEnumerable())
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__iterable.TryGetEnumerator()

@@ -6,7 +6,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, IterableBase, TryAsEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, IterableBase, IsResumable, TryGetEnumerator, TryAsEnumerable
 from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, GetNotNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
@@ -33,6 +33,9 @@ class IFormattable(IArgument):
 
 class IParameter[T](IEnumerable[T], IFormattable):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return None
 
 class _IColumnParameterGenericConstraint[TKey, TOperand](GenericConstraint[TOperand, IKeyValuePair[TKey, Operator]]):
     def __init__(self) -> None: super().__init__()
@@ -192,4 +195,7 @@ class TableParameter[T](Enumerable[ITableArgument[T]], ITableParameter[T]):
     def GetAlias(self) -> str|None: return self.__alias
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[ITableArgument[T]]|None: return None if self.__arguments is None else self.__arguments.TryGetEnumerator()
+    def IsResumable(self) -> bool|None: return IsResumable(self.__arguments)
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[ITableArgument[T]]|None: return TryGetEnumerator(self.__arguments)

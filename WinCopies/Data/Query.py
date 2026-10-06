@@ -12,7 +12,7 @@ from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, TryGetEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, IsResumable, TryGetEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
 from WinCopies.Collections.Extensions import ICollection, IDictionary
@@ -284,6 +284,8 @@ class _Enumerable(RecursivelyEnumerable[ISubselectionQuery]):
             super().__init__()
 
             self.__query: ISubselectionQuery = query
+
+        def IsResumable(self) -> bool|None: return IsResumable(self.__query.GetSubqueries())
         
         def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None: return TryGetEnumerator(self.__query.GetSubqueries())
     
@@ -318,6 +320,8 @@ class _Enumerable(RecursivelyEnumerable[ISubselectionQuery]):
     
     def _TryGetRecursiveStackedEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None: return _Enumerable._Enumerator(self, enumerator, self._AsRecursivelyEnumerable, self.__queryBuilder)
     def _TryGetRecursiveEnumerator(self, enumerator: IEnumerator[ISubselectionQuery], handler: IRecursiveEnumerationHandler[ISubselectionQuery]|None = None) -> IEnumerator[ISubselectionQuery]|None: return self._TryGetRecursiveStackedEnumerator(enumerator)
+
+    def IsResumable(self) -> bool|None: return self.__queries.IsResumable()
     
     def TryGetEnumerator(self) -> IEnumerator[ISubselectionQuery]|None: return self.__queries.TryGetEnumerator()
 

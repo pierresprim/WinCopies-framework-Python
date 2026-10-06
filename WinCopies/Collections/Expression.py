@@ -57,7 +57,13 @@ class ICompositeExpression[TValue, TConnector](IInterface):
     def SetNextExpression(self, connector: TConnector, expression: ICompositeExpressionNode[TValue, TConnector]) -> None:
         ...
 
-class ICompositeExpressionRoot[TValue, TConnector](ICompositeExpressionNodeBase[TValue, TConnector], IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]]):
+class _ICompositeExpressionNode[TValue, TConnector](ICompositeExpressionNodeBase[TValue, TConnector], IEnumerable[ICompositeExpression[TValue, TConnector]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
+
+class ICompositeExpressionRoot[TValue, TConnector](_ICompositeExpressionNode[TValue, TConnector], IRecursivelyEnumerable[ICompositeExpression[TValue, TConnector]]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -67,7 +73,7 @@ class ICompositeExpressionRoot[TValue, TConnector](ICompositeExpressionNodeBase[
     def TryGetRecursiveStackedValueEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[ICompositeExpression[TValue, TConnector]]|None = None) -> IEnumerator[IKeyValuePair[TValue, INullable[TConnector]]]|None:
         ...
 
-class ICompositeExpressionNode[TValue, TConnector](ICompositeExpressionNodeBase[TValue, TConnector], IEnumerable[ICompositeExpression[TValue, TConnector]]):
+class ICompositeExpressionNode[TValue, TConnector](_ICompositeExpressionNode[TValue, TConnector]):
     def __init__(self) -> None: super().__init__()
 
 class IConnector[TValue, TConnector](IInterface):

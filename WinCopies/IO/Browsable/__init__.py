@@ -195,6 +195,8 @@ class IScannableObject[T](IScannable, IBrowsableObject[T]):
 
 class IExplorable(IRecursivelyEnumerable["IExplorable"], IBrowsable):
     def __init__(self) -> None: super().__init__()
+
+    def IsResumable(self) -> bool|None: return None
 class IExplorableObject[T](IExplorable, IBrowsableObject[T]):
     def __init__(self) -> None: super().__init__()
 

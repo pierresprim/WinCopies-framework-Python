@@ -87,6 +87,8 @@ class _ExecutionResult(QueryResultBase, Enumerable[Sequence[object]], ISelection
         super().__init__(connection, query)
 
         self.__function = _ExecutionResult._FunctionUpdater(self._GetCursor(), updateFunction, resetFunction)
+
+    def IsResumable(self) -> bool|None: return False
     
     def TryGetEnumerator(self) -> IEnumerator[Sequence[object]]|None: return self.__function.GetValue()
 @final

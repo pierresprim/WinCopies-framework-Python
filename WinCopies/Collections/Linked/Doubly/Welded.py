@@ -31,6 +31,9 @@ class IDoublyLinkedNode[T](IDoublyLinkedNodeAbstract[T]):
 
 class IReadOnlyEnumerableListBase[T](IReadOnlyList[T], IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
 class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReversableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -163,6 +166,9 @@ class _EnumerableListEnumerable[TItem, TNode: IRemovable](ResumableEnumerable[TN
         super().__init__()
 
         self.__list: IEnumerableListBase[TItem, TNode] = l
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     def TryGetEnumerator(self) -> IEnumerator[TNode]|None: return self.__list.TryGetNodeEnumerator()
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TNode]|None: return self.__list.TryGetResumableNodeEnumerator()
@@ -174,6 +180,9 @@ class _CountableEnumerableListEnumerable[T](Enumerable[ICountableLinkedListNode[
         self.__list: ICountableList[T] = l
     
     def GetCount(self) -> int: return self.__list.GetCount()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     def TryGetEnumerator(self) -> IEnumerator[ICountableLinkedListNode[T]]|None: return self.__list.TryGetNodeEnumerator()
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None: return self.__list.TryGetResumableNodeEnumerator()

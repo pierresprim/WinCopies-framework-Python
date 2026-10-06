@@ -48,6 +48,9 @@ class IFieldConditionSetItem[T: IColumn](IFieldParameterSetItem[T, IParameter[IO
 
 class IFieldParameterRecursivelyEnumerable[TColumn: IColumn, TParameter: IParameter[IOperandValue]](IRecursivelyEnumerable[IFieldParameterSetItem[TColumn, TParameter]]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
 class IFieldConditionRecursivelyEnumerable[T: IColumn](IFieldParameterRecursivelyEnumerable[T, IParameter[IOperandValue]]):
     def __init__(self) -> None: super().__init__()
 

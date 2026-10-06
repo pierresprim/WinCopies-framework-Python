@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized
-from typing import final, Any, Self
+from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized, Sequence, Mapping
+from typing import overload, final, Any, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
@@ -102,7 +102,13 @@ class IteratorBase[T](SystemIterator[T], IEnumerator[T]):
     @final
     def __iter__(self) -> Self: return self
 
-class IEnumerableBase[T](IInterface):
+class IEnumerableAbstract(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def IsResumable(self) -> bool|None:
+        ...
+class IEnumerableBase[T](IEnumerableAbstract):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -189,6 +195,8 @@ class _EmptyEnumerator[T](IteratorBase[T]):
 @final
 class _EmptyEnumerable[T](_SystemIterable[T]):
     def __init__(self) -> None: super().__init__()
+
+    def IsResumable(self) -> bool|None: return None
     
     def TryGetEnumerator(self) -> None: return None
     
@@ -660,7 +668,16 @@ class Iterable[T](IterableBase[T]):
     @final
     def _TryGetIterator(self) -> SystemIterator[T]|None: return iter(self._GetIterable())
 
-class IteratorProvider[T](Enumerable[T]):
+    @final
+    def IsResumable(self) -> bool|None:
+        return IsResumable(self.__iterable)
+
+class IteratorProviderBase[T](Enumerable[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return None
+class IteratorProvider[T](IteratorProviderBase[T]):
     def __init__(self, iteratorProvider: Function[SystemIterator[T]|None]) -> None:
         super().__init__()
         
@@ -671,7 +688,7 @@ class IteratorProvider[T](Enumerable[T]):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
-class EnumeratorProvider[T](Enumerable[T]):
+class EnumeratorProvider[T](IteratorProviderBase[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]) -> None:
         super().__init__()
         
@@ -685,6 +702,18 @@ class EnumeratorProvider[T](Enumerable[T]):
 
 __emptyEnumerable = _EmptyEnumerable[Any]()
 __emptyEnumerator = _EmptyEnumerator[Any]()
+
+@overload
+def IsResumable[TKey, TValue](iterable: Mapping[TKey, TValue]) -> bool: ...
+@overload
+def IsResumable[T](iterable: IEnumerable[T]|SystemIterable[T]|None) -> bool: ...
+
+def IsResumable[TKey, TValue](iterable: Mapping[TKey, TValue]|IEnumerable[TKey]|SystemIterable[TKey]|None) -> bool|None:
+    match iterable:
+        case Sequence()|Mapping(): return True
+        case IEnumerable(): return iterable.IsResumable()
+        
+        case _: return None
 
 def GetEmptyEnumerable[T]() -> IEnumerable[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyEnumerable

@@ -29,6 +29,9 @@ from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     @abstractmethod
     def AsCollection(self) -> CollectionBase[T]:
@@ -316,6 +319,9 @@ class ISizedList[T](IList[T]):
 # TODO: Should implement a Mapping abstractor provider.
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionaryBase[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     @abstractmethod
     def GetKeys(self) -> ICountableEnumerable[TKey]:
@@ -333,6 +339,9 @@ class IDictionary[TKey: HashableProtocol, TValue](IDictionaryBase[TKey, TValue],
 
 class IReadOnlySet[T: HashableProtocol](IReadOnlySetBase[T], ICountableEnumerable[T], IStringable):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
 class ISet[T: HashableProtocol](ISetBase[T], IReadOnlySet[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -461,6 +470,9 @@ class IOrderedSet[T: HashableProtocol](IOrderedSetBase[T], ISet[T], IReadOnlyOrd
 
 class IReadOnlyKeyedSet[TKey: HashableProtocol, TValue](ICountableEnumerable[ITuple[TValue]], IReadOnlyCollectionBase):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     @abstractmethod
     def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:

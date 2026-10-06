@@ -63,6 +63,8 @@ class _ValueEnumerable[TKey: HashableProtocol, TValueIn, TValueOut](CountableEnu
     def _TryGetIterator(self) -> Iterator[TValueOut]|None: return iter(self.__iterable)
     
     def GetCount(self) -> int: return self.__enumerable.GetCount()
+
+    def IsResumable(self) -> bool|None: return True
     
     def TryGetEnumerator(self) -> IEnumerator[TValueOut]|None: return TryAsEnumerator(self._TryGetIterator())
 @final

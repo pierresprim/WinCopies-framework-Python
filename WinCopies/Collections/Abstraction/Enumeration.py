@@ -19,6 +19,8 @@ class _IEnumerable[T](IEnumerable[T]):
     @abstractmethod
     def _GetEnumerable(self) -> IEnumerable[T]:
         ...
+
+    def IsResumable(self) -> bool|None: return self._GetEnumerable().IsResumable()
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetEnumerable().TryGetEnumerator()
 class _IEquatableEnumerable[T](_IEnumerable[T], IEquatableEnumerable[T]):

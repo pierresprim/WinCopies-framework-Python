@@ -43,6 +43,8 @@ class _RecursivelyEnumerable[T](RecursivelyEnumerable[ITreeNode[T]]):
     def _AsRecursivelyEnumerable(self, container: ITreeNode[T]) -> IEnumerable[ITreeNode[T]]:
         return container.GetItems().AsNodeEnumerable()
     
+    def IsResumable(self) -> bool|None: return True
+    
     def TryGetEnumerator(self) -> IEnumerator[ITreeNode[T]]|None: return self.__tree.TryGetNodeEnumerator()
 
 @final

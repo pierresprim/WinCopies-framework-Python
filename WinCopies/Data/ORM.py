@@ -1163,6 +1163,9 @@ class EntityKeyBase[T: IItem](Abstract, IEntityKey[T]):
         ...
     
     @final
+    def IsResumable(self) -> bool|None: return False
+    
+    @final
     def TryGetEnumerator(self) -> IEnumerator[IValueItem]|None: return self._GetItems().TryGetEnumerator()
     
     @final
@@ -1216,6 +1219,9 @@ class EntityKey[T: IValueItem](EntityKeyBase[T], IEntityKey[T]):
             super().__init__()
 
             self.__key: IEntityKey[_T] = key
+
+        @final
+        def IsResumable(self) -> bool|None: return False
         
         def TryGetEnumerator(self) -> IEnumerator[_T]|None: return EntityKey[_T]._Enumerable._Enumerator(self.__key)
     
@@ -1876,6 +1882,9 @@ class _EntityEnumerable(RecursivelyEnumerable[IReference[Entity]]):
     
     def _AsRecursivelyEnumerable(self, container: IReference[Entity]) -> IEnumerable[IReference[Entity]]:
         return _EntityEnumerable(container.GetValue(), self.__data)
+
+    @final
+    def IsResumable(self) -> bool|None: return False
     
     def TryGetEnumerator(self) -> IEnumerator[IReference[Entity]]|None:
         e: Entity = self.__entity

@@ -139,6 +139,9 @@ class DictionaryEnumerable[TKey: HashableProtocol, TValue, TItem](CountableEnume
     @abstractmethod
     def _GetDictionary(self) -> IDictionary[TKey, TValue]:
         ...
+
+    @final
+    def IsResumable(self) -> bool|None: return True
     
     @final
     def IsEmpty(self) -> bool: return self._GetDictionary().IsEmpty()

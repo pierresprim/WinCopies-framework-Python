@@ -76,6 +76,9 @@ class IList[T](IListBase[T], IReadOnlyList[T]):
 
 class IReadOnlyEnumerableListBase[T](IReadOnlyListBase[T], IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
 class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReadOnlyList[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -145,6 +148,9 @@ class _EnumerableUpdaterEnumerable[T](IterableBase[T], CountableCollectionBase, 
     def _TryGetIterator(self) -> Iterator[T]|None: return self.__items.AsGenerator()
     
     def GetCount(self) -> int: return self.__items.GetCount()
+
+    @final
+    def IsResumable(self) -> bool|None: return False
 @final
 class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
     def __init__(self, items: ICountableListBase[T], updater: Method[IFunction[ICountableEnumerable[T]]]) -> None:

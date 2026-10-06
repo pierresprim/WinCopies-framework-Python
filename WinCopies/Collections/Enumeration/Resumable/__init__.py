@@ -183,6 +183,8 @@ class _EmptyEnumerator[T](IteratorBase[T], IResumableEnumerator[T]):
 @final
 class _EmptyEnumerable[T](Iterable[T], IResumableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
+
+    def IsResumable(self) -> bool|None: return None
     
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return GetEmptyEnumerable().TryGetEnumerator() # pyright: ignore[reportUnknownVariableType]
     def TryGetResumableEnumerator(self) -> None: return None
