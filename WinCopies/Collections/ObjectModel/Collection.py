@@ -314,6 +314,7 @@ class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IOb
     def TrySetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(key, value)
     
     def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(x, y)
+    def _Swap(self, x: int, y: int) -> None: self._GetContainer().Swap(x, y)
     
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(key)
     

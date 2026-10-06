@@ -111,16 +111,41 @@ class ReadOnlySequence[T](SequenceBase[T], ReadOnlyCollectionBase[T]):
     @final
     def __iter__(self) -> Iterator[T]: return GetIterator(self._TryGetIterator())
 
+class _IMutableSequence[T](IMutableSequence[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _ReverseDefault(self) -> None:
+        ...
+
+    @abstractmethod
+    def _Reverse(self) -> None:
+        ...
+
 class Sequence[T](ReadOnlySequence[T], ISequence[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
     def AsSequence(self) -> SequenceBase[T]: return self
-class MutableSequence[T](MutableSequenceBase[T], Sequence[T], IMutableSequence[T]):
+class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _ReverseDefault(self) -> None:
+        return super().reverse()
     
     @final
     def AsMutableSequence(self) -> MutableSequenceBase[T]: return self
+
+    @final
+    def reverse(self) -> None:
+        self._Reverse()
+
+class IDefaultMutableSequence[T](_IMutableSequence[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _Reverse(self) -> None: self._ReverseDefault()
 
 class IEnumeratorMonitor(IInterface):
     def __init__(self) -> None: super().__init__()

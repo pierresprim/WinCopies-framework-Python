@@ -10,7 +10,10 @@ from WinCopies.Collections.Abstract.Collection import (Tuple as _Tuple, Equatabl
 from WinCopies.Collections.Abstract.Mapping import Set as _Set, Dictionary as _Dictionary
 from WinCopies.Collections.Abstract.Selection import ConverterBase as ConverterAbstract, TwoWayConverterBase
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, ISet, IDictionary
+from WinCopies.Collections.Extensions import (IDefaultMutableSequence,
+                                              ITuple, IEquatableTuple, IHashableTuple,
+                                              IArray, IList,
+                                              ISet, IDictionary)
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter as _Converter
 
@@ -116,7 +119,7 @@ class Array[TIn, TOut](_Array[TIn, TOut], TwoWayConverter[TIn, TOut]):
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
 
-class List[TIn, TOut](_List[TIn, TOut], TwoWayConverter[TIn, TOut]):
+class List[TIn, TOut](_List[TIn, TOut], TwoWayConverter[TIn, TOut], IDefaultMutableSequence[TOut]):
     def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], converters: IConverters[TIn, TOut]) -> None:
         super().__init__(items)
 

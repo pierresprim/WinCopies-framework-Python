@@ -53,7 +53,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # _Move does. The inherited protocol implementation reverses by pairwise positional
     # assignment instead, and each of those assignments momentarily holds a duplicate that
     # the unicity rule refuses -- rightly per assignment, wrongly for the operation.
-    def reverse(self) -> None: self.__list.AsMutableSequence().reverse()
+    def _Reverse(self) -> None: self.__list.AsMutableSequence().reverse()
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindFirstIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self.__list.FindLastIndex(item, predicate)

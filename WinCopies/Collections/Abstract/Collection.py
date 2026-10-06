@@ -135,6 +135,8 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(x, y)
+    @final
+    def _Swap(self, x: int, y: int) -> None: self._GetSpecializedContainer().Swap(x, y)
     
     @final
     def _SetAt(self, key: int, value: TOut) -> None:
@@ -164,9 +166,6 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
     @final
-    def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)
-    
-    @final
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
 class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut], MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
@@ -186,9 +185,6 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
-    
-    @final
-    def _Swap(self, x: int, y: int) -> None: super()._Swap(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[TOut]: return self._Clone(self._GetContainer().SliceAt(key))

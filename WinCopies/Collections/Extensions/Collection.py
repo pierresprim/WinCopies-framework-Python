@@ -9,7 +9,7 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
-from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
+from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, ISwappable, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
@@ -853,7 +853,7 @@ class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCo
     def __init__(self, items: TList) -> None: super().__init__(items)
 
 @final
-class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T]):
+class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T], ISwappable[int, T]):
     def __init__(self, items: IList[T]) -> None:
         def update(func: IFunction[IArray[T]]) -> None: self.__reversed = func
         
@@ -903,6 +903,13 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def _GetContainerAsList(self) -> IList[TItem]:
         return self._GetInnerContainerAsList(self._GetContainer())
+    
+    # Reversing a reversed view is reversing its source, so this goes to the source whole
+    # rather than through 2n positional writes. That also keeps it out of reach of a source
+    # whose positional write is constrained -- an ordered set refuses a momentary duplicate,
+    # which the inherited pairwise implementation produces at every step.
+    @final
+    def _Reverse(self) -> None: self._GetContainerAsList().AsMutableSequence().reverse()
 
     @final
     def AsFixedSize(self) -> IArray[TItem]: return self.__fixedSize.GetValue()
@@ -934,15 +941,6 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     
     @final
     def insert(self, index: int, value: TItem) -> None: self.TryInsert(index, value)
-    # Reversing a reversed view is reversing its source -- which is what AsReversed() names
-    # on this class, though the delegation goes through _GetContainerAsList(): that is the
-    # accessor its eight siblings use, and the container by definition, where AsReversed()
-    # is the source here and a memoised wrapper elsewhere in the hierarchy. Delegating once
-    # also replaces the 2n positional writes of the inherited implementation, which a
-    # constrained source refuses one at a time -- an ordered set rejects the momentary
-    # duplicate each of those writes holds.
-    @final
-    def reverse(self) -> None: self._GetContainerAsList().AsMutableSequence().reverse()
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...

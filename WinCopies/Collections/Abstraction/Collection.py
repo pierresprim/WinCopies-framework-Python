@@ -10,6 +10,7 @@ from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatable
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
+                                              IDefaultMutableSequence,
                                               ICollection,
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray,
@@ -173,8 +174,8 @@ class Array[T](ArrayBase[T, _MutableSequence[T]], _Array[T], IGenericSpecialized
     @final
     def _Swap(self, x: int, y: int) -> None:
         self._InvalidateViews()
-
-        super()._Swap(x, y)
+        
+        self._SwapDefault(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return Array[T](self._GetContainer()[key])
@@ -218,7 +219,7 @@ class ListAbstract[T](ArrayAbstractBase[T, _MutableSequence[T]], ICollection[T],
             self._GetContainer().clear()
     
     def ToString(self) -> str: return str(self._GetContainer())
-class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], MutableSequence[T], _List[T]):
+class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], MutableSequence[T], _List[T], IDefaultMutableSequence[T]):
     def __init__(self, items: _MutableSequence[T]|Iterable[T]|None) -> None: super().__init__(items)
     
     @final
@@ -228,7 +229,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], Mutabl
     def _Swap(self, x: int, y: int) -> None:
         self._InvalidateViews()
         
-        super()._Swap(x, y)
+        self._SwapDefault(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return List[T](self._GetContainer()[key])
@@ -458,6 +459,11 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
         self._InvalidateViews()
         
         self._GetItems().Move(x, y)
+    @final
+    def _Swap(self, x: int, y: int) -> None:
+        self._InvalidateViews()
+        
+        self._GetItems()._SwapDefault(x, y)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return ArrayCollection[T](CreateArray(Select(self._GetItems().SliceAt(key).AsIterable(), lambda item: item.Copy())))

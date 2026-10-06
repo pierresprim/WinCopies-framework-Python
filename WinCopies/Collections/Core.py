@@ -367,13 +367,27 @@ def _ChangePosition[T](x: T, y: T, validator: Callable[[T, T], bool], updater: C
 
     return None
 
-def _Swap[TKey, TValue](items: IReadWriteCollection[TKey, TValue], x: TKey, y: TKey) -> None:
-    value: TValue = items.GetAt(x)
+class _ISwappable[TKey, TValue](IReadWriteCollection[TKey, TValue]):
+    def __init__(self) -> None: super().__init__()
 
-    items.SetAt(x, items.GetAt(y))
-    items.SetAt(y, value)
+    @final
+    def _SwapDefault(self, x: TKey, y: TKey) -> None:
+        value: TValue = self.GetAt(x)
+        
+        self.SetAt(x, self.GetAt(y))
+        self.SetAt(y, value)
+    
+    @abstractmethod
+    def _Swap(self, x: TKey, y: TKey) -> None:
+        ...
+class ISwappable[TKey, TValue](_ISwappable[TKey, TValue]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _Swap(self, x: TKey, y: TKey) -> None:
+        self._SwapDefault(x, y)
 
-class IArray[T](ITuple[T], ICountableIndexable[T]):
+class IArray[T](ITuple[T], ICountableIndexable[T], _ISwappable[int, T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -388,8 +402,6 @@ class IArray[T](ITuple[T], ICountableIndexable[T]):
     @final
     def TryMove(self, x: int, y: int) -> bool|None: return self.__ChangePosition(x, y, self._Move)
 
-    def _Swap(self, x: int, y: int) -> None:
-        _Swap(self, x, y)
     @final
     def TrySwap(self, x: int, y: int) -> bool|None: return self.__ChangePosition(x, y, self._Swap)
 
@@ -559,7 +571,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
 
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None: super().__init__()
-class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TValue], IReadWriteCollection[TKey, TValue], IClearable):
+class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TValue], _ISwappable[TKey, TValue], IClearable):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -574,8 +586,6 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     @final
     def TryMove(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Move)
 
-    def _Swap(self, x: TKey, y: TKey) -> None:
-        _Swap(self, x, y)
     @final
     def TrySwap(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Swap)
     

@@ -7,6 +7,7 @@ from typing import overload, final
 
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
+from WinCopies.Collections.Core import ISwappable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Extensions import IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container
 
@@ -140,7 +141,7 @@ class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKe
     
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]: return self.__readOnly.GetValue()
-class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TValue]):
+class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TValue], ISwappable[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
