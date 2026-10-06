@@ -13,12 +13,13 @@ collection it leaves behind must still be an ordered set.
 """
 
 import unittest
-from collections.abc import MutableSequence
+from collections.abc import Iterator, MutableSequence
 from typing import Any, Callable
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Extensions import IList, IOrderedSet
+from WinCopies.Typing.Delegate import Converter
 
 type _Carrier = tuple[IOrderedSet[int], IList[int]]
 type _Call = Callable[[IOrderedSet[int], IList[int]], Any]
@@ -62,8 +63,7 @@ def _assertInvariant(test: unittest.TestCase, items: IOrderedSet[int], view: ILi
     the collection itself.
     """
 
-    content: ReadOnlyArray[int] = _snapshot(items)
-    carried: tuple[int, ...] = tuple(content)
+    carried: ReadOnlyArray[int] = tuple(_snapshot(items))
 
     test.assertEqual(len(set(carried)), len(carried), f"{label}: duplicate in {carried}")
     test.assertEqual(items.GetCount(), len(carried), f"{label}: count {items.GetCount()} against {carried}")
@@ -319,13 +319,19 @@ class TestWriteRoutesAgree(unittest.TestCase):
         return (outcome, _snapshot(items))
 
     def test_the_three_routes_land_the_same_content(self) -> None:
+        def write(route: str, key: int, value: int) -> ReadOnlyArray[int]:
+            return self.__write(route, key, value)[1]
+
+        def assertEqual(route: str, key: int, value: int, named: ReadOnlyArray[int]) -> None:
+            self.assertEqual(write(route, key, value), named)
+
         for key in range(0, len(_CONTENT)):
             for value in _DOMAIN:
                 with self.subTest(key = key, value = value):
-                    named: ReadOnlyArray[int] = self.__write("named", key, value)[1]
+                    named: ReadOnlyArray[int] = write("named", key, value)
 
-                    self.assertEqual(self.__write("scalar", key, value)[1], named)
-                    self.assertEqual(self.__write("slice", key, value)[1], named)
+                    assertEqual("scalar", key, value, named)
+                    assertEqual("slice", key, value, named)
 
     def test_every_route_refuses_a_value_the_set_keeps(self) -> None:
         """The refusal is what D-45 lost: the scalar route wrote the duplicate instead."""
@@ -433,19 +439,20 @@ class TestWriteReplacesInBothContainers(unittest.TestCase):
                     if element == value: return element
 
                 return None
+            
             if hasattr(current, "__dict__"): stack.extend(vars(current).values())
 
         self.fail("the inner set was not reachable: this bench needs rewriting, not disabling")
 
     def test_a_write_replaces_the_object_in_the_set_too(self) -> None:
-        routes: tuple[tuple[str, Callable[[IList[Any], Any], Any]], ...] = (
+        routes: ReadOnlyArray[tuple[str, Callable[[IList[Any], Any], Any]]] = (
             ("named", lambda v, x: v.SetAt(1, x)),
             ("scalar", lambda v, x: _mutable(v).__setitem__(1, x)),
             ("slice", lambda v, x: _mutable(v).__setitem__(slice(1, 2), [x])))
 
         for route, write in routes:
             with self.subTest(route = route):
-                values: tuple[Any, ...] = tuple(TestWriteReplacesInBothContainers._Value(i, "a") for i in range(3))
+                values: ReadOnlyArray[Any] = tuple(TestWriteReplacesInBothContainers._Value(i, "a") for i in range(3))
                 replacement: Any = TestWriteReplacesInBothContainers._Value(1, "b")
 
                 items: IOrderedSet[Any] = CreateOrderedSet(values)
@@ -479,9 +486,12 @@ class TestOrderedSetAddRangeIsSinglePass(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_a_one_pass_iterable_reaches_the_order(self) -> None:
-        calls: tuple[tuple[str, Callable[[IOrderedSet[int]], Any]], ...] = (
-            ("TryAddRange", lambda o: o.TryAddRange(iter([7, 8]))),
-            ("AddRange", lambda o: o.AddRange(iter([7, 8]))))
+        def getCall(methodName: str, actionProvider: Converter[Iterator[int], Converter[IOrderedSet[int], Any]]) -> tuple[str, Converter[IOrderedSet[int], Any]]:
+            return (methodName, actionProvider(iter([7, 8])))
+
+        calls: ReadOnlyArray[tuple[str, Converter[IOrderedSet[int], Any]]] = (
+            getCall("TryAddRange", lambda values: lambda o: o.TryAddRange(values)),
+            getCall("AddRange", lambda values: lambda o: o.AddRange(values)))
 
         for label, call in calls:
             with self.subTest(call = label):
