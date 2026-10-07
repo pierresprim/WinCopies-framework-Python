@@ -130,6 +130,7 @@ dmypy.json
 
 # Misc
 
+.claude/
 .local/
 .vscode/
 typings/
