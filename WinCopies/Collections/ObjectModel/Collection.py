@@ -479,8 +479,8 @@ class CollectionChangedAction(UnorderedIntEnum):
     Swap = 3
     Move = 4
     Remove = 5
-    # Appended rather than placed beside Swap and Move: the values are part of the surface,
-    # so an existing one does not move to make room for a new neighbour.
+    # Appended because the numeric values are stable identifiers: an existing one does not
+    # move to make room. The enum being unordered, the position says nothing else.
     Reverse = 6
 
 class CollectionChangedEventArgs(Abstract):
