@@ -11,7 +11,7 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
+from WinCopies.Collections.Extensions import Count, Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -75,17 +75,27 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         
         return False
     
+    # None is a refusal, whatever its cause -- the index, or a value the set already holds
+    # elsewhere -- and False is an empty range, which is nothing to do rather than a failure.
+    # That is the house form, which SizedList already follows for its capacity, and it is what
+    # lets InsertRange raise on None alone. Answering False for a refused value put it in the
+    # one state the non-Try form is bound to let pass, so a refused range went in silently.
+    # The emptiness is counted here rather than read from the set's own answer, which conflates
+    # the two cases as D-24 records.
     @final
     def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
-        if self.ValidateIndex(index, True):
-            if self.__set.TryAddRange(items := BuildIterable(items)):
-                self.__list.InsertRange(index, items)
+        if not self.ValidateIndex(index, True): return None
 
-                return True
+        # Buffered because both the count and the set's own pass read it.
+        _items: tuple[Iterable[T], int] = Count(BuildIterable(items))
 
-            return False
-        
-        return None
+        if _items[1] == 0: return False
+
+        if not self.__set.TryAddRange(_items[0]): return None
+
+        self.__list.InsertRange(index, _items[0])
+
+        return True
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: return super(MutableList, self)._RemoveRange(index, count)

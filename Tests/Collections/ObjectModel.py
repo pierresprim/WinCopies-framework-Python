@@ -62,6 +62,14 @@ class _Listener:
 def _create() -> ObservableCollection[int]:
     return ObservableCollection[int](List[int](list(_CONTENT)))
 
+def _attempt(items: Any, call: _Call) -> Any:
+    """Runs a mutator on a collection the caller built and swallows whatever it answers, an
+    exception included: these benches ask what the collection holds afterwards, not how the
+    call ended, and a raise is one legitimate way to refuse."""
+
+    try: return call(items)
+    except Exception as exception: return exception
+
 def _listen(call: _Call, source: Callable[[ObservableCollection[int]], Any]|None = None) -> tuple[ReadOnlyArray[_Record], Any]:
     """Runs one call on a fresh collection and returns what the surface announced.
 
@@ -307,27 +315,102 @@ class TestAProjectionAnnouncesOnTheSource(unittest.TestCase):
         self.assertIs(items.AsFixedSize().GetEventManager(), items.GetEventManager())
         self.assertIs(items.AsReadOnly().GetEventManager(), items.GetEventManager())
 
-# A bulk insertion announces once or once per item depending on how it is spelled:
-# InsertRange reaches the _InsertItems hook and announces the range, while AddRange has no
-# hook and is written as repeated Add on ICollection, so it announces each item. The
-# protocol's extend() is the same case as AddRange, being written as repeated append.
-# This is the shape D-55 had -- a bulk act with no hook of its own, seen by the observable
-# layer as its elements -- and it is D-57, presented and not arbitrated: either spelling may
-# be the one to change. The bench asserts the agreement rather than a side, so whichever way
-# it is settled closes it.
+# The three spellings of one bulk insertion. This was D-57: AddRange had no hook of its own
+# and was written as repeated Add on ICollection, extend() as repeated append on the
+# collections.abc mixin, so both were seen by the observable layer as their elements and both
+# left the collection half written when an item was refused partway. They now route through
+# the range primitive, and these are what keeps them there.
 _BULK: ReadOnlyArray[tuple[str, _Call]] = (
     ("InsertRange", lambda o: o.InsertRange(1, (7, 8))),
     ("AddRange",    lambda o: o.AddRange((7, 8))),
     ("extend()",    lambda o: o.AsMutableSequence().extend((7, 8))))
 
-class TestBulkInsertionAnnouncesCoherently(unittest.TestCase):
-    """D-57: the same bulk act announces a different number of times per spelling."""
+# The same three, over a container that refuses the second item: 3 is already in the ordered
+# set, so each call asks for one acceptable item and one refused one.
+_BULK_REFUSED: ReadOnlyArray[tuple[str, _Call]] = (
+    ("InsertRange", lambda o: o.InsertRange(1, (9, 3))),
+    ("AddRange",    lambda o: o.AddRange((9, 3))),
+    ("TryAddRange", lambda o: o.TryAddRange((9, 3))),
+    ("extend()",    lambda o: o.AsMutableSequence().extend((9, 3))))
 
-    @unittest.expectedFailure
-    def test_every_bulk_insertion_announces_the_same_count(self) -> None:
+# And the same three asking for nothing. Kept beside the other two tables rather than inline,
+# so the three lambdas carry the declared signature the others do.
+_BULK_EMPTY: ReadOnlyArray[tuple[str, _Call]] = (
+    ("InsertRange", lambda o: o.InsertRange(1, ())),
+    ("AddRange",    lambda o: o.AddRange(())),
+    ("extend()",    lambda o: o.AsMutableSequence().extend(())))
+
+class TestBulkInsertionIsOneAct(unittest.TestCase):
+    """A bulk insertion is one act: it announces once, and it goes in whole or not at all.
+
+    The count clause is what marked D-57, and it was too weak on its own -- it says the
+    spellings agree, not that any of them is right. The two clauses below are the ones that
+    bite: nothing is inserted when an item is refused, and no spelling reports a success it
+    did not perform.
+    """
+
+    def test_every_bulk_insertion_announces_once(self) -> None:
         counts: dict[str, int] = {name: len(_listen(call)[0]) for name, call in _BULK}
 
-        self.assertEqual(len(set(counts.values())), 1,
-                         f"two items inserted announce a different number of events per spelling: {counts}")
+        self.assertEqual(set(counts.values()), {1}, f"a bulk insertion of two items announced {counts}")
+
+    def test_a_refused_bulk_insertion_inserts_nothing(self) -> None:
+        """Atomicity. Before the fix, the item before the refused one stayed in and the
+        collection was left one element longer than it started, with an exception raised on
+        top -- the worst outcome for a caller trying to recover."""
+
+        for name, call in _BULK_REFUSED:
+            with self.subTest(call = name):
+                _, _, items = _constrained()
+
+                _attempt(items, call)
+
+                self.assertEqual(tuple(items.AsIterable()), _CONTENT, f"{name} inserted part of a refused range")
+
+    def test_a_refused_bulk_insertion_reports_no_success(self) -> None:
+        """A refusal answers anything but success. Raising is one way and is what the named
+        forms do; what none of them may do is answer True, which is what AddRange did while
+        routing through a primitive whose False it swallowed."""
+
+        for name, call in _BULK_REFUSED:
+            with self.subTest(call = name):
+                _, _, items = _constrained()
+
+                self.assertIsNot(_attempt(items, call), True, f"{name} reported success for a refused range")
+
+    def test_an_empty_bulk_insertion_is_nothing_to_do(self) -> None:
+        """The counter-example that keeps the two clauses above from passing by refusing
+        everything: an empty range is not a refusal, and must neither raise nor announce."""
+
+        for name, call in _BULK_EMPTY:
+            with self.subTest(call = name):
+                _, _, items = _constrained()
+                listener: _Listener = _Listener(items)
+
+                answer: Any = _attempt(items, call)
+
+                self.assertNotIsInstance(answer, Exception, f"{name} raised on an empty range: {answer}")
+                self.assertEqual(listener.GetRecords(), (), f"{name} announced {listener.GetRecords()} for an empty range")
+                self.assertEqual(tuple(items.AsIterable()), _CONTENT)
+
+class TestASliceAssignmentIsOneAct(unittest.TestCase):
+    """D-58: it is not. SetValues removes the old span before it knows the new one is
+    accepted, and InsertRange has no refusal left to report by then, so a refused slice
+    assignment destroys what it removed.
+
+    Measured on the wrapped ordered set view: l[1:2] = (3,) leaves three elements where it
+    found four. The bare view is correct -- its own __setitem__ checks before writing -- so
+    what the wrapper loses is the container's set-aware slice handling, replaced by a generic
+    decomposition with no rollback. The fix is to turn the order of that branch around, which
+    is why this is held open rather than patched here.
+    """
+
+    @unittest.expectedFailure
+    def test_a_refused_slice_assignment_leaves_the_content_alone(self) -> None:
+        _, _, items = _constrained()
+
+        _attempt(items, lambda o: o.AsMutableSequence().__setitem__(slice(1, 2), (3,)))
+
+        self.assertEqual(tuple(items.AsIterable()), _CONTENT, "a refused slice assignment destroyed an element")
 
 if __name__ == "__main__": unittest.main()

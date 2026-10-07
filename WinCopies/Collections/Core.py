@@ -467,6 +467,12 @@ class IList[T](IArray[T], IListBase[T]):
     def InsertRange(self, index: int, items: Iterable[T]) -> None:
         if self.TryInsertRange(index, items) is None: raise IndexError(index)
     
+    # Routed through the range primitive rather than inherited from ICollection, which has
+    # none and so expresses the act as repeated Add. That decomposition is seen by whatever
+    # watches the collection as its elements rather than as the insertion, and it leaves the
+    # collection half written when an item is refused partway: the ones before it stay in.
+    def AddRange(self, items: Iterable[T]) -> None: self.InsertRange(self.GetCount(), items)
+
     @final
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
     @final
