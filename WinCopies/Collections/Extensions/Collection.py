@@ -251,18 +251,21 @@ class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
 class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
+    # The hook answers whether the write happened, which only it can know: a container may
+    # hold an invariant over its content that this value would break at this position, and
+    # the unicity of an ordered set is one. Declared -> None, it could not say so, and the
+    # refusal was lost here -- TrySetAt reporting that the key exists, and SetAt, whose whole
+    # contract is to write or raise, doing neither.
     @abstractmethod
-    def _SetAt(self, key: TKey, value: TValue) -> None:
+    def _SetAt(self, key: TKey, value: TValue) -> bool:
         ...
     
+    # The two refusals compose, and each belongs to the one that knows it: the key to this
+    # layer, the value to the container. The short circuit also keeps the hook from ever
+    # being called on an absent key.
     @final
     def TrySetAt(self, key: TKey, value: TValue) -> bool:
-        if self.ContainsKey(key):
-            self._SetAt(key, value)
-
-            return True
-        
-        return False
+        return self.ContainsKey(key) and self._SetAt(key, value)
 
 class KeyableBase[TKey, TValue](GetterBase[TKey, TValue], SetterBase[TKey, TValue]):
     def __init__(self) -> None: super().__init__()

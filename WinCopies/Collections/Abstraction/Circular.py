@@ -128,8 +128,8 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], CircularArrayA
     def __init__(self, items: TList) -> None: super().__init__(items)
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> None:
-        self._GetSpecializedContainer().SetAt(key, value)
+    def _SetAt(self, key: int, value: TItem) -> bool:
+        return self._GetSpecializedContainer().TrySetAt(key, value)
 class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularArray[T]]):
     def __init__(self, items: ICircularArray[T]) -> None: super().__init__(items)
     

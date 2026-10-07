@@ -245,22 +245,49 @@ class TestARefusalThatReachesTheHookIsSilent(unittest.TestCase):
         self.assertEqual(listener.GetRecords(), (("OnItemUpdated", CollectionChangedAction.Update),))
 
 class TestAWrapperReportsTheRefusalItReceived(unittest.TestCase):
-    """D-56: it does not. CollectionBase._SetAt is final and discards what _SetItem
-    answered, so a write the container refused is reported as done.
+    """A wrapper answers what its container answered.
 
-    Measured on the same view, bare and wrapped: TrySetAt answers False bare and True
-    wrapped, and SetAt raises bare and is silent wrapped. The content is right either way,
-    and the event surface is right -- the override's guard reads the bool correctly. Only
-    the public answer is lost, at one sealed seam.
+    This was D-56, and the marker that held it reported its closure: _SetAt was declared
+    -> None, so the hook could not report a refusal and TrySetAt answered that the key
+    existed. The three scalar routes are measured together because they are three faces of
+    one write, and the defect showed on all three while the content stayed right -- D-58,
+    on the slice route, is the one that does not, and has no bench here.
     """
 
-    @unittest.expectedFailure
     def test_the_wrapper_answers_what_its_container_answered(self) -> None:
         _, bare, _ = _constrained()
         _, _, wrapped = _constrained()
 
         self.assertEqual(wrapped.TrySetAt(1, 3), bare.TrySetAt(1, 3),
                          "the wrapper reports a write its container refused")
+
+    def test_the_wrapper_raises_where_its_container_raises(self) -> None:
+        """SetAt is final on ISetter and raises when TrySetAt answers False, so a wrapper
+        whose hook stayed silent broke the one member whose contract is to write or raise."""
+
+        _, _, wrapped = _constrained()
+
+        with self.assertRaises(KeyError): wrapped.SetAt(1, 3)
+
+        self.assertEqual(tuple(wrapped.AsIterable()), _CONTENT, "the refused write went through")
+
+    def test_the_wrapper_refuses_the_scalar_subscript(self) -> None:
+        """The protocol face reaches the same seam, and silence there is a write that reads
+        as having happened."""
+
+        _, _, wrapped = _constrained()
+
+        with self.assertRaises(Exception): wrapped.AsMutableSequence()[1] = 3
+
+        self.assertEqual(tuple(wrapped.AsIterable()), _CONTENT, "the refused write went through")
+
+    def test_an_accepted_write_still_answers_true(self) -> None:
+        """The counter-example: the clause above must not pass by refusing everything."""
+
+        _, _, wrapped = _constrained()
+
+        self.assertTrue(wrapped.TrySetAt(1, 9))
+        self.assertEqual(tuple(wrapped.AsIterable()), (1, 9, 3, 4))
 
 class TestAProjectionAnnouncesOnTheSource(unittest.TestCase):
     """A view has no manager of its own, so what it changes the source announces."""

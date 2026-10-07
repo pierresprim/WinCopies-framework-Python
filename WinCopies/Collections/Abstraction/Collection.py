@@ -145,10 +145,13 @@ class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], Tuple
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> None:
+    def _SetAt(self, key: int, value: TItem) -> bool:
         self._InvalidateViews()
 
         self._GetSpecializedContainer()[key] = value
+
+        # The sequence protocol writes or raises; it has no refusal to report.
+        return True
 class ArrayBase[TItem, TSequence](TupleBase[TItem, TSequence], ArrayAbstract[TItem, TSequence], _ArrayBase[TItem, IArray[TItem]], GenericSpecializedConstraint[TSequence, _Sequence[TItem], _MutableSequence[TItem]]):
     def __init__(self, items: TSequence) -> None: super().__init__(items)
 class Array[T](ArrayBase[T, _MutableSequence[T]], _Array[T], IGenericSpecializedConstraintImplementation[_Sequence[T], _MutableSequence[T]]):
@@ -438,10 +441,13 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     def _GetAt(self, key: int) -> T:
         return self._GetStructAt(key).GetValue()
     @final
-    def _SetAt(self, key: int, value: T) -> None:
+    def _SetAt(self, key: int, value: T) -> bool:
         self._InvalidateViews()
 
         self._GetStructAt(key).SetValue(value)
+
+        # A cell takes whatever it is given; there is no refusal to report.
+        return True
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize

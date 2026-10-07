@@ -139,8 +139,8 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     def _Swap(self, x: int, y: int) -> None: self._GetSpecializedContainer().Swap(x, y)
     
     @final
-    def _SetAt(self, key: int, value: TOut) -> None:
-        self._GetSpecializedContainer().SetAt(key, self._ConvertBack(value))
+    def _SetAt(self, key: int, value: TOut) -> bool:
+        return self._GetSpecializedContainer().TrySetAt(key, self._ConvertBack(value))
 
     @final
     def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()

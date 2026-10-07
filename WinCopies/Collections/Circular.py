@@ -111,8 +111,8 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecial
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> None:
-        self._GetSpecializedContainer().SetAt(self.GetCircularIndex(key), value)
+    def _SetAt(self, key: int, value: TItem) -> bool:
+        return self._GetSpecializedContainer().TrySetAt(self.GetCircularIndex(key), value)
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int) -> None: super().__init__(items, start)
 
@@ -129,8 +129,8 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         return self.GetCircularIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)
     
     @final
-    def _SetAt(self, key: int, value: T) -> None:
-        return self._GetContainer().SetAt(self.GetCircularIndex(key), value)
+    def _SetAt(self, key: int, value: T) -> bool:
+        return self._GetContainer().TrySetAt(self.GetCircularIndex(key), value)
 
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable

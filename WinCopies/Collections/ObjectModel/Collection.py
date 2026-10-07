@@ -106,8 +106,8 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def _GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer().GetAt(key)
     @final
-    def _SetAt(self, key: int, value: TItem) -> None:
-        self._SetItem(key, value)
+    def _SetAt(self, key: int, value: TItem) -> bool:
+        return self._SetItem(key, value)
     
     @final
     def _Move(self, x: int, y: int) -> None: self._MoveItem(x, y)
