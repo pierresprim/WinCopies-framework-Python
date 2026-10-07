@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence as MutableSequenceBase
-from enum import Enum
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
@@ -15,6 +14,7 @@ from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager, EventMonitor
+from WinCopies.Typing.Enum import UnorderedIntEnum
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
 class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T]):
@@ -472,7 +472,7 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
 
         self.__invoker.OnItemRemoved(CollectionChangedEventArgs(CollectionChangedAction.Remove))
 
-class CollectionChangedAction(Enum):
+class CollectionChangedAction(UnorderedIntEnum):
     Null = 0
     Add = 1
     Update = 2
