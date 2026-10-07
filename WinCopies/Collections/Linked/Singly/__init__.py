@@ -683,15 +683,17 @@ class _CountableCollection[TItem, TList](CountableCollectionAbstract[TItem, TLis
 class _CountableAbstractBase[T](_CountableCollection[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, l: IList[T]) -> None: super().__init__(l)
 
-class _ICountableBase[T](IInterface):
-    def __init__(self) -> None: super().__init__()
+class Countable[T](_CountableAbstractBase[T]):
+    def __init__(self, items: Iterable[T]|None) -> None:
+        _items: IList[T] = self._CreateList()
+
+        super().__init__(_items)
+
+        self.TryPushItems(items)
     
     @abstractmethod
-    def _CreateList(self, items: Iterable[T]|None) -> IList[T]:
+    def _CreateList(self) -> IList[T]:
         ...
-
-class Countable[T](_CountableAbstractBase[T], _ICountableBase[T]):
-    def __init__(self, items: Iterable[T]|None) -> None: super().__init__(self._CreateList(items))
 
 @final
 class _ReadOnlyCountableQueue[T](_ReadOnlyCountableCollection[T], IReadOnlyCountableQueue[T]):
@@ -733,8 +735,7 @@ class _CountableQueue[T](CountableQueueAbstract[T]):
 
         self.__readOnly: IFunction[IReadOnlyCountableQueue[T]] = _ReadOnlyCountableQueueUpdater[T](items, update) # type: ignore[no-redef]
     
-    def _CreateList(self, items: Iterable[T]|None) -> IQueue[T]:
-        return Queue[T](items)
+    def _CreateList(self) -> IQueue[T]: return Queue[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableQueue[T]: return self.__readOnly.GetValue()
@@ -747,8 +748,7 @@ class _CountableStack[T](CountableStackAbstract[T]):
 
         self.__readOnly: IFunction[IReadOnlyCountableStack[T]] = _ReadOnlyCountableStackUpdater[T](items, update) # type: ignore[no-redef]
     
-    def _CreateList(self, items: Iterable[T]|None) -> IStack[T]:
-        return Stack[T](items)
+    def _CreateList(self) -> IStack[T]: return Stack[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableStack[T]: return self.__readOnly.GetValue()
