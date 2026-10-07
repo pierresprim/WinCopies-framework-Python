@@ -87,15 +87,16 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         if not self.ValidateIndex(index, True): return None
 
         # Buffered because both the count and the set's own pass read it.
-        _items: tuple[Iterable[T], int] = Count(BuildIterable(items))
+        items, length = Count(BuildIterable(items))
 
-        if _items[1] == 0: return False
+        if length == 0: return False
 
-        if not self.__set.TryAddRange(_items[0]): return None
+        if self.__set.TryAddRange(items):
+            self.__list.InsertRange(index, items)
 
-        self.__list.InsertRange(index, _items[0])
-
-        return True
+            return True
+        
+        return None
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: return super(MutableList, self)._RemoveRange(index, count)

@@ -146,7 +146,8 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
     # because the act already has a named form here -- AddRange -- which every class reached
     # possesses and four of them override.
     @final
-    def extend(self, values: Iterable[T]) -> None: self.AddRange(values)
+    def extend(self, values: Iterable[T]) -> None:
+        self.AddRange(values)
 
 class IDefaultMutableSequence[T](_IMutableSequence[T]):
     def __init__(self) -> None: super().__init__()

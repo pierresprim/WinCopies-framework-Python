@@ -20,11 +20,13 @@ from typing import Any, Callable
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-from WinCopies.Collections.Extensions import IList, IOrderedSet
+from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.ObjectModel.Collection import (CollectionChangedAction, CollectionChangedEventArgs,
                                                           IObservableCollection, ObservableCollection)
 
-type _Call = Callable[[Any], Any]
+from WinCopies.Typing.Delegate import Converter, NullablePredicate
+
+type _Call = NullablePredicate[ObservableCollection[int]]
 type _Record = tuple[str, CollectionChangedAction]
 
 _CONTENT: ReadOnlyArray[int] = (1, 2, 3, 4)
@@ -62,7 +64,7 @@ class _Listener:
 def _create() -> ObservableCollection[int]:
     return ObservableCollection[int](List[int](list(_CONTENT)))
 
-def _attempt(items: Any, call: _Call) -> Any:
+def _attempt(items: ObservableCollection[int], call: _Call) -> Any:
     """Runs a mutator on a collection the caller built and swallows whatever it answers, an
     exception included: these benches ask what the collection holds afterwards, not how the
     call ended, and a raise is one legitimate way to refuse."""
@@ -122,7 +124,7 @@ _REFUSED: ReadOnlyArray[tuple[str, _Call]] = (
 # The projections do not own a manager: GetEventManager is final on the read-only base and
 # routes to the source's. A mutation through one of them must therefore reach a subscriber
 # of the source, with no channel of its own.
-_PROJECTED: ReadOnlyArray[tuple[str, _Call, Callable[[ObservableCollection[int]], Any], str]] = (
+_PROJECTED: ReadOnlyArray[tuple[str, _Call, Converter[ObservableCollection[int], ITuple[int]], str]] = (
     ("fixed size, SetAt", lambda v: v.SetAt(0, 9),  lambda o: o.AsFixedSize(), "OnItemUpdated"),
     ("fixed size, Swap",  lambda v: v.Swap(0, 2),   lambda o: o.AsFixedSize(), "OnItemsSwapped"),
     ("reversed, SetAt",   lambda v: v.SetAt(0, 9),  lambda o: o.AsReversed(),  "OnItemUpdated"),
@@ -175,8 +177,7 @@ class TestTheSurfaceHasNoDeadChannel(unittest.TestCase):
             reached.update(channel for channel, _ in records)
 
         for channel, _ in _CHANNELS:
-            with self.subTest(channel = channel):
-                self.assertIn(channel, reached, f"{channel} is declared and nothing reaches it")
+            with self.subTest(channel = channel): self.assertIn(channel, reached, f"{channel} is declared and nothing reaches it")
 
     def test_nothing_reaches_a_channel_the_surface_does_not_declare(self) -> None:
         declared: set[str] = {channel for channel, _ in _CHANNELS}
@@ -185,8 +186,7 @@ class TestTheSurfaceHasNoDeadChannel(unittest.TestCase):
             records, _ = _listen(call)
 
             for channel, _ in records:
-                with self.subTest(call = name, channel = channel):
-                    self.assertIn(channel, declared)
+                with self.subTest(call = name, channel = channel): self.assertIn(channel, declared)
 
 class TestARefusalAnnouncesNothing(unittest.TestCase):
     """The surface reports what the collection did, not what was asked of it."""
@@ -208,7 +208,7 @@ class TestARefusalAnnouncesNothing(unittest.TestCase):
 
                 self.assertEqual(tuple(items.AsIterable()), _CONTENT, f"{name} was refused yet changed the content")
 
-def _constrained() -> tuple[IOrderedSet[int], IList[int], ObservableCollection[int]]:
+def _constrained() -> tuple[IList[int], ObservableCollection[int]]:
     """An observable collection over a container that refuses some writes.
 
     An ordered set's list view is the one container in the tree whose positional write can
@@ -218,10 +218,9 @@ def _constrained() -> tuple[IOrderedSet[int], IList[int], ObservableCollection[i
     announced unconditionally would still pass it.
     """
 
-    items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
-    view: IList[int] = items.AsList()
+    view: IList[int] = CreateOrderedSet(_CONTENT).AsList()
 
-    return items, view, ObservableCollection[int](view)
+    return view, ObservableCollection[int](view)
 
 class TestARefusalThatReachesTheHookIsSilent(unittest.TestCase):
     """A hook that did not write does not announce.
@@ -232,7 +231,7 @@ class TestARefusalThatReachesTheHookIsSilent(unittest.TestCase):
     """
 
     def test_a_write_the_container_refuses_announces_nothing(self) -> None:
-        _, _, items = _constrained()
+        items: ObservableCollection[int] = _constrained()[1]
         listener: _Listener = _Listener(items)
 
         items.TrySetAt(1, 3)
@@ -244,7 +243,7 @@ class TestARefusalThatReachesTheHookIsSilent(unittest.TestCase):
         """The counter-example, so the clause above cannot pass by the container refusing
         everything."""
 
-        _, _, items = _constrained()
+        items: ObservableCollection[int] = _constrained()[1]
         listener: _Listener = _Listener(items)
 
         items.TrySetAt(1, 9)
@@ -263,8 +262,8 @@ class TestAWrapperReportsTheRefusalItReceived(unittest.TestCase):
     """
 
     def test_the_wrapper_answers_what_its_container_answered(self) -> None:
-        _, bare, _ = _constrained()
-        _, _, wrapped = _constrained()
+        bare: IList[int] = _constrained()[0]
+        wrapped: ObservableCollection[int] = _constrained()[1]
 
         self.assertEqual(wrapped.TrySetAt(1, 3), bare.TrySetAt(1, 3),
                          "the wrapper reports a write its container refused")
@@ -273,7 +272,7 @@ class TestAWrapperReportsTheRefusalItReceived(unittest.TestCase):
         """SetAt is final on ISetter and raises when TrySetAt answers False, so a wrapper
         whose hook stayed silent broke the one member whose contract is to write or raise."""
 
-        _, _, wrapped = _constrained()
+        wrapped: ObservableCollection[int] = _constrained()[1]
 
         with self.assertRaises(KeyError): wrapped.SetAt(1, 3)
 
@@ -283,7 +282,7 @@ class TestAWrapperReportsTheRefusalItReceived(unittest.TestCase):
         """The protocol face reaches the same seam, and silence there is a write that reads
         as having happened."""
 
-        _, _, wrapped = _constrained()
+        wrapped: ObservableCollection[int] = _constrained()[1]
 
         with self.assertRaises(Exception): wrapped.AsMutableSequence()[1] = 3
 
@@ -292,7 +291,7 @@ class TestAWrapperReportsTheRefusalItReceived(unittest.TestCase):
     def test_an_accepted_write_still_answers_true(self) -> None:
         """The counter-example: the clause above must not pass by refusing everything."""
 
-        _, _, wrapped = _constrained()
+        wrapped: ObservableCollection[int] = _constrained()[1]
 
         self.assertTrue(wrapped.TrySetAt(1, 9))
         self.assertEqual(tuple(wrapped.AsIterable()), (1, 9, 3, 4))
@@ -361,7 +360,7 @@ class TestBulkInsertionIsOneAct(unittest.TestCase):
 
         for name, call in _BULK_REFUSED:
             with self.subTest(call = name):
-                _, _, items = _constrained()
+                items: ObservableCollection[int] = _constrained()[1]
 
                 _attempt(items, call)
 
@@ -373,10 +372,7 @@ class TestBulkInsertionIsOneAct(unittest.TestCase):
         routing through a primitive whose False it swallowed."""
 
         for name, call in _BULK_REFUSED:
-            with self.subTest(call = name):
-                _, _, items = _constrained()
-
-                self.assertIsNot(_attempt(items, call), True, f"{name} reported success for a refused range")
+            with self.subTest(call = name): self.assertIsNot(_attempt(_constrained()[1], call), True, f"{name} reported success for a refused range")
 
     def test_an_empty_bulk_insertion_is_nothing_to_do(self) -> None:
         """The counter-example that keeps the two clauses above from passing by refusing
@@ -384,7 +380,7 @@ class TestBulkInsertionIsOneAct(unittest.TestCase):
 
         for name, call in _BULK_EMPTY:
             with self.subTest(call = name):
-                _, _, items = _constrained()
+                items: ObservableCollection[int] = _constrained()[1]
                 listener: _Listener = _Listener(items)
 
                 answer: Any = _attempt(items, call)
@@ -407,7 +403,7 @@ class TestASliceAssignmentIsOneAct(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_a_refused_slice_assignment_leaves_the_content_alone(self) -> None:
-        _, _, items = _constrained()
+        items: ObservableCollection[int] = _constrained()[1]
 
         _attempt(items, lambda o: o.AsMutableSequence().__setitem__(slice(1, 2), (3,)))
 
