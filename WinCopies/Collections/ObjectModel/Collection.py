@@ -49,6 +49,17 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def _SwapItems(self, x: int, y: int) -> None:
         self._GetInnerContainer().Swap(x, y)
     
+    # The reversal had no hook of its own until now, which is how it came to bypass this
+    # layer: it arrived from the collections.abc mixin, which reverses by pairwise
+    # positional assignment, so it reached _SetItem n times and a derived collection saw n
+    # replacements instead of one reordering. The container is asked to reverse itself
+    # whole, through the protocol door, because the named API has no Reverse() to call --
+    # Move and Swap have one, the reversal does not. Whatever the container is, it already
+    # knows how to reverse itself: pairwise when its order is free, delegated when it is
+    # constrained.
+    def _ReverseItems(self) -> None:
+        self._GetInnerContainer().AsMutableSequence().reverse()
+    
     def _InsertItem(self, index: int|None, item: TItem) -> bool:
         if index is None:
             self._GetInnerContainer().Add(item)
@@ -103,6 +114,9 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     @final
     def _Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
+    
+    @final
+    def _Reverse(self) -> None: self._ReverseItems()
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._TryRemoveItemsAt(index, count)
@@ -162,6 +176,9 @@ class IObservableCollectionEvents[T](IInterface):
     def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         ...
     @abstractmethod
+    def OnItemsReversed(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
+        ...
+    @abstractmethod
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent:
         ...
 
@@ -174,6 +191,7 @@ class _ObservableCollectionEvent[T](Abstract):
         self.__itemUpdatedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemsSwappedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemMovedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
+        self.__itemsReversedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
         self.__itemRemovedEvents: IEventManager[IObservableCollection[T], CollectionChangedEventArgs] = EventManager[IObservableCollection[T], CollectionChangedEventArgs]()
     
     def GetAdded(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
@@ -184,6 +202,8 @@ class _ObservableCollectionEvent[T](Abstract):
         return self.__itemsSwappedEvents
     def GetMoved(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
         return self.__itemMovedEvents
+    def GetReversed(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
+        return self.__itemsReversedEvents
     def GetRemoved(self) -> IEventManager[IObservableCollection[T], CollectionChangedEventArgs]:
         return self.__itemRemovedEvents
 @final
@@ -197,6 +217,7 @@ class _ObservableCollectionEventManager[T](Abstract, IObservableCollectionEvents
     def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemUpdated(handler)
     def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemsSwapped(handler)
     def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemMoved(handler)
+    def OnItemsReversed(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemsReversed(handler)
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemRemoved(handler)
 @final
 class _ObservableCollectionEventInvoker[T](Abstract):
@@ -217,6 +238,8 @@ class _ObservableCollectionEventInvoker[T](Abstract):
         self.__OnCollectionChanged(self.__events.GetSwapped(), args)
     def OnItemMoved(self, args: CollectionChangedEventArgs) -> None:
         self.__OnCollectionChanged(self.__events.GetMoved(), args)
+    def OnItemsReversed(self, args: CollectionChangedEventArgs) -> None:
+        self.__OnCollectionChanged(self.__events.GetReversed(), args)
     def OnItemRemoved(self, args: CollectionChangedEventArgs) -> None:
         self.__OnCollectionChanged(self.__events.GetRemoved(), args)
 
@@ -237,6 +260,7 @@ class _ObservableCollectionEvents[T](EventMonitor, IObservableCollectionEvents[T
     def OnItemUpdated(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetUpdated(), handler)
     def OnItemsSwapped(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetSwapped(), handler)
     def OnItemMoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetMoved(), handler)
+    def OnItemsReversed(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetReversed(), handler)
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self._AddHandler(self.__events.GetRemoved(), handler)
 
 class IReadOnlyObservableCollection[T](ITuple[T]):
@@ -404,6 +428,13 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
 
         self.__invoker.OnItemsSwapped(CollectionChangedEventArgs(CollectionChangedAction.Swap))
     
+    def _ReverseItems(self) -> None:
+        self.__AssertReentrancy()
+
+        super()._ReverseItems()
+
+        self.__invoker.OnItemsReversed(CollectionChangedEventArgs(CollectionChangedAction.Reverse))
+    
     def _SetItem(self, index: int, item: T) -> bool:
         self.__AssertReentrancy()
 
@@ -448,6 +479,9 @@ class CollectionChangedAction(Enum):
     Swap = 3
     Move = 4
     Remove = 5
+    # Appended rather than placed beside Swap and Move: the values are part of the surface,
+    # so an existing one does not move to make room for a new neighbour.
+    Reverse = 6
 
 class CollectionChangedEventArgs(Abstract):
     def __init__(self, action: CollectionChangedAction) -> None:
