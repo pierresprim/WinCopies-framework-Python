@@ -572,13 +572,3 @@ def CountAsIterable(items: None) -> None: ...
 
 def CountAsIterable[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]|None) -> tuple[CollectionBase[T]|Iterable[T], int]|None:
     return TryCountFromContainer(items, True, lambda items: __GetItems(CreateSequence(items)))
-
-@overload
-def TryCount[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
-@overload
-def TryCount[T](items: ICountableEnumerable[T]) -> tuple[ICountableEnumerable[T], int]: ...
-@overload
-def TryCount(items: None) -> None: ...
-
-def TryCount[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]|None) -> tuple[ICountableEnumerable[T]|CollectionBase[T]|Iterable[T], int]|None:
-    return None if items is None else Count(items)
