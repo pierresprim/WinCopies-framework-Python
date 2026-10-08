@@ -811,7 +811,16 @@ class ReadOnlyCountableEnumerable[T](ReadOnlyListBase[T, ICountableEnumerableLis
 class CountableEnumerableBase[TItems, TList](CountableCollectionAbstract[TItems, TList], EnumerableCollectionBase[TItems], ICountableEnumerableListBase[TItems], GenericConstraint[TList, IEnumerableList[TItems]]):
     def __init__(self, l: TList) -> None: super().__init__(l)
 class CountableEnumerable[T](CountableEnumerableBase[T, IEnumerableList[T]], IGenericConstraintImplementation[IEnumerableList[T]]):
-    def __init__(self, l: IEnumerableList[T]) -> None: super().__init__(l)
+    def __init__(self, items: Iterable[T]|None) -> None:
+        _items: IEnumerableList[T] = self._CreateList()
+
+        super().__init__(_items)
+
+        self.TryPushItems(items)
+
+    @abstractmethod
+    def _CreateList(self) -> IEnumerableList[T]:
+        ...
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetContainer().TryGetEnumerator()
@@ -835,13 +844,19 @@ class _ReadOnlyCountableEnumerableStackUpdater[T](SelectionUpdater[ICountableEnu
     def _AsContainer(self, container: ICountableEnumerableStack[T]) -> IReadOnlyCountableEnumerableStack[T]: return _ReadOnlyCountableEnumerableStack[T](container)
 
 class CountableEnumerableQueueAbstract[T](CountableEnumerable[T]):
-    def __init__(self, items: Iterable[T]|None) -> None: super().__init__(EnumerableQueue[T](items))
+    def __init__(self, items: Iterable[T]|None) -> None: super().__init__(items)
+
+    @final
+    def _CreateList(self) -> IEnumerableList[T]: return EnumerableQueue[T]()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]:
         ...
 class CountableEnumerableStackAbstract[T](CountableEnumerable[T]):
-    def __init__(self, items: Iterable[T]|None) -> None: super().__init__(EnumerableStack[T](items))
+    def __init__(self, items: Iterable[T]|None) -> None: super().__init__(items)
+
+    @final
+    def _CreateList(self) -> IEnumerableList[T]: return EnumerableStack[T]()
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]:
