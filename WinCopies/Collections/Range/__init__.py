@@ -4,7 +4,8 @@ from typing import overload, SupportsIndex
 from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
-from WinCopies.Collections.Linked.Singly import ICountableQueue, CreateCountableQueue, CreateEnumerableStack
+from WinCopies.Collections.Iteration.Extensions import CountAsIterable
+from WinCopies.Collections.Linked.Singly import CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
@@ -56,16 +57,6 @@ def __AsReversedKey(start: int, stop: int, step: int, count: int) -> slice:
     return slice(reverseIndex(start), reverseIndex(stop), -step)
 
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
-    def getItems() -> tuple[Iterable[T], int]:
-        match values:
-            case ICountableEnumerable(): return (values.AsIterable(), values.GetCount())
-            case Sequence(): return (values, len(values))
-
-            case _:
-                _values: ICountableQueue[T] = CreateCountableQueue(values)
-
-                return (_values.AsGenerator(), _values.GetCount())
-
     s: int|None = key.step
 
     if s is None: s = 1
@@ -90,7 +81,7 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     elif i >= l: raise IndexError(f"The slice start {i} is not before its stop {l}.")
 
     else:
-        items: tuple[Iterable[T], int] = getItems()
+        items: tuple[Iterable[T], int] = CountAsIterable(values)
 
         if len(range(i, l, s)) != items[1]: raise ValueError(f"Attempt to assign a sequence of size {items[1]} to an extended slice of size {len(range(i, l, s))}.")
 

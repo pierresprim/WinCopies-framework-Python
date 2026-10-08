@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
-from typing import overload, final, SupportsIndex
+from typing import overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, IStringable, Abstract
@@ -19,8 +19,9 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
+from WinCopies.Collections.Util import CreateSequence
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Function
+from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Discard import DiscardReason
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Object import IItem
@@ -528,20 +529,49 @@ def GetCount(items: ICountable|Sized) -> int:
 def TryGetCount(items: ICountable|Sized|None) -> int|None:
         return None if items is None else GetCount(items)
 
+def __GetItems[T](items: CollectionBase[T]) -> tuple[CollectionBase[T], int]: return (items, len(items))
+
+@overload
+def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem], asIterable: Literal[True], selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[Iterable[TItem], int]: ...
+@overload
+def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem], asIterable: Literal[False], selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[ICountableEnumerable[TItem], int]: ...
+@overload
+def TryCountFromContainer[TItem, TList](items: CollectionBase[TItem], asIterable: Literal[False] = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[CollectionBase[TItem], int]: ... # type: ignore[overload-overlap]
+@overload
+def TryCountFromContainer[T](items: Iterable[T], asIterable: Literal[False] = False, selector: None = None) -> None: ...
+@overload
+def TryCountFromContainer[TItem, TList](items: Iterable[TItem], asIterable: bool, selector: Converter[Iterable[TItem], tuple[TList, int]]) -> tuple[TList, int]: ...
+@overload
+def TryCountFromContainer[TItem, TList](items: None, asIterable: bool = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> None: ...
+
+def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem]|CollectionBase[TItem]|Iterable[TItem]|None, asIterable: bool = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[ICountableEnumerable[TItem]|CollectionBase[TItem]|Iterable[TItem]|TList, int]|None:
+    match items:
+        case None: return None
+
+        case ICountableEnumerable(): return (items.AsIterable() if asIterable else items, items.GetCount())
+        case CollectionBase(): return __GetItems(items)
+        
+        case _: return None if selector is None else selector(items)
+
+@overload
+def Count[T](items: ICountableEnumerable[T]) -> tuple[ICountableEnumerable[T], int]: ...
 @overload
 def Count[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
 @overload
-def Count[T](items: ICountableEnumerable[T]) -> tuple[ICountableEnumerable[T], int]: ...
+def Count(items: None) -> None: ...
 
-def Count[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]) -> tuple[ICountableEnumerable[T]|CollectionBase[T], int]:
-    def getItems(items: CollectionBase[T]) -> tuple[CollectionBase[T], int]: return (items, len(items))
+def Count[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]|None) -> tuple[ICountableEnumerable[T]|CollectionBase[T], int]|None:
+    return TryCountFromContainer(items, False, lambda items: __GetItems(CreateSequence(items)))
 
-    match items:
-        case ICountableEnumerable(): return (items, items.GetCount())
-        case CollectionBase(): return getItems(items)
-        
-        case _:
-            return getItems(tuple(items))
+@overload
+def CountAsIterable[T](items: ICountableEnumerable[T]) -> tuple[Iterable[T], int]: ...
+@overload
+def CountAsIterable[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
+@overload
+def CountAsIterable(items: None) -> None: ...
+
+def CountAsIterable[T](items: ICountableEnumerable[T]|CollectionBase[T]|Iterable[T]|None) -> tuple[CollectionBase[T]|Iterable[T], int]|None:
+    return TryCountFromContainer(items, True, lambda items: __GetItems(CreateSequence(items)))
 
 @overload
 def TryCount[T](items: CollectionBase[T]|Iterable[T]) -> tuple[CollectionBase[T], int]: ...
