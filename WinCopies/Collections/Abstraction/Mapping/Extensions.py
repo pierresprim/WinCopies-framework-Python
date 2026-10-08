@@ -13,17 +13,17 @@ from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Cou
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Count, Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
+from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
+from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
-# Single underscore, not double: both callers are methods, and a module-level __name read
-# from inside a class body mangles to _Class__name and does not resolve.
-def _CarriesADuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
+def HasDuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
     """Whether the range repeats a value, which an ordered set cannot take whole.
 
     A set takes a duplicated range and keeps one of the two, so its own answer says only
@@ -39,7 +39,7 @@ def _CarriesADuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
 
     seen: ISet[T] = Set[T]()
 
-    return any(not seen.TryAdd(item) for item in items)
+    return Any(items, GetNotPredicate(seen.TryAdd))
 
 @final
 class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
@@ -115,7 +115,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         # at TryInsertRange(1, (7, 7)) on CreateOrderedSet((1, 2, 3, 4)), which answered True
         # and left the order (1, 7, 7, 2, 3, 4). None, not False, because False is the empty
         # range this very method has just let through.
-        if _CarriesADuplicate(items): return None
+        if HasDuplicate(items): return None
 
         if self.__set.TryAddRange(items):
             self.__list.InsertRange(index, items)
@@ -378,9 +378,7 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         # set's own pass, and the add -- so a one-pass iterable reached the first and nothing
         # else: TryAddRange(iter([7, 8])) left the order without them. The list view buffers
         # for the same reason, two readers down.
-        items = BuildIterable(items)
-
-        if _CarriesADuplicate(items): return False
+        if HasDuplicate(items := BuildIterable(items)): return False
 
         if self.__set.TryAddRange(items):
             self.__items.AddRange(items)
