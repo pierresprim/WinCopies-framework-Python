@@ -703,26 +703,18 @@ class TestWriteReplacesInBothContainers(unittest.TestCase):
                 self.assertIs(held, replacement, f"{route}: the set kept the old object")
 
 class TestOrderedSetAddRangeIsSinglePass(unittest.TestCase):
-    """Open defect: the residual of D-42, on the ordered set's own TryAddRange.
+    """A one-pass iterable reaches the order.
 
-    TryAddRange never buffers, so the first pass over a one-pass iterable consumes it and the
-    order never receives the values. The list view was corrected by buffering; the set itself
-    was not, 250 lines above in the same file.
+    This was the residual of D-42, and it outlived two fixes of its own family: the list
+    view was given its buffer, the set was not, 250 lines above in the same file. D-60 then
+    added a third reader to the set's method -- the duplicate pass -- without closing it,
+    which changed the symptom from a phantom (the set admitting values the order did not
+    carry) to a clean refusal, and left the range still not going in.
 
-    D-60 moved where that consumption happens without closing this, so the symptom this
-    bench reads is not the one it was written against. Measured after D-60:
-    TryAddRange(iter([7, 8])) answers False and leaves (0, 1, 2) with Contains(7) false,
-    where before it answered True and left the set admitting values the order did not carry.
-    The phantom is gone and the refusal is now clean, but the range still does not go in,
-    which is the clause below and why this stays open. Buffering here would close it, and
-    would also turn this bench into an unexpected success, so it is a decision to take on its
-    own rather than a side effect of D-60.
-
-    This is expectedFailure rather than an exclusion because it must signal when the defect
-    is closed, which an exclusion would not: an exclusion that stays says nothing.
+    What closed it is one buffered call, and the clause below is what holds it: the method
+    reads its range three times, so nothing may assume one pass is enough.
     """
 
-    @unittest.expectedFailure
     def test_a_one_pass_iterable_reaches_the_order(self) -> None:
         def getCall(methodName: str, actionProvider: Converter[Iterator[int], Converter[IOrderedSet[int], Any]]) -> tuple[str, Converter[IOrderedSet[int], Any]]:
             return (methodName, actionProvider(iter([7, 8])))

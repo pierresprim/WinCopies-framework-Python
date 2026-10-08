@@ -374,6 +374,12 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         # ISetBase.TryAddRange is bivalent by contract and AddRange raises on the False
         # alone; this family therefore cannot tell a refused range from an empty one, which
         # is D-24's open complaint against it and not something to settle here.
+        # Buffered because this method reads the range three times -- the duplicate pass, the
+        # set's own pass, and the add -- so a one-pass iterable reached the first and nothing
+        # else: TryAddRange(iter([7, 8])) left the order without them. The list view buffers
+        # for the same reason, two readers down.
+        items = BuildIterable(items)
+
         if _CarriesADuplicate(items): return False
 
         if self.__set.TryAddRange(items):
