@@ -1923,4 +1923,100 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
 
                 self.assertEqual(_snapshot(cast(_ITuple[int], items)), before, f"a refused span at {key} changed the content")
 
+# The keys whose start resolves past their stop, which is what "degenerate" means here. Each
+# one is degenerate for a different reason -- a plain inversion, two negative bounds, a bound
+# past the end, a step above 1 -- because the behaviour below used to be decided by which
+# branch of SetValues the key landed in, not by the key being empty.
+_DEGENERATE: ReadOnlyArray[slice] = (slice(3, 1), slice(-1, -2), slice(2, 0), slice(4, 2), slice(3, 1, 2), slice(9, 9))
+
+class TestADegenerateSliceIsEmptyOnEveryOperation(unittest.TestCase):
+    """A start resolved past its stop is a span of no positions, for all three operations.
+
+    The module used to answer three different things for one key: the slice read as empty and
+    the deletion removed nothing, both exactly as CPython does, while the assignment alone
+    raised IndexError. Measured over a 4704-key grid, that single guard put the generic
+    decomposer at odds with CPython on 1584 keys -- and with the ordered set's own
+    decomposer, which had never had the guard, on the same 1584.
+
+    The refusal was an arbitration rather than a defect, and it was arbitrated away once the
+    other two operations were on the table. This class is what the arbitration lacked:
+    nothing asserted the old behaviour, so removing the guard broke no clause, and nothing
+    would have noticed had it been removed by accident. Whichever way the next reader wants
+    it, the three operations have to answer together, which is what the clauses below hold.
+    """
+
+    @staticmethod
+    def __outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+        """What an operation did: the exception's name or "ok", and what it left behind.
+
+        Both are compared, and the exception only by name: a key the framework refuses where
+        CPython accepts is the defect this class exists for, and so is one where both refuse
+        and the content differs. Which exception type each raises is D-46's question, not
+        this one's, so the type is read rather than the message."""
+
+        try:
+            act()
+
+            return ("ok", read())
+        except Exception as exception: return (type(exception).__name__, read())
+
+    def test_the_three_operations_agree_with_cpython(self) -> None:
+        """Read, delete and assign, each on its own copy, against a plain list of the same
+        content. CPython is the reference because the resolution has followed slice.indices
+        since D-64: resolving a bound its way and then declining what it accepts is what the
+        guard did. The stepped key is in the table precisely because CPython refuses an
+        assignment there -- the outcomes are compared, not assumed to succeed."""
+
+        for case in _spanSubjects():
+            for key in _DEGENERATE:
+                with self.subTest(type = case.GetName(), key = str(key)):
+                    content: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], cast(_IList[int], case.Create())))
+
+                    def reference(act: Callable[[list[int]], Any]) -> tuple[str, Any]:
+                        model: list[int] = list(content)
+
+                        return self.__outcome(lambda: act(model), lambda: tuple(model))
+                    def subject(act: Callable[[Any], Any]) -> tuple[str, Any]:
+                        items: _IList[int] = cast(_IList[int], case.Create())
+
+                        return self.__outcome(lambda: act(items.AsMutableSequence()), lambda: _snapshot(cast(_ITuple[int], items)))
+
+                    self.assertEqual(subject(lambda door: tuple(door[key])), reference(lambda model: tuple(model[key])), "the slice did not read as CPython reads it")
+                    self.assertEqual(subject(lambda door: door.__delitem__(key)), reference(lambda model: model.__delitem__(key)), "the deletion did not do what CPython does")
+                    self.assertEqual(subject(lambda door: door.__setitem__(key, (7,))), reference(lambda model: model.__setitem__(key, (7,))), "the assignment did not do what CPython does")
+
+    def test_an_assignment_of_no_items_changes_nothing(self) -> None:
+        """The pure no-op, kept apart from the clause above because it is the one case where
+        a wrong answer is silent: an empty right-hand side on an empty span writes nothing,
+        so only the content afterwards can tell whether the call did anything at all."""
+
+        for case in _spanSubjects():
+            for key in _DEGENERATE:
+                with self.subTest(type = case.GetName(), key = str(key)):
+                    items: _IList[int] = cast(_IList[int], case.Create())
+                    before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                    # The outcome, not the content alone: the call must also not raise, and a
+                    # bare write would report a refusal as an escaped exception rather than
+                    # as this clause failing -- which is how a perturbation stops naming
+                    # itself.
+                    self.assertEqual(self.__outcome(lambda: items.AsMutableSequence().__setitem__(key, ()), lambda: _snapshot(cast(_ITuple[int], items))),
+                                     ("ok", before), "an empty assignment on an empty span did not leave the content alone")
+
+    def test_a_stepped_span_still_demands_its_own_length(self) -> None:
+        """Non-vacuity, and the boundary of what the guard's removal gives away: an empty
+        stepped span accepts no items and refuses any, which is CPython's rule for an
+        extended slice. A removal that went too far would accept them here."""
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                items: _IList[int] = cast(_IList[int], case.Create())
+                before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                # ValueError by name, which is the cause CPython names here: the refusal is
+                # the extended slice's length, not the bound. Restoring the bound guard makes
+                # this clause fall on the name rather than escape as an IndexError.
+                self.assertEqual(self.__outcome(lambda: items.AsMutableSequence().__setitem__(slice(3, 1, 2), (7,)), lambda: _snapshot(cast(_ITuple[int], items))),
+                                 ("ValueError", before), "an empty stepped span did not refuse its items the way CPython does")
+
 if __name__ == "__main__": unittest.main()

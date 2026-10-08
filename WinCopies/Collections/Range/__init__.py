@@ -128,9 +128,18 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
         # expressed in the wrong direction.
         SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), items)
 
+    # A start resolved past its stop is a span of no positions, not a key to refuse. The
+    # module already read it that way twice over -- the slice reads as empty and the deletion
+    # removes nothing, both exactly as CPython does -- and the assignment alone refused it,
+    # which is how the same key answered three different things depending on what was asked
+    # of it. The resolution above follows slice.indices since D-64, so refusing here meant
+    # resolving a bound like CPython and then declining what CPython accepts.
+    #
+    # It degrades to the empty span on its own: `length` goes negative and the guard below
+    # absorbs it, leaving the insertion at the resolved start, which is CPython's answer. The
+    # stepped branch needs nothing either, its own range coming out empty and the extended
+    # length then demanding no items -- which is what CPython refuses there.
     elif s == 1:
-        if i > l: raise IndexError(f"The slice start {i} is past its stop {l}.")
-
         length: int = l - i
 
         validateSpan(range(i, l), items)
@@ -140,8 +149,6 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
         lst.InsertRange(i, items)
 
     # step > 1
-    elif i >= l: raise IndexError(f"The slice start {i} is not before its stop {l}.")
-
     else:
         indices: range = range(i, l, s)
 
