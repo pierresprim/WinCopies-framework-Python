@@ -81,7 +81,7 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     elif i >= l: raise IndexError(f"The slice start {i} is not before its stop {l}.")
 
     else:
-        items: tuple[Iterable[T], int] = CountAsIterable(values)
+        items: tuple[Iterable[T], int] = CountAsIterable(values, True)
 
         if len(range(i, l, s)) != items[1]: raise ValueError(f"Attempt to assign a sequence of size {items[1]} to an extended slice of size {len(range(i, l, s))}.")
 
