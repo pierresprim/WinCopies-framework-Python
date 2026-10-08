@@ -348,8 +348,10 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
 
     expectedFailure rather than an exclusion, for the reason 4.1 §2.6 established: an
     exclusion that stays says nothing, while an expectedFailure becomes an unexpected
-    success -- and so a red run -- the day its defect closes. One bench per defect, so that
-    closing one of the three signals without waiting for the others.
+    success -- and so a red run -- the day its defect closes. One bench per group, so that
+    closing one signals without waiting for the others: there were three, and the count is
+    read off _BLOCKED rather than written here, a number in a docstring having already gone
+    stale once when the third group closed.
     """
 
     def _assertGroupSucceeds(self, defect: str) -> None:
