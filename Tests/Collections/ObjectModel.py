@@ -390,23 +390,64 @@ class TestBulkInsertionIsOneAct(unittest.TestCase):
                 self.assertEqual(tuple(items.AsIterable()), _CONTENT)
 
 class TestASliceAssignmentIsOneAct(unittest.TestCase):
-    """D-58: it is not. SetValues removes the old span before it knows the new one is
-    accepted, and InsertRange has no refusal left to report by then, so a refused slice
-    assignment destroys what it removed.
+    """It is, now: the span is validated before the first write.
 
-    Measured on the wrapped ordered set view: l[1:2] = (3,) leaves three elements where it
-    found four. The bare view is correct -- its own __setitem__ checks before writing -- so
-    what the wrapper loses is the container's set-aware slice handling, replaced by a generic
-    decomposition with no rollback. The fix is to turn the order of that branch around, which
-    is why this is held open rather than patched here.
+    D-58, closed. SetValues removed the old span before knowing whether the new one was
+    accepted, and InsertRange had no refusal left to report by then, so a refused slice
+    assignment destroyed what it removed -- measured here at l[1:2] = (3,), which left three
+    elements where it found four. The order is no longer the fix: Core.IList._CanSetRange
+    asks the container while the content is intact, and the refusal arrives before anything
+    moves.
+
+    This class is what keeps it closed, and it asks two things the registry's own span bench
+    cannot. The content clause is the defect itself. The silence clause is the reason the
+    rollback route was refused instead: restoring the span would have announced Removed and
+    then Added for an assignment that never happened, leaving a consumer to recognise the
+    pairs that net out -- a refusal must announce nothing at all.
     """
 
-    @unittest.expectedFailure
     def test_a_refused_slice_assignment_leaves_the_content_alone(self) -> None:
         items: ObservableCollection[int] = _constrained()[1]
 
         _attempt(items, lambda o: o.AsMutableSequence().__setitem__(slice(1, 2), (3,)))
 
         self.assertEqual(tuple(items.AsIterable()), _CONTENT, "a refused slice assignment destroyed an element")
+
+    def test_a_refused_slice_assignment_announces_nothing(self) -> None:
+        records: ReadOnlyArray[_Record] = _listen(lambda o: o.AsMutableSequence().__setitem__(slice(1, 2), (3,)), lambda _: _constrained()[1])[0]
+
+        self.assertEqual(records, (), f"a refused slice assignment announced {tuple(record[0] for record in records)}")
+
+    def test_a_refused_stepped_span_leaves_the_content_alone(self) -> None:
+        """The stepped branch, which writes n times through SetAt and so had its own way to
+        stop halfway. It reaches the hook only through the wrapper: the container's own
+        __setitem__ routes to SetOrderedValues, which validates on its own behalf, whereas
+        the wrapper's goes to the generic primitive. The order of the two values is what
+        makes this clause measure anything: the 9 at position 0 is accepted, so the branch
+        writes it and only then meets the 2, which position 1 still holds outside the span.
+        Reversed, the first write would be the one refused and the content would survive
+        without the hook ever being consulted -- measured, and the reason this key is this
+        way round.
+        """
+
+        items: ObservableCollection[int] = _constrained()[1]
+
+        _attempt(items, lambda o: o.AsMutableSequence().__setitem__(slice(0, 4, 2), (9, 2)))
+
+        self.assertEqual(tuple(items.AsIterable()), _CONTENT, "a refused stepped span changed the content")
+
+    def test_a_legitimate_span_still_goes_through(self) -> None:
+        """Without this one the two clauses above are vacuous: a hook that refused every span
+        would satisfy both, and the wrapper would have lost slice assignment altogether. The
+        key is the one measured legitimate on this very container -- the 3 that arrives at
+        position 1 is the 3 that leaves position 2, which is why unicity does not forbid it.
+        """
+
+        view, items = _constrained()
+
+        items.AsMutableSequence()[1:3] = (3, 9)
+
+        self.assertEqual(tuple(items.AsIterable()), (1, 3, 9, 4), "a legitimate span was refused or misplaced")
+        self.assertEqual(tuple(view.AsIterable()), (1, 3, 9, 4), "the container and its wrapper disagree on the result")
 
 if __name__ == "__main__": unittest.main()

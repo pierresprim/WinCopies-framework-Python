@@ -4,7 +4,6 @@ from typing import overload, SupportsIndex
 from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
-from WinCopies.Collections.Iteration.Extensions import CountAsIterable
 from WinCopies.Collections.Linked.Singly import CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex
 
@@ -70,6 +69,13 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     def validateLength(indices: range, length: int) -> None:
         if len(indices) != length: raise ValueError(f"Attempt to assign a sequence of size {length} to an extended slice of size {len(indices)}.")
 
+    # Asked before the first write, which is the whole point of the hook: the removal below
+    # frees the positions and cannot be taken back, so the container is made to answer while
+    # the content is still intact. The defect was this question asked too late -- InsertRange
+    # discovered the refusal, and what RemoveRange had taken was already gone.
+    def validateSpan(indices: range, items: Sequence[T]) -> None:
+        if not lst.CanSetRange(indices, items): raise ValueError(f"The container refuses the assignment of {len(items)} item(s) to the {len(indices)} position(s) of {indices}.")
+
     s: int|None = key.step
 
     if s is None: s = 1
@@ -79,6 +85,13 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
 
     i, l = __ResolveBounds(key, count, s)
 
+    # Materialized once, here, because three readers now want the whole range: the length
+    # check, the container's answer, and the write. Hoisted out of the branches that each
+    # counted for themselves, which also puts the evaluation of the right-hand side where
+    # CPython puts it -- before the assignment is attempted at all.
+    _values: Iterable[T] = values.AsIterable() if isinstance(values, IEnumerable) else values
+    items: Sequence[T] = _values if isinstance(_values, Sequence) else tuple[T](_values)
+
     # Applied before the reversal, which hands the call to a branch that no longer knows the
     # step was negative: a step of -1 reverses into the resizable step of 1, so that branch
     # resized the list instead of refusing -- [::-1] = (7, 8) was measured to leave [8, 7]
@@ -87,34 +100,34 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     # the key as given, which is the length CPython reports, rather than from the reversed
     # bounds.
     if s < 0:
-        # Counted through the re-readable form, not the generator one: for a step below -1 the
-        # reversed key lands in the extended branch, which counts a second time, and a
-        # generator would come back empty from that second pass.
-        _items: tuple[Iterable[T], int] = CountAsIterable(values)
+        validateLength(range(i, l, s), len(items))
 
-        validateLength(range(i, l, s), _items[1])
-
-        # The counted items, not `values`: counting a one-pass iterable consumes it.
-        SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), _items[0])
+        # The span is validated by the reversed view, one level down, which mirrors the
+        # positions before asking the container: asking here would hand the hook a span
+        # expressed in the wrong direction.
+        SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), items)
 
     elif s == 1:
         if i > l: raise IndexError(f"The slice start {i} is past its stop {l}.")
 
         length: int = l - i
 
+        validateSpan(range(i, l), items)
+
         if length > 0: lst.RemoveRange(i, length)
 
-        lst.InsertRange(i, values.AsIterable() if isinstance(values, IEnumerable) else values)
+        lst.InsertRange(i, items)
 
     # step > 1
     elif i >= l: raise IndexError(f"The slice start {i} is not before its stop {l}.")
 
     else:
-        items: tuple[Iterable[T], int] = CountAsIterable(values, True)
+        indices: range = range(i, l, s)
 
-        validateLength(range(i, l, s), items[1])
+        validateLength(indices, len(items))
+        validateSpan(indices, items)
 
-        for item in items[0]:
+        for item in items:
             lst.SetAt(i, item)
             
             i += s

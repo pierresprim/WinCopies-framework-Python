@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, MutableSequence as MutableSequenceBase
+from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
@@ -70,6 +70,12 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     
     def _InsertItems(self, index: int, items: Iterable[TItem]) -> bool|None:
         return self._GetInnerContainer().TryInsertRange(index, items)
+    
+    # Passed through, and overridden nowhere below unlike every hook around it: a question
+    # writes nothing, so there is no act to announce on a channel and no reentrancy to
+    # assert. What the observable layer owes a span is the event its write already sends.
+    def _CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool:
+        return self._GetInnerContainer().CanSetRange(indices, items)
     
     def _TryRemoveItemsAt(self, index: int, count: int) -> bool:
         return self._GetInnerContainer().TryRemoveRange(index, count)

@@ -306,6 +306,11 @@ class List[T](ListBase[T]):
     def TryInsert(self, index: int, value: T) -> bool: return self._TryInsert(index, value)
     @final
     def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None: return self._TryInsertRange(index, items)
+    
+    # Nothing to refuse: under this one sits a Python list, which takes any value at any
+    # position the caller has already resolved. Written out rather than inherited, there
+    # being no default to inherit -- see Core.IList._CanSetRange for why there is none.
+    def _CanSetRange(self, indices: range, items: _Sequence[T]) -> bool: return True
 
 class _ISizedListInitializer[T](IInterface):
     def __init__(self) -> None:
@@ -412,6 +417,14 @@ class SizedList[T](ListBase[T], ISizedList[T]):
         _items: tuple[Iterable[T], int] = Count(items)
         
         return self._TryInsertRange(index, _items[0]) if self.ValidateLength(_items[1]) else None
+    
+    # The span's net effect on the length, which is all this type refuses: a replacement that
+    # shrinks the count or leaves it alone always passes, one that grows it passes only within
+    # the maximum. Answered here instead of being discovered by InsertRange, which is reached
+    # only once the removal has freed the positions -- and that is what destroyed two items of
+    # [0, 1, 2, 3] on l[1:3] = (7, 8, 9).
+    @final
+    def _CanSetRange(self, indices: range, items: _Sequence[T]) -> bool: return self.ValidateLength(len(items) - len(indices))
     
     @staticmethod
     def Create(length: int) -> ISizedList[T]:

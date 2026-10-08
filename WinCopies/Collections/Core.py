@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sized, Iterable, Container
+from collections.abc import Sized, Iterable, Container, Sequence
 from typing import overload, final, Any, Callable
 
 from WinCopies import IInterface, Abstract
@@ -478,6 +478,37 @@ class IList[T](IArray[T], IListBase[T]):
     @final
     def InsertValues(self, index: int, *values: T) -> None:
         if self.TryInsertValues(index, *values) is None: raise IndexError(index)
+    
+    # Asked before anything is written, because a span replacement cannot be taken back: the
+    # removal that frees the positions runs first, so a refusal arriving after it has already
+    # destroyed what it took -- measured on a sized list, where l[1:3] = (7, 8, 9) left [0, 3]
+    # of [0, 1, 2, 3]. Undoing it is no answer either, since the restoration would go back
+    # through TryInsertRange, the very member whose refusal triggered it, and its success is a
+    # property of one container rather than of this contract.
+    #
+    # The positions arrive as a range because a range says what leaves: a container holding an
+    # invariant over its content judges the arriving items against what remains, not against
+    # what it still holds -- which is why l[1:3] = (3, 9) is legitimate on an ordered set that
+    # already holds that 3 inside the span. The contiguous span and the stepped one are the
+    # same question, told apart by the step. The items arrive as a Sequence because this hook
+    # reads them and the write reads them again: a one-pass iterable would reach the first
+    # reader and nothing else.
+    #
+    # No default answer. One that said True would reopen the defect, silently, for every
+    # constrained container that forgot to narrow it -- which is exactly how the reversal hook
+    # came to be a no-op that a whole commit did not notice.
+    @abstractmethod
+    def _CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
+        ...
+    @final
+    def CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
+        match self._CanSetRange(indices, items):
+            case bool() as answer: return answer
+            
+            # Nothing here enforces an abstract member, so an implementor who forgets this one
+            # keeps the `...` body and its None. Named rather than coerced: read as falsy it
+            # would pass for a refusal by the container, and the two call for opposite fixes.
+            case _: raise NotImplementedError(f"{type(self).__name__} does not implement _CanSetRange.")
 
 class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()

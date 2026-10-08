@@ -1836,4 +1836,91 @@ class TestHarnessNonVacuity(unittest.TestCase):
         self.assertGreater(_fallen(broken), _NON_VACUITY_FLOOR,
                            f"only {_fallen(broken)} assertions fell; the control is losing its grip")
 
+def _spanSubjects() -> ReadOnlyArray[_MutableCaseBase]:
+    """The cases whose slice assignment goes through the span hook, measured rather than
+    listed: those are exactly the Core.IList ones, since IList is where _CanSetRange is
+    declared. A type that reaches that interface, or leaves it, is swept here with nothing
+    to edit -- which is what makes the clauses below facts about the family."""
+
+    return tuple(case for case in _MUTABLE if isinstance(case.Create(), IList))
+
+class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
+    """A span replacement asks the container before it writes, on every type that offers one.
+
+    D-58: the contiguous branch of SetValues removed the old span before knowing whether the
+    new one was accepted, so a refusal reaching InsertRange had nothing left to report and
+    what the removal took was gone -- measured on the sized list, where l[1:3] = (7, 8, 9)
+    left [0, 3] of [0, 1, 2, 3], and on l[2:4] = (7, 8, 9, 10), which left [0, 1]. Closed by
+    Core.IList._CanSetRange, asked while the content is still intact.
+
+    The hook has no default answer on purpose: one that said True would reopen the defect
+    silently for every constrained container that forgot to narrow it. The first clause below
+    is what makes that choice survivable -- it reads the omission off the type rather than
+    waiting for a consumer to be destroyed by it.
+    """
+
+    def test_every_span_subject_answers_the_hook(self) -> None:
+        """Nothing in this framework enforces an abstract member at construction, so an
+        implementor who forgets this one keeps the `...` body. Read off the type rather than
+        called, because calling it would report the omission as a refusal."""
+
+        # Read out of the class dictionary rather than through the attribute: the comparison
+        # is one of identity against the declaration itself, and the attribute route would
+        # both reach through a generic whose parameter is unbound here and count as a
+        # protected access from outside.
+        declared: Any = IList.__dict__["_CanSetRange"]
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                subject: type[Any] = type(cast(IList[int], case.Create()))
+
+                self.assertIsNot(getattr(subject, "_CanSetRange", None), declared,
+                                 f"{case.GetName()} inherits the abstract _CanSetRange and would answer None")
+
+    def test_a_span_that_fits_is_written(self) -> None:
+        """Without this one the clause above is vacuous: a hook that refused everything would
+        satisfy it, and every slice assignment in the tree would raise."""
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                # Cast to the Extensions face, which is the one carrying the protocol door:
+                # the span hook is declared on the Core face and the door is not, so the two
+                # are reached through different names for the same object.
+                items: _IList[int] = cast(_IList[int], case.Create())
+                before: int = items.GetCount()
+
+                items.AsMutableSequence()[1:2] = (7, 8)
+
+                self.assertEqual(items.GetCount(), before + 1, f"{case.GetName()} refused a span its container accepts")
+                self.assertEqual((items.GetAt(1), items.GetAt(2)), (7, 8), f"{case.GetName()} wrote the span elsewhere")
+
+    def test_the_types_left_out_are_left_out_by_their_lattice_position(self) -> None:
+        """The complement of the computed subset, asserted rather than trusted, per 5.30: a
+        subset by measurement says something only if what it excludes is excluded for a
+        stated reason. The sorted list stops at IListBase, which has no positional insertion
+        and so no span to replace; the three arrays stop at IArray, whose length is fixed."""
+
+        excluded: ReadOnlyArray[str] = tuple(case.GetName() for case in _MUTABLE if case not in _spanSubjects())
+
+        self.assertEqual(excluded, ("SortedList", "Array", "ArrayList", "SizedArray"),
+                         "the family moved: a type entered or left Core.IList")
+
+        for case in _MUTABLE:
+            if case.GetName() in excluded:
+                with self.subTest(type = case.GetName()):
+                    self.assertNotIsInstance(case.Create(), IList, f"{case.GetName()} is a Core.IList and owes the span hook")
+
+    def test_a_refused_span_leaves_the_content_alone(self) -> None:
+        """The sized list, which is the one registry subject whose span can be refused for a
+        reason of its own: the capacity. The three keys are the ones measured open."""
+
+        for key, values in ((slice(1, 3), (7, 8, 9, 10, 11, 12)), (slice(2, 3), (7, 8, 9, 10, 11, 12)), (slice(0, 0), (7, 8, 9, 10, 11, 12, 13))):
+            with self.subTest(key = str(key)):
+                items: ISizedList[int] = _sizedList()
+                before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                with self.assertRaises(Exception): items.AsMutableSequence()[key] = values
+
+                self.assertEqual(_snapshot(cast(_ITuple[int], items)), before, f"a refused span at {key} changed the content")
+
 if __name__ == "__main__": unittest.main()

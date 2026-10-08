@@ -197,6 +197,14 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     @final
     def TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool|None: return self._GetContainer().TryInsertRange(index, Select(items, lambda item: self._ConvertBack(item)))
     
+    # Converted into a tuple rather than handed over as a projection: the container's answer
+    # reads the items and its write reads them again, and a lazy Select would reach the first
+    # reader only. The conversion is this layer's whole contribution -- whether the span may
+    # be written is the inner container's to say, in its own vocabulary.
+    @final
+    def _CanSetRange(self, indices: range, items: SequenceBase[TOut]) -> bool:
+        return self._GetContainer().CanSetRange(indices, tuple(Select(items, lambda item: self._ConvertBack(item))))
+    
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
     @final

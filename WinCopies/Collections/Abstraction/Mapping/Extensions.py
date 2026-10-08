@@ -85,6 +85,19 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # to set. The protocol route keeps the distinction, since it raises rather than returns.
     def TrySetAt(self, key: int, value: T) -> bool: return TrySetOrderedValue(self.__list, self.__innerSet, key, value) is True
     
+    # The unicity clause, asked of the whole span at once. What sits inside the span leaves,
+    # so it is out of the test: l[1:3] = (3, 9) is legitimate on (1, 2, 3, 4) because the 3
+    # this set holds is at position 2 and goes. That is the rule SetOrderedValues applies in
+    # its own validation phase; answered as a boolean here because the caller is the generic
+    # primitive, which raises on its own behalf.
+    @final
+    def _CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
+        if HasDuplicate(items): return False
+        
+        leaving: set[T] = {self.__list.GetAt(index) for index in indices}
+        
+        return not Any(items, lambda item: item in self.__innerSet and item not in leaving)
+    
     def Add(self, item: T) -> None: return self.__items.Add(item)
     
     def TryInsert(self, index: int, value: T) -> bool:

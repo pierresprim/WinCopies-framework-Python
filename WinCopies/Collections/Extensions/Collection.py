@@ -939,6 +939,18 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self.__TryInsert(index, Reverse(items), None, lambda items: items.TryInsertRange)
     
+    # The whole span is mirrored, not just its bounds: position k of this view is the inner
+    # count - 1 - k, so the lowest mirrored position comes from the highest original one and
+    # the step crosses the mirror unchanged. The items are mirrored with it, since the one
+    # that lands on the original last position lands on the mirrored first.
+    @final
+    def _CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool:
+        if len(indices) == 0: return self._GetContainerAsList().CanSetRange(range(0), items)
+        
+        start: int = self.ReverseIndex(indices[-1])
+        
+        return self._GetContainerAsList().CanSetRange(range(start, start + (len(indices) - 1) * indices.step + 1, indices.step), items[::-1])
+    
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
