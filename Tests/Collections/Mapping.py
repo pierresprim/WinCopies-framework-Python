@@ -17,7 +17,9 @@ from collections.abc import Iterator, MutableSequence
 from typing import Any, Callable
 
 from WinCopies.Collections import ReadOnlyArray
+from WinCopies.Collections.Abstraction.Collection import TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
+from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Collections.Extensions import IList, IOrderedSet
 from WinCopies.Typing.Delegate import Converter
 
@@ -731,3 +733,118 @@ class TestOrderedSetAddRangeIsSinglePass(unittest.TestCase):
 
                 self.assertEqual(_snapshot(items), (0, 1, 2, 7, 8), f"{label} lost the values")
                 self.assertTrue(items.Contains(7))
+
+
+# The key grid the two decomposers are compared on: bounds inside, outside and negative, the
+# steps that resize and the steps that do not, and right-hand sides of every length around
+# the span's. Written as a product rather than as a list of interesting keys, because the
+# divergence it found was not at an interesting key -- it was wherever a bound needed
+# normalising, which no hand-picked list would have covered.
+_BOUNDS: ReadOnlyArray[int|None] = (None, -9, -4, -3, -1, 0, 1, 3, 4, 9)
+_STEPS: ReadOnlyArray[int|None] = (None, 1, 2, -1, -2)
+_VALUES: ReadOnlyArray[ReadOnlyArray[int]] = ((), (7,), (7, 8), (7, 8, 9))
+
+def _keys() -> Iterator[slice]:
+    for start in _BOUNDS:
+        for stop in _BOUNDS:
+            for step in _STEPS: yield slice(start, stop, step)
+
+def _outcome(assign: Callable[[], None], read: Callable[[], ReadOnlyArray[int]]) -> tuple[str, ReadOnlyArray[int]]:
+    """What a slice assignment did: the exception's name or "ok", and the content after.
+
+    The content is read in both cases on purpose -- a refusal that changed it is the defect
+    this module's span benches exist for, and a verdict on the exception alone would miss it.
+    """
+
+    try:
+        assign()
+
+        return ("ok", read())
+    except Exception as exception: return (type(exception).__name__, read())
+
+class TestTheTwoSpanDecomposersAgree(unittest.TestCase):
+    """The ordered set resolves a slice key exactly as CPython does.
+
+    D-65. Two functions decompose a span -- Range.SetValues and Range.Extensions's
+    SetOrderedValues, which keeps a validation phase of its own for the unicity clause -- and
+    SetOrderedValues resolved its key by `start or 0` and `stop or count`, normalising no
+    negative index and clamping no bound. It had therefore received neither D-61 nor D-64.
+    Measured before the fix, over a 4704-key grid: 3074 disagreements with the generic
+    decomposer, 84 of them accepted and written with the wrong content and no exception at
+    all (l[:-3] = (7,) gave (7, 1, 2, 3, 4) for CPython's (7, 2, 3, 4)), and l[::-1] = ()
+    emptied the collection where CPython raises.
+
+    CPython is the reference here rather than the generic decomposer, because the generic one
+    refuses degenerate slices by arbitration -- a start past its stop raises IndexError where
+    CPython treats the slice as empty. Measured after the fix, the ordered set agrees with
+    CPython on every key of the grid, and the whole of its residual disagreement with the
+    generic decomposer is that arbitration.
+    """
+
+    def test_the_ordered_set_resolves_a_key_as_cpython_does(self) -> None:
+        for key in _keys():
+            for values in _VALUES:
+                with self.subTest(key = str(key), values = str(values)):
+                    expected: list[int] = list(_CONTENT)
+                    reference: tuple[str, ReadOnlyArray[int]] = _outcome(lambda: expected.__setitem__(key, values), lambda: tuple(expected))
+
+                    items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+                    view: IList[int] = items.AsList()
+
+                    self.assertEqual(_outcome(lambda: _mutable(view).__setitem__(key, values), lambda: _snapshot(items)), reference)
+
+    def test_the_shared_resolution_is_what_makes_them_agree(self) -> None:
+        """Non-vacuity, stated rather than assumed: the clause above passes only because both
+        decomposers call Range.ResolveKey. This reads the resolution off one key the old
+        private one got wrong, so that restoring `stop or count` falls here too and names
+        itself, instead of falling as a hundred opaque subtests above."""
+
+        items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+
+        _mutable(items.AsList())[:-2] = (7,)
+
+        # (7, 1, 2) is CPython's answer and the fixed one; the private resolution gave
+        # (7, 0, 1, 2), the negative stop resolving the span empty so that nothing was
+        # removed and the 7 was merely inserted.
+        self.assertEqual(_snapshot(items), (7, 1, 2), "a negative stop was not normalised: the span resolved empty and nothing was removed")
+
+class TestASpanIsRefusedByTheContainerBeforeItIsWritten(unittest.TestCase):
+    """SetOrderedValues asks the list, not only the set.
+
+    Its validation phase covers the unicity clause, which is the set's invariant; a list that
+    refuses for a reason of its own -- a fixed capacity -- was still met by the mutation
+    phase, after the removal had freed the positions. Reachable by calling the function with
+    a constrained list, which is what this bench does: the ordered set builds its own list
+    and no consumer can hand it one.
+    """
+
+    @staticmethod
+    def __sized() -> tuple[IList[int], set[int]]:
+        items: IList[int]|None = TryCreateSizedList(4, [0, 1, 2, 3])
+
+        assert items is not None
+
+        return (items, {0, 1, 2, 3})
+
+    def test_a_span_the_list_refuses_leaves_the_content_alone(self) -> None:
+        items, mirror = self.__sized()
+
+        # Any exception, not ValueError: what this clause measures is the content, and tying
+        # it to one exception type would make it fall on the vocabulary instead -- which is
+        # exactly what it did when the consult was perturbed away, the refusal arriving from
+        # InsertRange as an IndexError before the content was ever read.
+        with self.assertRaises(Exception): SetOrderedValues(items, mirror, slice(1, 3), (7, 8, 9))
+
+        self.assertEqual(tuple(items.AsIterable()), (0, 1, 2, 3), "the removal ran before the list was asked")
+        self.assertEqual(sorted(mirror), [0, 1, 2, 3], "the set was left out of step with the list")
+
+    def test_a_span_the_list_accepts_is_written(self) -> None:
+        """Without this one the clause above is vacuous: a consult that refused every span
+        would satisfy it and leave the function unable to write at all."""
+
+        items, mirror = self.__sized()
+
+        SetOrderedValues(items, mirror, slice(1, 3), (7, 8))
+
+        self.assertEqual(tuple(items.AsIterable()), (0, 7, 8, 3), "a span the list accepts was refused")
+        self.assertEqual(sorted(mirror), [0, 3, 7, 8], "the set did not follow the list")

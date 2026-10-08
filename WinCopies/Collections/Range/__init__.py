@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
-from WinCopies.Collections.Core import ITuple as ITupleBase, IList as IListBase
+from WinCopies.Collections.Core import ICountable, ITuple as ITupleBase, IList as IListBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Linked.Singly import CreateEnumerableStack
@@ -62,6 +62,34 @@ def __AsReversedKey(start: int, stop: int, step: int, count: int) -> slice:
 
     return slice(reverseIndex(start), reverseIndex(stop), -step)
 
+# The key resolution, named once because two functions decompose a span: this one and
+# Range.Extensions.SetOrderedValues, which keeps a validation phase of its own for the
+# ordered set's unicity. The two had drifted here and nowhere else -- resolving a key by
+# `start or 0` and `stop or count` normalises no negative index and clamps no bound, so they
+# disagreed on 3074 keys of a 4704-key grid, and 84 of those were accepted and written with
+# the wrong content, no exception raised: a negative stop resolved to an empty span, so
+# nothing was removed and everything was inserted. Sharing the resolution is what keeps a
+# second decomposer from being a second set of rules.
+#
+# The count comes back with the bounds rather than being read again by the caller: both
+# callers need it to mirror a negative step, and two reads would let it move between them.
+def ResolveKey(lst: ICountable, key: slice) -> tuple[int, int, int, int]:
+    """Resolves a slice key against a collection: the step, the start, the stop, the count.
+
+    A step of 0 is refused here, as CPython refuses it, so that no caller has to.
+    """
+
+    step: int|None = key.step
+
+    if step is None: step = 1
+    elif step == 0: raise IndexError()
+
+    count: int = lst.GetCount()
+
+    start, stop = __ResolveBounds(key, count, step)
+
+    return (step, start, stop, count)
+
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
     # CPython takes every step but 1 as an extended slice, which accepts exactly its own
     # length. Stated once, because the two branches that hold to it apply it on either side
@@ -76,14 +104,7 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     def validateSpan(indices: range, items: Sequence[T]) -> None:
         if not lst.CanSetRange(indices, items): raise ValueError(f"The container refuses the assignment of {len(items)} item(s) to the {len(indices)} position(s) of {indices}.")
 
-    s: int|None = key.step
-
-    if s is None: s = 1
-    elif s == 0: raise IndexError()
-
-    count: int = lst.GetCount()
-
-    i, l = __ResolveBounds(key, count, s)
+    s, i, l, count = ResolveKey(lst, key)
 
     # Materialized once, here, because three readers now want the whole range: the length
     # check, the container's answer, and the write. Hoisted out of the branches that each

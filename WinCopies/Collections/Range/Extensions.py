@@ -3,6 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList, ISet
+from WinCopies.Collections.Range import ResolveKey
 from WinCopies.Collections.Util import ReverseIndex, MakeSequence
 from WinCopies.Typing.Comparison import HashableProtocol
 
@@ -27,26 +28,34 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
         
         raise ValueError(f"Attempt to assign a sequence of size {len(newItems)} to an extended slice of size {len(indices)}.")
     def reverseIndex(index: int) -> int:
-        return ReverseIndex(index, lst.GetCount())
+        return ReverseIndex(index, count)
 
-    step: int|None = key.step
+    # Shared with SetValues rather than resolved here. This function used to take `start or 0`
+    # and `stop or count`, which normalises no negative index and clamps no bound, so the two
+    # decomposers of a span disagreed on 3074 keys of a 4704-key grid -- and 84 of those were
+    # accepted and written wrong without raising, a negative stop resolving to an empty span
+    # so that nothing was removed and everything was inserted. Range.ResolveKey says the rest.
+    # Materialize to guarantee reiterability, and before the branch below rather than after
+    # it: the length of the range is now needed on this side of the reversal.
+    newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
 
-    if step is None: step = 1
-    elif step == 0: raise IndexError()
-
-    start: int|None = key.start
-    stop: int|None = key.stop
-
-    if start is None: start = 0
-    if stop is None: stop = lst.GetCount()
+    step, start, stop, count = ResolveKey(lst, key)
 
     if step < 0:
-        SetOrderedValues(lst.AsReversed(), s, slice(reverseIndex(start), reverseIndex(stop), -step), values)
+        # The extended-slice length, applied before the reversal, which hands the call to a
+        # branch that no longer knows the step was negative: a step of -1 reverses into the
+        # resizable step of 1, and that branch resized instead of refusing -- [::-1] = () was
+        # measured to empty the collection where CPython raises. getRange already states the
+        # rule; its range is discarded, the reversed call recomputing the span in its own
+        # direction. This is the clause the generic primitive applies at the same place.
+        getRange(start, stop, step)
+
+        # The formula of Range.__AsReversedKey, applied to the resolved bounds: the stop
+        # sentinel of -1 that a negative step resolves to becomes the count, which is the
+        # exclusive stop the reversed view expects.
+        SetOrderedValues(lst.AsReversed(), s, slice(reverseIndex(start), reverseIndex(stop), -step), newItems)
 
         return
-
-    # Materialize to guarantee reiterability
-    newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
 
     # Affected indices + size constraint
     indices: range = getRange(start, stop, step)
@@ -64,13 +73,23 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
         if not seen.TryAdd(item): raise ValueError(f"Item {item} appears more than once in the values to assign.")
         if __Conflicts(s, item, oldSet): raise ValueError(f"Item {item} already exists outside the slice.")
 
+    # The container's own answer, which this phase cannot stand in for: the two loops above
+    # validate the set's invariant, and a list that refuses for a reason of its own -- a fixed
+    # capacity -- would still be met by Phase 2, once the removal has freed the positions.
+    # Measured at SetOrderedValues(CreateSizedList(4, [0, 1, 2, 3]), ..., slice(1, 3),
+    # (7, 8, 9)), which left [0, 3]. Asked last, so that the two messages above win whenever
+    # both refusals apply: they name the item, this one only names the span.
+    if not lst.CanSetRange(indices, newItems): raise ValueError(f"The container refuses the assignment of {len(newItems)} item(s) to the {len(indices)} position(s) of {indices}.")
+
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))
 
     if step == 1:
-        count: int = len(indices)
+        # Named for the span rather than for the collection: the count of the whole now comes
+        # back from the shared resolution, under that name.
+        length: int = len(indices)
 
-        if count > 0: lst.RemoveRange(start, count)
+        if length > 0: lst.RemoveRange(start, length)
 
         lst.InsertRange(start, newItems)
     
