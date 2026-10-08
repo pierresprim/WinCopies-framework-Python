@@ -119,13 +119,13 @@ def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: 
 
                 return False
     
-    else: return _Parse(items, predicate, Self)
-def CheckIfAny[T](items: Iterable[T]|None, predicate: Predicate[T]|None = None) -> bool|None:
+    return _Parse(items, predicate, Self)
+def CheckIfAny[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T]|None, predicate: Predicate[T]|None = None) -> bool|None:
     return None if items is None else Any(items, predicate)
 
 def Contains[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[TIn], predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool:
     return _Parse(items, predicate, lambda items: Select(items, selector))
-def CheckIfContains[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool|None:
+def CheckIfContains[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[TIn]|None, predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool|None:
     return None if items is None else Contains(items, predicate, selector)
 
 def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
