@@ -9,6 +9,7 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
+from WinCopies.Collections.Range import SetItems
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, ISwappable, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -962,8 +963,22 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @overload
     def __setitem__(self, index: slice, value: Iterable[TItem]) -> None: ...
     
+    # Routed through the primitive rather than mirrored and handed to the inner list, for the
+    # same reason as the reversal, extend and AddRange before it: a protocol face that redoes
+    # the work by itself diverges from the one that was built for it. Two faces of that here.
+    #
+    # A resize could not pass at all. The mirror of a non-empty span carries a negated step,
+    # which makes the inner assignment an extended slice demanding its exact length, so
+    # v[1:3] = (7,) and v[1:3] = (7, 8, 9) both raised where CPython resizes -- and no single
+    # mirrored slice can express a reversed resize, the reversal needing a negative step and
+    # the resize a step of 1. The primitive expresses it as the two acts this class already
+    # mirrors one by one, RemoveRange and InsertRange.
+    #
+    # And the span was written without being offered to the container: this skipped SetValues,
+    # hence CanSetRange, so a container refusing a span for an invariant of its own was met
+    # only once the removal had taken place.
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None: self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(int(index)) if isinstance(index, SupportsIndex) else self.ReverseKey(index)] = value # type: ignore
+    def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None: SetItems(self, index, value)
     
     @final
     def __delitem__(self, index: int|slice) -> None: del self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(index) if isinstance(index, int) else self.ReverseKey(index)]

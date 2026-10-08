@@ -229,7 +229,26 @@ class IIndexableCollectionBase(ICountable):
     def ReverseKey(self, key: slice) -> slice:
         indices: range = range(*key.indices(self.GetCount()))
         
-        if len(indices) == 0: return slice(0, 0)
+        # An empty span designates no element, so there is no direction to mirror -- but it
+        # does designate a position, and that position is the one this used to discard: every
+        # empty span came back as slice(0, 0), which is the mirror of exactly one of them. A
+        # caller writing through the answer therefore placed its items at the wrong end,
+        # measured at six of seven empty keys on a four-element view.
+        #
+        # The position is the count less the resolved start, not the last index less it: what
+        # is mirrored here is an insertion point and not an element, and the two differ by one.
+        #
+        # The step comes back as given rather than negated, unlike the branch below, and that
+        # is not a matter of consistency: CPython reads a step of 1 as resizable and anything
+        # else as an extended slice, by the step itself and not by its magnitude. Negating
+        # would turn an empty resizable span into an extended one, which refuses the very
+        # insertion this answer exists to place -- measured, l[1:1] = (7, 8) inserts where
+        # l[1:1:-1] = (7, 8) raises. Away from a magnitude of 1 the sign is unobservable on
+        # all three operations, measured, so one rule serves both without a special case.
+        if len(indices) == 0:
+            position: int = self.GetCount() - indices.start
+            
+            return slice(position, position, indices.step)
         
         step: int = -indices.step
         stop: int = self.ReverseIndex(indices[-1]) + step

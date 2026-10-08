@@ -2019,4 +2019,164 @@ class TestADegenerateSliceIsEmptyOnEveryOperation(unittest.TestCase):
                 self.assertEqual(self.__outcome(lambda: items.AsMutableSequence().__setitem__(slice(3, 1, 2), (7,)), lambda: _snapshot(cast(_ITuple[int], items))),
                                  ("ValueError", before), "an empty stepped span did not refuse its items the way CPython does")
 
+def _normalized(key: slice) -> tuple[int|None, int|None, int]:
+    """A key compared semantically: a step of None is a step of 1 in Python slicing, and a
+    clause that compared the two literally would call a right answer wrong."""
+
+    return (key.start, key.stop, 1 if key.step is None else key.step)
+
+class TestAReversedKeyIsTheMirrorOfItsKey(unittest.TestCase):
+    """ReverseKey answers the mirror, for an empty span as for any other.
+
+    D-67. It collapsed every empty span to slice(0, 0), which is the mirror of exactly one of
+    them -- measured, six of seven empty keys on a four-element view came back pointing at
+    the wrong end. The member is public and final on Core.IIndexableCollectionBase, and its
+    name and signature promise the mirror of a key: a promise unkept is a defect, whatever
+    its consumers happen to do with the answer today.
+
+    Which is the reason this bench reads the value rather than a consumer's behaviour. The one
+    consumer that revealed the wrong position -- the reversed list's slice assignment -- was
+    routed through the primitive in the same lot, for D-66. Had this clause been written
+    against that consumer, closing D-66 would have buried D-67 rather than exposed it.
+
+    The step comes back unnegated, unlike a non-empty span's, and that is measured rather
+    than chosen for symmetry: CPython reads resizability off the step itself and not off its
+    magnitude, so negating an empty span's step of 1 would make it extended and refuse the
+    insertion a caller is placing through the answer.
+    """
+
+    @staticmethod
+    def __view() -> tuple[_IList[int], ReadOnlyArray[int]]:
+        """A reversed view and what the inner list holds, which is what the mirror indexes."""
+
+        items: _IList[int] = cast(_IList[int], _source())
+
+        return (items.AsReversed(), _snapshot(cast(_ITuple[int], items)))
+
+    def test_an_empty_span_mirrors_its_position(self) -> None:
+        """The insertion point, mirrored: the count less the resolved start, which is one more
+        than the mirror of an element. Each key below resolves empty for its own reason."""
+
+        view, inner = self.__view()
+        count: int = len(inner)
+
+        for key in (slice(2, 1), slice(-1, -2), slice(1, 1), slice(0, 0), slice(count, count), slice(2, 1, 2)):
+            with self.subTest(key = str(key)):
+                indices: range = range(*key.indices(count))
+
+                self.assertEqual(len(indices), 0, "the key chosen is not empty: the clause would measure the other branch")
+
+                position: int = count - indices.start
+
+                self.assertEqual(_normalized(view.ReverseKey(key)), (position, position, indices.step), "the empty span did not mirror its position")
+
+    def test_the_mirror_designates_what_the_key_designates(self) -> None:
+        """The whole promise, on non-empty spans: the mirrored key must reach, in the inner
+        list, the elements the key reaches in the view -- in the mirrored order."""
+
+        view, inner = self.__view()
+        count: int = len(inner)
+
+        for key in (slice(0, 2), slice(1, 3), slice(None, None), slice(0, count, 2), slice(1, None)):
+            with self.subTest(key = str(key)):
+                mirrored: slice = view.ReverseKey(key)
+
+                # No inversion to add on either side: the negated step is what makes the
+                # mirrored key enumerate in the view's own order, which is the whole point of
+                # negating it. An inversion here would have called a right answer wrong.
+                self.assertEqual(tuple(list(inner)[mirrored]), tuple(list(reversed(list(inner)))[key]),
+                                 "the mirrored key does not reach the same elements")
+
+    def test_an_empty_mirror_keeps_what_the_step_promises(self) -> None:
+        """Non-vacuity on the step, and the boundary the sign decides: an empty span of step 1
+        stays resizable through its mirror, and one of another step stays extended. Negating
+        the step would swap the first."""
+
+        view, inner = self.__view()
+
+        resizable: list[int] = list(inner)
+        resizable[view.ReverseKey(slice(2, 1))] = (7, 8)
+
+        self.assertEqual(len(resizable), len(inner) + 2, "the mirror of an empty resizable span would not take items")
+
+        extended: list[int] = list(inner)
+
+        with self.assertRaises(ValueError): extended[view.ReverseKey(slice(2, 1, 2))] = (7,)
+
+        self.assertEqual(tuple(extended), inner, "the mirror of an empty extended span took items")
+
+class TestAReversedViewAssignsThroughThePrimitive(unittest.TestCase):
+    """The reversed view's slice assignment does what CPython does, resizes included.
+
+    D-66. Its protocol face mirrored the key and handed it to the inner list, which cost two
+    things. A resize could not pass at all -- v[1:3] = (7,) and v[1:3] = (7, 8, 9) raised
+    where CPython resizes -- because the mirror of a non-empty span carries a negated step and
+    an extended slice demands its exact length; no single mirrored slice expresses a reversed
+    resize, the reversal needing a negative step and the resize a step of 1. And the span was
+    never offered to the container, so CanSetRange was skipped and a refusal arrived after the
+    removal.
+
+    Fourth occurrence of the shape D-55 named: a protocol face that redoes by itself what the
+    layer below was built for. The reading and the deletion were already correct, measured,
+    and are held here so that stays true.
+    """
+
+    @staticmethod
+    def __keys() -> Generator[slice]:
+        for start in (None, -2, -1, 0, 1, 3, 9):
+            for stop in (None, -2, -1, 0, 1, 3, 9):
+                for step in (None, 1, 2, -1): yield slice(start, stop, step)
+
+    def test_the_three_faces_do_what_cpython_does(self) -> None:
+        for key in self.__keys():
+            for values in ((), (7,), (7, 8), (7, 8, 9)):
+                with self.subTest(key = str(key), values = str(values)):
+                    source: _IList[int] = cast(_IList[int], _source())
+                    model: list[int] = list(reversed(_snapshot(cast(_ITuple[int], source))))
+
+                    def outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+                        try:
+                            act()
+
+                            return ("ok", read())
+                        except Exception as exception: return (type(exception).__name__, read())
+
+                    view: Any = source.AsReversed()
+                    door: Any = view.AsMutableSequence()
+
+                    self.assertEqual(outcome(lambda: door.__setitem__(key, values), lambda: _snapshot(cast(_ITuple[int], view))),
+                                     outcome(lambda: model.__setitem__(key, values), lambda: tuple(model)), "the assignment diverged")
+
+    def test_a_reversed_resize_passes(self) -> None:
+        """Named apart because it is the half of D-66 a key grid alone would not explain: the
+        span and the right-hand side have different lengths, which the mirrored extended slice
+        could never accept."""
+
+        resized: int = 0
+
+        for values in ((7,), (7, 8), (7, 8, 9)):
+            with self.subTest(values = str(values)):
+                source: _IList[int] = cast(_IList[int], _source())
+                view: Any = source.AsReversed()
+
+                # Computed from a plain list of the same content rather than written out: an
+                # expectation spelled against a base of another size is a clause that accuses
+                # the code of its author's arithmetic.
+                content: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], source))
+                model: list[int] = list(reversed(content))
+
+                model[1:3] = values
+
+                if len(model) != len(content): resized += 1
+
+                view.AsMutableSequence()[1:3] = values
+
+                self.assertEqual(_snapshot(cast(_ITuple[int], view)), tuple(model), "a reversed resize did not land where CPython lands it")
+
+        # Counted over the table rather than asserted inside it: a right-hand side of the
+        # span's own length is no resize, and a guard applied per value would have called that
+        # case a badly chosen key. What has to hold is that the table reaches the half this
+        # clause is named for.
+        self.assertGreater(resized, 0, "no value in the table resizes: the clause measures the same-length case only")
+
 if __name__ == "__main__": unittest.main()
