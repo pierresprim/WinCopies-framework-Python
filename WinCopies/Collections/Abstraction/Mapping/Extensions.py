@@ -21,6 +21,26 @@ from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
+# Single underscore, not double: both callers are methods, and a module-level __name read
+# from inside a class body mangles to _Class__name and does not resolve.
+def _CarriesADuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
+    """Whether the range repeats a value, which an ordered set cannot take whole.
+
+    A set takes a duplicated range and keeps one of the two, so its own answer says only
+    that none of the values was already held: TryAddRange((7, 7)) is measured to answer True
+    and to grow it by one. Read as permission to insert every value, that put two into the
+    order where the set held one -- the unicity clause the type is defined by. The range is
+    refused rather than deduplicated, because SetOrderedValues already answers that way for
+    the same range on the slice write, and one type cannot refuse by route.
+
+    Asked before the set is touched, so a refusal leaves nothing behind. It consumes what it
+    is given, so a caller that re-reads the range buffers it first.
+    """
+
+    seen: ISet[T] = Set[T]()
+
+    return any(not seen.TryAdd(item) for item in items)
+
 @final
 class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
@@ -90,6 +110,12 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         items, length = Count(BuildIterable(items))
 
         if length == 0: return False
+
+        # The set's boolean cannot answer this, so it is asked of the range itself: measured
+        # at TryInsertRange(1, (7, 7)) on CreateOrderedSet((1, 2, 3, 4)), which answered True
+        # and left the order (1, 7, 7, 2, 3, 4). None, not False, because False is the empty
+        # range this very method has just let through.
+        if _CarriesADuplicate(items): return None
 
         if self.__set.TryAddRange(items):
             self.__list.InsertRange(index, items)
@@ -342,6 +368,14 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
     
     @final
     def TryAddRange(self, items: Iterable[T]) -> bool:
+        # The same question the list view asks, on the type's own API: measured at
+        # TryAddRange((7, 7)) on CreateOrderedSet((1, 2, 3, 4)), which answered True and left
+        # the order (1, 2, 3, 4, 7, 7) against a count of 6. False, not None, because
+        # ISetBase.TryAddRange is bivalent by contract and AddRange raises on the False
+        # alone; this family therefore cannot tell a refused range from an empty one, which
+        # is D-24's open complaint against it and not something to settle here.
+        if _CarriesADuplicate(items): return False
+
         if self.__set.TryAddRange(items):
             self.__items.AddRange(items)
 

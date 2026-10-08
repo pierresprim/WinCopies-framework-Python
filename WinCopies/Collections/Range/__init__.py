@@ -41,8 +41,15 @@ def __Normalize(index: int, count: int) -> int: return count + index
 def __GetDefaultStart(count: int, step: int) -> int: return count - 1 if step < 0 else 0
 def __GetDefaultStop(count: int, step: int) -> int: return -1 if step < 0 else count
 
+# slice.indices clamps both ends of a key, and the two defaults above are exactly those
+# ends, low to high in the direction the step runs. Only the upper clamp was missing, so an
+# over-large positive bound resolved to itself and the slice resolved was not the slice the
+# caller asked for: 4787 of a 8960-key grid disagreed with slice.indices, 1763 of them on
+# the stop alone.
 def __ResolveIndex(index: int, count: int, step: int) -> int:
-    return index if index >= 0 else max(__Normalize(index, count), __GetDefaultStop(count, step) if step < 0 else 0)
+    def clamp(lower: int, upper: int) -> int: return min(max(index if index >= 0 else __Normalize(index, count), lower), upper)
+
+    return clamp(__GetDefaultStop(count, step), __GetDefaultStart(count, step)) if step < 0 else clamp(__GetDefaultStart(count, step), __GetDefaultStop(count, step))
 
 def __ResolveBounds(key: slice, count: int, step: int) -> tuple[int, int]:
     def resolve(index: int|None, default: int) -> int:
@@ -57,6 +64,12 @@ def __AsReversedKey(start: int, stop: int, step: int, count: int) -> slice:
     return slice(reverseIndex(start), reverseIndex(stop), -step)
 
 def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
+    # CPython takes every step but 1 as an extended slice, which accepts exactly its own
+    # length. Stated once, because the two branches that hold to it apply it on either side
+    # of the reversal.
+    def validateLength(indices: range, length: int) -> None:
+        if len(indices) != length: raise ValueError(f"Attempt to assign a sequence of size {length} to an extended slice of size {len(indices)}.")
+
     s: int|None = key.step
 
     if s is None: s = 1
@@ -66,7 +79,23 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
 
     i, l = __ResolveBounds(key, count, s)
 
-    if s < 0: SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), values)
+    # Applied before the reversal, which hands the call to a branch that no longer knows the
+    # step was negative: a step of -1 reverses into the resizable step of 1, so that branch
+    # resized the list instead of refusing -- [::-1] = (7, 8) was measured to leave [8, 7]
+    # where CPython raises. A step below -1 reverses into an extended step and is refused
+    # there anyway, so what this adds is exactly the s == -1 case. The length is read from
+    # the key as given, which is the length CPython reports, rather than from the reversed
+    # bounds.
+    if s < 0:
+        # Counted through the re-readable form, not the generator one: for a step below -1 the
+        # reversed key lands in the extended branch, which counts a second time, and a
+        # generator would come back empty from that second pass.
+        _items: tuple[Iterable[T], int] = CountAsIterable(values)
+
+        validateLength(range(i, l, s), _items[1])
+
+        # The counted items, not `values`: counting a one-pass iterable consumes it.
+        SetValues(lst.AsReversed(), __AsReversedKey(i, l, s, count), _items[0])
 
     elif s == 1:
         if i > l: raise IndexError(f"The slice start {i} is past its stop {l}.")
@@ -83,7 +112,7 @@ def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEn
     else:
         items: tuple[Iterable[T], int] = CountAsIterable(values, True)
 
-        if len(range(i, l, s)) != items[1]: raise ValueError(f"Attempt to assign a sequence of size {items[1]} to an extended slice of size {len(range(i, l, s))}.")
+        validateLength(range(i, l, s), items[1])
 
         for item in items[0]:
             lst.SetAt(i, item)

@@ -52,7 +52,14 @@ _KEYS: Sequence[slice] = _GetSlices(
     (4, 1, -1), (4, 0, -2), (4, None, -1), (None, 1, -1),
     (None, None, -1), (None, None, -2), (None, None, -3), (1, 4, -1),
     (4, -1, -1), (None, -1), (-3, None), (-4, -1), (-1, None),
-    (-2, -1), (None, -6), (-6, None), (-1, -1), (-5, None))
+    (-2, -1), (None, -6), (-6, None), (-1, -1), (-5, None),
+    # D-64. A bound past either end resolved to itself, where slice.indices clamps it, so the
+    # slice deleted was not the slice asked for: [5:1:-1] was measured to delete nothing
+    # against CPython's (0, 1), and [None:7:-1] to delete all but the first against CPython's
+    # nothing at all. (10, 20) above reaches none of this -- RemoveValues clamps its own stop
+    # to the count on the resizable path -- so an out-of-range bound needs a step to show.
+    (5, 1, -1), (5, None, -1), (7, None, -1), (None, 7, -1), (7, 5, -1),
+    (7, 2, -2), (None, 6, -2), (6, None, -3), (-9, 7, 1), (None, 7, 2))
 
 class TestReversedView(unittest.TestCase):
     """A reversed view must satisfy reversed[k] == source[n - 1 - k] on every path."""
@@ -197,6 +204,15 @@ class TestSliceSemantics(unittest.TestCase):
             ((0, 5, 2), (7, 8, 9)), ((None, None, 2), (7, 8, 9)),
             ((4, 1, -1), (7, 8, 9)), ((None, 1, -1), (7, 8, 9)),
             ((None, None, -1), (5, 6, 7, 8, 9)), ((4, None, -1), (5, 6, 7, 8, 9)),
+            ((4, 0, -2), (7, 8)), ((None, None, -2), (7, 8, 9)),
+            # D-64, on the keys CPython accepts: a start or a stop past an end, which
+            # resolved to itself and addressed a slice the caller never asked for. Measured
+            # before the clamp: [7:2:-1] = (7, 8) left (0, 1, 2, 8, 7, 3, 4), two items longer
+            # than the list it was given, and [7:1:-3] = (7,) wrote at index 2 where CPython
+            # writes at 4.
+            ((7, 2, -1), (7, 8)), ((5, None, -1), (7, 8, 9, 10, 11)),
+            ((4, 7, -1), ()), ((7, 1, -3), (7,)),
+            ((-6, 7, 1), (7, 8)), ((None, 7), (9,)), ((9, None), (9,)),
             ((-3, None), (9,)), ((None, -1), (9,)))
 
         for key, values in cases:
@@ -210,6 +226,51 @@ class TestSliceSemantics(unittest.TestCase):
 
                 _AssertEqual(self, _dump(collection), reference)
 
+    def test_assignment_refuses_what_python_refuses(self) -> None:
+        """D-61. The oracle's other half: the sizes CPython will not take.
+
+        test_assignment_matches_python compares two contents, so it can only carry keys
+        CPython accepts -- and every negative-step row it held happened to be exact-size,
+        which is how D-61 passed through it. CPython treats every step but 1 as an extended
+        slice, whose assignment must be exactly the slice's length. A step of -1 reversed into
+        the resizable step of 1 and resized the list instead: measured on (0, 1, 2, 3, 4),
+        [::-1] = (7, 8) left (8, 7), [4:1:-1] = () left (0, 1), and [4:-1:-1] = (7, 8, 9)
+        left eight elements where it found five.
+
+        The oracle is asserted first on every row, so that a row which stops being a refusal
+        in CPython reads as this bench needing rewriting rather than as the framework passing.
+        """
+
+        cases: Sequence[tuple[slice, Sequence[int]]] = _GetSliceTuples(
+            # Step -1, which is where the divergence was: short, long, and empty against a
+            # non-empty slice. The last two keys resolve to an empty slice, so any assignment
+            # at all is one item too many.
+            ((None, None, -1), (7, 8)), ((4, 1, -1), (7, 8)),
+            ((4, 1, -1), (1, 2, 3, 4)), ((4, 1, -1), ()), ((None, None, -1), ()),
+            ((1, 4, -1), (7,)), ((4, -1, -1), (7, 8, 9)),
+            # A bound past an end, which is D-64's ground: the rule has to be applied to the
+            # clamped length, or it refuses by a length no slice ever had.
+            ((None, 9, -1), (7, 8, 9, 10, 11)), ((9, None, -1), (7, 8)),
+            # The steps that already refused, so that the one rule is seen to hold for all of
+            # them rather than only for the step it was added at.
+            ((None, None, -2), (7, 8)), ((None, None, -3), (7, 8, 9, 9)),
+            ((None, None, 2), (7, 8)), ((0, 5, 2), (7, 8)))
+
+        for key, values in cases:
+            with self.subTest(key = _format(key), values = values):
+                reference: MutableSequence[int] = CreatePyList(_SOURCE)
+
+                with self.assertRaises(ValueError, msg = "CPython accepts this: the row, not the framework, is wrong"):
+                    reference[key] = values
+
+                collection: IList[int] = _create()
+
+                with self.assertRaises(ValueError): SetValues(collection, key, CreatePyList(values))
+
+                # A refusal that had already written part of the slice would satisfy the raise
+                # above, which is half of what D-61 did on the resizable branch.
+                _AssertEqual(self, _dump(collection), _SOURCE)
+
     def test_assignment_accepts_a_single_pass_iterable(self) -> None:
         collection: IList[int] = _create()
 
@@ -219,6 +280,34 @@ class TestSliceSemantics(unittest.TestCase):
         reference[1:3] = [9, 9]
 
         _AssertEqual(self, _dump(collection), reference)
+
+    def test_a_stepped_slice_accepts_a_single_pass_iterable(self) -> None:
+        """Every stepped slice measures the values before writing, and measuring a one-pass
+        iterable consumes it.
+
+        The case above covers the step of 1, which resizes and never counts. A step that
+        counts went through a queue whose GetCount() was measured at 0 before the iterable is
+        drained, so every one of these raised "a sequence of size 0" against a slice that
+        wanted three. The negative steps carry the second half of the same seam: the count is
+        taken before the reversal, so what the reversal receives has to be the counted items
+        and not the caller's exhausted iterable.
+        """
+
+        cases: Sequence[tuple[slice, Sequence[int]]] = _GetSliceTuples(
+            ((0, 5, 2), (7, 8, 9)), ((None, None, 2), (7, 8, 9)),
+            ((4, 1, -1), (7, 8, 9)), ((None, None, -1), (5, 6, 7, 8, 9)),
+            ((4, 0, -2), (7, 8)), ((None, None, -2), (7, 8, 9)))
+
+        for key, values in cases:
+            with self.subTest(key = _format(key), values = values):
+                collection: IList[int] = _create()
+
+                SetValues(collection, key, (value for value in values))
+
+                reference: MutableSequence[int] = CreatePyList(_SOURCE)
+                reference[key] = values
+
+                _AssertEqual(self, _dump(collection), reference)
 
 class TestTryMembersDoNotRaise(unittest.TestCase):
     """A Try* member reports a refusal; only its throwing counterpart raises."""

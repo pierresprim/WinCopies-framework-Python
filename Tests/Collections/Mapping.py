@@ -38,16 +38,19 @@ Abstraction/Mapping/Extensions.py.
 
 _REFUSABLE: frozenset[str] = frozenset((
     "Add(0)", "AddRange([0])", "TryAddRange([0])", "TryAdd(0)", "TryAddRange([7, 0])",
+    "AddRange([7, 7])", "TryAddRange([7, 7])", "AddValues(7, 7)", "TryAddValues(7, 7)", "extend([7, 7])",
     "Insert(4, 7)", "TryInsert(4, 7)", "Insert(1, 0)", "TryInsert(1, 0)",
     "InsertRange(1, [0])", "InsertRange(1, [7, 0])", "InsertRange(4, [7])", "TryInsertRange(1, [0])",
-    "InsertValues(1, 0)",
+    "InsertRange(1, [7, 7])", "TryInsertRange(1, [7, 7])", "TryInsertRange(1, dup)",
+    "InsertValues(1, 0)", "InsertValues(1, 7, 7)",
     "SetAt(1, 0)", "SetAt(9, 7)", "TrySetAt(1, 0)", "TrySetAt(9, 7)",
     "l[1] = 0", "l[9] = 7", "l[1:2] = [0]", "l[0:2] = [7, 7]",
     "RemoveAt(9)", "TryRemoveAt(-1)", "TryRemoveAt(9)", "TryRemoveRange(9, 1)",
     "Remove(7)", "TryRemove(7)", "TryMove(0, 9)", "TrySwap(0, 9)", "del l[9]",
-    "rev.SetAt(1, 0)", "rev[1] = 0", "rev.Insert(1, 0)"))
+    "rev.SetAt(1, 0)", "rev[1] = 0", "rev.Insert(1, 0)", "rev.InsertRange(1, [7, 7])"))
 """The calls these benches build that the subject may legitimately refuse: an index outside
-its range, or a value the set already holds elsewhere.
+its range, a value the set already holds elsewhere, or -- D-60 -- a range that carries the
+same value twice, which no ordered set can take whole whatever its indices.
 
 Everything else is legitimate on a (0, 1, 2) ordered set and must therefore succeed. That
 line is what the invariant alone cannot draw: a call that refuses leaves a correct state
@@ -140,6 +143,7 @@ def _listCalls() -> dict[str, _Call]:
         "AddRange([7, 8])":         lambda o, l: l.AddRange([7, 8]),
         "AddRange([])":             lambda o, l: l.AddRange([]),
         "AddRange([0])":            lambda o, l: l.AddRange([0]),
+        "AddRange([7, 7])":         lambda o, l: l.AddRange([7, 7]),
         "AddRange(iter([7, 8]))":   lambda o, l: l.AddRange(iter([7, 8])),
         "TryAddRange([7, 8])":      lambda o, l: l.TryAddRange([7, 8]),
         "TryAddRange([])":          lambda o, l: l.TryAddRange([]),
@@ -158,16 +162,22 @@ def _listCalls() -> dict[str, _Call]:
         "InsertRange(1, [])":       lambda o, l: l.InsertRange(1, []),
         "InsertRange(1, [0])":      lambda o, l: l.InsertRange(1, [0]),
         "InsertRange(1, [7, 0])":   lambda o, l: l.InsertRange(1, [7, 0]),
+        "InsertRange(1, [7, 7])":   lambda o, l: l.InsertRange(1, [7, 7]),
         "InsertRange(4, [7])":      lambda o, l: l.InsertRange(4, [7]),
         "InsertRange(1, iter)":     lambda o, l: l.InsertRange(1, iter([7, 8])),
         "TryInsertRange(1, [7])":   lambda o, l: l.TryInsertRange(1, [7]),
         "TryInsertRange(1, [])":    lambda o, l: l.TryInsertRange(1, []),
         "TryInsertRange(1, [0])":   lambda o, l: l.TryInsertRange(1, [0]),
+        "TryInsertRange(1, [7, 7])":lambda o, l: l.TryInsertRange(1, [7, 7]),
         "TryInsertRange(1, iter)":  lambda o, l: l.TryInsertRange(1, iter([7, 8])),
+        # The duplicate reaches the unicity pass through the buffer rather than from a
+        # sequence it can re-read, which is the seam D-42's residual still sits on.
+        "TryInsertRange(1, dup)":   lambda o, l: l.TryInsertRange(1, iter([7, 7])),
 
         "InsertValues(1, 7, 8)":    lambda o, l: l.InsertValues(1, 7, 8),
         "InsertValues(1)":          lambda o, l: l.InsertValues(1),
         "InsertValues(1, 0)":       lambda o, l: l.InsertValues(1, 0),
+        "InsertValues(1, 7, 7)":    lambda o, l: l.InsertValues(1, 7, 7),
         "TryInsertValues(1, 7)":    lambda o, l: l.TryInsertValues(1, 7),
         "TryInsertValues(1)":       lambda o, l: l.TryInsertValues(1),
 
@@ -216,6 +226,7 @@ def _listCalls() -> dict[str, _Call]:
         "insert(1, 7)":             lambda o, l: _mutable(l).insert(1, 7),
         "append(7)":                lambda o, l: _mutable(l).append(7),
         "extend([7, 8])":           lambda o, l: _mutable(l).extend([7, 8]),
+        "extend([7, 7])":           lambda o, l: _mutable(l).extend([7, 7]),
         "pop()":                    lambda o, l: _mutable(l).pop(),
         "pop(0)":                   lambda o, l: _mutable(l).pop(0),
         "remove(0)":                lambda o, l: _mutable(l).remove(0),
@@ -239,10 +250,14 @@ def _setCalls() -> dict[str, _Call]:
         "TryAddRange([7, 8])":      lambda o, l: o.TryAddRange([7, 8]),
         "TryAddRange([])":          lambda o, l: o.TryAddRange([]),
         "TryAddRange([7, 0])":      lambda o, l: o.TryAddRange([7, 0]),
+        "AddRange([7, 7])":         lambda o, l: o.AddRange([7, 7]),
+        "TryAddRange([7, 7])":      lambda o, l: o.TryAddRange([7, 7]),
         "AddValues(7, 8)":          lambda o, l: o.AddValues(7, 8),
         "AddValues()":              lambda o, l: o.AddValues(),
         "TryAddValues(7, 8)":       lambda o, l: o.TryAddValues(7, 8),
         "TryAddValues()":           lambda o, l: o.TryAddValues(),
+        "AddValues(7, 7)":          lambda o, l: o.AddValues(7, 7),
+        "TryAddValues(7, 7)":       lambda o, l: o.TryAddValues(7, 7),
         "Remove(0)":                lambda o, l: o.Remove(0),
         "Remove(7)":                lambda o, l: o.Remove(7),
         "TryRemove(0)":             lambda o, l: o.TryRemove(0),
@@ -267,6 +282,7 @@ def _reversedCalls() -> dict[str, _Call]:
         "rev.Insert(3, 7)":         lambda o, l: reversedView(l).Insert(3, 7),
         "rev.Insert(1, 0)":         lambda o, l: reversedView(l).Insert(1, 0),
         "rev.InsertRange(1, [7])":  lambda o, l: reversedView(l).InsertRange(1, [7]),
+        "rev.InsertRange(1, [7, 7])": lambda o, l: reversedView(l).InsertRange(1, [7, 7]),
         "rev.Add(7)":               lambda o, l: reversedView(l).Add(7),
         "rev.AddRange([7, 8])":     lambda o, l: reversedView(l).AddRange([7, 8]),
         "rev.RemoveAt(1)":          lambda o, l: reversedView(l).RemoveAt(1),
@@ -463,6 +479,148 @@ class TestUnicityCriterion(unittest.TestCase):
         self.assertTrue(view.TrySetAt(0, nan), "a position refused the very object it holds")
         self.assertEqual(items.GetCount(), 1)
 
+class TestRangeUnicityCriterion(unittest.TestCase):
+    """D-60. A range that carries the same value twice is refused, not deduplicated.
+
+    The set the view maintains answers only that none of the values was already held, and a
+    set given a duplicated range keeps one of the two -- measured: TryAddRange((7, 7)) on the
+    inner set answers True and grows it by one. The view read that boolean as permission to
+    insert every value, so the order took two 7s where the set took one and the unicity clause
+    fell on a True answer: TryInsertRange(1, (7, 7)) on CreateOrderedSet((1, 2, 3, 4)).AsList()
+    answered True and left the order (1, 7, 7, 2, 3, 4) against a count of 6.
+
+    The slice route already refused the same range, through SetOrderedValues. So the two
+    routes are asserted together rather than each on its own: what one type refuses by one
+    door it cannot accept by another, and it was the disagreement between the doors that
+    made the defect visible.
+    """
+
+    __DUPLICATED: ReadOnlyArray[int] = (7, 7)
+
+    def test_the_range_route_refuses_a_duplicated_range(self) -> None:
+        """None rather than False: the house mapping makes False an empty range, which is the
+        one answer the non-Try form is bound to let pass, so answering it would put a refused
+        range back in silently -- the shape D-57 closed on."""
+
+        items, view = _create()
+
+        self.assertIsNone(view.TryInsertRange(1, list(self.__DUPLICATED)))
+        self.assertEqual(_snapshot(items), _CONTENT, "the refusal mutated the order")
+        _assertInvariant(self, items, view, "TryInsertRange(1, [7, 7])")
+
+    def test_the_throwing_range_route_raises(self) -> None:
+        """InsertRange is final on IList and raises on None alone, so the trivalent answer is
+        what makes the non-Try route refuse at all."""
+
+        items, view = _create()
+
+        with self.assertRaises(IndexError): view.InsertRange(1, list(self.__DUPLICATED))
+
+        self.assertEqual(_snapshot(items), _CONTENT)
+
+    def test_the_slice_route_refuses_the_same_range(self) -> None:
+        """The precedent the range route was made to match, asserted here so that the two
+        cannot drift apart unnoticed."""
+
+        items, view = _create()
+
+        with self.assertRaises(ValueError): _mutable(view).__setitem__(slice(0, 2), list(self.__DUPLICATED))
+
+        self.assertEqual(_snapshot(items), _CONTENT)
+
+    def test_a_one_pass_range_carrying_a_duplicate_is_refused(self) -> None:
+        """The unicity pass reads the buffer, not the caller's iterable. A pass that consumed
+        the iterable instead would leave the set's own pass nothing to read, and the range
+        would go in empty -- which is D-42's shape, not a refusal."""
+
+        items, view = _create()
+
+        self.assertIsNone(view.TryInsertRange(1, iter(self.__DUPLICATED)))
+        self.assertEqual(_snapshot(items), _CONTENT)
+        _assertInvariant(self, items, view, "TryInsertRange(1, iter([7, 7]))")
+
+    def test_a_range_with_no_internal_duplicate_still_inserts(self) -> None:
+        """The counter-example. A unicity pass that refused any range of more than one item
+        would satisfy every clause above."""
+
+        items, view = _create()
+
+        self.assertTrue(view.TryInsertRange(1, [7, 8]))
+        self.assertEqual(_snapshot(items), (0, 7, 8, 1, 2))
+        _assertInvariant(self, items, view, "TryInsertRange(1, [7, 8])")
+
+    def test_an_empty_range_is_not_a_refusal(self) -> None:
+        """The other counter-example, and the reason the answer is trivalent: an empty range
+        is nothing to do, which False says and None would not."""
+
+        items, view = _create()
+
+        self.assertIs(view.TryInsertRange(1, []), False)
+        self.assertEqual(_snapshot(items), _CONTENT)
+
+class TestOrderedSetRangeUnicityCriterion(unittest.TestCase):
+    """D-60's second site: the same defect on the ordered set's own range add.
+
+    TryAddRange read the set's boolean exactly as the list view did, 250 lines above in the
+    same file: it hands `items` to the set, which keeps one of the two 7s and reports that it
+    grew, and then to the order, which takes both. Measured before the fix on
+    CreateOrderedSet((1, 2, 3, 4)): TryAddRange((7, 7)) answered True and left
+    (1, 2, 3, 4, 7, 7) against a count of 6. AddRange, AddValues and TryAddValues reach it
+    too, being final wrappers over it, so all four are asserted rather than the one.
+
+    The question is asked by the same helper the view uses, so the two sites cannot answer it
+    differently. What they may differ on is how they say no: ISetBase.TryAddRange is bivalent
+    by contract and AddRange raises on the False alone, so this family cannot tell a refused
+    range from an empty one. That conflation is D-24's open complaint against the set family,
+    not something this closes, which is why no clause here reads the empty range's answer.
+    """
+
+    def test_every_range_route_refuses_a_duplicated_range(self) -> None:
+        calls: ReadOnlyArray[tuple[str, _Call, bool]] = (
+            ("TryAddRange([7, 7])", lambda o, l: o.TryAddRange([7, 7]), False),
+            ("AddRange([7, 7])", lambda o, l: o.AddRange([7, 7]), True),
+            ("TryAddValues(7, 7)", lambda o, l: o.TryAddValues(7, 7), False),
+            ("AddValues(7, 7)", lambda o, l: o.AddValues(7, 7), True))
+
+        for label, call, raises in calls:
+            with self.subTest(call = label):
+                items, view = _create()
+                outcome: Any = _attempt(call, items, view)
+
+                # KeyError is what ISetBase.AddRange raises on a False, so the throwing forms
+                # are held to that one and not merely to "something was raised".
+                if raises: self.assertIsInstance(outcome, KeyError, f"{label} did not refuse: {outcome!r}")
+                else: self.assertIs(outcome, False, f"{label} answered {outcome!r}")
+
+                self.assertEqual(_snapshot(items), _CONTENT, f"{label} mutated while refusing")
+                _assertInvariant(self, items, view, f"set.{label}")
+
+    def test_a_range_with_no_internal_duplicate_still_goes_in(self) -> None:
+        """The counter-example. A pass that refused every range of more than one value, or
+        every range at all, would satisfy the clause above."""
+
+        items, view = _create()
+
+        self.assertTrue(items.TryAddRange([7, 8]))
+        self.assertEqual(_snapshot(items), (0, 1, 2, 7, 8))
+        _assertInvariant(self, items, view, "set.TryAddRange([7, 8])")
+
+    def test_the_two_sites_agree(self) -> None:
+        """The disagreement between the doors is what made D-60 visible in the first place, so
+        it is the agreement that is asserted, not the two behaviours. Neither route may take a
+        range the other refuses."""
+
+        for label, carry in (("[7, 7]", (7, 7)), ("[7, 8]", (7, 8)), ("[7, 0]", (7, 0))):
+            with self.subTest(range = label):
+                setItems, _ = _create()
+                viewItems, view = _create()
+
+                refusedBySet: bool = _attempt(lambda o, l: o.TryAddRange(list(carry)), setItems, _) is not True
+                refusedByView: bool = _attempt(lambda o, l: l.TryInsertRange(1, list(carry)), viewItems, view) is not True
+
+                self.assertEqual(refusedBySet, refusedByView,
+                                 f"{label}: the set route refused {refusedBySet} where the view route refused {refusedByView}")
+
 class TestWriteReplacesInBothContainers(unittest.TestCase):
     """The design decision D-44 and D-45 were closed on, which nothing else would catch.
 
@@ -547,15 +705,21 @@ class TestWriteReplacesInBothContainers(unittest.TestCase):
 class TestOrderedSetAddRangeIsSinglePass(unittest.TestCase):
     """Open defect: the residual of D-42, on the ordered set's own TryAddRange.
 
-    TryAddRange hands `items` to the set and then to the order, so a one-pass iterable
-    reaches only the first of the two: the set admits the values, the order never receives
-    them, and the call reports success. The values then exist for Contains and for no other
-    member, and can never be added again.
+    TryAddRange never buffers, so the first pass over a one-pass iterable consumes it and the
+    order never receives the values. The list view was corrected by buffering; the set itself
+    was not, 250 lines above in the same file.
 
-    The list view was corrected by buffering the iterable; the set itself was not, 254 lines
-    above in the same file. This is expectedFailure rather than an exclusion because it must
-    signal when the defect is closed, which an exclusion would not: an exclusion that stays
-    says nothing.
+    D-60 moved where that consumption happens without closing this, so the symptom this
+    bench reads is not the one it was written against. Measured after D-60:
+    TryAddRange(iter([7, 8])) answers False and leaves (0, 1, 2) with Contains(7) false,
+    where before it answered True and left the set admitting values the order did not carry.
+    The phantom is gone and the refusal is now clean, but the range still does not go in,
+    which is the clause below and why this stays open. Buffering here would close it, and
+    would also turn this bench into an unexpected success, so it is a decision to take on its
+    own rather than a side effect of D-60.
+
+    This is expectedFailure rather than an exclusion because it must signal when the defect
+    is closed, which an exclusion would not: an exclusion that stays says nothing.
     """
 
     @unittest.expectedFailure
