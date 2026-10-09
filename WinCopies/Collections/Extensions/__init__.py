@@ -296,6 +296,28 @@ class IListBase[T](ITuple[T], IListAbstractBase[T]):
 class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     def __init__(self) -> None: super().__init__()
     
+    # Asked before anything is written, because a span replacement cannot be taken back: the
+    # removal that frees the positions runs first, so a refusal arriving after it has already
+    # destroyed what it took -- measured on a sized list, where l[1:3] = (7, 8, 9) left [0, 3]
+    # of [0, 1, 2, 3]. Undoing it is no answer either, since the restoration would go back
+    # through TryInsertRange, the very member whose refusal triggered it, and its success is a
+    # property of one container rather than of this contract.
+    #
+    # The positions arrive as a range because a range says what leaves: a container holding an
+    # invariant over its content judges the arriving items against what remains, not against
+    # what it still holds -- which is why l[1:3] = (3, 9) is legitimate on an ordered set that
+    # already holds that 3 inside the span. The contiguous span and the stepped one are the
+    # same question, told apart by the step. The items arrive as a Sequence because this hook
+    # reads them and the write reads them again: a one-pass iterable would reach the first
+    # reader and nothing else.
+    #
+    # No default answer. One that said True would reopen the defect, silently, for every
+    # constrained container that forgot to narrow it -- which is exactly how the reversal hook
+    # came to be a no-op that a whole commit did not notice.
+    @abstractmethod
+    def CanSetRange(self, indices: range, items: SequenceBase[T]) -> bool:
+        ...
+    
     @abstractmethod
     def AsFixedSize(self) -> IArray[T]:
         ...

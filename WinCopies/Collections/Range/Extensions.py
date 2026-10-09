@@ -3,6 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList, ISet
+from WinCopies.Collections.Extensions import IList as _IList
 from WinCopies.Collections.Range import ResolveKey
 from WinCopies.Collections.Util import ReverseIndex, MakeSequence
 from WinCopies.Typing.Comparison import HashableProtocol
@@ -18,7 +19,7 @@ def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T])
 
     return value in s and value not in leaving
 
-def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
+def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
     def getRange(start: int, stop: int, step: int) -> range:
         if step == 1: return range(start, max(start, stop))
         

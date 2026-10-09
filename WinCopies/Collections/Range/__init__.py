@@ -90,7 +90,7 @@ def ResolveKey(lst: ICountable, key: slice) -> tuple[int, int, int, int]:
 
     return (step, start, stop, count)
 
-def SetValues[T](lst: IListBase[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
+def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
     # CPython takes every step but 1 as an extended slice, which accepts exactly its own
     # length. Stated once, because the two branches that hold to it apply it on either side
     # of the reversal.

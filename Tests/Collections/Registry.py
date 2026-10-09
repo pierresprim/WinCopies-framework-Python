@@ -1868,7 +1868,7 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
         # is one of identity against the declaration itself, and the attribute route would
         # both reach through a generic whose parameter is unbound here and count as a
         # protected access from outside.
-        declared: Any = IList.__dict__["CanSetRange"]
+        declared: Any = _IList.__dict__["CanSetRange"]
 
         for case in _spanSubjects():
             with self.subTest(type = case.GetName()):
