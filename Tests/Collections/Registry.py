@@ -1840,11 +1840,18 @@ class TestHarnessNonVacuity(unittest.TestCase):
 
 def _spanSubjects() -> ReadOnlyArray[_MutableCaseBase]:
     """The cases whose slice assignment goes through the span hook, measured rather than
-    listed: those are exactly the Core.IList ones, since IList is where CanSetRange is
-    declared. A type that reaches that interface, or leaves it, is swept here with nothing
-    to edit -- which is what makes the clauses below facts about the family."""
+    listed: those are the Extensions.IList ones, which is where CanSetRange is declared. A
+    type that reaches that interface, or leaves it, is swept here with nothing to edit --
+    which is what makes the clauses below facts about the family.
 
-    return tuple(case for case in _MUTABLE if isinstance(case.Create(), IList))
+    The filter names the interface the hook is on, and not the Core one it sat on first. The
+    two select the same three cases today, so filtering on the wrong one stayed green on a
+    coincidence of the current lattice rather than on what this function states -- and a
+    computed subset is only worth its computation when it is computed from the thing it is
+    about.
+    """
+
+    return tuple(case for case in _MUTABLE if isinstance(case.Create(), _IList))
 
 class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
     """A span replacement asks the container before it writes, on every type that offers one.
@@ -1853,7 +1860,7 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
     new one was accepted, so a refusal reaching InsertRange had nothing left to report and
     what the removal took was gone -- measured on the sized list, where l[1:3] = (7, 8, 9)
     left [0, 3] of [0, 1, 2, 3], and on l[2:4] = (7, 8, 9, 10), which left [0, 1]. Closed by
-    Core.IList.CanSetRange, asked while the content is still intact.
+    Extensions.IList.CanSetRange, asked while the content is still intact.
 
     The hook has no default answer on purpose: one that said True would reopen the defect
     silently for every constrained container that forgot to narrow it. The first clause below
@@ -1900,17 +1907,20 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
         """The complement of the computed subset, asserted rather than trusted, per 5.30: a
         subset by measurement says something only if what it excludes is excluded for a
         stated reason. The sorted list stops at IListBase, which has no positional insertion
-        and so no span to replace; the three arrays stop at IArray, whose length is fixed."""
+        and so no span to replace; the three arrays stop at IArray, whose length is fixed.
+
+        Measured on both faces: the four excluded are neither Extensions.IList nor Core.IList,
+        so moving the filter to the first leaves the complement where it was."""
 
         excluded: ReadOnlyArray[str] = tuple(case.GetName() for case in _MUTABLE if case not in _spanSubjects())
 
         self.assertEqual(excluded, ("SortedList", "Array", "ArrayList", "SizedArray"),
-                         "the family moved: a type entered or left Core.IList")
+                         "the family moved: a type entered or left Extensions.IList")
 
         for case in _MUTABLE:
             if case.GetName() in excluded:
                 with self.subTest(type = case.GetName()):
-                    self.assertNotIsInstance(case.Create(), IList, f"{case.GetName()} is a Core.IList and owes the span hook")
+                    self.assertNotIsInstance(case.Create(), _IList, f"{case.GetName()} is an Extensions.IList and owes the span hook")
 
     def test_a_refused_span_leaves_the_content_alone(self) -> None:
         """The sized list, which is the one registry subject whose span can be refused for a

@@ -309,7 +309,7 @@ class List[T](ListBase[T]):
     
     # Nothing to refuse: under this one sits a Python list, which takes any value at any
     # position the caller has already resolved. Written out rather than inherited, there
-    # being no default to inherit -- see Core.IList.CanSetRange for why there is none.
+    # being no default to inherit -- see Extensions.IList.CanSetRange for why there is none.
     def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool: return True
 
 class _ISizedListInitializer[T](IInterface):

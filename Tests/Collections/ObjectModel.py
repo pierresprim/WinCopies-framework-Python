@@ -395,7 +395,7 @@ class TestASliceAssignmentIsOneAct(unittest.TestCase):
     D-58, closed. SetValues removed the old span before knowing whether the new one was
     accepted, and InsertRange had no refusal left to report by then, so a refused slice
     assignment destroyed what it removed -- measured here at l[1:2] = (3,), which left three
-    elements where it found four. The order is no longer the fix: Core.IList.CanSetRange
+    elements where it found four. The order is no longer the fix: Extensions.IList.CanSetRange
     asks the container while the content is intact, and the refusal arrives before anything
     moves.
 
