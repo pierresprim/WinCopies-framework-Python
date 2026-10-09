@@ -202,7 +202,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     # reader only. The conversion is this layer's whole contribution -- whether the span may
     # be written is the inner container's to say, in its own vocabulary.
     @final
-    def _CanSetRange(self, indices: range, items: SequenceBase[TOut]) -> bool:
+    def CanSetRange(self, indices: range, items: SequenceBase[TOut]) -> bool:
         return self._GetContainer().CanSetRange(indices, tuple(Select(items, lambda item: self._ConvertBack(item))))
     
     @final

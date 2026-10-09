@@ -517,17 +517,8 @@ class IList[T](IArray[T], IListBase[T]):
     # constrained container that forgot to narrow it -- which is exactly how the reversal hook
     # came to be a no-op that a whole commit did not notice.
     @abstractmethod
-    def _CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
-        ...
-    @final
     def CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
-        match self._CanSetRange(indices, items):
-            case bool() as answer: return answer
-            
-            # Nothing here enforces an abstract member, so an implementor who forgets this one
-            # keeps the `...` body and its None. Named rather than coerced: read as falsy it
-            # would pass for a refusal by the container, and the two call for opposite fixes.
-            case _: raise NotImplementedError(f"{type(self).__name__} does not implement _CanSetRange.")
+        ...
 
 class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()

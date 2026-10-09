@@ -91,7 +91,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # its own validation phase; answered as a boolean here because the caller is the generic
     # primitive, which raises on its own behalf.
     @final
-    def _CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
+    def CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
         if HasDuplicate(items): return False
         
         leaving: set[T] = {self.__list.GetAt(index) for index in indices}

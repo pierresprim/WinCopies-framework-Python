@@ -945,7 +945,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     # the step crosses the mirror unchanged. The items are mirrored with it, since the one
     # that lands on the original last position lands on the mirrored first.
     @final
-    def _CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool:
+    def CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool:
         if len(indices) == 0: return self._GetContainerAsList().CanSetRange(range(0), items)
         
         start: int = self.ReverseIndex(indices[-1])

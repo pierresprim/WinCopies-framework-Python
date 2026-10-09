@@ -74,8 +74,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     # Passed through, and overridden nowhere below unlike every hook around it: a question
     # writes nothing, so there is no act to announce on a channel and no reentrancy to
     # assert. What the observable layer owes a span is the event its write already sends.
-    def _CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool:
-        return self._GetInnerContainer().CanSetRange(indices, items)
+    def CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool: return self._GetInnerContainer().CanSetRange(indices, items)
     
     def _TryRemoveItemsAt(self, index: int, count: int) -> bool:
         return self._GetInnerContainer().TryRemoveRange(index, count)

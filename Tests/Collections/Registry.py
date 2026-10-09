@@ -1838,7 +1838,7 @@ class TestHarnessNonVacuity(unittest.TestCase):
 
 def _spanSubjects() -> ReadOnlyArray[_MutableCaseBase]:
     """The cases whose slice assignment goes through the span hook, measured rather than
-    listed: those are exactly the Core.IList ones, since IList is where _CanSetRange is
+    listed: those are exactly the Core.IList ones, since IList is where CanSetRange is
     declared. A type that reaches that interface, or leaves it, is swept here with nothing
     to edit -- which is what makes the clauses below facts about the family."""
 
@@ -1851,7 +1851,7 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
     new one was accepted, so a refusal reaching InsertRange had nothing left to report and
     what the removal took was gone -- measured on the sized list, where l[1:3] = (7, 8, 9)
     left [0, 3] of [0, 1, 2, 3], and on l[2:4] = (7, 8, 9, 10), which left [0, 1]. Closed by
-    Core.IList._CanSetRange, asked while the content is still intact.
+    Core.IList.CanSetRange, asked while the content is still intact.
 
     The hook has no default answer on purpose: one that said True would reopen the defect
     silently for every constrained container that forgot to narrow it. The first clause below
@@ -1868,14 +1868,14 @@ class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
         # is one of identity against the declaration itself, and the attribute route would
         # both reach through a generic whose parameter is unbound here and count as a
         # protected access from outside.
-        declared: Any = IList.__dict__["_CanSetRange"]
+        declared: Any = IList.__dict__["CanSetRange"]
 
         for case in _spanSubjects():
             with self.subTest(type = case.GetName()):
                 subject: type[Any] = type(cast(IList[int], case.Create()))
 
-                self.assertIsNot(getattr(subject, "_CanSetRange", None), declared,
-                                 f"{case.GetName()} inherits the abstract _CanSetRange and would answer None")
+                self.assertIsNot(getattr(subject, "CanSetRange", None), declared,
+                                 f"{case.GetName()} inherits the abstract CanSetRange and would answer None")
 
     def test_a_span_that_fits_is_written(self) -> None:
         """Without this one the clause above is vacuous: a hook that refused everything would
