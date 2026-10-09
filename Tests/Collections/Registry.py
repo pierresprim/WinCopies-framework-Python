@@ -1836,4 +1836,347 @@ class TestHarnessNonVacuity(unittest.TestCase):
         self.assertGreater(_fallen(broken), _NON_VACUITY_FLOOR,
                            f"only {_fallen(broken)} assertions fell; the control is losing its grip")
 
+def _spanSubjects() -> ReadOnlyArray[_MutableCaseBase]:
+    """The cases whose slice assignment goes through the span hook, measured rather than
+    listed: those are exactly the Core.IList ones, since IList is where CanSetRange is
+    declared. A type that reaches that interface, or leaves it, is swept here with nothing
+    to edit -- which is what makes the clauses below facts about the family."""
+
+    return tuple(case for case in _MUTABLE if isinstance(case.Create(), IList))
+
+class TestASpanIsValidatedBeforeItIsWritten(unittest.TestCase):
+    """A span replacement asks the container before it writes, on every type that offers one.
+
+    D-58: the contiguous branch of SetValues removed the old span before knowing whether the
+    new one was accepted, so a refusal reaching InsertRange had nothing left to report and
+    what the removal took was gone -- measured on the sized list, where l[1:3] = (7, 8, 9)
+    left [0, 3] of [0, 1, 2, 3], and on l[2:4] = (7, 8, 9, 10), which left [0, 1]. Closed by
+    Core.IList.CanSetRange, asked while the content is still intact.
+
+    The hook has no default answer on purpose: one that said True would reopen the defect
+    silently for every constrained container that forgot to narrow it. The first clause below
+    is what makes that choice survivable -- it reads the omission off the type rather than
+    waiting for a consumer to be destroyed by it.
+    """
+
+    def test_every_span_subject_answers_the_hook(self) -> None:
+        """Nothing in this framework enforces an abstract member at construction, so an
+        implementor who forgets this one keeps the `...` body. Read off the type rather than
+        called, because calling it would report the omission as a refusal."""
+
+        # Read out of the class dictionary rather than through the attribute: the comparison
+        # is one of identity against the declaration itself, and the attribute route would
+        # both reach through a generic whose parameter is unbound here and count as a
+        # protected access from outside.
+        declared: Any = IList.__dict__["CanSetRange"]
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                subject: type[Any] = type(cast(IList[int], case.Create()))
+
+                self.assertIsNot(getattr(subject, "CanSetRange", None), declared,
+                                 f"{case.GetName()} inherits the abstract CanSetRange and would answer None")
+
+    def test_a_span_that_fits_is_written(self) -> None:
+        """Without this one the clause above is vacuous: a hook that refused everything would
+        satisfy it, and every slice assignment in the tree would raise."""
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                # Cast to the Extensions face, which is the one carrying the protocol door:
+                # the span hook is declared on the Core face and the door is not, so the two
+                # are reached through different names for the same object.
+                items: _IList[int] = cast(_IList[int], case.Create())
+                before: int = items.GetCount()
+
+                items.AsMutableSequence()[1:2] = (7, 8)
+
+                self.assertEqual(items.GetCount(), before + 1, f"{case.GetName()} refused a span its container accepts")
+                self.assertEqual((items.GetAt(1), items.GetAt(2)), (7, 8), f"{case.GetName()} wrote the span elsewhere")
+
+    def test_the_types_left_out_are_left_out_by_their_lattice_position(self) -> None:
+        """The complement of the computed subset, asserted rather than trusted, per 5.30: a
+        subset by measurement says something only if what it excludes is excluded for a
+        stated reason. The sorted list stops at IListBase, which has no positional insertion
+        and so no span to replace; the three arrays stop at IArray, whose length is fixed."""
+
+        excluded: ReadOnlyArray[str] = tuple(case.GetName() for case in _MUTABLE if case not in _spanSubjects())
+
+        self.assertEqual(excluded, ("SortedList", "Array", "ArrayList", "SizedArray"),
+                         "the family moved: a type entered or left Core.IList")
+
+        for case in _MUTABLE:
+            if case.GetName() in excluded:
+                with self.subTest(type = case.GetName()):
+                    self.assertNotIsInstance(case.Create(), IList, f"{case.GetName()} is a Core.IList and owes the span hook")
+
+    def test_a_refused_span_leaves_the_content_alone(self) -> None:
+        """The sized list, which is the one registry subject whose span can be refused for a
+        reason of its own: the capacity. The three keys are the ones measured open."""
+
+        for key, values in ((slice(1, 3), (7, 8, 9, 10, 11, 12)), (slice(2, 3), (7, 8, 9, 10, 11, 12)), (slice(0, 0), (7, 8, 9, 10, 11, 12, 13))):
+            with self.subTest(key = str(key)):
+                items: ISizedList[int] = _sizedList()
+                before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                with self.assertRaises(Exception): items.AsMutableSequence()[key] = values
+
+                self.assertEqual(_snapshot(cast(_ITuple[int], items)), before, f"a refused span at {key} changed the content")
+
+# The keys whose start resolves past their stop, which is what "degenerate" means here. Each
+# one is degenerate for a different reason -- a plain inversion, two negative bounds, a bound
+# past the end, a step above 1 -- because the behaviour below used to be decided by which
+# branch of SetValues the key landed in, not by the key being empty.
+_DEGENERATE: ReadOnlyArray[slice] = (slice(3, 1), slice(-1, -2), slice(2, 0), slice(4, 2), slice(3, 1, 2), slice(9, 9))
+
+class TestADegenerateSliceIsEmptyOnEveryOperation(unittest.TestCase):
+    """A start resolved past its stop is a span of no positions, for all three operations.
+
+    The module used to answer three different things for one key: the slice read as empty and
+    the deletion removed nothing, both exactly as CPython does, while the assignment alone
+    raised IndexError. Measured over a 4704-key grid, that single guard put the generic
+    decomposer at odds with CPython on 1584 keys -- and with the ordered set's own
+    decomposer, which had never had the guard, on the same 1584.
+
+    The refusal was an arbitration rather than a defect, and it was arbitrated away once the
+    other two operations were on the table. This class is what the arbitration lacked:
+    nothing asserted the old behaviour, so removing the guard broke no clause, and nothing
+    would have noticed had it been removed by accident. Whichever way the next reader wants
+    it, the three operations have to answer together, which is what the clauses below hold.
+    """
+
+    @staticmethod
+    def __outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+        """What an operation did: the exception's name or "ok", and what it left behind.
+
+        Both are compared, and the exception only by name: a key the framework refuses where
+        CPython accepts is the defect this class exists for, and so is one where both refuse
+        and the content differs. Which exception type each raises is D-46's question, not
+        this one's, so the type is read rather than the message."""
+
+        try:
+            act()
+
+            return ("ok", read())
+        except Exception as exception: return (type(exception).__name__, read())
+
+    def test_the_three_operations_agree_with_cpython(self) -> None:
+        """Read, delete and assign, each on its own copy, against a plain list of the same
+        content. CPython is the reference because the resolution has followed slice.indices
+        since D-64: resolving a bound its way and then declining what it accepts is what the
+        guard did. The stepped key is in the table precisely because CPython refuses an
+        assignment there -- the outcomes are compared, not assumed to succeed."""
+
+        for case in _spanSubjects():
+            for key in _DEGENERATE:
+                with self.subTest(type = case.GetName(), key = str(key)):
+                    content: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], cast(_IList[int], case.Create())))
+
+                    def reference(act: Callable[[list[int]], Any]) -> tuple[str, Any]:
+                        model: list[int] = list(content)
+
+                        return self.__outcome(lambda: act(model), lambda: tuple(model))
+                    def subject(act: Callable[[Any], Any]) -> tuple[str, Any]:
+                        items: _IList[int] = cast(_IList[int], case.Create())
+
+                        return self.__outcome(lambda: act(items.AsMutableSequence()), lambda: _snapshot(cast(_ITuple[int], items)))
+
+                    self.assertEqual(subject(lambda door: tuple(door[key])), reference(lambda model: tuple(model[key])), "the slice did not read as CPython reads it")
+                    self.assertEqual(subject(lambda door: door.__delitem__(key)), reference(lambda model: model.__delitem__(key)), "the deletion did not do what CPython does")
+                    self.assertEqual(subject(lambda door: door.__setitem__(key, (7,))), reference(lambda model: model.__setitem__(key, (7,))), "the assignment did not do what CPython does")
+
+    def test_an_assignment_of_no_items_changes_nothing(self) -> None:
+        """The pure no-op, kept apart from the clause above because it is the one case where
+        a wrong answer is silent: an empty right-hand side on an empty span writes nothing,
+        so only the content afterwards can tell whether the call did anything at all."""
+
+        for case in _spanSubjects():
+            for key in _DEGENERATE:
+                with self.subTest(type = case.GetName(), key = str(key)):
+                    items: _IList[int] = cast(_IList[int], case.Create())
+                    before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                    # The outcome, not the content alone: the call must also not raise, and a
+                    # bare write would report a refusal as an escaped exception rather than
+                    # as this clause failing -- which is how a perturbation stops naming
+                    # itself.
+                    self.assertEqual(self.__outcome(lambda: items.AsMutableSequence().__setitem__(key, ()), lambda: _snapshot(cast(_ITuple[int], items))),
+                                     ("ok", before), "an empty assignment on an empty span did not leave the content alone")
+
+    def test_a_stepped_span_still_demands_its_own_length(self) -> None:
+        """Non-vacuity, and the boundary of what the guard's removal gives away: an empty
+        stepped span accepts no items and refuses any, which is CPython's rule for an
+        extended slice. A removal that went too far would accept them here."""
+
+        for case in _spanSubjects():
+            with self.subTest(type = case.GetName()):
+                items: _IList[int] = cast(_IList[int], case.Create())
+                before: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], items))
+
+                # ValueError by name, which is the cause CPython names here: the refusal is
+                # the extended slice's length, not the bound. Restoring the bound guard makes
+                # this clause fall on the name rather than escape as an IndexError.
+                self.assertEqual(self.__outcome(lambda: items.AsMutableSequence().__setitem__(slice(3, 1, 2), (7,)), lambda: _snapshot(cast(_ITuple[int], items))),
+                                 ("ValueError", before), "an empty stepped span did not refuse its items the way CPython does")
+
+def _normalized(key: slice) -> tuple[int|None, int|None, int]:
+    """A key compared semantically: a step of None is a step of 1 in Python slicing, and a
+    clause that compared the two literally would call a right answer wrong."""
+
+    return (key.start, key.stop, 1 if key.step is None else key.step)
+
+class TestAReversedKeyIsTheMirrorOfItsKey(unittest.TestCase):
+    """ReverseKey answers the mirror, for an empty span as for any other.
+
+    D-67. It collapsed every empty span to slice(0, 0), which is the mirror of exactly one of
+    them -- measured, six of seven empty keys on a four-element view came back pointing at
+    the wrong end. The member is public and final on Core.IIndexableCollectionBase, and its
+    name and signature promise the mirror of a key: a promise unkept is a defect, whatever
+    its consumers happen to do with the answer today.
+
+    Which is the reason this bench reads the value rather than a consumer's behaviour. The one
+    consumer that revealed the wrong position -- the reversed list's slice assignment -- was
+    routed through the primitive in the same lot, for D-66. Had this clause been written
+    against that consumer, closing D-66 would have buried D-67 rather than exposed it.
+
+    The step comes back unnegated, unlike a non-empty span's, and that is measured rather
+    than chosen for symmetry: CPython reads resizability off the step itself and not off its
+    magnitude, so negating an empty span's step of 1 would make it extended and refuse the
+    insertion a caller is placing through the answer.
+    """
+
+    @staticmethod
+    def __view() -> tuple[_IList[int], ReadOnlyArray[int]]:
+        """A reversed view and what the inner list holds, which is what the mirror indexes."""
+
+        items: _IList[int] = cast(_IList[int], _source())
+
+        return (items.AsReversed(), _snapshot(cast(_ITuple[int], items)))
+
+    def test_an_empty_span_mirrors_its_position(self) -> None:
+        """The insertion point, mirrored: the count less the resolved start, which is one more
+        than the mirror of an element. Each key below resolves empty for its own reason."""
+
+        view, inner = self.__view()
+        count: int = len(inner)
+
+        for key in (slice(2, 1), slice(-1, -2), slice(1, 1), slice(0, 0), slice(count, count), slice(2, 1, 2)):
+            with self.subTest(key = str(key)):
+                indices: range = range(*key.indices(count))
+
+                self.assertEqual(len(indices), 0, "the key chosen is not empty: the clause would measure the other branch")
+
+                position: int = count - indices.start
+
+                self.assertEqual(_normalized(view.ReverseKey(key)), (position, position, indices.step), "the empty span did not mirror its position")
+
+    def test_the_mirror_designates_what_the_key_designates(self) -> None:
+        """The whole promise, on non-empty spans: the mirrored key must reach, in the inner
+        list, the elements the key reaches in the view -- in the mirrored order."""
+
+        view, inner = self.__view()
+        count: int = len(inner)
+
+        for key in (slice(0, 2), slice(1, 3), slice(None, None), slice(0, count, 2), slice(1, None)):
+            with self.subTest(key = str(key)):
+                mirrored: slice = view.ReverseKey(key)
+
+                # No inversion to add on either side: the negated step is what makes the
+                # mirrored key enumerate in the view's own order, which is the whole point of
+                # negating it. An inversion here would have called a right answer wrong.
+                self.assertEqual(tuple(list(inner)[mirrored]), tuple(list(reversed(list(inner)))[key]),
+                                 "the mirrored key does not reach the same elements")
+
+    def test_an_empty_mirror_keeps_what_the_step_promises(self) -> None:
+        """Non-vacuity on the step, and the boundary the sign decides: an empty span of step 1
+        stays resizable through its mirror, and one of another step stays extended. Negating
+        the step would swap the first."""
+
+        view, inner = self.__view()
+
+        resizable: list[int] = list(inner)
+        resizable[view.ReverseKey(slice(2, 1))] = (7, 8)
+
+        self.assertEqual(len(resizable), len(inner) + 2, "the mirror of an empty resizable span would not take items")
+
+        extended: list[int] = list(inner)
+
+        with self.assertRaises(ValueError): extended[view.ReverseKey(slice(2, 1, 2))] = (7,)
+
+        self.assertEqual(tuple(extended), inner, "the mirror of an empty extended span took items")
+
+class TestAReversedViewAssignsThroughThePrimitive(unittest.TestCase):
+    """The reversed view's slice assignment does what CPython does, resizes included.
+
+    D-66. Its protocol face mirrored the key and handed it to the inner list, which cost two
+    things. A resize could not pass at all -- v[1:3] = (7,) and v[1:3] = (7, 8, 9) raised
+    where CPython resizes -- because the mirror of a non-empty span carries a negated step and
+    an extended slice demands its exact length; no single mirrored slice expresses a reversed
+    resize, the reversal needing a negative step and the resize a step of 1. And the span was
+    never offered to the container, so CanSetRange was skipped and a refusal arrived after the
+    removal.
+
+    Fourth occurrence of the shape D-55 named: a protocol face that redoes by itself what the
+    layer below was built for. The reading and the deletion were already correct, measured,
+    and are held here so that stays true.
+    """
+
+    @staticmethod
+    def __keys() -> Generator[slice]:
+        for start in (None, -2, -1, 0, 1, 3, 9):
+            for stop in (None, -2, -1, 0, 1, 3, 9):
+                for step in (None, 1, 2, -1): yield slice(start, stop, step)
+
+    def test_the_three_faces_do_what_cpython_does(self) -> None:
+        for key in self.__keys():
+            for values in ((), (7,), (7, 8), (7, 8, 9)):
+                with self.subTest(key = str(key), values = str(values)):
+                    source: _IList[int] = cast(_IList[int], _source())
+                    model: list[int] = list(reversed(_snapshot(cast(_ITuple[int], source))))
+
+                    def outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+                        try:
+                            act()
+
+                            return ("ok", read())
+                        except Exception as exception: return (type(exception).__name__, read())
+
+                    view: Any = source.AsReversed()
+                    door: Any = view.AsMutableSequence()
+
+                    self.assertEqual(outcome(lambda: door.__setitem__(key, values), lambda: _snapshot(cast(_ITuple[int], view))),
+                                     outcome(lambda: model.__setitem__(key, values), lambda: tuple(model)), "the assignment diverged")
+
+    def test_a_reversed_resize_passes(self) -> None:
+        """Named apart because it is the half of D-66 a key grid alone would not explain: the
+        span and the right-hand side have different lengths, which the mirrored extended slice
+        could never accept."""
+
+        resized: int = 0
+
+        for values in ((7,), (7, 8), (7, 8, 9)):
+            with self.subTest(values = str(values)):
+                source: _IList[int] = cast(_IList[int], _source())
+                view: Any = source.AsReversed()
+
+                # Computed from a plain list of the same content rather than written out: an
+                # expectation spelled against a base of another size is a clause that accuses
+                # the code of its author's arithmetic.
+                content: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], source))
+                model: list[int] = list(reversed(content))
+
+                model[1:3] = values
+
+                if len(model) != len(content): resized += 1
+
+                view.AsMutableSequence()[1:3] = values
+
+                self.assertEqual(_snapshot(cast(_ITuple[int], view)), tuple(model), "a reversed resize did not land where CPython lands it")
+
+        # Counted over the table rather than asserted inside it: a right-hand side of the
+        # span's own length is no resize, and a guard applied per value would have called that
+        # case a badly chosen key. What has to hold is that the table reaches the half this
+        # clause is named for.
+        self.assertGreater(resized, 0, "no value in the table resizes: the clause measures the same-length case only")
+
 if __name__ == "__main__": unittest.main()
