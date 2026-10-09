@@ -307,15 +307,13 @@ class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     # invariant over its content judges the arriving items against what remains, not against
     # what it still holds -- which is why l[1:3] = (3, 9) is legitimate on an ordered set that
     # already holds that 3 inside the span. The contiguous span and the stepped one are the
-    # same question, told apart by the step. The items arrive as a Sequence because this hook
-    # reads them and the write reads them again: a one-pass iterable would reach the first
-    # reader and nothing else.
+    # same question, told apart by the step.
     #
     # No default answer. One that said True would reopen the defect, silently, for every
     # constrained container that forgot to narrow it -- which is exactly how the reversal hook
     # came to be a no-op that a whole commit did not notice.
     @abstractmethod
-    def CanSetRange(self, indices: range, items: SequenceBase[T]) -> bool:
+    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool:
         ...
     
     @abstractmethod
@@ -558,13 +556,13 @@ def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem], asIt
 @overload
 def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem], asIterable: Literal[False], selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[ICountableEnumerable[TItem], int]: ...
 @overload
-def TryCountFromContainer[TItem, TList](items: CollectionBase[TItem], asIterable: Literal[False] = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[CollectionBase[TItem], int]: ... # type: ignore[overload-overlap]
-@overload
 def TryCountFromContainer[T](items: Iterable[T], asIterable: Literal[False] = False, selector: None = None) -> None: ...
 @overload
 def TryCountFromContainer[TItem, TList](items: Iterable[TItem], asIterable: bool, selector: Converter[Iterable[TItem], tuple[TList, int]]) -> tuple[TList, int]: ...
 @overload
 def TryCountFromContainer[TItem, TList](items: None, asIterable: bool = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> None: ...
+@overload
+def TryCountFromContainer[TItem, TList](items: CollectionBase[TItem], asIterable: Literal[False] = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[CollectionBase[TItem]|TList, int]|None: ...
 
 def TryCountFromContainer[TItem, TList](items: ICountableEnumerable[TItem]|CollectionBase[TItem]|Iterable[TItem]|None, asIterable: bool = False, selector: Converter[Iterable[TItem], tuple[TList, int]]|None = None) -> tuple[ICountableEnumerable[TItem]|CollectionBase[TItem]|Iterable[TItem]|TList, int]|None:
     match items:

@@ -1,10 +1,11 @@
-from collections.abc import Iterable, Sequence, MutableSequence
+from collections.abc import Iterable, Collection, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
 from WinCopies.Collections.Core import ICountable, ITuple as ITupleBase, IList as IListBase
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
 from WinCopies.Collections.Extensions import ITuple, IList
-from WinCopies.Collections.Linked.Singly import CreateEnumerableStack
+from WinCopies.Collections.Iteration.Extensions import Count
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CreateEnumerableStack
 from WinCopies.Collections.Util import ReverseIndex
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
@@ -91,6 +92,20 @@ def ResolveKey(lst: ICountable, key: slice) -> tuple[int, int, int, int]:
     return (step, start, stop, count)
 
 def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumerable[T]) -> None:
+    def _count() -> tuple[Iterable[T]|ICountableEnumerable[T], int]: return Count(values)
+
+    def asEnumerable(makeGenerator: bool) -> tuple[ICountableEnumerable[T], Iterable[T], int]:
+        def asEnumerable(items: ICountableEnumerable[T]|Collection[T], makeGenerator: bool) -> tuple[ICountableEnumerable[T], Iterable[T]]:
+            match items:
+                case ICountableEnumerableList() if makeGenerator: return (items, items.AsGenerator())
+                case ICountableEnumerable(): return (items, items.AsIterable())
+                case Collection(): return (CreateCountableIterable(items), items)
+        
+        items, length = Count(values)
+        items, _items = asEnumerable(items, makeGenerator)
+
+        return (items, _items, length)
+
     # CPython takes every step but 1 as an extended slice, which accepts exactly its own
     # length. Stated once, because the two branches that hold to it apply it on either side
     # of the reversal.
@@ -101,17 +116,10 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # frees the positions and cannot be taken back, so the container is made to answer while
     # the content is still intact. The defect was this question asked too late -- InsertRange
     # discovered the refusal, and what RemoveRange had taken was already gone.
-    def validateSpan(indices: range, items: Sequence[T]) -> None:
-        if not lst.CanSetRange(indices, items): raise ValueError(f"The container refuses the assignment of {len(items)} item(s) to the {len(indices)} position(s) of {indices}.")
+    def validateSpan(indices: range, items: ICountableEnumerable[T], length: int) -> None:
+        if not lst.CanSetRange(indices, items): raise ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
 
     s, i, l, count = ResolveKey(lst, key)
-
-    # Materialized once, here, because three readers now want the whole range: the length
-    # check, the container's answer, and the write. Hoisted out of the branches that each
-    # counted for themselves, which also puts the evaluation of the right-hand side where
-    # CPython puts it -- before the assignment is attempted at all.
-    _values: Iterable[T] = values.AsIterable() if isinstance(values, IEnumerable) else values
-    items: Sequence[T] = _values if isinstance(_values, Sequence) else tuple[T](_values)
 
     # Applied before the reversal, which hands the call to a branch that no longer knows the
     # step was negative: a step of -1 reverses into the resizable step of 1, so that branch
@@ -121,7 +129,9 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # the key as given, which is the length CPython reports, rather than from the reversed
     # bounds.
     if s < 0:
-        validateLength(range(i, l, s), len(items))
+        items, _length = _count()
+
+        validateLength(range(i, l, s), _length)
 
         # The span is validated by the reversed view, one level down, which mirrors the
         # positions before asking the container: asking here would hand the hook a span
@@ -140,22 +150,24 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # stepped branch needs nothing either, its own range coming out empty and the extended
     # length then demanding no items -- which is what CPython refuses there.
     elif s == 1:
+        items, _items, _length = asEnumerable(False)
         length: int = l - i
 
-        validateSpan(range(i, l), items)
+        validateSpan(range(i, l), items, _length)
 
         if length > 0: lst.RemoveRange(i, length)
 
-        lst.InsertRange(i, items)
+        lst.InsertRange(i, _items)
 
     # step > 1
     else:
+        items, _items, _length = asEnumerable(True)
         indices: range = range(i, l, s)
 
-        validateLength(indices, len(items))
-        validateSpan(indices, items)
+        validateLength(indices, _length)
+        validateSpan(indices, items, _length)
 
-        for item in items:
+        for item in _items:
             lst.SetAt(i, item)
             
             i += s

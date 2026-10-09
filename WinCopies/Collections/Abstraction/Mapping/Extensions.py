@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Count, Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
@@ -91,8 +91,8 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # its own validation phase; answered as a boolean here because the caller is the generic
     # primitive, which raises on its own behalf.
     @final
-    def CanSetRange(self, indices: range, items: Sequence[T]) -> bool:
-        if HasDuplicate(items): return False
+    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool:
+        if HasDuplicate(items.AsIterable()): return False
         
         leaving: set[T] = {self.__list.GetAt(index) for index in indices}
         

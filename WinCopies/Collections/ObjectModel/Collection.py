@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
+from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration.Core import IEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
@@ -74,7 +74,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     # Passed through, and overridden nowhere below unlike every hook around it: a question
     # writes nothing, so there is no act to announce on a channel and no reentrancy to
     # assert. What the observable layer owes a span is the event its write already sends.
-    def CanSetRange(self, indices: range, items: SequenceBase[TItem]) -> bool: return self._GetInnerContainer().CanSetRange(indices, items)
+    def CanSetRange(self, indices: range, items: ICountableEnumerable[TItem]) -> bool: return self._GetInnerContainer().CanSetRange(indices, items)
     
     def _TryRemoveItemsAt(self, index: int, count: int) -> bool:
         return self._GetInnerContainer().TryRemoveRange(index, count)

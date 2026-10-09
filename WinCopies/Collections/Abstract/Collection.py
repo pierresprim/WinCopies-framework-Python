@@ -9,8 +9,9 @@ from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstra
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
+from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration.Core import IEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor,
                                               ICollectionMonitors,
@@ -202,7 +203,8 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     # reader only. The conversion is this layer's whole contribution -- whether the span may
     # be written is the inner container's to say, in its own vocabulary.
     @final
-    def CanSetRange(self, indices: range, items: SequenceBase[TOut]) -> bool: return self._GetContainer().CanSetRange(indices, tuple(Select(items, lambda item: self._ConvertBack(item))))
+    def CanSetRange(self, indices: range, items: ICountableEnumerable[TOut]) -> bool:
+        return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, lambda item: self._ConvertBack(item)))
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)

@@ -1,9 +1,11 @@
-from collections.abc import Container, Iterable, Sequence
+from collections.abc import Container, Iterable
 from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
-from WinCopies.Collections.Core import IList, ISet
-from WinCopies.Collections.Extensions import IList as _IList
+from WinCopies.Collections.Core import IList as IListBase, ISet
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
+from WinCopies.Collections.Extensions import IList
+from WinCopies.Collections.Iteration.Extensions import Count
 from WinCopies.Collections.Range import ResolveKey
 from WinCopies.Collections.Util import ReverseIndex, MakeSequence
 from WinCopies.Typing.Comparison import HashableProtocol
@@ -19,15 +21,23 @@ def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T])
 
     return value in s and value not in leaving
 
-def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
+def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
+    def _count() -> tuple[ICountableEnumerable[T], Iterable[T], int]:
+        def asEnumerable() -> tuple[ICountableEnumerable[T], Iterable[T]]:
+            return (items, items.AsIterable()) if isinstance(items, ICountableEnumerable) else (CreateCountableIterable(items), items)
+        
+        items, length = Count(values)
+
+        return *asEnumerable(), length
+
     def getRange(start: int, stop: int, step: int) -> range:
         if step == 1: return range(start, max(start, stop))
         
         indices: range = range(start, stop, step)
 
-        if len(indices) == len(newItems): return indices
+        if len(indices) == _length: return indices
         
-        raise ValueError(f"Attempt to assign a sequence of size {len(newItems)} to an extended slice of size {len(indices)}.")
+        raise ValueError(f"Attempt to assign a sequence of size {_length} to an extended slice of size {len(indices)}.")
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, count)
 
@@ -38,7 +48,7 @@ def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice,
     # so that nothing was removed and everything was inserted. Range.ResolveKey says the rest.
     # Materialize to guarantee reiterability, and before the branch below rather than after
     # it: the length of the range is now needed on this side of the reversal.
-    newItems: Sequence[T] = values if isinstance(values, Sequence) else tuple[T](values)
+    newItems, items, _length = _count()
 
     step, start, stop, count = ResolveKey(lst, key)
 
@@ -54,7 +64,7 @@ def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice,
         # The formula of Range.__AsReversedKey, applied to the resolved bounds: the stop
         # sentinel of -1 that a negative step resolves to becomes the count, which is the
         # exclusive stop the reversed view expects.
-        SetOrderedValues(lst.AsReversed(), s, slice(reverseIndex(start), reverseIndex(stop), -step), newItems)
+        SetOrderedValues(lst.AsReversed(), s, slice(reverseIndex(start), reverseIndex(stop), -step), items)
 
         return
 
@@ -70,7 +80,7 @@ def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice,
 
     # Two causes, so two messages: one refusal that cannot say which of the two it is would
     # be no better than no message at all.
-    for item in newItems:
+    for item in items:
         if not seen.TryAdd(item): raise ValueError(f"Item {item} appears more than once in the values to assign.")
         if __Conflicts(s, item, oldSet): raise ValueError(f"Item {item} already exists outside the slice.")
 
@@ -80,7 +90,7 @@ def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice,
     # Measured at SetOrderedValues(CreateSizedList(4, [0, 1, 2, 3]), ..., slice(1, 3),
     # (7, 8, 9)), which left [0, 3]. Asked last, so that the two messages above win whenever
     # both refusals apply: they name the item, this one only names the span.
-    if not lst.CanSetRange(indices, newItems): raise ValueError(f"The container refuses the assignment of {len(newItems)} item(s) to the {len(indices)} position(s) of {indices}.")
+    if not lst.CanSetRange(indices, newItems): raise ValueError(f"The container refuses the assignment of {_length} item(s) to the {len(indices)} position(s) of {indices}.")
 
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))
@@ -92,19 +102,19 @@ def SetOrderedValues[T: HashableProtocol](lst: _IList[T], s: set[T], key: slice,
 
         if length > 0: lst.RemoveRange(start, length)
 
-        lst.InsertRange(start, newItems)
+        lst.InsertRange(start, items)
     
     else:
         j: int = start
 
-        for item in newItems:
+        for item in items:
             lst.SetAt(j, item)
 
             j += step
 
-    s.update(newItems)
+    s.update(items)
 
-def TrySetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int, value: T) -> bool|None:
+def TrySetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> bool|None:
     """Writes value at index, keeping s in step with lst.
 
     None: the index is refused. False: the value collides with one the set keeps, which the
@@ -127,7 +137,7 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int
     lst.SetAt(index, value)
 
     return True
-def SetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int, value: T) -> None:
+def SetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> None:
     match TrySetOrderedValue(lst, s, index, value):
         # KeyError, not IndexError, because that is what IWriter.SetAt raises for a refused
         # index across every type: this write must not diverge from its siblings. Whether
@@ -138,12 +148,12 @@ def SetOrderedValue[T: HashableProtocol](lst: IList[T], s: set[T], index: int, v
         case _: return None
 
 @overload
-def SetOrderedItems[T: HashableProtocol](lst: IList[T], s: set[T], index: SupportsIndex, value: T) -> None:
+def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: SupportsIndex, value: T) -> None:
     ...
 @overload
-def SetOrderedItems[T: HashableProtocol](lst: IList[T], s: set[T], index: slice, value: Iterable[T]) -> None:
+def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: slice, value: Iterable[T]) -> None:
     ...
 
-def SetOrderedItems[T: HashableProtocol](lst: IList[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
+def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex): SetOrderedValue(lst, s, int(index), value) # type: ignore
     else: SetOrderedValues(lst, s, index, value) # type: ignore
