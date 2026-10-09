@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Sized
 from typing import final
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstract.Selection import ConverterBase
 from WinCopies.Collections.Enumeration.Abstraction import Selector
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IReversableCountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableEnumerationCursor, IResumableEnumerator, AbstractResumableEnumeratorAbstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
@@ -86,6 +87,38 @@ class _ResumableEnumerator[TIn, TOut](ResumableEnumerator[TIn, TOut]):
     def _Convert(self, item: TIn) -> TOut:
         return self.__enumerable._Convert(item)
 
+class _IEnumerable[TIn, TOut, TEnumerable](IEnumerable[TOut]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]:
+        ...
+
+    @abstractmethod
+    def _GetItems(self) -> TEnumerable:
+        ...
+    @final
+    def _GetEnumerableItems(self) -> IEnumerable[TIn]:
+        return self._AsEnumerableItems(self._GetItems())
+class _ICountableEnumerable[TIn, TOut, TEnumerable](_IEnumerable[TIn, TOut, TEnumerable], ICountableEnumerable[TOut]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _AsCountableEnumerableItems(self, items: TEnumerable) -> ICountableEnumerable[TIn]:
+        ...
+    @final
+    def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]: return self._AsCountableEnumerableItems(items)
+
+    @final
+    def _GetCountableEnumerableItems(self) -> ICountableEnumerable[TIn]:
+        return self._AsCountableEnumerableItems(self._GetItems())
+
+    @final
+    def GetCount(self) -> int: return self._GetCountableEnumerableItems().GetCount()
+    
+    @final
+    def AsSized(self) -> Sized: return self._GetCountableEnumerableItems().AsSized()
+
 class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
     def __init__(self) -> None: super().__init__()
     
@@ -98,32 +131,26 @@ class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumera
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
         return None if result is None else _Enumerator[TIn, TOut](self, result)
-class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut]):
+class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut], _IEnumerable[TIn, TOut, TEnumerable]):
     def __init__(self, enumerable: TEnumerable) -> None:
         super().__init__()
 
         self.__enumerable: TEnumerable = enumerable
     
-    @abstractmethod
-    def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]:
-        ...
-    
     @final
-    def _GetItems(self) -> TEnumerable:
-        return self.__enumerable
-    @final
-    def _GetEnumerableItems(self) -> IEnumerable[TIn]:
-        return self._AsEnumerableItems(self._GetItems())
+    def _GetItems(self) -> TEnumerable: return self.__enumerable
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
         return self._GetEnumerableItems().TryGetEnumerator()
+
+    @final
+    def IsResumable(self) -> bool|None: return self._GetEnumerableItems().IsResumable()
 class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut, IEnumerable[TIn]]):
     def __init__(self, enumerable: IEnumerable[TIn]) -> None: super().__init__(enumerable)
     
     @final
-    def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]:
-        return items
+    def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]: return items
 
 class _ResumableEnumerable[TIn, TOut](ConverterBase[TIn, TOut], IResumableEnumerable[TOut]):
     def __init__(self) -> None:
@@ -146,6 +173,8 @@ class ResumableEnumerableBase[TIn, TOut, TEnumerable](EnumerableBase[TIn, TOut, 
     @abstractmethod
     def _AsResumableEnumerableItems(self, items: TEnumerable) -> IResumableEnumerable[TIn]:
         ...
+    @final
+    def _AsEnumerableItems(self, items: TEnumerable) -> IEnumerable[TIn]: return self._AsResumableEnumerableItems(items)
 
     @final
     def _GetResumableEnumerableItems(self) -> IResumableEnumerable[TIn]:
@@ -156,3 +185,32 @@ class ResumableEnumerableBase[TIn, TOut, TEnumerable](EnumerableBase[TIn, TOut, 
         return self._GetResumableEnumerableItems().TryGetResumableEnumerator()
 class ResumableEnumerable[TIn, TOut](ResumableEnumerableBase[TIn, TOut, IResumableEnumerable[TIn]], IGenericConstraintImplementation[IResumableEnumerable[TIn]]):
     def __init__(self, enumerable: IResumableEnumerable[TIn]) -> None: super().__init__(enumerable)
+
+    @final
+    def _AsResumableEnumerableItems(self, items: IResumableEnumerable[TIn]) -> IResumableEnumerable[TIn]: return items
+
+class CountableEnumerable[TIn, TOut](EnumerableBase[TIn, TOut, ICountableEnumerable[TIn]], _ICountableEnumerable[TIn, TOut, ICountableEnumerable[TIn]]):
+    def __init__(self, enumerable: ICountableEnumerable[TIn]) -> None: super().__init__(enumerable)
+    
+    @final
+    def _AsCountableEnumerableItems(self, items: ICountableEnumerable[TIn]) -> ICountableEnumerable[TIn]: return items
+class ReversableCountableEnumerable[TIn, TOut](EnumerableBase[TIn, TOut, IReversableCountableEnumerable[TIn]], IReversableCountableEnumerable[TOut], _ICountableEnumerable[TIn, TOut, IReversableCountableEnumerable[TIn]]):
+    def __init__(self, enumerable: IReversableCountableEnumerable[TIn]) -> None:
+        super().__init__(enumerable)
+
+        self.__reversed: IEnumerable[TOut] = self._ConvertFromSource(self._GetItems().AsReversed())
+
+    @abstractmethod
+    def _ConvertFromSource(self, items: IEnumerable[TIn]) -> IEnumerable[TOut]:
+        ...
+
+    @final
+    def AsReversed(self) -> IEnumerable[TOut]: return self.__reversed
+    
+    @final
+    def _AsCountableEnumerableItems(self, items: ICountableEnumerable[TIn]) -> ICountableEnumerable[TIn]: return items
+
+def CreateEnumerator[TIn, TOut](enumerable: EnumerableAbstract[TIn, TOut], enumerator: IEnumerator[TIn]) -> IEnumerator[TOut]:
+    return _Enumerator[TIn, TOut](enumerable, enumerator)
+def CreateResumableEnumerator[TIn, TOut](enumerable: EnumerableAbstract[TIn, TOut], enumerator: IResumableEnumerator[TIn]) -> IResumableEnumerator[TOut]:
+    return _ResumableEnumerator[TIn, TOut](enumerable, enumerator)
