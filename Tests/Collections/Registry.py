@@ -47,7 +47,9 @@ from WinCopies.Collections.Abstraction.Selection.Collection import (EquatableTup
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
-from WinCopies.Collections.Extensions import IDefaultMutableSequence, ITupleBase, ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple, IList as _IList, ISizedList
+from WinCopies.Collections.Extensions import (IDefaultMutableSequence, ITupleBase,
+                                              ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple,
+                                              IList as _IList, ISizedList)
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
 from WinCopies.Typing import InvalidOperationError
