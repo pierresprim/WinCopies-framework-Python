@@ -97,7 +97,7 @@ class ICollection[T](IReadOnlyList[T]):
         return True
     @final
     def TryAddRange(self, items: Iterable[T]|None) -> bool|None:
-        return None if (items := self._NormalizeItems(items)) is None else self._TryAddRange(items)
+        return False if (items := self._NormalizeItems(items)) is None else (True if self._TryAddRange(items) else None)
 
     @abstractmethod
     def TryRemoveAt(self, index: int) -> bool|None:
