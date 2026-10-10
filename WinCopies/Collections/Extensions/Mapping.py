@@ -84,10 +84,10 @@ class Set[T: HashableProtocol](CountableEnumerable[T], ISet[T]):
 @final
 class _ReadOnlyDictionary[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IReadOnlyDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
-    def __init__(self, dictionary: DictionaryAbstract[TKey, TValue]) -> None:
+    def __init__(self, dictionary: DictionaryBase[TKey, TValue]) -> None:
         super().__init__()
 
-        self.__dictionary: DictionaryAbstract[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
     
     def IsEmpty(self) -> bool: return self.__dictionary.IsEmpty()
     
@@ -105,14 +105,14 @@ class _ReadOnlyDictionary[TKey: HashableProtocol, TValue](CountableEnumerable[IK
     def ToString(self) -> str: return self.__dictionary.ToString()
 @final
 class _ReadOnlyDictionaryUpdater[TKey: HashableProtocol, TValue](ValueFunctionUpdater[IReadOnlyDictionary[TKey, TValue]]):
-    def __init__(self, dictionary: DictionaryAbstract[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
+    def __init__(self, dictionary: DictionaryBase[TKey, TValue], updater: Method[IFunction[IReadOnlyDictionary[TKey, TValue]]]) -> None:
         super().__init__(updater)
 
-        self.__dictionary: DictionaryAbstract[TKey, TValue] = dictionary
+        self.__dictionary: DictionaryBase[TKey, TValue] = dictionary
     
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]: return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class DictionaryBase[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None: self.__readOnly = func
@@ -126,7 +126,7 @@ class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKe
     
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]: return self.__readOnly.GetValue()
-class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TValue], ISwappable[TKey, TValue]):
+class Dictionary[TKey: HashableProtocol, TValue](DictionaryBase[TKey, TValue], ISwappable[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final

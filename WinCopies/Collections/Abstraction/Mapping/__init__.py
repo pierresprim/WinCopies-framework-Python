@@ -168,7 +168,7 @@ def _GetNoneInstance() -> _None:
     return __none
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: HashableProtocol, TValue](Mapping.DictionaryBase[TKey, TValue]):
+class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue]):
     class _Enumerable[_TKey: HashableProtocol, _TValue, _TItem](DictionaryEnumerable[_TKey, _TValue, _TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()
