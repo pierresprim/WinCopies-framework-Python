@@ -139,5 +139,3 @@ class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TV
             raise KeyError(f"The key {x} does not exist.")
 
         self.Add(y, getValue())
-class Dictionary[TKey: HashableProtocol, TValue](DictionaryBase[TKey, TValue]):
-    def __init__(self) -> None: super().__init__()
