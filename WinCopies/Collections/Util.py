@@ -1,14 +1,25 @@
 from collections.abc import Iterable, Sequence, MutableSequence
-from typing import overload, Callable
+from typing import overload, Callable, NoReturn
 
 from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Action, Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableBool, DualNullableValueInfo, CreateDualValueBool, CreateDualValueNullableBool, CreateDualNullableValueInfo
 from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityAndRichComparison
+
+def GetKeyError(item: HashableProtocol, deletion: bool = False) -> KeyError:
+    return KeyError(f"Key {item} not found." if deletion else f"Item {item} already exists.")
+def ThrowKeyError(item: HashableProtocol, deletion: bool = False) -> NoReturn:
+    raise GetKeyError(item, deletion)
+
+def GetKeyValueError(key: HashableProtocol, value: object) -> KeyError:
+    return KeyError(f"Item {value} already exists at the {key} key.")
+def ThrowKeyValueError(key: HashableProtocol, value: object) -> NoReturn:
+    raise GetKeyValueError(key, value)
 
 type __BoundComparison = Callable[[SupportsRichComparison, SupportsRichComparison, SupportsRichComparison, bool, bool], bool]
 
