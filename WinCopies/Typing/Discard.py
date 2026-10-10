@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import final, NoReturn
 
-from WinCopies import IInterface, IDisposableAbstract, IDisposable as IDisposableBase, IInvalidatable as _IInvalidatable, Abstract
+from WinCopies import IInterface, IDisposableAbstract, IDisposable, IInvalidatable as _IInvalidatable, Abstract
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function
@@ -85,12 +85,6 @@ def ThrowDisposedError() -> NoReturn:
 def ThrowDiscardedError(discardReason: DiscardReason = DiscardReason.Disposed) -> NoReturn:
     raise GetDiscardedError(discardReason)
 
-class IDisposable(IDisposableBase):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def _Throw(self) -> NoReturn: raise GetDiscardedError()
-
 class _IDiscardable(IInterface):
     def __init__(self) -> None: super().__init__()
     
@@ -112,13 +106,13 @@ class IDiscardableInfoBase(_IDisposableInfoBase, _IDiscardable, IDisposableAbstr
 
     @final
     def IsDisposed(self) -> bool: return self.GetDiscardReason() > DiscardReason.Null
-class IDiscardableInfo(IDiscardableInfoBase, IDisposableBase):
+class IDiscardableInfo(IDiscardableInfoBase, IDisposable):
     def __init__(self) -> None: super().__init__()
 
 class IDiscardableItem(IDiscardableInfo, IDisposableInfo):
     def __init__(self) -> None: super().__init__()
 
-class IInvalidatable(IDisposableBase, _IInvalidatable):
+class IInvalidatable(IDisposable, _IInvalidatable):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod

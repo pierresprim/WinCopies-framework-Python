@@ -10,17 +10,12 @@ from WinCopies.Typing import (
     GetGenericError, 
     TryGetValue, HasValue,
     TryGetValueAs, TryGetAs)
-from WinCopies.Typing.Discard import IDisposable, IDisposableInfo, DisposableProvider, GetDiscardedError
+from WinCopies.Typing.Discard import IDisposableInfo, DisposableProvider, GetDiscardedError
 from WinCopies.Typing.Monitoring import IMonitor, Monitor
 
 # ---------------------------------------------------------------------------
 # Concrete helpers
 # ---------------------------------------------------------------------------
-
-class _ConcreteDisposable(IDisposable):
-    def __init__(self) -> None: super().__init__()
-
-    def Dispose(self) -> None: pass
 
 class _ConcreteDisposableInfo(IDisposableInfo):
     def __init__(self) -> None:
@@ -30,9 +25,6 @@ class _ConcreteDisposableInfo(IDisposableInfo):
 
     def IsDisposed(self) -> bool: return self.__disposed
     def Dispose(self) -> None: self.__disposed = True
-
-def _Throw() -> None: _ConcreteDisposable()._Throw() # pyright: ignore[reportPrivateUsage]
-
 
 # ---------------------------------------------------------------------------
 # ErrorBase / Error / InvalidOperationError
@@ -101,28 +93,6 @@ class TestErrorFactories(unittest.TestCase):
         """GetDiscardedError returns an error with a non-empty message."""
 
         self.assertGreater(len(GetDiscardedError().GetMessage()), 0)
-
-
-# ---------------------------------------------------------------------------
-# IDisposable._Throw
-# ---------------------------------------------------------------------------
-
-class TestIDisposableThrow(unittest.TestCase):
-    """Tests for IDisposable._Throw()."""
-
-    def test_throw_raises_invalid_operation_error(self) -> None:
-        """_Throw raises an InvalidOperationError."""
-
-        with self.assertRaises(InvalidOperationError): _Throw()
-
-    def test_throw_message_mentions_disposed(self) -> None:
-        """_Throw raises an error whose message references disposal."""
-
-        try:
-            _Throw()
-        except InvalidOperationError as e:
-            self.assertIn("disposed", e.GetMessage().lower())
-
 
 # ---------------------------------------------------------------------------
 # INullable — via GetNullable
