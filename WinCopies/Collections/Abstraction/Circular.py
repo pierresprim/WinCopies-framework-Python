@@ -160,10 +160,9 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(key)
     
     @final
-    def Add(self, item: T) -> None: self._GetContainer().Add(item)
-    
+    def _TryInsert(self, index: int, value: T) -> bool: return self._GetContainer().TryInsert(index, value)
     @final
-    def TryInsert(self, index: int, value: T) -> bool: return self._GetContainer().TryInsert(index, value)
+    def _Insert(self, index: int, value: T) -> None: self._GetContainer().Insert(index, value)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
