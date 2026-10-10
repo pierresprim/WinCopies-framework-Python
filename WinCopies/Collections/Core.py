@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sized, Iterable, Container
+from collections.abc import Sized, Iterable, Container, Collection
 from typing import overload, final, Any, Callable
 
 from WinCopies import IInterface, Abstract
@@ -9,7 +9,7 @@ from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ThrowKeyValueError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter, EqualityComparison
+from WinCopies.Typing.Delegate import Converter, EqualityComparison, IndexedValueComparison
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
@@ -55,20 +55,49 @@ class ReadOnlyList[T](Container[T], IReadOnlyList[T]):
 
 class ICollection[T](IReadOnlyList[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _NormalizeItems(self, items: Iterable[T]|None) -> Iterable[T]|None:
+        def normalize(items: Iterable[T]) -> Iterable[T]|None:
+            def iterate(items: Iterable[T]) -> tuple[T, Iterable[T]]|None:
+                for item in (items := items.__iter__()): return (item, items)
+
+                return None
+            def enumerate(first: T, other: Iterable[T]) -> Iterable[T]:
+                yield first
+
+                yield from other
+
+            result: tuple[T, Iterable[T]]|None = iterate(items)
+            
+            return None if result is None else enumerate(*result)
+        
+        match items:
+            case None: return None
+
+            case Collection(): return None if len(items) < 1 else items
+
+            case _: return normalize(items)
     
     @abstractmethod
     def Add(self, item: T) -> None:
         ...
-    
-    def AddRange(self, items: Iterable[T]) -> None:
-        for item in items: self.Add(item)
-    @final
-    def TryAddRange(self, items: Iterable[T]|None) -> bool:
-        if items is None: return False
-        
-        self.AddRange(items)
-        
+    def TryAdd(self, item: T) -> bool:
+        self.Add(item)
+
         return True
+
+    @abstractmethod
+    def AddRange(self, items: Iterable[T]|None) -> None:
+        ...
+    
+    def _TryAddRange(self, items: Iterable[T]) -> bool:
+        self.AddRange(items)
+
+        return True
+    @final
+    def TryAddRange(self, items: Iterable[T]|None) -> bool|None:
+        return None if (items := self._NormalizeItems(items)) is None else self._TryAddRange(items)
 
     @abstractmethod
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -459,6 +488,13 @@ class IListBase[T](ITuple[T], ICountableList[T]):
 
 class IList[T](IArray[T], IListBase[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __Insert(self, index: int, value: T, adder: IndexedValueComparison[T]) -> bool:
+        return self.ValidateIndex(index, True) and adder(index, value)
+    @final
+    def __InsertRange(self, index: int, items: Iterable[T]|None, adder: IndexedValueComparison[Iterable[T]]) -> bool|None:
+        return (False if (items := self._NormalizeItems(items)) is None else (True if adder(index, items) else None)) if self.ValidateIndex(index, True) else None
     
     @abstractmethod
     def AsFixedSize(self) -> IArray[T]:
@@ -473,24 +509,56 @@ class IList[T](IArray[T], IListBase[T]):
         ...
     
     @abstractmethod
-    def TryInsert(self, index: int, value: T) -> bool:
+    def _Insert(self, index: int, value: T) -> None:
         ...
     @final
     def Insert(self, index: int, value: T) -> None:
-        if not self.TryInsert(index, value): raise IndexError(index)
-    
+        def insert(index: int, value: T) -> bool:
+            self._Insert(index, value)
+
+            return True
+        
+        if not self.__Insert(index, value, insert): raise IndexError(index)
+
+    def _TryInsert(self, index: int, value: T) -> bool:
+        self._Insert(index, value)
+
+        return True
+    @final
+    def TryInsert(self, index: int, value: T) -> bool:
+        return self.__Insert(index, value, self._TryInsert)
+
     @abstractmethod
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None:
         ...
     @final
-    def InsertRange(self, index: int, items: Iterable[T]) -> None:
-        if self.TryInsertRange(index, items) is None: raise IndexError(index)
-    
-    # Routed through the range primitive rather than inherited from ICollection, which has
-    # none and so expresses the act as repeated Add. That decomposition is seen by whatever
-    # watches the collection as its elements rather than as the insertion, and it leaves the
-    # collection half written when an item is refused partway: the ones before it stay in.
-    def AddRange(self, items: Iterable[T]) -> None: self.InsertRange(self.GetCount(), items)
+    def InsertRange(self, index: int, items: Iterable[T]|None) -> None:
+        def insert(index: int, value: Iterable[T]) -> bool:
+            self._InsertRange(index, value)
+
+            return True
+        
+        if self.__InsertRange(index, items, insert) is None: raise IndexError(index)
+
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        self._InsertRange(index, items)
+
+        return True
+    @final
+    def TryInsertRange(self, index: int, items: Iterable[T]|None) -> bool|None:
+        return self.__InsertRange(index, items, self._TryInsertRange)
+
+    @final
+    def TryAdd(self, item: T) -> bool:
+        return self.TryInsert(self.GetCount(), item)
+    @final
+    def Add(self, item: T) -> None:
+        return self.Insert(self.GetCount(), item)
+
+    @final
+    def _TryAddRange(self, items: Iterable[T]) -> bool: return self.TryInsertRange(self.GetCount(), items) is True
+    @final
+    def AddRange(self, items: Iterable[T]|None) -> None: self.InsertRange(self.GetCount(), items)
 
     @final
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
@@ -574,15 +642,17 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
         if not self.TryAdd(item): ThrowKeyError(item)
 
     @abstractmethod
-    def TryAddRange(self, items: Iterable[T]) -> bool:
+    def TryAddRange(self, items: Iterable[T]) -> bool|None:
         ...
     @final
     def AddRange(self, items: Iterable[T]) -> None:
-        if not self.TryAddRange(items): raise KeyError()
+        result: bool|None = self.TryAddRange(items)
+
+        if result is None: raise KeyError()
 
     @final
     def TryAddValues(self, *values: T) -> bool:
-        return self.TryAddRange(values)
+        return True if self.TryAddRange(values) is True else False
     @final
     def AddValues(self, *values: T) -> None:
         self.AddRange(values)

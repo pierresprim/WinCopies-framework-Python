@@ -60,16 +60,25 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def _ReverseItems(self) -> None:
         self._GetInnerContainer().AsMutableSequence().reverse()
     
-    def _InsertItem(self, index: int|None, item: TItem) -> bool:
-        if index is None:
-            self._GetInnerContainer().Add(item)
+    def _InsertItem(self, index: int|None, item: TItem, throwOnError: bool = False) -> bool:
+        l: IList[TItem] = self._GetInnerContainer()
+
+        if throwOnError:
+            l.Add(item) if index is None else l.Insert(index, item)
 
             return True
-        
-        return self._GetInnerContainer().TryInsert(index, item)
+
+        return l.TryAdd(item) if index is None else l.TryInsert(index, item)
     
-    def _InsertItems(self, index: int, items: Iterable[TItem]) -> bool|None:
-        return self._GetInnerContainer().TryInsertRange(index, items)
+    def _InsertItems(self, index: int|None, items: Iterable[TItem], throwOnError: bool = False) -> bool|None:
+        l: IList[TItem] = self._GetInnerContainer()
+
+        if throwOnError:
+            l.AddRange(items) if index is None else l.InsertRange(index, items)
+
+            return True
+
+        return l.TryAddRange(items) if index is None else l.TryInsertRange(index, items)
     
     # Passed through, and overridden nowhere below unlike every hook around it: a question
     # writes nothing, so there is no act to announce on a channel and no reentrancy to
@@ -130,12 +139,14 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainer().SliceAt(key)
     
     @final
-    def Add(self, item: TItem) -> None: self._InsertItem(None, item)
+    def _TryInsert(self, index: int, value: TItem) -> bool: return self._InsertItem(index if index < self.GetCount() else None, value)
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool: return self._InsertItem(index, value)
+    def _Insert(self, index: int, value: TItem) -> None: self._InsertItem(index if index < self.GetCount() else None, value, True)
     
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self._InsertItems(index, items)
+    def _TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool: return self._InsertItems(index if index < self.GetCount() else None, items) is True
+    @final
+    def _InsertRange(self, index: int, items: Iterable[TItem]) -> None: self._InsertItems(index if index < self.GetCount() else None, items, True)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._RemoveItemAt(index)
@@ -400,20 +411,20 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
     @final
     def AsFixedSize(self) -> IFixedSizeObservableCollection[T]: return self.__fixedSize.GetValue()
     
-    def _InsertItem(self, index: int|None, item: T) -> bool:
+    def _InsertItem(self, index: int|None, item: T, throwOnError: bool = False) -> bool:
         self.__AssertReentrancy()
 
-        if super()._InsertItem(index, item):
+        if super()._InsertItem(index, item, throwOnError):
             self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
 
             return True
         
         return False
     
-    def _InsertItems(self, index: int, items: Iterable[T]) -> bool|None:
+    def _InsertItems(self, index: int|None, items: Iterable[T], throwOnError: bool = False) -> bool|None:
         self.__AssertReentrancy()
 
-        result: bool|None = super()._InsertItems(index, items)
+        result: bool|None = super()._InsertItems(index, items, throwOnError)
 
         if result is True: self.__invoker.OnItemAdded(CollectionChangedEventArgs(CollectionChangedAction.Add))
         

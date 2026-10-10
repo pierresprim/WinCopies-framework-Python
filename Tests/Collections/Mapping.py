@@ -518,7 +518,7 @@ class TestRangeUnicityCriterion(unittest.TestCase):
 
         items, view = _create()
 
-        with self.assertRaises(IndexError): view.InsertRange(1, list(self.__DUPLICATED))
+        with self.assertRaises(KeyError): view.InsertRange(1, list(self.__DUPLICATED))
 
         self.assertEqual(_snapshot(items), _CONTENT)
 
@@ -580,13 +580,13 @@ class TestOrderedSetRangeUnicityCriterion(unittest.TestCase):
     """
 
     def test_every_range_route_refuses_a_duplicated_range(self) -> None:
-        calls: ReadOnlyArray[tuple[str, _Call, bool]] = (
-            ("TryAddRange([7, 7])", lambda o, l: o.TryAddRange([7, 7]), False),
-            ("AddRange([7, 7])", lambda o, l: o.AddRange([7, 7]), True),
-            ("TryAddValues(7, 7)", lambda o, l: o.TryAddValues(7, 7), False),
-            ("AddValues(7, 7)", lambda o, l: o.AddValues(7, 7), True))
+        calls: ReadOnlyArray[tuple[str, _Call, bool, bool|None]] = (
+            ("TryAddRange([7, 7])", lambda o, l: o.TryAddRange([7, 7]), False, None),
+            ("AddRange([7, 7])", lambda o, l: o.AddRange([7, 7]), True, None),
+            ("TryAddValues(7, 7)", lambda o, l: o.TryAddValues(7, 7), False, False),
+            ("AddValues(7, 7)", lambda o, l: o.AddValues(7, 7), True, None))
 
-        for label, call, raises in calls:
+        for label, call, raises, expectedOutcome in calls:
             with self.subTest(call = label):
                 items, view = _create()
                 outcome: Any = _attempt(call, items, view)
@@ -594,7 +594,7 @@ class TestOrderedSetRangeUnicityCriterion(unittest.TestCase):
                 # KeyError is what ISetBase.AddRange raises on a False, so the throwing forms
                 # are held to that one and not merely to "something was raised".
                 if raises: self.assertIsInstance(outcome, KeyError, f"{label} did not refuse: {outcome!r}")
-                else: self.assertIs(outcome, False, f"{label} answered {outcome!r}")
+                else: self.assertIs(outcome, expectedOutcome, f"{label} answered {outcome!r}")
 
                 self.assertEqual(_snapshot(items), _CONTENT, f"{label} mutated while refusing")
                 _assertInvariant(self, items, view, f"set.{label}")

@@ -30,7 +30,8 @@ from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
 from WinCopies.Collections.Util import (FindIndex, Move,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
-                                        TryBisect, TryBisectWithKey, Insort)
+                                        TryBisect, TryBisectWithKey, Insort,
+                                        ExtendAt)
 from WinCopies.Delegates import GetEqualityComparison
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -245,20 +246,13 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], Mutabl
         else: insert(items)(index, value)
     
     @final
-    def _TryInsert(self, index: int, value: T) -> bool:
-        if self.ValidateIndex(index, True):
-            self._InvalidateViews()
+    def _InsertItem(self, index: int, value: T) -> None:
+        self._InvalidateViews()
 
-            self.__Insert(index, value, lambda items: items.append, lambda items: items.insert)
-
-            return True
-
-        return False
+        self.__Insert(index, value, lambda items: items.append, lambda items: items.insert)
     @final
-    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
-        def extendAt(items: _MutableSequence[T], index: int, values: Iterable[T]) -> None: items[index:index] = values
-
-        return IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: extendAt(items, index, values)), self._InvalidateViews) if self.ValidateIndex(index, True) else None
+    def _InsertItemRange(self, index: int, items: Iterable[T]) -> None:
+        IterateFromAllItems(items, lambda items: self.__Insert(index, items, lambda items: items.extend, lambda items: lambda index, values: ExtendAt(items, index, values)), self._InvalidateViews)
     @final
     def _RemoveRange(self, index: int, count: int) -> None:
         self._InvalidateViews()
@@ -295,17 +289,9 @@ class List[T](ListBase[T]):
     def TryGetSourceMutability(self) -> None: return None
     
     @final
-    def Add(self, item: T) -> None:
-        self._InvalidateViews()
-        
-        self._GetContainer().append(item)
+    def _Insert(self, index: int, value: T) -> None: self._InsertItem(index, value)
     @final
-    def AddRange(self, items: Iterable[T]) -> None: IterateFromAllItems(items, self._GetContainer().extend, self._InvalidateViews)
-    
-    @final
-    def TryInsert(self, index: int, value: T) -> bool: return self._TryInsert(index, value)
-    @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None: return self._TryInsertRange(index, items)
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self._InsertItemRange(index, items)
     
     # Nothing to refuse: under this one sits a Python list, which takes any value at any
     # position the caller has already resolved. Written out rather than inherited, there
@@ -373,12 +359,21 @@ class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
     @final
     def GetMutability(self) -> Mutability|None: return Mutability.Mutable
 
+def _Throw(succeeded: bool) -> None:
+    if not succeeded: raise InvalidOperationError("The list is already full.")
+
 class SizedList[T](ListBase[T], ISizedList[T]):
     def __init__(self, initializer: _ISizedListInitializer[T]) -> None:
         super().__init__(initializer.GetItems())
 
         self.__maxLength: int = initializer.GetMaxLength()
         self.__mutability: Mutability|None = initializer.GetMutability()
+
+    @final
+    def __GetAdder(self) -> Callable[[int, T], None]:
+        l: _MutableSequence[T] = self._GetContainer()
+
+        return lambda index, item: l.insert(index, item) if index < self.GetCount() else l.append(item)
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
@@ -392,31 +387,34 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     def ValidateLength(self, count: int) -> bool: return self.GetCount() + count <= self.GetMaxLength()
 
     @final
-    def __Add[U](self, count: int, items: U, adder: Method[U]) -> None:
-        if self.ValidateLength(count):
+    def __TryInsert[U](self, length: int, index: int, items: U, adder: Callable[[int, U], None]) -> bool:
+        if self.ValidateLength(length):
             self._InvalidateViews()
 
-            adder(items)
-        
-        else: raise InvalidOperationError("The list is already full.")
-    
-    @final
-    def Add(self, item: T) -> None:
-        self.__Add(1, item, self._GetContainer().append)
-    @final
-    def AddRange(self, items: Iterable[T]) -> None:
-        _items: tuple[Iterable[T], int] = Count(items)
-        count: int = _items[1]
+            adder(index, items)
 
-        if count > 0: self.__Add(count, _items[0], self._GetContainer().extend)
+            return True
+        
+        return False
     
     @final
-    def TryInsertAt(self, index: int, value: T) -> bool|None: return self._TryInsert(index, value) if self.ValidateLength(1) else None
+    def __TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        items, count = Count(items)
+
+        return self.__TryInsert(count, index, items, lambda index, items: ExtendAt(self._GetContainer(), index, items))
+    
     @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
-        _items: tuple[Iterable[T], int] = Count(items)
-        
-        return self._TryInsertRange(index, _items[0]) if self.ValidateLength(_items[1]) else None
+    def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(1, index, value, self.__GetAdder())
+    @final
+    def _Insert(self, index: int, value: T) -> None:
+        _Throw(self.__TryInsert(1, index, value, self.__GetAdder()))
+    
+    @final
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        return self.__TryInsertRange(index, items)
+    @final
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None:
+        _Throw(self.__TryInsertRange(index, items))
     
     # The span's net effect on the length, which is all this type refuses: a replacement that
     # shrinks the count or leaves it alone always passes, one that grows it passes only within
@@ -546,10 +544,10 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], _Sequenc
     @final
     def Add(self, item: T) -> None: self.__Add(item, True)
     @final
-    def AddRange(self, items: Iterable[T]) -> None:
+    def AddRange(self, items: Iterable[T]|None) -> None:
         def _merge(items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
         
-        IterateFromAllItems(items, _merge, self._InvalidateViews)
+        if items is not None: IterateFromAllItems(items, _merge, self._InvalidateViews)
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[T]: return SortedList[T](self._GetContainer()[key])

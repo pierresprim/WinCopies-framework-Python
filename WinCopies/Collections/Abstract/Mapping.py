@@ -30,7 +30,7 @@ class Set[TIn: HashableProtocol, TOut: HashableProtocol](Selector[TIn, TOut, ISe
     def TryAdd(self, item: TOut) -> bool: return self._GetItems().TryAdd(self._ConvertBack(item))
     
     @final
-    def TryAddRange(self, items: Iterable[TOut]) -> bool: return self._GetItems().TryAddRange(Select(items, lambda item: self._ConvertBack(item)))
+    def TryAddRange(self, items: Iterable[TOut]) -> bool|None: return self._GetItems().TryAddRange(Select(items, lambda item: self._ConvertBack(item)))
     
     @final
     def TryRemove(self, item: TOut) -> bool: return self._GetItems().TryRemove(self._ConvertBack(item))

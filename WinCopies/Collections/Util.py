@@ -441,3 +441,5 @@ def Insort[T: SupportsRichComparison](l: MutableSequence[T], item: T, right: boo
     return __Insort(l, TryBisect(l, item, right, low, high), item, low)
 def InsortWithKey[TIn, TOut: SupportsRichComparison](l: MutableSequence[TIn], item: TIn, selector: Converter[TIn, TOut], right: bool = False, low: int = 0, high: int = -1) -> bool|None:
     return __Insort(l, TryBisectWithKey(l, selector(item), selector, right, low, high), item, low)
+
+def ExtendAt[T](items: MutableSequence[T], index: int, values: Iterable[T]) -> None: items[index:index] = values

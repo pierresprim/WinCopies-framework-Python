@@ -920,25 +920,20 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def AsReversed(self) -> IList[TItem]: return self._GetContainerAsList()
     
-    @final
-    def Add(self, item: TItem) -> None:
-        items: IList[TItem] = self._GetContainerAsList()
-
-        if self.GetCount() > 0: items.Insert(0, item)
-        else: items.Add(item)
-    @final
-    def AddRange(self, items: Iterable[TItem]) -> None:
-        self._GetContainerAsList().InsertRange(0, Reverse(items))
-    
     # ReverseIndexFromLast maps k to count - k, hence count at the reversed head and 0 at its tail, both of which the permissive source insertion accepts. No bound needs a special case, and staying on the Try* members keeps the refusal a returned value rather than an exception.
     @final
     def __TryInsert[T, U](self, index: int, value: T, default: U, inserter: Converter[IList[TItem], Callable[[int, T], U]]) -> U:
         return inserter(self._GetContainerAsList())(ReverseIndexFromLast(index, self.GetCount()), value) if self.ValidateIndex(index, True) else default
 
     @final
-    def TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, False, lambda items: items.TryInsert)
+    def _TryInsert(self, index: int, value: TItem) -> bool: return self.__TryInsert(index, value, False, lambda items: items.TryInsert)
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool|None: return self.__TryInsert(index, Reverse(items), None, lambda items: items.TryInsertRange)
+    def _Insert(self, index: int, value: TItem) -> None: self.__TryInsert(index, value, None, lambda items: items.Insert)
+
+    @final
+    def _TryInsertRange(self, index: int, items: Iterable[TItem]) -> bool: return self.__TryInsert(index, Reverse(items), None, lambda items: items.TryInsertRange) is True
+    @final
+    def _InsertRange(self, index: int, items: Iterable[TItem]) -> None: self.__TryInsert(index, Reverse(items), None, lambda items: items.InsertRange)
     
     # The whole span is mirrored, not just its bounds: position k of this view is the inner
     # count - 1 - k, so the lowest mirrored position comes from the highest original one and
@@ -1011,6 +1006,8 @@ class ReversedSortedListAbstract[TItem: SupportsEqualityAndRichComparison, TList
     def AddLeft(self, item: TItem) -> None: self._GetContainerAsList().Add(item)
     @final
     def Add(self, item: TItem) -> None: self._GetContainerAsList().AddLeft(item)
+    @final
+    def AddRange(self, items: Iterable[TItem]|None) -> None: self._GetContainerAsList().AddRange(items)
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)

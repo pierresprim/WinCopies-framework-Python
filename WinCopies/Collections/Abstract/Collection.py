@@ -177,6 +177,10 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
         self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
 
     @final
+    def __Select(self, items: Iterable[TOut]|None) -> Iterable[TIn]:
+        return Select(items, self._ConvertBack)
+
+    @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
@@ -191,12 +195,13 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def SliceAt(self, key: slice) -> IList[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
     
     @final
-    def Add(self, item: TOut) -> None: self._GetContainer().Add(self._ConvertBack(item))
-    
+    def _TryInsert(self, index: int, value: TOut) -> bool: return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     @final
-    def TryInsert(self, index: int, value: TOut) -> bool: return self._GetContainer().TryInsert(index, self._ConvertBack(value))
+    def _Insert(self, index: int, value: TOut) -> None: self._GetContainer().Insert(index, self._ConvertBack(value))
     @final
-    def TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool|None: return self._GetContainer().TryInsertRange(index, Select(items, lambda item: self._ConvertBack(item)))
+    def _TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool: return self._GetContainer().TryInsertRange(index, self.__Select(items)) is True
+    @final
+    def _InsertRange(self, index: int, items: Iterable[TOut]) -> None: self._GetContainer().InsertRange(index, self.__Select(items))
     
     # Converted into a tuple rather than handed over as a projection: the container's answer
     # reads the items and its write reads them again, and a lazy Select would reach the first
@@ -204,7 +209,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     # be written is the inner container's to say, in its own vocabulary.
     @final
     def CanSetRange(self, indices: range, items: ICountableEnumerable[TOut]) -> bool:
-        return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, lambda item: self._ConvertBack(item)))
+        return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, self._ConvertBack))
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)

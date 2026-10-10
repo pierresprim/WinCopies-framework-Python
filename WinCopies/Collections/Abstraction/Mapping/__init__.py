@@ -52,17 +52,19 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
     def TryAdd(self, item: T) -> bool: return self.__TryAdd(item) < self.GetCount()
     
     @final
-    def TryAddRange(self, items: Iterable[T]) -> bool:
+    def TryAddRange(self, items: Iterable[T]) -> bool|None:
         _items: IEnumerableQueue[T] = CreateEnumerableQueue(items)
 
+        if not _items.HasItems(): return False
+
+        if HasDuplicate(_items.AsIterable()): return None
+
         for item in _items.AsIterable():
-            if self.Contains(item): return False
-        
-        count: int = self.GetCount()
+            if self.Contains(item): return None
         
         self._GetItems().update(_items.AsGenerator())
     
-        return count < self.GetCount()
+        return True
     
     @final
     def TryRemove(self, item: T) -> bool:

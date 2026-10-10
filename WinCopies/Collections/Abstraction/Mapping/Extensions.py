@@ -11,7 +11,7 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Count, Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
+from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
@@ -71,7 +71,6 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # this set holds is at position 2 and goes. That is the rule SetOrderedValues applies in
     # its own validation phase; answered as a boolean here because the caller is the generic
     # primitive, which raises on its own behalf.
-    @final
     def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool:
         if HasDuplicate(items.AsIterable()): return False
         
@@ -79,46 +78,28 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         
         return not Any(items, lambda item: item in self.__innerSet and item not in leaving)
     
-    def Add(self, item: T) -> None: return self.__items.Add(item)
-    
-    def TryInsert(self, index: int, value: T) -> bool:
-        if self.ValidateIndex(index, True) and self.__set.TryAdd(value):
+    def _TryInsert(self, index: int, value: T) -> bool:
+        if self.__set.TryAdd(value):
             self.__list.Insert(index, value)
 
             return True
         
         return False
+    def _Insert(self, index: int, value: T) -> None:
+        self.__set.Add(value)
+        self.__list.Insert(index, value)
     
-    # None is a refusal, whatever its cause -- the index, or a value the set already holds
-    # elsewhere -- and False is an empty range, which is nothing to do rather than a failure.
-    # That is the house form, which SizedList already follows for its capacity, and it is what
-    # lets InsertRange raise on None alone. Answering False for a refused value put it in the
-    # one state the non-Try form is bound to let pass, so a refused range went in silently.
-    # The emptiness is counted here rather than read from the set's own answer, which conflates
-    # the two cases as D-24 records.
-    @final
-    def TryInsertRange(self, index: int, items: Iterable[T]) -> bool|None:
-        if not self.ValidateIndex(index, True): return None
-
-        # Buffered because both the count and the set's own pass read it.
-        items, length = Count(BuildIterable(items))
-
-        if length == 0: return False
-
-        # The set's boolean cannot answer this, so it is asked of the range itself: measured
-        # at TryInsertRange(1, (7, 7)) on CreateOrderedSet((1, 2, 3, 4)), which answered True
-        # and left the order (1, 7, 7, 2, 3, 4). None, not False, because False is the empty
-        # range this very method has just let through.
-        if HasDuplicate(items): return None
-
-        if self.__set.TryAddRange(items):
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
+        if self.__set.TryAddRange((items := BuildIterable(items))) is True:
             self.__list.InsertRange(index, items)
 
             return True
         
-        return None
+        return False
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None:
+        self.__set.AddRange((items := BuildIterable(items)))
+        self.__list.InsertRange(index, items)
     
-    @final
     def _RemoveRange(self, index: int, count: int) -> None: return super(MutableList, self)._RemoveRange(index, count)
     
     def TryRemoveAt(self, index: int) -> bool|None:
@@ -357,18 +338,24 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         return False
     
     @final
-    def TryAddRange(self, items: Iterable[T]) -> bool:
-        if HasDuplicate(items := BuildIterable(items)): return False
+    def TryAddRange(self, items: Iterable[T]) -> bool|None:
+        result: bool|None = self.__set.TryAddRange(items := BuildIterable(items))
 
-        if self.__set.TryAddRange(items):
+        if result is True:
             self.__items.AddRange(items)
 
             return True
-        
-        return False
+
+        return result
     
     @final
-    def TryRemove(self, item: T) -> bool: return self.__items.TryRemove(item) and self.__set.TryRemove(item)
+    def TryRemove(self, item: T) -> bool:
+        if self.__set.TryRemove(item):
+            self.__items.Remove(item)
+
+            return True
+
+        return False
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()
