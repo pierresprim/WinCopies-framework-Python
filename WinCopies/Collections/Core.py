@@ -662,7 +662,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
         ...
     @final
     def Remove(self, item: T) -> None:
-        if not self.TryRemove(item): ThrowKeyError(True)
+        if not self.TryRemove(item): ThrowKeyError(item, True)
 
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None: super().__init__()
