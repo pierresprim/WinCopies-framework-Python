@@ -15,10 +15,10 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
 class Set[TIn: HashableProtocol, TOut: HashableProtocol](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
-    def __init__(self, items: ISet[TIn]|set[TIn]|Iterable[TIn]) -> None: super().__init__(GetSet(items))
+    def __init__(self, items: ISet[TIn]|set[TIn]) -> None: super().__init__(GetSet(items))
     
     @final
     def GetCount(self) -> int: return self._GetItems().GetCount()
@@ -28,14 +28,10 @@ class Set[TIn: HashableProtocol, TOut: HashableProtocol](Selector[TIn, TOut, ISe
     
     @final
     def TryAdd(self, item: TOut) -> bool: return self._GetItems().TryAdd(self._ConvertBack(item))
-    @final
-    def Add(self, item: TOut) -> None: self._GetItems().Add(self._ConvertBack(item))
     
     @final
     def TryAddRange(self, items: Iterable[TOut]) -> bool: return self._GetItems().TryAddRange(Select(items, lambda item: self._ConvertBack(item)))
     
-    @final
-    def Remove(self, item: TOut) -> None: self._GetItems().Remove(self._ConvertBack(item))
     @final
     def TryRemove(self, item: TOut) -> bool: return self._GetItems().TryRemove(self._ConvertBack(item))
     
@@ -123,16 +119,10 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Selector[TValueIn,
     def AddOrUpdate(self, key: TKey, value: TValueOut) -> bool: return self._GetItems().AddOrUpdate(key, self._ConvertBack(value))
     
     @final
-    def Remove(self, key: TKey) -> TValueOut: return self._Convert(self._GetItems().Remove(key))
-    
-    @final
-    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValueOut|TDefault]:
-        def getResult(key: TValueOut|TDefault, value: bool) -> DualValueBool[TValueOut|TDefault]: return DualValueBool[TValueOut|TDefault](key, value)
-        
-        result: DualValueBool[TValueIn|None] = self._GetItems().TryRemove(key, None)
-        value: TValueIn|None = result.GetKey()
+    def TryRemoveItem(self, key: TKey) -> INullable[TValueOut]:
+        result: INullable[TValueIn] = self._GetItems().TryRemoveItem(key)
 
-        return getResult(self._Convert(value), True) if result.GetValue() and value is not None else getResult(defaultValue, False)
+        return GetNullable(self._Convert(result.GetValue())) if result.HasValue() else GetNullValue()
     
     @final
     def Clear(self) -> None: return self._GetItems().Clear()

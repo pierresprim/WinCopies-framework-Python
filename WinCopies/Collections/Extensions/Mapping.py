@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Container as ContainerBase
-from typing import overload, final
+from typing import final
 
 
 
@@ -14,7 +13,7 @@ from WinCopies.Collections.Extensions import IReadOnlySet, ISet, IReadOnlyDictio
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair, DualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair
 
 @final
 class _SetContainer[T: HashableProtocol](Container[T]):
@@ -122,22 +121,8 @@ class DictionaryAbstract[TKey: HashableProtocol, TValue](CountableEnumerable[IKe
 
         self.__readOnly: IFunction[IReadOnlyDictionary[TKey, TValue]] = _ReadOnlyDictionaryUpdater[TKey, TValue](self, update) # type: ignore[no-redef]
     
-    @abstractmethod
-    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        ...
-    
     @final
     def IsEmpty(self) -> bool: return self.GetCount() < 1
-    
-    @overload
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        ...
-    @overload
-    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue]|None:
-        ...
-
-    @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault]|None: return None if defaultValue is None else self._TryRemove(key, defaultValue)
     
     @final
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]: return self.__readOnly.GetValue()
@@ -156,15 +141,3 @@ class DictionaryBase[TKey: HashableProtocol, TValue](DictionaryAbstract[TKey, TV
         self.Add(y, getValue())
 class Dictionary[TKey: HashableProtocol, TValue](DictionaryBase[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
-    
-    @final
-    def Add(self, key: TKey, value: TValue) -> None:
-        if not self.TryAdd(key, value): raise KeyError(f"Key {key} already exists.")
-    
-    @final
-    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool: return self.TryAdd(item.GetKey(), item.GetValue())
-    @final
-    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None: self.Add(item.GetKey(), item.GetValue())
-    
-    @final
-    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool: return self.AddOrUpdate(item.GetKey(), item.GetValue())

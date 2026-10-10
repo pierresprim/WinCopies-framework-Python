@@ -355,23 +355,9 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
             return True
         
         return False
-    @final
-    def Add(self, item: T) -> None:
-        self.__set.Add(item)
-        self.__items.Add(item)
     
     @final
     def TryAddRange(self, items: Iterable[T]) -> bool:
-        # The same question the list view asks, on the type's own API: measured at
-        # TryAddRange((7, 7)) on CreateOrderedSet((1, 2, 3, 4)), which answered True and left
-        # the order (1, 2, 3, 4, 7, 7) against a count of 6. False, not None, because
-        # ISetBase.TryAddRange is bivalent by contract and AddRange raises on the False
-        # alone; this family therefore cannot tell a refused range from an empty one, which
-        # is D-24's open complaint against it and not something to settle here.
-        # Buffered because this method reads the range three times -- the duplicate pass, the
-        # set's own pass, and the add -- so a one-pass iterable reached the first and nothing
-        # else: TryAddRange(iter([7, 8])) left the order without them. The list view buffers
-        # for the same reason, two readers down.
         if HasDuplicate(items := BuildIterable(items)): return False
 
         if self.__set.TryAddRange(items):
@@ -383,10 +369,6 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
     
     @final
     def TryRemove(self, item: T) -> bool: return self.__items.TryRemove(item) and self.__set.TryRemove(item)
-    @final
-    def Remove(self, item: T) -> None:
-        self.__set.Remove(item)
-        self.__items.Remove(item)
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self.__items.TryGetEnumerator()

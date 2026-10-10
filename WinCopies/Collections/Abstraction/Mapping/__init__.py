@@ -14,7 +14,7 @@ from WinCopies.Delegates import Self, GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetNullableValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Predicate, Selector
-from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult, DualValueBool, CreateDualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 
 def __HasDuplicate[TItem: HashableProtocol, TResult](items: Iterable[TItem], action: Callable[[Iterable[TItem], Predicate[TItem]], TResult], selector: Selector[Predicate[TItem]]) -> TResult:
     return action(items, selector(Set[TItem]().TryAdd))
@@ -50,9 +50,6 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
     
     @final
     def TryAdd(self, item: T) -> bool: return self.__TryAdd(item) < self.GetCount()
-    @final
-    def Add(self, item: T) -> None:
-        if self.__TryAdd(item) == self.GetCount(): raise ValueError(f"Item {item} already exists.")
     
     @final
     def TryAddRange(self, items: Iterable[T]) -> bool:
@@ -67,8 +64,6 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
     
         return count < self.GetCount()
     
-    @final
-    def Remove(self, item: T) -> None: self._GetItems().remove(item)
     @final
     def TryRemove(self, item: T) -> bool:
         count: int = self.GetCount()
@@ -256,12 +251,10 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
         return False
     
     @final
-    def _TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
+    def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
         result: TValue|_None = self._GetDictionary().pop(key, _GetNoneInstance())
 
-        return CreateDualValueBool(defaultValue, False) if isinstance(result, _None) else CreateDualValueBool(result, True)
-    @final
-    def Remove(self, key: TKey) -> TValue: return self._GetDictionary().pop(key)
+        return GetNullValue() if isinstance(result, _None) else GetNullable(result)
     
     @final
     def Clear(self) -> None: self._GetDictionary().clear()

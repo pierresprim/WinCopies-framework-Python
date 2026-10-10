@@ -6,8 +6,8 @@ from typing import overload, final, Any, Callable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
-from WinCopies.Collections.Util import ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ThrowKeyValueError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
+from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, EqualityComparison
 from WinCopies.Typing.Enum import IntEnum
@@ -569,9 +569,9 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
     @abstractmethod
     def TryAdd(self, item: T) -> bool:
         ...
-    @abstractmethod
+    @final
     def Add(self, item: T) -> None:
-        ...
+        if not self.TryAdd(item): ThrowKeyError(item)
 
     @abstractmethod
     def TryAddRange(self, items: Iterable[T]) -> bool:
@@ -585,14 +585,14 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
         return self.TryAddRange(values)
     @final
     def AddValues(self, *values: T) -> None:
-        if not self.TryAddValues(*values): raise KeyError()
+        self.AddRange(values)
     
-    @abstractmethod
-    def Remove(self, item: T) -> None:
-        ...
     @abstractmethod
     def TryRemove(self, item: T) -> bool:
         ...
+    @final
+    def Remove(self, item: T) -> None:
+        if not self.TryRemove(item): ThrowKeyError(True)
 
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None: super().__init__()
@@ -621,43 +621,46 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     @abstractmethod
     def TryAdd(self, key: TKey, value: TValue) -> bool:
         ...
-    @abstractmethod
+    @final
     def Add(self, key: TKey, value: TValue) -> None:
-        ...
+        if not self.TryAdd(key, value): ThrowKeyValueError(key, value)
 
-    @abstractmethod
+    @final
     def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        ...
-    @abstractmethod
+        return self.TryAdd(item.GetKey(), item.GetValue())
+    @final
     def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
-        ...
+        self.Add(item.GetKey(), item.GetValue())
 
     @abstractmethod
     def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
         ...
-    @abstractmethod
-    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        ...
-    
-    @overload
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]:
-        ...
-    @overload
-    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue]|None:
-        ...
-    
-    @abstractmethod
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault]|None:
-        ...
     @final
-    def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
-        result: DualValueBool[TValue]|None = self.TryRemove(key)
-
-        return GetNullable(result.GetKey()) if result is not None and result.GetValue() else GetNullValue()
+    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
+        return self.AddOrUpdate(item.GetKey(), item.GetValue())
 
     @abstractmethod
-    def Remove(self, key: TKey) -> TValue:
+    def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
         ...
+    
+    @overload
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]: ...
+    @overload
+    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue|None]: ...
+
+    @final
+    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault|None]:
+        result: INullable[TValue] = self.TryRemoveItem(key)
+
+        return DualValueBool[TValue](result.GetValue(), True) if result.HasValue() else DualValueBool[TDefault|None](defaultValue, False)
+
+    @final
+    def Remove(self, key: TKey) -> TValue:
+        result: INullable[TValue] = self.TryRemoveItem(key)
+
+        if result.HasValue(): return result.GetValue()
+
+        raise GetKeyError(key, True)
 
 class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T]):
     def __init__(self) -> None:
