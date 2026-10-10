@@ -6,7 +6,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Abstraction.Mapping import Set
+from WinCopies.Collections.Abstraction.Mapping import Set, HasDuplicate
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
@@ -17,29 +17,10 @@ from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
-
-def HasDuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
-    """Whether the range repeats a value, which an ordered set cannot take whole.
-
-    A set takes a duplicated range and keeps one of the two, so its own answer says only
-    that none of the values was already held: TryAddRange((7, 7)) is measured to answer True
-    and to grow it by one. Read as permission to insert every value, that put two into the
-    order where the set held one -- the unicity clause the type is defined by. The range is
-    refused rather than deduplicated, because SetOrderedValues already answers that way for
-    the same range on the slice write, and one type cannot refuse by route.
-
-    Asked before the set is touched, so a refusal leaves nothing behind. It consumes what it
-    is given, so a caller that re-reads the range buffers it first.
-    """
-
-    seen: ISet[T] = Set[T]()
-
-    return Any(items, GetNotPredicate(seen.TryAdd))
 
 @final
 class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
