@@ -2,22 +2,27 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator as _Iterator, MutableMapping
-from typing import final
+from typing import final, Callable
 
 from WinCopies import Abstract
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, Iterator, TryAsEnumerator
 from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
+from WinCopies.Collections.Iteration import GetFirstItemExclusive
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
-from WinCopies.Delegates import GetNotPredicate
+from WinCopies.Delegates import Self, GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Delegate import Predicate, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
 
-def HasDuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
-    seen: ISet[T] = Set[T]()
+def __HasDuplicate[TItem: HashableProtocol, TResult](items: Iterable[TItem], action: Callable[[Iterable[TItem], Predicate[TItem]], TResult], selector: Selector[Predicate[TItem]]) -> TResult:
+    return action(items, selector(Set[TItem]().TryAdd))
 
-    return Any(items, GetNotPredicate(seen.TryAdd))
+def HasDuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
+    return __HasDuplicate(items, Any, lambda adder: GetNotPredicate(adder))
+def HasDuplicateItem[T: HashableProtocol](items: Iterable[T]) -> INullable[T]:
+    return __HasDuplicate(items, GetFirstItemExclusive, Self)
 
 class Set[T: HashableProtocol](Mapping.Set[T]):
     def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
