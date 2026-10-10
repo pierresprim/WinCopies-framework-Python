@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import final
+from typing import final, NoReturn
 
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Delegates import GetMethodAsFunction
@@ -33,7 +33,7 @@ class Monitor(Abstract, IMonitor):
 
 def GetMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
     return InvalidOperationError(GetValueOrDefault(errorMessage, "The given monitor is already busy."))
-def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> None:
+def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> NoReturn:
     raise GetMonitorBusyError(errorMessage)
 
 def __CheckMonitor(monitor: IMonitor, errorMessage: str|ErrorMessages|None = None) -> None:

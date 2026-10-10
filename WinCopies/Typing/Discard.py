@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final
+from typing import final, NoReturn
 
 from WinCopies import IInterface, IDisposableAbstract, IDisposable as IDisposableBase, IInvalidatable as _IInvalidatable, Abstract
 from WinCopies.Delegates import NoAction
@@ -78,18 +78,18 @@ def GetDiscardedError(discardReason: DiscardReason = DiscardReason.Disposed) -> 
 
     return _DiscardedError() if e is None else e
 
-def ThrowInvalidatedError() -> None:
+def ThrowInvalidatedError() -> NoReturn:
     raise InvalidatedError()
-def ThrowDisposedError() -> None:
+def ThrowDisposedError() -> NoReturn:
     raise DisposedError()
-def ThrowDiscardedError(discardReason: DiscardReason = DiscardReason.Disposed) -> None:
+def ThrowDiscardedError(discardReason: DiscardReason = DiscardReason.Disposed) -> NoReturn:
     raise GetDiscardedError(discardReason)
 
 class IDisposable(IDisposableBase):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def _Throw(self) -> None: raise GetDiscardedError()
+    def _Throw(self) -> NoReturn: raise GetDiscardedError()
 
 class _IDiscardable(IInterface):
     def __init__(self) -> None: super().__init__()

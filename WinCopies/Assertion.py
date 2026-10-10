@@ -1,5 +1,5 @@
 from enum import Enum, Flag
-from typing import Callable, Type
+from typing import Callable, NoReturn, Type
 
 def GetAssertionError(errorMessage: str|None = "Invalid operation.") -> AssertionError:
     """Creates an AssertionError with the specified message.
@@ -12,7 +12,7 @@ def GetAssertionError(errorMessage: str|None = "Invalid operation.") -> Assertio
     """
     return AssertionError(errorMessage)
 
-def Throw(errorMessage: str|None = "Invalid operation.") -> None:
+def Throw(errorMessage: str|None = "Invalid operation.") -> NoReturn:
     """Raises an AssertionError with the specified message.
 
     Args:
