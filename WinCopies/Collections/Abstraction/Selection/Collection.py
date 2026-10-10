@@ -81,7 +81,7 @@ class List[TIn, TOut](_List[TIn, TOut], TwoWayConverter[TIn, TOut], IDefaultMuta
     def GetMutability(self) -> Mutability: return Mutability.Mutable
 
 class Set[TIn: HashableProtocol, TOut: HashableProtocol](_Set[TIn, TOut], TwoWayConverter[TIn, TOut]):
-    def __init__(self, items: ISet[TIn]|set[TIn]|Iterable[TIn], converters: IConverters[TIn, TOut]) -> None:
+    def __init__(self, items: ISet[TIn]|set[TIn], converters: IConverters[TIn, TOut]) -> None:
         super().__init__(items)
 
         self.__converters: IConverters[TIn, TOut] = converters
@@ -125,10 +125,8 @@ def CreateList[TIn, TOut](items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn], 
 def MakeList[TIn, TOut](converters: IConverters[TIn, TOut], *items: TIn) -> IList[TOut]:
     return CreateList(items, converters)
 
-def CreateSet[TIn: HashableProtocol, TOut: HashableProtocol](items: ISet[TIn]|set[TIn]|Iterable[TIn], converters: IConverters[TIn, TOut]) -> ISet[TOut]:
+def CreateSet[TIn: HashableProtocol, TOut: HashableProtocol](items: ISet[TIn]|set[TIn], converters: IConverters[TIn, TOut]) -> ISet[TOut]:
     return Set[TIn, TOut](items, converters)
-def MakeSet[TIn: HashableProtocol, TOut: HashableProtocol](converters: IConverters[TIn, TOut], *items: TIn) -> ISet[TOut]:
-    return CreateSet(items, converters)
 
 def CreateDictionary[TKey: HashableProtocol, TValueIn, TValueOut](dictionary: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn], converters: IConverters[TValueIn, TValueOut]) -> IDictionary[TKey, TValueOut]:
     return Dictionary[TKey, TValueIn, TValueOut](dictionary, converters)

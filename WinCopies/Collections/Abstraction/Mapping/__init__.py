@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator as _Iterator, MutableMapping
-from typing import final, Callable
+from collections.abc import Iterable, Iterator as _Iterator, Collection, MutableMapping
+from typing import overload, final, Callable
 
 from WinCopies import Abstract
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, Iterator, TryAsEnumerator
@@ -11,10 +11,10 @@ from WinCopies.Collections.Iteration import GetFirstItemExclusive
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
 from WinCopies.Delegates import Self, GetNotPredicate
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetNullableValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Predicate, Selector
-from WinCopies.Typing.Pairing import IKeyValuePair, DualValueBool, CreateDualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult, DualValueBool, CreateDualValueBool
 
 def __HasDuplicate[TItem: HashableProtocol, TResult](items: Iterable[TItem], action: Callable[[Iterable[TItem], Predicate[TItem]], TResult], selector: Selector[Predicate[TItem]]) -> TResult:
     return action(items, selector(Set[TItem]().TryAdd))
@@ -25,10 +25,10 @@ def HasDuplicateItem[T: HashableProtocol](items: Iterable[T]) -> INullable[T]:
     return __HasDuplicate(items, GetFirstItemExclusive, Self)
 
 class Set[T: HashableProtocol](Mapping.Set[T]):
-    def __init__(self, items: set[T]|Iterable[T]|None = None) -> None:
+    def __init__(self, items: set[T]|None = None) -> None:
         super().__init__()
 
-        self.__set: set[T] = set[T]() if items is None else (items if isinstance(items, set) else set[T](items))
+        self.__set: set[T] = set[T]() if items is None else items
     
     @final
     def __TryAdd(self, item: T) -> int:
@@ -271,15 +271,56 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
     
     def ToString(self) -> str: return str(self._GetDictionary())
 
-def CreateSet[T: HashableProtocol](items: set[T]|Iterable[T]) -> ISet[T]:
+def __CreateSet[T: HashableProtocol](items: set[T]|None = None) -> ISet[T]:
     return Set[T](items)
+def __TryCreateSet[T: HashableProtocol](items: set[T]|Iterable[T]) -> DualResult[INullable[T], ISet[T]|None]:
+    def createSet(items: set[T]) -> DualResult[INullable[T], ISet[T]]: return DualResult[INullable[T], ISet[T]](GetNullValue(), __CreateSet(items))
+
+    if isinstance(items, set): return createSet(items)
+
+    duplicate: INullable[T] = HasDuplicateItem(items if isinstance(items, Collection) else (items := CreateEnumerableQueue(items)))
+
+    return CreateDualResult(duplicate, None) if duplicate.HasValue() else createSet(set[T](items))
+
+@overload
+def TryCreateSetInfo[T: HashableProtocol](items: set[T]|Iterable[T]) -> DualResult[INullable[T], ISet[T]|None]: ...
+@overload
+def TryCreateSetInfo(items: None) -> None: ...
+
+def TryCreateSetInfo[T: HashableProtocol](items: set[T]|Iterable[T]|None) -> DualResult[INullable[T], ISet[T]|None]|None:
+    return None if items is None else __TryCreateSet(items)
+
+@overload
+def TryCreateSet[T: HashableProtocol](items: set[T]|Iterable[T]) -> INullable[ISet[T]]: ...
+@overload
+def TryCreateSet(items: None) -> None: ...
+
+def TryCreateSet[T: HashableProtocol](items: set[T]|Iterable[T]|None) -> INullable[ISet[T]]|None:
+    return None if items is None else GetNullableValue(__TryCreateSet(items).GetValue())
+
+def CreateSet[T: HashableProtocol](items: set[T]|Iterable[T]|None = None) -> ISet[T]:
+    if items is None: return __CreateSet()
+
+    result: DualResult[INullable[T], ISet[T]|None] = __TryCreateSet(items)
+
+    _items: ISet[T]|None = result.GetValue()
+
+    if _items is None: raise KeyError(f"Item '{result.GetKey().GetValue()}' has a duplicate.")
+
+    return _items
+
+def TryMakeSetInfo[T: HashableProtocol](*items: T) -> DualResult[INullable[T], ISet[T]|None]:
+    return TryCreateSetInfo(items)
+def TryMakeSet[T: HashableProtocol](*items: T) -> ISet[T]|None:
+    return TryCreateSet(items).TryGetValue()
+
 def MakeSet[T: HashableProtocol](*items: T) -> ISet[T]:
     return CreateSet(items)
 
 def CreateDictionary[TKey: HashableProtocol, TValue](dictionary: MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return Dictionary[TKey, TValue](dictionary)
 
-def GetSet[T: HashableProtocol](items: ISet[T]|set[T]|Iterable[T]) -> ISet[T]:
+def GetSet[T: HashableProtocol](items: ISet[T]|set[T]|Iterable[T]|None = None) -> ISet[T]:
     return items if isinstance(items, ISet) else CreateSet(items)
 def GetDictionary[TKey: HashableProtocol, TValue](dictionary: IDictionary[TKey, TValue]|MutableMapping[TKey, TValue]|None = None) -> IDictionary[TKey, TValue]:
     return dictionary if isinstance(dictionary, IDictionary) else CreateDictionary(dictionary)
