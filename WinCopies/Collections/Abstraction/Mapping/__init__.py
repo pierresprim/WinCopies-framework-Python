@@ -32,7 +32,7 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
     
     @final
     def __TryAdd(self, item: T) -> int:
-        count = self.GetCount()
+        count: int = self.GetCount()
         
         self._GetItems().add(item)
     
@@ -61,7 +61,7 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
         for item in _items.AsIterable():
             if self.Contains(item): return False
         
-        count = self.GetCount()
+        count: int = self.GetCount()
         
         self._GetItems().update(_items.AsGenerator())
     
@@ -71,12 +71,11 @@ class Set[T: HashableProtocol](Mapping.Set[T]):
     def Remove(self, item: T) -> None: self._GetItems().remove(item)
     @final
     def TryRemove(self, item: T) -> bool:
-        try:
-            self.Remove(item)
+        count: int = self.GetCount()
 
-            return True
-        
-        except KeyError: return False
+        self._GetItems().discard(item)
+
+        return self.GetCount() < count
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(item for item in self._GetItems())
