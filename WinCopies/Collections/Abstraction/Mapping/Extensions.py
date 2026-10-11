@@ -430,10 +430,14 @@ class KeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue
     
     @final
     def GetCount(self) -> int: return self._GetValues().GetCount()
+
+    @final
+    def ValidateValues(self, values: ITuple[TValue]) -> bool:
+        return values.GetCount() == self.GetKeys().GetCount()
     
     @final
     def TryAdd(self, values: ITuple[TValue]) -> bool:
-        if values.GetCount() == self.GetKeys().GetCount():
+        if self.ValidateValues(values):
             self._GetValues().Push(values)
 
             return True
