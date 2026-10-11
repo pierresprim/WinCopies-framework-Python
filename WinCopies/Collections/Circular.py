@@ -21,8 +21,15 @@ class ICircularTuple[T](ITuple[T]):
         ...
     
     @final
-    def GetCircularIndex(self, index: int) -> int:
-        return self.GetIndex(index, self.GetStart())[0]
+    def TryGetCircularIndex(self, index: int, permissive: bool = False) -> int|None:
+        return (self.GetIndex(index, self.GetStart())[0] if index < self.GetCount() else -1) if self.ValidateIndex(index, permissive) else None
+    @final
+    def GetCircularIndex(self, index: int, permissive: bool = False) -> int:
+        result: int|None = self.TryGetCircularIndex(index, permissive)
+
+        if result is None: raise IndexError(index)
+
+        return result
 class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatableTuple[T]):
     def __init__(self) -> None: super().__init__()
 class ICircularHashableTuple[T: HashableProtocol](ICircularTuple[T], IHashableTuple[T]):
