@@ -19,7 +19,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
-from WinCopies.Collections.Util import GetIndex, CreateSequence
+from WinCopies.Collections.Util import CreateSequence
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Discard import DiscardReason
@@ -145,7 +145,7 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
     @final
     def pop(self, index: int = -1) -> T:
         count: int = self.GetCount()
-        item: T = self[index := GetIndex(count, count, index)[0] if index < 0 else index]
+        item: T = self[index := index + count if index < 0 else index]
 
         self.RemoveAt(index)
 
