@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Container as ContainerBase, Iterable, Iterator, Collection as CollectionBase, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
-from typing import overload, final, Literal, SupportsIndex
+from typing import Any, overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, IStringable, Abstract
@@ -19,7 +19,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
-from WinCopies.Collections.Util import CreateSequence
+from WinCopies.Collections.Util import GetIndex, CreateSequence
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Discard import DiscardReason
@@ -137,6 +137,21 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
     
     @final
     def AsMutableSequence(self) -> MutableSequenceBase[T]: return self
+
+    @final
+    def index(self, value: Any, start: int = 0, stop: int|None = None) -> int:
+        return super().index(value, start, self.GetCount() if stop is None else stop)
+
+    @final
+    def pop(self, index: int = -1) -> T:
+        item: T = self[index]
+        count: int = self.GetCount()
+
+        self.RemoveAt(GetIndex(count, count, index)[0] if index < 0 else index)
+
+        return item
+    @final
+    def remove(self, value: T) -> None: self.Remove(value)
 
     @final
     def reverse(self) -> None: self._Reverse()
