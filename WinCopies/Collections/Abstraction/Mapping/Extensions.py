@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set, HasDuplicate
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
@@ -299,7 +299,7 @@ class _ReadOnlyOrderedSetListUpdater[T: HashableProtocol](ValueFunctionUpdater[I
     def _GetValue(self) -> IReadOnlyOrderedSet[T]: return _ReadOnlyOrderedSetList[T](self.__items)
 
 class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
-    def __init__(self, items: IEnumerable[T]|None = None) -> None:
+    def __init__(self, items: Iterable[T]|None = None) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyOrderedSet[T]]) -> None: self.__readOnly = func
         
         def updateList(func: IFunction[IList[T]]) -> None: self.__list = func
@@ -320,7 +320,7 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         self.__tuple: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetTupleUpdater[T](self, updateTuple) # type: ignore[no-redef]
 
         if items is not None:
-            for item in items.AsIterable(): self.Add(item)
+            for item in items: self.Add(item)
     
     @final
     def GetCount(self) -> int: return self.__items.GetCount()
@@ -450,7 +450,7 @@ class KeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue
     def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]: return self.__readOnly.GetValue()
 
 def CreateOrderedSet[T: HashableProtocol](items: Iterable[T]) -> IOrderedSet[T]:
-    return OrderedSet[T](AsEnumerable(items))
+    return OrderedSet[T](items)
 def MakeOrderedSet[T: HashableProtocol](*items: T) -> IOrderedSet[T]:
     return CreateOrderedSet(items)
 
