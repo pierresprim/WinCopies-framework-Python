@@ -8,6 +8,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
+from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -35,7 +36,7 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
 
-        count: int = self.GetCount()
+        count: int = self._AsContainer(items).GetCount()
         
         self.__list: TList = items
         self.__start: int = start % count if count > 0 else 0
@@ -72,7 +73,45 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     @final
     def SetStart(self, start: int = 0) -> None: self.__start = start
     
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str:
+        def getChars() -> tuple[str, str]:
+            match self.GetMutability():
+                case Mutability.ReadOnly: return ('(', ')')
+                
+                case _: return ('[', ']')
+
+        action: Method[TItem]|None = None
+
+        def write(item: TItem) -> None:
+            nonlocal action
+
+            def _write(item: TItem) -> None: stream.Write(repr(item))
+            def write(item: TItem) -> None:
+                stream.Write(", ")
+
+                _write(item)
+
+            action = write
+
+            _write(item)
+
+        chars: tuple[str, str] = getChars()
+        stream: IMemoryTextStream = MemoryTextStream()
+        action = write
+        result: str = ''
+
+        with stream:
+            stream.Open()
+
+            stream.Write(chars[0])
+
+            for item in self.AsIterable(): action(item)
+
+            stream.Write(chars[1])
+
+            result = stream.ToString()
+
+        return result
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
@@ -133,20 +172,23 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         return index if (index := self.GetCircularIndex(index)) < l.GetCount() else -1
 
     @final
-    def __TryInsert[U](self, index: int, items: U, add: Converter[U, bool|None], insert: IndexedValueFunction[U, bool|None]) -> bool:
+    def __Move(self, x: int, y: int, action: Converter[IList[T], IndexedValueAction[int]]) -> None: action(self._GetContainer())(self.GetCircularIndex(x), self.GetCircularIndex(y))
+
+    @final
+    def __TryInsert[U](self, index: int, items: U, add: Converter[IList[T], Converter[U, bool|None]], insert: Converter[IList[T], IndexedValueFunction[U, bool|None]]) -> bool:
         if self.ValidateIndex(index, True):
             l: IList[T] = self._GetContainer()
 
-            return (add(items) if (index := self.__IsIndexValid(l, index)) < 0 else insert(index, items)) is True
+            return (add(l)(items) if (index := self.__IsIndexValid(l, index)) < 0 else insert(l)(index, items)) is True
 
         return False
     @final
-    def __Insert[U](self, index: int, items: U, add: Method[U], insert: IndexedValueAction[U]) -> None:
+    def __Insert[U](self, index: int, items: U, add: Converter[IList[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
         if self.ValidateIndex(index, True):
             l: IList[T] = self._GetContainer()
 
-            if (index := self.__IsIndexValid(l, index)) < 0: add(items)
-            else: insert(self.GetCircularIndex(index), items)
+            if (index := self.__IsIndexValid(l, index)) < 0: add(l)(items)
+            else: insert(l)(index, items)
         
         else: raise IndexError(index)
     
@@ -155,23 +197,22 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         return self.GetCircularIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)
 
     @final
-    def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(self.GetCircularIndex(x), self.GetCircularIndex(y))
+    def _Move(self, x: int, y: int) -> None: self.__Move(x, y, lambda l: l.Move)
     @final
-    def _Swap(self, x: int, y: int) -> None: self._GetContainer().Swap(self.GetCircularIndex(x), self.GetCircularIndex(y))
+    def _Swap(self, x: int, y: int) -> None: self.__Move(x, y, lambda l: l.Swap)
     
     @final
-    def _SetAt(self, key: int, value: T) -> bool:
-        return self._GetContainer().TrySetAt(self.GetCircularIndex(key), value)
+    def _SetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(self.GetCircularIndex(key), value)
     
     @final
-    def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(index, value, self.TryAdd, self.TryInsert)
+    def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(index, value, lambda l: l.TryAdd, lambda l: l.TryInsert)
     @final
-    def _Insert(self, index: int, value: T) -> None: self.__Insert(index, value, self.Add, self.Insert)
+    def _Insert(self, index: int, value: T) -> None: self.__Insert(index, value, lambda l: l.Add, lambda l: l.Insert)
     
     @final
-    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self.__TryInsert(index, items, self.TryAddRange, self.TryInsertRange)
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self.__TryInsert(index, items, lambda l: l.TryAddRange, lambda l: l.TryInsertRange)
     @final
-    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self.__Insert(index, items, self.AddRange, self.InsertRange)
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self.__Insert(index, items, lambda l: l.AddRange, lambda l: l.InsertRange)
 
     @final
     def _Reverse(self) -> None: self._GetContainer().AsMutableSequence().reverse()
