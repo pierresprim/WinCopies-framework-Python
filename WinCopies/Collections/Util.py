@@ -11,9 +11,15 @@ from WinCopies.Typing.Delegate import Action, Converter, Function, EqualityCompa
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableBool, DualNullableValueInfo, CreateDualValueBool, CreateDualValueNullableBool, CreateDualNullableValueInfo
 from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityAndRichComparison
 
-def GetKeyError(item: HashableProtocol, deletion: bool = False) -> KeyError:
-    return KeyError(f"Key {item} not found." if deletion else f"Item {item} already exists.")
-def ThrowKeyError(item: HashableProtocol, deletion: bool = False) -> NoReturn:
+def GetKeyError(item: HashableProtocol, deletion: bool|None = False) -> KeyError:
+    def getMessage() -> str:
+        match deletion:
+            case True: return f"Key {item} not found."
+            case False: return f"Item {item} already exists."
+            case None: return f"Item '{item}' has a duplicate."
+    
+    return KeyError(getMessage())
+def ThrowKeyError(item: HashableProtocol, deletion: bool|None = False) -> NoReturn:
     raise GetKeyError(item, deletion)
 
 def GetKeyValueError(key: HashableProtocol, value: object) -> KeyError:

@@ -10,6 +10,7 @@ from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
 from WinCopies.Collections.Iteration import GetFirstItemExclusive
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
+from WinCopies.Collections.Util import ThrowKeyError
 from WinCopies.Delegates import Self, GetNotPredicate
 from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetNullableValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -300,7 +301,7 @@ def CreateSet[T: HashableProtocol](items: set[T]|Iterable[T]|None = None) -> ISe
 
     _items: ISet[T]|None = result.GetValue()
 
-    if _items is None: raise KeyError(f"Item '{result.GetKey().GetValue()}' has a duplicate.")
+    if _items is None: ThrowKeyError(result.GetKey().GetValue(), None)
 
     return _items
 
