@@ -114,45 +114,16 @@ _SET_PAIRS: ReadOnlyArray[_Pair] = (
     ("Remove", "TryRemove", _BIVALENT,
      (("(1)", lambda: (1,)), ("(9)", lambda: (9,)))))
 
-_BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-74, the circular list answers True to a refusal", (
-     *((_OVER_FULL, call) for call in (
-         "TryInsert/Insert(1, 7)",
-         "TryInsert/Insert(3, 7)",
-         "TryInsert/Insert(1, 0)",
-         "TryInsertRange/InsertRange(1, [7, 8])",
-         "TryInsertRange/InsertRange(3, [7])",
-         "TryInsertRange/InsertRange(1, [0])",
-         "TryInsertRange/InsertRange(1, [7, 7])",
-         "TryInsertRange/InsertRange(1, iter([7, 8]))",
-         "TryAdd/Add(7)",
-         "TryAdd/Add(0)",
-         "TryAddRange/AddRange([7, 8])",
-         "TryAddRange/AddRange([0])",
-         "TryAddRange/AddRange([7, 7])",
-         "TryAddRange([7])",
-         "TryInsertRange(1, [7])")),
-     *((_OVER_SET, call) for call in (
-         "TryInsert/Insert(1, 0)",
-         "TryInsertRange/InsertRange(1, [0])",
-         "TryInsertRange/InsertRange(1, [7, 7])",
-         "TryAdd/Add(0)",
-         "TryAddRange/AddRange([0])",
-         "TryAddRange/AddRange([7, 7])",
-         "TryAddRange([0])",
-         "TryInsertRange(1, [0])")),
-     )),)
+_BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = ()
 """Checks that an open defect still breaks, named with their carrier and grouped by defect, as in
-Mapping.py; the labels are those of either bench below.
+Mapping.py; the labels are those of either bench below. None is open today.
 
-D-74: on the Try path, the circular list's insertion helper folds a refused insertion into the
-answer that means "inserted, no shift of the start", and an insertion into an empty source
-ignores the container's answer altogether; every refusal therefore answers True, the content
-untouched. The throwing path is right. Every check listed fails on this alone -- measured on a
-candidate fix of the helper, under which all of them pass.
-
-D-73's group left on closing: the circular list's TryRemoveAt and TryRemove refused by raising,
-and answer since d4f974a."""
+Two groups have left on closing. D-73: the circular list's TryRemoveAt and TryRemove refused by
+raising, and answer since d4f974a. D-74: on the Try path the circular insertion helper folded a
+refused insertion into the answer that meant "inserted, no shift of the start", and an insertion
+into an empty source discarded the container's answer, so every refusal answered True with the
+content untouched; its 23 checks on the two circular carriers over a refusing container are
+asserted by the benches below since the helper keeps the two apart."""
 
 def _blocked() -> frozenset[tuple[str, str]]:
     return frozenset(call for _, calls in _BLOCKED for call in calls)
@@ -328,10 +299,6 @@ class TestChecksBrokenByOpenDefects(unittest.TestCase):
             yield from _trivalenceChecks(_LISTS, True, True)
 
         _assertChecks(self, checks(), lambda call: call in calls)
-
-    @unittest.expectedFailure
-    def test_the_circular_list_answers_a_refusal_as_one(self) -> None:
-        self._assertGroupPasses("D-74")
 
 def _runBenches(benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]]) -> unittest.TestResult:
     """Runs the named benches through a real result object, as Registry.py does, so that every

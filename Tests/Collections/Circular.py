@@ -134,13 +134,11 @@ _EMPTY_REFUSALS: ReadOnlyArray[tuple[str, Callable[[], Any], _Act, bool|None]] =
 """Insertions into an empty circular list over a container that refuses them. Contract.py covers
 refusals on a non-empty circular list; the empty source takes a branch of its own."""
 
-class TestCallsBrokenByOpenDefects(unittest.TestCase):
-    """One bench per open defect, each an expectedFailure that turns into an unexpected success
-    the day its defect closes."""
+class TestAnEmptySourceAnswersAsItsContainer(unittest.TestCase):
+    """D-74 on the empty branch, closed: the helper discarded the container's answer there and
+    returned True, so a refused insertion into an empty circular list reported itself done."""
 
-    @unittest.expectedFailure
-    def test_an_insertion_into_an_empty_source_answers_as_its_container(self) -> None:
-        """D-74 on the empty branch: the container's answer is discarded and True returned."""
+    def test_a_refused_insertion_answers_as_a_refusal(self) -> None:
 
         for label, factory, act, expected in _EMPTY_REFUSALS:
             with self.subTest(change = label):

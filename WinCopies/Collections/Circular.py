@@ -186,32 +186,21 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         def tryInsert() -> bool|None:
             nonlocal index
 
-            def tryInsert(succeeded: bool|None) -> bool:
-                match succeeded:
-                    case True:
-                        self.SetStart(self.GetStart() + self.GetCount() - count)
+            def tryInsert(inserted: bool, shift: bool) -> bool:
+                if inserted and shift: self.SetStart(self.GetStart() + self.GetCount() - count)
 
-                        return True
-                    case False: return True
-
-                    case None: return False
+                return inserted
 
             l: IList[T] = self._GetContainer()
             count: int = self.GetCount()
 
-            if count == 0:
-                if index == 0:
-                    add(l)(items)
-
-                    return True
-
-                return None
+            if count == 0: return add(l)(items) is True or forceUpdate
 
             match (index := self.__IsIndexValid(l, index)):
-                case -1: return tryInsert(insert(l)(self.GetStart(), items) is True or forceUpdate)
+                case -1: return tryInsert(insert(l)(self.GetStart(), items) is True or forceUpdate, True)
                 case -2: return add(l)(items)
 
-                case _: return tryInsert((insert(l)(index, items) is True or forceUpdate) and index < self.GetStart())
+                case _: return tryInsert(insert(l)(index, items) is True or forceUpdate, index < self.GetStart())
         
         return tryInsert() is True if self.ValidateIndex(index, True) else None
 
