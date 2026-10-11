@@ -144,10 +144,10 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
 
     @final
     def pop(self, index: int = -1) -> T:
-        item: T = self[index]
         count: int = self.GetCount()
+        item: T = self[index := GetIndex(count, count, index)[0] if index < 0 else index]
 
-        self.RemoveAt(GetIndex(count, count, index)[0] if index < 0 else index)
+        self.RemoveAt(index)
 
         return item
     @final

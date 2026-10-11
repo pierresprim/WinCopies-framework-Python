@@ -186,23 +186,32 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         def tryInsert() -> bool|None:
             nonlocal index
 
-            l: IList[T] = self._GetContainer()
-
-            match (index := self.__IsIndexValid(l, index)):
-                case -1:
-                    count: int = self.GetCount()
-                    result: bool|None = insert(l)(self.GetStart(), items)
-
-                    if forceUpdate or result is True:
+            def tryInsert(succeeded: bool|None) -> bool:
+                match succeeded:
+                    case True:
                         self.SetStart(self.GetStart() + self.GetCount() - count)
 
                         return True
+                    case False: return True
 
-                    return False
+                    case None: return False
 
+            l: IList[T] = self._GetContainer()
+            count: int = self.GetCount()
+
+            if count == 0:
+                if index == 0:
+                    add(l)(items)
+
+                    return True
+
+                return None
+
+            match (index := self.__IsIndexValid(l, index)):
+                case -1: return tryInsert(insert(l)(self.GetStart(), items) is True or forceUpdate)
                 case -2: return add(l)(items)
 
-                case _: return insert(l)(index, items)
+                case _: return tryInsert((insert(l)(index, items) is True or forceUpdate) and index < self.GetStart())
         
         return tryInsert() is True if self.ValidateIndex(index, True) else None
 
@@ -248,7 +257,21 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
     @final
-    def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(self.GetCircularIndex(index))
+    def TryRemoveAt(self, index: int) -> bool|None:
+        position: int|None = self.TryGetCircularIndex(index)
+
+        if position is None or position < 0: return None
+
+        if self._GetContainer().TryRemoveAt(position) is True:
+            start: int = self.GetStart()
+
+            if position < start: start -= 1
+
+            self.SetStart(start if start < self.GetCount() else 0)
+
+            return True
+
+        return False
     
     @final
     def Clear(self) -> None: self._GetContainer().Clear()
