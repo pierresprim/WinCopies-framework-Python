@@ -4,7 +4,7 @@ from abc import abstractmethod
 from enum import Flag
 from typing import Callable, final
 
-from WinCopies import Abstract
+from WinCopies import IDisposable, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import Tuple
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
@@ -20,7 +20,7 @@ from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader
 from WinCopies.Serialization import BinaryDataReader
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Method
-from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
+from WinCopies.Typing.Discard import GetDiscardedError
 from WinCopies.Typing.Enum import IntEnum, UnorderedIntEnum, StrEnum
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, CreateDualResult
 from WinCopies.Typing.Reflection.Enum import TryGetFieldFromValue

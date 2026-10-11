@@ -34,7 +34,7 @@ from WinCopies.Delegates import BoolTrue, NoAction, GetTruthyPredicate
 
 from WinCopies.Typing import Error, InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Converter, Selector, IFunction, IMethodBase, IInitializableConverter, ValueFunction, ValueFunctionUpdater, ValueConverterUpdater
-from WinCopies.Typing.Discard import IDisposable, GetDiscardedError
+from WinCopies.Typing.Discard import GetDiscardedError
 from WinCopies.Typing.Monitoring import IMonitor, Monitor
 from WinCopies.Typing.Object import IItem, IValueItem, IValueObject, IItemObject, IReference, IType, Reference, DefaultReference, Type as TypeObject, Map
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateKeyValuePair, CreateDualResult
@@ -1631,10 +1631,7 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
         ks: IKeyedSet[str, object]|None = keyedSetsByType.TryGetValue(t).TryGetValue()
         pks: ITuple[IDefaultColumn] = _GetPrimaryKeys(t.GetValue())
 
-        if ks is None:
-            ks = CreateKeyedSet(Select(getPKs(), lambda name: name.GetColumnParameter().GetColumnName()))
-
-            keyedSetsByType.Add(t, ks)
+        if ks is None: keyedSetsByType.Add(t, (ks := CreateKeyedSet(Select(getPKs(), lambda name: name.GetColumnParameter().GetColumnName()))))
         
         ks.TryAdd(CreateTuple(Select(getPKs(), lambda pk: _GetEntityValue(stub, pk))))
 

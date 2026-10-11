@@ -5,7 +5,7 @@ from typing import final
 
 
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Bool import NullableBoolean, ToNullableBoolean
 
 from WinCopies.Collections import EnumerationOrder
@@ -17,7 +17,6 @@ from WinCopies.Collections.Linked.Singly import Stack
 
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Converter, Function, Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import IDisposable
 from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 
 class IRecursiveEnumerationCookie[TEnumerationItems, TCookie, TStackItems](IDisposable):

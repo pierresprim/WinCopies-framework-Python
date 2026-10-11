@@ -7,7 +7,7 @@ from enum import Enum
 from typing import final, Any, Type as TypeBase
 from weakref import finalize, ref, ReferenceType
 
-from WinCopies import IInterface, IStringable, Abstract
+from WinCopies import IInterface, IDisposable, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Comparison import Equals as _Equals, CompareTo
 from WinCopies.Delegates import NoAction, FuncNone
@@ -15,7 +15,7 @@ from WinCopies.Enum import AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as 
 from WinCopies.Typing import NumericalValue, INullable, IEnumBase, IEnum
 from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem
 from WinCopies.Typing.Delegate import Action, Method, NullableFunction, ItemComparison
-from WinCopies.Typing.Discard import DiscardReason, IDisposable, IInvalidatable
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable
 from WinCopies.Typing.Enum import IntEnum, IntegerEnum, StringEnum, EquatableEnumProtocol, ComparableEnumProtocol
 from WinCopies.Typing.Protocols import SupportsStringization, EquatableObject as EquatableObjectProtocol, ComparableObject as ComparableObjectProtocol
 from WinCopies.Typing.Reflection import IsOf, GetType, GetTypeName
