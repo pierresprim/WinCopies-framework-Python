@@ -34,9 +34,11 @@ class ICircularList[T](IList[T], ICircularArray[T]):
 class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
+
+        count: int = self.GetCount()
         
         self.__list: TList = items
-        self.__start: int = start % self.GetCount()
+        self.__start: int = start % count if count > 0 else 0
     
     @final
     def _GetContainer(self) -> TList:
