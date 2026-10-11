@@ -1,13 +1,15 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence as SequenceBase
+from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable
 from WinCopies.Collections.Core import Mutability
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class ICircularTuple[T](ITuple[T]):
@@ -125,39 +127,61 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def __init__(self, items: IList[T], start: int) -> None: super().__init__(items, start)
     
     @final
+    def __IsIndexValid(self, l: IList[T], index: int) -> int:
+        return index if (index := self.GetCircularIndex(index)) < l.GetCount() else -1
+
+    @final
+    def __TryInsert[U](self, index: int, items: U, add: Converter[U, bool|None], insert: IndexedValueFunction[U, bool|None]) -> bool:
+        if self.ValidateIndex(index, True):
+            l: IList[T] = self._GetContainer()
+
+            return (add(items) if (index := self.__IsIndexValid(l, index)) < 0 else insert(index, items)) is True
+
+        return False
+    @final
+    def __Insert[U](self, index: int, items: U, add: Method[U], insert: IndexedValueAction[U]) -> None:
+        if self.ValidateIndex(index, True):
+            l: IList[T] = self._GetContainer()
+
+            if (index := self.__IsIndexValid(l, index)) < 0: add(items)
+            else: insert(self.GetCircularIndex(index), items)
+        
+        else: raise IndexError(index)
+    
+    @final
     def _GetIndexOrKey(self, index: SupportsIndex|slice) -> SupportsIndex|slice:
         return self.GetCircularIndex(int(index)) if isinstance(index, SupportsIndex) else self._GetKey(index)
+
+    @final
+    def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(self.GetCircularIndex(x), self.GetCircularIndex(y))
+    @final
+    def _Swap(self, x: int, y: int) -> None: self._GetContainer().Swap(self.GetCircularIndex(x), self.GetCircularIndex(y))
     
     @final
     def _SetAt(self, key: int, value: T) -> bool:
         return self._GetContainer().TrySetAt(self.GetCircularIndex(key), value)
+    
+    @final
+    def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(index, value, self.TryAdd, self.TryInsert)
+    @final
+    def _Insert(self, index: int, value: T) -> None: self.__Insert(index, value, self.Add, self.Insert)
+    
+    @final
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self.__TryInsert(index, items, self.TryAddRange, self.TryInsertRange)
+    @final
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self.__Insert(index, items, self.AddRange, self.InsertRange)
+
+    @final
+    def _Reverse(self) -> None: self._GetContainer().AsMutableSequence().reverse()
 
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
+
+    @final
+    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool: return self._GetContainer().CanSetRange(indices, items)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))
-    
-    @final
-    def Add(self, item: T) -> None:
-        def tryAdd() -> bool:
-            if index == self.GetLastIndex():
-                self._GetContainer().Add(item)
-
-                return True
-            
-            return False
-
-        index: int = self.GetCircularIndex(self.GetLastIndex())
-
-        if tryAdd(): return
-        
-        index += 1
-
-        if not tryAdd(): self._GetContainer().Insert(index, item)
-    
-    @final
-    def TryInsert(self, index: int, value: T) -> bool: return self.ValidateIndex(index) and self._GetContainer().TryInsert(self.GetCircularIndex(index), value)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(self.GetCircularIndex(index))
@@ -167,6 +191,14 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     
     @final
     def insert(self, index: int, value: T) -> None: self.Insert(index, value)
+    
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return GetItems(self, index)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
