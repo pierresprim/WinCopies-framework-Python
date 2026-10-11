@@ -139,16 +139,13 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
     def AsMutableSequence(self) -> MutableSequenceBase[T]: return self
 
     @final
-    def reverse(self) -> None:
-        self._Reverse()
+    def reverse(self) -> None: self._Reverse()
 
-    # Sealed for the same reason as the reversal: the inherited mixin writes it as repeated
-    # append, so the act is seen as its elements. No hook of its own, unlike the reversal,
-    # because the act already has a named form here -- AddRange -- which every class reached
-    # possesses and four of them override.
     @final
-    def extend(self, values: Iterable[T]) -> None:
-        self.AddRange(values)
+    def extend(self, values: Iterable[T]) -> None: self.AddRange(values)
+
+    @final
+    def clear(self) -> None: self.Clear()
 
 class IDefaultMutableSequence[T](_IMutableSequence[T]):
     def __init__(self) -> None: super().__init__()
