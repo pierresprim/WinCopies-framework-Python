@@ -60,13 +60,14 @@ behind, so asserting the invariant passes over a member that does not work at al
 lived there for a session, and D-51 for another.
 """
 
-# Two groups have left this table by closing. D-24's set-family calls succeed since the set
-# answers its range add in three values, and clear() since it is sealed on Clear() instead of
-# popping through index -1. pop() stays: it no longer goes through the mixin either, but it
-# reads self[-1] before it routes, and a negative scalar index is still refused.
+# Groups leave this table by closing. D-24's set-family calls succeed since the set answers its
+# range add in three values; clear() since it is sealed on Clear(); pop() since it normalises a
+# negative index itself before reading. D-53 kept pop() as its witness until then, and keeps two
+# of its own now: a negative scalar index is still refused on a write and on a deletion, both of
+# which collections.abc defines. A defect whose witness closes is given another, not dropped.
 _BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-53, pop() reads the scalar index -1",
-     (("list", "pop()"),)),)
+    ("D-53, a negative scalar index is refused",
+     (("list", "l[-1] = 7"), ("list", "del l[-1]"))),)
 """Legitimate calls that an open defect still refuses, each named with its carrier and
 grouped by the defect that refuses it, so every group signals on its own when its defect
 closes. The carrier is part of the name because the list view and the collection share
@@ -198,6 +199,7 @@ def _listCalls() -> dict[str, _Call]:
         "l[1] = 1":                 lambda o, l: _mutable(l).__setitem__(1, 1),
         "l[1] = 0":                 lambda o, l: _mutable(l).__setitem__(1, 0),
         "l[9] = 7":                 lambda o, l: _mutable(l).__setitem__(9, 7),
+        "l[-1] = 7":                lambda o, l: _mutable(l).__setitem__(-1, 7),
         "l[0:2] = [7, 8]":          lambda o, l: _mutable(l).__setitem__(slice(0, 2), [7, 8]),
         "l[1:2] = [0]":             lambda o, l: _mutable(l).__setitem__(slice(1, 2), [0]),
         "l[0:2] = [1, 0]":          lambda o, l: _mutable(l).__setitem__(slice(0, 2), [1, 0]),
@@ -238,6 +240,7 @@ def _listCalls() -> dict[str, _Call]:
         "clear()":                  lambda o, l: _mutable(l).clear(),
         "del l[1]":                 lambda o, l: _mutable(l).__delitem__(1),
         "del l[9]":                 lambda o, l: _mutable(l).__delitem__(9),
+        "del l[-1]":                lambda o, l: _mutable(l).__delitem__(-1),
         "del l[0:2]":               lambda o, l: _mutable(l).__delitem__(slice(0, 2))}
 
 def _setCalls() -> dict[str, _Call]:
@@ -368,7 +371,7 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
                 self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
 
     @unittest.expectedFailure
-    def test_the_protocol_pop_works(self) -> None:
+    def test_a_negative_scalar_index_is_honoured(self) -> None:
         self._assertGroupSucceeds("D-53")
 
 class TestRefusalLeavesNoTrace(unittest.TestCase):

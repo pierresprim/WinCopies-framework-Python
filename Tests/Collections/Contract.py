@@ -35,12 +35,15 @@ type _Answer = bool|None
 type _Contract = tuple[frozenset[_Answer], frozenset[_Answer]]
 type _Pair = tuple[str, str, _Contract, ReadOnlyArray[tuple[str, _Arguments]]]
 
-def _sizedList(capacity: int) -> Any:
-    items: Any = TryCreateSizedList(capacity, [0, 1, 2])
+def _sizedList(capacity: int, content: list[int]|None = None) -> Any:
+    items: Any = TryCreateSizedList(capacity, [0, 1, 2] if content is None else content)
 
     assert items is not None
 
     return items
+
+_OVER_FULL: str = "CircularList over a full SizedList"
+_OVER_SET: str = "CircularList over OrderedSet.AsList()"
 
 _LISTS: ReadOnlyArray[tuple[str, _Factory]] = (
     ("List",                             lambda: CreateList([0, 1, 2])),
@@ -51,11 +54,19 @@ _LISTS: ReadOnlyArray[tuple[str, _Factory]] = (
     ("OrderedSet.AsList()",              lambda: CreateOrderedSet([0, 1, 2]).AsList()),
     ("OrderedSet.AsList().AsReversed()", lambda: CreateOrderedSet([2, 1, 0]).AsList().AsReversed()),
     ("Selection.List",                   lambda: SelectionList[int, int](CreateList([0, 1, 2]), Converters[int, int](int, int))),
-    ("CircularList, start 1",            lambda: CircularList[int](CreateList([2, 0, 1]), 1)))
+    ("CircularList, start 1",            lambda: CircularList[int](CreateList([2, 0, 1]), 1)),
+    (_OVER_FULL,                         lambda: CircularList[int](_sizedList(3, [2, 0, 1]), 1)),
+    (_OVER_SET,                          lambda: CircularList[int](CreateOrderedSet([2, 0, 1]).AsList(), 1)))
 """Every constructible IList at hand, each reading (0, 1, 2), so that one table of calls means
 the same thing on all of them. The full SizedList is the carrier that refuses for capacity, the
 two ordered set views those that refuse for unicity, the converting list the one that projects
-its items, and the circular list the one whose hooks translate every position."""
+its items, and the circular lists those whose hooks translate every position.
+
+A carrier counts for what it can refuse. The circular list over a free List never refuses
+anything but an index, so it could not show what the circular hooks do with a refusal -- and
+D-74, a Try form answering True to every refusal, passed this table while only that carrier
+stood for the circular family. The two circular carriers over a refusing container are there
+for that reason."""
 
 _SETS: ReadOnlyArray[tuple[str, _Factory]] = (
     ("Set",        lambda: CreateSet([0, 1, 2])),
@@ -104,12 +115,44 @@ _SET_PAIRS: ReadOnlyArray[_Pair] = (
      (("(1)", lambda: (1,)), ("(9)", lambda: (9,)))))
 
 _BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-73, the circular list's Try removals raise",
-     (("CircularList, start 1", "TryRemoveAt/RemoveAt(9)"), ("CircularList, start 1", "TryRemove/Remove(9)"))),)
-"""Pairs that an open defect still breaks, named with their carrier and grouped by defect, as
-in Mapping.py. GetCircularIndex raises on an index out of range since 17f83d6, and the circular
-list's TryRemoveAt reaches it, as TryRemove does through the -1 of a value it does not hold.
-Before that commit the same calls removed the wrong item and answered True."""
+    ("D-74, the circular list answers True to a refusal", (
+     *((_OVER_FULL, call) for call in (
+         "TryInsert/Insert(1, 7)",
+         "TryInsert/Insert(3, 7)",
+         "TryInsert/Insert(1, 0)",
+         "TryInsertRange/InsertRange(1, [7, 8])",
+         "TryInsertRange/InsertRange(3, [7])",
+         "TryInsertRange/InsertRange(1, [0])",
+         "TryInsertRange/InsertRange(1, [7, 7])",
+         "TryInsertRange/InsertRange(1, iter([7, 8]))",
+         "TryAdd/Add(7)",
+         "TryAdd/Add(0)",
+         "TryAddRange/AddRange([7, 8])",
+         "TryAddRange/AddRange([0])",
+         "TryAddRange/AddRange([7, 7])",
+         "TryAddRange([7])",
+         "TryInsertRange(1, [7])")),
+     *((_OVER_SET, call) for call in (
+         "TryInsert/Insert(1, 0)",
+         "TryInsertRange/InsertRange(1, [0])",
+         "TryInsertRange/InsertRange(1, [7, 7])",
+         "TryAdd/Add(0)",
+         "TryAddRange/AddRange([0])",
+         "TryAddRange/AddRange([7, 7])",
+         "TryAddRange([0])",
+         "TryInsertRange(1, [0])")),
+     )),)
+"""Checks that an open defect still breaks, named with their carrier and grouped by defect, as in
+Mapping.py; the labels are those of either bench below.
+
+D-74: on the Try path, the circular list's insertion helper folds a refused insertion into the
+answer that means "inserted, no shift of the start", and an insertion into an empty source
+ignores the container's answer altogether; every refusal therefore answers True, the content
+untouched. The throwing path is right. Every check listed fails on this alone -- measured on a
+candidate fix of the helper, under which all of them pass.
+
+D-73's group left on closing: the circular list's TryRemoveAt and TryRemove refused by raising,
+and answer since d4f974a."""
 
 def _blocked() -> frozenset[tuple[str, str]]:
     return frozenset(call for _, calls in _BLOCKED for call in calls)
@@ -122,6 +165,8 @@ def _calls(carriers: ReadOnlyArray[tuple[str, _Factory]], pairs: ReadOnlyArray[_
         for pair in pairs:
             for label, arguments in pair[3]:
                 yield (carrier, factory, f"{pair[1]}/{pair[0]}{label}", pair, arguments)
+
+type _Check = Callable[[], str|None]
 
 def _diverge(factory: _Factory, pair: _Pair, arguments: _Arguments) -> str|None:
     """How the two doors disagree on one call, or None when they agree.
@@ -162,6 +207,22 @@ def _diverge(factory: _Factory, pair: _Pair, arguments: _Arguments) -> str|None:
 
     return None
 
+def _parityCheck(factory: _Factory, pair: _Pair, arguments: _Arguments) -> _Check:
+    return lambda: _diverge(factory, pair, arguments)
+
+def _parityChecks(carriers: ReadOnlyArray[tuple[str, _Factory]], pairs: ReadOnlyArray[_Pair]) -> Iterator[tuple[str, str, _Check]]:
+    for carrier, factory, call, pair, arguments in _calls(carriers, pairs):
+        yield (carrier, call, _parityCheck(factory, pair, arguments))
+
+def _assertChecks(test: unittest.TestCase, checks: Iterator[tuple[str, str, _Check]], selected: Callable[[tuple[str, str]], bool]) -> None:
+    for carrier, call, check in checks:
+        if not selected((carrier, call)): continue
+
+        with test.subTest(carrier = carrier, call = call):
+            failure: str|None = check()
+
+            test.assertIsNone(failure, f"{carrier}, {call}: {failure}")
+
 class TestTryFormsAgreeWithTheirThrowingForms(unittest.TestCase):
     """One request through the two doors of one operation, on every carrier.
 
@@ -170,46 +231,20 @@ class TestTryFormsAgreeWithTheirThrowingForms(unittest.TestCase):
     other, or two different writes for one request.
     """
 
-    def __run(self, carriers: ReadOnlyArray[tuple[str, _Factory]], pairs: ReadOnlyArray[_Pair]) -> None:
+    def test_on_every_list(self) -> None:
         blocked: frozenset[tuple[str, str]] = _blocked()
 
-        for carrier, factory, call, pair, arguments in _calls(carriers, pairs):
-            if (carrier, call) in blocked: continue
-
-            with self.subTest(carrier = carrier, call = call):
-                divergence: str|None = _diverge(factory, pair, arguments)
-
-                self.assertIsNone(divergence, f"{carrier}, {call}: {divergence}")
-
-    def test_on_every_list(self) -> None:
-        self.__run(_LISTS, _LIST_PAIRS)
+        _assertChecks(self, _parityChecks(_LISTS, _LIST_PAIRS), lambda call: call not in blocked)
 
     def test_on_every_set(self) -> None:
-        self.__run(_SETS, _SET_PAIRS)
-
-class TestPairsBrokenByOpenDefects(unittest.TestCase):
-    """The pairs _BLOCKED holds out, one bench per defect, so that each signals as an
-    unexpected success the day its defect closes, rather than staying excluded in silence."""
-
-    def _assertGroupAgrees(self, defect: str) -> None:
-        calls: ReadOnlyArray[tuple[str, str]] = next(group for name, group in _BLOCKED if name.startswith(defect))
-
-        for carrier, factory, call, pair, arguments in _calls(_LISTS, _LIST_PAIRS):
-            if (carrier, call) not in calls: continue
-
-            with self.subTest(defect = defect, carrier = carrier, call = call):
-                divergence: str|None = _diverge(factory, pair, arguments)
-
-                self.assertIsNone(divergence, f"{carrier}, {call}: {divergence}")
-
-    @unittest.expectedFailure
-    def test_the_circular_try_removals_refuse_without_raising(self) -> None:
-        self._assertGroupAgrees("D-73")
+        _assertChecks(self, _parityChecks(_SETS, _SET_PAIRS), lambda call: True)
 
 _REFUSED_RANGES: dict[str, list[int]] = {
     "SizedList, full": [7],
     "OrderedSet.AsList()": [0],
     "OrderedSet.AsList().AsReversed()": [0],
+    _OVER_FULL: [7],
+    _OVER_SET: [0],
     "Set": [0],
     "OrderedSet": [0]}
 """The range each refusing carrier turns down: one that overflows its capacity, or one that
@@ -244,16 +279,29 @@ def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyA
 
     return tuple(answers)
 
+def _trivalenceCheck(factory: _Factory, act: Callable[[Any], Any], expected: _Answer) -> _Check:
+    def check() -> str|None:
+        try: answer: Any = act(factory())
+        except Exception as exception: return f"raised {exception!r}"
+
+        return None if answer is expected else f"answered {answer!r}, the table says {expected!r}"
+
+    return check
+
+def _trivalenceChecks(carriers: ReadOnlyArray[tuple[str, _Factory]], collection: bool, positional: bool) -> Iterator[tuple[str, str, _Check]]:
+    for carrier, factory in carriers:
+        for call, act, expected in _rangeAnswers(carrier, collection, positional):
+            yield (carrier, call, _trivalenceCheck(factory, act, expected))
+
 class TestRangeInsertionTrivalence(unittest.TestCase):
     """D-57's table, on every range insertion of every carrier: True inserted, False an empty
     range, None refused whatever the cause. The identity is asserted, not the truth value:
     False and None are both falsy, and telling them apart is the whole point of the table."""
 
     def __run(self, carriers: ReadOnlyArray[tuple[str, _Factory]], collection: bool, positional: bool) -> None:
-        for carrier, factory in carriers:
-            for call, act, expected in _rangeAnswers(carrier, collection, positional):
-                with self.subTest(carrier = carrier, call = call):
-                    self.assertIs(act(factory()), expected, f"{carrier}.{call}")
+        blocked: frozenset[tuple[str, str]] = _blocked()
+
+        _assertChecks(self, _trivalenceChecks(carriers, collection, positional), lambda call: call not in blocked)
 
     def test_on_every_list(self) -> None:
         self.__run(_LISTS, True, True)
@@ -266,6 +314,24 @@ class TestRangeInsertionTrivalence(unittest.TestCase):
 
     def test_on_every_set(self) -> None:
         self.__run(_SETS, False, False)
+
+class TestChecksBrokenByOpenDefects(unittest.TestCase):
+    """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
+    unexpected success the day its defect closes, rather than staying excluded in silence. A
+    group may hold checks of either bench."""
+
+    def _assertGroupPasses(self, defect: str) -> None:
+        calls: ReadOnlyArray[tuple[str, str]] = next(group for name, group in _BLOCKED if name.startswith(defect))
+
+        def checks() -> Iterator[tuple[str, str, _Check]]:
+            yield from _parityChecks(_LISTS, _LIST_PAIRS)
+            yield from _trivalenceChecks(_LISTS, True, True)
+
+        _assertChecks(self, checks(), lambda call: call in calls)
+
+    @unittest.expectedFailure
+    def test_the_circular_list_answers_a_refusal_as_one(self) -> None:
+        self._assertGroupPasses("D-74")
 
 def _runBenches(benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]]) -> unittest.TestResult:
     """Runs the named benches through a real result object, as Registry.py does, so that every
