@@ -176,28 +176,42 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     
     @final
     def __IsIndexValid(self, l: IList[T], index: int) -> int:
-        return index if (index := self.GetCircularIndex(index)) < l.GetCount() else -1
+        return index if (index := self.GetCircularIndex(index, True)) < l.GetCount() else -2
 
     @final
     def __Move(self, x: int, y: int, action: Converter[IList[T], IndexedValueAction[int]]) -> None: action(self._GetContainer())(self.GetCircularIndex(x), self.GetCircularIndex(y))
 
     @final
-    def __TryInsert[U](self, index: int, items: U, add: Converter[IList[T], Converter[U, bool|None]], insert: Converter[IList[T], IndexedValueFunction[U, bool|None]]) -> bool:
-        if self.ValidateIndex(index, True):
+    def __TryInsertAt[U](self, index: int, items: U, add: Converter[IList[T], Converter[U, bool|None]], insert: Converter[IList[T], IndexedValueFunction[U, bool|None]], forceUpdate: bool) -> bool|None:
+        def tryInsert() -> bool|None:
+            nonlocal index
+
             l: IList[T] = self._GetContainer()
 
-            return (add(l)(items) if (index := self.__IsIndexValid(l, index)) < 0 else insert(l)(index, items)) is True
+            match (index := self.__IsIndexValid(l, index)):
+                case -1:
+                    count: int = self.GetCount()
+                    result: bool|None = insert(l)(self.GetStart(), items)
 
-        return False
+                    if forceUpdate or result is True:
+                        self.SetStart(self.GetStart() + self.GetCount() - count)
+
+                        return True
+
+                    return False
+
+                case -2: return add(l)(items)
+
+                case _: return insert(l)(index, items)
+        
+        return tryInsert() is True if self.ValidateIndex(index, True) else None
+
+    @final
+    def __TryInsert[U](self, index: int, items: U, add: Converter[IList[T], Converter[U, bool|None]], insert: Converter[IList[T], IndexedValueFunction[U, bool|None]]) -> bool:
+        return self.__TryInsertAt(index, items, add, insert, False) is True
     @final
     def __Insert[U](self, index: int, items: U, add: Converter[IList[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
-        if self.ValidateIndex(index, True):
-            l: IList[T] = self._GetContainer()
-
-            if (index := self.__IsIndexValid(l, index)) < 0: add(l)(items)
-            else: insert(l)(index, items)
-        
-        else: raise IndexError(index)
+        if self.__TryInsertAt(index, items, add, insert, True) is None: raise IndexError(index)
     
     @final
     def _GetIndexOrKey(self, index: SupportsIndex|slice) -> SupportsIndex|slice:
