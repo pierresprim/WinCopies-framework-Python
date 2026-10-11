@@ -13,6 +13,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumer
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
@@ -409,12 +410,17 @@ class _ReadOnlyKeyedSetUpdater[TKey: HashableProtocol, TValue](ValueFunctionUpda
     def _GetValue(self) -> IReadOnlyKeyedSet[TKey, TValue]: return _ReadOnlyKeyedSet[TKey, TValue](self.__items)
 class KeyedSet[TKey: HashableProtocol, TValue](CountableEnumerable[ITuple[TValue]], IKeyedSet[TKey, TValue]):
     def __init__(self, keys: Iterable[TKey], values: Iterable[ITuple[TValue]]|None = None) -> None:
+        def validate(values: ITuple[TValue]) -> ITuple[TValue]:
+            if self.ValidateValues(values): return values
+
+            raise ValueError("Value count does not match.")
+
         def update(func: IFunction[IReadOnlyKeyedSet[TKey, TValue]]) -> None: self.__readOnly = func
         
         super().__init__()
 
         self.__keys: IReadOnlyOrderedSet[TKey] = CreateOrderedSet(keys).AsReadOnly()
-        self.__values: ICountableEnumerableQueue[ITuple[TValue]] = CreateCountableEnumerableQueue(values)
+        self.__values: ICountableEnumerableQueue[ITuple[TValue]] = CreateCountableEnumerableQueue(Select(values, validate))
 
         self.__readOnly: IFunction[IReadOnlyKeyedSet[TKey, TValue]] = _ReadOnlyKeyedSetUpdater[TKey, TValue](self, update) # type: ignore[no-redef]
     
