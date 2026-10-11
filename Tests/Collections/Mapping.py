@@ -57,14 +57,16 @@ same value twice, which no ordered set can take whole whatever its indices.
 Everything else is legitimate on a (0, 1, 2) ordered set and must therefore succeed. That
 line is what the invariant alone cannot draw: a call that refuses leaves a correct state
 behind, so asserting the invariant passes over a member that does not work at all. D-52
-lived there for a session, and D-51 still does.
+lived there for a session, and D-51 for another.
 """
 
+# Two groups have left this table by closing. D-24's set-family calls succeed since the set
+# answers its range add in three values, and clear() since it is sealed on Clear() instead of
+# popping through index -1. pop() stays: it no longer goes through the mixin either, but it
+# reads self[-1] before it routes, and a negative scalar index is still refused.
 _BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-53 and D-54, the protocol mixins reach for index -1",
-     (("list", "pop()"), ("list", "clear()"))),
-    ("D-24 on the set family, an empty range is a failure",
-     (("set", "AddRange([])"), ("set", "AddValues()"))))
+    ("D-53, pop() reads the scalar index -1",
+     (("list", "pop()"),)),)
 """Legitimate calls that an open defect still refuses, each named with its carrier and
 grouped by the defect that refuses it, so every group signals on its own when its defect
 closes. The carrier is part of the name because the list view and the collection share
@@ -366,12 +368,8 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
                 self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
 
     @unittest.expectedFailure
-    def test_the_protocol_pop_and_clear_work(self) -> None:
+    def test_the_protocol_pop_works(self) -> None:
         self._assertGroupSucceeds("D-53")
-
-    @unittest.expectedFailure
-    def test_an_empty_range_is_not_a_failure(self) -> None:
-        self._assertGroupSucceeds("D-24")
 
 class TestRefusalLeavesNoTrace(unittest.TestCase):
     """A call that refuses must change nothing at all.
@@ -486,12 +484,13 @@ class TestUnicityCriterion(unittest.TestCase):
 class TestRangeUnicityCriterion(unittest.TestCase):
     """D-60. A range that carries the same value twice is refused, not deduplicated.
 
-    The set the view maintains answers only that none of the values was already held, and a
-    set given a duplicated range keeps one of the two -- measured: TryAddRange((7, 7)) on the
-    inner set answers True and grows it by one. The view read that boolean as permission to
+    The set the view maintains answered only that none of the values was already held, and a
+    set given a duplicated range kept one of the two -- measured: TryAddRange((7, 7)) on the
+    inner set answered True and grew it by one. The view read that boolean as permission to
     insert every value, so the order took two 7s where the set took one and the unicity clause
     fell on a True answer: TryInsertRange(1, (7, 7)) on CreateOrderedSet((1, 2, 3, 4)).AsList()
-    answered True and left the order (1, 7, 7, 2, 3, 4) against a count of 6.
+    answered True and left the order (1, 7, 7, 2, 3, 4) against a count of 6. Since D-68 the
+    set refuses such a range itself, so the view now asks the question once, of the set.
 
     The slice route already refused the same range, through SetOrderedValues. So the two
     routes are asserted together rather than each on its own: what one type refuses by one
@@ -513,8 +512,9 @@ class TestRangeUnicityCriterion(unittest.TestCase):
         _assertInvariant(self, items, view, "TryInsertRange(1, [7, 7])")
 
     def test_the_throwing_range_route_raises(self) -> None:
-        """InsertRange is final on IList and raises on None alone, so the trivalent answer is
-        what makes the non-Try route refuse at all."""
+        """InsertRange is final on IList and raises IndexError only for an index; a refused
+        value is raised by the view's own _InsertRange, in the set's vocabulary, which is why
+        the clause names KeyError."""
 
         items, view = _create()
 
@@ -566,17 +566,17 @@ class TestOrderedSetRangeUnicityCriterion(unittest.TestCase):
     """D-60's second site: the same defect on the ordered set's own range add.
 
     TryAddRange read the set's boolean exactly as the list view did, 250 lines above in the
-    same file: it hands `items` to the set, which keeps one of the two 7s and reports that it
-    grew, and then to the order, which takes both. Measured before the fix on
+    same file: it handed `items` to the set, which kept one of the two 7s and reported that it
+    grew, and then to the order, which took both. Measured before the fix on
     CreateOrderedSet((1, 2, 3, 4)): TryAddRange((7, 7)) answered True and left
     (1, 2, 3, 4, 7, 7) against a count of 6. AddRange, AddValues and TryAddValues reach it
     too, being final wrappers over it, so all four are asserted rather than the one.
 
-    The question is asked by the same helper the view uses, so the two sites cannot answer it
-    differently. What they may differ on is how they say no: ISetBase.TryAddRange is bivalent
-    by contract and AddRange raises on the False alone, so this family cannot tell a refused
-    range from an empty one. That conflation is D-24's open complaint against the set family,
-    not something this closes, which is why no clause here reads the empty range's answer.
+    Both sites now hand the question to the set, which refuses the range since D-68, so the two
+    cannot answer it differently. ISetBase.TryAddRange is trivalent since D-24 closed -- None
+    refused, False an empty range -- and AddRange raises on None alone. TryAddValues stays
+    bivalent by Pierre's arbitration: it is the shortcut for "complete success or not", so it
+    answers False to a refusal and to an empty call alike.
     """
 
     def test_every_range_route_refuses_a_duplicated_range(self) -> None:
@@ -591,7 +591,7 @@ class TestOrderedSetRangeUnicityCriterion(unittest.TestCase):
                 items, view = _create()
                 outcome: Any = _attempt(call, items, view)
 
-                # KeyError is what ISetBase.AddRange raises on a False, so the throwing forms
+                # KeyError is what ISetBase.AddRange raises on a None, so the throwing forms
                 # are held to that one and not merely to "something was raised".
                 if raises: self.assertIsInstance(outcome, KeyError, f"{label} did not refuse: {outcome!r}")
                 else: self.assertIs(outcome, expectedOutcome, f"{label} answered {outcome!r}")
