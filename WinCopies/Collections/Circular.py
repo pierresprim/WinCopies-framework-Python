@@ -315,7 +315,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def __setitem__(self, index: slice, value: Iterable[T]) -> None: ...
     
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None: SetItems(self, self._GetIndexOrKey(index), value)
+    def __setitem__(self, index: SupportsIndex|slice, value: T|Iterable[T]) -> None: SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, self._GetIndexOrKey(index))
+    def __delitem__(self, index: int|slice) -> None: RemoveItems(self, index)

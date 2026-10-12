@@ -22,6 +22,11 @@ point. An insertion or a removal through the list, unlike a read, writes a start
 container: a source then growing past its end leaves the start where it was, which both grids
 assert.
 
+A third grid goes through the Python protocol instead of the framework's methods: item and slice
+assignment and deletion, against a Python list. The Python path is a path of its own, with its own
+contract (3.7 §1), and D-78 lived there unseen by the two grids above: the list converted the
+logical index twice.
+
 The last benches cover D-75: a circular type's immutable view is revoked by whatever changes what
 the list reads, and by nothing else.
 """
@@ -37,6 +42,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Circular import CircularAbstract, CircularList, CircularTuple
+from WinCopies.Collections.Range import RemoveItems, SetItems
 from WinCopies.Typing.Discard import InvalidatedError
 
 type _Act = Callable[[Any], Any]
@@ -58,7 +64,7 @@ def _at(act: Callable[[Any, Any], Any], model: Callable[[list[int], Any], Any], 
     return (lambda circular: act(circular, argument), lambda items: model(items, argument))
 
 def _bind(act: Callable[[Any, Any], Any], argument: Any) -> _Foreign:
-    """One change of the source, closed over one argument: a position, or a position and a count."""
+    """One change closed over one argument: a position, a position and a count, or a slice."""
 
     return lambda source: act(source, argument)
 
@@ -280,6 +286,72 @@ class TestTheSecondGridCanFail(unittest.TestCase):
         with mock.patch.object(target, "GetStart", unreduced): broken: unittest.TestResult = _run(bench, failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the second grid did not fall with the start unreduced")
+
+_KEYS: ReadOnlyArray[slice] = tuple(slice(first, last, step) for first in (None, 0, 1, -1, -3) for last in (None, 1, 3, -1) for step in (None, 1, 2, -1))
+"""Slices with every kind of bound and step, negative ones included: a slice already counted from
+the end on the Python path."""
+
+def _pythonChanges(size: int) -> Iterator[tuple[str, _Act]]:
+    """Item and slice assignment and deletion by the Python protocol, each applied alike to the
+    mutable sequence of the list and to a Python list: at every index, and over every slice of
+    `_KEYS` with a shorter value and with a value of the slice's own length."""
+
+    for index in range(size):
+        yield (f"l[{index}] = 7", _bind(lambda l, i: l.__setitem__(i, 7), index))
+        yield (f"del l[{index}]", _bind(lambda l, i: l.__delitem__(i), index))
+
+    for key in _KEYS:
+        yield (f"del l[{key}]", _bind(lambda l, k: l.__delitem__(k), key))
+        yield (f"l[{key}] = [7, 8]", _bind(lambda l, k: l.__setitem__(k, [7, 8]), key))
+        yield (f"l[{key}] = as many items", _bind(lambda l, k: l.__setitem__(k, list(range(70, 70 + len(range(*k.indices(len(l))))))), key))
+
+def _divergePython(size: int, start: int, act: _Act) -> str|None:
+    circular: Any = CircularList[int](CreateList(list(range(size))), start)
+    expected: list[int]|str = list(circular.AsIterable())
+
+    try: act(expected)
+    except Exception as exception: expected = type(exception).__name__
+
+    try: act(circular.AsMutableSequence())
+    except Exception as exception: return None if type(exception).__name__ == expected else f"raised {exception!r}; Python gives {expected}"
+
+    content: list[int] = list(circular.AsIterable())
+
+    return None if content == expected else f"reads {content}; Python gives {expected}"
+
+class TestThePythonPathWritesWhereItReads(unittest.TestCase):
+    """D-78, closed: item and slice assignment and deletion converted the logical index to a position
+    in the container, then handed it to SetItems and RemoveItems, which convert it again through the
+    list's own methods. Whenever the start was not 0 they wrote and removed at the wrong place: over
+    a list reading [2, 3, 0, 1], c[0] = 7 read [2, 3, 7, 1] and del c[0:2] removed nothing."""
+
+    def test_every_assignment_and_deletion_matches_python(self) -> None:
+        for size in _SIZES[1:]:
+            for start in range(size):
+                for label, act in _pythonChanges(size):
+                    with self.subTest(size = size, start = start, change = label):
+                        divergence: str|None = _divergePython(size, start, act)
+
+                        self.assertIsNone(divergence, f"{size} items, start {start}, {label}: {divergence}")
+
+class TestThePythonPathGridCanFail(unittest.TestCase):
+    """The third grid is run against a circular list that converts the index twice again, through
+    _GetIndexOrKey, which rebuilds D-78: green on the intact tree, red on the rebuilt one."""
+
+    def test_it_falls_when_the_index_is_converted_twice(self) -> None:
+        def assignTwice(self: Any, index: Any, value: Any) -> None: SetItems(self, self._GetIndexOrKey(index), value)
+        def deleteTwice(self: Any, index: Any) -> None: RemoveItems(self, self._GetIndexOrKey(index))
+
+        bench: unittest.TestCase = TestThePythonPathWritesWhereItReads("test_every_assignment_and_deletion_matches_python")
+
+        self.assertEqual(_fell(_run(bench)), 0, "the third grid is expected to pass on the intact tree")
+
+        target: Any = CircularList
+
+        with mock.patch.object(target, "__setitem__", assignTwice), mock.patch.object(target, "__delitem__", deleteTwice):
+            broken: unittest.TestResult = _run(bench, failfast = True)
+
+        self.assertGreater(_fell(broken), 0, "the third grid did not fall with the index converted twice")
 
 _REVOKING: ReadOnlyArray[tuple[str, Callable[[Any, Any], Any]]] = (
     ("c.SetStart(1)",           lambda c, s: c.SetStart(1)),
