@@ -6,12 +6,13 @@ from WinCopies import IStringable
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
-from WinCopies.Collections.Extensions.Collection import TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
+from WinCopies.Collections.Extensions.Collection import IManagedCollection, TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Object import Finalizer
 
 class ICircularTuple[T](ITuple[T]):
     def __init__(self) -> None: super().__init__()
@@ -39,14 +40,17 @@ class ICircularArray[T](IArray[T], ICircularTuple[T]):
 class ICircularList[T](IList[T], ICircularArray[T]):
     def __init__(self) -> None: super().__init__()
 
-class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
+class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IManagedCollection[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
 
-        count: int = self._AsContainer(items).GetCount()
+        container: ITuple[TItem] = self._AsContainer(items)
+        count: int = container.GetCount()
         
         self.__list: TList = items
         self.__start: int = start % count if count > 0 else 0
+
+        Finalizer(self, container.GetCollectionMonitors().RegisterMonitor(self._GetCollectionRegistries()).Remove)
     
     @final
     def _GetContainer(self) -> TList:
@@ -76,9 +80,12 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
     def GetCount(self) -> int: return self._GetInnerContainer().GetCount()
     
     @final
-    def GetStart(self) -> int: return self.__start
+    def GetStart(self) -> int: return self.__start % count if (count := self.GetCount()) > 0 else 0
     @final
-    def SetStart(self, start: int = 0) -> None: self.__start = start
+    def SetStart(self, start: int = 0) -> None:
+        self.__start = start
+
+        self._InvalidateViews()
     
     def ToString(self) -> str:
         def getChars() -> tuple[str, str]:
@@ -187,20 +194,21 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
             nonlocal index
 
             def tryInsert(inserted: bool, shift: bool) -> bool:
-                if inserted and shift: self.SetStart(self.GetStart() + self.GetCount() - count)
+                if inserted: self.SetStart(start + self.GetCount() - count if shift else start)
 
                 return inserted
 
             l: IList[T] = self._GetContainer()
             count: int = self.GetCount()
+            start: int = self.GetStart()
 
-            if count == 0: return add(l)(items) is True or forceUpdate
+            if count == 0: return tryInsert(add(l)(items) is True or forceUpdate, False)
 
             match (index := self.__IsIndexValid(l, index)):
-                case -1: return tryInsert(insert(l)(self.GetStart(), items) is True or forceUpdate, True)
+                case -1: return tryInsert(insert(l)(start, items) is True or forceUpdate, True)
                 case -2: return add(l)(items)
 
-                case _: return tryInsert(insert(l)(index, items) is True or forceUpdate, index < self.GetStart())
+                case _: return tryInsert(insert(l)(index, items) is True or forceUpdate, index < start)
         
         return tryInsert() is True if self.ValidateIndex(index, True) else None
 
@@ -251,9 +259,9 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
 
         if position is None or position < 0: return None
 
-        if self._GetContainer().TryRemoveAt(position) is True:
-            start: int = self.GetStart()
+        start: int = self.GetStart()
 
+        if self._GetContainer().TryRemoveAt(position) is True:
             if position < start: start -= 1
 
             self.SetStart(start if start < self.GetCount() else 0)
