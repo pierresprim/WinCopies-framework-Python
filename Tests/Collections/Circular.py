@@ -18,8 +18,9 @@ réécriture"). A source changed by another path can leave it past the count; th
 and must write, from that position reduced modulo the count, and a read never stores the reduced
 value back. D-76 was the writes disagreeing with the reads there. So the second grid changes the
 source directly before every change of the list, and the model is what the list reads at that
-point. A change of the list, unlike a read, writes a start inside the container: a source then
-growing past its end leaves the start where it was, which both grids assert.
+point. An insertion or a removal through the list, unlike a read, writes a start inside the
+container: a source then growing past its end leaves the start where it was, which both grids
+assert.
 
 The last benches cover D-75: a circular type's immutable view is revoked by whatever changes what
 the list reads, and by nothing else.

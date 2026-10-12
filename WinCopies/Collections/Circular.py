@@ -41,6 +41,31 @@ class ICircularList[T](IList[T], ICircularArray[T]):
     def __init__(self) -> None: super().__init__()
 
 class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IManagedCollection[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
+    """
+    Reads a container from a start and wraps around: over (2, 0, 1) with start 1, it reads
+    (0, 1, 2).
+
+    The start is a physical position in the container. A change of the container made through
+    another path, directly or through another of its views, leaves the start where it is, and what
+    this object reads rotates with the container.
+
+    Such a change can leave the start past the count, so the start is reduced modulo the count
+    wherever it is used, GetStart included, and is 0 for an empty container. A read never stores
+    the reduced value back: a container that shrinks and grows again by another path can bring
+    back a start that was reduced in between.
+
+    A circular list's own insertions and removals are expressed in logical indices and move the
+    start to honour the IList contract: an item inserted at index 0 becomes the head, an appended
+    item becomes the last one, and the head stays the head when items are inserted or removed
+    elsewhere. Each of them that succeeds writes back a start inside the container.
+
+    The immutable view returned by AsImmutable is revoked by every change of what this object
+    reads: every call to SetStart, even one that leaves the effective start unchanged, every change
+    made through this object, and every change of the container made through the framework. A
+    container changed outside the framework, such as a Python list wrapped without being copied,
+    escapes revocation. The read-only view returned by AsReadOnly stays live.
+    """
+
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
 
