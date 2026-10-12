@@ -951,7 +951,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
-    def insert(self, index: int, value: TItem) -> None: self.TryInsert(index, value)
+    def insert(self, index: int, value: TItem) -> None: self.Insert(index, value)
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...
