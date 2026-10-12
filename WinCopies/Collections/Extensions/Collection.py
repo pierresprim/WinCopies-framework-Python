@@ -27,7 +27,7 @@ from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistry
 from WinCopies.Collections.Registry.Core import CollectionRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
-from WinCopies.Collections.Util import CreateSequence, FindIndex, ReverseIndexFromLast
+from WinCopies.Collections.Util import CreateSequence, FindIndex, ReverseIndexFromLast, GetSequenceIndex, GetSequenceInsertionIndex
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
@@ -951,7 +951,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
-    def insert(self, index: int, value: TItem) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: TItem) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
 
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...
@@ -976,7 +976,7 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def __setitem__(self, index: SupportsIndex|slice, value: TItem|Iterable[TItem]) -> None: SetItems(self, index, value)
     
     @final
-    def __delitem__(self, index: int|slice) -> None: del self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(index) if isinstance(index, int) else self.ReverseKey(index)]
+    def __delitem__(self, index: int|slice) -> None: del self._GetContainerAsList().AsMutableSequence()[self.ReverseIndex(GetSequenceIndex(index, self.GetCount())) if isinstance(index, int) else self.ReverseKey(index)]
 class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
     def __init__(self, items: TList) -> None: super().__init__(items)
     

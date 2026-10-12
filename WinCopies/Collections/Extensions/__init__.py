@@ -19,7 +19,7 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
-from WinCopies.Collections.Util import CreateSequence
+from WinCopies.Collections.Util import CreateSequence, GetSequenceIndex
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Discard import DiscardReason
@@ -145,7 +145,7 @@ class MutableSequence[T](MutableSequenceBase[T], Sequence[T], _IMutableSequence[
     @final
     def pop(self, index: int = -1) -> T:
         count: int = self.GetCount()
-        item: T = self[index := index + count if index < 0 else index]
+        item: T = self[index := GetSequenceIndex(index, count)]
 
         self.RemoveAt(index)
 
@@ -499,7 +499,7 @@ class SequenceAbstract[T](Sequence[T], ITuple[T]):
     def __getitem__(self, index: slice) -> SequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|SequenceBase[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|SequenceBase[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 class MutableSequenceAbstract[T](MutableSequence[T], IList[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -509,7 +509,7 @@ class MutableSequenceAbstract[T](MutableSequence[T], IList[T]):
     def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
 class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T], IReadOnlyOrderedSetBase[T]):
     def __init__(self) -> None: super().__init__()

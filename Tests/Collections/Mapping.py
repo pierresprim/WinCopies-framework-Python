@@ -62,12 +62,11 @@ lived there for a session, and D-51 for another.
 
 # Groups leave this table by closing. D-24's set-family calls succeed since the set answers its
 # range add in three values; clear() since it is sealed on Clear(); pop() since it normalises a
-# negative index itself before reading. D-53 kept pop() as its witness until then, and keeps two
-# of its own now: a negative scalar index is still refused on a write and on a deletion, both of
-# which collections.abc defines. A defect whose witness closes is given another, not dropped.
-_BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = (
-    ("D-53, a negative scalar index is refused",
-     (("list", "l[-1] = 7"), ("list", "del l[-1]"))),)
+# negative index itself before reading. D-53 kept pop() as its witness until then, and two of its
+# own after it, l[-1] = 7 and del l[-1], until the Python path resolved a negative scalar index as
+# Python does (3.7 §1); both are legitimate calls now, checked with the others. A defect whose
+# witness closes is given another, not dropped. None is open today.
+_BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = ()
 """Legitimate calls that an open defect still refuses, each named with its carrier and
 grouped by the defect that refuses it, so every group signals on its own when its defect
 closes. The carrier is part of the name because the list view and the collection share
@@ -369,10 +368,6 @@ class TestCallsBlockedByOpenDefects(unittest.TestCase):
                 outcome: Any = _attempt(tables[carrier][label], items, view)
 
                 self.assertNotIsInstance(outcome, Exception, f"{carrier}.{label} refused: {outcome!r}")
-
-    @unittest.expectedFailure
-    def test_a_negative_scalar_index_is_honoured(self) -> None:
-        self._assertGroupSucceeds("D-53")
 
 class TestRefusalLeavesNoTrace(unittest.TestCase):
     """A call that refuses must change nothing at all.

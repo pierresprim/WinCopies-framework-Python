@@ -20,6 +20,8 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
+from WinCopies.Collections.Range import SetItems
+from WinCopies.Collections.Util import GetSequenceIndex
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
@@ -38,7 +40,7 @@ class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableC
         return self._Convert(self._GetInnerContainer().GetAt(key))
     
     @final
-    def Contains(self, value: TOut|object) -> bool: return value in self.AsSequence()
+    def Contains(self, value: TOut|object) -> bool: return any(item is value or item == value for item in self.AsIterable())
     
     @final
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
@@ -58,7 +60,7 @@ class TupleAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBa
     def __getitem__(self, index: slice) -> SequenceBase[TOut]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> TOut|SequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> TOut|SequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(GetSequenceIndex(index, self.GetCount()))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 class TupleBase[TIn, TOut, TSequence: IStringable](TupleAbstract[TIn, TOut, TSequence], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
 
@@ -228,7 +230,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def __getitem__(self, index: slice) -> MutableSequenceBase[TOut]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> TOut|MutableSequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(int(index))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> TOut|MutableSequenceBase[TOut]: return self._Convert(self._GetInnerContainer().GetAt(GetSequenceIndex(index, self.GetCount()))) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: TOut) -> None: ...
@@ -236,7 +238,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def __setitem__(self, index: slice, value: Iterable[TOut]) -> None: ...
     
     @final
-    def __setitem__(self, index: SupportsIndex|slice, value: TOut|Iterable[TOut]) -> None: self._GetContainer().AsMutableSequence()[index] = value # type: ignore
+    def __setitem__(self, index: SupportsIndex|slice, value: TOut|Iterable[TOut]) -> None: SetItems(self, index, value)
     
     @final
     def __delitem__(self, index: int|slice) -> None: del self._GetContainer().AsMutableSequence()[index]

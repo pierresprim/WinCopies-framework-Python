@@ -28,7 +28,7 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
-from WinCopies.Collections.Util import (FindIndex, Move,
+from WinCopies.Collections.Util import (FindIndex, Move, GetSequenceIndex, GetSequenceInsertionIndex,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
                                         TryBisect, TryBisectWithKey, Insort,
                                         ExtendAt)
@@ -260,7 +260,7 @@ class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], Mutabl
         del self._GetContainer()[index:index + count]
     
     @final
-    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
@@ -502,7 +502,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     def __getitem__(self, index: slice) -> _Sequence[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|_Sequence[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|_Sequence[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsSequence()
 
 class ArrayList[T](ArrayCollection[T]):
     def __init__(self, length: int, func: IFunction[T]) -> None: super().__init__(Array[IStruct[T]]((Select(range(length), lambda _: Handle[T](func)))))

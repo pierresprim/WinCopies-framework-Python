@@ -7,7 +7,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateC
 from WinCopies.Collections.Extensions import IList
 from WinCopies.Collections.Iteration.Extensions import Count
 from WinCopies.Collections.Range import ResolveKey
-from WinCopies.Collections.Util import ReverseIndex, MakeSequence
+from WinCopies.Collections.Util import ReverseIndex, MakeSequence, GetSequenceIndex
 from WinCopies.Typing.Comparison import HashableProtocol
 
 def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T]) -> bool:
@@ -155,5 +155,5 @@ def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: sl
     ...
 
 def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
-    if isinstance(index, SupportsIndex): SetOrderedValue(lst, s, int(index), value) # type: ignore
+    if isinstance(index, SupportsIndex): SetOrderedValue(lst, s, GetSequenceIndex(index, lst.GetCount()), value) # type: ignore
     else: SetOrderedValues(lst, s, index, value) # type: ignore

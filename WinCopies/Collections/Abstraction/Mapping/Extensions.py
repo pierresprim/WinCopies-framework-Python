@@ -18,6 +18,7 @@ from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -128,14 +129,14 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
     def AsImmutable(self) -> ITuple[T]: return self.__list.AsImmutable()
     
-    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...
     @overload
     def __getitem__(self, index: slice) -> MutableSequence[T]: ...
     
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequence[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequence[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...

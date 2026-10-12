@@ -11,6 +11,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Range import SetItems, RemoveItems
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager, EventMonitor
@@ -29,7 +30,7 @@ class CollectionAbstractor[T](MutableSequence[T], KeyableBase[int, T], IList[T])
     def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
     
     @final
-    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(int(index)) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
 
 class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstraint[TList, IList[TItem]]):
     def __init__(self, items: TList) -> None:
@@ -161,7 +162,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def ToString(self) -> str: return self._GetInnerContainer().ToString()
     
     @final
-    def insert(self, index: int, value: TItem) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: TItem) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: TItem) -> None: ...

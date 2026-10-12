@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Sequence, MutableSequence
-from typing import overload, Callable, NoReturn
+from typing import overload, Callable, NoReturn, SupportsIndex
 
 from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator
@@ -118,6 +118,29 @@ def ReverseIndexFromLast(index: int, lastIndex: int) -> int:
     return lastIndex - index
 def ReverseIndex(index: int, length: int) -> int:
     return ReverseIndexFromLast(index, length - 1)
+
+def GetSequenceIndex(index: SupportsIndex, length: int) -> int:
+    """Resolves a scalar index the way a Python sequence does: a negative one counts from the end,
+    and one outside the sequence raises IndexError. Only the Python protocol resolves an index this
+    way; the framework's own methods take a position as it is, and count from the end only when
+    asked to, through ReverseIndex."""
+
+    result: int = int(index)
+
+    if result < 0: result += length
+
+    if 0 <= result < length: return result
+
+    raise IndexError(index)
+def GetSequenceInsertionIndex(index: SupportsIndex, length: int) -> int:
+    """Resolves the index of an insertion the way list.insert does: a negative one counts from the
+    end, and one outside the sequence is brought back to its nearest end."""
+
+    result: int = int(index)
+
+    if result < 0: result = max(result + length, 0)
+
+    return min(result, length)
 
 def ReverseRangeStartIndex(index: int, count: int, totalLength: int) -> int:
     return GetIndex(ReverseIndex(index, totalLength), totalLength, -(count - 1))[0]

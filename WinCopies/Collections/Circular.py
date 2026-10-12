@@ -8,6 +8,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import IManagedCollection, TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
+from WinCopies.Collections.Util import GetSequenceInsertionIndex
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
@@ -299,7 +300,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
-    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...

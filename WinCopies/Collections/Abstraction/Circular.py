@@ -6,6 +6,7 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
 from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
+from WinCopies.Collections.Util import GetSequenceInsertionIndex
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -171,7 +172,7 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
-    def insert(self, index: int, value: T) -> None: self.Insert(index, value)
+    def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
