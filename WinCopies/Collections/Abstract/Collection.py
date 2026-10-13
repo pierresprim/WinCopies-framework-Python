@@ -212,7 +212,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     # reader only. The conversion is this layer's whole contribution -- whether the span may
     # be written is the inner container's to say, in its own vocabulary.
     @final
-    def CanSetRange(self, indices: range, items: ICountableEnumerable[TOut]) -> bool:
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TOut]) -> bool:
         return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, self._ConvertBack))
     
     @final

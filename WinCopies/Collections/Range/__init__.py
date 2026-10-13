@@ -117,7 +117,7 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # the content is still intact. The defect was this question asked too late -- InsertRange
     # discovered the refusal, and what RemoveRange had taken was already gone.
     def validateSpan(indices: range, items: ICountableEnumerable[T], length: int) -> None:
-        if not lst.CanSetRange(indices, items): raise ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
+        if not lst.CanSetRange(CreateCountableIterable(indices), items): raise ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
 
     s, i, l, count = ResolveKey(lst, key)
 

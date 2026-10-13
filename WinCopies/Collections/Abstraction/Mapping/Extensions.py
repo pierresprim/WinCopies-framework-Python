@@ -72,10 +72,10 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # this set holds is at position 2 and goes. That is the rule SetOrderedValues applies in
     # its own validation phase; answered as a boolean here because the caller is the generic
     # primitive, which raises on its own behalf.
-    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool:
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
         if HasDuplicate(items.AsIterable()): return False
         
-        leaving: set[T] = {self.__list.GetAt(index) for index in indices}
+        leaving: set[T] = {self.__list.GetAt(index) for index in indices.AsIterable()}
         
         return not Any(items, lambda item: item in self.__innerSet and item not in leaving)
     

@@ -315,17 +315,20 @@ class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     # through TryInsertRange, the very member whose refusal triggered it, and its success is a
     # property of one container rather than of this contract.
     #
-    # The positions arrive as a range because a range says what leaves: a container holding an
-    # invariant over its content judges the arriving items against what remains, not against
-    # what it still holds -- which is why l[1:3] = (3, 9) is legitimate on an ordered set that
-    # already holds that 3 inside the span. The contiguous span and the stepped one are the
-    # same question, told apart by the step.
+    # The positions say what leaves: a container holding an invariant over its content judges
+    # the arriving items against what remains, not against what it still holds -- which is why
+    # l[1:3] = (3, 9) is legitimate on an ordered set that already holds that 3 inside the span.
+    # They are this container's own positions, each valid and none twice: a view that numbers
+    # its items otherwise translates them before asking. The question is the content the write
+    # leaves behind, not where the items land, so the positions come in no promised order and
+    # are not paired with the items, and a span of no positions -- a pure insertion -- says
+    # nothing of where it inserts.
     #
     # No default answer. One that said True would reopen the defect, silently, for every
     # constrained container that forgot to narrow it -- which is exactly how the reversal hook
     # came to be a no-op that a whole commit did not notice.
     @abstractmethod
-    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool:
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
         ...
     
     @abstractmethod

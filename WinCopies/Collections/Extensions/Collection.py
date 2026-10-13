@@ -9,9 +9,10 @@ from typing import overload, final, Callable, SupportsIndex
 from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
+from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Range import SetItems
 from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IAbstractionWriteOnlyIndexable, IGetter, ISetter, ISwappable, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
-from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, ICountableEnumerable, IEnumerator, CreateCountableIterable
+from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
                                               ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection,
@@ -27,7 +28,7 @@ from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistry
 from WinCopies.Collections.Registry.Core import CollectionRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
-from WinCopies.Collections.Util import CreateSequence, FindIndex, ReverseIndexFromLast, GetSequenceIndex, GetSequenceInsertionIndex
+from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast, GetSequenceIndex, GetSequenceInsertionIndex
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
@@ -944,17 +945,11 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     @final
     def _InsertRange(self, index: int, items: Iterable[TItem]) -> None: self.__TryInsert(index, Reverse(items), None, lambda items: items.InsertRange)
     
-    # The whole span is mirrored, not just its bounds: position k of this view is the inner
-    # count - 1 - k, so the lowest mirrored position comes from the highest original one and
-    # the step crosses the mirror unchanged. The items are mirrored with it, since the one
-    # that lands on the original last position lands on the mirrored first.
+    # Each position is mirrored, position k of this view being the inner count - 1 - k. The
+    # items go as they came: the question is the content left behind, not where they land.
     @final
-    def CanSetRange(self, indices: range, items: ICountableEnumerable[TItem]) -> bool:
-        if len(indices) == 0: return self._GetContainerAsList().CanSetRange(range(0), items)
-        
-        start: int = self.ReverseIndex(indices[-1])
-        
-        return self._GetContainerAsList().CanSetRange(range(start, start + (len(indices) - 1) * indices.step + 1, indices.step), CreateCountableIterable(CreateSequence(items.AsIterable())[::-1]))
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TItem]) -> bool:
+        return self._GetContainerAsList().CanSetRange(CreateCountableEnumerable(indices, self.ReverseIndex), items)
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)

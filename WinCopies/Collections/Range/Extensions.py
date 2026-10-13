@@ -90,7 +90,7 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     # Measured at SetOrderedValues(CreateSizedList(4, [0, 1, 2, 3]), ..., slice(1, 3),
     # (7, 8, 9)), which left [0, 3]. Asked last, so that the two messages above win whenever
     # both refusals apply: they name the item, this one only names the span.
-    if not lst.CanSetRange(indices, newItems): raise ValueError(f"The container refuses the assignment of {_length} item(s) to the {len(indices)} position(s) of {indices}.")
+    if not lst.CanSetRange(CreateCountableIterable(indices), newItems): raise ValueError(f"The container refuses the assignment of {_length} item(s) to the {len(indices)} position(s) of {indices}.")
 
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))

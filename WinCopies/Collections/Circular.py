@@ -3,6 +3,7 @@ from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence 
 from typing import final, overload, SupportsIndex
 
 from WinCopies import IStringable, IsTrue
+from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
@@ -286,8 +287,12 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
 
+    # The span is this view's, the question the container's, so each position is translated
+    # before it is asked: handed over as they were, the positions named other items than those
+    # leaving, and a span the container refused went through its removal first.
     @final
-    def CanSetRange(self, indices: range, items: ICountableEnumerable[T]) -> bool: return self._GetContainer().CanSetRange(indices, items)
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
+        return self._GetContainer().CanSetRange(CreateCountableEnumerable(indices, self.GetCircularIndex), items)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))

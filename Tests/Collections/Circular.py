@@ -29,6 +29,12 @@ assignment and deletion, against a Python list. The Python path is a path of its
 contract (3.7 §1), and D-78 lived there unseen by the two grids above: the list converted the
 logical index twice.
 
+A fourth grid runs the slice assignments over containers that refuse: an ordered set's list view,
+which refuses a value it already holds, and a full sized list, which refuses to grow. The third
+grid's container refuses nothing, so it could not see what a view does with a refusal: D-84, the
+list asked its container about its own positions, untranslated, and the container judged other
+items than those leaving.
+
 The last benches cover D-75: a circular type's immutable view is revoked by whatever changes what
 the list reads, and by nothing else.
 """
@@ -41,9 +47,12 @@ from typing import Any, Callable
 from unittest import mock
 
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
+from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
+from WinCopies.Collections.Abstraction.Selection import Converters
+from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
 from WinCopies.Collections.Circular import CircularAbstract, CircularList, CircularTuple
+from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Range import RemoveItems, SetItems
 from WinCopies.Typing.Discard import InvalidatedError
 
@@ -371,6 +380,150 @@ class TestThePythonPathGridCanFail(unittest.TestCase):
             broken: unittest.TestResult = _run(bench, failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the third grid did not fall with the index converted twice")
+
+type _Rule = Callable[[list[int], int], bool]
+type _Carrier = tuple[Callable[[int, int], Any], Callable[[int], int], bool, _Rule]
+
+def _distinctKeys(size: int) -> Iterator[slice]:
+    """The slices of `_KEYS` that resolve differently over `size` items. Two keys that resolve
+    alike are one and the same assignment; how a key resolves is the third grid's to check."""
+
+    seen: set[tuple[int, int, int]] = set()
+
+    for key in _KEYS:
+        if (resolved := key.indices(size)) not in seen:
+            seen.add(resolved)
+
+            yield key
+
+def _breaksUnicity(content: list[int], size: int) -> bool: return len(set(content)) < len(content)
+def _overflows(content: list[int], size: int) -> bool: return len(content) > size
+
+def _same(value: int) -> int: return value
+
+def _overSet(size: int) -> Any: return CreateOrderedSet(list(range(size))).AsList()
+def _overFull(size: int) -> Any:
+    items: Any = TryCreateSizedList(size, list(range(size)))
+
+    assert items is not None
+
+    return items
+
+_REFUSING: dict[str, _Carrier] = {
+    "CircularList over OrderedSet.AsList()": (lambda n, s: CircularList[int](_overSet(n), s), _same, True, _breaksUnicity),
+    "OrderedSet.AsList().AsReversed()": (lambda n, s: _overSet(n).AsReversed(), _same, False, _breaksUnicity),
+    "CircularList over OrderedSet.AsList().AsReversed()": (lambda n, s: CircularList[int](_overSet(n).AsReversed(), s), _same, True, _breaksUnicity),
+    "CircularList over OrderedSet.AsList(), AsReversed()": (lambda n, s: CircularList[int](_overSet(n), s).AsReversed(), _same, True, _breaksUnicity),
+    "ObservableCollection over CircularList over OrderedSet.AsList()": (lambda n, s: ObservableCollection[int](CircularList[int](_overSet(n), s)), _same, True, _breaksUnicity),
+    "Selection.List, x + 10, over CircularList over OrderedSet.AsList()": (lambda n, s: SelectionList[int, int](CircularList[int](_overSet(n), s), Converters[int, int](lambda x: x + 10, lambda x: x - 10)), lambda v: v + 10, True, _breaksUnicity),
+    "CircularList over a full SizedList": (lambda n, s: CircularList[int](_overFull(n), s), _same, True, _overflows)}
+"""Each carrier with how its values read, whether it has a start, and the rule its container holds.
+One carrier for every implementation of CanSetRange that does more than answer: the circular list
+translates, the reversed view mirrors, the converting list converts the items, the observable
+collection passes through, and the sized list reads how many positions leave -- which, under a
+circular list, it reads from a translation. Each of them took thousands of calls in the suite
+without ever answering False, so none of them had been seen refusing."""
+
+_UNIQUE_VALUES: ReadOnlyArray[list[int]] = ([0], [7], [7, 0], [7, 7], [0, 7, 8])
+"""Values for a span of a list holding some of 0 to 3, once each: one held unless the span frees
+it, one never held, the two together, one given twice, and one longer than most spans."""
+
+def _divergeRefusing(carrier: Any, convert: Callable[[int], int], refuses: _Rule, size: int, key: slice, value: list[int]) -> str|None:
+    value = [convert(item) for item in value]
+    before: list[int] = list(carrier.AsIterable())
+    model: list[int] = list(before)
+    expected: list[int]|str
+
+    # The rule a Python list does not hold: an assignment that breaks it is refused, as the slice
+    # route refuses a span, and a refusal writes nothing.
+    try:
+        model[key] = value
+        expected = "ValueError" if refuses(model, size) else model
+    except Exception as exception: expected = type(exception).__name__
+
+    try: carrier.AsMutableSequence()[key] = value
+    except Exception as exception:
+        content: list[int] = list(carrier.AsIterable())
+
+        if type(exception).__name__ != expected: return f"raised {exception!r}; the model gives {expected}"
+
+        return None if content == before else f"raised {exception!r} and left {content}; a refusal leaves {before}"
+
+    content = list(carrier.AsIterable())
+
+    return None if content == expected else f"reads {content}; the model gives {expected}"
+
+class TestThePythonPathRefusesWhatItsContainerRefuses(unittest.TestCase):
+    """D-84, closed: CanSetRange handed the container the span as the list numbers it, so whenever
+    the start was not 0 the container judged the items at other positions than those leaving. Over
+    an ordered set view read as (0, 1, 2, 3) with start 1, c[0:1] = [3] was let through, removed
+    the 0, then had its insertion refused: (1, 2, 3) and a bare KeyError. c[0:1] = [0], which puts
+    back the value it frees, was refused.
+
+    Every slice assignment of `_KEYS` that resolves to a span of its own, with every value of
+    `_UNIQUE_VALUES`, on one to four items and at every start, against a Python list that holds
+    the carrier's rule."""
+
+    def __assertCarrier(self, label: str) -> None:
+        factory, convert, rotates, refuses = _REFUSING[label]
+
+        for size in _SIZES[1:]:
+            for start in range(size) if rotates else range(1):
+                for key in _distinctKeys(size):
+                    for value in _UNIQUE_VALUES:
+                        with self.subTest(size = size, start = start, key = key, value = value):
+                            divergence: str|None = _divergeRefusing(factory(size, start), convert, refuses, size, key, value)
+
+                            self.assertIsNone(divergence, f"{label}, {size} items, start {start}, l[{key}] = {value}: {divergence}")
+
+    def test_a_circular_list_over_an_ordered_set(self) -> None: self.__assertCarrier("CircularList over OrderedSet.AsList()")
+    def test_a_reversed_ordered_set(self) -> None: self.__assertCarrier("OrderedSet.AsList().AsReversed()")
+    def test_a_circular_list_over_a_reversed_ordered_set(self) -> None: self.__assertCarrier("CircularList over OrderedSet.AsList().AsReversed()")
+    def test_a_reversed_circular_list(self) -> None: self.__assertCarrier("CircularList over OrderedSet.AsList(), AsReversed()")
+    def test_an_observable_circular_list(self) -> None: self.__assertCarrier("ObservableCollection over CircularList over OrderedSet.AsList()")
+    def test_a_converting_circular_list(self) -> None: self.__assertCarrier("Selection.List, x + 10, over CircularList over OrderedSet.AsList()")
+    def test_a_circular_list_over_a_full_sized_list(self) -> None: self.__assertCarrier("CircularList over a full SizedList")
+
+class TestTheFourthGridCanFail(unittest.TestCase):
+    """Each implementation of CanSetRange the fourth grid stands for is rebuilt into the defect it
+    could have, and the grid of its carrier is run against it: green on the intact tree, red on the
+    rebuilt one."""
+
+    def __assertFalls(self, test: str, target: Any, rebuilt: Any, defect: str) -> None:
+        bench: unittest.TestCase = TestThePythonPathRefusesWhatItsContainerRefuses(test)
+
+        self.assertEqual(_fell(_run(bench)), 0, f"{test} is expected to pass on the intact tree")
+
+        with mock.patch.object(target, "CanSetRange", rebuilt): broken: unittest.TestResult = _run(bench, failfast = True)
+
+        self.assertGreater(_fell(broken), 0, f"{test} did not fall with {defect}")
+
+    def test_it_falls_when_the_circular_list_does_not_translate(self) -> None:
+        """D-84 itself."""
+
+        def untranslated(self: Any, indices: Any, items: Any) -> Any: return self._GetContainer().CanSetRange(indices, items)
+
+        self.__assertFalls("test_a_circular_list_over_an_ordered_set", CircularList, untranslated, "the span untranslated")
+
+    def test_it_falls_when_the_reversed_view_does_not_mirror(self) -> None:
+        def unmirrored(self: Any, indices: Any, items: Any) -> Any: return self._GetContainerAsList().CanSetRange(indices, items)
+
+        self.__assertFalls("test_a_reversed_ordered_set", type(_overSet(1).AsReversed()), unmirrored, "the span unmirrored")
+
+    def test_it_falls_when_the_converting_list_does_not_convert(self) -> None:
+        def unconverted(self: Any, indices: Any, items: Any) -> Any: return self._GetContainer().CanSetRange(indices, items)
+
+        self.__assertFalls("test_a_converting_circular_list", SelectionList, unconverted, "the items unconverted")
+
+    def test_it_falls_when_the_observable_collection_does_not_ask(self) -> None:
+        def silent(self: Any, indices: Any, items: Any) -> Any: return True
+
+        self.__assertFalls("test_an_observable_circular_list", ObservableCollection, silent, "the question unasked")
+
+    def test_it_falls_when_the_sized_list_does_not_count_what_leaves(self) -> None:
+        def blind(self: Any, indices: Any, items: Any) -> Any: return self.ValidateLength(items.GetCount())
+
+        self.__assertFalls("test_a_circular_list_over_a_full_sized_list", SizedList, blind, "the leaving positions uncounted")
 
 _REVOKING: ReadOnlyArray[tuple[str, Callable[[Any, Any], Any]]] = (
     ("c.SetStart(1)",           lambda c, s: c.SetStart(1)),
