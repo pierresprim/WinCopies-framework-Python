@@ -119,7 +119,7 @@ class _ICountableEnumerable[TIn, TOut, TEnumerable](_IEnumerable[TIn, TOut, TEnu
     @final
     def AsSized(self) -> Sized: return self._GetCountableEnumerableItems().AsSized()
 
-class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumerable[TOut]):
+class EnumerableAbstract[TIn, TOut](ConverterBase[TIn, TOut], IEnumerable[TOut]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -131,7 +131,7 @@ class EnumerableAbstract[TIn, TOut](Abstract, ConverterBase[TIn, TOut], IEnumera
         result: IEnumerator[TIn]|None = self._TryGetEnumerator()
 
         return None if result is None else _Enumerator[TIn, TOut](self, result)
-class EnumerableBase[TIn, TOut, TEnumerable](EnumerableAbstract[TIn, TOut], _IEnumerable[TIn, TOut, TEnumerable]):
+class EnumerableBase[TIn, TOut, TEnumerable](Abstract, EnumerableAbstract[TIn, TOut], _IEnumerable[TIn, TOut, TEnumerable]):
     def __init__(self, enumerable: TEnumerable) -> None:
         super().__init__()
 

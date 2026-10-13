@@ -5,6 +5,8 @@ from typing import final
 
 
 
+from WinCopies import Abstract
+
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ISwappable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
@@ -67,7 +69,7 @@ class _ReadOnlySetUpdater[T: HashableProtocol](ValueFunctionUpdater[IReadOnlySet
     
     def _GetValue(self) -> IReadOnlySet[T]: return _ReadOnlySet[T](self.__items)
 
-class Set[T: HashableProtocol](CountableEnumerable[T], ISet[T]):
+class Set[T: HashableProtocol](Abstract, CountableEnumerable[T], ISet[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlySet[T]]) -> None: self.__readOnly = func
         
@@ -112,7 +114,7 @@ class _ReadOnlyDictionaryUpdater[TKey: HashableProtocol, TValue](ValueFunctionUp
     
     def _GetValue(self) -> IReadOnlyDictionary[TKey, TValue]: return _ReadOnlyDictionary[TKey, TValue](self.__dictionary)
 
-class DictionaryBase[TKey: HashableProtocol, TValue](CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
+class DictionaryBase[TKey: HashableProtocol, TValue](Abstract, CountableEnumerable[IKeyValuePair[TKey, TValue]], IDictionary[TKey, TValue]):
     # TODO: Should inherit from Mapping
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyDictionary[TKey, TValue]]) -> None: self.__readOnly = func
