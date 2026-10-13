@@ -139,9 +139,6 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index:
     return True
 def SetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> None:
     match TrySetOrderedValue(lst, s, index, value):
-        # KeyError, not IndexError, because that is what ISetter.SetAt raises for a refused
-        # index across every type: this write must not diverge from its siblings. Whether
-        # KeyError is the right choice there at all is a question for ISetter, not for here.
         case None: raise KeyError(f"Key {index} does not exist.")
         case False: raise ValueError(f"Item {value} already exists at another position.")
 
