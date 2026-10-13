@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Iterable, Container, Collection
-from typing import overload, final, Any, Callable
+from typing import overload, final, Any, Callable, NoReturn
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
@@ -165,6 +165,12 @@ class ICountableList[T](ICountableCollection[T], IClearable):
 
 class IKeyableBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
+
+    def _GetKeyNotFoundError(self, key: T) -> LookupError:
+        return KeyError(f"The key {key} does not exist.")
+    @final
+    def _ThrowKeyNotFoundError(self, key: T) -> NoReturn:
+        raise self._GetKeyNotFoundError(key)
     
     @abstractmethod
     def ContainsKey(self, key: T) -> bool:
@@ -190,7 +196,7 @@ class IGetter[TKey, TValue](IKeyableBase[TKey]):
         
         if result.HasValue(): return result.GetValue()
         
-        raise KeyError(f"The key {key} does not exist.")
+        raise self._GetKeyNotFoundError(key)
 class ISetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self) -> None: super().__init__()
     
@@ -199,15 +205,21 @@ class ISetter[TKey, TValue](IKeyableBase[TKey]):
         ...
     @final
     def SetAt(self, key: TKey, value: TValue) -> None:
-        if not self.TrySetAt(key, value): raise KeyError(f"Key {key} does not exist.")
+        if not self.TrySetAt(key, value): self._ThrowKeyNotFoundError(key)
 
-class IReadOnlyIndexable[T](IGetter[int, T]):
+class IIndexableBase(IKeyableBase[int]):
+    def __init__(self) -> None: super().__init__()
+
+    def _GetKeyNotFoundError(self, key: int) -> LookupError:
+        return IndexError(key)
+
+class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def SliceAt(self, key: slice) -> IReadOnlyIndexable[T]:
         ...
-class IWriteOnlyIndexable[T](ISetter[int, T]):
+class IWriteOnlyIndexable[T](ISetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
 
 class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TValue]):
