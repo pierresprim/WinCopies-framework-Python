@@ -65,9 +65,6 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     
     def TryGetValue(self, key: int) -> INullable[T]: return self.__list.TryGetValue(key)
     
-    # TrySetAt is bivalent by contract (IWriter), so the trivalence of the shared rule is
-    # collapsed here deliberately: a refused index and a refused value are both a failure
-    # to set. The protocol route keeps the distinction, since it raises rather than returns.
     def _TrySetItemAt(self, key: int, value: T) -> bool|None: return TrySetOrderedValue(self.__list, self.__innerSet, key, value)
     
     # The unicity clause, asked of the whole span at once. What sits inside the span leaves,
