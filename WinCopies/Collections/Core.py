@@ -737,6 +737,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     @final
     def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, lambda x, y: self.ValidateKeys(x, y, move), updater)
 
+    @final
     def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
         return self.ContainsKey(x) and self.ContainsKey(y) != move
 
