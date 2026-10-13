@@ -687,7 +687,12 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
         self.__readOnly: IFunction[ITuple[TItem]] = _ReadOnlyReversedArrayUpdater[TItem](self, update) # type: ignore[no-redef]
     
     @final
-    def _TrySetAt(self, key: int, value: TItem, throwOnError: bool) -> bool|None: return self._TrySetItemAt(self._GetSpecializedContainer(), self.ReverseIndex(key), value, throwOnError)
+    def _TrySetAt(self, key: int, value: TItem, throwOnError: bool) -> bool|None:
+        if self.ContainsKey(key): return self._TrySetItemAt(self._GetSpecializedContainer(), self.ReverseIndex(key), value, throwOnError)
+
+        if throwOnError: self._ThrowKeyNotFoundError(key)
+        
+        return None
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))

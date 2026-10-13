@@ -21,12 +21,13 @@ from unittest import mock
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
-from WinCopies.Collections.Abstraction.Mapping import CreateSet
+from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
-from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
+from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
 from WinCopies.Collections.Circular import CircularList
 from WinCopies.Collections.Core import ICollection
+from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 
 type _Factory = Callable[[], Any]
@@ -78,6 +79,9 @@ _SETS: ReadOnlyArray[tuple[str, _Factory]] = (
 _BIVALENT: _Contract = (frozenset((False,)), frozenset())
 _TRIVALENT: _Contract = (frozenset((None,)), frozenset((False,)))
 _REMOVAL: _Contract = (frozenset((False, None)), frozenset())
+# SetAt raises on both refusals TrySetItemAt tells apart: None for a key it does not hold, False
+# for a value it refuses at a key it holds.
+_SETTER: _Contract = (frozenset((False, None)), frozenset())
 
 _LIST_PAIRS: ReadOnlyArray[_Pair] = (
     ("Insert", "TryInsert", _BIVALENT,
@@ -92,6 +96,8 @@ _LIST_PAIRS: ReadOnlyArray[_Pair] = (
      (("([7, 8])", lambda: ([7, 8],)), ("([])", lambda: ([],)), ("([0])", lambda: ([0],)), ("([7, 7])", lambda: ([7, 7],)))),
     ("SetAt", "TrySetAt", _BIVALENT,
      (("(1, 7)", lambda: (1, 7)), ("(1, 1)", lambda: (1, 1)), ("(9, 7)", lambda: (9, 7)), ("(1, 0)", lambda: (1, 0)))),
+    ("SetAt", "TrySetItemAt", _SETTER,
+     (("(1, 7)", lambda: (1, 7)), ("(1, 1)", lambda: (1, 1)), ("(9, 7)", lambda: (9, 7)), ("(-1, 7)", lambda: (-1, 7)), ("(1, 0)", lambda: (1, 0)))),
     ("RemoveAt", "TryRemoveAt", _REMOVAL,
      (("(1)", lambda: (1,)), ("(9)", lambda: (9,)))),
     ("RemoveRange", "TryRemoveRange", _BIVALENT,
@@ -286,6 +292,64 @@ class TestRangeInsertionTrivalence(unittest.TestCase):
     def test_on_every_set(self) -> None:
         self.__run(_SETS, False, False)
 
+_UNIQUE: frozenset[str] = frozenset(("OrderedSet.AsList()", "OrderedSet.AsList().AsReversed()", _OVER_SET))
+"""The list carriers that refuse a value they already hold, the one refusal a setter can make at a
+key it holds."""
+
+_DICTIONARIES: ReadOnlyArray[tuple[str, _Factory]] = (
+    ("Dictionary",            lambda: CreateDictionary({"a": 1})),
+    ("Selection dictionary",  lambda: CreateSelectionDictionary(CreateDictionary({"a": 1}), Converters[int, int](int, int))))
+"""A dictionary and a converting one over it, each holding the key "a" and not the key "b"."""
+
+def _raised(act: Callable[[], Any]) -> BaseException|None:
+    try: act()
+    except Exception as exception: return exception
+
+    return None
+
+class TestASetterAnswersByCause(unittest.TestCase):
+    """TrySetItemAt answers in three values, read off IDefaultSetter: True for a write, None for a
+    key the collection does not hold, False for a value it refuses at a key it holds. SetAt raises
+    on both refusals, and names what the caller passed.
+
+    D-81, closed: a reversed view handed the converted index to its source without validating the
+    caller's, so the source refused that one and named it: SetAt(9, 7) raised IndexError(-7) on a
+    view of three items. D-82, closed: a dictionary answered False for a key it does not hold, the
+    answer that means a refused value, and its SetAt raised its own message rather than the one of
+    the key error hook."""
+
+    def test_every_list_answers_by_cause(self) -> None:
+        for carrier, factory in _LISTS:
+            causes: ReadOnlyArray[tuple[str, tuple[int, int], bool|None]] = (
+                ("a write", (1, 7), True),
+                ("an index out of range", (9, 7), None),
+                ("a negative index", (-1, 7), None),
+                ("a value held elsewhere", (1, 0), False if carrier in _UNIQUE else True))
+
+            for cause, (index, value), expected in causes:
+                with self.subTest(carrier = carrier, cause = cause):
+                    self.assertIs(factory().TrySetItemAt(index, value), expected, f"{carrier}.TrySetItemAt{(index, value)}")
+
+    def test_the_index_error_names_the_index_passed(self) -> None:
+        for carrier, factory in _LISTS:
+            for index in (9, 3, -1):
+                with self.subTest(carrier = carrier, index = index):
+                    raised: BaseException|None = _raised(lambda: factory().SetAt(index, 7))
+
+                    self.assertIsInstance(raised, IndexError, f"{carrier}.SetAt({index}, 7)")
+                    self.assertEqual(getattr(raised, "args", None), (index,), f"{carrier}.SetAt({index}, 7) named another index")
+
+    def test_every_dictionary_answers_by_cause(self) -> None:
+        for carrier, factory in _DICTIONARIES:
+            with self.subTest(carrier = carrier):
+                self.assertIs(factory().TrySetItemAt("a", 2), True, f"{carrier}.TrySetItemAt('a', 2)")
+                self.assertIsNone(factory().TrySetItemAt("b", 2), f"{carrier}.TrySetItemAt('b', 2)")
+
+                raised: BaseException|None = _raised(lambda: factory().SetAt("b", 2))
+
+                self.assertIsInstance(raised, KeyError, f"{carrier}.SetAt('b', 2)")
+                self.assertEqual(str(raised), str(factory()._GetKeyNotFoundError("b")), f"{carrier}.SetAt('b', 2) bypassed the key error hook")
+
 class TestChecksBrokenByOpenDefects(unittest.TestCase):
     """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
     unexpected success the day its defect closes, rather than staying excluded in silence. A
@@ -345,3 +409,22 @@ class TestTheseBenchesCanFail(unittest.TestCase):
             return None if normalized is None else self._TryAddRange(normalized)
 
         self.__assertFalls((TestRangeInsertionTrivalence, "test_on_every_list"), ICollection, "TryAddRange", rebuilt)
+
+    def test_the_setter_bench_falls_when_a_reversed_view_hands_on_an_unchecked_index(self) -> None:
+        """ReversedArrayBase._TrySetAt as it stood at cded13a, delegating before validating."""
+
+        def rebuilt(self: Any, key: int, value: Any, throwOnError: bool) -> Any: return self._TrySetItemAt(self._GetSpecializedContainer(), self.ReverseIndex(key), value, throwOnError)
+
+        self.__assertFalls((TestASetterAnswersByCause, "test_the_index_error_names_the_index_passed"), ReversedArrayBase, "_TrySetAt", rebuilt)
+
+    def test_the_setter_bench_falls_when_a_dictionary_answers_false_for_a_missing_key(self) -> None:
+        """Dictionary._TrySetAt as it stood at cded13a."""
+
+        def rebuilt(self: Any, key: Any, value: Any, throwOnError: bool) -> Any:
+            if key in self.GetKeys().AsIterable(): return True
+
+            if throwOnError: raise KeyError(f"Key {key} not found.")
+
+            return False
+
+        self.__assertFalls((TestASetterAnswersByCause, "test_every_dictionary_answers_by_cause"), Dictionary, "_TrySetAt", rebuilt)

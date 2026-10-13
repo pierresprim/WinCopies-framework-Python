@@ -230,9 +230,9 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
 
             return True
         
-        if throwOnError: ThrowKeyError(key, True)
+        if throwOnError: self._ThrowKeyNotFoundError(key)
         
-        return False
+        return None
     
     @final
     def GetKeys(self) -> ICountableEnumerable[TKey]: return self.__keys
