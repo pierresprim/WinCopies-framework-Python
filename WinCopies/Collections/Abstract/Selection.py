@@ -38,14 +38,19 @@ class Converter[TIn, TOut, TSequence: IStringable, TInterface](StringableConvert
 class TwoWayConverter[TIn, TOut, TSequence: IStringable, TInterface](Converter[TIn, TOut, TSequence, TInterface], StringableTwoWayConverter[TIn, TOut, TSequence, TInterface]):
     def __init__(self, items: TSequence) -> None: super().__init__(items)
 
-class Selector[TIn, TOut, TSequence: IStringable](Abstract, TwoWayConverterBase[TIn, TOut], SelectorBase[TIn, TOut]):
+class ISelector[TIn, TOut, TSequence: IStringable](TwoWayConverterBase[TIn, TOut], SelectorBase[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _GetItems(self) -> TSequence:
+        ...
+    
+    def ToString(self) -> str: return self._GetItems().ToString()
+class Selector[TIn, TOut, TSequence: IStringable](ISelector[TIn, TOut, TSequence]):
     def __init__(self, items: TSequence) -> None:
         super().__init__()
 
         self.__items: TSequence = items
     
     @final
-    def _GetItems(self) -> TSequence:
-        return self.__items
-    
-    def ToString(self) -> str: return self._GetItems().ToString()
+    def _GetItems(self) -> TSequence: return self.__items
