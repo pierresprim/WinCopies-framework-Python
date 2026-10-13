@@ -6,7 +6,7 @@ from typing import overload, final, Any, Callable, NoReturn
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
-from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ThrowKeyValueError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
+from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, IndexedValueComparison
@@ -767,7 +767,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
         ...
     @final
     def Add(self, key: TKey, value: TValue) -> None:
-        if not self.TryAdd(key, value): ThrowKeyValueError(key, value)
+        if not self.TryAdd(key, value): ThrowKeyError(key)
 
     @final
     def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
