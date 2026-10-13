@@ -2,7 +2,7 @@ from collections.abc import Iterable, Sequence, MutableSequence
 from typing import overload, Callable, NoReturn, SupportsIndex
 
 from WinCopies import Not
-from WinCopies.Collections import ReadOnlyArray, Generator
+from WinCopies.Collections import ReadOnlyArray, Generator, DuplicateKeyError
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -18,7 +18,9 @@ def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
             case False: return f"Key {item} already exists."
             case None: return f"Item '{item}' has a duplicate."
     
-    return KeyError(getMessage())
+    message: str = getMessage()
+
+    return KeyError(message) if lookup else DuplicateKeyError(message)
 def ThrowKeyError(item: HashableProtocol, lookup: bool|None = False) -> NoReturn:
     raise GetKeyError(item, lookup)
 

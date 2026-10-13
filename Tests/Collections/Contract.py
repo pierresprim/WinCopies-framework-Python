@@ -17,9 +17,10 @@ commit, ff69598, and no bench saw it.
 import unittest
 from collections.abc import Iterator
 from typing import Any, Callable
+from contextlib import ExitStack
 from unittest import mock
 
-from WinCopies.Collections import ReadOnlyArray
+from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
 from WinCopies.Collections.Util import GetKeyValueError
@@ -27,7 +28,10 @@ from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSe
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
 from WinCopies.Collections.Circular import CircularList
+import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
 import WinCopies.Collections.Core as Core
+import WinCopies.Collections.Range.Extensions as RangeExtensions
+import WinCopies.Collections.Util as Util
 from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection, IDictionary
 from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
@@ -448,7 +452,7 @@ class TestADictionaryChangesPositionByKey(unittest.TestCase):
         for carrier, factory in _PAIRED_DICTIONARIES:
             missing: str = str(factory()._GetKeyNotFoundError("z"))
             rows: ReadOnlyArray[tuple[str, str, str, str]] = (
-                ("Move", "a", "b", str(KeyError("Key b already exists."))),
+                ("Move", "a", "b", str(DuplicateKeyError("Key b already exists."))),
                 ("Move", "z", "c", missing), ("Move", "z", "b", missing), ("Move", "z", "z", missing),
                 ("Swap", "a", "z", missing), ("Swap", "z", "a", missing), ("Swap", "z", "z", missing))
 
@@ -461,6 +465,108 @@ class TestADictionaryChangesPositionByKey(unittest.TestCase):
                     self.assertIsInstance(raised, KeyError, f"{carrier}.{operation}({x!r}, {y!r})")
                     self.assertEqual(str(raised), message, f"{carrier}.{operation}({x!r}, {y!r}) named another cause")
                     self.assertEqual(_contents(dictionary), before, f"{carrier}.{operation}({x!r}, {y!r}) changed the dictionary while refusing")
+
+_UNIQUE_LISTS: ReadOnlyArray[tuple[str, _Factory, int, bool]] = (
+    ("OrderedSet.AsList()",                                lambda: CreateOrderedSet([0, 1, 2]).AsList(), 0, True),
+    ("OrderedSet.AsList().AsReversed()",                   lambda: CreateOrderedSet([2, 1, 0]).AsList().AsReversed(), 0, False),
+    (_OVER_SET,                                            lambda: CircularList[int](CreateOrderedSet([2, 0, 1]).AsList(), 1), 0, False),
+    ("ObservableCollection over OrderedSet.AsList()",      lambda: ObservableCollection[int](CreateOrderedSet([0, 1, 2]).AsList()), 0, False),
+    ("Selection.List, x + 10, over OrderedSet.AsList()",   lambda: SelectionList[int, int](CreateOrderedSet([0, 1, 2]).AsList(), Converters[int, int](lambda x: x + 10, lambda x: x - 10)), 10, False))
+"""Every list at hand that refuses a value it already holds, each reading three items of which the
+first is the value given: the ordered set's view, and each kind of view or wrapper over it. The last
+field says whether its slice route knows the cause of a refusal; only the view itself does, the
+others asking CanSetRange, which answers without one."""
+
+def _duplicateCalls(held: int) -> ReadOnlyArray[tuple[str, Callable[[Any], Any]]]:
+    fresh: int = held + 7
+
+    return (
+        ("Add", lambda l: l.Add(held)), ("Insert", lambda l: l.Insert(0, held)), ("InsertRange", lambda l: l.InsertRange(0, [held])),
+        ("AddRange, a value twice", lambda l: l.AddRange([fresh, fresh])), ("SetAt", lambda l: l.SetAt(1, held)),
+        ("insert", lambda l: l.AsMutableSequence().insert(0, held)), ("append", lambda l: l.AsMutableSequence().append(held)),
+        ("extend", lambda l: l.AsMutableSequence().extend([held])), ("[1] = x", lambda l: l.AsMutableSequence().__setitem__(1, held)))
+
+class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
+    """D-47: a value or a key already held is refused with DuplicateKeyError, which is a KeyError, as the
+    framework names every refusal bearing on a key, and a ValueError, as Python names a value it
+    refuses. Until it, the same refusal raised KeyError by one route, a bare KeyError by the range
+    routes, and ValueError by the Python path of the ordered set's view -- so that x[0] = 1 raised
+    ValueError on the view and KeyError on a circular list over it. An absence keeps its own error,
+    which must not be taken for this one."""
+
+    def __assertRefuses(self, label: str, items: Any, act: Callable[[Any], Any], snapshot: Callable[[Any], Any] = _snapshot) -> None:
+        before: Any = snapshot(items)
+        raised: BaseException|None = _raised(lambda: act(items))
+
+        self.assertIsInstance(raised, DuplicateKeyError, f"{label} raised {raised!r}")
+        self.assertEqual(snapshot(items), before, f"{label} changed the collection while refusing")
+
+    def test_a_set(self) -> None:
+        calls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+            ("Add(0)", lambda s: s.Add(0)), ("AddRange([0])", lambda s: s.AddRange([0])),
+            ("AddRange([7, 7])", lambda s: s.AddRange([7, 7])), ("AddValues(0)", lambda s: s.AddValues(0)))
+
+        for carrier, factory in _SETS:
+            for label, call in calls:
+                with self.subTest(carrier = carrier, call = label):
+                    self.__assertRefuses(f"{carrier}.{label}", factory(), call)
+
+    def test_a_dictionary(self) -> None:
+        for carrier, factory in _DICTIONARIES:
+            with self.subTest(carrier = carrier, call = "Add('a', 2)"):
+                self.__assertRefuses(f"{carrier}.Add('a', 2)", factory(), lambda d: d.Add("a", 2), _contents)
+
+        for carrier, factory in _PAIRED_DICTIONARIES:
+            with self.subTest(carrier = carrier, call = "Move('a', 'b')"):
+                self.__assertRefuses(f"{carrier}.Move('a', 'b')", factory(), lambda d: d.Move("a", "b"), _contents)
+
+    def test_a_creation(self) -> None:
+        for label, create in (("CreateSet([7, 7])", lambda: CreateSet([7, 7])), ("CreateOrderedSet([7, 7])", lambda: CreateOrderedSet([7, 7]))):
+            with self.subTest(call = label):
+                raised: BaseException|None = _raised(create)
+
+                self.assertIsInstance(raised, DuplicateKeyError, f"{label} raised {raised!r}")
+
+    def test_a_list(self) -> None:
+        for carrier, factory, held, _ in _UNIQUE_LISTS:
+            for label, call in _duplicateCalls(held):
+                with self.subTest(carrier = carrier, call = label):
+                    self.__assertRefuses(f"{carrier}.{label}", factory(), call)
+
+    def test_a_slice(self) -> None:
+        """Only the view itself knows why it refuses a span. Through a view or a wrapper the slice
+        route asks CanSetRange, whose answer is a boolean, and raises ValueError for any cause: that
+        is the open point of D-47 on the cause of a span's refusal, asserted here as it stands so
+        that settling it shows."""
+
+        for carrier, factory, held, knowsTheCause in _UNIQUE_LISTS:
+            with self.subTest(carrier = carrier):
+                items: Any = factory()
+                before: ReadOnlyArray[Any] = _snapshot(items)
+                raised: BaseException|None = _raised(lambda: items.AsMutableSequence().__setitem__(slice(1, 2), [held]))
+
+                if knowsTheCause: self.assertIsInstance(raised, DuplicateKeyError, f"{carrier}[1:2] = [x] raised {raised!r}")
+                else: self.assertIs(type(raised), ValueError, f"{carrier}[1:2] = [x] raised {raised!r}")
+
+                self.assertEqual(_snapshot(items), before, f"{carrier}[1:2] = [x] changed the list while refusing")
+
+    def __assertAbsent(self, label: str, act: Callable[[], Any], expected: type[BaseException]) -> None:
+        with self.subTest(call = label):
+            raised: BaseException|None = _raised(act)
+
+            self.assertIsInstance(raised, expected, f"{label} raised {raised!r}")
+            self.assertNotIsInstance(raised, DuplicateKeyError, f"{label} reports an absence as a duplicate")
+
+    def test_an_absence_is_not_a_duplicate(self) -> None:
+        dictionaryCalls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+            ("GetAt('z')", lambda d: d.GetAt("z")), ("Remove('z')", lambda d: d.Remove("z")), ("Move('z', 'c')", lambda d: d.Move("z", "c")))
+
+        for carrier, factory in _SETS: self.__assertAbsent(f"{carrier}.Remove(9)", lambda: factory().Remove(9), KeyError)
+
+        for carrier, factory in _PAIRED_DICTIONARIES:
+            for label, call in dictionaryCalls: self.__assertAbsent(f"{carrier}.{label}", lambda: call(factory()), KeyError)
+
+        for carrier, factory, _, _ in _UNIQUE_LISTS: self.__assertAbsent(f"{carrier}.GetAt(9)", lambda: factory().GetAt(9), IndexError)
 
 class TestChecksBrokenByOpenDefects(unittest.TestCase):
     """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
@@ -586,3 +692,60 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         def rebuilt(self: Any, x: Any, y: Any) -> LookupError: return KeyError(f"Key {x} or {y} does not exist.")
 
         self.__assertFalls((TestADictionaryChangesPositionByKey, "test_a_refusal_raises_a_key_error_naming_its_cause"), IDictionary, "_GetKeysError", rebuilt)
+
+    def __assertFallsWith(self, benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]], patches: ReadOnlyArray[tuple[Any, str, Any]]) -> None:
+        """As __assertFalls, for a defect that lives under several names at once: a module-level
+        function each importer holds its own reference to."""
+
+        self.assertEqual(_fallen(_runBenches(benches)), 0, f"{benches} are expected to pass on the intact tree")
+
+        with ExitStack() as stack:
+            for target, name, rebuilt in patches: stack.enter_context(mock.patch.object(target, name, rebuilt))
+
+            broken: unittest.TestResult = _runBenches(benches)
+
+
+        self.assertGreater(_fallen(broken), 0, f"{benches} did not fall on the rebuilt defect")
+
+    @staticmethod
+    def __everywhere(rebuilt: Any) -> ReadOnlyArray[tuple[Any, str, Any]]:
+        return tuple((module, "GetKeyError", rebuilt) for module in (Util, Core, MappingExtensions))
+
+    def test_the_duplicate_bench_falls_when_a_duplicate_raises_a_plain_key_error(self) -> None:
+        """GetKeyError as it stood at 8e4000a."""
+
+        def rebuilt(item: Any, lookup: bool|None = False) -> KeyError:
+            return KeyError(f"Key {item} not found." if lookup else f"Key {item} already exists." if lookup is False else f"Item '{item}' has a duplicate.")
+
+        for test in ("test_a_set", "test_a_dictionary", "test_a_creation", "test_a_list"):
+            with self.subTest(bench = test):
+                self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, test),), self.__everywhere(rebuilt))
+
+    def test_the_duplicate_bench_falls_when_a_range_raises_a_bare_key_error(self) -> None:
+        """ISet.AddRange as it stood at 8e4000a."""
+
+        def rebuilt(self: Any, items: Any) -> None:
+            if self.TryAddRange(items) is None: raise KeyError()
+
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_a_set"),), ((Core.ISet, "AddRange", rebuilt),))
+
+    def test_the_duplicate_bench_falls_when_the_python_path_raises_a_plain_value_error(self) -> None:
+        """The Python path of the ordered set's view as it stood at 8e4000a."""
+
+        original: Any = RangeExtensions.SetOrderedItems
+
+        def rebuilt(*args: Any) -> Any:
+            try: return original(*args)
+            except DuplicateKeyError as error: raise ValueError(str(error))
+
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_a_list"), (TestADuplicateRaisesADuplicateKeyError, "test_a_slice")),
+                               ((MappingExtensions, "SetOrderedItems", rebuilt),))
+
+    def test_the_absence_bench_falls_when_an_absence_raises_a_duplicate_key_error(self) -> None:
+        """A GetKeyError that would build the new type for every cause."""
+
+        original: Any = Util.GetKeyError
+
+        def rebuilt(item: Any, lookup: bool|None = False) -> KeyError: return DuplicateKeyError(str(original(item, lookup)))
+
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), self.__everywhere(rebuilt))

@@ -1,6 +1,7 @@
 from collections.abc import Container, Iterable
 from typing import SupportsIndex, overload
 
+from WinCopies.Collections import DuplicateKeyError
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList as IListBase, ISet
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
@@ -81,8 +82,8 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     # Two causes, so two messages: one refusal that cannot say which of the two it is would
     # be no better than no message at all.
     for item in items:
-        if not seen.TryAdd(item): raise ValueError(f"Item {item} appears more than once in the values to assign.")
-        if __Conflicts(s, item, oldSet): raise ValueError(f"Item {item} already exists outside the slice.")
+        if not seen.TryAdd(item): raise DuplicateKeyError(f"Item {item} appears more than once in the values to assign.")
+        if __Conflicts(s, item, oldSet): raise DuplicateKeyError(f"Item {item} already exists outside the slice.")
 
     # The container's own answer, which this phase cannot stand in for: the two loops above
     # validate the set's invariant, and a list that refuses for a reason of its own -- a fixed
@@ -140,7 +141,7 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index:
 def SetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> None:
     match TrySetOrderedValue(lst, s, index, value):
         case None: raise KeyError(f"Key {index} does not exist.")
-        case False: raise ValueError(f"Item {value} already exists at another position.")
+        case False: raise DuplicateKeyError(f"Item {value} already exists at another position.")
 
         case _: return None
 

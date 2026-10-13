@@ -22,6 +22,12 @@ def GetInvalidEnumerationOrderError(order: EnumerationOrder) -> Exception: retur
 class EmptyException(Error):
     def __init__(self, *args: object) -> None: super().__init__("The collection is empty.", *args)
 
+# A key already held: a KeyError, as the framework names every refusal that bears on a key, and a
+# ValueError, as Python names a value it refuses -- Python raises KeyError for an absent key only.
+# Either reader finds the type it expects, and the type itself tells "already held" from "absent".
+class DuplicateKeyError(Error, KeyError, ValueError):
+    def __init__(self, message: str, *args: object) -> None: super().__init__(message, *args)
+
 class FinderPredicate[T](Abstract):
     def __init__(self) -> None:
         super().__init__()

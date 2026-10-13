@@ -5,7 +5,7 @@ from collections.abc import Sized, Iterable, Container, Collection
 from typing import overload, final, Any, Callable, NoReturn
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import EmptyException
+from WinCopies.Collections import EmptyException, DuplicateKeyError
 from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
@@ -718,7 +718,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
     def AddRange(self, items: Iterable[T]) -> None:
         result: bool|None = self.TryAddRange(items)
 
-        if result is None: raise KeyError()
+        if result is None: raise DuplicateKeyError("At least one item appears more than once or already exists.")
 
     @final
     def TryAddValues(self, *values: T) -> bool:
