@@ -10,7 +10,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
 from WinCopies.Collections.Range import SetItems
-from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IGetter, ISetter, ISwappable, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
+from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IAbstractionWriteOnlyIndexable, IGetter, ISetter, ISwappable, Tuple as _Tuple, Array as _Array, List as _List, SortedList as _SortedList
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, ICountableEnumerable, IEnumerator, CreateCountableIterable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
@@ -245,7 +245,7 @@ class GetterBase[TKey, TValue](Abstract, IGetter[TKey, TValue]):
     
     @abstractmethod
     def _GetAt(self, key: TKey) -> TValue:
-        pass
+        ...
     
     @final
     def TryGetValue(self, key: TKey) -> INullable[TValue]: return GetNullable(self._GetAt(key)) if self.ContainsKey(key) else GetNullValue()
@@ -258,15 +258,19 @@ class SetterBase[TKey, TValue](Abstract, ISetter[TKey, TValue]):
     # refusal was lost here -- TrySetAt reporting that the key exists, and SetAt, whose whole
     # contract is to write or raise, doing neither.
     @abstractmethod
-    def _SetAt(self, key: TKey, value: TValue) -> bool:
+    def _SetAt(self, key: TKey, value: TValue, throwOnError: bool) -> bool:
         ...
     
     # The two refusals compose, and each belongs to the one that knows it: the key to this
     # layer, the value to the container. The short circuit also keeps the hook from ever
     # being called on an absent key.
     @final
-    def TrySetAt(self, key: TKey, value: TValue) -> bool:
-        return self.ContainsKey(key) and self._SetAt(key, value)
+    def _TrySetAt(self, key: TKey, value: TValue, throwOnError: bool) -> bool|None:
+        if self.ContainsKey(key): return self._SetAt(key, value, throwOnError)
+
+        if throwOnError: self._ThrowKeyNotFoundError(key)
+        
+        return None
 
 class KeyableBase[TKey, TValue](GetterBase[TKey, TValue], SetterBase[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
@@ -674,7 +678,7 @@ class ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut](_ReversedBase[
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TItem]: return self.__monitor
-class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
+class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstract[TItem, TCollectionIn, TCollectionOut], IArray[TItem], IAbstractionWriteOnlyIndexable[TItem], GenericSpecializedConstraint[TCollectionIn, ITuple[TItem], IArray[TItem]]):
     def __init__(self, items: TCollectionIn) -> None:
         def update(func: IFunction[ITuple[TItem]]) -> None: self.__readOnly = func
         
@@ -683,7 +687,7 @@ class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
         self.__readOnly: IFunction[ITuple[TItem]] = _ReadOnlyReversedArrayUpdater[TItem](self, update) # type: ignore[no-redef]
     
     @final
-    def TrySetAt(self, key: int, value: TItem) -> bool: return self._GetSpecializedContainer().TrySetAt(self.ReverseIndex(key), value)
+    def _TrySetAt(self, key: int, value: TItem, throwOnError: bool) -> bool|None: return self._TrySetItemAt(self._GetSpecializedContainer(), self.ReverseIndex(key), value, throwOnError)
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(self.ReverseIndex(x), self.ReverseIndex(y))

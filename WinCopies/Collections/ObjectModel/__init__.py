@@ -1,5 +1,6 @@
 from typing import final
 
+from WinCopies.Collections.Core import IAbstractionWriteOnlyIndexable
 from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
@@ -43,14 +44,14 @@ class SortedCollection[T: SupportsEqualityAndRichComparison](ReadOnlyCollectionB
     
     @final
     def SliceAt(self, key: slice) -> ISortedTuple[T]: return self._GetContainer().SliceAt(key)
-class FixedSizeCollection[T](ReadOnlyCollectionBase[T, IArray[T]], IGenericConstraintImplementation[IArray[T]]):
+class FixedSizeCollection[T](ReadOnlyCollectionBase[T, IArray[T]], IAbstractionWriteOnlyIndexable[T], IGenericConstraintImplementation[IArray[T]]):
     def __init__(self, items: IArray[T]) -> None: super().__init__(items)
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(x, y)
     
     @final
-    def TrySetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(key, value)
+    def _TrySetAt(self, key: int, value: T, throwOnError: bool) -> bool|None: return self._TrySetItemAt(self._GetContainer(), key, value, throwOnError)
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(key)

@@ -4,8 +4,8 @@ from abc import abstractmethod
 from collections.abc import Iterable, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
-from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Core import Mutability
+from WinCopies import IInterface, Abstract, IsTrue
+from WinCopies.Collections.Core import Mutability, IAbstractionWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
@@ -41,8 +41,10 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     @final
     def _GetContainer(self) -> TList: return self.__items
     
-    def _SetItem(self, index: int, item: TItem) -> bool:
-        return self._GetInnerContainer().TrySetAt(index, item)
+    def _SetItem(self, index: int, item: TItem, throwOnError: bool) -> bool:
+        items: IList[TItem] = self._GetInnerContainer()
+
+        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(index, item))
     
     def _MoveItem(self, x: int, y: int) -> None:
         self._GetInnerContainer().Move(x, y)
@@ -121,12 +123,11 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def _GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer().GetAt(key)
     @final
-    def _SetAt(self, key: int, value: TItem) -> bool:
-        return self._SetItem(key, value)
+    def _SetAt(self, key: int, value: TItem, throwOnError: bool) -> bool:
+        return self._SetItem(key, value, throwOnError)
     
     @final
     def _Move(self, x: int, y: int) -> None: self._MoveItem(x, y)
-    
     @final
     def _Swap(self, x: int, y: int) -> None: self._SwapItems(x, y)
     
@@ -301,8 +302,7 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
 
         self.__items: TList = items
     
-    def _GetContainer(self) -> TList:
-        return self.__items
+    def _GetContainer(self) -> TList: return self.__items
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -349,10 +349,10 @@ class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFix
 
     def AsReadOnly(self) -> ITuple[T]: return self
 @final
-class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IGenericConstraintImplementation[IObservableCollection[T]]):
+class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IAbstractionWriteOnlyIndexable[T], IGenericConstraintImplementation[IObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T]) -> None: super().__init__(items)
     
-    def TrySetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(key, value)
+    def _TrySetAt(self, key: int, value: T, throwOnError: bool) -> bool|None: return self._TrySetItemAt(self._GetContainer(), key, value, throwOnError)
     
     def _Move(self, x: int, y: int) -> None: self._GetContainer().Move(x, y)
     def _Swap(self, x: int, y: int) -> None: self._GetContainer().Swap(x, y)
@@ -452,10 +452,10 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
 
         self.__invoker.OnItemsReversed(CollectionChangedEventArgs(CollectionChangedAction.Reverse))
     
-    def _SetItem(self, index: int, item: T) -> bool:
+    def _SetItem(self, index: int, item: T, throwOnError: bool) -> bool:
         self.__AssertReentrancy()
 
-        if super()._SetItem(index, item):
+        if super()._SetItem(index, item, throwOnError):
             self.__invoker.OnItemUpdated(CollectionChangedEventArgs(CollectionChangedAction.Update))
 
             return True

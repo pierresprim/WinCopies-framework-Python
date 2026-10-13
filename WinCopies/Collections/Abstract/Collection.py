@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import final, overload, Self, SupportsIndex
 
-from WinCopies import IStringable
+from WinCopies import IStringable, IsTrue
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
@@ -142,8 +142,10 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     def _Swap(self, x: int, y: int) -> None: self._GetSpecializedContainer().Swap(x, y)
     
     @final
-    def _SetAt(self, key: int, value: TOut) -> bool:
-        return self._GetSpecializedContainer().TrySetAt(key, self._ConvertBack(value))
+    def _SetAt(self, key: int, value: TOut, throwOnError: bool) -> bool:
+        items: IArray[TIn] = self._GetSpecializedContainer()
+
+        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(key, self._ConvertBack(value)))
 
     @final
     def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()

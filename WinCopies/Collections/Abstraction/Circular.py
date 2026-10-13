@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Sequence as SequenceBase
 from typing import overload, final, SupportsIndex
 
+from WinCopies import IsTrue
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
@@ -129,8 +130,10 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], CircularArrayA
     def __init__(self, items: TList) -> None: super().__init__(items)
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> bool:
-        return self._GetSpecializedContainer().TrySetAt(key, value)
+    def _SetAt(self, key: int, value: TItem, throwOnError: bool) -> bool:
+        items: ICircularArray[TItem] = self._GetSpecializedContainer()
+
+        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(key, value))
 class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularArray[T]]):
     def __init__(self, items: ICircularArray[T]) -> None: super().__init__(items)
     

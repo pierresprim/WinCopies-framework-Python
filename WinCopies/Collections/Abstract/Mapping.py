@@ -6,8 +6,9 @@ from typing import final
 
 from WinCopies import IInterface
 from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, Enumerator
-from WinCopies.Collections.Abstract.Selection import Selector
+from WinCopies.Collections.Abstract.Selection import ISelector, IAbstractionSetter
 from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
+from WinCopies.Collections.Core import ISetter
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import IDictionary, ISet
 from WinCopies.Collections.Extensions.Mapping import Set as SetBase, Dictionary as DictionaryBase
@@ -17,8 +18,14 @@ from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter as ConverterDelegate
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
 
-class Set[TIn: HashableProtocol, TOut: HashableProtocol](Selector[TIn, TOut, ISet[TIn]], SetBase[TOut], EnumerableAbstract[TIn, TOut]):
-    def __init__(self, items: ISet[TIn]|set[TIn]) -> None: super().__init__(GetSet(items))
+class Set[TIn: HashableProtocol, TOut: HashableProtocol](SetBase[TOut], EnumerableAbstract[TIn, TOut], ISelector[TIn, TOut, ISet[TIn]]):
+    def __init__(self, items: ISet[TIn]|set[TIn]) -> None:
+        super().__init__()
+
+        self.__items: ISet[TIn] = GetSet(items)
+
+    @final
+    def _GetItems(self) -> ISet[TIn]: return self.__items
     
     @final
     def GetCount(self) -> int: return self._GetItems().GetCount()
@@ -73,7 +80,7 @@ class _Enumerator[TKey: EquatableProtocol, TValueIn, TValueOut](Enumerator[IKeyV
     def _Convert(self, item: IKeyValuePair[TKey, TValueIn]) -> IKeyValuePair[TKey, TValueOut]:
         return KeyValuePair[TKey, TValueOut](item.GetKey(), self.__dictionary.Convert(item.GetValue()))
 
-class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Selector[TValueIn, TValueOut, IDictionary[TKey, TValueIn]], DictionaryBase[TKey, TValueOut]):
+class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](DictionaryBase[TKey, TValueOut], IAbstractionSetter[TKey, TValueIn, TValueOut, IDictionary[TKey, TValueIn]]):
     @final
     class _Cookie[_TKey: HashableProtocol, T, U](_ICookie[T, U]):
         def __init__(self, dic: Dictionary[_TKey, T, U]) -> None:
@@ -84,9 +91,15 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Selector[TValueIn,
         def Convert(self, item: T) -> U: return self.__dic._Convert(item)
     
     def __init__(self, dictionary: IDictionary[TKey, TValueIn]|MutableMapping[TKey, TValueIn]) -> None:
-        super().__init__(GetDictionary(dictionary))
+        super().__init__()
 
+        self.__items: IDictionary[TKey, TValueIn] = GetDictionary(dictionary)
         self.__valueEnumerable: ICountableEnumerable[TValueOut] = _ValueEnumerable[TKey, TValueIn, TValueOut](self._GetItems(), self._Convert)
+
+    @final
+    def _GetItems(self) -> IDictionary[TKey, TValueIn]: return self.__items
+    @final
+    def _AsMutableItems(self, items: IDictionary[TKey, TValueIn]) -> ISetter[TKey, TValueIn]: return items
     
     @abstractmethod
     def _Convert(self, item: TValueIn) -> TValueOut:
@@ -103,9 +116,6 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](Selector[TValueIn,
         result: INullable[TValueIn] = self._GetItems().TryGetValue(key)
 
         return GetNullable(self._Convert(result.GetValue())) if result.HasValue() else GetNullValue()
-    
-    @final
-    def TrySetAt(self, key: TKey, value: TValueOut) -> bool: return self._GetItems().TrySetAt(key, self._ConvertBack(value))
     
     @final
     def GetKeys(self) -> ICountableEnumerable[TKey]: return self._GetItems().GetKeys()

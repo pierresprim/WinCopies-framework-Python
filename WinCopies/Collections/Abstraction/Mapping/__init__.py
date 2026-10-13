@@ -224,11 +224,13 @@ class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue
         return GetNullValue() if isinstance(result, _None) else GetNullable(result)
     
     @final
-    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+    def _TrySetAt(self, key: TKey, value: TValue, throwOnError: bool) -> bool|None:
         if key in self.GetKeys().AsIterable():
             self.__SetAt(key, value)
 
             return True
+        
+        if throwOnError: ThrowKeyError(key, True)
         
         return False
     

@@ -9,7 +9,7 @@ from WinCopies.Collections import EmptyException
 from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ThrowKeyValueError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter, EqualityComparison, IndexedValueComparison
+from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, IndexedValueComparison
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
@@ -201,11 +201,57 @@ class ISetter[TKey, TValue](IKeyableBase[TKey]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+    def _TrySetAt(self, key: TKey, value: TValue, throwOnError: bool) -> bool|None:
         ...
+    
+    @final
+    def TrySetItemAt(self, key: TKey, value: TValue) -> bool|None:
+        return self._TrySetAt(key, value, False)
+    
+    @final
+    def TrySetAt(self, key: TKey, value: TValue) -> bool:
+        return self.TrySetItemAt(key, value) is True
     @final
     def SetAt(self, key: TKey, value: TValue) -> None:
-        if not self.TrySetAt(key, value): self._ThrowKeyNotFoundError(key)
+        self._TrySetAt(key, value, True)
+
+class IDefaultSetter[TKey, TValue](ISetter[TKey, TValue]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetValueError(self, key: TKey, value: TValue) -> LookupError:
+        ...
+    @final
+    def _ThrowValueError(self, key: TKey, value: TValue) -> NoReturn:
+        raise self._GetValueError(key, value)
+    
+    @abstractmethod
+    def _TrySetItemAt(self, key: TKey, value: TValue) -> bool|None:
+        ...
+
+    @final
+    def _TrySetAt(self, key: TKey, value: TValue, throwOnError: bool) -> bool|None:
+        result: bool|None = self._TrySetItemAt(key, value)
+
+        if throwOnError:
+            match result:
+                case None: raise self._GetKeyNotFoundError(key)
+                case False: raise self._GetValueError(key, value)
+                case True: return True
+
+        return result
+
+class IAbstractionSetterBase[TKey, TValue](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _TrySetItemAt(self, items: ISetter[TKey, TValue], key: TKey, value: TValue, throwOnError: bool) -> bool|None:
+        return (items.SetAt if throwOnError else items.TrySetItemAt)(key, value)
+class IAbstractionSetter[TKey, TValue](IAbstractionSetterBase[TKey, TValue]):
+    def __init__(self) -> None: super().__init__()
+
+class IAbstractionWriteOnlyIndexable[T](IAbstractionSetter[int, T]):
+    def __init__(self) -> None: super().__init__()
 
 class IIndexableBase(IKeyableBase[int]):
     def __init__(self) -> None: super().__init__()
@@ -222,11 +268,14 @@ class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
 class IWriteOnlyIndexable[T](ISetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
 
+class IDefaultWriteOnlyIndexable[T](IDefaultSetter[int, T], IIndexableBase):
+    def __init__(self) -> None: super().__init__()
+
 class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __ChangePosition(self, x: TKey, y: TKey, updater: Callable[[TKey, TKey], bool|None]) -> None:
+    def __ChangePosition(self, x: TKey, y: TKey, updater: Comparison[TKey]) -> None:
         if updater(x, y) is None: raise IndexError(f"Position {x} or {y} does not exist.")
 
     @abstractmethod
@@ -417,7 +466,7 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
-def _ChangePosition[T](x: T, y: T, validator: Callable[[T, T], bool], updater: Callable[[T, T], None]) -> bool|None:
+def _ChangePosition[T](x: T, y: T, validator: EqualityComparison[T], updater: Callable[[T, T], None]) -> bool|None:
     if validator(x, y):
         if x == y: return False
 

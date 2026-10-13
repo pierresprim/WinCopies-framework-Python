@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, IStringable, Abstract
+from WinCopies.Collections.Core import ISetter, IAbstractionSetterBase
 from WinCopies.Typing.Generic import GenericConstraint
 
 class ConverterBase[TIn, TOut](IInterface):
@@ -54,3 +55,17 @@ class Selector[TIn, TOut, TSequence: IStringable](ISelector[TIn, TOut, TSequence
     
     @final
     def _GetItems(self) -> TSequence: return self.__items
+
+class IAbstractionSetter[TKey, TValueIn, TValueOut, TSequence: IStringable](IAbstractionSetterBase[TKey, TValueIn], ISetter[TKey, TValueOut], ISelector[TValueIn, TValueOut, TSequence]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _AsMutableItems(self, items: TSequence) -> ISetter[TKey, TValueIn]:
+        ...
+    @final
+    def _GetItemsAsMutable(self) -> ISetter[TKey, TValueIn]:
+        return self._AsMutableItems(self._GetItems())
+
+    @final
+    def _TrySetAt(self, key: TKey, value: TValueOut, throwOnError: bool) -> bool|None:
+        return self._TrySetItemAt(self._GetItemsAsMutable(), key, self._ConvertBack(value), throwOnError)

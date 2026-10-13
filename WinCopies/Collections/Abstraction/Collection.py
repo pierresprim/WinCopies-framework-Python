@@ -146,7 +146,7 @@ class ArrayAbstract[TItem, TSequence](ArrayAbstractBase[TItem, TSequence], Tuple
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> bool:
+    def _SetAt(self, key: int, value: TItem, throwOnError: bool) -> bool:
         self._InvalidateViews()
 
         self._GetSpecializedContainer()[key] = value
@@ -452,7 +452,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     def _GetAt(self, key: int) -> T:
         return self._GetStructAt(key).GetValue()
     @final
-    def _SetAt(self, key: int, value: T) -> bool:
+    def _SetAt(self, key: int, value: T, throwOnError: bool) -> bool:
         self._InvalidateViews()
 
         self._GetStructAt(key).SetValue(value)

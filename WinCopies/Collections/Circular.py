@@ -2,7 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import final, overload, SupportsIndex
 
-from WinCopies import IStringable
+from WinCopies import IStringable, IsTrue
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
@@ -194,8 +194,10 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecial
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
     @final
-    def _SetAt(self, key: int, value: TItem) -> bool:
-        return self._GetSpecializedContainer().TrySetAt(self.GetCircularIndex(key), value)
+    def _SetAt(self, key: int, value: TItem, throwOnError: bool) -> bool:
+        items: IArray[TItem] = self._GetSpecializedContainer()
+
+        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(self.GetCircularIndex(key), value))
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int) -> None: super().__init__(items, start)
 
@@ -255,7 +257,10 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     def _Swap(self, x: int, y: int) -> None: self.__Move(x, y, lambda l: l.Swap)
     
     @final
-    def _SetAt(self, key: int, value: T) -> bool: return self._GetContainer().TrySetAt(self.GetCircularIndex(key), value)
+    def _SetAt(self, key: int, value: T, throwOnError: bool) -> bool:
+        items: IArray[T] = self._GetContainer()
+        
+        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(self.GetCircularIndex(key), value))
     
     @final
     def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(index, value, lambda l: l.TryAdd, lambda l: l.TryInsert)

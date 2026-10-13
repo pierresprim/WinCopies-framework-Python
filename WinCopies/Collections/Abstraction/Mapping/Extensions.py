@@ -7,7 +7,7 @@ from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set, HasDuplicate
-from WinCopies.Collections.Core import Mutability
+from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -18,14 +18,14 @@ from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetKeyValueError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
-class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T]):
+class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T], IDefaultWriteOnlyIndexable[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
         def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
@@ -39,6 +39,8 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
 
         self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
+
+    def _GetValueError(self, key: int, value: T) -> LookupError: return GetKeyValueError(self.FindFirstIndex(value), value)
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     def TryGetSourceMutability(self) -> None: return None
@@ -66,7 +68,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # TrySetAt is bivalent by contract (IWriter), so the trivalence of the shared rule is
     # collapsed here deliberately: a refused index and a refused value are both a failure
     # to set. The protocol route keeps the distinction, since it raises rather than returns.
-    def TrySetAt(self, key: int, value: T) -> bool: return TrySetOrderedValue(self.__list, self.__innerSet, key, value) is True
+    def _TrySetItemAt(self, key: int, value: T) -> bool|None: return TrySetOrderedValue(self.__list, self.__innerSet, key, value)
     
     # The unicity clause, asked of the whole span at once. What sits inside the span leaves,
     # so it is out of the test: l[1:3] = (3, 9) is legitimate on (1, 2, 3, 4) because the 3
