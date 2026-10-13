@@ -261,8 +261,7 @@ class IAbstractionWriteOnlyIndexable[T](IAbstractionSetter[int, T]):
 class IIndexableBase(IKeyableBase[int]):
     def __init__(self) -> None: super().__init__()
 
-    def _GetKeyNotFoundError(self, key: int) -> LookupError:
-        return IndexError(key)
+    def _GetKeyNotFoundError(self, key: int) -> LookupError: return IndexError(key)
 
 class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
@@ -471,10 +470,10 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
-def _ChangePosition[T](x: T, y: T, validator: EqualityComparison[T], updater: Callable[[T, T], None]) -> bool|None:
-    if validator(x, y):
-        if x == y: return False
+def _ChangePosition[T](x: T, y: T, collection: IKeyableBase[T], validator: EqualityComparison[T], updater: Callable[[T, T], None]) -> bool|None:
+    if x == y: return False if collection.ContainsKey(x) else None
 
+    if validator(x, y):
         updater(x, y)
 
         return True
@@ -504,7 +503,7 @@ class IArray[T](ITuple[T], ICountableIndexable[T], _ISwappable[int, T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __ChangePosition(self, x: int, y: int, updater: Callable[[int, int], None]) -> bool|None: return _ChangePosition(x, y, self.ValidateIndices, updater)
+    def __ChangePosition(self, x: int, y: int, updater: Callable[[int, int], None]) -> bool|None: return _ChangePosition(x, y, self, self.ValidateIndices, updater)
 
     def ValidateIndices(self, x: int, y: int) -> bool:
         return self.ValidateIndex(x) and self.ValidateIndex(y)
@@ -735,7 +734,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, lambda x, y: self.ValidateKeys(x, y, move), updater)
+    def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self, lambda x, y: self.ValidateKeys(x, y, move), updater)
 
     @final
     def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
