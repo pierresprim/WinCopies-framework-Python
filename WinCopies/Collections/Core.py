@@ -167,7 +167,7 @@ class IKeyableBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     def _GetKeyNotFoundError(self, key: T) -> LookupError:
-        return KeyError(f"The key {key} does not exist.")
+        return GetKeyError(key, True)
     @final
     def _ThrowKeyNotFoundError(self, key: T) -> NoReturn:
         raise self._GetKeyNotFoundError(key)
@@ -742,7 +742,8 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     @final
     def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self, lambda x, y: self.ValidateKeys(x, y, move), updater)
 
-    def _GetKeysError(self, x: TKey, y: TKey) -> LookupError: return KeyError(f"Key {y} already exists.") if self.ContainsKey(x) and self.ContainsKey(y) else super()._GetKeysError(x, y)
+    def _GetKeysError(self, x: TKey, y: TKey) -> LookupError:
+        return (GetKeyError(y) if self.ContainsKey(y) else self._GetKeyNotFoundError(y)) if self.ContainsKey(x) else self._GetKeyNotFoundError(x)
 
     @final
     def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:

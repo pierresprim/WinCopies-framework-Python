@@ -15,7 +15,7 @@ def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
     def getMessage() -> str:
         match lookup:
             case True: return f"Key {item} not found."
-            case False: return f"Item {item} already exists."
+            case False: return f"Key {item} already exists."
             case None: return f"Item '{item}' has a duplicate."
     
     return KeyError(getMessage())
