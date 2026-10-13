@@ -272,8 +272,16 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
     @final
     def _InsertRange(self, index: int, items: Iterable[T]) -> None: self.__Insert(index, items, lambda l: l.AddRange, lambda l: l.InsertRange)
 
+    # Position k read position (start + k) % count of the container, which the reversal sends to
+    # count - 1 - (start + k) % count. Read from count - start, the list finds it at count - 1 - k,
+    # which is what reversing the list means. Written back inside the container, as every change
+    # through the list writes its start.
     @final
-    def _Reverse(self) -> None: self._GetContainer().AsMutableSequence().reverse()
+    def _Reverse(self) -> None:
+        start: int = self.GetStart()
+
+        self._GetContainer().AsMutableSequence().reverse()
+        self.SetStart(self.GetCount() - start if start > 0 else 0)
 
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable

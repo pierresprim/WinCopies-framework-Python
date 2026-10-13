@@ -11,7 +11,9 @@ right whenever the position lands after the head.
 
 So the benches here compare every insertion and every removal, at every logical index and every
 start, against a Python list holding the logical content. The reference is computed, never
-written by hand.
+written by hand. The reversal is in the same grid since D-85: it reversed the container and left
+the start where it was, which reads the list reversed only when twice the start is a multiple of
+the count.
 
 The start is a physical position in the source (3.6 §5, Pierre: "Je confirme (A), sans
 réécriture"). A source changed by another path can leave it past the count; the list then reads,
@@ -84,7 +86,7 @@ def _emptiedThenAdded(count: int) -> tuple[_Act, _Model]:
 def _changes(view: list[int]) -> Iterator[tuple[str, _Act, _Model]]:
     """Every structural change the circular list exposes, with the same change on the model, for a
     list that reads `view`: insertions at every logical index including the append position, and
-    removals at every logical index, by position and by value."""
+    removals at every logical index, by position and by value; and the reversal."""
 
     for index in range(len(view) + 1):
         yield (f"Insert({index}, 9)", *_at(lambda c, i: c.Insert(i, 9), lambda l, i: l.insert(i, 9), index))
@@ -101,6 +103,8 @@ def _changes(view: list[int]) -> Iterator[tuple[str, _Act, _Model]]:
         yield (f"TryRemoveAt({index})", *_at(lambda c, i: c.TryRemoveAt(i), lambda l, i: l.pop(i), index))
         yield (f"RemoveRange({index}, 1)", *_at(lambda c, i: c.RemoveRange(i, 1), lambda l, i: l.pop(i), index))
         yield (f"Remove(value at {index})", *_at(lambda c, v: c.Remove(v), lambda l, v: l.remove(v), view[index]))
+
+    yield ("reverse()", lambda c: c.AsMutableSequence().reverse(), lambda l: l.reverse())
 
 def _cases() -> Iterator[tuple[str, ReadOnlyArray[int], int, _Act, _Model]]:
     """Every change of `_changes`, at every start of every size, and three sequences that start from
@@ -268,6 +272,21 @@ class TestTheModelBenchCanFail(unittest.TestCase):
         with mock.patch.object(target, "SetStart", frozen): broken: unittest.TestResult = _run(bench, failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the model bench did not fall with the start frozen")
+
+    def test_it_falls_when_the_reversal_leaves_the_start(self) -> None:
+        """The reversal as it stood until D-85: the container reversed, the start left in place."""
+
+        def reversedInPlace(self: Any) -> None: self._GetContainer().AsMutableSequence().reverse()
+
+        bench: unittest.TestCase = TestTheCircularListMatchesItsModel("test_every_change_matches_the_model")
+
+        self.assertEqual(_fell(_run(bench)), 0, "the model bench is expected to pass on the intact tree")
+
+        target: Any = CircularList
+
+        with mock.patch.object(target, "_Reverse", reversedInPlace): broken: unittest.TestResult = _run(bench, failfast = True)
+
+        self.assertGreater(_fell(broken), 0, "the model bench did not fall with the reversal leaving the start")
 
 class TestTheSecondGridCanFail(unittest.TestCase):
     """The second grid is run against a circular list that reports its start as stored, without the
