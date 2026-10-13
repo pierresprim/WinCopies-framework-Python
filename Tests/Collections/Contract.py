@@ -27,7 +27,8 @@ from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSe
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
 from WinCopies.Collections.Circular import CircularList
-from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection
+import WinCopies.Collections.Core as Core
+from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection, IDictionary
 from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 
@@ -120,6 +121,22 @@ _SET_PAIRS: ReadOnlyArray[_Pair] = (
      (("([7, 8])", lambda: ([7, 8],)), ("([])", lambda: ([],)), ("([0])", lambda: ([0],)), ("([7, 7])", lambda: ([7, 7],)))),
     ("Remove", "TryRemove", _BIVALENT,
      (("(1)", lambda: (1,)), ("(9)", lambda: (9,)))))
+
+_PAIRED_DICTIONARIES: ReadOnlyArray[tuple[str, _Factory]] = (
+    ("Dictionary",            lambda: CreateDictionary({"a": 1, "b": 2})),
+    ("Selection dictionary",  lambda: CreateSelectionDictionary(CreateDictionary({"a": 1, "b": 2}), Converters[int, int](int, int))))
+"""The two dictionaries of _DICTIONARIES, holding the keys "a" and "b" rather than "a" alone, so that
+a move can find its target taken and a swap two keys to exchange."""
+
+_DICTIONARY_PAIRS: ReadOnlyArray[_Pair] = (
+    ("Move", "TryMove", _TRIVALENT,
+     (("('a', 'c')", lambda: ("a", "c")), ("('a', 'b')", lambda: ("a", "b")), ("('z', 'c')", lambda: ("z", "c")),
+      ("('a', 'a')", lambda: ("a", "a")), ("('z', 'z')", lambda: ("z", "z")))),
+    ("Swap", "TrySwap", _TRIVALENT,
+     (("('a', 'b')", lambda: ("a", "b")), ("('a', 'z')", lambda: ("a", "z")), ("('a', 'a')", lambda: ("a", "a")), ("('z', 'z')", lambda: ("z", "z")))))
+"""Moving and swapping by key on a dictionary holding "a" and "b": a move renames a key, so its target
+must be free, and a swap exchanges the values of two keys it holds. Each in every shape the two tell
+apart: a rename, a target taken, a source absent, the same key held, and the same key absent."""
 
 _BLOCKED: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[str, str]]]] = ()
 """Checks that an open defect still breaks, named with their carrier and grouped by defect, as in
@@ -216,6 +233,9 @@ class TestTryFormsAgreeWithTheirThrowingForms(unittest.TestCase):
 
     def test_on_every_set(self) -> None:
         _assertChecks(self, _parityChecks(_SETS, _SET_PAIRS), lambda call: True)
+
+    def test_on_every_dictionary(self) -> None:
+        _assertChecks(self, _parityChecks(_PAIRED_DICTIONARIES, _DICTIONARY_PAIRS), lambda call: True)
 
 _REFUSED_RANGES: dict[str, list[int]] = {
     "SizedList, full": [7],
@@ -378,6 +398,70 @@ class TestASetterAnswersByCause(unittest.TestCase):
             with self.subTest(carrier = carrier):
                 self.assertIs(factory()._TrySetAt(key, value, True), True, f"{carrier}._TrySetAt({key!r}, {value!r}, True)")
 
+def _contents(dictionary: Any) -> dict[Any, Any]:
+    return {key: dictionary.GetAt(key) for key in dictionary.GetKeys().AsIterable()}
+
+def _moved(contents: dict[Any, Any], x: Any, y: Any) -> dict[Any, Any]:
+    result: dict[Any, Any] = dict(contents)
+
+    result[y] = result.pop(x)
+
+    return result
+
+def _swapped(contents: dict[Any, Any], x: Any, y: Any) -> dict[Any, Any]:
+    result: dict[Any, Any] = dict(contents)
+
+    result[x], result[y] = result[y], result[x]
+
+    return result
+
+class TestADictionaryChangesPositionByKey(unittest.TestCase):
+    """A move renames a key and a swap exchanges two values, answering as positions do elsewhere: True
+    for a change, False for the same key held, None for a refusal, which leaves the dictionary as it
+    was. The throwing forms raise KeyError naming the cause.
+
+    Three defects lived here. Until 5500478 a move whose target was taken raised from its Try form
+    and lost its source on the way, the source being removed before the target was refused. D-83,
+    closed: once a move refused a target that exists, a key moved onto itself was refused too, None
+    where the convention answers False, and Move raised with a false message. And the throwing forms
+    raised IndexError, "Position a or b does not exist.", for keys that both existed when the move
+    was refused for its target being taken."""
+
+    def test_every_answer_follows_the_convention(self) -> None:
+        rows: ReadOnlyArray[tuple[str, str, str, bool|None]] = (
+            ("TryMove", "a", "c", True), ("TryMove", "a", "b", None), ("TryMove", "z", "c", None), ("TryMove", "a", "a", False), ("TryMove", "z", "z", None),
+            ("TrySwap", "a", "b", True), ("TrySwap", "a", "z", None), ("TrySwap", "a", "a", False), ("TrySwap", "z", "z", None))
+
+        for carrier, factory in _PAIRED_DICTIONARIES:
+            for operation, x, y, expected in rows:
+                with self.subTest(carrier = carrier, call = f"{operation}({x!r}, {y!r})"):
+                    dictionary: Any = factory()
+                    before: dict[Any, Any] = _contents(dictionary)
+
+                    self.assertIs(getattr(dictionary, operation)(x, y), expected, f"{carrier}.{operation}({x!r}, {y!r})")
+
+                    after: dict[Any, Any] = before if expected is not True else (_moved if operation == "TryMove" else _swapped)(before, x, y)
+
+                    self.assertEqual(_contents(dictionary), after, f"{carrier}.{operation}({x!r}, {y!r}) left the wrong content")
+
+    def test_a_refusal_raises_a_key_error_naming_its_cause(self) -> None:
+        for carrier, factory in _PAIRED_DICTIONARIES:
+            missing: str = str(factory()._GetKeyNotFoundError("z"))
+            rows: ReadOnlyArray[tuple[str, str, str, str]] = (
+                ("Move", "a", "b", str(KeyError("Key b already exists."))),
+                ("Move", "z", "c", missing), ("Move", "z", "b", missing), ("Move", "z", "z", missing),
+                ("Swap", "a", "z", missing), ("Swap", "z", "a", missing), ("Swap", "z", "z", missing))
+
+            for operation, x, y, message in rows:
+                with self.subTest(carrier = carrier, call = f"{operation}({x!r}, {y!r})"):
+                    dictionary: Any = factory()
+                    before: dict[Any, Any] = _contents(dictionary)
+                    raised: BaseException|None = _raised(lambda: getattr(dictionary, operation)(x, y))
+
+                    self.assertIsInstance(raised, KeyError, f"{carrier}.{operation}({x!r}, {y!r})")
+                    self.assertEqual(str(raised), message, f"{carrier}.{operation}({x!r}, {y!r}) named another cause")
+                    self.assertEqual(_contents(dictionary), before, f"{carrier}.{operation}({x!r}, {y!r}) changed the dictionary while refusing")
+
 class TestChecksBrokenByOpenDefects(unittest.TestCase):
     """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
     unexpected success the day its defect closes, rather than staying excluded in silence. A
@@ -472,3 +556,33 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         def rebuilt(self: Any, items: Any, key: Any, value: Any, throwOnError: bool) -> Any: return (items.SetAt if throwOnError else items.TrySetItemAt)(key, value)
 
         self.__assertFalls((TestASetterAnswersByCause, "test_a_delegating_setter_answers_true_on_a_write_that_raises_when_refused"), IAbstractionSetterBase, "_TrySetItemAt", rebuilt)
+
+    def test_the_dictionary_bench_falls_when_a_key_moved_onto_itself_is_refused(self) -> None:
+        """_ChangePosition as it stood at 5500478, validating before comparing the two keys: D-83."""
+
+        def rebuilt(x: Any, y: Any, collection: Any, validator: Any, updater: Any) -> bool|None:
+            if validator(x, y):
+                if x == y: return False
+
+                updater(x, y)
+
+                return True
+
+            return None
+
+        self.__assertFalls((TestADictionaryChangesPositionByKey, "test_every_answer_follows_the_convention"), Core, "_ChangePosition", rebuilt)
+
+    def test_the_dictionary_bench_falls_when_a_move_takes_a_target_already_held(self) -> None:
+        """A move validated on its source alone, as before 6c717bf, reaches the removal of its source
+        before the target is refused."""
+
+        def rebuilt(self: Any, x: Any, y: Any, move: bool = False) -> bool: return bool(self.ContainsKey(x) and (move or self.ContainsKey(y)))
+
+        self.__assertFalls((TestADictionaryChangesPositionByKey, "test_every_answer_follows_the_convention"), IDictionary, "ValidateKeys", rebuilt)
+
+    def test_the_dictionary_bench_falls_when_a_refusal_names_both_keys(self) -> None:
+        """The key error of 615b507, which named both keys whatever the cause."""
+
+        def rebuilt(self: Any, x: Any, y: Any) -> LookupError: return KeyError(f"Key {x} or {y} does not exist.")
+
+        self.__assertFalls((TestADictionaryChangesPositionByKey, "test_a_refusal_raises_a_key_error_naming_its_cause"), IDictionary, "_GetKeysError", rebuilt)

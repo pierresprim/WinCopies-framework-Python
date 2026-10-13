@@ -172,11 +172,11 @@ class IKeyableBase[T](IInterface):
     def _ThrowKeyNotFoundError(self, key: T) -> NoReturn:
         raise self._GetKeyNotFoundError(key)
 
-    def _GetKeysNotFoundError(self, x: T, y: T) -> LookupError:
-        return KeyError(f"Key {x} or {y} does not exist.")
+    def _GetKeysError(self, x: T, y: T) -> LookupError:
+        return self._GetKeyNotFoundError(y if self.ContainsKey(x) else x)
     @final
-    def _ThrowKeysNotFoundError(self, x: T, y: T) -> NoReturn:
-        raise self._GetKeysNotFoundError(x, y)
+    def _ThrowKeysError(self, x: T, y: T) -> NoReturn:
+        raise self._GetKeysError(x, y)
     
     @abstractmethod
     def ContainsKey(self, key: T) -> bool:
@@ -268,7 +268,6 @@ class IIndexableBase(IKeyableBase[int]):
     def __init__(self) -> None: super().__init__()
 
     def _GetKeyNotFoundError(self, key: int) -> LookupError: return IndexError(key)
-    def _GetKeysNotFoundError(self, x: int, y: int) -> LookupError: return self._GetKeyNotFoundError(y if self.ContainsKey(x) else x)
 
 class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
@@ -287,7 +286,7 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TV
 
     @final
     def __ChangePosition(self, x: TKey, y: TKey, updater: Comparison[TKey]) -> None:
-        if updater(x, y) is None: self._ThrowKeysNotFoundError(x, y)
+        if updater(x, y) is None: self._ThrowKeysError(x, y)
 
     @abstractmethod
     def TryMove(self, x: TKey, y: TKey) -> bool|None:
@@ -742,6 +741,8 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
 
     @final
     def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self, lambda x, y: self.ValidateKeys(x, y, move), updater)
+
+    def _GetKeysError(self, x: TKey, y: TKey) -> LookupError: return KeyError(f"Key {y} already exists.") if self.ContainsKey(x) and self.ContainsKey(y) else super()._GetKeysError(x, y)
 
     @final
     def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
