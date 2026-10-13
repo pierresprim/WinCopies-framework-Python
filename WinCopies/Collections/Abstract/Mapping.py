@@ -11,7 +11,7 @@ from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
 from WinCopies.Collections.Core import ISetter
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
 from WinCopies.Collections.Extensions import IDictionary, ISet
-from WinCopies.Collections.Extensions.Mapping import Set as SetBase, Dictionary as DictionaryBase
+from WinCopies.Collections.Extensions.Mapping import Set as SetBase, DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -121,6 +121,11 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](DictionaryBase[TKe
     def GetKeys(self) -> ICountableEnumerable[TKey]: return self._GetItems().GetKeys()
     @final
     def GetValues(self) -> ICountableEnumerable[TValueOut]: return self.__valueEnumerable
+
+    @final
+    def _Move(self, x: TKey, y: TKey) -> None: self._GetItems().Move(x, y)
+    @final
+    def _Swap(self, x: TKey, y: TKey) -> None: self._GetItems().Swap(x, y)
     
     @final
     def TryAdd(self, key: TKey, value: TValueOut) -> bool: return self._GetItems().TryAdd(key, self._ConvertBack(value))
