@@ -171,6 +171,12 @@ class IKeyableBase[T](IInterface):
     @final
     def _ThrowKeyNotFoundError(self, key: T) -> NoReturn:
         raise self._GetKeyNotFoundError(key)
+
+    def _GetKeysNotFoundError(self, x: T, y: T) -> LookupError:
+        return KeyError(f"Key {x} or {y} does not exist.")
+    @final
+    def _ThrowKeysNotFoundError(self, x: T, y: T) -> NoReturn:
+        raise self._GetKeysNotFoundError(x, y)
     
     @abstractmethod
     def ContainsKey(self, key: T) -> bool:
@@ -262,6 +268,7 @@ class IIndexableBase(IKeyableBase[int]):
     def __init__(self) -> None: super().__init__()
 
     def _GetKeyNotFoundError(self, key: int) -> LookupError: return IndexError(key)
+    def _GetKeysNotFoundError(self, x: int, y: int) -> LookupError: return self._GetKeyNotFoundError(y if self.ContainsKey(x) else x)
 
 class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
@@ -280,7 +287,7 @@ class IReadWriteCollection[TKey, TValue](IGetter[TKey, TValue], ISetter[TKey, TV
 
     @final
     def __ChangePosition(self, x: TKey, y: TKey, updater: Comparison[TKey]) -> None:
-        if updater(x, y) is None: raise IndexError(f"Position {x} or {y} does not exist.")
+        if updater(x, y) is None: self._ThrowKeysNotFoundError(x, y)
 
     @abstractmethod
     def TryMove(self, x: TKey, y: TKey) -> bool|None:
