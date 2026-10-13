@@ -498,8 +498,7 @@ class ISwappable[TKey, TValue](_ISwappable[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _Swap(self, x: TKey, y: TKey) -> None:
-        self._SwapDefault(x, y)
+    def _Swap(self, x: TKey, y: TKey) -> None: self._SwapDefault(x, y)
 
 class IArray[T](ITuple[T], ICountableIndexable[T], _ISwappable[int, T]):
     def __init__(self) -> None: super().__init__()
@@ -736,19 +735,19 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __ChangePosition(self, x: TKey, y: TKey, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self.ValidateKeys, updater)
+    def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, lambda x, y: self.ValidateKeys(x, y, move), updater)
 
-    def ValidateKeys(self, x: TKey, y: TKey) -> bool:
-        return self.ContainsKey(x) and self.ContainsKey(y)
+    def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
+        return self.ContainsKey(x) and self.ContainsKey(y) != move
 
     @abstractmethod
     def _Move(self, x: TKey, y: TKey) -> None:
         ...
     @final
-    def TryMove(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Move)
+    def TryMove(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, True, self._Move)
 
     @final
-    def TrySwap(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, self._Swap)
+    def TrySwap(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, False, self._Swap)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:

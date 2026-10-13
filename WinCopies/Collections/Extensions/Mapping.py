@@ -132,12 +132,4 @@ class Dictionary[TKey: HashableProtocol, TValue](DictionaryBase[TKey, TValue], I
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _Move(self, x: TKey, y: TKey) -> None:
-        def getValue() -> TValue:
-            value: INullable[TValue] = self.TryRemoveItem(x)
-
-            if value.HasValue(): return value.GetValue()
-            
-            raise KeyError(f"The key {x} does not exist.")
-
-        self.Add(y, getValue())
+    def _Move(self, x: TKey, y: TKey) -> None: self.Add(y, self.Remove(x))
