@@ -22,11 +22,12 @@ from unittest import mock
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
+from WinCopies.Collections.Util import GetKeyValueError
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
 from WinCopies.Collections.Circular import CircularList
-from WinCopies.Collections.Core import ICollection
+from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection
 from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 
@@ -350,6 +351,33 @@ class TestASetterAnswersByCause(unittest.TestCase):
                 self.assertIsInstance(raised, KeyError, f"{carrier}.SetAt('b', 2)")
                 self.assertEqual(str(raised), str(factory()._GetKeyNotFoundError("b")), f"{carrier}.SetAt('b', 2) bypassed the key error hook")
 
+    def test_a_refused_value_is_reported_as_the_other_routes_report_it(self) -> None:
+        """SetAt names the value it refuses as Add does for the same cause, without a position: a
+        position read in the container is not the caller's once a reversed or circular view stands
+        between them."""
+
+        for carrier, factory in _LISTS:
+            if carrier not in _UNIQUE: continue
+
+            with self.subTest(carrier = carrier):
+                raised: BaseException|None = _raised(lambda: factory().SetAt(1, 0))
+                reference: BaseException|None = _raised(lambda: factory().Add(0))
+
+                self.assertIsInstance(raised, KeyError, f"{carrier}.SetAt(1, 0)")
+                self.assertEqual(str(raised), str(reference), f"{carrier}.SetAt(1, 0) and Add(0) report the same refusal differently")
+
+    def test_a_delegating_setter_answers_true_on_a_write_that_raises_when_refused(self) -> None:
+        """A view that hands a write to its source answers on the throwing route what it answers on
+        the other: True for a write, whatever the source's SetAt returns."""
+
+        delegating: ReadOnlyArray[tuple[str, _Factory, Any, Any]] = (
+            *((carrier, factory, 1, 7) for carrier, factory in _LISTS if carrier.endswith("AsReversed()")),
+            ("Selection dictionary", _DICTIONARIES[1][1], "a", 2))
+
+        for carrier, factory, key, value in delegating:
+            with self.subTest(carrier = carrier):
+                self.assertIs(factory()._TrySetAt(key, value, True), True, f"{carrier}._TrySetAt({key!r}, {value!r}, True)")
+
 class TestChecksBrokenByOpenDefects(unittest.TestCase):
     """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
     unexpected success the day its defect closes, rather than staying excluded in silence. A
@@ -428,3 +456,19 @@ class TestTheseBenchesCanFail(unittest.TestCase):
             return False
 
         self.__assertFalls((TestASetterAnswersByCause, "test_every_dictionary_answers_by_cause"), Dictionary, "_TrySetAt", rebuilt)
+
+    def test_the_setter_bench_falls_when_a_refused_value_names_the_container_position(self) -> None:
+        """The ordered set view's value error as it stood at 8a39df4."""
+
+        def rebuilt(self: Any, key: int, value: Any) -> LookupError: return GetKeyValueError(self.FindFirstIndex(value), value)
+
+        target: Any = type(CreateOrderedSet([0]).AsList())
+
+        self.__assertFalls((TestASetterAnswersByCause, "test_a_refused_value_is_reported_as_the_other_routes_report_it"), target, "_GetValueError", rebuilt)
+
+    def test_the_setter_bench_falls_when_the_throwing_route_answers_what_setat_returns(self) -> None:
+        """IAbstractionSetterBase._TrySetItemAt as it stood at 8a39df4."""
+
+        def rebuilt(self: Any, items: Any, key: Any, value: Any, throwOnError: bool) -> Any: return (items.SetAt if throwOnError else items.TrySetItemAt)(key, value)
+
+        self.__assertFalls((TestASetterAnswersByCause, "test_a_delegating_setter_answers_true_on_a_write_that_raises_when_refused"), IAbstractionSetterBase, "_TrySetItemAt", rebuilt)

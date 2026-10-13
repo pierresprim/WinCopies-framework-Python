@@ -18,7 +18,7 @@ from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetKeyValueError
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetKeyError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -40,7 +40,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
 
-    def _GetValueError(self, key: int, value: T) -> LookupError: return GetKeyValueError(self.FindFirstIndex(value), value)
+    def _GetValueError(self, key: int, value: T) -> LookupError: return GetKeyError(value)
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     def TryGetSourceMutability(self) -> None: return None

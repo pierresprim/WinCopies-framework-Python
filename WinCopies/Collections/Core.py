@@ -246,7 +246,12 @@ class IAbstractionSetterBase[TKey, TValue](IInterface):
     
     @final
     def _TrySetItemAt(self, items: ISetter[TKey, TValue], key: TKey, value: TValue, throwOnError: bool) -> bool|None:
-        return (items.SetAt if throwOnError else items.TrySetItemAt)(key, value)
+        if throwOnError:
+            items.SetAt(key, value)
+
+            return True
+        
+        return items.TrySetItemAt(key, value)
 class IAbstractionSetter[TKey, TValue](IAbstractionSetterBase[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
 
