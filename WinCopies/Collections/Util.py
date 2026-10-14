@@ -80,7 +80,7 @@ def TryGetRangeLength(index: int, length: int, count: int|None) -> int|None:
     return None
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
-    _value: int|None = None
+    _value: int = 0
 
     def check(value: int) -> bool:
         nonlocal _value
@@ -92,7 +92,7 @@ def GetOffset(inStart: int, outStart: int, length: int) -> int:
 
         return -inStart if outStart < 0 else inStart
     
-    raise IndexError(_value)
+    ThrowIndexError(_value)
 
 def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
     offset %= totalLength
@@ -170,24 +170,33 @@ def TrySetAt[T](l: MutableSequence[T], index: int, value: T) -> bool:
     
     return False
 
-def TryMove[T](l: MutableSequence[T], x: int, y: int) -> bool|None:
+def _TryMove[T](l: MutableSequence[T], x: int, y: int) -> int|None:
     def validateIndex(index: int) -> bool: return ValidateIndex(index, length)
 
     length: int = len(l)
 
-    if validateIndex(x) and validateIndex(y):
-        if x == y: return False
+    if x == y: return -1 if validateIndex(x) else x
 
-        item: T = l.pop(x)
+    if not validateIndex(x): return x
+    if not validateIndex(y): return y
+    
+    item: T = l.pop(x)
 
-        if y == length: l.append(item)
-        else: l.insert(y, item)
-
-        return True
+    if y == length: l.append(item)
+    else: l.insert(y, item)
 
     return None
+
+def TryMove[T](l: MutableSequence[T], x: int, y: int) -> bool|None:
+    match _TryMove(l, x, y):
+        case None: return True
+        case -1: return False
+
+        case _: return None
 def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
-    if TryMove(l, x, y) is None: raise IndexError(f"Position {x} or {y} does not exist.")
+    result: int|None = _TryMove(l, x, y)
+
+    if result is not None and result >= 0: ThrowIndexError(result)
 
 def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
