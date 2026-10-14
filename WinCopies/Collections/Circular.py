@@ -289,10 +289,11 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
 
     # The span is this view's, the question the container's, so each position is translated
     # before it is asked: handed over as they were, the positions named other items than those
-    # leaving, and a span the container refused went through its removal first.
+    # leaving, and a span the container refused went through its removal first. A refusal
+    # comes back as it is, the error of no cause naming a position.
     @final
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
-        return self._GetContainer().CanSetRange(CreateCountableEnumerable(indices, self.GetCircularIndex), items)
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool:
+        return self._GetContainer().CanSetRange(CreateCountableEnumerable(indices, self.GetCircularIndex), items, throwOnError)
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(self._GetKey(key))

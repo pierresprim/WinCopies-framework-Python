@@ -295,7 +295,7 @@ class List[T](ListBase[T]):
     # Nothing to refuse: under this one sits a Python list, which takes any value at any
     # position the caller has already resolved. Written out rather than inherited, there
     # being no default to inherit -- see Extensions.IList.CanSetRange for why there is none.
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool: return True
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool: return True
 
 class _ISizedListInitializer[T](IInterface):
     def __init__(self) -> None:
@@ -421,7 +421,12 @@ class SizedList[T](ListBase[T], ISizedList[T]):
     # only once the removal has freed the positions -- and that is what destroyed two items of
     # [0, 1, 2, 3] on l[1:3] = (7, 8, 9).
     @final
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool: return self.ValidateLength(items.GetCount() - indices.GetCount())
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool:
+        if self.ValidateLength(items.GetCount() - indices.GetCount()): return True
+
+        if throwOnError: ThrowCapacityError()
+
+        return False
     
     @staticmethod
     def Create(length: int) -> ISizedList[T]:

@@ -946,10 +946,11 @@ class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TIte
     def _InsertRange(self, index: int, items: Iterable[TItem]) -> None: self.__TryInsert(index, Reverse(items), None, lambda items: items.InsertRange)
     
     # Each position is mirrored, position k of this view being the inner count - 1 - k. The
-    # items go as they came: the question is the content left behind, not where they land.
+    # items go as they came: the question is the content left behind, not where they land. A
+    # refusal comes back as it is, the error of no cause naming a position.
     @final
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TItem]) -> bool:
-        return self._GetContainerAsList().CanSetRange(CreateCountableEnumerable(indices, self.ReverseIndex), items)
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TItem], throwOnError: bool = False) -> bool:
+        return self._GetContainerAsList().CanSetRange(CreateCountableEnumerable(indices, self.ReverseIndex), items, throwOnError)
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)

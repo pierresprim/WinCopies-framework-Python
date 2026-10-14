@@ -88,9 +88,10 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     # validate the set's invariant, and a list that refuses for a reason of its own -- a fixed
     # capacity -- would still be met by Phase 2, once the removal has freed the positions.
     # Measured at SetOrderedValues(CreateSizedList(4, [0, 1, 2, 3]), ..., slice(1, 3),
-    # (7, 8, 9)), which left [0, 3]. Asked last, so that the two messages above win whenever
-    # both refusals apply: they name the item, this one only names the span.
-    if not lst.CanSetRange(CreateCountableIterable(indices), newItems): ThrowSpanRefusedError(_length, indices)
+    # (7, 8, 9)), which left [0, 3]. Asked last, so that the two causes above win whenever both
+    # refusals apply; asked to raise, so that the container says its own, the error here only
+    # guarding against an implementation answering False instead.
+    if not lst.CanSetRange(CreateCountableIterable(indices), newItems, True): ThrowSpanRefusedError(_length, indices)
 
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))

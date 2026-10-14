@@ -6,7 +6,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Abstraction.Mapping import Set, HasDuplicate
+from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerator
@@ -14,11 +14,10 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
 from WinCopies.Collections.Extensions.Collection import MutableList
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowRepeatedItemError
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -67,17 +66,29 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     
     def _TrySetItemAt(self, key: int, value: T) -> bool|None: return TrySetOrderedValue(self.__list, self.__innerSet, key, value)
     
-    # The unicity clause, asked of the whole span at once. What sits inside the span leaves,
+    # The unicity clause, the rule SetOrderedValues applies in its own validation phase, and in
+    # its order: item by item, an item given twice before one this set holds, so that an input
+    # with both faults names the same cause on every route. What sits inside the span leaves,
     # so it is out of the test: l[1:3] = (3, 9) is legitimate on (1, 2, 3, 4) because the 3
-    # this set holds is at position 2 and goes. That is the rule SetOrderedValues applies in
-    # its own validation phase; answered as a boolean here because the caller is the generic
-    # primitive, which raises on its own behalf.
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
-        if HasDuplicate(items.AsIterable()): return False
-        
+    # this set holds is at position 2 and goes.
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool:
         leaving: set[T] = {self.__list.GetAt(index) for index in indices.AsIterable()}
-        
-        return not Any(items, lambda item: item in self.__innerSet and item not in leaving)
+        seen: set[T] = set[T]()
+
+        for item in items.AsIterable():
+            if item in seen:
+                if throwOnError: ThrowRepeatedItemError(item)
+
+                return False
+
+            seen.add(item)
+
+            if item in self.__innerSet and item not in leaving:
+                if throwOnError: ThrowDuplicateItemError(item)
+
+                return False
+
+        return True
     
     def _TryInsert(self, index: int, value: T) -> bool:
         if self.__set.TryAdd(value):

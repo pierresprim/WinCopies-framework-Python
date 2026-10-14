@@ -115,9 +115,12 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # Asked before the first write, which is the whole point of the hook: the removal below
     # frees the positions and cannot be taken back, so the container is made to answer while
     # the content is still intact. The defect was this question asked too late -- InsertRange
-    # discovered the refusal, and what RemoveRange had taken was already gone.
+    # discovered the refusal, and what RemoveRange had taken was already gone. Asked to raise,
+    # so that a refusal says its cause as the container's other routes say it; the error here
+    # only guards against an implementation answering False instead, which the removal below
+    # must never follow.
     def validateSpan(indices: range, items: ICountableEnumerable[T], length: int) -> None:
-        if not lst.CanSetRange(CreateCountableIterable(indices), items): ThrowSpanRefusedError(length, indices)
+        if not lst.CanSetRange(CreateCountableIterable(indices), items, True): ThrowSpanRefusedError(length, indices)
 
     s, i, l, count = ResolveKey(lst, key)
 

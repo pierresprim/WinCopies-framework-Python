@@ -324,11 +324,15 @@ class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
     # are not paired with the items, and a span of no positions -- a pure insertion -- says
     # nothing of where it inserts.
     #
+    # Asked with throwOnError, a refusal raises the error of its cause instead of answering
+    # False -- the error the container's other routes raise for that cause -- since only the
+    # container knows why it refuses, and a route that writes owes its caller the reason.
+    #
     # No default answer. One that said True would reopen the defect, silently, for every
     # constrained container that forgot to narrow it -- which is exactly how the reversal hook
     # came to be a no-op that a whole commit did not notice.
     @abstractmethod
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T]) -> bool:
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool:
         ...
     
     @abstractmethod

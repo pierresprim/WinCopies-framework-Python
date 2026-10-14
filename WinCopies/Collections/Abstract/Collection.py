@@ -22,7 +22,7 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetItems
-from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError
+from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError, GetDuplicateRangeError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -226,10 +226,17 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     # Converted into a tuple rather than handed over as a projection: the container's answer
     # reads the items and its write reads them again, and a lazy Select would reach the first
     # reader only. The conversion is this layer's whole contribution -- whether the span may
-    # be written is the inner container's to say, in its own vocabulary.
+    # be written is the inner container's to say, in its own vocabulary. A duplicate it refuses
+    # names its own value, which this layer cannot tell again in the caller's: a span gives
+    # several, and which of the two causes applies is the container's to know. So the refusal
+    # names none, as a range refused as a whole does, the container's own kept as its cause.
     @final
-    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TOut]) -> bool:
-        return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, self._ConvertBack))
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TOut], throwOnError: bool = False) -> bool:
+        try: return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, self._ConvertBack), throwOnError)
+        except DuplicateKeyError as error:
+            if not error.GetDuplicate().HasValue(): raise
+
+            raise GetDuplicateRangeError() from error
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)

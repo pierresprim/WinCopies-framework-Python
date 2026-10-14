@@ -54,6 +54,7 @@ from WinCopies.Collections.Abstraction.Selection.Collection import List as Selec
 from WinCopies.Collections.Circular import CircularAbstract, CircularList, CircularTuple
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Range import RemoveItems, SetItems
+from WinCopies.Collections.Util import ThrowCapacityError
 from WinCopies.Typing.Discard import InvalidatedError
 
 type _Act = Callable[[Any], Any]
@@ -399,6 +400,10 @@ def _distinctKeys(size: int) -> Iterator[slice]:
 def _breaksUnicity(content: list[int], size: int) -> bool: return len(set(content)) < len(content)
 def _overflows(content: list[int], size: int) -> bool: return len(content) > size
 
+_REFUSALS: dict[_Rule, str] = {_breaksUnicity: "DuplicateKeyError", _overflows: "InvalidOperationError"}
+"""The error a refusal of each rule raises: the one the container's other routes raise for the same
+cause, which the slice route says too since D-47's point 4."""
+
 def _same(value: int) -> int: return value
 
 def _overSet(size: int) -> Any: return CreateOrderedSet(list(range(size))).AsList()
@@ -434,11 +439,11 @@ def _divergeRefusing(carrier: Any, convert: Callable[[int], int], refuses: _Rule
     model: list[int] = list(before)
     expected: list[int]|str
 
-    # The rule a Python list does not hold: an assignment that breaks it is refused, as the slice
-    # route refuses a span, and a refusal writes nothing.
+    # The rule a Python list does not hold: an assignment that breaks it is refused with the error
+    # of its cause, as the container's other routes refuse it, and a refusal writes nothing.
     try:
         model[key] = value
-        expected = "ValueError" if refuses(model, size) else model
+        expected = _REFUSALS[refuses] if refuses(model, size) else model
     except Exception as exception: expected = type(exception).__name__
 
     try: carrier.AsMutableSequence()[key] = value
@@ -501,29 +506,42 @@ class TestTheFourthGridCanFail(unittest.TestCase):
     def test_it_falls_when_the_circular_list_does_not_translate(self) -> None:
         """D-84 itself."""
 
-        def untranslated(self: Any, indices: Any, items: Any) -> Any: return self._GetContainer().CanSetRange(indices, items)
+        def untranslated(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any: return self._GetContainer().CanSetRange(indices, items, throwOnError)
 
         self.__assertFalls("test_a_circular_list_over_an_ordered_set", CircularList, untranslated, "the span untranslated")
 
     def test_it_falls_when_the_reversed_view_does_not_mirror(self) -> None:
-        def unmirrored(self: Any, indices: Any, items: Any) -> Any: return self._GetContainerAsList().CanSetRange(indices, items)
+        def unmirrored(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any: return self._GetContainerAsList().CanSetRange(indices, items, throwOnError)
 
         self.__assertFalls("test_a_reversed_ordered_set", type(_overSet(1).AsReversed()), unmirrored, "the span unmirrored")
 
     def test_it_falls_when_the_converting_list_does_not_convert(self) -> None:
-        def unconverted(self: Any, indices: Any, items: Any) -> Any: return self._GetContainer().CanSetRange(indices, items)
+        def unconverted(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any: return self._GetContainer().CanSetRange(indices, items, throwOnError)
 
         self.__assertFalls("test_a_converting_circular_list", SelectionList, unconverted, "the items unconverted")
 
     def test_it_falls_when_the_observable_collection_does_not_ask(self) -> None:
-        def silent(self: Any, indices: Any, items: Any) -> Any: return True
+        def silent(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any: return True
 
         self.__assertFalls("test_an_observable_circular_list", ObservableCollection, silent, "the question unasked")
 
     def test_it_falls_when_the_sized_list_does_not_count_what_leaves(self) -> None:
-        def blind(self: Any, indices: Any, items: Any) -> Any: return self.ValidateLength(items.GetCount())
+        def blind(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any:
+            if self.ValidateLength(items.GetCount()): return True
+
+            if throwOnError: ThrowCapacityError()
+
+            return False
 
         self.__assertFalls("test_a_circular_list_over_a_full_sized_list", SizedList, blind, "the leaving positions uncounted")
+
+    def test_it_falls_when_the_sized_list_refuses_without_its_cause(self) -> None:
+        """D-47's point 4: a refusal answered rather than raised, which the slice route's guard can only
+        refuse with the error of no cause."""
+
+        def mute(self: Any, indices: Any, items: Any, throwOnError: bool = False) -> Any: return self.ValidateLength(items.GetCount() - indices.GetCount())
+
+        self.__assertFalls("test_a_circular_list_over_a_full_sized_list", SizedList, mute, "the refusal answered")
 
 _REVOKING: ReadOnlyArray[tuple[str, Callable[[Any, Any], Any]]] = (
     ("c.SetStart(1)",           lambda c, s: c.SetStart(1)),
