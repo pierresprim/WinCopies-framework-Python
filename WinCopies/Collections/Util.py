@@ -80,23 +80,19 @@ def TryGetRangeLength(index: int, length: int, count: int|None) -> int|None:
     return None
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
-    paramName: str|None = None
+    _value: int|None = None
 
-    def check(value: int, _paramName: str) -> bool:
-        nonlocal paramName
+    def check(value: int) -> bool:
+        nonlocal _value
 
-        paramName = _paramName
-
-        return ValidateIndex(value, length)
+        return ValidateIndex((_value := value), length)
     
-    if check(inStart, "inStart") and check(outStart, "outStart"):
-        inStart = outStart - inStart
-
-        if inStart < 0: inStart += length
+    if check(inStart) and check(outStart):
+        if (inStart := outStart - inStart) < 0: inStart += length
 
         return -inStart if outStart < 0 else inStart
     
-    raise IndexError(paramName)
+    raise IndexError(_value)
 
 def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
     offset %= totalLength
