@@ -6,7 +6,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateC
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Iteration.Extensions import Count
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CreateEnumerableStack
-from WinCopies.Collections.Util import ReverseIndex, GetSequenceIndex, ThrowSliceLengthError, ThrowSpanRefusedError
+from WinCopies.Collections.Util import ReverseIndex, GetSequenceIndex, ThrowSliceLengthError, ThrowSpanRefusedError, ThrowZeroStepError
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
     return l.GetAt(GetSequenceIndex(index, l.GetCount()))
@@ -83,7 +83,7 @@ def ResolveKey(lst: ICountable, key: slice) -> tuple[int, int, int, int]:
     step: int|None = key.step
 
     if step is None: step = 1
-    elif step == 0: raise IndexError()
+    elif step == 0: ThrowZeroStepError()
 
     count: int = lst.GetCount()
 
@@ -179,7 +179,7 @@ def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     s: int|None = key.step
 
     if s is None: s = 1
-    elif s == 0: raise IndexError()
+    elif s == 0: ThrowZeroStepError()
 
     count: int = lst.GetCount()
 

@@ -27,6 +27,7 @@ from WinCopies.Collections.Abstraction.Collection import CreateArray, CreateList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
+import WinCopies.Collections.Range as RangeModule
 from WinCopies.Collections.Circular import CircularList, CircularTuple
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import IDefaultMutableSequence
@@ -254,6 +255,34 @@ def _everywhere(name: str, replacement: Any) -> contextlib.ExitStack:
 
     return stack
 
+def _refusal(act: _Act, target: Any) -> str:
+    try: act(target)
+    except Exception as exception: return f"{type(exception).__name__}: {exception}"
+
+    return "no refusal"
+
+def _zeroStepCalls(offers: tuple[bool, bool, bool]) -> Iterator[tuple[str, _Act]]:
+    yield ("l[::0]", lambda s: s[::0])
+
+    if offers[0]: yield ("l[::0] = []", lambda s: s.__setitem__(slice(None, None, 0), []))
+    if offers[1]: yield ("del l[::0]", lambda s: s.__delitem__(slice(None, None, 0)))
+
+class TestAZeroStepIsRefusedAsPythonDoes(unittest.TestCase):
+    """D-86, closed: a zero step was refused with a bare IndexError by the assignment and the deletion
+    of a slice, under a docstring that said it was refused as CPython refuses it; CPython raises
+    ValueError("slice step cannot be zero"). Reading such a slice already raised ValueError, from
+    slice.indices, so only the writes diverged."""
+
+    def test_every_carrier_refuses_a_zero_step_as_python_does(self) -> None:
+        for carrier, factory, _, offers in _CARRIERS:
+            for label, act in _zeroStepCalls(offers):
+                with self.subTest(carrier = carrier, call = label):
+                    items: Any = factory()
+                    before: list[Any] = list(items.AsIterable())
+
+                    self.assertEqual(_refusal(act, _sequence(items)), _refusal(act, list(before)), f"{carrier}, {label}")
+                    self.assertEqual(list(items.AsIterable()), before, f"{carrier}, {label} changed the content while refusing")
+
 class TestTheProtocolBenchesCanFail(unittest.TestCase):
     """Each bench is run against the framework rebuilt with the defect it guards: green on the
     intact tree, red on the rebuilt one. A run that only has to show a bench falls stops at its
@@ -299,3 +328,11 @@ class TestTheProtocolBenchesCanFail(unittest.TestCase):
 
         self._assertFalls(lambda: TestAConvertingCollectionAnswersMembership("test_contains_and_in_match_python"),
                           lambda: mock.patch.object(target, "Contains", asksItself), "membership")
+
+    def test_the_zero_step_bench_falls_when_a_zero_step_raises_a_bare_index_error(self) -> None:
+        """The refusal of a zero step as it stood until D-86."""
+
+        def bare() -> Any: raise IndexError()
+
+        self._assertFalls(lambda: TestAZeroStepIsRefusedAsPythonDoes("test_every_carrier_refuses_a_zero_step_as_python_does"),
+                          lambda: mock.patch.object(RangeModule, "ThrowZeroStepError", bare), "zero step")

@@ -32,6 +32,9 @@ def ThrowSliceLengthError(length: int, size: int) -> NoReturn: raise GetSliceLen
 def GetSpanRefusedError(length: int, indices: range) -> ValueError: return ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
 def ThrowSpanRefusedError(length: int, indices: range) -> NoReturn: raise GetSpanRefusedError(length, indices)
 
+def GetZeroStepError() -> ValueError: return ValueError("slice step cannot be zero")
+def ThrowZeroStepError() -> NoReturn: raise GetZeroStepError()
+
 def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
     match lookup:
         case True: return GetKeyNotFoundError(item)
