@@ -12,15 +12,10 @@ from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableBool, DualN
 from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityAndRichComparison
 
 def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
-    def getMessage() -> str:
-        match lookup:
-            case True: return f"Key {item} not found."
-            case False: return f"Key {item} already exists."
-            case None: return f"Item '{item}' has a duplicate."
-    
-    message: str = getMessage()
-
-    return KeyError(message) if lookup else DuplicateKeyError(message)
+    match lookup:
+        case True: return KeyError(f"Key {item} not found.")
+        case False: return DuplicateKeyError(f"Key {item} already exists.")
+        case None: return DuplicateKeyError(f"Item '{item}' has a duplicate.")
 def ThrowKeyError(item: HashableProtocol, lookup: bool|None = False) -> NoReturn:
     raise GetKeyError(item, lookup)
 
