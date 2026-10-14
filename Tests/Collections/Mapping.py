@@ -15,10 +15,12 @@ collection it leaves behind must still be an ordered set.
 import unittest
 from collections.abc import Iterator, MutableSequence
 from typing import Any, Callable
+from unittest import mock
 
-from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Collections.Abstraction.Collection import TryCreateSizedList
+from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
+from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
+import WinCopies.Collections.Range.Extensions as RangeExtensions
 from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Collections.Extensions import IList, IOrderedSet
 from WinCopies.Typing.Delegate import Converter
@@ -848,3 +850,46 @@ class TestASpanIsRefusedByTheContainerBeforeItIsWritten(unittest.TestCase):
 
         self.assertEqual(tuple(items.AsIterable()), (0, 7, 8, 3), "a span the list accepts was refused")
         self.assertEqual(sorted(mirror), [0, 3, 7, 8], "the set did not follow the list")
+
+class TestAWriteByIndexRefusesAnIndexAsTheListDoes(unittest.TestCase):
+    """SetOrderedValue answers a refused index with IndexError, as SetAt and l[i] = x do on every
+    list since 88bf48d. It raised KeyError, "Key 9 does not exist.", under a comment that justified
+    it by what SetAt used to raise. Reachable by calling the function only: its one caller,
+    SetOrderedItems, resolves the index first and raises IndexError itself."""
+
+    def test_a_refused_index_raises_index_error(self) -> None:
+        for index in (9, 3, -1):
+            with self.subTest(index = index):
+                items: IList[int] = CreateList([0, 1, 2])
+                mirror: set[int] = {0, 1, 2}
+
+                with self.assertRaises(IndexError) as caught: RangeExtensions.SetOrderedValue(items, mirror, index, 7)
+
+                self.assertEqual(caught.exception.args, (index,), f"SetOrderedValue named another index than {index}")
+                self.assertEqual(tuple(items.AsIterable()), (0, 1, 2), "the refused write changed the list")
+                self.assertEqual(sorted(mirror), [0, 1, 2], "the refused write changed the set")
+
+class TestTheIndexBenchCanFail(unittest.TestCase):
+    """The bench above is run against SetOrderedValue as it stood until D-47 closed its point 3:
+    green on the intact tree, red on the rebuilt one."""
+
+    def test_it_falls_when_a_refused_index_raises_a_key_error(self) -> None:
+        def rebuilt(lst: Any, s: Any, index: Any, value: Any) -> None:
+            match RangeExtensions.TrySetOrderedValue(lst, s, index, value):
+                case None: raise KeyError(f"Key {index} does not exist.")
+                case False: raise DuplicateKeyError(f"Item {value} already exists at another position.")
+
+                case _: return None
+
+        def run() -> unittest.TestResult:
+            result: unittest.TestResult = unittest.TestResult()
+
+            TestAWriteByIndexRefusesAnIndexAsTheListDoes("test_a_refused_index_raises_index_error").run(result)
+
+            return result
+
+        self.assertTrue(run().wasSuccessful(), "the bench is expected to pass on the intact tree")
+
+        with mock.patch.object(RangeExtensions, "SetOrderedValue", rebuilt): broken: unittest.TestResult = run()
+
+        self.assertFalse(broken.wasSuccessful(), "the bench did not fall with a refused index raising KeyError")
