@@ -35,13 +35,21 @@ def ThrowSpanRefusedError(length: int, indices: range) -> NoReturn: raise GetSpa
 def GetZeroStepError() -> ValueError: return ValueError("slice step cannot be zero")
 def ThrowZeroStepError() -> NoReturn: raise GetZeroStepError()
 
-def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
-    match lookup:
-        case True: return GetKeyNotFoundError(item)
-        case False: return DuplicateKeyError(f"Key {item} already exists.")
-        case None: return DuplicateKeyError(f"Item '{item}' has a duplicate.")
-def ThrowKeyError(item: HashableProtocol, lookup: bool|None = False) -> NoReturn:
-    raise GetKeyError(item, lookup)
+# A duplicate is refused for one of three causes: a key a dictionary already holds; an item a set
+# already holds, which every list over a set refuses too -- named an item, as the key of a list
+# would read as its index; and an item that appears twice in what the caller gives. A range refused
+# as a whole names neither the item nor which of the last two causes it is.
+def GetDuplicateKeyError(key: HashableProtocol) -> DuplicateKeyError: return DuplicateKeyError(f"Key {key} already exists.", GetNullable(key))
+def ThrowDuplicateKeyError(key: HashableProtocol) -> NoReturn: raise GetDuplicateKeyError(key)
+
+def GetDuplicateItemError(item: HashableProtocol) -> DuplicateKeyError: return DuplicateKeyError(f"Item {item} already exists.", GetNullable(item))
+def ThrowDuplicateItemError(item: HashableProtocol) -> NoReturn: raise GetDuplicateItemError(item)
+
+def GetRepeatedItemError(item: HashableProtocol) -> DuplicateKeyError: return DuplicateKeyError(f"Item {item} appears more than once in the values given.", GetNullable(item))
+def ThrowRepeatedItemError(item: HashableProtocol) -> NoReturn: raise GetRepeatedItemError(item)
+
+def GetDuplicateRangeError() -> DuplicateKeyError: return DuplicateKeyError("At least one item appears more than once or already exists.")
+def ThrowDuplicateRangeError() -> NoReturn: raise GetDuplicateRangeError()
 
 type __BoundComparison = Callable[[SupportsRichComparison, SupportsRichComparison, SupportsRichComparison, bool, bool], bool]
 

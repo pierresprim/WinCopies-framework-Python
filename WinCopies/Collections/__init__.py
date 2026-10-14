@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator as GeneratorBase
 from enum import Flag
-from typing import Callable
+from typing import Callable, final
 
 from WinCopies import Abstract
 from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
@@ -26,7 +26,15 @@ class EmptyException(Error):
 # ValueError, as Python names a value it refuses -- Python raises KeyError for an absent key only.
 # Either reader finds the type it expects, and the type itself tells "already held" from "absent".
 class DuplicateKeyError(Error, KeyError, ValueError):
-    def __init__(self, message: str, *args: object) -> None: super().__init__(message, *args)
+    def __init__(self, message: str, duplicate: INullable[object] = GetNullValue(), *args: object) -> None:
+        super().__init__(message, *args)
+
+        self.__duplicate: INullable[object] = duplicate
+
+    # What is held twice, when the route that refuses knows it -- a nullable, since a set may hold
+    # None. A range refused as a whole does not: it is not its part to look for the item at fault.
+    @final
+    def GetDuplicate(self) -> INullable[object]: return self.__duplicate
 
 class FinderPredicate[T](Abstract):
     def __init__(self) -> None:

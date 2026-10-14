@@ -5,8 +5,8 @@ from collections.abc import Sized, Iterable, Container, Collection
 from typing import overload, final, Any, Callable, NoReturn
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import EmptyException, DuplicateKeyError
-from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, GetKeyNotFoundError, ThrowKeyNotFoundError, GetIndexError, ThrowIndexError, ThrowValueNotFoundError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
+from WinCopies.Collections import EmptyException
+from WinCopies.Collections.Util import GetDuplicateKeyError, ThrowDuplicateKeyError, ThrowDuplicateItemError, ThrowDuplicateRangeError, GetKeyNotFoundError, ThrowKeyNotFoundError, GetIndexError, ThrowIndexError, ThrowValueNotFoundError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, IndexedValueComparison
@@ -709,7 +709,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
         ...
     @final
     def Add(self, item: T) -> None:
-        if not self.TryAdd(item): ThrowKeyError(item)
+        if not self.TryAdd(item): ThrowDuplicateItemError(item)
 
     @abstractmethod
     def TryAddRange(self, items: Iterable[T]) -> bool|None:
@@ -718,7 +718,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
     def AddRange(self, items: Iterable[T]) -> None:
         result: bool|None = self.TryAddRange(items)
 
-        if result is None: raise DuplicateKeyError("At least one item appears more than once or already exists.")
+        if result is None: ThrowDuplicateRangeError()
 
     @final
     def TryAddValues(self, *values: T) -> bool:
@@ -743,7 +743,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
     def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self, lambda x, y: self.ValidateKeys(x, y, move), updater)
 
     def _GetKeysError(self, x: TKey, y: TKey) -> LookupError:
-        return (GetKeyError(y) if self.ContainsKey(y) else self._GetKeyNotFoundError(y)) if self.ContainsKey(x) else self._GetKeyNotFoundError(x)
+        return (GetDuplicateKeyError(y) if self.ContainsKey(y) else self._GetKeyNotFoundError(y)) if self.ContainsKey(x) else self._GetKeyNotFoundError(x)
 
     @final
     def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
@@ -767,7 +767,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
         ...
     @final
     def Add(self, key: TKey, value: TValue) -> None:
-        if not self.TryAdd(key, value): ThrowKeyError(key)
+        if not self.TryAdd(key, value): ThrowDuplicateKeyError(key)
 
     @final
     def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:

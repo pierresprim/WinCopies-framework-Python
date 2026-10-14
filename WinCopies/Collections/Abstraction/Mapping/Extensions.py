@@ -18,7 +18,7 @@ from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetKeyError
+from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
@@ -40,7 +40,7 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
         self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
 
-    def _GetValueError(self, key: int, value: T) -> LookupError: return GetKeyError(value)
+    def _GetValueError(self, key: int, value: T) -> LookupError: return GetDuplicateItemError(value)
     
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     def TryGetSourceMutability(self) -> None: return None
@@ -320,8 +320,11 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         self.__list: IFunction[IList[T]] = _OrderedSetListUpdater[T](self, l, s, innerSet, updateList) # type: ignore[no-redef]
         self.__tuple: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetTupleUpdater[T](self, updateTuple) # type: ignore[no-redef]
 
+        # TryAdd rather than Add: the set starts empty, so a refusal here can only be an item the
+        # caller gives twice, which is not an item the set already held.
         if items is not None:
-            for item in items: self.Add(item)
+            for item in items:
+                if not self.TryAdd(item): ThrowRepeatedItemError(item)
     
     @final
     def GetCount(self) -> int: return self.__items.GetCount()
