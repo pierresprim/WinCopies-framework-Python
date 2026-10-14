@@ -143,7 +143,7 @@ def SetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: in
         case None: raise IndexError(index)
         case False: raise DuplicateKeyError(f"Item {value} already exists at another position.")
 
-        case _: return None
+        case _: pass
 
 @overload
 def SetOrderedItems[T: HashableProtocol](lst: IListBase[T], s: set[T], index: SupportsIndex, value: T) -> None:
