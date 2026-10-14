@@ -25,8 +25,9 @@ from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, 
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
-from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
+from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, Array as SelectionArray, List as SelectionList
 from WinCopies.Collections.Circular import CircularList
+import WinCopies.Collections.Abstract.Collection as AbstractCollection
 import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
 import WinCopies.Collections.Core as Core
 import WinCopies.Collections.Range.Extensions as RangeExtensions
@@ -467,33 +468,44 @@ class TestADictionaryChangesPositionByKey(unittest.TestCase):
                     self.assertEqual(str(raised), message, f"{carrier}.{operation}({x!r}, {y!r}) named another cause")
                     self.assertEqual(_contents(dictionary), before, f"{carrier}.{operation}({x!r}, {y!r}) changed the dictionary while refusing")
 
-_UNIQUE_LISTS: ReadOnlyArray[tuple[str, _Factory, int, int, bool]] = (
-    ("OrderedSet.AsList()",                                lambda: CreateOrderedSet([0, 1, 2]).AsList(), 0, 0, True),
-    ("OrderedSet.AsList().AsReversed()",                   lambda: CreateOrderedSet([2, 1, 0]).AsList().AsReversed(), 0, 0, False),
-    (_OVER_SET,                                            lambda: CircularList[int](CreateOrderedSet([2, 0, 1]).AsList(), 1), 0, 0, False),
-    ("ObservableCollection over OrderedSet.AsList()",      lambda: ObservableCollection[int](CreateOrderedSet([0, 1, 2]).AsList()), 0, 0, False),
+_UNIQUE_LISTS: ReadOnlyArray[tuple[str, _Factory, int, int|None, bool]] = (
+    ("OrderedSet.AsList()",                                lambda: CreateOrderedSet([0, 1, 2]).AsList(), 0, None, True),
+    ("OrderedSet.AsList().AsReversed()",                   lambda: CreateOrderedSet([2, 1, 0]).AsList().AsReversed(), 0, None, False),
+    (_OVER_SET,                                            lambda: CircularList[int](CreateOrderedSet([2, 0, 1]).AsList(), 1), 0, None, False),
+    ("ObservableCollection over OrderedSet.AsList()",      lambda: ObservableCollection[int](CreateOrderedSet([0, 1, 2]).AsList()), 0, None, False),
     ("Selection.List, x + 10, over OrderedSet.AsList()",   lambda: SelectionList[int, int](CreateOrderedSet([0, 1, 2]).AsList(), Converters[int, int](lambda x: x + 10, lambda x: x - 10)), 10, 0, False))
 """Every list at hand that refuses a value it already holds, each reading three items of which the
 first is the value given: the ordered set's view, and each kind of view or wrapper over it. The
-fourth field is the item a refusal carries and names: the value given, save through the converting
-list, whose error is built under its conversion and so names the container's value -- the open
-point M3 of D-47, asserted as it stands so that settling it shows. The last field says whether its
-slice route knows the cause of a refusal; only the view itself does, the others asking CanSetRange,
-which answers without one."""
+fourth field is that value as the container holds it where a conversion stands between the two --
+the value the container's own refusal names, which the converting layer tells again with the
+caller's -- and None where none does. The last field says whether its slice route knows the cause
+of a refusal; only the view itself does, the others asking CanSetRange, which answers without one."""
 
-def _duplicateCalls(held: int, carried: int) -> ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError]]:
-    """Each call that gives a list a value it holds, with the error its refusal is expected to be: an
-    item already held, or a range refused as a whole, which names no item."""
+_UNIQUE_ARRAYS: ReadOnlyArray[tuple[str, _Factory, int, int|None]] = (
+    ("OrderedSet.AsList().AsFixedSize()",                                lambda: CreateOrderedSet([0, 1, 2]).AsList().AsFixedSize(), 0, None),
+    ("Selection.Array, x + 10, over OrderedSet.AsList().AsFixedSize()",  lambda: SelectionArray[int, int](CreateOrderedSet([0, 1, 2]).AsList().AsFixedSize(), Converters[int, int](lambda x: x + 10, lambda x: x - 10)), 10, 0))
+"""The fixed-size view of the ordered set, which refuses a value it holds through its one write, SetAt,
+and a converting array over it; the fields read as the first four of _UNIQUE_LISTS."""
+
+def _innerRefusal(inner: int|None) -> DuplicateKeyError|None:
+    return None if inner is None else GetDuplicateItemError(inner)
+
+def _duplicateCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError, DuplicateKeyError|None]]:
+    """Each call that gives a list a value it holds, with the error its refusal is expected to be -- an
+    item already held, or a range refused as a whole, which names no item -- and its expected cause:
+    the container's own refusal, which a converting layer tells again, or None where no conversion
+    stands between or the range names no item to tell again."""
 
     fresh: int = held + 7
-    item: DuplicateKeyError = GetDuplicateItemError(carried)
+    item: DuplicateKeyError = GetDuplicateItemError(held)
     span: DuplicateKeyError = GetDuplicateRangeError()
+    cause: DuplicateKeyError|None = _innerRefusal(inner)
 
     return (
-        ("Add", lambda l: l.Add(held), item), ("Insert", lambda l: l.Insert(0, held), item), ("InsertRange", lambda l: l.InsertRange(0, [held]), span),
-        ("AddRange, a value twice", lambda l: l.AddRange([fresh, fresh]), span), ("SetAt", lambda l: l.SetAt(1, held), item),
-        ("insert", lambda l: l.AsMutableSequence().insert(0, held), item), ("append", lambda l: l.AsMutableSequence().append(held), item),
-        ("extend", lambda l: l.AsMutableSequence().extend([held]), span), ("[1] = x", lambda l: l.AsMutableSequence().__setitem__(1, held), item))
+        ("Add", lambda l: l.Add(held), item, cause), ("Insert", lambda l: l.Insert(0, held), item, cause), ("InsertRange", lambda l: l.InsertRange(0, [held]), span, None),
+        ("AddRange, a value twice", lambda l: l.AddRange([fresh, fresh]), span, None), ("SetAt", lambda l: l.SetAt(1, held), item, cause),
+        ("insert", lambda l: l.AsMutableSequence().insert(0, held), item, cause), ("append", lambda l: l.AsMutableSequence().append(held), item, cause),
+        ("extend", lambda l: l.AsMutableSequence().extend([held]), span, None), ("[1] = x", lambda l: l.AsMutableSequence().__setitem__(1, held), item, cause))
 
 class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
     """D-47: a value or a key already held is refused with DuplicateKeyError, which is a KeyError, as the
@@ -537,8 +549,8 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
                 self.assertIsInstance(raised, DuplicateKeyError, f"{label} raised {raised!r}")
 
     def test_a_list(self) -> None:
-        for carrier, factory, held, carried, _ in _UNIQUE_LISTS:
-            for label, call, _ in _duplicateCalls(held, carried):
+        for carrier, factory, held, inner, _ in _UNIQUE_LISTS:
+            for label, call, _, _ in _duplicateCalls(held, inner):
                 with self.subTest(carrier = carrier, call = label):
                     self.__assertRefuses(f"{carrier}.{label}", factory(), call)
 
@@ -598,11 +610,13 @@ class TestADuplicateSaysItsCause(unittest.TestCase):
     one message and carries what is held twice. Until it, the same assignment said "Item 0 already
     exists at another position." on the ordered set's view and "Key 0 already exists." through any
     wrapper; a list named its value a key, which reads as its index; the same values given twice were
-    told three ways by three routes; and no error carried the item. The expectations are built through
-    this module's own references to the factories, which a patch of the framework's leaves as they
-    are."""
+    told three ways by three routes; no error carried the item; and through a converting list or array
+    a refusal named the container's value rather than the caller's. That layer now tells it again with
+    the caller's value, the container's own refusal kept as its cause. The expectations are built
+    through this module's own references to the factories, which a patch of the framework's leaves as
+    they are."""
 
-    def __assertSays(self, label: str, act: Callable[[], Any], expected: DuplicateKeyError) -> None:
+    def __assertSays(self, label: str, act: Callable[[], Any], expected: DuplicateKeyError, cause: DuplicateKeyError|None = None) -> None:
         with self.subTest(call = label):
             raised: BaseException|None = _raised(act)
 
@@ -612,6 +626,14 @@ class TestADuplicateSaysItsCause(unittest.TestCase):
 
             self.assertEqual(str(raised), str(expected), f"{label} does not say its cause as its factory says it")
             self.assertEqual(_held(raised), _held(expected), f"{label} does not carry what is held twice")
+
+            if cause is None: self.assertIsNone(raised.__cause__, f"{label} gives itself a cause, {raised.__cause__!r}")
+            else:
+                self.assertIsInstance(raised.__cause__, DuplicateKeyError, f"{label} does not keep the container's refusal as its cause")
+
+                assert isinstance(raised.__cause__, DuplicateKeyError)
+
+                self.assertEqual((str(raised.__cause__), _held(raised.__cause__)), (str(cause), _held(cause)), f"{label} keeps another cause than the container's refusal")
 
     def test_a_set(self) -> None:
         calls: ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError]] = (
@@ -634,14 +656,18 @@ class TestADuplicateSaysItsCause(unittest.TestCase):
         """Through the slice route, only where it knows the cause: elsewhere it raises ValueError for
         any cause, which is D-47's point 4."""
 
-        for carrier, factory, held, carried, knowsTheCause in _UNIQUE_LISTS:
-            for label, call, expected in _duplicateCalls(held, carried): self.__assertSays(f"{carrier}.{label}", lambda: call(factory()), expected)
+        for carrier, factory, held, inner, knowsTheCause in _UNIQUE_LISTS:
+            for label, call, expected, cause in _duplicateCalls(held, inner): self.__assertSays(f"{carrier}.{label}", lambda: call(factory()), expected, cause)
 
             if knowsTheCause:
                 fresh: int = held + 7
 
                 self.__assertSays(f"{carrier}[1:2] = [x]", lambda: factory().AsMutableSequence().__setitem__(slice(1, 2), [held]), GetDuplicateItemError(held))
                 self.__assertSays(f"{carrier}[0:2] = [y, y]", lambda: factory().AsMutableSequence().__setitem__(slice(0, 2), [fresh, fresh]), GetRepeatedItemError(fresh))
+
+    def test_an_array(self) -> None:
+        for carrier, factory, held, inner in _UNIQUE_ARRAYS:
+            self.__assertSays(f"{carrier}.SetAt(1, x)", lambda: factory().SetAt(1, held), GetDuplicateItemError(held), _innerRefusal(inner))
 
 class TestChecksBrokenByOpenDefects(unittest.TestCase):
     """The checks _BLOCKED holds out, one bench per defect, so that each signals as an
@@ -785,11 +811,11 @@ class TestTheseBenchesCanFail(unittest.TestCase):
     @staticmethod
     def __everywhere(rebuilt: Callable[[str], Any], names: ReadOnlyArray[str]) -> ReadOnlyArray[tuple[Any, str, Any]]:
         """Each named factory of a duplicate, rebuilt, under every module that holds it: Util, whose
-        Throw forms build their error through it, and the two modules that build one directly."""
+        Throw forms build their error through it, and the three modules that build one directly."""
 
         holders: ReadOnlyArray[tuple[Any, ReadOnlyArray[str]]] = (
             (Util, ("GetDuplicateKeyError", "GetDuplicateItemError", "GetRepeatedItemError", "GetDuplicateRangeError")),
-            (Core, ("GetDuplicateKeyError",)), (MappingExtensions, ("GetDuplicateItemError",)))
+            (Core, ("GetDuplicateKeyError",)), (MappingExtensions, ("GetDuplicateItemError",)), (AbstractCollection, ("GetDuplicateItemError",)))
 
         return tuple((module, name, rebuilt(name)) for module, held in holders for name in held if name in names)
 
@@ -843,6 +869,27 @@ class TestTheseBenchesCanFail(unittest.TestCase):
 
         self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_set", "test_a_dictionary", "test_a_creation", "test_a_list"),
                                self.__everywhere(rebuilt, ("GetDuplicateKeyError", "GetDuplicateItemError", "GetRepeatedItemError")))
+
+    def test_the_cause_bench_falls_when_a_converting_layer_hands_the_refusal_on(self) -> None:
+        """The writes of a converting layer as they stood until M3, which let the container's refusal
+        through as it was, naming the container's value rather than the caller's."""
+
+        def rebuilt(write: Callable[[], object], value: object) -> None: write()
+
+        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection, "_Write", rebuilt),))
+
+    def test_the_cause_bench_falls_when_a_converting_layer_drops_the_container_refusal(self) -> None:
+        """A converting layer that tells the refusal again with the caller's value, but from None, so
+        that the container's own refusal is lost."""
+
+        def rebuilt(write: Callable[[], object], value: object) -> None:
+            try: write()
+            except DuplicateKeyError as error:
+                if not error.GetDuplicate().HasValue(): raise
+
+                raise GetDuplicateItemError(value) from None
+
+        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection, "_Write", rebuilt),))
 
     def test_the_duplicate_bench_falls_when_a_range_raises_a_bare_key_error(self) -> None:
         """ISet.AddRange as it stood at 8e4000a."""

@@ -4,7 +4,8 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import final, overload, Self, SupportsIndex
 
-from WinCopies import IStringable, IsTrue
+from WinCopies import IStringable
+from WinCopies.Collections import DuplicateKeyError
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
 from WinCopies.Collections.Abstract.Selection import StringableConverter, StringableTwoWayConverter
@@ -21,8 +22,9 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetItems
-from WinCopies.Collections.Util import GetSequenceIndex
+from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
+from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], _TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut]):
@@ -133,6 +135,16 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
+# A converting layer hands the container the converted value, and the container refuses a value it
+# already holds in its own terms. A single write gives one value, which is then the one held: the
+# refusal is told again with the value as the caller gave it, the container's own kept as its cause.
+def _Write(write: Function[object], value: object) -> None:
+    try: write()
+    except DuplicateKeyError as error:
+        if not error.GetDuplicate().HasValue(): raise
+
+        raise GetDuplicateItemError(value) from error
+
 class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], StringableTwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self) -> None: super().__init__()
     
@@ -145,7 +157,11 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     def _SetAt(self, key: int, value: TOut, throwOnError: bool) -> bool:
         items: IArray[TIn] = self._GetSpecializedContainer()
 
-        return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(key, self._ConvertBack(value)))
+        if not throwOnError: return items.TrySetAt(key, self._ConvertBack(value))
+
+        _Write(lambda: items.SetAt(key, self._ConvertBack(value)), value)
+
+        return True
 
     @final
     def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
@@ -201,7 +217,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     @final
     def _TryInsert(self, index: int, value: TOut) -> bool: return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     @final
-    def _Insert(self, index: int, value: TOut) -> None: self._GetContainer().Insert(index, self._ConvertBack(value))
+    def _Insert(self, index: int, value: TOut) -> None: _Write(lambda: self._GetContainer().Insert(index, self._ConvertBack(value)), value)
     @final
     def _TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool: return self._GetContainer().TryInsertRange(index, self.__Select(items)) is True
     @final
@@ -224,7 +240,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
-    def insert(self, index: int, value: TOut) -> None: self._GetContainer().AsMutableSequence().insert(index, self._ConvertBack(value))
+    def insert(self, index: int, value: TOut) -> None: _Write(lambda: self._GetContainer().AsMutableSequence().insert(index, self._ConvertBack(value)), value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> TOut: ...
