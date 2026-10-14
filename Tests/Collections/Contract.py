@@ -23,7 +23,6 @@ from unittest import mock
 from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
-from WinCopies.Collections.Util import GetKeyValueError
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, List as SelectionList
@@ -650,7 +649,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
     def test_the_setter_bench_falls_when_a_refused_value_names_the_container_position(self) -> None:
         """The ordered set view's value error as it stood at 8a39df4."""
 
-        def rebuilt(self: Any, key: int, value: Any) -> LookupError: return GetKeyValueError(self.FindFirstIndex(value), value)
+        def rebuilt(self: Any, key: int, value: Any) -> LookupError: return KeyError(f"Item {value} already exists at the {self.FindFirstIndex(value)} key.")
 
         target: Any = type(CreateOrderedSet([0]).AsList())
 

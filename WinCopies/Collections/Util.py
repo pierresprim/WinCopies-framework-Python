@@ -19,11 +19,6 @@ def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
 def ThrowKeyError(item: HashableProtocol, lookup: bool|None = False) -> NoReturn:
     raise GetKeyError(item, lookup)
 
-def GetKeyValueError(key: HashableProtocol, value: object) -> KeyError:
-    return KeyError(f"Item {value} already exists at the {key} key.")
-def ThrowKeyValueError(key: HashableProtocol, value: object) -> NoReturn:
-    raise GetKeyValueError(key, value)
-
 type __BoundComparison = Callable[[SupportsRichComparison, SupportsRichComparison, SupportsRichComparison, bool, bool], bool]
 
 def __Between(x: SupportsRichComparison, value: SupportsRichComparison, y: SupportsRichComparison, bx: bool, by: bool) -> bool:
