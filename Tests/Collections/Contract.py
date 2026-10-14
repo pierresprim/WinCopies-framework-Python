@@ -559,23 +559,34 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
 
                 self.assertEqual(_snapshot(items), before, f"{carrier}[1:2] = [x] changed the list while refusing")
 
-    def __assertAbsent(self, label: str, act: Callable[[], Any], expected: type[BaseException]) -> None:
+    def __assertAbsent(self, label: str, act: Callable[[], Any], expected: BaseException) -> None:
         with self.subTest(call = label):
             raised: BaseException|None = _raised(act)
 
-            self.assertIsInstance(raised, expected, f"{label} raised {raised!r}")
+            self.assertIsInstance(raised, type(expected), f"{label} raised {raised!r}")
             self.assertNotIsInstance(raised, DuplicateKeyError, f"{label} reports an absence as a duplicate")
 
-    def test_an_absence_is_not_a_duplicate(self) -> None:
-        dictionaryCalls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
-            ("GetAt('z')", lambda d: d.GetAt("z")), ("Remove('z')", lambda d: d.Remove("z")), ("Move('z', 'c')", lambda d: d.Move("z", "c")))
+            assert raised is not None
 
-        for carrier, factory in _SETS: self.__assertAbsent(f"{carrier}.Remove(9)", lambda: factory().Remove(9), KeyError)
+            self.assertEqual(raised.args, expected.args, f"{label} does not carry what is absent alone, as Python raises it")
+
+    def test_an_absence_is_not_a_duplicate(self) -> None:
+        """Nor does it carry a sentence: what is absent is its args[0], as Python raises it -- KeyError('z')
+        for a dictionary, KeyError(9) for set.remove. Until D-47 the absence of a key alone carried
+        "Key 9 not found.", which str() printed between quotes."""
+
+        dictionaryCalls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+            ("GetAt('z')", lambda d: d.GetAt("z")), ("Remove('z')", lambda d: d.Remove("z")), ("SetAt('z', 3)", lambda d: d.SetAt("z", 3)),
+            ("Move('z', 'c')", lambda d: d.Move("z", "c")), ("Swap('a', 'z')", lambda d: d.Swap("a", "z")), ("Swap('z', 'a')", lambda d: d.Swap("z", "a")))
+
+        for carrier, factory in _SETS: self.__assertAbsent(f"{carrier}.Remove(9)", lambda: factory().Remove(9), KeyError(9))
 
         for carrier, factory in _PAIRED_DICTIONARIES:
-            for label, call in dictionaryCalls: self.__assertAbsent(f"{carrier}.{label}", lambda: call(factory()), KeyError)
+            for label, call in dictionaryCalls: self.__assertAbsent(f"{carrier}.{label}", lambda: call(factory()), KeyError("z"))
 
-        for carrier, factory, _, _, _ in _UNIQUE_LISTS: self.__assertAbsent(f"{carrier}.GetAt(9)", lambda: factory().GetAt(9), IndexError)
+        for carrier, factory, _, _, _ in _UNIQUE_LISTS:
+            self.__assertAbsent(f"{carrier}.GetAt(9)", lambda: factory().GetAt(9), IndexError(9))
+            self.__assertAbsent(f"{carrier}.Remove(9)", lambda: factory().Remove(9), ValueError(9))
 
 def _held(error: DuplicateKeyError) -> tuple[bool, object]:
     duplicate: INullable[object] = error.GetDuplicate()
@@ -859,5 +870,12 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         original: Any = Util.GetKeyNotFoundError
 
         def rebuilt(key: Any) -> KeyError: return DuplicateKeyError(str(original(key)))
+
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), tuple((module, "GetKeyNotFoundError", rebuilt) for module in (Util, Core)))
+
+    def test_the_absence_bench_falls_when_an_absence_carries_a_sentence(self) -> None:
+        """The factory of the absent key as it stood until D-47, which carried a sentence rather than the key."""
+
+        def rebuilt(key: Any) -> KeyError: return KeyError(f"Key {key} not found.")
 
         self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), tuple((module, "GetKeyNotFoundError", rebuilt) for module in (Util, Core)))

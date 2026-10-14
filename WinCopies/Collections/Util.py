@@ -14,7 +14,9 @@ from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityA
 # One factory per cause of refusal, so that the type and the wording of each are decided here once
 # and every route that refuses for that cause says it alike.
 
-def GetKeyNotFoundError(key: HashableProtocol) -> KeyError: return KeyError(f"Key {key} not found.")
+# An absence carries what is absent and nothing else, as Python raises it: the key, the index or the
+# value is its args[0], where a reader of Python looks for it.
+def GetKeyNotFoundError(key: HashableProtocol) -> KeyError: return KeyError(key)
 def ThrowKeyNotFoundError(key: HashableProtocol) -> NoReturn: raise GetKeyNotFoundError(key)
 
 def GetIndexError(index: SupportsIndex) -> IndexError: return IndexError(index)
