@@ -170,15 +170,15 @@ def TrySetAt[T](l: MutableSequence[T], index: int, value: T) -> bool:
     
     return False
 
-def _TryMove[T](l: MutableSequence[T], x: int, y: int) -> int|None:
+def _TryMove[T](l: MutableSequence[T], x: int, y: int) -> INullable[int]|None:
     def validateIndex(index: int) -> bool: return ValidateIndex(index, length)
 
     length: int = len(l)
 
-    if x == y: return -1 if validateIndex(x) else x
+    if x == y: return GetNullValue() if validateIndex(x) else GetNullable(x)
 
-    if not validateIndex(x): return x
-    if not validateIndex(y): return y
+    for index in (x, y):
+        if not validateIndex(index): return GetNullable(index)
     
     item: T = l.pop(x)
 
@@ -188,15 +188,13 @@ def _TryMove[T](l: MutableSequence[T], x: int, y: int) -> int|None:
     return None
 
 def TryMove[T](l: MutableSequence[T], x: int, y: int) -> bool|None:
-    match _TryMove(l, x, y):
-        case None: return True
-        case -1: return False
+    result: INullable[int]|None = _TryMove(l, x, y)
 
-        case _: return None
+    return True if result is None else (False if result.TryGetValue() is None else None)
 def Move[T](l: MutableSequence[T], x: int, y: int) -> None:
-    result: int|None = _TryMove(l, x, y)
+    result: INullable[int]|None = _TryMove(l, x, y)
 
-    if result is not None and result >= 0: ThrowIndexError(result)
+    if result is not None and result.HasValue(): ThrowIndexError(result.GetValue())
 
 def TryGetIndex[T](l: Sequence[T], index: int, ifTrue: Converter[int, T], ifFalse: Function[T]) -> T:
     return ifTrue(index) if ValidateIndex(index, len(l)) else ifFalse()
