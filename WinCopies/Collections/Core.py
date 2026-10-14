@@ -6,7 +6,7 @@ from typing import overload, final, Any, Callable, NoReturn
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException, DuplicateKeyError
-from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
+from WinCopies.Collections.Util import GetKeyError, ThrowKeyError, GetKeyNotFoundError, ThrowKeyNotFoundError, GetIndexError, ThrowIndexError, ThrowValueNotFoundError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, IndexedValueComparison
@@ -104,21 +104,21 @@ class ICollection[T](IReadOnlyList[T]):
         ...
     @final
     def RemoveAt(self, index: int) -> None:
-        if self.TryRemoveAt(index) is not True: raise IndexError(index)
+        if self.TryRemoveAt(index) is not True: ThrowIndexError(index)
 
     @abstractmethod
     def TryRemove(self, item: T, predicate: EqualityComparison[T]|None = None) -> bool:
         ...
     @final
     def Remove(self, item: T, predicate: EqualityComparison[T]|None = None) -> None:
-        if not self.TryRemove(item, predicate): raise ValueError(item)
+        if not self.TryRemove(item, predicate): ThrowValueNotFoundError(item)
     
     @abstractmethod
     def TryRemoveRange(self, index: int, count: int|None) -> bool:
         ...
     @final
     def RemoveRange(self, index: int, count: int|None) -> None:
-        if not self.TryRemoveRange(index, count): raise IndexError(index)
+        if not self.TryRemoveRange(index, count): ThrowIndexError(index)
 
 class ICountable(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -167,7 +167,7 @@ class IKeyableBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     def _GetKeyNotFoundError(self, key: T) -> LookupError:
-        return GetKeyError(key, True)
+        return GetKeyNotFoundError(key)
     @final
     def _ThrowKeyNotFoundError(self, key: T) -> NoReturn:
         raise self._GetKeyNotFoundError(key)
@@ -267,7 +267,7 @@ class IAbstractionWriteOnlyIndexable[T](IAbstractionSetter[int, T]):
 class IIndexableBase(IKeyableBase[int]):
     def __init__(self) -> None: super().__init__()
 
-    def _GetKeyNotFoundError(self, key: int) -> LookupError: return IndexError(key)
+    def _GetKeyNotFoundError(self, key: int) -> LookupError: return GetIndexError(key)
 
 class IReadOnlyIndexable[T](IGetter[int, T], IIndexableBase):
     def __init__(self) -> None: super().__init__()
@@ -588,7 +588,7 @@ class IList[T](IArray[T], IListBase[T]):
 
             return True
         
-        if not self.__Insert(index, value, insert): raise IndexError(index)
+        if not self.__Insert(index, value, insert): ThrowIndexError(index)
 
     def _TryInsert(self, index: int, value: T) -> bool:
         self._Insert(index, value)
@@ -608,7 +608,7 @@ class IList[T](IArray[T], IListBase[T]):
 
             return True
         
-        if self.__InsertRange(index, items, insert) is None: raise IndexError(index)
+        if self.__InsertRange(index, items, insert) is None: ThrowIndexError(index)
 
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         self._InsertRange(index, items)
@@ -634,7 +634,7 @@ class IList[T](IArray[T], IListBase[T]):
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)
     @final
     def InsertValues(self, index: int, *values: T) -> None:
-        if self.TryInsertValues(index, *values) is None: raise IndexError(index)
+        if self.TryInsertValues(index, *values) is None: ThrowIndexError(index)
 
 class ISortedTuple[T: SupportsEqualityAndRichComparison](ITuple[T]):
     def __init__(self) -> None: super().__init__()
@@ -732,7 +732,7 @@ class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
         ...
     @final
     def Remove(self, item: T) -> None:
-        if not self.TryRemove(item): ThrowKeyError(item, True)
+        if not self.TryRemove(item): ThrowKeyNotFoundError(item)
 
 class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
     def __init__(self) -> None: super().__init__()
@@ -804,7 +804,7 @@ class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TVal
 
         if result.HasValue(): return result.GetValue()
 
-        raise GetKeyError(key, True)
+        ThrowKeyNotFoundError(key)
 
 class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T]):
     def __init__(self) -> None:

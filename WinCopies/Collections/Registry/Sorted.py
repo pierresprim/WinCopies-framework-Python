@@ -9,7 +9,7 @@ from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Registry.Core import ObjectRegistryBase
 from WinCopies.Collections.Registry.Kernel import CompositeRemovable
 from WinCopies.Collections.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
-from WinCopies.Collections.Util import TryBisectWithKey, Insort
+from WinCopies.Collections.Util import TryBisectWithKey, Insort, ThrowValueNotFoundError
 from WinCopies.Comparison import CompareTo
 from WinCopies.Typing import INullable, TryGetNullable, GetNullableValue
 from WinCopies.Typing.Comparison import IHashableComparableItem
@@ -112,7 +112,7 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
         return False
     @final
     def Remove(self, key: TKey) -> None:
-        if not self.TryRemove(key): raise ValueError(key)
+        if not self.TryRemove(key): ThrowValueNotFoundError(key)
 
     @final
     def Clear(self) -> None: return self.__items.clear()

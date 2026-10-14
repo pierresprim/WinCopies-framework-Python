@@ -28,12 +28,11 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
-from WinCopies.Collections.Util import (FindIndex, Move, GetSequenceIndex, GetSequenceInsertionIndex,
+from WinCopies.Collections.Util import (ThrowCapacityError, FindIndex, Move, GetSequenceIndex, GetSequenceInsertionIndex,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
                                         TryBisect, TryBisectWithKey, Insort,
                                         ExtendAt)
 from WinCopies.Delegates import GetEqualityComparison
-from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, IStruct, Handle
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -360,7 +359,7 @@ class _SizedListInitializer[T](Abstract, _ISizedListInitializer[T]):
     def GetMutability(self) -> Mutability|None: return Mutability.Mutable
 
 def _Throw(succeeded: bool) -> None:
-    if not succeeded: raise InvalidOperationError("The list is already full.")
+    if not succeeded: ThrowCapacityError()
 
 class SizedList[T](ListBase[T], ISizedList[T]):
     def __init__(self, initializer: _ISizedListInitializer[T]) -> None:

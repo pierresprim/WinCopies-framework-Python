@@ -6,7 +6,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateC
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Iteration.Extensions import Count
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CreateEnumerableStack
-from WinCopies.Collections.Util import ReverseIndex, GetSequenceIndex
+from WinCopies.Collections.Util import ReverseIndex, GetSequenceIndex, ThrowSliceLengthError, ThrowSpanRefusedError
 
 def GetAt[T](l: ITupleBase[T], index: SupportsIndex) -> T:
     return l.GetAt(GetSequenceIndex(index, l.GetCount()))
@@ -110,14 +110,14 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
     # length. Stated once, because the two branches that hold to it apply it on either side
     # of the reversal.
     def validateLength(indices: range, length: int) -> None:
-        if len(indices) != length: raise ValueError(f"Attempt to assign a sequence of size {length} to an extended slice of size {len(indices)}.")
+        if len(indices) != length: ThrowSliceLengthError(length, len(indices))
 
     # Asked before the first write, which is the whole point of the hook: the removal below
     # frees the positions and cannot be taken back, so the container is made to answer while
     # the content is still intact. The defect was this question asked too late -- InsertRange
     # discovered the refusal, and what RemoveRange had taken was already gone.
     def validateSpan(indices: range, items: ICountableEnumerable[T], length: int) -> None:
-        if not lst.CanSetRange(CreateCountableIterable(indices), items): raise ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
+        if not lst.CanSetRange(CreateCountableIterable(indices), items): ThrowSpanRefusedError(length, indices)
 
     s, i, l, count = ResolveKey(lst, key)
 

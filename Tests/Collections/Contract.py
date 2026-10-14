@@ -741,10 +741,10 @@ class TestTheseBenchesCanFail(unittest.TestCase):
                                ((MappingExtensions, "SetOrderedItems", rebuilt),))
 
     def test_the_absence_bench_falls_when_an_absence_raises_a_duplicate_key_error(self) -> None:
-        """A GetKeyError that would build the new type for every cause."""
+        """A factory of the absent key that would build the type of a duplicate."""
 
-        original: Any = Util.GetKeyError
+        original: Any = Util.GetKeyNotFoundError
 
-        def rebuilt(item: Any, lookup: bool|None = False) -> KeyError: return DuplicateKeyError(str(original(item, lookup)))
+        def rebuilt(key: Any) -> KeyError: return DuplicateKeyError(str(original(key)))
 
-        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), self.__everywhere(rebuilt))
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), tuple((module, "GetKeyNotFoundError", rebuilt) for module in (Util, Core)))

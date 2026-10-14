@@ -9,7 +9,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
 from WinCopies.Collections.Extensions.Collection import IManagedCollection, TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Collections.Util import GetSequenceInsertionIndex
+from WinCopies.Collections.Util import GetSequenceInsertionIndex, ThrowIndexError
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
@@ -30,7 +30,7 @@ class ICircularTuple[T](ITuple[T]):
     def GetCircularIndex(self, index: int, permissive: bool = False) -> int:
         result: int|None = self.TryGetCircularIndex(index, permissive)
 
-        if result is None: raise IndexError(index)
+        if result is None: ThrowIndexError(index)
 
         return result
 class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatableTuple[T]):
@@ -246,7 +246,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], List[T], MutableSequence[T]
         return self.__TryInsertAt(index, items, add, insert, False) is True
     @final
     def __Insert[U](self, index: int, items: U, add: Converter[IList[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
-        if self.__TryInsertAt(index, items, add, insert, True) is None: raise IndexError(index)
+        if self.__TryInsertAt(index, items, add, insert, True) is None: ThrowIndexError(index)
     
     @final
     def _GetIndexOrKey(self, index: SupportsIndex|slice) -> SupportsIndex|slice:

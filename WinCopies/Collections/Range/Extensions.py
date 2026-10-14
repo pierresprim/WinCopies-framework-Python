@@ -8,7 +8,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateC
 from WinCopies.Collections.Extensions import IList
 from WinCopies.Collections.Iteration.Extensions import Count
 from WinCopies.Collections.Range import ResolveKey
-from WinCopies.Collections.Util import ReverseIndex, MakeSequence, GetSequenceIndex
+from WinCopies.Collections.Util import ReverseIndex, MakeSequence, GetSequenceIndex, ThrowIndexError, ThrowSliceLengthError, ThrowSpanRefusedError
 from WinCopies.Typing.Comparison import HashableProtocol
 
 def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T]) -> bool:
@@ -38,7 +38,7 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
 
         if len(indices) == _length: return indices
         
-        raise ValueError(f"Attempt to assign a sequence of size {_length} to an extended slice of size {len(indices)}.")
+        ThrowSliceLengthError(_length, len(indices))
     def reverseIndex(index: int) -> int:
         return ReverseIndex(index, count)
 
@@ -91,7 +91,7 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     # Measured at SetOrderedValues(CreateSizedList(4, [0, 1, 2, 3]), ..., slice(1, 3),
     # (7, 8, 9)), which left [0, 3]. Asked last, so that the two messages above win whenever
     # both refusals apply: they name the item, this one only names the span.
-    if not lst.CanSetRange(CreateCountableIterable(indices), newItems): raise ValueError(f"The container refuses the assignment of {_length} item(s) to the {len(indices)} position(s) of {indices}.")
+    if not lst.CanSetRange(CreateCountableIterable(indices), newItems): ThrowSpanRefusedError(_length, indices)
 
     # Phase 2 — Mutation (only if validation is entirely successful)
     for idx in indices: s.remove(lst.GetAt(idx))
@@ -140,7 +140,7 @@ def TrySetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index:
     return True
 def SetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> None:
     match TrySetOrderedValue(lst, s, index, value):
-        case None: raise IndexError(index)
+        case None: ThrowIndexError(index)
         case False: raise DuplicateKeyError(f"Item {value} already exists at another position.")
 
         case _: pass
