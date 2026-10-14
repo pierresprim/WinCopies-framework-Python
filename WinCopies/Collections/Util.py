@@ -185,7 +185,7 @@ def _TryMove[T](l: MutableSequence[T], x: int, y: int) -> INullable[int]|None:
     
     item: T = l.pop(x)
 
-    if y == length: l.append(item)
+    if y == length - 1: l.append(item)
     else: l.insert(y, item)
 
     return None
