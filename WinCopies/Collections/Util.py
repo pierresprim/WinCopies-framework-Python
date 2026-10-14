@@ -5,36 +5,15 @@ from WinCopies import Not
 from WinCopies.Collections import ReadOnlyArray, Generator, DuplicateKeyError
 from WinCopies.Delegates import CompareEquality
 from WinCopies.String import StringifyIfNone
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Action, Converter, Function, EqualityComparison
 from WinCopies.Typing.Pairing import DualValueBool, DualValueNullableBool, DualNullableValueInfo, CreateDualValueBool, CreateDualValueNullableBool, CreateDualNullableValueInfo
 from WinCopies.Typing.Protocols import SupportsRichComparison, SupportsEqualityAndRichComparison
 
-# One factory per cause of refusal, so that the type and the wording of each are decided here once
-# and every route that refuses for that cause says it alike.
-
-def GetKeyNotFoundError(key: HashableProtocol) -> KeyError: return KeyError(f"Key {key} not found.")
-def ThrowKeyNotFoundError(key: HashableProtocol) -> NoReturn: raise GetKeyNotFoundError(key)
-
-def GetIndexError(index: SupportsIndex) -> IndexError: return IndexError(index)
-def ThrowIndexError(index: SupportsIndex) -> NoReturn: raise GetIndexError(index)
-
-def GetValueNotFoundError(item: object) -> ValueError: return ValueError(item)
-def ThrowValueNotFoundError(item: object) -> NoReturn: raise GetValueNotFoundError(item)
-
-def GetCapacityError() -> InvalidOperationError: return InvalidOperationError("The list is already full.")
-def ThrowCapacityError() -> NoReturn: raise GetCapacityError()
-
-def GetSliceLengthError(length: int, size: int) -> ValueError: return ValueError(f"Attempt to assign a sequence of size {length} to an extended slice of size {size}.")
-def ThrowSliceLengthError(length: int, size: int) -> NoReturn: raise GetSliceLengthError(length, size)
-
-def GetSpanRefusedError(length: int, indices: range) -> ValueError: return ValueError(f"The container refuses the assignment of {length} item(s) to the {len(indices)} position(s) of {indices}.")
-def ThrowSpanRefusedError(length: int, indices: range) -> NoReturn: raise GetSpanRefusedError(length, indices)
-
 def GetKeyError(item: HashableProtocol, lookup: bool|None = False) -> KeyError:
     match lookup:
-        case True: return GetKeyNotFoundError(item)
+        case True: return KeyError(f"Key {item} not found.")
         case False: return DuplicateKeyError(f"Key {item} already exists.")
         case None: return DuplicateKeyError(f"Item '{item}' has a duplicate.")
 def ThrowKeyError(item: HashableProtocol, lookup: bool|None = False) -> NoReturn:
@@ -80,23 +59,19 @@ def TryGetRangeLength(index: int, length: int, count: int|None) -> int|None:
     return None
 
 def GetOffset(inStart: int, outStart: int, length: int) -> int:
-    paramName: str|None = None
+    _value: int|None = None
 
-    def check(value: int, _paramName: str) -> bool:
-        nonlocal paramName
+    def check(value: int) -> bool:
+        nonlocal _value
 
-        paramName = _paramName
-
-        return ValidateIndex(value, length)
+        return ValidateIndex((_value := value), length)
     
-    if check(inStart, "inStart") and check(outStart, "outStart"):
-        inStart = outStart - inStart
-
-        if inStart < 0: inStart += length
+    if check(inStart) and check(outStart):
+        if (inStart := outStart - inStart) < 0: inStart += length
 
         return -inStart if outStart < 0 else inStart
     
-    raise IndexError(paramName)
+    raise IndexError(_value)
 
 def GetIndex(start: int, totalLength: int, offset: int) -> tuple[int, int]:
     offset %= totalLength
@@ -144,7 +119,7 @@ def GetSequenceIndex(index: SupportsIndex, length: int) -> int:
 
     if 0 <= result < length: return result
 
-    ThrowIndexError(index)
+    raise IndexError(index)
 def GetSequenceInsertionIndex(index: SupportsIndex, length: int) -> int:
     """Resolves the index of an insertion the way list.insert does: a negative one counts from the
     end, and one outside the sequence is brought back to its nearest end."""
