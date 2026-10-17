@@ -9,21 +9,27 @@ from WinCopies.Typing.Generic import GenericConstraint
 type Converter[TIn, TOut] = Callable[[TIn], TOut]
 type Predicate[T] = Converter[T, bool]
 type Selector[T] = Converter[T, T]
+
 type Function[T] = Callable[[], T]
-type Action = Callable[[], None]
-type Method[T] = Callable[[T], None]
+type Action = Function[None]
+type Method[T] = Converter[T, None]
+
 type NullableFunction[T] = Function[T|None]
 type NullableConverter[TIn, TOut] = Converter[TIn, TOut|None]
 type NullablePredicate[T] = Converter[T, bool|None]
 type NullableSelector[T] = NullableConverter[T, T]
+
 type GenericFunction[T] = Callable[..., T]
 type GenericMethod = GenericFunction[None]
+
 type ItemComparison[TItem, TResult] = Callable[[TItem, TItem], TResult]
 type EqualityComparison[T] = ItemComparison[T, bool]
 type Comparison[T] = ItemComparison[T, bool|None]
+
 type IndexedValueFunction[TIn, TOut] = Callable[[int, TIn], TOut]
 type IndexedValueAction[T] = IndexedValueFunction[T, None]
 type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
+
 type Operator[T] = ItemComparison[T, T]
 type RichOperator[T, U] = Callable[[T, U], T]
 
