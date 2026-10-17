@@ -6,14 +6,16 @@ from typing import final, Callable
 from WinCopies import IInterface, Abstract
 from WinCopies.Typing.Generic import GenericConstraint
 
+type Converter[TIn, TOut] = Callable[[TIn], TOut]
+type Predicate[T] = Converter[T, bool]
+type Selector[T] = Converter[T, T]
+type Function[T] = Callable[[], T]
 type Action = Callable[[], None]
 type Method[T] = Callable[[T], None]
-type Function[T] = Callable[[], T]
 type NullableFunction[T] = Function[T|None]
-type Converter[TIn, TOut] = Callable[[TIn], TOut]
 type NullableConverter[TIn, TOut] = Converter[TIn, TOut|None]
-type Predicate[T] = Converter[T, bool]
 type NullablePredicate[T] = Converter[T, bool|None]
+type NullableSelector[T] = NullableConverter[T, T]
 type GenericFunction[T] = Callable[..., T]
 type GenericMethod = GenericFunction[None]
 type ItemComparison[TItem, TResult] = Callable[[TItem, TItem], TResult]
@@ -22,8 +24,6 @@ type Comparison[T] = ItemComparison[T, bool|None]
 type IndexedValueFunction[TIn, TOut] = Callable[[int, TIn], TOut]
 type IndexedValueAction[T] = IndexedValueFunction[T, None]
 type IndexedValueComparison[T] = IndexedValueFunction[T, bool]
-type Selector[T] = Converter[T, T]
-type NullableSelector[T] = NullableConverter[T, T]
 type Operator[T] = ItemComparison[T, T]
 type RichOperator[T, U] = Callable[[T, U], T]
 
