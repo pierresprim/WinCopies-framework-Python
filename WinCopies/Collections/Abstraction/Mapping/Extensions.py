@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Container, Iterable, Sequence, MutableSequence
-from typing import overload, final, SupportsIndex
+from collections.abc import Container, Iterable, Sequence, MutableSequence, MutableSet
+from typing import overload, final, NoReturn, SupportsIndex
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
@@ -17,10 +17,10 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
-from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
+from WinCopies.Collections.Util import MakeSet, CreateSet, GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
-from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
@@ -72,21 +72,23 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     # so it is out of the test: l[1:3] = (3, 9) is legitimate on (1, 2, 3, 4) because the 3
     # this set holds is at position 2 and goes.
     def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool:
-        leaving: set[T] = {self.__list.GetAt(index) for index in indices.AsIterable()}
-        seen: set[T] = set[T]()
+        def cannotSetRange(condition: bool, selector: Converter[HashableProtocol, NoReturn]) -> bool:
+            if condition:
+                if throwOnError: selector(item)
+
+                return True
+
+            return False
+
+        leaving: MutableSet[T] = CreateSet(Select(indices.AsIterable(), self.__list.GetAt))
+        seen: MutableSet[T] = MakeSet()
 
         for item in items.AsIterable():
-            if item in seen:
-                if throwOnError: ThrowRepeatedItemError(item)
-
-                return False
+            if cannotSetRange(item in seen, ThrowRepeatedItemError): return False
 
             seen.add(item)
 
-            if item in self.__innerSet and item not in leaving:
-                if throwOnError: ThrowDuplicateItemError(item)
-
-                return False
+            if cannotSetRange(item in self.__innerSet and item not in leaving, ThrowDuplicateItemError): return False
 
         return True
     

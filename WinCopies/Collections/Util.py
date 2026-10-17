@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence, MutableSequence
+from collections.abc import Iterable, Sequence, MutableSequence, MutableSet
 from typing import overload, Callable, NoReturn, SupportsIndex
 
 from WinCopies import Not
@@ -385,6 +385,14 @@ def CreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence
     return list[T]() if items is None else __CreateList(items)
 def TryCreateList[T](items: MutableSequence[T]|Iterable[T]|None) -> MutableSequence[T]|None:
     return None if items is None else __CreateList(items)
+
+def MakeSet[T](*items: T) -> MutableSet[T]:
+    return set[T](items)
+
+def CreateSet[T](items: Iterable[T]|None) -> MutableSet[T]:
+    return MakeSet() if items is None else set[T](items)
+def TryCreateSet[T](items: Iterable[T]|None) -> MutableSet[T]|None:
+    return None if items is None else set[T](items)
 
 def TryInsert[T](l: MutableSequence[T], index: int, item: T) -> bool|None:
     length: int = len(l)
