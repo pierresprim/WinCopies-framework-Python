@@ -45,6 +45,7 @@ from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEn
 from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar # pyright: ignore[reportPrivateUsage]
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
+from WinCopies.String import GetValueOrDefault, SurroundWith
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter
 from WinCopies.Typing.Discard import IInvalidatable, BrokenObjectError, DiscardedError, InvalidatedError
@@ -55,15 +56,15 @@ from WinCopies.Typing.Discard import IInvalidatable, BrokenObjectError, Discarde
 
 def _st(e: IEnumerator[int]) -> str:
     """`State/Result` of an enumerator, as a single readable token."""
-    status = e.GetStatus()
 
-    return f"{status.GetState().name}/{status.GetResult().name}"
+    state, result = _snap(e)
 
-def _data(e: _Base) -> str:
-    return e.GetStatus().GetData().name or "Null"
+    return SurroundWith(state, '/', result)
 
-def _snap(e: _Base) -> tuple[str, str]:
-    status = e.GetStatus()
+def _data(e: _Base) -> str: return GetValueOrDefault(e.GetStatus().GetData().name, "Null")
+
+def _snap(e: IEnumerator[int]) -> tuple[str, str]:
+    status: IIterationStatus = e.GetStatus()
 
     return (status.GetState().name, status.GetResult().name)
 
@@ -104,16 +105,16 @@ class _Spy(InvalidationRegistrar):
         super().__init__()
 
         self.__sink: list[str] = sink
-        self.cookie: IInvalidatable|None = None
+        self.__cookie: IInvalidatable|None = None
 
     def Register(self, cookie: IInvalidatable) -> None:
-        self.cookie = cookie
+        self.__cookie = cookie
 
         self.__sink.append(Action.REGISTER)
 
     def Unregister(self) -> None: self.__sink.append(Action.UNREGISTER)
 
-    def Fire(self) -> None: cast(IInvalidatable, self.cookie).Invalidate()
+    def Fire(self) -> None: cast(IInvalidatable, self.__cookie).Invalidate()
 
 class _Cookies(InvalidationRegistrar):
     """Registrar that keeps everything it is handed — including beyond
@@ -689,7 +690,8 @@ class TestAbstractionHooks(unittest.TestCase):
 
     def test_the_ing_pair_also_frames_the_stop_on_the_faulty_path(self) -> None:
         """§4"""
-        class _AbsBoom(self.Abs):
+
+        class _AbsBoom(self.Abs): # type: ignore[name-defined, misc]
             def _MoveNextOverride(self) -> bool:
                 result: bool = super()._MoveNextOverride()
 
@@ -765,7 +767,7 @@ class TestUnfaultEnvelope(unittest.TestCase):
 
             return original(self)
 
-        IterationStatus.Unfault = _counting # pyright: ignore[reportAttributeAccessIssue]
+        IterationStatus.Unfault = _counting # type: ignore[method-assign, misc]
 
         self.addCleanup(setattr, IterationStatus, "Unfault", original)
 
