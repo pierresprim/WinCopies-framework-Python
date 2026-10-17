@@ -15,32 +15,36 @@ commit, ff69598, and no bench saw it.
 """
 
 import unittest
+
 from collections.abc import Iterator
-from typing import Any, Callable, NoReturn
 from contextlib import ExitStack
+from typing import Any, NoReturn
 from unittest import mock
+
+import WinCopies.Collections.Abstract.Collection as AbstractCollection
+import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
+import WinCopies.Collections.Core as Core
+import WinCopies.Collections.Range.Extensions as RangeExtensions
+import WinCopies.Collections.Util as Util
 
 from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
-from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, Array as SelectionArray, List as SelectionList
+from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Circular import CircularList
-import WinCopies.Collections.Abstract.Collection as AbstractCollection
-import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
-import WinCopies.Collections.Core as Core
-import WinCopies.Collections.Range.Extensions as RangeExtensions
-import WinCopies.Collections.Util as Util
-from WinCopies.Collections.Util import GetDuplicateKeyError, GetDuplicateItemError, GetRepeatedItemError, GetDuplicateRangeError, GetCapacityError
 from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection, IDictionary
 from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
+from WinCopies.Collections.Util import GetDuplicateKeyError, GetDuplicateItemError, GetRepeatedItemError, GetDuplicateRangeError, GetCapacityError
 from WinCopies.Typing import INullable, GetNullable
+from WinCopies.Typing.Comparison import HashableProtocol
+from WinCopies.Typing.Delegate import Function, NullableFunction, GenericFunction, Predicate, Converter, Selector
 
-type _Factory = Callable[[], Any]
-type _Arguments = Callable[[], tuple[Any, ...]]
+type _Factory = Function[Any]
+type _Arguments = Function[ReadOnlyArray[Any]]
 type _Answer = bool|None
 type _Contract = tuple[frozenset[_Answer], frozenset[_Answer]]
 type _Pair = tuple[str, str, _Contract, ReadOnlyArray[tuple[str, _Arguments]]]
@@ -168,7 +172,7 @@ def _calls(carriers: ReadOnlyArray[tuple[str, _Factory]], pairs: ReadOnlyArray[_
             for label, arguments in pair[3]:
                 yield (carrier, factory, f"{pair[1]}/{pair[0]}{label}", pair, arguments)
 
-type _Check = Callable[[], str|None]
+type _Check = NullableFunction[str]
 
 def _diverge(factory: _Factory, pair: _Pair, arguments: _Arguments) -> str|None:
     """How the two doors disagree on one call, or None when they agree.
@@ -216,7 +220,7 @@ def _parityChecks(carriers: ReadOnlyArray[tuple[str, _Factory]], pairs: ReadOnly
     for carrier, factory, call, pair, arguments in _calls(carriers, pairs):
         yield (carrier, call, _parityCheck(factory, pair, arguments))
 
-def _assertChecks(test: unittest.TestCase, checks: Iterator[tuple[str, str, _Check]], selected: Callable[[tuple[str, str]], bool]) -> None:
+def _assertChecks(test: unittest.TestCase, checks: Iterator[tuple[str, str, _Check]], selected: Predicate[tuple[str, str]]) -> None:
     for carrier, call, check in checks:
         if not selected((carrier, call)): continue
 
@@ -255,7 +259,7 @@ _REFUSED_RANGES: dict[str, list[int]] = {
 """The range each refusing carrier turns down: one that overflows its capacity, or one that
 carries a value the set already holds. The other carriers take any range."""
 
-def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyArray[tuple[str, Callable[[Any], Any], _Answer]]:
+def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyArray[tuple[str, Selector[Any], _Answer]]:
     """What the table of D-57 says each range insertion answers on `carrier`.
 
     The answer to an index outside combined with an empty range is left out on purpose: the
@@ -264,7 +268,7 @@ def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyA
     """
 
     refused: list[int]|None = _REFUSED_RANGES.get(carrier)
-    answers: list[tuple[str, Callable[[Any], Any], _Answer]] = [
+    answers: list[tuple[str, Selector[Any], _Answer]] = [
         ("TryAddRange([])",       lambda c: c.TryAddRange([]),       False),
         ("TryAddRange(iter([]))", lambda c: c.TryAddRange(iter([])), False),
         ("TryAddRange([7, 8])",   lambda c: c.TryAddRange([7, 8]),   True) if refused is None else
@@ -274,7 +278,7 @@ def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyA
     if collection: answers.append(("TryAddRange(None)", lambda c: c.TryAddRange(None), False))
 
     if positional:
-        insertions: list[tuple[str, Callable[[Any], Any], _Answer]] = [
+        insertions: list[tuple[str, Selector[Any], _Answer]] = [
             ("TryInsertRange(1, [])",  lambda c: c.TryInsertRange(1, []),      False),
             ("TryInsertRange(9, [7])", lambda c: c.TryInsertRange(9, [7]),     None),
             ("TryInsertRange(1, [7])", lambda c: c.TryInsertRange(1, [7]),     True) if refused is None else
@@ -284,7 +288,7 @@ def _rangeAnswers(carrier: str, collection: bool, positional: bool) -> ReadOnlyA
 
     return tuple(answers)
 
-def _trivalenceCheck(factory: _Factory, act: Callable[[Any], Any], expected: _Answer) -> _Check:
+def _trivalenceCheck(factory: _Factory, act: Selector[Any], expected: _Answer) -> _Check:
     def check() -> str|None:
         try: answer: Any = act(factory())
         except Exception as exception: return f"raised {exception!r}"
@@ -329,7 +333,7 @@ _DICTIONARIES: ReadOnlyArray[tuple[str, _Factory]] = (
     ("Selection dictionary",  lambda: CreateSelectionDictionary(CreateDictionary({"a": 1}), Converters[int, int](int, int))))
 """A dictionary and a converting one over it, each holding the key "a" and not the key "b"."""
 
-def _raised(act: Callable[[], Any]) -> BaseException|None:
+def _raised(act: Function[Any]) -> BaseException|None:
     try: act()
     except Exception as exception: return exception
 
@@ -490,7 +494,7 @@ and a converting array over it; the fields read as those of _UNIQUE_LISTS."""
 def _innerRefusal(inner: int|None) -> DuplicateKeyError|None:
     return None if inner is None else GetDuplicateItemError(inner)
 
-def _duplicateCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError, DuplicateKeyError|None]]:
+def _duplicateCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Selector[Any], DuplicateKeyError, DuplicateKeyError|None]]:
     """Each call that gives a list a value it holds, with the error its refusal is expected to be -- an
     item already held, or a range refused as a whole, which names no item -- and its expected cause:
     the container's own refusal, which a converting layer tells again, or None where no conversion
@@ -507,7 +511,7 @@ def _duplicateCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Call
         ("insert", lambda l: l.AsMutableSequence().insert(0, held), item, cause), ("append", lambda l: l.AsMutableSequence().append(held), item, cause),
         ("extend", lambda l: l.AsMutableSequence().extend([held]), span, None), ("[1] = x", lambda l: l.AsMutableSequence().__setitem__(1, held), item, cause))
 
-def _sliceCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError, DuplicateKeyError|None]]:
+def _sliceCalls(held: int, inner: int|None) -> ReadOnlyArray[tuple[str, Selector[Any], DuplicateKeyError, DuplicateKeyError|None]]:
     """Each slice that gives a list a value it holds, or the same value twice, with the error its
     refusal is expected to be and its expected cause. Through a converting layer the refusal names
     no item: the container names its own values, which that layer cannot tell again in the caller's,
@@ -546,7 +550,7 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
     ValueError on the view and KeyError on a circular list over it. An absence keeps its own error,
     which must not be taken for this one."""
 
-    def __assertRefuses(self, label: str, items: Any, act: Callable[[Any], Any], snapshot: Callable[[Any], Any] = _snapshot) -> None:
+    def __assertRefuses(self, label: str, items: Any, act: Selector[Any], snapshot: Selector[Any] = _snapshot) -> None:
         before: Any = snapshot(items)
         raised: BaseException|None = _raised(lambda: act(items))
 
@@ -554,7 +558,7 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
         self.assertEqual(snapshot(items), before, f"{label} changed the collection while refusing")
 
     def test_a_set(self) -> None:
-        calls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+        calls: ReadOnlyArray[tuple[str, Selector[Any]]] = (
             ("Add(0)", lambda s: s.Add(0)), ("AddRange([0])", lambda s: s.AddRange([0])),
             ("AddRange([7, 7])", lambda s: s.AddRange([7, 7])), ("AddValues(0)", lambda s: s.AddValues(0)))
 
@@ -595,7 +599,7 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
                 with self.subTest(carrier = carrier, call = label):
                     self.__assertRefuses(f"{carrier}{label}", factory(), call)
 
-    def __assertAbsent(self, label: str, act: Callable[[], Any], expected: BaseException) -> None:
+    def __assertAbsent(self, label: str, act: Function[Any], expected: BaseException) -> None:
         with self.subTest(call = label):
             raised: BaseException|None = _raised(act)
 
@@ -611,7 +615,7 @@ class TestADuplicateRaisesADuplicateKeyError(unittest.TestCase):
         for a dictionary, KeyError(9) for set.remove. Until D-47 the absence of a key alone carried
         "Key 9 not found.", which str() printed between quotes."""
 
-        dictionaryCalls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+        dictionaryCalls: ReadOnlyArray[tuple[str, Selector[Any]]] = (
             ("GetAt('z')", lambda d: d.GetAt("z")), ("Remove('z')", lambda d: d.Remove("z")), ("SetAt('z', 3)", lambda d: d.SetAt("z", 3)),
             ("Move('z', 'c')", lambda d: d.Move("z", "c")), ("Swap('a', 'z')", lambda d: d.Swap("a", "z")), ("Swap('z', 'a')", lambda d: d.Swap("z", "a")))
 
@@ -640,7 +644,7 @@ class TestADuplicateSaysItsCause(unittest.TestCase):
     through this module's own references to the factories, which a patch of the framework's leaves as
     they are."""
 
-    def __assertSays(self, label: str, act: Callable[[], Any], expected: DuplicateKeyError, cause: DuplicateKeyError|None = None) -> None:
+    def __assertSays(self, label: str, act: Function[Any], expected: DuplicateKeyError, cause: DuplicateKeyError|None = None) -> None:
         with self.subTest(call = label):
             raised: BaseException|None = _raised(act)
 
@@ -660,7 +664,7 @@ class TestADuplicateSaysItsCause(unittest.TestCase):
                 self.assertEqual((str(raised.__cause__), _held(raised.__cause__)), (str(cause), _held(cause)), f"{label} keeps another cause than the container's refusal")
 
     def test_a_set(self) -> None:
-        calls: ReadOnlyArray[tuple[str, Callable[[Any], Any], DuplicateKeyError]] = (
+        calls: ReadOnlyArray[tuple[str, Selector[Any], DuplicateKeyError]] = (
             ("Add(0)", lambda s: s.Add(0), GetDuplicateItemError(0)), ("AddRange([0])", lambda s: s.AddRange([0]), GetDuplicateRangeError()),
             ("AddRange([7, 7])", lambda s: s.AddRange([7, 7]), GetDuplicateRangeError()), ("AddValues(0)", lambda s: s.AddValues(0), GetDuplicateRangeError()))
 
@@ -691,7 +695,7 @@ class TestACapacityRefusalSaysItsCause(unittest.TestCase):
     boolean that could not say why."""
 
     def test_every_route_says_it(self) -> None:
-        calls: ReadOnlyArray[tuple[str, Callable[[Any], Any]]] = (
+        calls: ReadOnlyArray[tuple[str, Selector[Any]]] = (
             ("Insert(1, 7)", lambda l: l.Insert(1, 7)), ("insert(1, 7)", lambda l: l.AsMutableSequence().insert(1, 7)),
             ("[1:1] = [7]", lambda l: l.AsMutableSequence().__setitem__(slice(1, 1), [7])), ("[1:2] = [7, 8]", lambda l: l.AsMutableSequence().__setitem__(slice(1, 2), [7, 8])))
         expected: BaseException = GetCapacityError()
@@ -847,7 +851,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         self.assertGreater(_fallen(broken), 0, f"{benches} did not fall on the rebuilt defect")
 
     @staticmethod
-    def __everywhere(rebuilt: Callable[[str], Any], names: ReadOnlyArray[str]) -> ReadOnlyArray[tuple[Any, str, Any]]:
+    def __everywhere(rebuilt: Converter[str, Any], names: ReadOnlyArray[str]) -> ReadOnlyArray[tuple[Any, str, Any]]:
         """Each named factory of a duplicate, rebuilt, under every module that holds it: Util, whose
         Throw forms build their error through it, and the three modules that build one directly."""
 
@@ -864,8 +868,8 @@ class TestTheseBenchesCanFail(unittest.TestCase):
     def test_the_duplicate_bench_falls_when_a_duplicate_raises_a_plain_key_error(self) -> None:
         """The factories of a duplicate building a plain KeyError, as GetKeyError did until 8e4000a."""
 
-        def rebuilt(name: str) -> Callable[..., KeyError]:
-            original: Callable[..., DuplicateKeyError] = getattr(Util, name)
+        def rebuilt(name: str) -> GenericFunction[KeyError]:
+            original: GenericFunction[DuplicateKeyError] = getattr(Util, name)
 
             def plain(*args: Any) -> KeyError: return KeyError(str(original(*args)))
 
@@ -881,7 +885,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         def item(item: Any) -> DuplicateKeyError: return DuplicateKeyError(f"Key {item} already exists.", GetNullable(item))
         def repeated(item: Any) -> DuplicateKeyError: return DuplicateKeyError(f"Item '{item}' has a duplicate.", GetNullable(item))
 
-        wording: dict[str, Callable[[Any], DuplicateKeyError]] = {"GetDuplicateItemError": item, "GetRepeatedItemError": repeated}
+        wording: dict[str, Converter[Any, DuplicateKeyError]] = {"GetDuplicateItemError": item, "GetRepeatedItemError": repeated}
 
         self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_set", "test_a_creation", "test_a_list"), self.__everywhere(wording.__getitem__, tuple(wording)))
 
@@ -898,8 +902,8 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         """The factories of a duplicate saying the item without carrying it, as every duplicate error did
         until them."""
 
-        def rebuilt(name: str) -> Callable[..., DuplicateKeyError]:
-            original: Callable[..., DuplicateKeyError] = getattr(Util, name)
+        def rebuilt(name: str) -> GenericFunction[DuplicateKeyError]:
+            original: GenericFunction[DuplicateKeyError] = getattr(Util, name)
 
             def forgetful(*args: Any) -> DuplicateKeyError: return DuplicateKeyError(str(original(*args)))
 
@@ -912,7 +916,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         """The writes of a converting layer as they stood until M3, which let the container's refusal
         through as it was, naming the container's value rather than the caller's."""
 
-        def rebuilt(write: Callable[[], object], value: object) -> None: write()
+        def rebuilt(write: Function[object], value: object) -> None: write()
 
         self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection, "_Write", rebuilt),))
 
@@ -920,7 +924,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         """A converting layer that tells the refusal again with the caller's value, but from None, so
         that the container's own refusal is lost."""
 
-        def rebuilt(write: Callable[[], object], value: object) -> None:
+        def rebuilt(write: Function[object], value: object) -> None:
             try: write()
             except DuplicateKeyError as error:
                 if not error.GetDuplicate().HasValue(): raise
@@ -981,9 +985,9 @@ class TestTheseBenchesCanFail(unittest.TestCase):
     def test_the_absence_bench_falls_when_an_absence_raises_a_duplicate_key_error(self) -> None:
         """A factory of the absent key that would build the type of a duplicate."""
 
-        original: Any = Util.GetKeyNotFoundError
+        original: Converter[HashableProtocol, KeyError] = Util.GetKeyNotFoundError
 
-        def rebuilt(key: Any) -> KeyError: return DuplicateKeyError(str(original(key)))
+        def rebuilt(key: HashableProtocol) -> KeyError: return DuplicateKeyError(str(original(key)))
 
         self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_an_absence_is_not_a_duplicate"),), tuple((module, "GetKeyNotFoundError", rebuilt) for module in (Util, Core)))
 
