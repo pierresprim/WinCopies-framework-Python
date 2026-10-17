@@ -17,8 +17,11 @@ converting them back; D-80, a converting collection answering `in` by asking its
 import contextlib
 import sys
 import unittest
+
+import WinCopies.Collections.Range as RangeModule
+
 from collections.abc import Iterator
-from typing import Any, Callable
+from typing import Any
 from unittest import mock
 
 from WinCopies.Collections import ReadOnlyArray
@@ -27,14 +30,14 @@ from WinCopies.Collections.Abstraction.Collection import CreateArray, CreateList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
-import WinCopies.Collections.Range as RangeModule
 from WinCopies.Collections.Circular import CircularList, CircularTuple
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import IDefaultMutableSequence
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
+from WinCopies.Typing.Delegate import Function, Selector, IndexedValueComparison
 
-type _Factory = Callable[[], Any]
-type _Act = Callable[[Any], Any]
+type _Factory = Function[Any]
+type _Act = Selector[Any]
 
 class _ConvertingTuple(ConvertingTuple[int, str]):
     """Read-only converter over an inner tuple of ints, as in Registry.py."""
@@ -98,7 +101,7 @@ def _sequence(carrier: Any) -> Any:
 
     return carrier.AsMutableSequence() if hasattr(carrier, "AsMutableSequence") else carrier.AsSequence()
 
-def _at(act: Callable[[Any, int], Any], index: int) -> _Act:
+def _at(act: IndexedValueComparison[Any], index: int) -> _Act:
     return lambda sequence: act(sequence, index)
 
 def _scalarChanges(count: int, values: tuple[Any, Any], offers: tuple[bool, bool, bool]) -> Iterator[tuple[str, _Act]]:
@@ -110,20 +113,20 @@ def _scalarChanges(count: int, values: tuple[Any, Any], offers: tuple[bool, bool
     writes, removes, inserts = offers
 
     for index in range(-count - 2, count + 2):
-        yield (f"l[{index}]", _at(lambda l, i: l[i], index))
+        yield (f"l[{index}]", _at(lambda i, l: l[i], index))
 
-        if writes: yield (f"l[{index}] = {value!r}", _at(lambda l, i: l.__setitem__(i, value), index))
+        if writes: yield (f"l[{index}] = {value!r}", _at(lambda i, l: l.__setitem__(i, value), index))
 
         if removes:
-            yield (f"del l[{index}]", _at(lambda l, i: l.__delitem__(i), index))
-            yield (f"l.pop({index})", _at(lambda l, i: l.pop(i), index))
+            yield (f"del l[{index}]", _at(lambda i, l: l.__delitem__(i), index))
+            yield (f"l.pop({index})", _at(lambda i, l: l.pop(i), index))
 
     if removes: yield ("l.pop()", lambda l: l.pop())
 
     if inserts:
-        for index in range(-count - 3, count + 3): yield (f"l.insert({index}, {inserted!r})", _at(lambda l, i: l.insert(i, inserted), index))
+        for index in range(-count - 3, count + 3): yield (f"l.insert({index}, {inserted!r})", _at(lambda i, l: l.insert(i, inserted), index))
 
-def _outcome(sequence: Any, act: _Act, read: Callable[[], list[Any]]) -> str:
+def _outcome(sequence: Any, act: _Act, read: Function[list[Any]]) -> str:
     """What a use answers and leaves: the type of what it raises, or its result and the content."""
 
     try: answer: Any = act(sequence)
@@ -288,7 +291,7 @@ class TestTheProtocolBenchesCanFail(unittest.TestCase):
     intact tree, red on the rebuilt one. A run that only has to show a bench falls stops at its
     first failure."""
 
-    def _assertFalls(self, bench: Callable[[], unittest.TestCase], rebuild: Callable[[], contextlib.AbstractContextManager[Any]], what: str) -> None:
+    def _assertFalls(self, bench: Function[unittest.TestCase], rebuild: Function[contextlib.AbstractContextManager[Any]], what: str) -> None:
         self.assertEqual(_fell(_run(bench())), 0, f"the {what} bench is expected to pass on the intact tree")
 
         with rebuild(): broken: unittest.TestResult = _run(bench(), True)

@@ -11,6 +11,7 @@ from WinCopies.Enum import (
     ToKeyValuePair, ToKeyValuePairs,
     ToTuple,
     HasFlag, EnsureHasFlag)
+from WinCopies.Typing.Pairing import KeyValuePair
 from WinCopies.Typing.Reflection.Enum import (
     IsMemberOf, EnsureMemberOf,
     IsValueOf, EnsureValueOf,
@@ -21,7 +22,6 @@ from WinCopies.Typing.Reflection.Enum import (
     EnumerateNames, EnumerateValues,
     EnumerateFieldNames, EnumerateFieldValues,
     Print)
-from WinCopies.Typing.Pairing import KeyValuePair
 
 class Color(Enum):
     Red = 1

@@ -35,11 +35,11 @@ from typing import final, Any, Callable, cast
 
 
 from WinCopies.Collections import ReadOnlyArray
+from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Collection import (Tuple, EquatableTuple, HashableTuple,
                                                           Array, ArrayList, SizedArray,
                                                           List, SortedList,
                                                           TryCreateSizedList)
-from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import (EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple,
@@ -53,7 +53,7 @@ from WinCopies.Collections.Extensions import (IDefaultMutableSequence, ITupleBas
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Delegate import Function, Converter, IFunction
+from WinCopies.Typing.Delegate import Function, Converter, Selector, IFunction
 from WinCopies.Typing.Discard import DiscardReason, InvalidatedError, DiscardedError
 
 type Factory[T] = Function[T]
@@ -128,8 +128,7 @@ _MUTATORS: dict[str, Action[IList[int]]] = {
     "TryMove":        lambda o: o.TryMove(0, 2),
     "Swap":           lambda o: o.Swap(0, 2),
     "TrySwap":        lambda o: o.TrySwap(0, 2),
-    "Clear":          lambda o: o.Clear(),
-}
+    "Clear":          lambda o: o.Clear()}
 
 class _CaseBase:
     @abstractmethod
@@ -141,13 +140,13 @@ class _Case[T](_CaseBase):
     """A concrete type and its factory."""
 
     def __init__(self, name: str, factory: Factory[T]) -> None:
-        self.name = name
-        self.factory = factory
+        self.__name = name
+        self.__factory = factory
 
     @final
-    def GetName(self) -> str: return self.name
+    def GetName(self) -> str: return self.__name
 
-    def Create(self) -> T: return self.factory()
+    def Create(self) -> T: return self.__factory()
 
 class _MutableCaseBase(_CaseBase):
     @abstractmethod
@@ -164,12 +163,11 @@ class _MutableCase[T](_Case[T], _MutableCaseBase):
     wording differs depending on whether the type is resizable or fixed-size.
     """
 
-    def __init__(self, name: str, factory: Factory[T], mutate: Action[T], refuse: Action[T], sourced: bool = False) -> None:
+    def __init__(self, name: str, factory: Factory[T], mutate: Action[T], refuse: Action[T]) -> None:
         super().__init__(name, factory)
 
         self.__mutate: Action[T] = mutate
         self.__refuse: Action[T] = refuse
-        self.sourced: bool = sourced   # the type routes its registry to a source's
 
     @final
     def __Process(self, items: IList[int], action: Action[T]) -> object: return action(cast(T, items))
@@ -251,7 +249,7 @@ _MUTABLE: ReadOnlyArray[_MutableCaseBase] = (
     _MutableCase("Array",      lambda: Array[int]([1, 2, 3]),      lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("ArrayList",  _arrayList,                         lambda o: o.SetAt(0, 9), _fixed),
     _MutableCase("SizedArray", _sizedArray,                        lambda o: o.SetAt(0, 9), _fixed),
-    _MutableCase("ObservableCollection", lambda: ObservableCollection[int](_source()), lambda o: o.Add(9), _resizable, True))
+    _MutableCase("ObservableCollection", lambda: ObservableCollection[int](_source()), lambda o: o.Add(9), _resizable))
 
 _ALL: ReadOnlyArray[_CaseBase] = _IMMUTABLE + _MUTABLE
 
@@ -632,7 +630,7 @@ class TestRevocationIsTotal(unittest.TestCase):
         answers wrongly would otherwise read as healthy.
         """
 
-        expected: dict[str, Callable[[ReadOnlyArray[int]], Any]] = {
+        expected: dict[str, Converter[ReadOnlyArray[int], Any]] = {
             "GetCount":       lambda content: len(content),
             "GetAt":          lambda content: content[0],
             "Contains":       lambda content: _PROBE_VALUE in content,
@@ -1958,7 +1956,7 @@ class TestADegenerateSliceIsEmptyOnEveryOperation(unittest.TestCase):
     """
 
     @staticmethod
-    def __outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+    def __outcome(act: Function[Any], read: Function[Any]) -> tuple[str, Any]:
         """What an operation did: the exception's name or "ok", and what it left behind.
 
         Both are compared, and the exception only by name: a key the framework refuses where
@@ -1984,11 +1982,11 @@ class TestADegenerateSliceIsEmptyOnEveryOperation(unittest.TestCase):
                 with self.subTest(type = case.GetName(), key = str(key)):
                     content: ReadOnlyArray[int] = _snapshot(cast(_ITuple[int], cast(_IList[int], case.Create())))
 
-                    def reference(act: Callable[[list[int]], Any]) -> tuple[str, Any]:
+                    def reference(act: Converter[list[int], Any]) -> tuple[str, Any]:
                         model: list[int] = list(content)
 
                         return self.__outcome(lambda: act(model), lambda: tuple(model))
-                    def subject(act: Callable[[Any], Any]) -> tuple[str, Any]:
+                    def subject(act: Selector[Any]) -> tuple[str, Any]:
                         items: _IList[int] = cast(_IList[int], case.Create())
 
                         return self.__outcome(lambda: act(items.AsMutableSequence()), lambda: _snapshot(cast(_ITuple[int], items)))
@@ -2146,7 +2144,7 @@ class TestAReversedViewAssignsThroughThePrimitive(unittest.TestCase):
                     source: _IList[int] = cast(_IList[int], _source())
                     model: list[int] = list(reversed(_snapshot(cast(_ITuple[int], source))))
 
-                    def outcome(act: Callable[[], Any], read: Callable[[], Any]) -> tuple[str, Any]:
+                    def outcome(act: Function[Any], read: Function[Any]) -> tuple[str, Any]:
                         try:
                             act()
 

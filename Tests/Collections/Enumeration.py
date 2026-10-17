@@ -29,7 +29,7 @@ import unittest
 import weakref
 
 from enum import StrEnum
-from typing import Any, Callable, Type, cast
+from typing import Any, Type, cast
 
 
 
@@ -1152,7 +1152,7 @@ _VALID: set[tuple[str, str]] = {
     ("Ended",   "Stopped"),     # Stop(); _ResetOverride() raising
     ("Ended",   "Invalidated")} # invalidation
 
-_PATHS: list[tuple[str, Callable[[], Any]]] = [
+_PATHS: list[tuple[str, Function[Any]]] = [
     ("new",                    lambda: _build((1, 2))),
     ("in progress",            lambda: _seq(_build((1, 2)), lambda x: x.MoveNext())),
     ("completion",             lambda: _seq(_build((1, 2)), _drain)),

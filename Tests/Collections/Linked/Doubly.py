@@ -3,7 +3,7 @@ Unit tests for doubly linked lists (WinCopies.Collections.Linked.Doubly)
 """
 
 import unittest
-from typing import Callable, List as PyList
+from typing import List as PyList
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration.Core import IEnumerator
@@ -16,15 +16,15 @@ from WinCopies.Collections.Linked.Doubly.Welded import (
     List, CountableList)
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector
+from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector, IndexedValueFunction, RichOperator
 
-def __populateList(l: IReadWriteList[int], action: Callable[[IReadWriteList[int], int], INode[int]], value: int = 3) -> None:
-    for i in range(0, value): action(l, i + 1)
+def __populateList(l: IReadWriteList[int], action: IndexedValueFunction[IReadWriteList[int], INode[int]], value: int = 3) -> None:
+    for i in range(0, value): action(i + 1, l)
 
 def _populateList(l: IReadWriteList[int], value: int = 3) -> None:
-    __populateList(l, lambda l, value: l.AddLastNode(value), value)
+    __populateList(l, lambda value, l: l.AddLastNode(value), value)
 def _populateListR(l: IReadWriteList[int], value: int = 3) -> None:
-    __populateList(l, lambda l, value: l.AddFirstNode(value), value)
+    __populateList(l, lambda value, l: l.AddFirstNode(value), value)
 
 def _assertEmpty[T](test: unittest.TestCase, l: IReadOnlyList[T]) -> None:
     test.assertTrue(l.IsEmpty())
@@ -80,7 +80,7 @@ def _assertEnumeration[T](test: unittest.TestCase, l: IList[int], enumeratorConv
     _populateList(l)
     _assertNotNone(test, enumeratorConverter(l), enumerate)
 
-def _assertNext(test: unittest.TestCase, l: IList[int], value: int, action: Callable[[IDoublyLinkedNode[int], int], IDoublyLinkedNode[int]], values: tuple[int, int]) -> None:
+def _assertNext(test: unittest.TestCase, l: IList[int], value: int, action: RichOperator[IDoublyLinkedNode[int], int], values: tuple[int, int]) -> None:
     def assertNotNone[T](value: T|None, action: Method[T]) -> None:
         _assertNotNone(test, value, action)
     

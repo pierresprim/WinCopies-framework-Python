@@ -8,8 +8,8 @@ suite honest about slice and index semantics as it grows.
 """
 
 import unittest
+
 from collections.abc import Iterable, Sequence, MutableSequence
-from typing import Callable
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import CreateList, CreateSizedList
@@ -18,6 +18,7 @@ from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Range import SetValues
 from WinCopies.Collections.Util import MakeSequence, CreateSequence, CreateTuple, CreateList as CreatePyList
 from WinCopies.String import StringifyIfNone
+from WinCopies.Typing.Delegate import IndexedValueAction
 
 _SOURCE: Sequence[int] = (0, 1, 2, 3, 4)
 
@@ -28,9 +29,7 @@ def _dump[T](items: ITuple[T]) -> ReadOnlyArray[T]:
     return CreateTuple(Select(range(items.GetCount()), items.GetAt))
 
 def _format(key: slice) -> str:
-    step: int|None = key.step
-
-    return f"[{StringifyIfNone(key.start)}:{StringifyIfNone(key.stop)}{StringifyIfNone(step, ':')}]"
+    return f"[{StringifyIfNone(key.start)}:{StringifyIfNone(key.stop)}{StringifyIfNone(key.step, ':')}]"
 
 def _GetSlices(*values: tuple[int|None, int|None]|tuple[int|None, int|None, int|None]) -> Sequence[slice]:
     return CreateSequence(Select(values, lambda value: slice(*value)))
@@ -70,8 +69,7 @@ class TestReversedView(unittest.TestCase):
         count: int = collection.GetCount()
 
         for i in range(count):
-            with self.subTest(index = i):
-                self.assertEqual(reversed_.GetAt(i), collection.GetAt(count - 1 - i))
+            with self.subTest(index = i): self.assertEqual(reversed_.GetAt(i), collection.GetAt(count - 1 - i))
 
     def test_enumeration_yields_the_reversed_source(self) -> None:
         self.assertEqual(_dump(_create().AsReversed()), CreateSequence(reversed(_SOURCE)))
@@ -83,7 +81,7 @@ class TestReversedView(unittest.TestCase):
 
         self.assertEqual(collection.AsReversed().GetAt(2), collection.GetAt(2))
 
-    def __assertInserted(self, count: int, action: Callable[[IList[int], int], None], expected: Callable[[MutableSequence[int], int], None]) -> None:
+    def __assertInserted(self, count: int, action: IndexedValueAction[IList[int]], expected: IndexedValueAction[MutableSequence[int]]) -> None:
         for size in (0, 1, 3, 5):
             source: ReadOnlyArray[int] = CreateTuple(range(size))
 
@@ -91,30 +89,30 @@ class TestReversedView(unittest.TestCase):
                 with self.subTest(size = size, index = index, count = count):
                     collection: IList[int] = _create(source)
 
-                    action(collection.AsReversed(), index)
+                    action(index, collection.AsReversed())
 
                     reference: MutableSequence[int] = CreatePyList(reversed(source))
 
-                    expected(reference, index)
+                    expected(index, reference)
 
                     self.assertEqual(_dump(collection), CreateTuple(reversed(reference)))
 
     def test_try_insert_at_every_position(self) -> None:
-        def insert(reference: MutableSequence[int], index: int) -> None: reference.insert(index, 99)
+        def insert(index: int, reference: MutableSequence[int]) -> None: reference.insert(index, 99)
 
-        self.__assertInserted(1, lambda items, index: self.assertTrue(items.TryInsert(index, 99)), insert)
+        self.__assertInserted(1, lambda index, items: self.assertTrue(items.TryInsert(index, 99)), insert)
 
     def test_insert_at_every_position(self) -> None:
-        def insert(reference: MutableSequence[int], index: int) -> None: reference.insert(index, 99)
+        def insert(index: int, reference: MutableSequence[int]) -> None: reference.insert(index, 99)
 
-        self.__assertInserted(1, lambda items, index: items.AsMutableSequence().insert(index, 99), insert)
+        self.__assertInserted(1, lambda index, items: items.AsMutableSequence().insert(index, 99), insert)
 
     def test_try_insert_range_at_every_position(self) -> None:
         """A single item hides a double reversal, so the range must carry several."""
 
         def check(values: Sequence[int]) -> None:
-            def action(items: IList[int], index: int) -> None: items.TryInsertRange(index, CreatePyList(values))
-            def insert(reference: MutableSequence[int], index: int) -> None: reference[index:index] = values
+            def action(index: int, items: IList[int]) -> None: items.TryInsertRange(index, CreatePyList(values))
+            def insert(index: int, reference: MutableSequence[int]) -> None: reference[index:index] = values
 
             self.__assertInserted(len(values), action, insert)
         def makeSequence(*values: ReadOnlyArray[int]) -> Sequence[ReadOnlyArray[int]]: return values
@@ -258,10 +256,7 @@ class TestSliceSemantics(unittest.TestCase):
 
         for key, values in cases:
             with self.subTest(key = _format(key), values = values):
-                reference: MutableSequence[int] = CreatePyList(_SOURCE)
-
-                with self.assertRaises(ValueError, msg = "CPython accepts this: the row, not the framework, is wrong"):
-                    reference[key] = values
+                with self.assertRaises(ValueError, msg = "CPython accepts this: the row, not the framework, is wrong"): CreatePyList(_SOURCE)[key] = values
 
                 collection: IList[int] = _create()
 

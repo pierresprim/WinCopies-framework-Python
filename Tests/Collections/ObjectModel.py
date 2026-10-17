@@ -15,7 +15,7 @@ throughout.
 """
 
 import unittest
-from typing import Any, Callable
+from typing import Any
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List
@@ -72,7 +72,7 @@ def _attempt(items: ObservableCollection[int], call: _Call) -> Any:
     try: return call(items)
     except Exception as exception: return exception
 
-def _listen(call: _Call, source: Callable[[ObservableCollection[int]], Any]|None = None) -> tuple[ReadOnlyArray[_Record], Any]:
+def _listen(call: _Call, source: Converter[ObservableCollection[int], Any]|None = None) -> tuple[ReadOnlyArray[_Record], Any]:
     """Runs one call on a fresh collection and returns what the surface announced.
 
     Whatever the call answers is returned with the records, an exception included: a

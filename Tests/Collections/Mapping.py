@@ -13,6 +13,9 @@ collection it leaves behind must still be an ordered set.
 """
 
 import unittest
+
+import WinCopies.Collections.Range.Extensions as RangeExtensions
+
 from collections.abc import Iterator, MutableSequence
 from typing import Any, Callable
 from unittest import mock
@@ -20,10 +23,9 @@ from unittest import mock
 from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-import WinCopies.Collections.Range.Extensions as RangeExtensions
-from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Collections.Extensions import IList, IOrderedSet
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Collections.Range.Extensions import SetOrderedValues
+from WinCopies.Typing.Delegate import Action, Function, Converter
 
 type _Carrier = tuple[IOrderedSet[int], IList[int]]
 type _Call = Callable[[IOrderedSet[int], IList[int]], Any]
@@ -684,7 +686,7 @@ class TestWriteReplacesInBothContainers(unittest.TestCase):
         routes: ReadOnlyArray[tuple[str, Callable[[IList[Any], Any], Any]]] = (
             ("named", lambda v, x: v.SetAt(1, x)),
             ("scalar", lambda v, x: _mutable(v).__setitem__(1, x)),
-            ("slice", lambda v, x: _mutable(v).__setitem__(slice(1, 2), [x])))
+            ("slice", lambda v, x: _mutable(v).__setitem__(slice(1, 2), (x,))))
 
         for route, write in routes:
             with self.subTest(route = route):
@@ -751,7 +753,7 @@ def _keys() -> Iterator[slice]:
         for stop in _BOUNDS:
             for step in _STEPS: yield slice(start, stop, step)
 
-def _outcome(assign: Callable[[], None], read: Callable[[], ReadOnlyArray[int]]) -> tuple[str, ReadOnlyArray[int]]:
+def _outcome(assign: Action, read: Function[ReadOnlyArray[int]]) -> tuple[str, ReadOnlyArray[int]]:
     """What a slice assignment did: the exception's name or "ok", and the content after.
 
     The content is read in both cases on purpose -- a refusal that changed it is the defect

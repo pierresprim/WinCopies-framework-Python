@@ -3,6 +3,7 @@ Unit tests for WinCopies.Assertion module.
 """
 
 import unittest
+
 from enum import Enum, Flag
 
 from WinCopies.Assertion import (

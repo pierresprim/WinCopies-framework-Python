@@ -42,8 +42,9 @@ the list reads, and by nothing else.
 import gc
 import unittest
 import weakref
-from collections.abc import Iterator
-from typing import Any, Callable
+
+from collections.abc import Iterator, MutableSequence
+from typing import Any
 from unittest import mock
 
 from WinCopies.Collections import ReadOnlyArray
@@ -52,35 +53,37 @@ from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSe
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
 from WinCopies.Collections.Circular import CircularAbstract, CircularList, CircularTuple
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Range import RemoveItems, SetItems
-from WinCopies.Collections.Util import ThrowCapacityError
+from WinCopies.Collections.Util import CreateList as _CreateList, ThrowCapacityError
+from WinCopies.Typing.Delegate import Action, Method, Function, Converter, Selector, IndexedValueFunction, IndexedValueComparison, Operator
 from WinCopies.Typing.Discard import InvalidatedError
 
-type _Act = Callable[[Any], Any]
-type _Model = Callable[[list[int]], Any]
-type _Foreign = Callable[[Any], Any]
+type _Act = Selector[Any]
+type _Model = Converter[MutableSequence[int], Any]
+type _Foreign = Selector[Any]
 
 _SIZES: range = range(0, 5)
 """Sources of zero to four items: the empty one, one where every position is the head, and enough
 others that a position falls before, at and after the head for some start."""
 
-def _logical(start: int, items: ReadOnlyArray[int]) -> list[int]:
+def _logical(start: int, items: ReadOnlyArray[int]) -> MutableSequence[int]:
     count: int = len(items)
 
-    return [items[(start + offset) % count] for offset in range(count)]
+    return _CreateList(Select(range(count), lambda offset: items[(start + offset) % count]))
 
-def _at(act: Callable[[Any, Any], Any], model: Callable[[list[int], Any], Any], argument: Any) -> tuple[_Act, _Model]:
+def _at(act: Operator[Any], model: IndexedValueFunction[MutableSequence[int], Any], argument: int) -> tuple[_Act, _Model]:
     """One change and its model, closed over one argument: an index, a value or a count."""
 
-    return (lambda circular: act(circular, argument), lambda items: model(items, argument))
+    return (lambda circular: act(circular, argument), lambda items: model(argument, items))
 
-def _bind(act: Callable[[Any, Any], Any], argument: Any) -> _Foreign:
+def _bind(act: Operator[Any], argument: Any) -> _Foreign:
     """One change closed over one argument: a position, a position and a count, or a slice."""
 
     return lambda source: act(source, argument)
 
-def _chain(*steps: Callable[[Any], Any]) -> Callable[[Any], None]:
+def _chain(*steps: Converter[Any, Any]) -> Method[Any]:
     """Several changes applied in order to one carrier, the circular list or the model."""
 
     def run(target: Any) -> None:
@@ -93,26 +96,26 @@ def _emptiedThenAdded(count: int) -> tuple[_Act, _Model]:
 
     return (_chain(lambda c: c.RemoveRange(0, count), lambda c: c.Add(9)), _chain(lambda l: l.clear(), lambda l: l.append(9)))
 
-def _changes(view: list[int]) -> Iterator[tuple[str, _Act, _Model]]:
+def _changes(view: MutableSequence[int]) -> Iterator[tuple[str, _Act, _Model]]:
     """Every structural change the circular list exposes, with the same change on the model, for a
     list that reads `view`: insertions at every logical index including the append position, and
     removals at every logical index, by position and by value; and the reversal."""
 
     for index in range(len(view) + 1):
-        yield (f"Insert({index}, 9)", *_at(lambda c, i: c.Insert(i, 9), lambda l, i: l.insert(i, 9), index))
-        yield (f"TryInsert({index}, 9)", *_at(lambda c, i: c.TryInsert(i, 9), lambda l, i: l.insert(i, 9), index))
-        yield (f"InsertRange({index}, [8, 9])", *_at(lambda c, i: c.InsertRange(i, [8, 9]), lambda l, i: l.__setitem__(slice(i, i), [8, 9]), index))
-        yield (f"TryInsertRange({index}, [8, 9])", *_at(lambda c, i: c.TryInsertRange(i, [8, 9]), lambda l, i: l.__setitem__(slice(i, i), [8, 9]), index))
+        yield (f"Insert({index}, 9)", *_at(lambda c, i: c.Insert(i, 9), lambda i, l: l.insert(i, 9), index))
+        yield (f"TryInsert({index}, 9)", *_at(lambda c, i: c.TryInsert(i, 9), lambda i, l: l.insert(i, 9), index))
+        yield (f"InsertRange({index}, [8, 9])", *_at(lambda c, i: c.InsertRange(i, [8, 9]), lambda i, l: l.__setitem__(slice(i, i), [8, 9]), index))
+        yield (f"TryInsertRange({index}, [8, 9])", *_at(lambda c, i: c.TryInsertRange(i, [8, 9]), lambda i, l: l.__setitem__(slice(i, i), [8, 9]), index))
 
     yield ("Add(9)", lambda c: c.Add(9), lambda l: l.append(9))
     yield ("TryAdd(9)", lambda c: c.TryAdd(9), lambda l: l.append(9))
     yield ("AddRange([8, 9])", lambda c: c.AddRange([8, 9]), lambda l: l.extend([8, 9]))
 
     for index in range(len(view)):
-        yield (f"RemoveAt({index})", *_at(lambda c, i: c.RemoveAt(i), lambda l, i: l.pop(i), index))
-        yield (f"TryRemoveAt({index})", *_at(lambda c, i: c.TryRemoveAt(i), lambda l, i: l.pop(i), index))
-        yield (f"RemoveRange({index}, 1)", *_at(lambda c, i: c.RemoveRange(i, 1), lambda l, i: l.pop(i), index))
-        yield (f"Remove(value at {index})", *_at(lambda c, v: c.Remove(v), lambda l, v: l.remove(v), view[index]))
+        yield (f"RemoveAt({index})", *_at(lambda c, i: c.RemoveAt(i), lambda i, l: l.pop(i), index))
+        yield (f"TryRemoveAt({index})", *_at(lambda c, i: c.TryRemoveAt(i), lambda i, l: l.pop(i), index))
+        yield (f"RemoveRange({index}, 1)", *_at(lambda c, i: c.RemoveRange(i, 1), lambda i, l: l.pop(i), index))
+        yield (f"Remove(value at {index})", *_at(lambda c, v: c.Remove(v), lambda v, l: l.remove(v), view[index]))
 
     yield ("reverse()", lambda c: c.AsMutableSequence().reverse(), lambda l: l.reverse())
 
@@ -164,7 +167,7 @@ def _foreignCases() -> Iterator[tuple[str, int, int, _Foreign, _Act, _Model]]:
                 for label, act, model in _changes(list(_overChangedSource(size, start, foreign).AsIterable())):
                     yield (f"{foreignLabel}, then {label}", size, start, foreign, act, model)
 
-def _compare(circular: Any, act: _Act, expected: list[int]) -> str|None:
+def _compare(circular: Any, act: _Act, expected: MutableSequence[int]) -> str|None:
     """Applies a change to the list and compares what it then reads with the model. The start it
     reports must then survive its source growing past the end: a change of the list writes back a
     start inside the container, which an append does not move."""
@@ -183,7 +186,7 @@ def _compare(circular: Any, act: _Act, expected: list[int]) -> str|None:
     return None if circular.GetStart() == start else f"start {start} moved to {circular.GetStart()} when its source grew"
 
 def _diverge(items: ReadOnlyArray[int], start: int, act: _Act, model: _Model) -> str|None:
-    expected: list[int] = _logical(start, items)
+    expected: MutableSequence[int] = _logical(start, items)
 
     model(expected)
 
@@ -230,7 +233,7 @@ def _overEmptySizedList() -> Any:
 def _overEmptyOrderedSet() -> Any:
     return CircularList[int](CreateOrderedSet(list[int]()).AsList(), 0)
 
-_EMPTY_REFUSALS: ReadOnlyArray[tuple[str, Callable[[], Any], _Act, bool|None]] = (
+_EMPTY_REFUSALS: ReadOnlyArray[tuple[str, Function[Any], _Act, bool|None]] = (
     ("capacity 0, TryAdd(9)",                  _overEmptySizedList,  lambda c: c.TryAdd(9),                 False),
     ("capacity 0, TryInsertRange(0, [9])",     _overEmptySizedList,  lambda c: c.TryInsertRange(0, [9]),     None),
     ("ordered set, TryAddRange([7, 7])",       _overEmptyOrderedSet, lambda c: c.TryAddRange([7, 7]),        None),
@@ -382,8 +385,8 @@ class TestThePythonPathGridCanFail(unittest.TestCase):
 
         self.assertGreater(_fell(broken), 0, "the third grid did not fall with the index converted twice")
 
-type _Rule = Callable[[list[int], int], bool]
-type _Carrier = tuple[Callable[[int, int], Any], Callable[[int], int], bool, _Rule]
+type _Rule = IndexedValueComparison[list[int]]
+type _Carrier = tuple[IndexedValueFunction[int, Any], Selector[int], bool, _Rule]
 
 def _distinctKeys(size: int) -> Iterator[slice]:
     """The slices of `_KEYS` that resolve differently over `size` items. Two keys that resolve
@@ -397,8 +400,8 @@ def _distinctKeys(size: int) -> Iterator[slice]:
 
             yield key
 
-def _breaksUnicity(content: list[int], size: int) -> bool: return len(set(content)) < len(content)
-def _overflows(content: list[int], size: int) -> bool: return len(content) > size
+def _breaksUnicity(size: int, content: list[int]) -> bool: return len(set(content)) < len(content)
+def _overflows(size: int, content: list[int]) -> bool: return len(content) > size
 
 _REFUSALS: dict[_Rule, str] = {_breaksUnicity: "DuplicateKeyError", _overflows: "InvalidOperationError"}
 """The error a refusal of each rule raises: the one the container's other routes raise for the same
@@ -433,7 +436,7 @@ _UNIQUE_VALUES: ReadOnlyArray[list[int]] = ([0], [7], [7, 0], [7, 7], [0, 7, 8])
 """Values for a span of a list holding some of 0 to 3, once each: one held unless the span frees
 it, one never held, the two together, one given twice, and one longer than most spans."""
 
-def _divergeRefusing(carrier: Any, convert: Callable[[int], int], refuses: _Rule, size: int, key: slice, value: list[int]) -> str|None:
+def _divergeRefusing(carrier: Any, convert: Selector[int], refuses: _Rule, size: int, key: slice, value: list[int]) -> str|None:
     value = [convert(item) for item in value]
     before: list[int] = list(carrier.AsIterable())
     model: list[int] = list(before)
@@ -443,7 +446,7 @@ def _divergeRefusing(carrier: Any, convert: Callable[[int], int], refuses: _Rule
     # of its cause, as the container's other routes refuse it, and a refusal writes nothing.
     try:
         model[key] = value
-        expected = _REFUSALS[refuses] if refuses(model, size) else model
+        expected = _REFUSALS[refuses] if refuses(size, model) else model
     except Exception as exception: expected = type(exception).__name__
 
     try: carrier.AsMutableSequence()[key] = value
@@ -543,7 +546,7 @@ class TestTheFourthGridCanFail(unittest.TestCase):
 
         self.__assertFalls("test_a_circular_list_over_a_full_sized_list", SizedList, mute, "the refusal answered")
 
-_REVOKING: ReadOnlyArray[tuple[str, Callable[[Any, Any], Any]]] = (
+_REVOKING: ReadOnlyArray[tuple[str, Operator[Any]]] = (
     ("c.SetStart(1)",           lambda c, s: c.SetStart(1)),
     ("c.Add(9)",                lambda c, s: c.Add(9)),
     ("c.RemoveAt(0)",           lambda c, s: c.RemoveAt(0)),
@@ -660,7 +663,7 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
     def test_the_revocation_bench_falls_without_the_subscription(self) -> None:
         """Unsubscribing at once and invalidating nothing in SetStart rebuilds D-75."""
 
-        def unsubscribed(obj: object, unsubscribe: Callable[[], None]) -> None: unsubscribe()
+        def unsubscribed(obj: object, unsubscribe: Action) -> None: unsubscribe()
         def nothing(self: Any) -> None: pass
 
         # A suite drops its tests once run, so each run loads its own.
@@ -676,7 +679,7 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
         self.assertGreater(_fell(broken), 0, "the revocation bench did not fall without the subscription")
 
     def test_the_lifetime_bench_falls_when_the_list_never_unsubscribes(self) -> None:
-        def kept(obj: object, unsubscribe: Callable[[], None]) -> None: pass
+        def kept(obj: object, unsubscribe: Action) -> None: pass
 
         bench: unittest.TestCase = TestADroppedCircularListLeavesItsSource("test_its_registries_do_not_outlive_it")
 
