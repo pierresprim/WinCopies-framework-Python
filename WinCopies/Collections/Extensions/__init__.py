@@ -18,6 +18,8 @@ from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
+from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
+                                                 ICountableEnumerableQueue, ICountableEnumerableStack)
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Collections.Util import CreateSequence, GetSequenceIndex
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -222,6 +224,25 @@ class IHashableCollectionViewMonitor[T](ICollectionViewMonitor[T]):
 
     @abstractmethod
     def GetImmutableView(self) -> IHashableTuple[T]:
+        ...
+
+class IReadOnlyLinkedCursorProvider[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]:
+        ...
+class ILinkedCursorProvider[T](IReadOnlyLinkedCursorProvider[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]:
         ...
 
 class ITupleBase[T](ITupleAbstract[T]):
