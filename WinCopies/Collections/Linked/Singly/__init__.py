@@ -96,7 +96,9 @@ class IReadOnlyCountableListBase[T](IReadOnlyListBase[T], ICountable):
 class IReadOnlyCountableList[T](IReadOnlyCountableListBase[T], IReadOnlyList[T]):
     def __init__(self) -> None: super().__init__()
 
-class ICountableListBase[T](IListBase[T], IReadOnlyCountableListBase[T]):
+class ICountableListAbstract[T](IListBase[T], IReadOnlyCountableListBase[T]):
+    def __init__(self) -> None: super().__init__()
+class ICountableListBase[T](ICountableListAbstract[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -138,12 +140,19 @@ class CollectionAbstract[TItems, TList](Abstract, IListBase[TItems], GenericCons
 class CollectionBase[TItems, TList](CollectionAbstract[TItems, TList], IList[TItems]):
     def __init__(self, l: TList) -> None: super().__init__(l)
 
+class ICountableCollection[T](ICountableListAbstract[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsCountableGenerator(self, updater: Method[IFunction[ICountableEnumerable[T]]]) -> IFunction[ICountableEnumerable[T]]:
+        return _EnumerableUpdater[T](self, updater)
+
 @final
 class _EnumerableUpdaterEnumerable[T](IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
-    def __init__(self, items: ICountableListBase[T]) -> None:
+    def __init__(self, items: ICountableListAbstract[T]) -> None:
         super().__init__()
 
-        self.__items: ICountableListBase[T] = items
+        self.__items: ICountableListAbstract[T] = items
     
     def _TryGetIterator(self) -> Iterator[T]|None: return self.__items.AsGenerator()
     
@@ -153,21 +162,21 @@ class _EnumerableUpdaterEnumerable[T](IterableBase[T], CountableCollectionBase, 
     def IsResumable(self) -> bool|None: return False
 @final
 class _EnumerableUpdater[T](ValueFunctionUpdater[ICountableEnumerable[T]]):
-    def __init__(self, items: ICountableListBase[T], updater: Method[IFunction[ICountableEnumerable[T]]]) -> None:
+    def __init__(self, items: ICountableListAbstract[T], updater: Method[IFunction[ICountableEnumerable[T]]]) -> None:
         super().__init__(updater)
 
-        self.__items: ICountableListBase[T] = items
+        self.__items: ICountableListAbstract[T] = items
     
     def _GetValue(self) -> ICountableEnumerable[T]: return _EnumerableUpdaterEnumerable[T](self.__items)
 
-class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems, TList], CountableCollectionBase, ICountableListBase[TItems], GenericConstraint[TList, IList[TItems]]):
+class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems, TList], CountableCollectionBase, ICountableListBase[TItems], ICountableCollection[TItems], GenericConstraint[TList, IList[TItems]]):
     def __init__(self, l: TList) -> None:
         def update(func: IFunction[ICountableEnumerable[TItems]]) -> None: self.__generator = func
         
         super().__init__(l)
 
         self.__count: int = 0
-        self.__generator: IFunction[ICountableEnumerable[TItems]] = _EnumerableUpdater[TItems](self, update) # type: ignore[no-redef]
+        self.__generator: IFunction[ICountableEnumerable[TItems]] = self._AsCountableGenerator(update) # type: ignore[no-redef]
     
     @final
     def AsCountableGenerator(self) -> ICountableEnumerable[TItems]: return self.__generator.GetValue()

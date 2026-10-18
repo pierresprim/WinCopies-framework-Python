@@ -255,7 +255,7 @@ class ITupleBase[T](ITupleAbstract[T]):
     @abstractmethod
     def AsImmutable(self) -> ITuple[T]:
         ...
-class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IStringable):
+class ITuple[T](ITupleBase[T], ISequence[T], IReversableCountableEnumerable[T], IResumableCountableEnumerable[T], IReadOnlyLinkedCursorProvider[T], IStringable):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -326,7 +326,7 @@ class IListBase[T](ITuple[T], IListAbstractBase[T]):
     @abstractmethod
     def AsReversed(self) -> IListBase[T]:
         ...
-class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T]):
+class IList[T](IListAbstract[T], IArray[T], IListBase[T], IMutableSequence[T], ILinkedCursorProvider[T]):
     def __init__(self) -> None: super().__init__()
     
     # Asked before anything is written, because a span replacement cannot be taken back: the

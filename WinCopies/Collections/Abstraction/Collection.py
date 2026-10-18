@@ -10,6 +10,7 @@ from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
+                                              IReadOnlyLinkedCursorProvider,
                                               IDefaultMutableSequence,
                                               ICollection,
                                               ITuple, IEquatableTuple, IHashableTuple,
@@ -434,11 +435,18 @@ class SizedList[T](ListBase[T], ISizedList[T]):
 
 class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCollection[T]):
     def __init__(self, array: IArray[IStruct[T]]) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
+
         super().__init__()
 
         self.__array: IArray[IStruct[T]] = array
 
         array.GetCollectionMonitors().RegisterObject(self._GetCollectionRegistries())
+
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[T]] = self._CreateCursorProvider(update) # type: ignore[no-redef]
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[T]]: return self.__cursorProvider
     
     @final
     def _GetItems(self) -> IArray[IStruct[T]]:

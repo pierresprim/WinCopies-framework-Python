@@ -141,8 +141,7 @@ class EnumerableBase[TIn, TOut, TEnumerable](Abstract, EnumerableAbstract[TIn, T
     def _GetItems(self) -> TEnumerable: return self.__enumerable
     
     @final
-    def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
-        return self._GetEnumerableItems().TryGetEnumerator()
+    def _TryGetEnumerator(self) -> IEnumerator[TIn]|None: return self._GetEnumerableItems().TryGetEnumerator()
 
     @final
     def IsResumable(self) -> bool|None: return self._GetEnumerableItems().IsResumable()
@@ -153,8 +152,7 @@ class Enumerable[TIn, TOut](EnumerableBase[TIn, TOut, IEnumerable[TIn]]):
     def _AsEnumerableItems(self, items: IEnumerable[TIn]) -> IEnumerable[TIn]: return items
 
 class _ResumableEnumerable[TIn, TOut](ConverterBase[TIn, TOut], IResumableEnumerable[TOut]):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:

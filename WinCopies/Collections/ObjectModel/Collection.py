@@ -10,6 +10,7 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumer
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
+from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
 from WinCopies.Typing import INullable
@@ -339,6 +340,11 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[TItem]: return self._GetInnerContainer().GetEventManager()
+
+    @final
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[TItem]: return self._GetInnerContainer().AsReadOnly().AsQueuedCursor()
+    @final
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[TItem]: return self._GetInnerContainer().AsReadOnly().AsStackedCursor()
 @final
 class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFixedSizeObservableCollection[T]], IGenericConstraintImplementation[IFixedSizeObservableCollection[T]]):
     def __init__(self, items: IFixedSizeObservableCollection[T]) -> None: super().__init__(items)

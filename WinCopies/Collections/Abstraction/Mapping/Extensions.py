@@ -11,20 +11,27 @@ from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import Collection, ICollectionMonitors, IEquatableCollectionViewMonitor, IReadOnlyOrderedSet, ITuple, IEquatableTuple, IArray, IList, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet, EquatableCollectionViewMonitor, SequenceAbstract, MutableSequence
-from WinCopies.Collections.Extensions.Collection import MutableList
+from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
+                                              ICollectionMonitors, IEquatableCollectionViewMonitor,
+                                              IReadOnlyOrderedSet, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet,
+                                              ITuple, IEquatableTuple, IArray, IList,
+                                              EquatableCollectionViewMonitor,
+                                              SequenceAbstract, MutableSequence)
+from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
+from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
+                                                 ICountableEnumerableQueue, ICountableEnumerableStack,
+                                                 CreateCountableEnumerableQueue)
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
 from WinCopies.Collections.Util import MakeSet, CreateSet, GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, NullablePredicate, EqualityComparison, IndexedValueAction, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
-class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.CollectionAbstract[T], IDefaultWriteOnlyIndexable[T]):
+class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionAbstract[T], IDefaultWriteOnlyIndexable[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
         def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
@@ -91,28 +98,23 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
             if cannotSetRange(item in self.__innerSet and item not in leaving, ThrowDuplicateItemError): return False
 
         return True
-    
-    def _TryInsert(self, index: int, value: T) -> bool:
-        if self.__set.TryAdd(value):
-            self.__list.Insert(index, value)
+
+    def __TryInsert[U](self, index: int, items: U, add: Converter[ISet[T], NullablePredicate[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> bool:
+        if add(self.__set)(items) is True:
+            insert(self.__list)(index, items)
 
             return True
         
         return False
-    def _Insert(self, index: int, value: T) -> None:
-        self.__set.Add(value)
-        self.__list.Insert(index, value)
+    def __Insert[U](self, index: int, items: U, add: Converter[ISet[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
+        add(self.__set)(items)
+        insert(self.__list)(index, items)
     
-    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
-        if self.__set.TryAddRange((items := BuildIterable(items))) is True:
-            self.__list.InsertRange(index, items)
-
-            return True
-        
-        return False
-    def _InsertRange(self, index: int, items: Iterable[T]) -> None:
-        self.__set.AddRange((items := BuildIterable(items)))
-        self.__list.InsertRange(index, items)
+    def _TryInsert(self, index: int, value: T) -> bool: return self.__TryInsert(index, value, lambda s: s.TryAdd, lambda l: l.Insert)
+    def _Insert(self, index: int, value: T) -> None: self.__Insert(index, value, lambda s: s.Add, lambda l: l.Insert)
+    
+    def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool: return self.__TryInsert(index, BuildIterable(items), lambda s: s.TryAddRange, lambda l: l.InsertRange)
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self.__Insert(index, BuildIterable(items), lambda s: s.AddRange, lambda l: l.InsertRange)
     
     def _RemoveRange(self, index: int, count: int) -> None: return super(MutableList, self)._RemoveRange(index, count)
     
@@ -135,7 +137,10 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], Collection.
     def SliceAt(self, key: slice) -> IList[T]: return self.__list.SliceAt(key)
     
     def ToString(self) -> str: return self.__items.ToString()
-    
+
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self.__list.AsQueuedCursor()
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self.__list.AsStackedCursor()
+
     def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
     def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
@@ -235,7 +240,10 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
 
 @final
 class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
+    def __init__(self, items: IEquatableTuple[T], cursorProvider: IReadOnlyLinkedCursorProvider[T]) -> None:
+        super().__init__(items)
+
+        self.__cursorProvider: IReadOnlyLinkedCursorProvider[T] = cursorProvider
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
@@ -247,14 +255,18 @@ class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetT
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(self.ReverseKey(key)))
     
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 @final
 class _ReadOnlyOrderedSetReversedTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
+    def __init__(self, items: IEquatableTuple[T], cursorProvider: IReadOnlyLinkedCursorProvider[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__items: IEquatableTuple[T] = items
+        self.__cursorProvider: IReadOnlyLinkedCursorProvider[T] = cursorProvider
     
-    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items) # The _ReadOnlyOrderedSetReversedTuple type already reverses indices.
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items, self.__cursorProvider) # The _ReadOnlyOrderedSetReversedTuple type already reverses indices.
 
 @final
 class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
@@ -263,7 +275,7 @@ class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase
         
         super().__init__(items)
 
-        self.__reversed: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
+        self.__reversed: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetReversedTupleUpdater[T](self, self._GetContainer().AsReadOnly().AsReversed(), update) # type: ignore[no-redef]
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
@@ -275,6 +287,9 @@ class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(key))
     
     def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self._GetContainer().AsReadOnly().AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self._GetContainer().AsReadOnly().AsStackedCursor()
 @final
 class _ReadOnlyOrderedSetTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:

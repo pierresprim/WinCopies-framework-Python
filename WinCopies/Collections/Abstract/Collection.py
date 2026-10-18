@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
+from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase, Sized
 from typing import final, overload, Self, SupportsIndex
 
-from WinCopies import IStringable
+from WinCopies import IStringable, Abstract
 from WinCopies.Collections import DuplicateKeyError
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
@@ -12,20 +12,252 @@ from WinCopies.Collections.Abstract.Selection import StringableConverter, String
 from WinCopies.Collections.Abstraction.Collection import GetTuple, GetEquatableTuple, GetHashableTuple, GetArray, GetList
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, Enumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor,
                                               ICollectionMonitors,
+                                              IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray, IList,
                                               Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
+from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableList, ICountableEnumerableList,
+                                                 IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
+                                                 ICountableEnumerableQueue, ICountableEnumerableStack)
 from WinCopies.Collections.Range import SetItems
 from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError, GetDuplicateRangeError
+from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+
+@final
+class _Generator[T](Enumerator[T]):
+    def __init__(self, items: ICountableEnumerableList[T]) -> None:
+        super().__init__()
+
+        self.__items: ICountableEnumerableList[T] = items
+
+    def IsResetSupported(self) -> bool: return False
+
+    def _MoveNextOverride(self) -> bool:
+        result: INullable[T] = self.__items.TryPop()
+
+        if result.HasValue():
+            self._SetCurrent(result.GetValue())
+
+            return True
+
+        return False
+
+    def _ResetOverride(self) -> bool: return False
+@final
+class _GeneratorProvider[T](Abstract, CountableEnumerable[T]):
+    def __init__(self, items: ICountableEnumerableList[T]) -> None:
+        super().__init__()
+
+        self.__items: ICountableEnumerableList[T] = items
+
+    def IsResumable(self) -> bool|None: return False
+
+    def GetCount(self) -> int: return self.__items.GetCount()
+
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return _Generator[T](self.__items)
+
+class _ReadOnlyBufferSourceBase[TIn, TOut, TCollectionIn, TCollectionOut](Abstract):
+    def __init__(self, source: TCollectionIn, items: TCollectionOut, converter: Converter[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__source: TCollectionIn = source
+        self.__items: TCollectionOut = items
+        self.__converter: Converter[TIn, TOut] = converter
+
+    @final
+    def _GetConverter(self) -> Converter[TIn, TOut]:
+        return self.__converter
+
+    @final
+    def GetSource(self) -> TCollectionIn:
+        return self.__source
+    @final
+    def GetItems(self) -> TCollectionOut:
+        return self.__items
+    
+    @final
+    def Convert(self, item: TIn) -> TOut:
+        return self._GetConverter()(item)
+
+@final
+class _ReadOnlyBufferSource[TIn, TOut](_ReadOnlyBufferSourceBase[TIn, TOut, ITuple[TIn], ITuple[TOut]]):
+    def __init__(self, source: ITuple[TIn], items: ITuple[TOut], selector: Converter[TIn, TOut]) -> None: super().__init__(source, items, selector)
+@final
+class _BufferSource[TIn, TOut](_ReadOnlyBufferSourceBase[TIn, TOut, IList[TIn], IList[TOut]]):
+    def __init__(self, source: IList[TIn], items: IList[TOut], selector: Converter[TIn, TOut], backConverter: Converter[TOut, TIn]) -> None:
+        super().__init__(source, items, selector)
+
+        self.__backConverter: Converter[TOut, TIn] = backConverter
+    
+    def ConvertBack(self, item: TOut) -> TIn:
+        return self.__backConverter(item)
+
+    def ToReadOnly(self) -> _ReadOnlyBufferSource[TIn, TOut]:
+        return _ReadOnlyBufferSource[TIn, TOut](self.GetSource(), self.GetItems(), self._GetConverter())
+
+class _ReadOnlyBufferBase[TIn, TOut, TCollectionIn, TCollectionOut, TBufferSource](Abstract, IReadOnlyCountableEnumerableList[TOut]):
+    def __init__(self, bufferSource: TBufferSource) -> None:
+        super().__init__()
+
+        self.__bufferSource: TBufferSource = bufferSource
+
+    @abstractmethod
+    def _AsTupleIn(self, items: TCollectionIn) -> ITuple[TIn]:
+        ...
+    @abstractmethod
+    def _AsTupleOut(self, items: TCollectionOut) -> ITuple[TOut]:
+        ...
+
+    @abstractmethod
+    def _AsBufferSource(self, items: TBufferSource) -> _ReadOnlyBufferSourceBase[TIn, TOut, TCollectionIn, TCollectionOut]:
+        ...
+
+    @final
+    def _GetBufferSource(self) -> TBufferSource:
+        return self.__bufferSource
+    @final
+    def __GetBufferSource(self) -> _ReadOnlyBufferSourceBase[TIn, TOut, TCollectionIn, TCollectionOut]:
+        return self._AsBufferSource(self._GetBufferSource())
+
+    @final
+    def __GetSource(self) -> ITuple[TIn]: return self._AsTupleIn(self._GetSource())
+    @final
+    def __GetItems(self) -> ITuple[TOut]: return self._AsTupleOut(self.__GetBufferSource().GetItems())
+
+    @final
+    def _GetSource(self) -> TCollectionIn:
+        return self.__GetBufferSource().GetSource()
+    
+    @final
+    def _Convert(self, item: INullable[TIn]) -> INullable[TOut]:
+        return GetNullable(self.__GetBufferSource().Convert(item.GetValue())) if item.HasValue() else GetNullValue()
+
+    @final
+    def IsEmpty(self) -> bool: return self.__GetSource().IsEmpty()
+
+    @final
+    def GetCount(self) -> int: return self.__GetSource().GetCount()
+
+    @final
+    def TryPeek(self) -> INullable[TOut]: return self._Convert(self.__GetSource().AsQueuedCursor().TryPeek())
+    
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[TOut]|None: return self.__GetItems().TryGetEnumerator()
+
+    @final
+    def AsSized(self) -> Sized: return self.__GetSource().AsReadOnly().AsSized()
+    @final
+    def AsIterable(self) -> Iterable[TOut]: return self.__GetItems().AsIterable()
+
+class _ReadOnlyBuffer[TIn, TOut](_ReadOnlyBufferBase[TIn, TOut, ITuple[TIn], ITuple[TOut], _ReadOnlyBufferSource[TIn, TOut]], IReadOnlyCountableEnumerableList[TOut]):
+    def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
+
+    @final
+    def _AsTupleIn(self, items: ITuple[TIn]) -> ITuple[TIn]: return items
+    @final
+    def _AsTupleOut(self, items: ITuple[TOut]) -> ITuple[TOut]: return items
+
+    @final
+    def _AsBufferSource(self, items: _ReadOnlyBufferSource[TIn, TOut]) -> _ReadOnlyBufferSource[TIn, TOut]: return items
+class _Buffer[TIn, TOut](_ReadOnlyBufferBase[TIn, TOut, IList[TIn], IList[TOut], _BufferSource[TIn, TOut]], ICountableEnumerableList[TOut]):
+    def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
+
+    @final
+    def _AsTupleIn(self, items: IList[TIn]) -> ITuple[TIn]: return items
+    @final
+    def _AsTupleOut(self, items: IList[TOut]) -> ITuple[TOut]: return items
+
+    @final
+    def _AsBufferSource(self, items: _BufferSource[TIn, TOut]) -> _BufferSource[TIn, TOut]: return items
+
+    @final
+    def __AsQueuedCursor(self) -> ICountableEnumerableQueue[TIn]:
+        return self._GetSource().AsQueuedCursor()
+
+    @final
+    def Push(self, value: TOut) -> None: self.__AsQueuedCursor().Push(self._GetBufferSource().ConvertBack(value))
+    
+    @final
+    def TryPop(self) -> INullable[TOut]: return self._Convert(self.__AsQueuedCursor().TryPop())
+
+    @final
+    def Clear(self) -> None: self.__AsQueuedCursor().Clear()
+
+    @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[TOut]: return _GeneratorProvider[TOut](self)
+
+@final
+class _ReadOnlyBufferedQueue[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableQueue[TOut]):
+    def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
+@final
+class _ReadOnlyBufferedStack[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableStack[TOut]):
+    def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
+
+@final
+class _BufferedQueue[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableQueue[TOut]):
+    def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None:
+        super().__init__(bufferSource)
+
+        self.__readOnly: IReadOnlyCountableEnumerableQueue[TOut] = _ReadOnlyBufferedQueue[TIn, TOut](bufferSource.ToReadOnly())
+
+    @final
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[TOut]: return self.__readOnly
+@final
+class _BufferedStack[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableStack[TOut]):
+    def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None:
+        super().__init__(bufferSource)
+
+        self.__readOnly: IReadOnlyCountableEnumerableStack[TOut] = _ReadOnlyBufferedStack[TIn, TOut](bufferSource.ToReadOnly())
+
+    @final
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[TOut]: return self.__readOnly
+
+@final
+class _ReadOnlyBufferProvider[TIn, TOut](Abstract, IReadOnlyLinkedCursorProvider[TOut]):
+    def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__queued: IReadOnlyCountableEnumerableQueue[TOut] = _ReadOnlyBufferedQueue[TIn, TOut](bufferSource)
+        self.__stacked: IReadOnlyCountableEnumerableStack[TOut] = _ReadOnlyBufferedStack[TIn, TOut](bufferSource)
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[TOut]: return self.__queued
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[TOut]: return self.__stacked
+@final
+class _ReadOnlyBufferProviderUpdater[TIn, TOut](ValueFunctionUpdater[IReadOnlyLinkedCursorProvider[TOut]]):
+    def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut], updater: Method[IFunction[IReadOnlyLinkedCursorProvider[TOut]]]) -> None:
+        super().__init__(updater)
+
+        self.__bufferSource: _ReadOnlyBufferSource[TIn, TOut] = bufferSource
+
+    def _GetValue(self) -> IReadOnlyLinkedCursorProvider[TOut]: return _ReadOnlyBufferProvider[TIn, TOut](self.__bufferSource)
+
+@final
+class _BufferProvider[TIn, TOut](Abstract, ILinkedCursorProvider[TOut]):
+    def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None:
+        super().__init__()
+
+        self.__queued: ICountableEnumerableQueue[TOut] = _BufferedQueue[TIn, TOut](bufferSource)
+        self.__stacked: ICountableEnumerableStack[TOut] = _BufferedStack[TIn, TOut](bufferSource)
+
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[TOut]: return self.__queued
+    def AsStackedCursor(self) -> ICountableEnumerableStack[TOut]: return self.__stacked
+@final
+class _BufferProviderUpdater[TIn, TOut](ValueFunctionUpdater[ILinkedCursorProvider[TOut]]):
+    def __init__(self, bufferSource: _BufferSource[TIn, TOut], updater: Method[IFunction[ILinkedCursorProvider[TOut]]]) -> None:
+        super().__init__(updater)
+
+        self.__bufferSource: _BufferSource[TIn, TOut] = bufferSource
+
+    def _GetValue(self) -> ILinkedCursorProvider[TOut]: return _BufferProvider[TIn, TOut](self.__bufferSource)
 
 class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableConverter[TIn, TOut, TSequence, ITuple[TIn]], Sequence[TOut], _TupleAbstract[TOut], ResumableEnumerableAbstract[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
@@ -45,11 +277,9 @@ class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableC
     def Contains(self, value: TOut|object) -> bool: return any(item is value or item == value for item in self.AsIterable())
     
     @final
-    def _TryGetEnumerator(self) -> IEnumerator[TIn]|None:
-        return self._GetInnerContainer().TryGetEnumerator()
+    def _TryGetEnumerator(self) -> IEnumerator[TIn]|None: return self._GetInnerContainer().TryGetEnumerator()
     @final
-    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None:
-        return self._GetInnerContainer().TryGetResumableEnumerator()
+    def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBase[TIn, TOut, TSequence], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
 
@@ -66,12 +296,55 @@ class TupleAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBa
 class TupleBase[TIn, TOut, TSequence: IStringable](TupleAbstract[TIn, TOut, TSequence], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
 
-class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TIn]], IGenericConstraintImplementation[ITuple[TIn]]):
+class _IReadOnlyCursorProvider[TIn, TOut](IReadOnlyLinkedCursorProvider[TOut]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CreateCursorProvider(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut], updater: Method[IFunction[IReadOnlyLinkedCursorProvider[TOut]]]) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]:
+        return _ReadOnlyBufferProviderUpdater[TIn, TOut](bufferSource, updater)
+
+    @abstractmethod
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]:
+        ...
+    @final
+    def __GetCursorProvider(self) -> IReadOnlyLinkedCursorProvider[TOut]:
+        return self._GetCursorProvider().GetValue()
+
+    @final
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[TOut]: return self.__GetCursorProvider().AsQueuedCursor()
+    @final
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[TOut]: return self.__GetCursorProvider().AsStackedCursor()
+class _ICursorProvider[TIn, TOut](ILinkedCursorProvider[TOut]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CreateCursorProvider(self, bufferSource: _BufferSource[TIn, TOut], updater: Method[IFunction[ILinkedCursorProvider[TOut]]]) -> IFunction[ILinkedCursorProvider[TOut]]:
+        return _BufferProviderUpdater[TIn, TOut](bufferSource, updater)
+
+    @abstractmethod
+    def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[TOut]]:
+        ...
+    @final
+    def __GetCursorProvider(self) -> ILinkedCursorProvider[TOut]:
+        return self._GetCursorProvider().GetValue()
+
+    @final
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[TOut]: return self.__GetCursorProvider().AsQueuedCursor()
+    @final
+    def AsStackedCursor(self) -> ICountableEnumerableStack[TOut]: return self.__GetCursorProvider().AsStackedCursor()
+
+class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TIn]], _IReadOnlyCursorProvider[TIn, TOut], IGenericConstraintImplementation[ITuple[TIn]]):
     def __init__(self, items: ITuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TOut]]) -> None: self.__cursorProvider = func
+        
         super().__init__()
 
         self.__items: ITuple[TIn] = (items := GetTuple(items))
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TOut]] = self._CreateCursorProvider(_ReadOnlyBufferSource[TIn, TOut](items, self, self._Convert), update) # type: ignore[no-redef]
         self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]: return self.__cursorProvider
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -89,12 +362,18 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
     
     @final
     def SliceAt(self, key: slice) -> ITuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
-class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IEquatableTuple[TIn]], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
+class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableTupleCollectionBase[TOut], TupleBase[TIn, TOut, IEquatableTuple[TIn]], _IReadOnlyCursorProvider[TIn, TOut], IGenericConstraintImplementation[IEquatableTuple[TIn]]):
     def __init__(self, items: IEquatableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TOut]]) -> None: self.__cursorProvider = func
+        
         super().__init__()
 
         self.__items: IEquatableTuple[TIn] = (items := GetEquatableTuple(items))
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TOut]] = self._CreateCursorProvider(_ReadOnlyBufferSource[TIn, TOut](items, self, self._Convert), update) # type: ignore[no-redef]
         self.__monitor: IEquatableCollectionViewMonitor[TOut] = EquatableCollectionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]: return self.__cursorProvider
 
     @final
     def _GetCollectionViewMonitor(self) -> IEquatableCollectionViewMonitor[TOut]: return self.__monitor
@@ -114,11 +393,17 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
 
     @final
     def AsImmutable(self) -> IEquatableTuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
-class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleAbstract[TIn, TOut, IHashableTuple[TIn]], IGenericConstraintImplementation[IHashableTuple[TIn]]):
+class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTupleCollectionBase[TOut], TupleAbstract[TIn, TOut, IHashableTuple[TIn]], _IReadOnlyCursorProvider[TIn, TOut], IGenericConstraintImplementation[IHashableTuple[TIn]]):
     def __init__(self, items: IHashableTuple[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TOut]]) -> None: self.__cursorProvider = func
+
         super().__init__()
 
         self.__items: IHashableTuple[TIn] = (items := GetHashableTuple(items))
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TOut]] = self._CreateCursorProvider(_ReadOnlyBufferSource[TIn, TOut](items, self, self._Convert), update) # type: ignore[no-redef]
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]: return self.__cursorProvider
 
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetContainer().GetCollectionMonitors()
@@ -168,12 +453,18 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
 class ArrayBase[TIn, TOut, TSequence: IStringable](TupleBase[TIn, TOut, TSequence], ArrayAbstract[TIn, TOut, TSequence]):
     def __init__(self) -> None: super().__init__()
 
-class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
+class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], _IReadOnlyCursorProvider[TIn, TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IArray[TIn]]):
     def __init__(self, items: IArray[TIn]|Sequence[TIn]|Iterable[TIn]) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TOut]]) -> None: self.__cursorProvider = func
+
         super().__init__()
 
         self.__items: IArray[TIn] = (items := GetArray(items))
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TOut]] = self._CreateCursorProvider(_ReadOnlyBufferSource[TIn, TOut](items, self, self._Convert), update) # type: ignore[no-redef]
         self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TOut]]: return self.__cursorProvider
 
     @final
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[TOut]: return self.__monitor
@@ -189,12 +480,18 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], IGene
     @final
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
-class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut], MutableSequence[TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
+class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut], MutableSequence[TOut], _ICursorProvider[TIn, TOut], IGenericSpecializedConstraintImplementation[ITuple[TIn], IList[TIn]]):
     def __init__(self, items: IList[TIn]|MutableSequence[TIn]|Iterable[TIn]) -> None:
+        def update(func: IFunction[ILinkedCursorProvider[TOut]]) -> None: self.__cursorProvider = func
+
         super().__init__()
 
         self.__items: IList[TIn] = (items := GetList(items))
+        self.__cursorProvider: IFunction[ILinkedCursorProvider[TOut]] = self._CreateCursorProvider(_BufferSource[TIn, TOut](items, self, self._Convert, self._ConvertBack), update) # type: ignore[no-redef]
         self.__monitor: ICollectionViewMonitor[TOut] = CollectionViewMonitor[TIn, TOut](items, self)
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[TOut]]: return self.__cursorProvider
 
     @final
     def __Select(self, items: Iterable[TOut]|None) -> Iterable[TIn]:

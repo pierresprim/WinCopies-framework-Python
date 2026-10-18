@@ -85,8 +85,7 @@ class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], Sequ
     def AsReversed(self) -> ICircularArray[T]: return self._GetContainer()
     
     @final
-    def _SliceAt(self, key: slice) -> IArray[T]:
-        return self._GetSpecializedContainer().SliceAt(key)
+    def _SliceAt(self, key: slice) -> IArray[T]: return self._GetSpecializedContainer().SliceAt(key)
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return self.ToSlicedAt(key)
 @final
@@ -111,8 +110,7 @@ class _ReversedList[T](ReversedListAbstract[T, ICircularList[T], IList[T]], Muta
     def _GetSpecializedContainerAsList(self, container: IList[T]) -> IList[T]:
         return container
     
-    def _SliceAt(self, key: slice) -> IList[T]:
-        return self._GetContainer().SliceAt(key)
+    def _SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(key)
     def SliceAt(self, key: slice) -> IList[T]: return self.ToSlicedAt(key)
 
 @final
