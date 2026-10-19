@@ -227,11 +227,6 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
         return item is items or (isinstance(item, ITuple) and equals(items, item)) or (isinstance(item, Sequence) and sequenceEquals(items, item) or (isinstance(item, Iterable) and iterableEquals(items, item))) # pyright: ignore[reportUnknownArgumentType]
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
-    @final
-    def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
-    
-    @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
 
     @final
@@ -252,6 +247,9 @@ class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetT
     def Equals(self, item: object) -> bool: return item is self or item == self if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
     
     def TryGetValue(self, key: int) -> INullable[T]: return self._GetContainer().TryGetValue(self.ReverseIndex(key))
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateEnumerator(self)
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]: return self.GetCollectionMonitors().GetEnumeratorMonitor().CreateResumableEnumerator(self)
     
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(self.ReverseKey(key)))
     
@@ -280,6 +278,9 @@ class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase
     def Equals(self, item: object) -> bool: return item is self or self._Equals(self._GetContainer(), item)
     
     def TryGetValue(self, key: int) -> INullable[T]: return self._GetContainer().TryGetValue(key)
+    
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetContainer().TryGetEnumerator()
+    def TryGetResumableEnumerator(self) -> IResumableEnumerator[T]|None: return self._GetContainer().TryGetResumableEnumerator()
     
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(key))
     
