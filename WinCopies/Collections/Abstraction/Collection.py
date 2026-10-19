@@ -17,7 +17,8 @@ from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
                                               IArray,
                                               IList, ISortedList, ISizedList,
                                               Sequence, MutableSequence,
-                                              Count)
+                                              Count,
+                                              GetTupleString)
 from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManagedCollection,
                                                          TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
                                                          Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
@@ -108,7 +109,7 @@ class Tuple[T](TupleBase[T, _Sequence[T]], _Tuple[T], IGenericConstraintImplemen
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return Tuple[T](self._GetContainer()[key])
     
-    def ToString(self) -> str: return str(self._GetContainer())
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
 class EquatableTuple[T: EquatableProtocol](TupleBase[T, _Sequence[T]], _EquatableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[_Sequence[T]]):
     def __init__(self, items: _Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
@@ -120,7 +121,7 @@ class EquatableTuple[T: EquatableProtocol](TupleBase[T, _Sequence[T]], _Equatabl
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return EquatableTuple[T](self._GetContainer()[key])
     
-    def ToString(self) -> str: return str(self._GetContainer())
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
 class HashableTuple[T: HashableProtocol](TupleBase[T, _Sequence[T]], _HashableTuple[T], _IEquatableTuple[T], IGenericConstraintImplementation[_Sequence[T]]):
     def __init__(self, items: _Sequence[T]|Iterable[T]) -> None: super().__init__(CreateImmutableSequence(items))
     
@@ -132,7 +133,7 @@ class HashableTuple[T: HashableProtocol](TupleBase[T, _Sequence[T]], _HashableTu
     
     def Hash(self) -> int: return hash(self._GetContainer())
     
-    def ToString(self) -> str: return str(self._GetContainer())
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
 
 class ArrayAbstractBase[TItem, TSequence](TupleAbstractBase[TItem, TSequence], _ArrayAbstractBase[TItem, ITuple[TItem]], GenericSpecializedConstraint[TSequence, _Sequence[TItem], _MutableSequence[TItem]], IViewProvider):
     def __init__(self) -> None: super().__init__()
@@ -184,7 +185,7 @@ class Array[T](ArrayBase[T, _MutableSequence[T]], _Array[T], IGenericSpecialized
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return Array[T](self._GetContainer()[key])
     
-    def ToString(self) -> str: return str(self._GetContainer())
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
 class SizedArray[T](Array[T]):
     def __init__(self, length: int, defaultValue: T) -> None: super().__init__([defaultValue] * length)
 
@@ -222,7 +223,7 @@ class ListAbstract[T](ArrayAbstractBase[T, _MutableSequence[T]], ICollection[T],
             
             self._GetContainer().clear()
     
-    def ToString(self) -> str: return str(self._GetContainer())
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
 class ListBase[T](ListAbstract[T], ArrayAbstract[T, _MutableSequence[T]], MutableSequence[T], _List[T], IDefaultMutableSequence[T]):
     def __init__(self, items: _MutableSequence[T]|Iterable[T]|None) -> None: super().__init__(items)
     
@@ -506,7 +507,7 @@ class ArrayCollection[T](Sequence[T], _ArrayCollection[T], IArray[T], IManagedCo
     def AsImmutable(self) -> ITuple[T]: return self._GetCollectionViewMonitor().GetImmutableView()
     
     @final
-    def ToString(self) -> str: return self._GetItems().ToString()
+    def ToString(self) -> str: return GetTupleString(self.AsIterable(), self.GetMutability())
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> T: ...

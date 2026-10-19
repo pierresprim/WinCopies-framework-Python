@@ -16,7 +16,8 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               IReadOnlyOrderedSet, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet,
                                               ITuple, IEquatableTuple, IArray, IList,
                                               EquatableCollectionViewMonitor,
-                                              SequenceAbstract, MutableSequence)
+                                              SequenceAbstract, MutableSequence,
+                                              GetViewString)
 from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract, IReadOnlyCursorProvider
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import (ICountableEnumerableQueue, ICountableEnumerableStack,
@@ -235,7 +236,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     def AsImmutable(self) -> IEquatableTuple[TItem]: return self.__monitor.GetImmutableView()
     
     @final
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
 
 @final
 class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):

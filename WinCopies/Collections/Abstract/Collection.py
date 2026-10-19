@@ -19,7 +19,8 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray, IList,
-                                              Sequence, MutableSequence)
+                                              Sequence, MutableSequence,
+                                              GetViewString)
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableList, ICountableEnumerableList,
@@ -280,6 +281,9 @@ class TupleCollectionAbstractBase[TIn, TOut, TSequence: IStringable](StringableC
     def _TryGetEnumerator(self) -> IEnumerator[TIn]|None: return self._GetInnerContainer().TryGetEnumerator()
     @final
     def _TryGetResumableEnumerator(self) -> IResumableEnumerator[TIn]|None: return self._GetInnerContainer().TryGetResumableEnumerator()
+    
+    @final
+    def ToString(self) -> str: return GetViewString(self, self._GetContainer())
 class TupleCollectionAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstractBase[TIn, TOut, TSequence], ITupleBase[TOut]):
     def __init__(self) -> None: super().__init__()
 

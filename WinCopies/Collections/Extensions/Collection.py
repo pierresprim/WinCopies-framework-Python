@@ -17,6 +17,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
                                               ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection,
                                               IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
+                                              GetViewString,
                                               ITupleBase as ITupleAbstract, ITuple, IEquatableTuple, IHashableTuple, ISortedTuple,
                                               IArray,
                                               IListBase, IList, ISortedList,
@@ -193,7 +194,7 @@ class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem
     def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindFirstIndex(item, predicate)
     
     @final
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
 class _ReversedBase[TItem, TCollectionIn, TCollectionOut](_ReversedAbstract[TItem, TCollectionIn, TCollectionOut]):
     def __init__(self, items: TCollectionIn) -> None: super().__init__(items)
     

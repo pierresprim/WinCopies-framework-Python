@@ -6,11 +6,10 @@ from WinCopies import IStringable, IsTrue
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, GetViewString
 from WinCopies.Collections.Extensions.Collection import IManagedCollection, TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex, ThrowIndexError
-from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IndexedValueFunction
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -114,45 +113,7 @@ class CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem]
 
         self._InvalidateViews()
     
-    def ToString(self) -> str:
-        def getChars() -> tuple[str, str]:
-            match self.GetMutability():
-                case Mutability.ReadOnly: return ('(', ')')
-                
-                case _: return ('[', ']')
-
-        action: Method[TItem]|None = None
-
-        def write(item: TItem) -> None:
-            nonlocal action
-
-            def _write(item: TItem) -> None: stream.Write(repr(item))
-            def write(item: TItem) -> None:
-                stream.Write(", ")
-
-                _write(item)
-
-            action = write
-
-            _write(item)
-
-        chars: tuple[str, str] = getChars()
-        stream: IMemoryTextStream = MemoryTextStream()
-        action = write
-        result: str = ''
-
-        with stream:
-            stream.Open()
-
-            stream.Write(chars[0])
-
-            for item in self.AsIterable(): action(item)
-
-            stream.Write(chars[1])
-
-            result = stream.ToString()
-
-        return result
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList], TupleBase[TItem], Sequence[TItem], ICircularTuple[TItem], IStringable, GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     

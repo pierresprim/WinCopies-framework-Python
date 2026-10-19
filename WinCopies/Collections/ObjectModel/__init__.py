@@ -1,7 +1,7 @@
 from typing import final
 
 from WinCopies.Collections.Core import IAbstractionWriteOnlyIndexable
-from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract
+from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract, GetViewString
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
@@ -31,7 +31,7 @@ class ReadOnlyCollectionBase[TItem, TList](SequenceAbstract[TItem], GenericConst
     def FindLastIndex(self, item: TItem, predicate: EqualityComparison[TItem]|None = None) -> int: return self._GetInnerContainer().FindLastIndex(item, predicate)
     
     @final
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
 
 class ReadOnlyCollection[T](ReadOnlyCollectionBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)

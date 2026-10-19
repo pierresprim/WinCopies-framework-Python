@@ -4,7 +4,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IsTrue
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract, GetViewString
 from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex
@@ -34,7 +34,7 @@ class CircularAbstract[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircula
     @final
     def GetStart(self) -> int: return self._GetInnerContainer().GetStart()
     
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList]):
     def __init__(self, items: TList) -> None: super().__init__(items)
     

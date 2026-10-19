@@ -10,7 +10,7 @@ from WinCopies.Collections.Abstract.Selection import ISelector, IAbstractionSett
 from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
 from WinCopies.Collections.Core import ISetter
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import IDictionary, ISet
+from WinCopies.Collections.Extensions import IDictionary, ISet, GetCollectionString
 from WinCopies.Collections.Extensions.Mapping import Set as SetBase, DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -48,6 +48,9 @@ class Set[TIn: HashableProtocol, TOut: HashableProtocol](SetBase[TOut], Enumerab
     
     @final
     def Clear(self) -> None: self._GetItems().Clear()
+    
+    @final
+    def ToString(self) -> str: return GetCollectionString(self.AsIterable(), '{', '}') if self.GetCount() > 0 else "set()"
 
 class _ICookie[TIn, TOut](IInterface):
     def __init__(self) -> None: super().__init__()
@@ -141,6 +144,9 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](DictionaryBase[TKe
     
     @final
     def Clear(self) -> None: return self._GetItems().Clear()
+    
+    @final
+    def ToString(self) -> str: return GetCollectionString(self.AsIterable(), '{', '}', lambda pair: f"{pair.GetKey()!r}: {pair.GetValue()!r}")
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValueOut]]|None:

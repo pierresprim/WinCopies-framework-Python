@@ -17,7 +17,8 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               ICollectionMonitors,
                                               ITuple, IEquatableTuple,
                                               CollectionViewMonitor, EquatableCollectionViewMonitor,
-                                              SequenceAbstract)
+                                              SequenceAbstract,
+                                              GetTupleString)
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistry
 from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
@@ -381,7 +382,7 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
 
         discardReason: DiscardReason = cookie.GetDiscardReason()
 
-        return self._AsContainer(cookie.GetItems()).ToString() if discardReason == DiscardReason.Null else f"<RevocableView (revoked: view {discardReason.ToString().lower()})>"
+        return GetTupleString(self.AsIterable(), self.GetMutability()) if discardReason == DiscardReason.Null else f"<RevocableView (revoked: view {discardReason.ToString().lower()})>"
 
 @final
 class _RevocableView[T](RevocableViewBase[T], _IRevocableView[T, ITuple[T]]):

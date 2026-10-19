@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract, IsTrue
 from WinCopies.Collections.Core import Mutability, IAbstractionWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract
+from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract, GetViewString
 from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
 from WinCopies.Collections.Range import SetItems, RemoveItems
@@ -161,7 +161,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
     def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
     
     @final
     def insert(self, index: int, value: TItem) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
@@ -336,7 +336,7 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
     
     @final
-    def ToString(self) -> str: return self._GetInnerContainer().ToString()
+    def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[TItem]: return self._GetInnerContainer().GetEventManager()

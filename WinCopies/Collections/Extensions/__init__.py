@@ -6,7 +6,7 @@ from typing import Any, overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections.Core import (ICountable, IContainer, IClearable,
+from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, IClearable,
                                         IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
                                         ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
                                         IArray as IArrayAbstract,
@@ -22,9 +22,10 @@ from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQue
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Collections.Util import CreateSequence, GetSequenceIndex
+from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function, Converter
-from WinCopies.Typing.Discard import DiscardReason
+from WinCopies.Typing.Discard import DiscardReason, DiscardedError
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Object import IItem
 from WinCopies.Typing.Pairing import IKeyValuePair
@@ -244,6 +245,50 @@ class ILinkedCursorProvider[T](IReadOnlyLinkedCursorProvider[T]):
     @abstractmethod
     def AsStackedCursor(self) -> ICountableEnumerableStack[T]:
         ...
+
+def GetCollectionString[T](items: Iterable[T], opening: str, closing: str, converter: Converter[T, str] = repr) -> str:
+    action: Method[T]|None = None
+
+    def write(item: T) -> None:
+        nonlocal action
+
+        def _write(item: T) -> None: stream.Write(converter(item))
+        def write(item: T) -> None:
+            stream.Write(", ")
+
+            _write(item)
+
+        action = write
+
+        _write(item)
+
+    stream: IMemoryTextStream = MemoryTextStream()
+    action = write
+    result: str = ''
+
+    with stream:
+        stream.Open()
+
+        stream.Write(opening)
+
+        for item in items: action(item)
+
+        stream.Write(closing)
+
+        result = stream.ToString()
+
+    return result
+def GetTupleString[T](items: Iterable[T], mutability: Mutability) -> str:
+    match mutability:
+        case Mutability.ReadOnly: return GetCollectionString(items, '(', ')')
+        
+        case _: return GetCollectionString(items, '[', ']')
+# A view reads through its source, so a view standing on a revoked one cannot read what it would
+# render. It answers with the representation of its source instead, which degrades without raising,
+# as the representation of a view did when it was its source's.
+def GetViewString[T](view: ITuple[T], source: IStringable) -> str:
+    try: return GetTupleString(view.AsIterable(), view.GetMutability())
+    except DiscardedError: return source.ToString()
 
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
