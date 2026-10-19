@@ -17,10 +17,9 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               ITuple, IEquatableTuple, IArray, IList,
                                               EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequence)
-from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract
+from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract, IReadOnlyCursorProvider
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
-                                                 ICountableEnumerableQueue, ICountableEnumerableStack,
+from WinCopies.Collections.Linked.Singly import (ICountableEnumerableQueue, ICountableEnumerableStack,
                                                  CreateCountableEnumerableQueue)
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
@@ -175,15 +174,20 @@ class _OrderedSetListUpdater[T: HashableProtocol](ValueFunctionUpdater[IList[T]]
     
     def _GetValue(self) -> IList[T]: return _OrderedSetList[T](self.__items, self.__list, self.__set, self.__innerSet)
 
-class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](SequenceAbstract[TItem], IEquatableTuple[TItem], INotHashableValue, GenericConstraint[TCollection, ITuple[TItem]]):
+class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](SequenceAbstract[TItem], IEquatableTuple[TItem], INotHashableValue, IReadOnlyCursorProvider[TItem], GenericConstraint[TCollection, ITuple[TItem]]):
     def __init__(self, items: TCollection) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
+
         super().__init__()
         
         self.__items: TCollection = items
         self.__monitor: IEquatableCollectionViewMonitor[TItem] = EquatableCollectionViewMonitor[TItem](self)
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TItem]] = self._CreateCursorProvider(update) # type: ignore[no-redef]
     
     @final
     def _GetContainer(self) -> TCollection: return self.__items
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TItem]]: return self.__cursorProvider
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
@@ -240,10 +244,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
 
 @final
 class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T], cursorProvider: IReadOnlyLinkedCursorProvider[T]) -> None:
-        super().__init__(items)
-
-        self.__cursorProvider: IReadOnlyLinkedCursorProvider[T] = cursorProvider
+    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
@@ -255,18 +256,14 @@ class _ReadOnlyOrderedSetReversedTuple[T: HashableProtocol](_ReadOnlyOrderedSetT
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(self.ReverseKey(key)))
     
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
-
-    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
-    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 @final
 class _ReadOnlyOrderedSetReversedTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
-    def __init__(self, items: IEquatableTuple[T], cursorProvider: IReadOnlyLinkedCursorProvider[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
+    def __init__(self, items: IEquatableTuple[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
         super().__init__(updater)
 
         self.__items: IEquatableTuple[T] = items
-        self.__cursorProvider: IReadOnlyLinkedCursorProvider[T] = cursorProvider
     
-    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items, self.__cursorProvider) # The _ReadOnlyOrderedSetReversedTuple type already reverses indices.
+    def _GetValue(self) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetReversedTuple[T](self.__items) # The _ReadOnlyOrderedSetReversedTuple type already reverses indices.
 
 @final
 class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
@@ -275,7 +272,7 @@ class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase
         
         super().__init__(items)
 
-        self.__reversed: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetReversedTupleUpdater[T](self, self._GetContainer().AsReadOnly().AsReversed(), update) # type: ignore[no-redef]
+        self.__reversed: IFunction[IEquatableTuple[T]] = _ReadOnlyOrderedSetReversedTupleUpdater[T](self, update) # type: ignore[no-redef]
     
     def FindFirstIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindFirstIndex(item, predicate)
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return self._GetContainer().FindLastIndex(item, predicate)
@@ -287,9 +284,6 @@ class _ReadOnlyOrderedSetTuple[T: HashableProtocol](_ReadOnlyOrderedSetTupleBase
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return _ReadOnlyOrderedSetTuple(self._GetContainer().SliceAt(key))
     
     def AsReversed(self) -> IEquatableTuple[T]: return self.__reversed.GetValue()
-
-    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self._GetContainer().AsReadOnly().AsQueuedCursor()
-    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self._GetContainer().AsReadOnly().AsStackedCursor()
 @final
 class _ReadOnlyOrderedSetTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IEquatableTuple[T]]):
     def __init__(self, items: IOrderedSet[T], updater: Method[IFunction[IEquatableTuple[T]]]) -> None:
