@@ -23,9 +23,12 @@ from unittest import mock
 from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-from WinCopies.Collections.Extensions import IList, IOrderedSet
+from WinCopies.Collections.Enumeration.Core import IEnumerator, AsEnumerator
+from WinCopies.Collections.Extensions import IList, IOrderedSet, IEquatableTuple
+from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList
 from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Typing.Delegate import Action, Function, Converter
+from WinCopies.Typing.Discard import InvalidatedError
 
 type _Carrier = tuple[IOrderedSet[int], IList[int]]
 type _Call = Callable[[IOrderedSet[int], IList[int]], Any]
@@ -895,3 +898,153 @@ class TestTheIndexBenchCanFail(unittest.TestCase):
         with mock.patch.object(RangeExtensions, "SetOrderedValue", rebuilt): broken: unittest.TestResult = run()
 
         self.assertFalse(broken.wasSuccessful(), "the bench did not fall with a refused index raising KeyError")
+
+_REVERSED: ReadOnlyArray[int] = tuple(reversed(_CONTENT))
+
+def _readOnlyTuples() -> ReadOnlyArray[tuple[str, IEquatableTuple[int], ReadOnlyArray[int]]]:
+    """The two read-only tuples of a fresh ordered set, each with the order it renders."""
+
+    items: IEquatableTuple[int] = CreateOrderedSet(_CONTENT).AsTuple()
+
+    return (("AsTuple()", items, _CONTENT), ("AsTuple().AsReversed()", items.AsReversed(), _REVERSED))
+
+def _cursors(items: IEquatableTuple[int]) -> ReadOnlyArray[tuple[str, IReadOnlyCountableEnumerableList[int]]]:
+    return (("queued", items.AsQueuedCursor()), ("stacked", items.AsStackedCursor()))
+
+def _head(cursor: IReadOnlyCountableEnumerableList[int]) -> int|None:
+    head = cursor.TryPeek()
+
+    return head.GetValue() if head.HasValue() else None
+
+def _enumerate(enumerator: IEnumerator[int]|None) -> ReadOnlyArray[int]|None:
+    return None if enumerator is None else tuple(enumerator.AsIterator())
+
+def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
+    result: unittest.TestResult = unittest.TestResult()
+
+    bench(name).run(result)
+
+    return result
+
+class TestTheReadOnlyTuplesProvideCursors(unittest.TestCase):
+    """D-87. A read-only tuple of the ordered set looked for its cursors on the read-only side of
+    its container, and that side is the tuple itself: AsTuple() recursed while building the tuple,
+    and the cursors of the tuple and of its reverse recursed when asked for. The benches of
+    Registry.py that fell on the construction cover it again; these cover the cursors, which no
+    bench asked for."""
+
+    def test_a_cursor_reads_the_tuple_it_was_asked_of(self) -> None:
+        for form, items, expected in _readOnlyTuples():
+            for kind, cursor in _cursors(items):
+                with self.subTest(form = form, cursor = kind):
+                    self.assertEqual(_head(cursor), expected[0], f"the {kind} cursor of {form} has another head")
+                    self.assertEqual(cursor.GetCount(), len(expected), f"the {kind} cursor of {form} counts otherwise")
+                    self.assertEqual(tuple(cursor.AsIterable()), expected, f"the {kind} cursor of {form} reads another order")
+
+    def test_a_cursor_follows_the_set(self) -> None:
+        """A cursor reads its tuple when it is read, not when it is asked for: an insertion at the
+        front moves the head of the direct tuple, an addition at the end that of its reverse."""
+
+        items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+        direct: IEquatableTuple[int] = items.AsTuple()
+        taken: ReadOnlyArray[tuple[str, str, IReadOnlyCountableEnumerableList[int], int]] = tuple(
+            (form, kind, cursor, head) for form, subject, head in (("AsTuple()", direct, 9), ("AsTuple().AsReversed()", direct.AsReversed(), 7))
+                                       for kind, cursor in _cursors(subject))
+
+        items.AsList().Insert(0, 9)
+        items.Add(7)
+
+        for form, kind, cursor, head in taken:
+            with self.subTest(form = form, cursor = kind): self.assertEqual(_head(cursor), head, f"the {kind} cursor of {form} did not follow the set")
+
+class TestTheReversedTupleReadsInReverse(unittest.TestCase):
+    """D-94. The base of the two read-only tuples delegated both enumerators to the container under
+    @final, so the reversed tuple, whose container is the direct one, indexed in reverse and iterated
+    forward, and so did everything that iterates it. GetAt was right, which is why nothing saw it:
+    the snapshots of Registry.py read by index. Every route is asked here on both tuples; the direct
+    one is the control that a route answers at all."""
+
+    def test_every_route_reads_in_the_order_the_tuple_renders(self) -> None:
+        for form, items, expected in _readOnlyTuples():
+            routes: dict[str, Function[ReadOnlyArray[int]|None]] = {
+                "GetAt":                     lambda: tuple(items.GetAt(i) for i in range(items.GetCount())),
+                "AsIterable":                lambda: tuple(items.AsIterable()),
+                "AsSequence":                lambda: tuple(items.AsSequence()),
+                "TryGetEnumerator":          lambda: _enumerate(items.TryGetEnumerator()),
+                "TryGetResumableEnumerator": lambda: _enumerate(items.TryGetResumableEnumerator())}
+
+            for route, read in routes.items():
+                with self.subTest(form = form, route = route): self.assertEqual(read(), expected, f"{form}.{route} reads another order")
+
+    def test_a_mutation_invalidates_the_enumerators_of_the_reversed_tuple(self) -> None:
+        """The correction changed who builds those enumerators: the collection's enumerator monitor,
+        as for every generic reversed view, rather than the direct tuple. The invalidation a mutation
+        brings has to survive the change."""
+
+        getters: ReadOnlyArray[tuple[str, Converter[IEquatableTuple[int], IEnumerator[int]|None]]] = (
+            ("TryGetEnumerator",          lambda items: items.TryGetEnumerator()),
+            ("TryGetResumableEnumerator", lambda items: items.TryGetResumableEnumerator()))
+
+        for name, get in getters:
+            with self.subTest(enumerator = name):
+                items: IOrderedSet[int] = CreateOrderedSet(_CONTENT)
+                enumerator: IEnumerator[int]|None = get(items.AsTuple().AsReversed())
+
+                if enumerator is None: self.fail(f"{name} gave no enumerator")
+
+                self.assertTrue(enumerator.MoveNext(), f"{name} gave an empty enumerator")
+                self.assertEqual(enumerator.GetCurrent(), _REVERSED[0], f"{name} did not start from the end")
+
+                items.Add(7)
+
+                with self.assertRaises(InvalidatedError): enumerator.MoveNext()
+
+class TestTheCursorAndOrderBenchesCanFail(unittest.TestCase):
+    """The benches of D-87 and D-94, run against the code as it stood before each was closed: green
+    on the intact tree, red on the rebuilt one. The tuple classes are reached through the objects,
+    as Contract.py reaches them, rather than imported by their private names."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertTrue(_run(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _run(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+
+    def test_the_cursor_bench_falls_when_a_tuple_asks_itself_for_its_cursors(self) -> None:
+        """As at d6c7a8f: the direct tuple asked the read-only side of its container for its cursors,
+        and the reversed one was handed the reverse of that side. Either way the tuple asks itself.
+        Each half is rebuilt alone, so that each is shown to be caught."""
+
+        def asking(provider: Converter[Any, Any]) -> dict[str, Any]:
+            def queued(self: Any) -> Any: return provider(self).AsQueuedCursor()
+            def stacked(self: Any) -> Any: return provider(self).AsStackedCursor()
+
+            return {"AsQueuedCursor": queued, "AsStackedCursor": stacked}
+
+        def directSide(self: Any) -> Any: return self._GetContainer().AsReadOnly()
+        def reversedSide(self: Any) -> Any: return self._GetContainer()._GetContainer().AsReadOnly().AsReversed()
+
+        items: IEquatableTuple[int] = CreateOrderedSet(_CONTENT).AsTuple()
+
+        for form, target, provider in (("AsTuple()", type(items), directSide), ("AsTuple().AsReversed()", type(items.AsReversed()), reversedSide)):
+            with self.subTest(form = form): self.__assertFalls(TestTheReadOnlyTuplesProvideCursors, "test_a_cursor_reads_the_tuple_it_was_asked_of", target, asking(provider))
+
+    def test_the_order_bench_falls_when_the_reversed_tuple_enumerates_its_container(self) -> None:
+        """As before 4ae1862: both enumerators delegated to the container, which for the reversed
+        tuple is the direct one."""
+
+        def enumerator(self: Any) -> Any: return self._GetInnerContainer().TryGetEnumerator()
+        def resumable(self: Any) -> Any: return self._GetInnerContainer().TryGetResumableEnumerator()
+
+        self.__assertFalls(TestTheReversedTupleReadsInReverse, "test_every_route_reads_in_the_order_the_tuple_renders",
+                           type(CreateOrderedSet(_CONTENT).AsTuple().AsReversed()), {"TryGetEnumerator": enumerator, "TryGetResumableEnumerator": resumable})
+
+    def test_the_invalidation_bench_falls_when_an_enumerator_reads_a_copy(self) -> None:
+        """No commit broke this one; the defect rebuilt is the likeliest way to break it: an
+        enumerator over a copy of the content, which no mutation reaches."""
+
+        def copied(self: Any) -> Any: return AsEnumerator(iter(tuple(self.GetAt(i) for i in range(self.GetCount()))))
+
+        self.__assertFalls(TestTheReversedTupleReadsInReverse, "test_a_mutation_invalidates_the_enumerators_of_the_reversed_tuple",
+                           type(CreateOrderedSet(_CONTENT).AsTuple().AsReversed()), {"TryGetEnumerator": copied})
