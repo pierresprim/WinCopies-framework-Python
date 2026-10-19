@@ -352,7 +352,7 @@ class _ICursorProviderBase[TItem, TCursorProvider](ITuple[TItem]):
 
     @final
     def _GetCursor(self) -> TCursorProvider: return self._GetCursorProvider().GetValue()
-class _IReadOnlyCursorProvider[T](_ICursorProviderBase[T, IReadOnlyLinkedCursorProvider[T]]):
+class IReadOnlyCursorProvider[T](_ICursorProviderBase[T, IReadOnlyLinkedCursorProvider[T]]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -362,7 +362,7 @@ class _IReadOnlyCursorProvider[T](_ICursorProviderBase[T, IReadOnlyLinkedCursorP
     def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self._GetCursor().AsQueuedCursor()
     @final
     def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self._GetCursor().AsStackedCursor()
-class _ICursorProvider[T](IList[T], _ICursorProviderBase[T, ILinkedCursorProvider[T]]):
+class ICursorProvider[T](IList[T], _ICursorProviderBase[T, ILinkedCursorProvider[T]]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -373,7 +373,7 @@ class _ICursorProvider[T](IList[T], _ICursorProviderBase[T, ILinkedCursorProvide
     @final
     def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self._GetCursor().AsStackedCursor()
 
-class _ReversedTupleAbstract[TItem, TCollection](_Reversed[TItem, TCollection], _IReadOnlyCursorProvider[TItem]):
+class _ReversedTupleAbstract[TItem, TCollection](_Reversed[TItem, TCollection], IReadOnlyCursorProvider[TItem]):
     def __init__(self, items: TCollection) -> None:
         def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
         
@@ -456,7 +456,7 @@ class _IReadOnlyTuple[TItem, TList](ITuple[TItem], GenericConstraint[TList, ITup
     @final
     def AsImmutable(self) -> ITuple[TItem]: return self._GetInnerContainer().AsImmutable()
 
-class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]], _IReadOnlyCursorProvider[T]):
+class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]], IReadOnlyCursorProvider[T]):
     def __init__(self, items: ITuple[T]) -> None:
         def updateReversed(func: IFunction[ITuple[T]]) -> None: self.__reversed = func
         def updateCursorProvider(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
@@ -474,7 +474,7 @@ class _ReadOnlyTuple[T](ReadOnlyCollection[T], _IReadOnlyTuple[T, ITuple[T]], _I
     
     @final
     def AsReadOnly(self) -> ITuple[T]: return self
-class _ReadOnlySortedTuple[T: SupportsEqualityAndRichComparison](SortedCollectionBase[T], _IReadOnlyTuple[T, ISortedTuple[T]], _IReadOnlyCursorProvider[T]):
+class _ReadOnlySortedTuple[T: SupportsEqualityAndRichComparison](SortedCollectionBase[T], _IReadOnlyTuple[T, ISortedTuple[T]], IReadOnlyCursorProvider[T]):
     def __init__(self, items: ISortedList[T]) -> None:
         def updateReversed(func: IFunction[ISortedTuple[T]]) -> None: self.__reversed = func
         def updateCursorProvider(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
@@ -787,7 +787,7 @@ class ManagedCollection[T](ManagedCollectionBase[T, ICollectionRegistryProvider[
 
 class _TupleCollectionBase[T](TupleAbstract[T], ITupleBase[T]):
     def __init__(self) -> None: super().__init__()
-class _TupleCollection[TItem, TRegistryProvider, TMonitor](ManagedCollectionBase[TItem, TRegistryProvider, TMonitor], _TupleCollectionBase[TItem], _IReadOnlyCursorProvider[TItem]):
+class _TupleCollection[TItem, TRegistryProvider, TMonitor](ManagedCollectionBase[TItem, TRegistryProvider, TMonitor], _TupleCollectionBase[TItem], IReadOnlyCursorProvider[TItem]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
 
@@ -964,7 +964,7 @@ class ReversedArrayList[TItem, TCollectionIn, TCollectionOut](ReversedArrayAbstr
     
     @final
     def AsReadOnly(self) -> ITuple[TItem]: return self.__readOnly.GetValue()
-class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayList[TItem, TCollectionIn, TCollectionOut], _IReadOnlyCursorProvider[TItem]):
+class ReversedArrayBase[TItem, TCollectionIn, TCollectionOut](ReversedArrayList[TItem, TCollectionIn, TCollectionOut], IReadOnlyCursorProvider[TItem]):
     def __init__(self, items: TCollectionIn) -> None:
         def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
 
@@ -1085,7 +1085,7 @@ class ArrayList[T](_Array[T], ArrayCollectionAbstract[T, IArray[T]]):
     
     @final
     def AsReversed(self) -> IArray[T]: return self._AsReversed()
-class ArrayCollection[T](_Array[T], ArrayCollectionBase[T, IArray[T]], _IReadOnlyCursorProvider[T]):
+class ArrayCollection[T](_Array[T], ArrayCollectionBase[T, IArray[T]], IReadOnlyCursorProvider[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -1143,7 +1143,7 @@ class ReversedCollection[TItem, TList](ReversedArray[TItem, TList], _IReversedCo
     def __init__(self, items: TList) -> None: super().__init__(items)
 
 @final
-class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T], ISwappable[int, T], _IReadOnlyCursorProvider[T]):
+class _FixedSizeArray[T](FixedSizeCollection[T], IArray[T], ISwappable[int, T], IReadOnlyCursorProvider[T]):
     def __init__(self, items: IList[T]) -> None:
         def updateReversed(func: IFunction[IArray[T]]) -> None: self.__reversed = func
         def updateCursorProvider(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
@@ -1183,7 +1183,7 @@ class MutableList[T](MutableSequence[T], IList[T]):
     def _GetFixedSizeUpdater(self, updater: Method[IFunction[IArray[T]]]) -> IFunction[IArray[T]]:
         return _FixedSizeArrayUpdater[T](self, updater)
 
-class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableList[TItem], _ICursorProvider[TItem]):
+class ReversedListAbstract[TItem, TListIn, TListOut](ReversedCollectionBase[TItem, TListIn, TListOut], MutableList[TItem], ICursorProvider[TItem]):
     def __init__(self, items: TListIn) -> None:
         def updateFixedSize(func: IFunction[IArray[TItem]]) -> None: self.__fixedSize = func
         def updateCursorProvider(func: IFunction[ILinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
@@ -1331,7 +1331,7 @@ class _ReversedListUpdater[T](ValueFunctionUpdater[IList[T]]):
     def _GetValue(self) -> IList[T]: return _ReversedList[T](self.__array)
 
 @final
-class _ReversedSortedList[T: SupportsEqualityAndRichComparison](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], _IReadOnlyCursorProvider[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
+class _ReversedSortedList[T: SupportsEqualityAndRichComparison](ReversedSortedListAbstract[T, ISortedList[T]], SequenceAbstract[T], IReadOnlyCursorProvider[T], IGenericSpecializedConstraintImplementation[ITuple[T], ISortedList[T]]):
     def __init__(self, items: ISortedList[T]) -> None:
         def update(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
         
@@ -1389,7 +1389,7 @@ class Collection[T](_CollectionBase[T], ArrayCollectionBase[T, IList[T]]):
     @final
     def AsReversed(self) -> IList[T]: return self._AsReversed()
 
-class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T], _IReadOnlyCursorProvider[T]):
+class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _ArrayCollectionAbstract[T, ISortedList[T]], ISortedList[T], IReadOnlyCursorProvider[T]):
     def __init__(self) -> None:
         def updateReadOnly(func: IFunction[ISortedTuple[T]]) -> None: self.__readOnly = func
         def updateCursorProvider(func: IFunction[IReadOnlyLinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
@@ -1413,7 +1413,7 @@ class SortedCollection[T: SupportsEqualityAndRichComparison](_SortedList[T], _Ar
     @final
     def AsReversed(self) -> ISortedList[T]: return self._AsReversed()
 
-class List[T](ArrayBase[T, IList[T]], Collection[T], _ICursorProvider[T]):
+class List[T](ArrayBase[T, IList[T]], Collection[T], ICursorProvider[T]):
     def __init__(self) -> None:
         def update(func: IFunction[ILinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
         
