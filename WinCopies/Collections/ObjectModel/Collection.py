@@ -306,8 +306,6 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def _GetContainer(self) -> TList: return self.__items
     
     @final
-    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
-    @final
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
     
     @final
@@ -349,6 +347,8 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
 class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFixedSizeObservableCollection[T]], IGenericConstraintImplementation[IFixedSizeObservableCollection[T]]):
     def __init__(self, items: IFixedSizeObservableCollection[T]) -> None: super().__init__(items)
     
+    def GetMutability(self) -> Mutability: return Mutability.ReadOnly
+    
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
     
     def AsReversed(self) -> ITuple[T]: return self._GetContainer().AsReversed().AsReadOnly()
@@ -357,6 +357,8 @@ class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFix
 @final
 class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IAbstractionWriteOnlyIndexable[T], IGenericConstraintImplementation[IObservableCollection[T]]):
     def __init__(self, items: IObservableCollection[T]) -> None: super().__init__(items)
+    
+    def GetMutability(self) -> Mutability: return Mutability.FixedSize
     
     def _TrySetAt(self, key: int, value: T, throwOnError: bool) -> bool|None: return self._TrySetItemAt(self._GetContainer(), key, value, throwOnError)
     
