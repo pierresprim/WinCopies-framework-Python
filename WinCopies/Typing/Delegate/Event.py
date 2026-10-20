@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import final, Callable
 
@@ -211,10 +213,22 @@ class IEventMonitor(IWorker):
     def AssertReentrancy(self) -> None:
         ...
 class EventMonitor(Abstract, IEventMonitor):
+    @final
+    class _Invoker(Abstract, IEventInvoker):
+        def __init__(self, monitor: EventMonitor) -> None:
+            super().__init__()
+
+            self.__monitor: EventMonitor = monitor
+
+        def IsBusy(self) -> bool: return self.__monitor.IsBusy()
+
+        def Invoke[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], sender: TSender, args: TArgs) -> None: self.__monitor._Invoke(eventManager, sender, args)
+    
     def __init__(self) -> None:
         super().__init__()
         
         self.__monitor: IMonitor = Monitor()
+        self.__invoker: IEventInvoker = EventMonitor._Invoker(self)
 
     @final
     def IsBusy(self) -> bool: return self.__monitor.IsBusy()
@@ -227,3 +241,10 @@ class EventMonitor(Abstract, IEventMonitor):
         with self.__monitor: return eventManager.Add(handler)
         
         raise
+
+    def _Invoke[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], sender: TSender, args: TArgs) -> None:
+        with self.__monitor: eventManager.Invoke(sender, args)
+
+    @final
+    def _AsInvoker(self) -> IEventInvoker:
+        return self.__invoker
