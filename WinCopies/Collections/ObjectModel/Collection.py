@@ -8,9 +8,8 @@ from WinCopies import IInterface, Abstract, IsTrue
 from WinCopies.Collections.Core import Mutability, IAbstractionWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import ICollectionMonitors, ITuple, IArray, IList, MutableSequence, SequenceAbstract, GetViewString
-from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract
-from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
+from WinCopies.Collections.Extensions import ICollectionMonitors, IReadOnlyLinkedCursorProvider, ILinkedCursorProvider, ITuple, IArray, IList, MutableSequence, SequenceAbstract, GetViewString
+from WinCopies.Collections.Extensions.Collection import KeyableBase, CollectionAbstract, IReadOnlyCursorProvider, ICursorProvider
 from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
 from WinCopies.Typing import INullable
@@ -297,13 +296,18 @@ class IObservableCollection[T](IFixedSizeObservableCollection[T], IList[T]):
     def AsReadOnly(self) -> IReadOnlyObservableCollection[T]:
         ...
 
-class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], GenericConstraint[TList, IFixedSizeObservableCollection[TItem]]):
+class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], IReadOnlyObservableCollection[TItem], IReadOnlyCursorProvider[TItem], GenericConstraint[TList, IFixedSizeObservableCollection[TItem]]):
     def __init__(self, items: TList) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
+
         super().__init__()
 
         self.__items: TList = items
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TItem]] = self._CreateCursorProvider(update) #type: ignore[no-redef]
     
     def _GetContainer(self) -> TList: return self.__items
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TItem]]: return self.__cursorProvider
     
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
@@ -338,11 +342,6 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[TItem]: return self._GetInnerContainer().GetEventManager()
-
-    @final
-    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[TItem]: return self._GetInnerContainer().AsReadOnly().AsQueuedCursor()
-    @final
-    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[TItem]: return self._GetInnerContainer().AsReadOnly().AsStackedCursor()
 @final
 class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFixedSizeObservableCollection[T]], IGenericConstraintImplementation[IFixedSizeObservableCollection[T]]):
     def __init__(self, items: IFixedSizeObservableCollection[T]) -> None: super().__init__(items)
@@ -385,12 +384,14 @@ class _FixedSizeObservableCollectionUpdater[T](ValueFunctionUpdater[IFixedSizeOb
     
     def _GetValue(self) -> IFixedSizeObservableCollection[T]: return _FixedSizeObservableCollection[T](self.__items)
 
-class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T]):
+class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableCollection[T], ICursorProvider[T]):
     def __init__(self, items: IList[T]) -> None:
         def updateReadOnly(func: IFunction[IReadOnlyObservableCollection[T]]) -> None: self.__readOnly = func
         def updateFixedSize(func: IFunction[IFixedSizeObservableCollection[T]]) -> None: self.__fixedSize = func
         
         def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
+        
+        def updateCursorProvider(func: IFunction[ILinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
         
         super().__init__(items)
 
@@ -404,6 +405,11 @@ class ObservableCollection[T](Collection[T], CollectionAbstract[T], IObservableC
         self.__fixedSize: IFunction[IFixedSizeObservableCollection[T]] = _FixedSizeObservableCollectionUpdater[T](self, updateFixedSize) #type: ignore[no-redef]
         
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) #type: ignore[no-redef]
+        
+        self.__cursorProvider: IFunction[ILinkedCursorProvider[T]] = self._CreateCursorProvider(updateCursorProvider) #type: ignore[no-redef]
+    
+    @final
+    def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[T]]: return self.__cursorProvider
     
     @final
     def GetEventManager(self) -> IObservableCollectionEvents[T]: return self.__eventManager
