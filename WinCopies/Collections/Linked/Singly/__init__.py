@@ -33,20 +33,34 @@ class IReadOnlyList[T](IReadOnlyListBase[T]):
 class IListBase[T](IReadOnlyListBase[T]):
     def __init__(self) -> None: super().__init__()
     
+    @final
+    def __TryPush(self, items: Iterable[T]|None, adder: Method[Iterable[T]]) -> bool:
+        if items is None: return False
+        
+        adder(items)
+
+        return True
+    
     @abstractmethod
     def Push(self, value: T) -> None:
         ...
     
     @abstractmethod
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushRange(self, items: Iterable[T]) -> None:
         ...
     @final
+    def TryPushRange(self, items: Iterable[T]|None) -> bool:
+        return self.__TryPush(items, self.PushRange)
+    
+    @final
+    def PushValueRange(self, *values: T) -> None:
+        self.PushRange(values)
+    
+    def PushItems(self, items: Iterable[T]) -> None:
+        for value in items: self.Push(value)
+    @final
     def TryPushItems(self, items: Iterable[T]|None) -> bool:
-        if items is None: return False
-        
-        self.PushItems(items)
-
-        return True
+        return self.__TryPush(items, self.PushItems)
     
     @final
     def PushValues(self, *values: T) -> None:
@@ -195,14 +209,14 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
 
         self.__Increment()
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None:
+    def PushRange(self, items: Iterable[TItems]) -> None:
         def loop() -> Generator[TItems]:
             for item in items:
                 yield item
                 
                 self.__Increment()
         
-        self._GetInnerContainer().PushItems(loop())
+        self._GetInnerContainer().PushRange(loop())
     
     @final
     def TryPeek(self) -> INullable[TItems]: return self._GetInnerContainer().TryPeek()
@@ -465,7 +479,7 @@ class ListBase[T](AbstractList[T], IList[T]):
         else: self._Push(value, first)
     
     @abstractmethod
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushRange(self, items: Iterable[T]) -> None:
         ...
     
     @final
@@ -549,7 +563,7 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
 
         self._SetLast(self._SetNext(value, getLast()))
     @final
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushRange(self, items: Iterable[T]) -> None:
         for value in items: self.Push(value)
     
     def _OnCleared(self) -> None: self._UnsetLast()
@@ -560,7 +574,7 @@ class StackBase[T](ListBase[T], IStack[T]):
     def _Push(self, value: T, first: INodeCookie[T]) -> None:
         self._SetFirstCookie(value, first.GetNode())
     @final
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushRange(self, items: Iterable[T]) -> None:
         push: Converter[T, INodeCookie[T]]|None = None
 
         def _push(item: T) -> INodeCookie[T]:
@@ -834,7 +848,7 @@ class CountableList[TItem, TList](ICountableList[TItem], GenericConstraint[TList
     @final
     def Push(self, value: TItem) -> None: self._GetInnerContainer().Push(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushItems(items)
+    def PushRange(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushRange(items)
     
     @final
     def TryPop(self) -> INullable[TItem]: return self._GetInnerContainer().TryPop()

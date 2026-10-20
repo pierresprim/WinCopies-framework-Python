@@ -315,6 +315,11 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     def Push(self, value: TItem) -> None: self.TryPushAt(self.GetNormalLevel(), value)
     
     @final
+    def PushItems(self, items: Iterable[TItem]) -> None: super().PushItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItem]) -> None: self.PushItems(items)
+    
+    @final
     def TryPop(self) -> INullable[TItem]: return self._GetItems().TryPop()
     
     @final
