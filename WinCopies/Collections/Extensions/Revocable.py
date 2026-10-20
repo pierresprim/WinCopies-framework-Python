@@ -27,7 +27,7 @@ from WinCopies.Delegates import ConcatenateMethods
 
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider, ThrowDiscardedError
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
 class _IRevocableViewCookieAbstract[T](IInterface):
@@ -249,6 +249,12 @@ class _IRevocableViewBase[TItem, TCollection](ITuple[TItem], IGenericConstraint[
     @abstractmethod
     def _GetSource(self) -> TCollection:
         ...
+    
+    # What a view builds on its source, it hands out only while it lives: asking a revoked view for
+    # it raises as reading it does, whether or not it was built before. Built once and kept, it is
+    # still handed out again while the view lives.
+    @final
+    def _ThrowIfRevoked(self) -> None: self._GetSource()
 class RevocableViewAbstract[TItem, TCollection](SequenceAbstract[TItem], _IRevocableViewBase[TItem, TCollection]):
     @final
     class _ReversedCollectionMonitorUpdater[_TItem, _TCollection](_ReversedCollectionViewMonitorUpdater[_TCollection]):
@@ -304,7 +310,10 @@ class RevocableViewAbstract[TItem, TCollection](SequenceAbstract[TItem], _IRevoc
     def TryGetResumableEnumerator(self) -> IResumableEnumerator[TItem]: return self.__GetEnumeratorMonitor().CreateResumableEnumerator(self._GetItems(), True)
 
     @final
-    def _AsReversed(self) -> TCollection: return self.__reversedCollectionMonitor.GetValue().GetView()
+    def _AsReversed(self) -> TCollection:
+        self._ThrowIfRevoked()
+
+        return self.__reversedCollectionMonitor.GetValue().GetView()
     @abstractmethod
     def _AsReversedView(self, items: TCollection) -> TCollection:
         ...
@@ -359,7 +368,7 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
         ...
     @final
     def __GetCursorProvider(self) -> IReadOnlyLinkedCursorProvider[TItem]:
-        if (reason := self._GetCookie().GetDiscardReason()) != DiscardReason.Null: ThrowDiscardedError(reason)
+        self._ThrowIfRevoked()
 
         return self._GetCursorProvider().GetValue()
 
