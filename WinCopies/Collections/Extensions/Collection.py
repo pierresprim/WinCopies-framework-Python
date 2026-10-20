@@ -35,7 +35,7 @@ from WinCopies.Collections.Util import FindIndex, ReverseIndexFromLast, GetSeque
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IndexedValueAction, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
@@ -112,28 +112,39 @@ class BufferedStackBase[TItems, TList](_Cursor[TItems, TList], ICountableEnumera
         else: self._GetSpecializedContainer().Insert(0, value)
     @final
     def PushItems(self, items: Iterable[TItems]) -> None:
-        adder: IndexedValueAction[TItems]|None = None
-        i: int = 0
+        adder: Method[TItems]|None = None
         
-        def insert(index: int, item: TItems) -> None: self._GetSpecializedContainer().TryInsert(index, item)
-        def add(index: int, item: TItems) -> None:
+        def add(item: TItems) -> None:
+            def add(item: TItems) -> None: self._GetSpecializedContainer().Add(item)
+            def insert(item: TItems) -> None:
+                nonlocal adder
+
+                i: int = 0
+
+                def insert(index: int, item: TItems) -> None: self._GetSpecializedContainer().TryInsert(index, item)
+                def insertItem(item: TItems) -> None:
+                    nonlocal i
+
+                    i += 1
+
+                    insert(i, item)
+
+                insert(i, item)
+
+                adder = insertItem
+            
             nonlocal adder
 
-            if self.IsEmpty(): self._GetSpecializedContainer().Add(item)
-            else: insert(index, item)
+            if self.IsEmpty():
+                add(item)
+
+                adder = add
             
-            adder = insertItem
-        
-        def insertItem(index: int, item: TItems) -> None:
-            nonlocal i
-
-            i += 1
-
-            insert(index, item)
+            else: insert(item)
         
         adder = add
 
-        for item in items: adder(i, item)
+        for item in items: adder(item)
 
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[TItems]: return self.__readOnly
