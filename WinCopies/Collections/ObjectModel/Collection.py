@@ -14,7 +14,7 @@ from WinCopies.Collections.Range import SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceIndex, GetSequenceInsertionIndex
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, IFunction, EqualityComparison, ValueFunctionUpdater
-from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, EventHandler, EventManager, EventMonitor
+from WinCopies.Typing.Delegate.Event import IEvent, IEventManager, IEventInvoker, EventHandler, EventManager, EventMonitor
 from WinCopies.Typing.Enum import UnorderedIntEnum
 from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
 
@@ -239,14 +239,15 @@ class _ObservableCollectionEventManager[T](Abstract, IObservableCollectionEvents
     def OnItemRemoved(self, handler: EventHandler[IObservableCollection[T], CollectionChangedEventArgs]) -> IEvent: return self.__events.OnItemRemoved(handler)
 @final
 class _ObservableCollectionEventInvoker[T](Abstract):
-    def __init__(self, sender: IObservableCollection[T], events: _ObservableCollectionEvent[T]) -> None:
+    def __init__(self, monitor: IEventInvoker, sender: IObservableCollection[T], events: _ObservableCollectionEvent[T]) -> None:
         super().__init__()
 
+        self.__monitor: IEventInvoker = monitor
         self.__sender: IObservableCollection[T] = sender
         self.__events: _ObservableCollectionEvent[T] = events
     
     def __OnCollectionChanged(self, eventManager: IEventManager[IObservableCollection[T], CollectionChangedEventArgs], args: CollectionChangedEventArgs) -> None:
-        eventManager.Invoke(self.__sender, args)
+        self.__monitor.Invoke(eventManager, self.__sender, args)
     
     def OnItemAdded(self, args: CollectionChangedEventArgs) -> None:
         self.__OnCollectionChanged(self.__events.GetAdded(), args)
@@ -268,7 +269,7 @@ class _ObservableCollectionEvents[T](EventMonitor, IObservableCollectionEvents[T
 
         events: _ObservableCollectionEvent[T] = _ObservableCollectionEvent[T]()
         
-        self.__invoker: _ObservableCollectionEventInvoker[T] = _ObservableCollectionEventInvoker[T](sender, events)
+        self.__invoker: _ObservableCollectionEventInvoker[T] = _ObservableCollectionEventInvoker[T](self._AsInvoker(), sender, events)
         self.__events: _ObservableCollectionEvent[T] = events
     
     def AsInvoker(self) -> _ObservableCollectionEventInvoker[T]:
@@ -351,7 +352,6 @@ class _ReadOnlyObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IFix
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
     
     def AsReversed(self) -> ITuple[T]: return self._GetContainer().AsReversed().AsReadOnly()
-
     def AsReadOnly(self) -> ITuple[T]: return self
 @final
 class _FixedSizeObservableCollection[T](_ReadOnlyObservableCollectionBase[T, IObservableCollection[T]], IFixedSizeObservableCollection[T], IAbstractionWriteOnlyIndexable[T], IGenericConstraintImplementation[IObservableCollection[T]]):
