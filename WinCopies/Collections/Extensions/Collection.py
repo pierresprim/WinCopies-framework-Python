@@ -17,7 +17,7 @@ from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
                                               ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection,
                                               IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
-                                              GetViewString,
+                                              GetViewString, AreTuplesEqual, GetTupleHash,
                                               ITupleBase as ITupleAbstract, ITuple, IEquatableTuple, IHashableTuple, ISortedTuple,
                                               IArray,
                                               IListBase, IList, ISortedList,
@@ -598,7 +598,7 @@ class _ReversedEquatableTuple[T: EquatableProtocol](_ReversedTupleAbstract[T, IE
     def _SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self.ToSlicedAt(key)
     
-    def Equals(self, item: object) -> bool: return self._GetContainer().Equals(item)
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
 
     def AsReversed(self) -> IEquatableTuple[T]: return self._GetContainer()
 
@@ -611,8 +611,8 @@ class _ReversedHashableTuple[T: HashableProtocol](_ReversedTupleAbstract[T, IHas
     def _SliceAt(self, key: slice) -> IHashableTuple[T]: return self._GetContainer().SliceAt(key)
     def SliceAt(self, key: slice) -> IHashableTuple[T]: return self.ToSlicedAt(key)
     
-    def Equals(self, item: object) -> bool: return self._GetContainer().Equals(item)
-    def Hash(self) -> int: return self._GetContainer().Hash()
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
+    def Hash(self) -> int: return GetTupleHash(self)
 
     def AsReversed(self) -> IHashableTuple[T]: return self._GetContainer()
 

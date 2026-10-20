@@ -4,7 +4,7 @@ from typing import overload, final, SupportsIndex
 from WinCopies import IsTrue
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract, GetViewString
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract, GetViewString, AreTuplesEqual, GetTupleHash
 from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex
@@ -63,15 +63,15 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEqua
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
     
-    def Equals(self, item: object) -> bool: return self is item
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
 class CircularHashableTuple[T: HashableProtocol](CircularBase[T, ICircularHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[ICircularHashableTuple[T]]):
     def __init__(self, items: ICircularHashableTuple[T]) -> None: super().__init__(items)
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[T]: return self._GetContainer().SliceAt(key)
     
-    def Equals(self, item: object) -> bool: return self is item
-    def Hash(self) -> int: return self._GetContainer().Hash()
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
+    def Hash(self) -> int: return GetTupleHash(self)
 
 @final
 class _ReversedArray[T](ReversedArrayBase[T, ICircularArray[T], IArray[T]], SequenceAbstract[T], ICircularArray[T], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularArray[T]]):

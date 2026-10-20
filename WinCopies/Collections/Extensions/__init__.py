@@ -5,7 +5,7 @@ from collections.abc import Sized, Container as ContainerBase, Iterable, Iterato
 from typing import Any, overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
-from WinCopies import IInterface, IStringable, Abstract
+from WinCopies import IInterface, IStringable, Abstract, IsTrue
 from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, IClearable,
                                         IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
                                         ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
@@ -18,8 +18,10 @@ from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, ICle
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
+from WinCopies.Collections.Iteration.Enumeration import Zip
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
+from WinCopies.Collections.Loop import ForEachItem
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Collections.Util import CreateSequence, GetSequenceIndex
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
@@ -289,6 +291,18 @@ def GetTupleString[T](items: Iterable[T], mutability: Mutability) -> str:
 def GetViewString[T](view: ITuple[T], source: IStringable) -> str:
     try: return GetTupleString(view.AsIterable(), view.GetMutability())
     except DiscardedError: return source.ToString()
+
+# Equality in the order a tuple renders, the rule of equatable and hashable tuples alike: a view
+# compares what it reads, not what its source holds.
+def AreTuplesEqual[T](items: ITuple[T], item: object) -> bool:
+    if items is item: return True
+    
+    match item:
+        case IEquatableTuple(): return items.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(items, item), lambda item: item.GetKey() == item.GetValue()))
+        case IEquatableTupleBase(): return item.Equals(items)
+        
+        case _: return False
+def GetTupleHash[T](items: ITuple[T]) -> int: return hash(tuple(items.AsIterable()))
 
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()

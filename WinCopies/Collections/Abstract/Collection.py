@@ -20,7 +20,7 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               ITuple, IEquatableTuple, IHashableTuple,
                                               IArray, IList,
                                               Sequence, MutableSequence,
-                                              GetViewString)
+                                              GetViewString, AreTuplesEqual, GetTupleHash)
 from WinCopies.Collections.Extensions.Collection import CollectionBase, ITupleBase, TupleAbstract as _TupleAbstract, TupleCollectionBase, EquatableTupleCollectionBase, HashableTupleCollectionBase, ArrayList
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableList, ICountableEnumerableList,
@@ -390,7 +390,7 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
-    def Equals(self, item: object) -> bool: return self is item or self._GetContainer().Equals(item)
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
     
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
@@ -418,8 +418,8 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     @final
     def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
     
-    def Equals(self, item: object) -> bool: return self is item or self._GetContainer().Equals(item)
-    def Hash(self) -> int: return self._GetContainer().Hash()
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
+    def Hash(self) -> int: return GetTupleHash(self)
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))

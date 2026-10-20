@@ -5,8 +5,8 @@ from collections.abc import Iterable, Sequence as _Sequence, MutableSequence as 
 from heapq import merge
 from typing import cast, overload, final, Callable, SupportsIndex
 
-from WinCopies import IInterface, IStringable, Abstract, IsTrue
-from WinCopies.Collections.Core import Mutability, IEquatableTuple as IEquatableTupleBase
+from WinCopies import IInterface, IStringable, Abstract
+from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
@@ -18,7 +18,7 @@ from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
                                               IList, ISortedList, ISizedList,
                                               Sequence, MutableSequence,
                                               Count,
-                                              GetTupleString)
+                                              GetTupleString, AreTuplesEqual)
 from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManagedCollection,
                                                          TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
                                                          Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
@@ -27,9 +27,9 @@ from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManaged
                                                          List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Registry import IObjectMonitor
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Iteration.Enumeration import Contains, Zip
+from WinCopies.Collections.Iteration.Enumeration import Contains
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Collections.Loop import IterateFromAllItems, ForEachItem
+from WinCopies.Collections.Loop import IterateFromAllItems
 from WinCopies.Collections.Util import (ThrowCapacityError, FindIndex, Move, GetSequenceIndex, GetSequenceInsertionIndex,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
                                         TryBisect, TryBisectWithKey, Insort,
@@ -77,14 +77,10 @@ class _IEquatableTuple[T: EquatableProtocol](IEquatableTuple[T], IContainer[_Seq
     def __init__(self) -> None: super().__init__()
     
     def Equals(self, item: object) -> bool:
-        if self is item: return True
-        
         match item:
-            case _IEquatableTuple(): return self._GetContainer() == item._GetContainer()
-            case IEquatableTuple(): return self.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(self, item), lambda item: item.GetKey() == item.GetValue()))
-            case IEquatableTupleBase(): return item.Equals(self)
+            case _IEquatableTuple(): return self is item or self._GetContainer() == item._GetContainer()
             
-            case _: return False
+            case _: return AreTuplesEqual(self, item)
 
 class Tuple[T](TupleBase[T, _Sequence[T]], _Tuple[T], IGenericConstraintImplementation[_Sequence[T]]):
     def __init__(self, items: _Sequence[T]|Iterable[T]) -> None:

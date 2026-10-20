@@ -6,7 +6,7 @@ from WinCopies import IStringable, IsTrue
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, GetViewString
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, GetViewString, AreTuplesEqual, GetTupleHash
 from WinCopies.Collections.Extensions.Collection import IManagedCollection, TupleAbstract, TupleBase, ArrayBase, Tuple, EquatableTuple, HashableTuple, Array, List
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex, ThrowIndexError
@@ -142,15 +142,15 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, IEquatableTup
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
-    def Equals(self, item: object) -> bool: return self is item
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
 class CircularHashableTuple[T: HashableProtocol](CircularBase[T, IHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[IHashableTuple[T]]):
     def __init__(self, items: IHashableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
-    def Equals(self, item: object) -> bool: return self is item
-    def Hash(self) -> int: return self._GetContainer().Hash()
+    def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
+    def Hash(self) -> int: return GetTupleHash(self)
 
 class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], GenericSpecializedConstraint[TList, ITuple[TItem], IArray[TItem]], ArrayBase[TItem, TList], ICircularArray[TItem]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
