@@ -26,8 +26,8 @@ from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
 from WinCopies.Delegates import ConcatenateMethods
 
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Delegate import Method, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider
+from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider, ThrowDiscardedError
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
 class _IRevocableViewCookieAbstract[T](IInterface):
@@ -36,8 +36,6 @@ class _IRevocableViewCookieAbstract[T](IInterface):
     @abstractmethod
     def GetItems(self) -> T:
         ...
-class _IRevocableViewCookieBase[T](_IRevocableViewCookieAbstract[ITuple[T]]):
-    def __init__(self) -> None: super().__init__()
 class _IRevocableViewCookie[T](_IRevocableViewCookieAbstract[T], IInvalidatable):
     def __init__(self) -> None: super().__init__()
 
@@ -47,15 +45,15 @@ class _IRevocableViewCookie[T](_IRevocableViewCookieAbstract[T], IInvalidatable)
 
 @final
 class _CursorSource[T](Abstract):
-    def __init__(self, items: ITuple[T], cookie: _IRevocableViewCookieBase[T]) -> None:
+    def __init__(self, items: ITuple[T], source: Function[ITuple[T]]) -> None:
         super().__init__()
 
         self.__items: ITuple[T] = items
-        self.__cookie: _IRevocableViewCookieBase[T] = cookie
+        self.__source: Function[ITuple[T]] = source
 
     @final
     def GetSource(self) -> ITuple[T]:
-        return self.__cookie.GetItems()
+        return self.__source()
     @final
     def GetItems(self) -> ITuple[T]:
         return self.__items
@@ -342,21 +340,12 @@ class EquatableRevocableViewBase[T](RevocableViewAbstract[T, IEquatableTuple[T]]
     @final
     def AsImmutable(self) -> IEquatableTuple[T]: return self
 
-@final
-class _Cookie[T](Abstract, _IRevocableViewCookieBase[T]):
-    def __init__(self, source: ITuple[T]) -> None:
-        super().__init__()
-
-        self.__source: ITuple[T] = source
-
-    def GetItems(self) -> ITuple[T]: return self.__source
-
 class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection], IReadOnlyLinkedCursorProvider[TItem]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _CreateCursorProviderUpdater(self, updater: Method[IFunction[IReadOnlyLinkedCursorProvider[TItem]]]) -> _CursorProviderUpdater[TItem]:
-        return _CursorProviderUpdater[TItem](_CursorSource[TItem](self, _Cookie[TItem](self._AsContainer(self._GetSource()))), updater)
+        return _CursorProviderUpdater[TItem](_CursorSource[TItem](self, lambda: self._AsContainer(self._GetSource())), updater)
 
     @abstractmethod
     def _GetCookie(self) -> _IRevocableViewCookie[TCollection]:
@@ -370,6 +359,8 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
         ...
     @final
     def __GetCursorProvider(self) -> IReadOnlyLinkedCursorProvider[TItem]:
+        if (reason := self._GetCookie().GetDiscardReason()) != DiscardReason.Null: ThrowDiscardedError(reason)
+
         return self._GetCursorProvider().GetValue()
 
     @final
