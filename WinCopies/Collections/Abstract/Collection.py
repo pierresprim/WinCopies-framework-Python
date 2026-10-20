@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase, Sized
 from typing import final, overload, Self, SupportsIndex
 
-from WinCopies import IStringable, Abstract
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections import DuplicateKeyError
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
@@ -105,7 +105,25 @@ class _BufferSource[TIn, TOut](_ReadOnlyBufferSourceBase[TIn, TOut, IList[TIn], 
     def ToReadOnly(self) -> _ReadOnlyBufferSource[TIn, TOut]:
         return _ReadOnlyBufferSource[TIn, TOut](self.GetSource(), self.GetItems(), self._GetConverter())
 
-class _ReadOnlyBufferBase[TIn, TOut, TCollectionIn, TCollectionOut, TBufferSource](Abstract, IReadOnlyCountableEnumerableList[TOut]):
+class _IReadOnlyBuffer[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _AsReadOnlyCursor(self, source: ITuple[T]) -> IReadOnlyCountableEnumerableList[T]:
+        ...
+
+class _IReadOnlyBufferedQueue[T](_IReadOnlyBuffer[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsReadOnlyCursor(self, source: ITuple[T]) -> IReadOnlyCountableEnumerableList[T]: return source.AsQueuedCursor()
+class _IReadOnlyBufferedStack[T](_IReadOnlyBuffer[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _AsReadOnlyCursor(self, source: ITuple[T]) -> IReadOnlyCountableEnumerableList[T]: return source.AsStackedCursor()
+
+class _ReadOnlyBufferBase[TIn, TOut, TCollectionIn, TCollectionOut, TBufferSource](Abstract, IReadOnlyCountableEnumerableList[TOut], _IReadOnlyBuffer[TIn]):
     def __init__(self, bufferSource: TBufferSource) -> None:
         super().__init__()
 
@@ -149,7 +167,7 @@ class _ReadOnlyBufferBase[TIn, TOut, TCollectionIn, TCollectionOut, TBufferSourc
     def GetCount(self) -> int: return self.__GetSource().GetCount()
 
     @final
-    def TryPeek(self) -> INullable[TOut]: return self._Convert(self.__GetSource().AsQueuedCursor().TryPeek())
+    def TryPeek(self) -> INullable[TOut]: return self._Convert(self._AsReadOnlyCursor(self.__GetSource()).TryPeek())
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TOut]|None: return self.__GetItems().TryGetEnumerator()
@@ -180,46 +198,51 @@ class _Buffer[TIn, TOut](_ReadOnlyBufferBase[TIn, TOut, IList[TIn], IList[TOut],
     @final
     def _AsBufferSource(self, items: _BufferSource[TIn, TOut]) -> _BufferSource[TIn, TOut]: return items
 
+    @abstractmethod
+    def _AsCursor(self, source: IList[TIn]) -> ICountableEnumerableList[TIn]:
+        ...
     @final
-    def __AsQueuedCursor(self) -> ICountableEnumerableQueue[TIn]:
-        return self._GetSource().AsQueuedCursor()
+    def __AsCursor(self) -> ICountableEnumerableList[TIn]:
+        return self._AsCursor(self._GetSource())
 
     @final
-    def Push(self, value: TOut) -> None: self.__AsQueuedCursor().Push(self._GetBufferSource().ConvertBack(value))
+    def Push(self, value: TOut) -> None: self.__AsCursor().Push(self._GetBufferSource().ConvertBack(value))
     
     @final
-    def TryPop(self) -> INullable[TOut]: return self._Convert(self.__AsQueuedCursor().TryPop())
+    def TryPop(self) -> INullable[TOut]: return self._Convert(self.__AsCursor().TryPop())
 
     @final
-    def Clear(self) -> None: self.__AsQueuedCursor().Clear()
+    def Clear(self) -> None: self.__AsCursor().Clear()
 
     @final
     def AsCountableGenerator(self) -> ICountableEnumerable[TOut]: return _GeneratorProvider[TOut](self)
 
 @final
-class _ReadOnlyBufferedQueue[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableQueue[TOut]):
+class _ReadOnlyBufferedQueue[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableQueue[TOut], _IReadOnlyBufferedQueue[TIn]):
     def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
 @final
-class _ReadOnlyBufferedStack[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableStack[TOut]):
+class _ReadOnlyBufferedStack[TIn, TOut](_ReadOnlyBuffer[TIn, TOut], IReadOnlyCountableEnumerableStack[TOut], _IReadOnlyBufferedStack[TIn]):
     def __init__(self, bufferSource: _ReadOnlyBufferSource[TIn, TOut]) -> None: super().__init__(bufferSource)
 
 @final
-class _BufferedQueue[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableQueue[TOut]):
+class _BufferedQueue[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableQueue[TOut], _IReadOnlyBufferedQueue[TIn]):
     def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None:
         super().__init__(bufferSource)
 
         self.__readOnly: IReadOnlyCountableEnumerableQueue[TOut] = _ReadOnlyBufferedQueue[TIn, TOut](bufferSource.ToReadOnly())
 
-    @final
+    def _AsCursor(self, source: IList[TIn]) -> ICountableEnumerableList[TIn]: return source.AsQueuedCursor()
+
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[TOut]: return self.__readOnly
 @final
-class _BufferedStack[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableStack[TOut]):
+class _BufferedStack[TIn, TOut](_Buffer[TIn, TOut], ICountableEnumerableStack[TOut], _IReadOnlyBufferedStack[TIn]):
     def __init__(self, bufferSource: _BufferSource[TIn, TOut]) -> None:
         super().__init__(bufferSource)
 
         self.__readOnly: IReadOnlyCountableEnumerableStack[TOut] = _ReadOnlyBufferedStack[TIn, TOut](bufferSource.ToReadOnly())
 
-    @final
+    def _AsCursor(self, source: IList[TIn]) -> ICountableEnumerableList[TIn]: return source.AsStackedCursor()
+
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[TOut]: return self.__readOnly
 
 @final
