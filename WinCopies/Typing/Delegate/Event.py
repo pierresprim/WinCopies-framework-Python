@@ -238,11 +238,15 @@ class EventMonitor(Abstract, IEventMonitor):
         if self.__monitor.IsBusy(): raise InvalidOperationError("No reentrancy allowed.")
     
     def _AddHandler[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent:
+        self.AssertReentrancy()
+
         with self.__monitor: return eventManager.Add(handler)
         
         raise
 
     def _Invoke[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], sender: TSender, args: TArgs) -> None:
+        self.AssertReentrancy()
+        
         with self.__monitor: eventManager.Invoke(sender, args)
 
     @final
