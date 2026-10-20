@@ -36,7 +36,7 @@ from WinCopies.Collections.Abstraction.Selection.Collection import CreateDiction
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Circular import CircularList
 from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection, IDictionary
-from WinCopies.Collections.Extensions.Collection import ReversedArrayBase
+from WinCopies.Collections.Extensions.Collection import ReversedArrayList
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Util import GetDuplicateKeyError, GetDuplicateItemError, GetRepeatedItemError, GetDuplicateRangeError, GetCapacityError
 from WinCopies.Typing import INullable, GetNullable
@@ -772,11 +772,13 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         self.__assertFalls((TestRangeInsertionTrivalence, "test_on_every_list"), ICollection, "TryAddRange", rebuilt)
 
     def test_the_setter_bench_falls_when_a_reversed_view_hands_on_an_unchecked_index(self) -> None:
-        """ReversedArrayBase._TrySetAt as it stood at cded13a, delegating before validating."""
+        """ReversedArrayList._TrySetAt as it stood at cded13a, delegating before validating. The class was
+        ReversedArrayBase then: d6c7a8f renamed it and gave the name to a subclass that the reversed lists do
+        not derive from, so the substitution, aimed at the old name, reached no carrier of this bench (D-90)."""
 
         def rebuilt(self: Any, key: int, value: Any, throwOnError: bool) -> Any: return self._TrySetItemAt(self._GetSpecializedContainer(), self.ReverseIndex(key), value, throwOnError)
 
-        self.__assertFalls((TestASetterAnswersByCause, "test_the_index_error_names_the_index_passed"), ReversedArrayBase, "_TrySetAt", rebuilt)
+        self.__assertFalls((TestASetterAnswersByCause, "test_the_index_error_names_the_index_passed"), ReversedArrayList, "_TrySetAt", rebuilt)
 
     def test_the_setter_bench_falls_when_a_dictionary_answers_false_for_a_missing_key(self) -> None:
         """Dictionary._TrySetAt as it stood at cded13a."""
