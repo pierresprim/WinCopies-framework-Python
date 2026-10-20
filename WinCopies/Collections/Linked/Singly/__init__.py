@@ -14,7 +14,7 @@ from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetV
 from WinCopies.Collections.Linked.Node import LinkedNodeBase
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IReadOnlyListBase[T](IReadOnlyCollection):
@@ -37,8 +37,9 @@ class IListBase[T](IReadOnlyListBase[T]):
     def Push(self, value: T) -> None:
         ...
     
+    @abstractmethod
     def PushItems(self, items: Iterable[T]) -> None:
-        for value in items: self.Push(value)
+        ...
     @final
     def TryPushItems(self, items: Iterable[T]|None) -> bool:
         if items is None: return False
@@ -413,6 +414,26 @@ class ListBase[T](AbstractList[T], IList[T]):
     @final
     def HasItems(self) -> bool: return super().HasItems()
     
+    @final
+    def _CreateCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
+        return SinglyLinkedNode[T].CreateCookie(value, nextNode)
+
+    @final
+    def _SetFirstCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
+        cookie: INodeCookie[T] = self._CreateCookie(value, nextNode)
+
+        self._SetFirst(cookie)
+
+        return cookie
+
+    @final
+    def _SetNext(self, value: T, previous: INodeCookie[T]) -> INodeCookie[T]:
+        newNode: INodeCookie[T] = self._CreateCookie(value)
+        
+        previous.SetNext(newNode.GetNode())
+
+        return newNode
+    
     @abstractmethod
     def _UnsetFirst(self) -> None:
         ...
@@ -440,9 +461,12 @@ class ListBase[T](AbstractList[T], IList[T]):
     def Push(self, value: T) -> None:
         first: INodeCookie[T]|None = self._GetFirstCookie()
         
-        if first is None: self._SetFirst(SinglyLinkedNode[T].CreateCookie(value, None))
-        
+        if first is None: self._SetFirstCookie(value)
         else: self._Push(value, first)
+    
+    @abstractmethod
+    def PushItems(self, items: Iterable[T]) -> None:
+        ...
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -523,11 +547,10 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
 
             return first if cookie is None else cookie
 
-        newNode: INodeCookie[T] = SinglyLinkedNode[T].CreateCookie(value, None)
-
-        getLast().SetNext(newNode.GetNode())
-
-        self._SetLast(newNode)
+        self._SetLast(self._SetNext(value, getLast()))
+    @final
+    def PushItems(self, items: Iterable[T]) -> None:
+        for value in items: self.Push(value)
     
     def _OnCleared(self) -> None: self._UnsetLast()
 class StackBase[T](ListBase[T], IStack[T]):
@@ -535,7 +558,35 @@ class StackBase[T](ListBase[T], IStack[T]):
     
     @final
     def _Push(self, value: T, first: INodeCookie[T]) -> None:
-        self._SetFirst(SinglyLinkedNode[T].CreateCookie(value, first.GetNode()))
+        self._SetFirstCookie(value, first.GetNode())
+    @final
+    def PushItems(self, items: Iterable[T]) -> None:
+        push: Converter[T, INodeCookie[T]]|None = None
+
+        def _push(item: T) -> INodeCookie[T]:
+            cookie: INodeCookie[T]
+
+            def _push(item: T) -> INodeCookie[T]:
+                nonlocal cookie
+
+                return (cookie := self._SetNext(item, cookie))
+
+            nonlocal push
+
+            cookie = self._SetFirstCookie(item)
+
+            push = _push
+
+            return cookie
+        
+        first: SinglyLinkedNode[T]|None = self._GetFirst()
+        cookie: INodeCookie[T]|None = None
+        
+        push = _push
+        
+        for value in items: cookie = push(value)
+
+        if not (first is None or cookie is None): cookie.SetNext(first)
     
     def _OnCleared(self) -> None:
         pass
