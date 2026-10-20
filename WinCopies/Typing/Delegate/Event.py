@@ -197,6 +197,13 @@ class WriteOnlyEventManager[TSender, TArgs, TEvent](EventManagerAbstractor[TSend
     @final
     def Add(self, handler: EventHandler[TSender, TArgs]) -> TEvent: return self._GetEventManager().Add(handler)
 
+class IEventInvoker(IWorker):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Invoke[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], sender: TSender, args: TArgs) -> None:
+        ...
+
 class IEventMonitor(IWorker):
     def __init__(self) -> None: super().__init__()
     
