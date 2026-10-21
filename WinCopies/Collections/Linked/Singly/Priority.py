@@ -38,6 +38,13 @@ class IPriorityListDictionary[T](IInterface):
     @abstractmethod
     def TryAppend(self, index: int) -> IList[T]|None:
         ...
+    @final
+    def Append(self, index: int) -> IList[T]:
+        items: IList[T]|None = self.TryAppend(index)
+
+        if items is None: raise IndexError(index)
+
+        return items
     
     @abstractmethod
     def TryPeek(self) -> INullable[T]:
@@ -167,7 +174,7 @@ class IPriorityItemList[TItem, TLevel](IInterface):
         ...
     
     @abstractmethod
-    def TryAppend(self, level: TLevel) -> IList[TItem]|None:
+    def Append(self, level: TLevel) -> IList[TItem]:
         ...
 
     @abstractmethod
@@ -206,14 +213,12 @@ class PriorityItemListBase[TItem, TLevel](Abstract, IPriorityItemList[TItem, TLe
     def IsEmpty(self) -> bool: return self._GetItems().IsEmpty()
 
     @final
-    def TryAppend(self, level: TLevel) -> IList[TItem]|None:
+    def Append(self, level: TLevel) -> IList[TItem]:
         index: int = self._Convert(level)
 
         items: IList[TItem]|None = self._TryGetItemsAt(index)
 
-        if items is None: items = self._GetItems().TryAppend(index)
-
-        return items
+        return self._GetItems().Append(index) if items is None else items
     
     @final
     def TryPeek(self) -> INullable[TItem]: return self._GetItems().TryPeek()
@@ -264,17 +269,19 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
         ...
     
     @abstractmethod
-    def TryPushAt(self, level: TLevel, value: TItem) -> bool:
+    def PushAt(self, level: TLevel, value: TItem) -> None:
         ...
 
     @final
-    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> bool:
-        for item in items:
-            if not self.TryPushAt(level, item): return False
-        
-        return True
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None:
+        for item in items: self.PushAt(level, item)
     @final
-    def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool: return False if items is None else self.PushItemsAt(level, items)
+    def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
+        if items is None: return False
+        
+        self.PushItemsAt(level, items)
+
+        return True
     
     @final
     def PushValuesAt(self, level: TLevel, *values: TItem) -> None: self.PushItemsAt(level, values)
@@ -293,8 +300,8 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
         return self.__items
     
     @final
-    def _TryGetAt(self, level: TLevel) -> IList[TItem]|None:
-        return self._GetItems().TryAppend(level)
+    def _GetAt(self, level: TLevel) -> IList[TItem]:
+        return self._GetItems().Append(level)
     
     @final
     def IsEmpty(self) -> bool: return self._GetItems().IsEmpty()
@@ -303,16 +310,9 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     def TryPeek(self) -> INullable[TItem]: return self._GetItems().TryPeek()
     
     @final
-    def TryPushAt(self, level: TLevel, value: TItem) -> bool:
-        items: IList[TItem]|None = self._TryGetAt(level)
-        
-        if items is None: return False
-        
-        items.Push(value)
-
-        return True
+    def PushAt(self, level: TLevel, value: TItem) -> None: self._GetAt(level).Push(value)
     @final
-    def Push(self, value: TItem) -> None: self.TryPushAt(self.GetNormalLevel(), value)
+    def Push(self, value: TItem) -> None: self.PushAt(self.GetNormalLevel(), value)
     
     @final
     def PushItems(self, items: Iterable[TItem]) -> None: super().PushItems(items)
