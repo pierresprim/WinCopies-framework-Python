@@ -24,6 +24,8 @@ class SinglyLinkedListBase[TIn, TOut, TList](Abstract, TwoWayConverterBase[TIn, 
     def Push(self, value: TOut) -> None: self._GetInnerContainer().Push(self._ConvertBack(value))
     @final
     def PushItems(self, items: Iterable[TOut]) -> None: self._GetInnerContainer().PushItems(Select(items, self._ConvertBack))
+    @final
+    def PushRange(self, items: Iterable[TOut]) -> None: self._GetInnerContainer().PushRange(Select(items, self._ConvertBack))
     
     @final
     def TryPeek(self) -> INullable[TOut]: return self._GetInnerContainer().TryPeek().TryConvertToNullable(self._Convert)

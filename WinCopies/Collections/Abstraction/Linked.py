@@ -141,13 +141,17 @@ class QueueBase[TItems, TList](LinkedListBase[TItems, TList], IQueue[TItems]):
     def Push(self, value: TItems) -> None: self._GetInnerContainer().AddLastNode(value)
     @final
     def PushItems(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddLastItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddLastItems(items)
 class StackBase[TItems, TList](LinkedListBase[TItems, TList], IStack[TItems]):
     def __init__(self, l: TList) -> None: super().__init__(l)
     
     @final
     def Push(self, value: TItems) -> None: self._GetInnerContainer().AddFirstNode(value)
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddFirstItems(items)
+    def PushItems(self, items: Iterable[TItems]) -> None: super().PushItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddFirstItems(items)
 
 def _GetRWList[T](l: IReadWriteList[T]|None) -> IReadWriteList[T]:
     return List[T]() if l is None else l
@@ -169,6 +173,8 @@ class AbstractList[TItem, TList](LinkedListBase[TItem, TList], AbstractReadOnlyL
     def Push(self, value: TItem) -> None: self._GetInnerContainer().AddLastNode(value)
     @final
     def PushItems(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().AddLastItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().AddLastItems(items)
 class AbstractCountableList[TItem, TList](AbstractList[TItem, TList], IReadOnlyCountableList[TItem], GenericSpecializedConstraint[TList, IReadWriteList[TItem], ICountableDoublyLinkedList[TItem]]):
     def __init__(self, items: TList) -> None: super().__init__(items)
     
