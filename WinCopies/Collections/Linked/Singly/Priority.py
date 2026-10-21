@@ -248,7 +248,7 @@ class PriorityItemList[T](PriorityItemListBase[T, PriorityLevel]):
         ...
     
     @final
-    def _Convert(self, level: PriorityLevel) -> int: return (level - PriorityLevel.Lowest).value
+    def _Convert(self, level: PriorityLevel) -> int: return level.Sub(PriorityLevel.Lowest, False)
 
 class PriorityItemQueue[T](PriorityItemList[T]):
     def __init__(self) -> None: super().__init__()
