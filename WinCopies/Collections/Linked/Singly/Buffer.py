@@ -190,7 +190,7 @@ class AbstractBufferedQueue[T](AbstractBuffer[T], AbstractQueue[T]):
     
     def _OnSetFirst(self, first: INodeCookie[T], last: INodeCookie[T]) -> None:
         self._SetFirst(first)
-        self._SetLast(last)
+        self._SetLastCookie(last)
 class AbstractBufferedStack[T](AbstractBuffer[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -243,7 +243,7 @@ class BufferedQueue[T](QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBuffe
     def _GetLastCookie(self) -> INodeCookie[T]|None:
         return self.__last
     @final
-    def _SetLast(self, node: INodeCookie[T]) -> None:
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None:
         self.__last = node
     
     @final
@@ -357,7 +357,7 @@ class _CookieBufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueue
         return self._GetLastCookie()
     @final
     def _SetLastNode(self, node: INodeCookie[T]) -> None:
-        self._SetLast(node)
+        self._SetLastCookie(node)
 
 class _IBufferedQueue[T](IBufferedQueue[T], IBufferedQueueList[T]):
     def __init__(self) -> None: super().__init__()
@@ -471,7 +471,7 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], 
     def _GetLastCookie(self) -> INodeCookie[T]|None:
         return self._GetQueueCookie().GetLast()
     @final
-    def _SetLast(self, node: INodeCookie[T]) -> None:
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None:
         self._GetQueueCookie().SetLast(node)
     
     @final
