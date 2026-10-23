@@ -462,6 +462,8 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
         self._SetFirst(cookie)
 
         return cookie
+    def _SetInitialCookie(self, value: T) -> None:
+        self._SetFirstCookie(value)
 
     @final
     def _SetNext(self, value: T, previous: INodeCookie[T]) -> INodeCookie[T]:
@@ -498,7 +500,7 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     def Push(self, value: T) -> None:
         first: INodeCookie[T]|None = self._GetFirstCookie()
         
-        if first is None: self._SetFirstCookie(value)
+        if first is None: self._SetInitialCookie(value)
         else: self._Push(value, first)
     
     @final
@@ -639,6 +641,9 @@ class _IStackAdder[T](_IAdder[T]):
 
 class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _SetInitialCookie(self, value: T) -> None: self._SetLastCookie(self._SetFirstCookie(value))
     
     @abstractmethod
     def _UnsetLast(self) -> None:
@@ -656,12 +661,14 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T]):
     def _OnCleared(self) -> None: self._UnsetLast()
 class StackBase[T](ListBase[T], _IStackAdder[T], IStack[T]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _SetInitialCookie(self, value: T) -> None: super()._SetInitialCookie(value)
     
     @final
     def _Push(self, value: T, first: INodeCookie[T]) -> None: self._SetFirstCookie(value, first.GetNode())
     
-    def _OnCleared(self) -> None:
-        pass
+    def _OnCleared(self) -> None: pass
 
 @final
 class _ReadOnlyQueue[T](ReadOnlyList[T], IReadOnlyQueue[T]):
