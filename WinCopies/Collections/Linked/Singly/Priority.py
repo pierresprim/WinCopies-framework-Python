@@ -272,9 +272,9 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
     def PushAt(self, level: TLevel, value: TItem) -> None:
         ...
 
-    @final
+    @abstractmethod
     def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None:
-        for item in items: self.PushAt(level, item)
+        ...
     @final
     def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
         if items is None: return False
@@ -296,6 +296,13 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
     
     @final
     def PushValuesAt(self, level: TLevel, *values: TItem) -> None: self.PushItemsAt(level, values)
+
+    @final
+    def Push(self, value: TItem) -> None: self.PushAt(self.GetNormalLevel(), value)
+    @final
+    def PushRange(self, items: Iterable[TItem]) -> None: self.PushRangeAt(self.GetNormalLevel(), items)
+    @final
+    def PushItems(self, items: Iterable[TItem]) -> None: self.PushItemsAt(self.GetNormalLevel(), items)
 class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     def __init__(self) -> None:
         super().__init__()
@@ -322,11 +329,11 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     
     @final
     def PushAt(self, level: TLevel, value: TItem) -> None: self._GetAt(level).Push(value)
-    @final
-    def Push(self, value: TItem) -> None: self.PushAt(self.GetNormalLevel(), value)
     
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: super().PushItems(items)
+    def PushRangeAt(self, level: TLevel, items: Iterable[TItem]) -> None: self._GetAt(level).PushRange(items)
+    @final
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None: self._GetAt(level).PushItems(items)
     
     @final
     def TryPop(self) -> INullable[TItem]: return self._GetItems().TryPop()
@@ -351,11 +358,6 @@ class PriorityQueue[T](PriorityList[T], IQueue[T]):
     def _CreateDictionary(self) -> IPriorityItemList[T, PriorityLevel]: return PriorityItemQueue[T]()
 
     @final
-    def PushRange(self, items: Iterable[T]) -> None: self.PushItems(items)
-    @final
-    def PushRangeAt(self, level: PriorityLevel, items: Iterable[T]) -> None: self.PushItemsAt(level, items)
-    
-    @final
     def AsReadOnly(self) -> IReadOnlyQueue[T]: return self.__readOnly.GetValue()
 class PriorityStack[T](PriorityList[T], IStack[T]):
     def __init__(self) -> None:
@@ -368,10 +370,5 @@ class PriorityStack[T](PriorityList[T], IStack[T]):
     @final
     def _CreateDictionary(self) -> IPriorityItemList[T, PriorityLevel]: return PriorityItemStack[T]()
 
-    @final
-    def PushRange(self, items: Iterable[T]) -> None: self.PushRangeAt(self.GetNormalLevel(), items)
-    @final
-    def PushRangeAt(self, level: PriorityLevel, items: Iterable[T]) -> None: self._GetAt(level).PushRange(items)
-    
     @final
     def AsReadOnly(self) -> IReadOnlyStack[T]: return self.__readOnly.GetValue()

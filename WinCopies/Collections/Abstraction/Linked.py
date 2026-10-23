@@ -149,7 +149,10 @@ class StackBase[TItems, TList](LinkedListBase[TItems, TList], IStack[TItems]):
     @final
     def Push(self, value: TItems) -> None: self._GetInnerContainer().AddFirstNode(value)
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None: super().PushItems(items)
+    def PushItems(self, items: Iterable[TItems]) -> None:
+        l: IReadWriteList[TItems] = self._GetInnerContainer()
+
+        for item in items: l.AddFirstNode(item) # Should add in range
     @final
     def PushRange(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddFirstItems(items)
 

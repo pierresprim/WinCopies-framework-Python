@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator, Sized
-from typing import final, Self
+from typing import final, Callable, Self
 
 from WinCopies import IInterface, Abstract
 
@@ -13,8 +13,10 @@ from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumer
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import LinkedNodeBase
 
+from WinCopies.Delegates import NoAction
+
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Method, Converter, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Delegate import Action, Method, Converter, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IReadOnlyListBase[T](IReadOnlyCollection):
@@ -56,8 +58,9 @@ class IListBase[T](IReadOnlyListBase[T]):
     def PushValueRange(self, *values: T) -> None:
         self.PushRange(values)
     
+    @abstractmethod
     def PushItems(self, items: Iterable[T]) -> None:
-        for value in items: self.Push(value)
+        ...
     @final
     def TryPushItems(self, items: Iterable[T]|None) -> bool:
         return self.__TryPush(items, self.PushItems)
@@ -202,6 +205,22 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
     @final
     def __Increment(self) -> None:
         self.__count += 1
+
+    @final
+    def __Push(self, items: Iterable[TItems], push: Converter[IList[TItems], Method[Iterable[TItems]]]) -> None:
+        i: int = 0
+        
+        def loop() -> Generator[TItems]:
+            nonlocal i
+
+            for item in items:
+                yield item
+                
+                i += 1
+
+        push(self._GetInnerContainer())(loop())
+
+        self.__count += i
     
     @final
     def Push(self, value: TItems) -> None:
@@ -209,14 +228,9 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
 
         self.__Increment()
     @final
-    def PushRange(self, items: Iterable[TItems]) -> None:
-        def loop() -> Generator[TItems]:
-            for item in items:
-                yield item
-                
-                self.__Increment()
-        
-        self._GetInnerContainer().PushRange(loop())
+    def PushItems(self, items: Iterable[TItems]) -> None: self.__Push(items, lambda items: items.PushItems)
+    @final
+    def PushRange(self, items: Iterable[TItems]) -> None: self.__Push(items, lambda items: items.PushRange)
     
     @final
     def TryPeek(self) -> INullable[TItems]: return self._GetInnerContainer().TryPeek()
@@ -225,8 +239,7 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
     def TryPop(self) ->  INullable[TItems]:
         result: INullable[TItems] = self._GetInnerContainer().TryPop()
 
-        if result.HasValue():
-            self.__count -= 1
+        if result.HasValue(): self.__count -= 1
         
         return result
     
@@ -389,48 +402,58 @@ class ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericCons
     @final
     def TryPeek(self) -> INullable[TItem]: return self._GetInnerContainer().TryPeek()
 
-class AbstractList[T](Abstract, IReadOnlyList[T]):
+class _IAdderAbstract[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetFirstCookie(self) -> INodeCookie[T]|None:
+        ...
+    
+    @abstractmethod
+    def _SetFirst(self, node: INodeCookie[T]) -> None:
+        ...
+
+class _IQueueAdderBase[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _GetLastCookie(self) -> INodeCookie[T]|None:
+        ...
+    @abstractmethod
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None:
+        ...
+
+class AbstractList[T](Abstract, IReadOnlyList[T], _IAdderAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _TryGetNode(self, cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
         return None if cookie is None else cookie.GetNode()
     
-    @abstractmethod
-    def _GetFirstCookie(self) -> INodeCookie[T]|None:
-        ...
-    
     @final
     def _GetFirst(self) -> SinglyLinkedNode[T]|None:
         return self._TryGetNode(self._GetFirstCookie())
-    @abstractmethod
-    def _SetFirst(self, node: INodeCookie[T]) -> None:
-        ...
-class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T]):
+class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], _IQueueAdderBase[T]):
     def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def _GetLastCookie(self) -> INodeCookie[T]|None:
-        ...
     
     @final
     def _GetLast(self) -> SinglyLinkedNode[T]|None:
         return self._TryGetNode(self._GetLastCookie())
-    @abstractmethod
-    def _SetLast(self, node: INodeCookie[T]) -> None:
-        ...
 
-class ListBase[T](AbstractList[T], IList[T]):
+class _IAdderBase[T](IListBase[T], _IAdderAbstract[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _CreateCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
+        return SinglyLinkedNode[T].CreateCookie(value, nextNode)
+
+class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def IsEmpty(self) -> bool: return self._GetFirstCookie() is None
     @final
     def HasItems(self) -> bool: return super().HasItems()
-    
-    @final
-    def _CreateCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
-        return SinglyLinkedNode[T].CreateCookie(value, nextNode)
 
     @final
     def _SetFirstCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
@@ -477,10 +500,6 @@ class ListBase[T](AbstractList[T], IList[T]):
         
         if first is None: self._SetFirstCookie(value)
         else: self._Push(value, first)
-    
-    @abstractmethod
-    def PushRange(self, items: Iterable[T]) -> None:
-        ...
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -547,7 +566,78 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryGetValueEnumeratorFromNode(self._GetFirst())
 
-class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
+class _IAdder[T](_IAdderBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
+        ...
+
+    @final
+    def _PushRange(self, items: Iterable[T], weld: Callable[[INodeCookie[T], INodeCookie[T]], None], range: bool) -> None:
+        def createCookie(item: T) -> INodeCookie[T]: return self._CreateCookie(item)
+        
+        action: Method[T]|None = None
+        _weld: Action = NoAction
+
+        def addCookie(item: T) -> None:
+            nonlocal action
+            nonlocal _weld
+
+            tmp: INodeCookie[T]|None = None
+            first: INodeCookie[T] = createCookie(item)
+            cookie: INodeCookie[T] = first
+
+            def addCookie(item: T) -> None:
+                nonlocal cookie
+                nonlocal tmp
+
+                weld(cookie, tmp := createCookie(item))
+
+                cookie = tmp
+
+            action = addCookie
+            _weld = lambda: self._Weld(first, cookie, range)
+
+        action = addCookie
+
+        for item in items: action(item)
+
+        _weld()
+
+    @final
+    def PushRange(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: cookie.SetNext(node.GetNode()), True)
+
+class _IQueueAdder[T](_IAdder[T], _IQueueAdderBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
+        _last: INodeCookie[T]|None = self._GetLastCookie()
+        
+        self._SetFirst(first) if _last is None else _last.SetNext(first.GetNode())
+
+        self._SetLastCookie(last)
+    
+    @final
+    def PushItems(self, items: Iterable[T]) -> None: self.PushRange(items)
+class _IStackAdder[T](_IAdder[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
+        _first: INodeCookie[T]|None = self._GetFirstCookie()
+
+        if range: first, last = last, first
+        
+        self._SetFirst(last)
+        
+        if _first is not None: first.SetNext(_first.GetNode())
+    
+    @final
+    def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
+
+class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -561,46 +651,14 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], IQueue[T]):
 
             return first if cookie is None else cookie
 
-        self._SetLast(self._SetNext(value, getLast()))
-    @final
-    def PushRange(self, items: Iterable[T]) -> None:
-        for value in items: self.Push(value)
+        self._SetLastCookie(self._SetNext(value, getLast()))
     
     def _OnCleared(self) -> None: self._UnsetLast()
-class StackBase[T](ListBase[T], IStack[T]):
+class StackBase[T](ListBase[T], _IStackAdder[T], IStack[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _Push(self, value: T, first: INodeCookie[T]) -> None:
-        self._SetFirstCookie(value, first.GetNode())
-    @final
-    def PushRange(self, items: Iterable[T]) -> None:
-        push: Converter[T, INodeCookie[T]]|None = None
-
-        def _push(item: T) -> INodeCookie[T]:
-            cookie: INodeCookie[T]
-
-            def _push(item: T) -> INodeCookie[T]:
-                nonlocal cookie
-
-                return (cookie := self._SetNext(item, cookie))
-
-            nonlocal push
-
-            cookie = self._SetFirstCookie(item)
-
-            push = _push
-
-            return cookie
-        
-        first: SinglyLinkedNode[T]|None = self._GetFirst()
-        cookie: INodeCookie[T]|None = None
-        
-        push = _push
-        
-        for value in items: cookie = push(value)
-
-        if not (first is None or cookie is None): cookie.SetNext(first)
+    def _Push(self, value: T, first: INodeCookie[T]) -> None: self._SetFirstCookie(value, first.GetNode())
     
     def _OnCleared(self) -> None:
         pass
@@ -637,7 +695,7 @@ class Queue[T](List[T], QueueBase[T]):
     @final
     def _GetLastCookie(self) -> INodeCookie[T]|None: return self.__last
     @final
-    def _SetLast(self, node: INodeCookie[T]) -> None: self.__last = node
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self.__last = node
     
     @final
     def _UnsetLast(self) -> None: self.__last = None
@@ -688,7 +746,7 @@ class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
     @final
     def _GetLastCookie(self) -> INodeCookie[T]|None: return self.__last
     @final
-    def _SetLast(self, node: INodeCookie[T]) -> None: self.__last = node
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self.__last = node
     
     @final
     def _UnsetLast(self) -> None: self.__last = None
@@ -848,7 +906,7 @@ class CountableList[TItem, TList](ICountableList[TItem], GenericConstraint[TList
     @final
     def Push(self, value: TItem) -> None: self._GetInnerContainer().Push(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: return super().PushItems(items)
+    def PushItems(self, items: Iterable[TItem]) -> None: return self._GetInnerContainer().PushItems(items)
     @final
     def PushRange(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushRange(items)
     
