@@ -775,9 +775,9 @@ def AsEnumerable[T](iterable: IEnumerable[T]|SystemIterable[T]) -> IEnumerable[T
 def TryAsEnumerable[T](iterable: IEnumerable[T]|SystemIterable[T]|None) -> IEnumerable[T]|None:
     return None if iterable is None else AsEnumerable(iterable)
 
-def AsIterable[T](enumerable: IEnumerable[T]|Iterable[T]) -> SystemIterable[T]:
+def AsIterable[T](enumerable: IEnumerable[T]|SystemIterable[T]) -> SystemIterable[T]:
     return enumerable if isinstance(enumerable, SystemIterable) else enumerable.AsIterable()
-def TryAsIterable[T](enumerable: IEnumerable[T]|Iterable[T]|None) -> SystemIterable[T]|None:
+def TryAsIterable[T](enumerable: IEnumerable[T]|SystemIterable[T]|None) -> SystemIterable[T]|None:
     return None if enumerable is None else AsIterable(enumerable)
 
 def AsEnumerator[T](iterator: IEnumerator[T]|SystemIterator[T]) -> IEnumerator[T]:

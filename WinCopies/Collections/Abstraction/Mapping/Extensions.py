@@ -4,12 +4,12 @@ from collections.abc import Container, Iterable, Sequence, MutableSequence, Muta
 from typing import overload, final, NoReturn, SupportsIndex
 
 from WinCopies import Abstract
-from WinCopies.Collections.Abstraction.Collection import List, CreateTuple
+from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
-from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               ICollectionMonitors, IEquatableCollectionViewMonitor,
@@ -22,6 +22,7 @@ from WinCopies.Collections.Extensions.Collection import MutableList, CollectionA
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import (ICountableEnumerableQueue, ICountableEnumerableStack,
                                                  CreateCountableEnumerableQueue)
+from WinCopies.Collections.Loop import AreEquals
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
 from WinCopies.Collections.Util import MakeSet, CreateSet, GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
@@ -203,29 +204,12 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     
     @staticmethod
     def _Equals(items: ITuple[TItem], item: object) -> bool:
-        def equals(x: ITuple[TItem], y: ITuple[TItem]) -> bool:
-            if x.GetCount() == y.GetCount():
-                for item in zip(x.AsIterable(), y.AsIterable()):
-                    if not item[0] == item[1]: return False
-            
-                return True
-            
-            return False
-        def sequenceEquals(x: ITuple[TItem], y: Sequence[TItem]) -> bool: return equals(x, CreateTuple(y))
-        
-        def iterableEquals(x: ITuple[TItem], y: Iterable[TItem]) -> bool:
-            _x: IEnumerator[TItem]|None = x.TryGetEnumerator()
+        if item is items: return True
 
-            if _x is None: return False
-            
-            _y: IEnumerator[TItem] = AsEnumerator(iter(y))
-            
-            for item in zip(_x.AsIterator(), _y.AsIterator()):
-                if not item[0] == item[1]: return False
-            
-            return not (_x.MoveNext() or _y.MoveNext())
+        match item:
+            case ITuple()|Sequence()|Iterable(): return AreEquals(items, item) # pyright: ignore[reportUnknownArgumentType]
 
-        return item is items or (isinstance(item, ITuple) and equals(items, item)) or (isinstance(item, Sequence) and sequenceEquals(items, item) or (isinstance(item, Iterable) and iterableEquals(items, item))) # pyright: ignore[reportUnknownArgumentType]
+            case _: return False
     
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()

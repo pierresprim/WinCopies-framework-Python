@@ -4,7 +4,7 @@ from typing import Callable, Type
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Util import MakeGenerator
-from WinCopies.Delegates import GetNotPredicate, RetrieveValue
+from WinCopies.Delegates import GetNotFunc, GetNotPredicate, RetrieveValue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.BoolProvider import BooleanableProtocol
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter
@@ -434,6 +434,24 @@ def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
         Items while they match the predicate, including the first one not matching the predicate.
     """
     return DoIncludeUntil(items, GetNotPredicate(predicate))
+
+def IncludeWhileTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
+    for item in TryEnumerate(items):
+        if func(): yield item
+        else: break
+def IncludeUntilTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
+    for item in TryEnumerate(items):
+        if func(): break
+
+        yield item
+
+def DoIncludeUntilTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
+    for item in TryEnumerate(items):
+        yield item
+
+        if func(): break
+def DoIncludeWhileTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
+    return DoIncludeUntilTrue(items, GetNotFunc(func))
 
 def GetFirst[T](items: Iterable[T]) -> INullable[T]:
     """Tries to get the first item from an iterable.

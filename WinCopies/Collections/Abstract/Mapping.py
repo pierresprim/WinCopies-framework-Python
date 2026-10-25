@@ -9,14 +9,17 @@ from WinCopies.Collections.Abstract.Enumeration import EnumerableAbstract, Enume
 from WinCopies.Collections.Abstract.Selection import ISelector, IAbstractionSetter
 from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
 from WinCopies.Collections.Core import ISetter
-from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import IDictionary, ISet, GetCollectionString
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
+from WinCopies.Collections.Extensions import ISet, IDictionary, GetCollectionString
 from WinCopies.Collections.Extensions.Mapping import Set as SetBase, DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter as ConverterDelegate
+from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, KeyValuePair
+
+def _ToString[T](items: IEnumerable[T], converter: Converter[T, str] = repr) -> str:
+    return GetCollectionString(items.AsIterable(), '{', '}', converter)
 
 class Set[TIn: HashableProtocol, TOut: HashableProtocol](SetBase[TOut], EnumerableAbstract[TIn, TOut], ISelector[TIn, TOut, ISet[TIn]]):
     def __init__(self, items: ISet[TIn]|set[TIn]) -> None:
@@ -50,7 +53,7 @@ class Set[TIn: HashableProtocol, TOut: HashableProtocol](SetBase[TOut], Enumerab
     def Clear(self) -> None: self._GetItems().Clear()
     
     @final
-    def ToString(self) -> str: return GetCollectionString(self.AsIterable(), '{', '}') if self.GetCount() > 0 else "set()"
+    def ToString(self) -> str: return _ToString(self) if self.GetCount() > 0 else "set()"
 
 class _ICookie[TIn, TOut](IInterface):
     def __init__(self) -> None: super().__init__()
@@ -60,7 +63,7 @@ class _ICookie[TIn, TOut](IInterface):
 
 @final
 class _ValueEnumerable[TKey: HashableProtocol, TValueIn, TValueOut](CountableEnumerable[TValueOut]):
-    def __init__(self, dic: IDictionary[TKey, TValueIn], converter: ConverterDelegate[TValueIn, TValueOut]) -> None:
+    def __init__(self, dic: IDictionary[TKey, TValueIn], converter: Converter[TValueIn, TValueOut]) -> None:
         super().__init__()
 
         self.__enumerable: ICountableEnumerable[TValueIn] = dic.GetValues()
@@ -146,7 +149,7 @@ class Dictionary[TKey: HashableProtocol, TValueIn, TValueOut](DictionaryBase[TKe
     def Clear(self) -> None: return self._GetItems().Clear()
     
     @final
-    def ToString(self) -> str: return GetCollectionString(self.AsIterable(), '{', '}', lambda pair: f"{pair.GetKey()!r}: {pair.GetValue()!r}")
+    def ToString(self) -> str: return _ToString(self, lambda pair: f"{pair.GetKey()!r}: {pair.GetValue()!r}")
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[IKeyValuePair[TKey, TValueOut]]|None:

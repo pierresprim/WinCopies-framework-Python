@@ -6,9 +6,9 @@ from typing import final
 
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
-from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
+from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IncludeWhileTrue, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import Self
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, Selector
@@ -128,30 +128,21 @@ def Contains[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterabl
 def CheckIfContains[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[TIn]|None, predicate: Predicate[TOut], selector: Converter[TIn, TOut]) -> bool|None:
     return None if items is None else Contains(items, predicate, selector)
 
-def __Zip[T1, T2](x: Iterable[T1], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
-    current: T2|None = None
-
-    for item in x:
-        if y.MoveNext():
-            if (current := y.GetCurrent()) is None: break
+def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1]|None, y: Iterable[T2]|IEnumerable[T2]|None) -> Generator[IKeyValuePair[T1, T2]]|None:
+    def tryZip(x: Iterable[T1]|None, y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
+        def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+            for item in IncludeWhileTrue(x, y.MoveNext): yield CreateDualResult(item, y.GetCurrent())
+        
+        match y:
+            case Iterator(): return zip(AsEnumerator(y))
+            case Iterable(): return zip(AsEnumerable(y).GetEnumerator())
             
-            yield CreateDualResult(item, current)
-        
-        else: break
-def __TryZip[T1, T2](x: Iterable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
-    def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]: return __Zip(x, y)
+            case IEnumerable():
+                _y: IEnumerator[T2]|None = y.TryGetEnumerator()
+
+                return None if _y is None else zip(_y)
     
-    match y:
-        case Iterator(): return zip(AsEnumerator(y))
-        case Iterable(): return zip(AsEnumerable(y).GetEnumerator())
-        
-        case IEnumerable():
-            _y: IEnumerator[T2]|None = y.TryGetEnumerator()
-
-            return None if _y is None else zip(_y)
-
-def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
-    return __TryZip(x.AsIterable() if isinstance(x, IEnumerable) else x, y)
+    return None if x is None or y is None else tryZip(AsIterable(x), y)
 def Zip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]:
     items: Generator[IKeyValuePair[T1, T2]]|None = TryZip(x, y)
 

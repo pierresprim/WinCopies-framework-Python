@@ -5,6 +5,7 @@ from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence 
 from typing import final, overload, Self, SupportsIndex
 
 from WinCopies import IInterface, IStringable, Abstract
+
 from WinCopies.Collections import DuplicateKeyError
 from WinCopies.Collections.Abstract.Enumeration import ResumableEnumerableAbstract
 from WinCopies.Collections.Abstract.Monitor import CollectionViewMonitor, EquatableCollectionViewMonitor
@@ -28,9 +29,10 @@ from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableLis
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
 from WinCopies.Collections.Range import SetItems
 from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError, GetDuplicateRangeError
+
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Function, Converter, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 @final
@@ -454,18 +456,19 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     @final
     def SliceAt(self, key: slice) -> IHashableTuple[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
 
-# A converting layer hands the container the converted value, and the container refuses a value it
-# already holds in its own terms. A single write gives one value, which is then the one held: the
-# refusal is told again with the value as the caller gave it, the container's own kept as its cause.
-def _Write(write: Function[object], value: object) -> None:
-    try: write()
-    except DuplicateKeyError as error:
-        if not error.GetDuplicate().HasValue(): raise
-
-        raise GetDuplicateItemError(value) from error
-
 class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[TIn, TOut, TSequence], StringableTwoWayConverter[TIn, TOut, TSequence, ITuple[TIn]], GenericSpecializedConstraint[TSequence, ITuple[TIn], IArray[TIn]]):
     def __init__(self) -> None: super().__init__()
+
+    # A converting layer hands the container the converted value, and the container refuses a value it
+    # already holds in its own terms. A single write gives one value, which is then the one held: the
+    # refusal is told again with the value as the caller gave it, the container's own kept as its cause.
+    def _Write(self, write: IndexedValueAction[TIn], index: int, value: TOut) -> None:
+        try: write(index, self._ConvertBack(value))
+
+        except DuplicateKeyError as error:
+            if error.GetDuplicate().HasValue(): raise GetDuplicateItemError(value) from error
+            
+            raise
     
     @final
     def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(x, y)
@@ -476,11 +479,12 @@ class ArrayAbstract[TIn, TOut, TSequence: IStringable](TupleCollectionAbstract[T
     def _SetAt(self, key: int, value: TOut, throwOnError: bool) -> bool:
         items: IArray[TIn] = self._GetSpecializedContainer()
 
-        if not throwOnError: return items.TrySetAt(key, self._ConvertBack(value))
+        if throwOnError:
+            self._Write(items.SetAt, key, value)
 
-        _Write(lambda: items.SetAt(key, self._ConvertBack(value)), value)
-
-        return True
+            return True
+        
+        return items.TrySetAt(key, self._ConvertBack(value))
 
     @final
     def AsImmutable(self) -> ITuple[TOut]: return self._GetCollectionViewMonitor().GetImmutableView()
@@ -548,7 +552,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     @final
     def _TryInsert(self, index: int, value: TOut) -> bool: return self._GetContainer().TryInsert(index, self._ConvertBack(value))
     @final
-    def _Insert(self, index: int, value: TOut) -> None: _Write(lambda: self._GetContainer().Insert(index, self._ConvertBack(value)), value)
+    def _Insert(self, index: int, value: TOut) -> None: self._Write(self._GetContainer().Insert, index, value)
     @final
     def _TryInsertRange(self, index: int, items: Iterable[TOut]) -> bool: return self._GetContainer().TryInsertRange(index, self.__Select(items)) is True
     @final
@@ -564,10 +568,11 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     @final
     def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[TOut], throwOnError: bool = False) -> bool:
         try: return self._GetContainer().CanSetRange(indices, CreateCountableEnumerable(items, self._ConvertBack), throwOnError)
+        
         except DuplicateKeyError as error:
-            if not error.GetDuplicate().HasValue(): raise
+            if error.GetDuplicate().HasValue(): raise GetDuplicateRangeError() from error
 
-            raise GetDuplicateRangeError() from error
+            raise
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
@@ -578,7 +583,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
-    def insert(self, index: int, value: TOut) -> None: _Write(lambda: self._GetContainer().AsMutableSequence().insert(index, self._ConvertBack(value)), value)
+    def insert(self, index: int, value: TOut) -> None: self._Write(self._GetContainer().AsMutableSequence().insert, index, value)
     
     @overload
     def __getitem__(self, index: SupportsIndex) -> TOut: ...

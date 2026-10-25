@@ -1,22 +1,24 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from typing import Callable
 
 from WinCopies import Not
-from WinCopies.Collections.Enumeration.Core import IEnumerator, AsEnumerable
+from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
+from WinCopies.Collections.Iteration.Enumeration import Zip as __Zip, TryZip as __TryZip
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
 from WinCopies.Typing import INullable, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
-from WinCopies.Typing.Pairing import DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
+from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
 
-def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
+def Enumerate[T](items: IEnumerable[T]|Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
     enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
     
     return CreateDualResult(enumerator.AsIterator(), enumerator.GetStatus().HasProcessedItems)
-def TryEnumerate[T](items: Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
+def TryEnumerate[T](items: IEnumerable[T]|Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
     return None if items is None else Enumerate(items)
 
 def Iterate[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Predicate[T]|None = None) -> bool:
@@ -95,7 +97,7 @@ def __IterateSafe(iterator: Predicate[Action], action: Action, safe: bool|Method
         return __ProcessSafe(lambda onError: iterator(lambda: process(onError)), finalizer)
     
     return (iterate() if safe else iterator(action)) if isinstance(safe, bool) else iterate(safe)
-def __EnumerateSafe[T](items: Iterable[T], iterator: Callable[[Iterator[T], Method[T]], None], action: Method[T], safe: bool|Method[bool]) -> bool:
+def __EnumerateSafe[T](items: IEnumerable[T]|Iterable[T], iterator: Callable[[Iterator[T], Method[T]], None], action: Method[T], safe: bool|Method[bool]) -> bool:
     def enumerate(enumerator: IEnumerator[T], action: Method[T]) -> bool:
         iterator(enumerator.AsIterator(), action)
 
@@ -201,7 +203,7 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
         if action(i, item): return CreateDualValueBool(i, False)
     
     return None if i == -1 else CreateDualValueBool(i, True)
-def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
+def ForEachItemUntil[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -> bool|None:
     """Iterates over items until the given predicate returns True.
 
     Args:
@@ -275,7 +277,7 @@ def DoForEachValue[T](action: IndexedValueAction[T], *values: T) -> int:
     """
     return DoForEach(values, action)
 
-def ForEachItem[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
+def ForEachItem[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -> bool|None:
     """Iterates over items while the given predicate returns True.
 
     Args:
@@ -302,7 +304,7 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     """
     return ForEachItem(values, predicate)
 
-def DoForEachItem[T](items: Iterable[T], action: Method[T], safe: bool|Method[bool] = False) -> bool:
+def DoForEachItem[T](items: IEnumerable[T]|Iterable[T], action: Method[T], safe: bool|Method[bool] = False) -> bool:
     """Executes the given action for each item in items.
 
     Args:
@@ -489,7 +491,7 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
     
     return result
 
-def __ForEachButFirst[T](items: Iterable[T], action: Predicate[T], func: Callable[[Iterable[T], Predicate[T]], bool|None], returnValue: bool) -> bool|None:
+def __ForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T], func: Callable[[IEnumerable[T]|Iterable[T], Predicate[T]], bool|None], returnValue: bool) -> bool|None:
     _action: Predicate[T]
     
     def __action(_: T) -> bool:
@@ -502,7 +504,7 @@ def __ForEachButFirst[T](items: Iterable[T], action: Predicate[T], func: Callabl
     _action = __action
     
     return func(items, lambda item: _action(item))
-def ForEachButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|None:
+def ForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]) -> bool|None:
     """Executes the given action for all items except the first, while the action returns True.
 
     Args:
@@ -515,7 +517,7 @@ def ForEachButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|None:
         - False if stopped early.
     """
     return __ForEachButFirst(items, action, ForEachItem, True)
-def ForEachUntilButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|None:
+def ForEachUntilButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]) -> bool|None:
     """Executes the given action for all items except the first, until the action returns True.
 
     Args:
@@ -529,7 +531,7 @@ def ForEachUntilButFirst[T](items: Iterable[T], action: Predicate[T]) -> bool|No
     """
     return __ForEachButFirst(items, action, ForEachItemUntil, False)
 
-def __ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Predicate[T], func: Callable[[Iterable[T], Predicate[T]], bool|None], returnValue: bool) -> bool|None:
+def __ForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate[T], action: Predicate[T], func: Callable[[IEnumerable[T]|Iterable[T], Predicate[T]], bool|None], returnValue: bool) -> bool|None:
     _action: Predicate[T]
     
     def __action(item: T) -> bool:
@@ -545,7 +547,7 @@ def __ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: 
     _action = __action
 
     return func(items, lambda item: _action(item))
-def ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
+def ForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
     """Executes a special action for the first item, then a different one for the rest.
 
     Args:
@@ -559,7 +561,7 @@ def ForEachAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Pr
         - False if stopped early
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItem, True)
-def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
+def ForEachUntilAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
     """Executes a special action for the first item, then a different one until it returns True.
 
     Args:
@@ -574,7 +576,7 @@ def ForEachUntilAndFirst[T](items: Iterable[T], firstAction: Predicate[T], actio
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
 
-def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
+def DoForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Method[T]) -> bool:
     """Executes the given action for all items except the first.
 
     Args:
@@ -594,7 +596,7 @@ def DoForEachButFirst[T](items: Iterable[T], action: Method[T]) -> bool:
     _action = __action
     
     return DoForEachItem(items, lambda item: _action(item))
-def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
+def DoForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
     """Executes a special action for the first item, then a different one for the rest.
 
     Args:
@@ -618,10 +620,10 @@ def DoForEachAndFirst[T](items: Iterable[T], firstAction: Method[T], action: Met
 
     return DoForEachItem(items, lambda item: _action(item))
 
-def ForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Predicate[T]) -> bool|None:
+def ForEachAndPrependAction[T](items: IEnumerable[T]|Iterable[T], firstAction: Function[bool], action: Predicate[T]) -> bool|None:
     return ForEachAndFirst(items, lambda item: firstAction() and action(item), action)
 
-def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action: Method[T]) -> bool:
+def DoForEachAndPrependAction[T](items: IEnumerable[T]|Iterable[T], firstAction: Action, action: Method[T]) -> bool:
     _action: Method[T]
     
     def __action(item: T) -> None:
@@ -635,7 +637,7 @@ def DoForEachAndPrependAction[T](items: Iterable[T], firstAction: Action, action
     _action = __action
 
     return DoForEachItem(items, lambda item: _action(item))
-def DoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastAction: Action) -> bool:
+def DoForEachAndAppendAction[T](items: IEnumerable[T]|Iterable[T], action: Method[T], lastAction: Action) -> bool:
     if DoForEachItem(items, action):
         lastAction()
 
@@ -643,12 +645,12 @@ def DoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastActio
     
     return False
 
-def TryDoForEachAndPrependAction[T](items: Iterable[T], firstAction: Function[bool], action: Method[T]) -> bool|None:
+def TryDoForEachAndPrependAction[T](items: IEnumerable[T]|Iterable[T], firstAction: Function[bool], action: Method[T]) -> bool|None:
     return DoForEachItem(items, action) if firstAction() else None
-def TryDoForEachAndAppendAction[T](items: Iterable[T], action: Method[T], lastAction: Function[bool]) -> bool|None:
+def TryDoForEachAndAppendAction[T](items: IEnumerable[T]|Iterable[T], action: Method[T], lastAction: Function[bool]) -> bool|None:
     return (True if lastAction() else None) if DoForEachItem(items, action) else False
 
-def ForEachUntilThen[T](items: Iterable[T], predicate: NullablePredicate[T], action: Predicate[T]) -> bool|None:
+def ForEachUntilThen[T](items: IEnumerable[T]|Iterable[T], predicate: NullablePredicate[T], action: Predicate[T]) -> bool|None:
     _action: Predicate[T]
 
     def process(item: T) -> bool:
@@ -664,7 +666,7 @@ def ForEachUntilThen[T](items: Iterable[T], predicate: NullablePredicate[T], act
     _action = process
 
     return ForEachItem(items, lambda item: _action(item))
-def DoForEachUntilThen[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
+def DoForEachUntilThen[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
     _action: Method[T]
 
     def process(item: T) -> None:
@@ -676,7 +678,7 @@ def DoForEachUntilThen[T](items: Iterable[T], predicate: Predicate[T], action: M
 
     return DoForEachItem(items, lambda item: _action(item))
 
-def ForEachUntilThenContinue[T](items: Iterable[T], predicate: NullablePredicate[T], action: Method[T]) -> bool|None:
+def ForEachUntilThenContinue[T](items: IEnumerable[T]|Iterable[T], predicate: NullablePredicate[T], action: Method[T]) -> bool|None:
     _action: Predicate[T]
 
     def process(item: T) -> bool:
@@ -695,7 +697,7 @@ def ForEachUntilThenContinue[T](items: Iterable[T], predicate: NullablePredicate
     _action = process
 
     return ForEachItem(items, lambda item: _action(item))
-def DoForEachUntilThenContinue[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
+def DoForEachUntilThenContinue[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool:
     _action: Method[T]
 
     def process(item: T) -> None:
@@ -713,7 +715,7 @@ def DoForEachUntilThenContinue[T](items: Iterable[T], predicate: Predicate[T], a
 
     return DoForEachItem(items, lambda item: _action(item))
 
-def Scan[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
+def Scan[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -> bool|None:
     result: bool = False
 
     def action(_: T) -> None:
@@ -722,7 +724,7 @@ def Scan[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
         result = True
 
     return result if DoForEachUntilThenContinue(items, predicate, action) else None
-def CancellableScan[T](items: Iterable[T], predicate: NullablePredicate[T]) -> INullable[bool]|None:
+def CancellableScan[T](items: IEnumerable[T]|Iterable[T], predicate: NullablePredicate[T]) -> INullable[bool]|None:
     result: bool = False
 
     def action(_: T) -> None:
@@ -735,3 +737,39 @@ def CancellableScan[T](items: Iterable[T], predicate: NullablePredicate[T]) -> I
         case False: return GetNullValue()
         
         case _: return None
+
+def _Zip[T1, T2](items: Generator[IKeyValuePair[T1, T2]]|None, predicate: Predicate[IKeyValuePair[T1, T2]], zipper: Callable[[Iterable[IKeyValuePair[T1, T2]], Predicate[IKeyValuePair[T1, T2]]], bool|None]) -> bool|None:
+    return None if items is None else zipper(items, predicate)
+
+def ZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool:
+    return _Zip(__Zip(x, y), predicate, ForEachItemUntil) is True
+def TryZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool|None:
+    return _Zip(__TryZip(x, y), predicate, ForEachItemUntil)
+
+def ZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool:
+    return _Zip(__Zip(x, y), predicate, ForEachItem) is True
+def TryZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool|None:
+    return _Zip(__TryZip(x, y), predicate, ForEachItem)
+
+def AreEquals[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
+    def loop(x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
+        return ZipWhile(x, y, lambda item: item.GetKey() == item.GetValue())
+    
+    def equals(x: ICountableEnumerable[T1], y: Iterable[T2], yCount: int) -> bool: return x.GetCount() == yCount and loop(x, y)
+    def sequenceEquals(x: ICountableEnumerable[T1], y: Sequence[T2]) -> bool: return equals(x, y, len(y))
+    
+    def iterableEquals(x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
+        def tryGetEnumerator[T](items: IEnumerable[T]|Iterable[T]) -> IEnumerator[T]|None: return AsEnumerable(items).TryGetEnumerator()
+        
+        _x: IEnumerator[T1]|None = tryGetEnumerator(x)
+        _y: IEnumerator[T2]|None = tryGetEnumerator(y)
+
+        if _x is None: return _y is None
+        if _y is None: return False
+        
+        return loop(_x.AsIterator(), _y.AsIterator()) and not (_x.MoveNext() or _y.MoveNext())
+
+    return (x is y
+            or (isinstance(x, ICountableEnumerable) and ((isinstance(y, ICountableEnumerable) and equals(x, y.AsIterable(), y.GetCount()))
+                                                         or (isinstance(y, Sequence) and sequenceEquals(x, y))))
+            or iterableEquals(x, y))

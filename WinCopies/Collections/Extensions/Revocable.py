@@ -27,7 +27,7 @@ from WinCopies.Delegates import ConcatenateMethods
 
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, EqualityComparison, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider
+from WinCopies.Typing.Discard import DiscardReason, IInvalidatable, InvalidatableObjectProvider, ThrowDiscardedError
 from WinCopies.Typing.Generic import IGenericConstraint, IGenericConstraintImplementation
 
 class _IRevocableViewCookieAbstract[T](IInterface):
@@ -249,12 +249,16 @@ class _IRevocableViewBase[TItem, TCollection](ITuple[TItem], IGenericConstraint[
     @abstractmethod
     def _GetSource(self) -> TCollection:
         ...
+
+    @abstractmethod
+    def _GetDiscardReason(self) -> DiscardReason:
+        ...
     
-    # What a view builds on its source, it hands out only while it lives: asking a revoked view for
-    # it raises as reading it does, whether or not it was built before. Built once and kept, it is
-    # still handed out again while the view lives.
     @final
-    def _ThrowIfRevoked(self) -> None: self._GetSource()
+    def _ThrowIfRevoked(self) -> None:
+        reason: DiscardReason = self._GetDiscardReason()
+
+        if reason != DiscardReason.Null: ThrowDiscardedError(reason)
 class RevocableViewAbstract[TItem, TCollection](SequenceAbstract[TItem], _IRevocableViewBase[TItem, TCollection]):
     @final
     class _ReversedCollectionMonitorUpdater[_TItem, _TCollection](_ReversedCollectionViewMonitorUpdater[_TCollection]):
@@ -361,6 +365,9 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
         ...
 
     @final
+    def _GetDiscardReason(self) -> DiscardReason: return self._GetCookie().GetDiscardReason()
+
+    @final
     def _GetSource(self) -> TCollection: return self._GetCookie().GetItems()
     
     @abstractmethod
@@ -369,7 +376,7 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
     @final
     def __GetCursorProvider(self) -> IReadOnlyLinkedCursorProvider[TItem]:
         self._ThrowIfRevoked()
-
+        
         return self._GetCursorProvider().GetValue()
 
     @final
@@ -379,7 +386,6 @@ class _IRevocableView[TItem, TCollection](_IRevocableViewBase[TItem, TCollection
 
     def ToString(self) -> str:
         cookie: _IRevocableViewCookie[TCollection] = self._GetCookie()
-
         discardReason: DiscardReason = cookie.GetDiscardReason()
 
         return GetTupleString(self.AsIterable(), self.GetMutability()) if discardReason == DiscardReason.Null else f"<RevocableView (revoked: view {discardReason.ToString().lower()})>"

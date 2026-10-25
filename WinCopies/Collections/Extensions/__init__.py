@@ -5,7 +5,7 @@ from collections.abc import Sized, Container as ContainerBase, Iterable, Iterato
 from typing import Any, overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
-from WinCopies import IInterface, IStringable, Abstract, IsTrue
+from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, IClearable,
                                         IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
                                         ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
@@ -18,12 +18,11 @@ from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, ICle
                                         IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
-from WinCopies.Collections.Iteration.Enumeration import Zip
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
-from WinCopies.Collections.Loop import ForEachItem
+from WinCopies.Collections.Loop import DoForEachItem, AreEquals
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
-from WinCopies.Collections.Util import CreateSequence, GetSequenceIndex
+from WinCopies.Collections.Util import CreateSequence, CreateTuple, GetSequenceIndex
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Function, Converter
@@ -273,7 +272,7 @@ def GetCollectionString[T](items: Iterable[T], opening: str, closing: str, conve
 
         stream.Write(opening)
 
-        for item in items: action(item)
+        DoForEachItem(items, action)
 
         stream.Write(closing)
 
@@ -281,10 +280,7 @@ def GetCollectionString[T](items: Iterable[T], opening: str, closing: str, conve
 
     return result
 def GetTupleString[T](items: Iterable[T], mutability: Mutability) -> str:
-    match mutability:
-        case Mutability.ReadOnly: return GetCollectionString(items, '(', ')')
-        
-        case _: return GetCollectionString(items, '[', ']')
+    return GetCollectionString(items, '(', ')') if mutability == Mutability.ReadOnly else GetCollectionString(items, '[', ']')
 # A view reads through its source, so a view standing on a revoked one cannot read what it would
 # render. It answers with the representation of its source instead, which degrades without raising,
 # as the representation of a view did when it was its source's.
@@ -298,11 +294,11 @@ def AreTuplesEqual[T](items: ITuple[T], item: object) -> bool:
     if items is item: return True
     
     match item:
-        case IEquatableTuple(): return items.GetCount() == item.GetCount() and IsTrue(ForEachItem(Zip(items, item), lambda item: item.GetKey() == item.GetValue()))
+        case IEquatableTuple(): return AreEquals(items, item)
         case IEquatableTupleBase(): return item.Equals(items)
         
         case _: return False
-def GetTupleHash[T](items: ITuple[T]) -> int: return hash(tuple(items.AsIterable()))
+def GetTupleHash[T](items: Iterable[T]) -> int: return hash(CreateTuple(items)) # TODO: Results from this function should be cached for further use until the source change, like views.
 
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
