@@ -16,15 +16,21 @@ throughout.
 
 import unittest
 from typing import Any
+from unittest import mock
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-from WinCopies.Collections.Extensions import ITuple, IList
+from WinCopies.Collections.Core import Mutability
+from WinCopies.Collections.Extensions import ITuple, IList, ILinkedCursorProvider
+from WinCopies.Collections.Extensions.Collection import BufferedStackBase
+from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList, ICountableEnumerableList, ICountableEnumerableQueue, ICountableEnumerableStack
 from WinCopies.Collections.ObjectModel.Collection import (CollectionChangedAction, CollectionChangedEventArgs,
                                                           IObservableCollection, ObservableCollection)
 
-from WinCopies.Typing.Delegate import Converter, NullablePredicate
+from WinCopies.Typing import INullable, InvalidOperationError
+from WinCopies.Typing.Delegate import Function, Converter, NullablePredicate
+from WinCopies.Typing.Delegate.Event import EventMonitor
 
 type _Call = NullablePredicate[ObservableCollection[int]]
 type _Record = tuple[str, CollectionChangedAction]
@@ -449,5 +455,451 @@ class TestASliceAssignmentIsOneAct(unittest.TestCase):
 
         self.assertEqual(tuple(items.AsIterable()), (1, 3, 9, 4), "a legitimate span was refused or misplaced")
         self.assertEqual(tuple(view.AsIterable()), (1, 3, 9, 4), "the container and its wrapper disagree on the result")
+
+def _listenFrom(start: ReadOnlyArray[int], call: Converter[ObservableCollection[int], Any]) -> tuple[ReadOnlyArray[_Record], Any, ReadOnlyArray[int]]:
+    """As _listen, on a collection holding start, and with what the collection holds afterwards."""
+
+    items: ObservableCollection[int] = ObservableCollection[int](List[int](list(start)))
+    listener: _Listener = _Listener(items)
+    answer: Any = _attempt(items, call)
+
+    return listener.GetRecords(), answer, tuple(items.AsIterable())
+
+def _cursorHead(cursor: IReadOnlyCountableEnumerableList[int]) -> int|None:
+    head: INullable[int] = cursor.TryPeek()
+
+    return head.GetValue() if head.HasValue() else None
+
+def _askCursor[T](ask: Function[T]) -> T|RecursionError:
+    """Asks for a cursor, and hands back the RecursionError of a view that asks itself, so that a bench
+    reports it as a failure of its own rather than under a traceback a thousand frames deep."""
+
+    try: return ask()
+    except RecursionError as error: return error
+
+# The two faces of D-106: the views of the collection, each read-only as far as its cursors go.
+_OBSERVABLE_VIEWS: ReadOnlyArray[tuple[str, Converter[ObservableCollection[int], ITuple[int]]]] = (
+    ("AsReadOnly()",  lambda o: o.AsReadOnly()),
+    ("AsFixedSize()", lambda o: o.AsFixedSize()))
+
+_VIEW_CURSORS: ReadOnlyArray[tuple[str, Converter[ITuple[int], IReadOnlyCountableEnumerableList[int]]]] = (
+    ("queued",  lambda items: items.AsQueuedCursor()),
+    ("stacked", lambda items: items.AsStackedCursor()))
+
+# Each write a cursor of the collection can make, with the channel it must reach and what it leaves.
+# The stacked Push is asked twice because it has two branches: Add on an empty stack, Insert at 0
+# otherwise.
+_CURSOR_WRITES: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Converter[ObservableCollection[int], Any], str, ReadOnlyArray[int]]] = (
+    ("queued TryPop",       _CONTENT, lambda o: o.AsQueuedCursor().TryPop(),  "OnItemRemoved", (2, 3, 4)),
+    ("stacked TryPop",      _CONTENT, lambda o: o.AsStackedCursor().TryPop(), "OnItemRemoved", (2, 3, 4)),
+    ("queued Push",         _CONTENT, lambda o: o.AsQueuedCursor().Push(9),   "OnItemAdded",   (1, 2, 3, 4, 9)),
+    ("stacked Push",        _CONTENT, lambda o: o.AsStackedCursor().Push(9),  "OnItemAdded",   (9, 1, 2, 3, 4)),
+    ("stacked Push, empty", (),       lambda o: o.AsStackedCursor().Push(9),  "OnItemAdded",   (9,)),
+    ("queued Clear",        _CONTENT, lambda o: o.AsQueuedCursor().Clear(),   "OnItemRemoved", ()),
+    ("stacked Clear",       _CONTENT, lambda o: o.AsStackedCursor().Clear(),  "OnItemRemoved", ()))
+
+# PushItems through each cursor, on a collection with and without content. The order is that of
+# successive pushes, the meaning PushItems has had since 70e4d1e; the stacked cursor gets it from one
+# AddRange on its reversed view.
+_CURSOR_PUSHES: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Converter[ObservableCollection[int], Any], ReadOnlyArray[int]]] = (
+    ("queued cursor",                    _CONTENT, lambda o: o.AsQueuedCursor().PushItems((7, 8, 9)),  (1, 2, 3, 4, 7, 8, 9)),
+    ("stacked cursor",                   _CONTENT, lambda o: o.AsStackedCursor().PushItems((7, 8, 9)), (9, 8, 7, 1, 2, 3, 4)),
+    ("queued cursor, empty collection",  (),       lambda o: o.AsQueuedCursor().PushItems((7, 8, 9)),  (7, 8, 9)),
+    ("stacked cursor, empty collection", (),       lambda o: o.AsStackedCursor().PushItems((7, 8, 9)), (9, 8, 7)))
+
+class TestEachObservableFaceDeclaresItsMutability(unittest.TestCase):
+    """D-101. GetMutability sat under @final on the base the read-only and the fixed-size views share,
+    and answered ReadOnly for both: the fixed-size view, which writes, declared that it did not, and
+    rendered as a read-only tuple, (1, 2, 3, 4) rather than [1, 2, 3, 4]. No bench asked a view of the
+    collection for its mutability or its rendering. The collection is the third row, so that the three
+    answers are read side by side."""
+
+    def test_each_face_declares_its_mutability_and_renders_by_it(self) -> None:
+        items: ObservableCollection[int] = _create()
+        faces: ReadOnlyArray[tuple[str, ITuple[int], Mutability, str]] = (
+            ("the collection", items,               Mutability.Mutable,   "[1, 2, 3, 4]"),
+            ("AsFixedSize()",  items.AsFixedSize(), Mutability.FixedSize, "[1, 2, 3, 4]"),
+            ("AsReadOnly()",   items.AsReadOnly(),  Mutability.ReadOnly,  "(1, 2, 3, 4)"))
+
+        for face, view, mutability, rendering in faces:
+            with self.subTest(face = face):
+                self.assertIs(view.GetMutability(), mutability, f"{face} declares {view.GetMutability().name} rather than {mutability.name}")
+                self.assertEqual(view.ToString(), rendering, f"{face} renders as another mutability")
+
+class TestTheObservableCollectionProvidesCursors(unittest.TestCase):
+    """D-105. The collection is an IList, so since d6c7a8f it owes mutable cursors, and it derived from
+    no cursor provider: its two cursors were the abstract members of ILinkedCursorProvider, which the
+    runtime let it be instantiated without, and they answered None. pyright and mypy said so on
+    Contract.py, which instantiates the collection; no bench asked for a cursor.
+
+    The cursors walk the collection itself, so their writes reach its hooks: each announces once, on the
+    channel that names it, as the elementary operations above do."""
+
+    def test_the_collection_provides_mutable_cursors(self) -> None:
+        items: ObservableCollection[int] = _create()
+        cursors: ReadOnlyArray[tuple[str, Function[ICountableEnumerableList[int]], type]] = (
+            ("queued",  lambda: items.AsQueuedCursor(),  ICountableEnumerableQueue),
+            ("stacked", lambda: items.AsStackedCursor(), ICountableEnumerableStack))
+
+        for kind, ask, mutable in cursors:
+            with self.subTest(cursor = kind):
+                cursor: ICountableEnumerableList[int] = ask()
+
+                self.assertIsInstance(cursor, mutable, f"the {kind} cursor of the collection is {cursor!r}, not a mutable one")
+                self.assertIs(ask(), cursor, f"the {kind} cursor is built again on each request")
+                self.assertEqual(_cursorHead(cursor), _CONTENT[0], f"the {kind} cursor has another head")
+                self.assertEqual(cursor.GetCount(), len(_CONTENT), f"the {kind} cursor counts otherwise")
+                self.assertEqual(tuple(cursor.AsIterable()), _CONTENT, f"the {kind} cursor reads another order")
+
+    def test_a_cursor_write_announces_once(self) -> None:
+        for name, start, call, channel, expected in _CURSOR_WRITES:
+            with self.subTest(call = name):
+                records, answer, content = _listenFrom(start, call)
+
+                self.assertNotIsInstance(answer, Exception, f"{name} raised: {answer}")
+                self.assertEqual(len(records), 1, f"{name} announced {len(records)} events, not one: {records}")
+                self.assertEqual(records[0][0], channel, f"{name} announced on {records[0][0]} rather than {channel}")
+                self.assertEqual(content, expected, f"{name} left another content")
+
+    def test_pushing_several_items_announces_once(self) -> None:
+        """PushItems is one call, and the collection announces one ItemAdded for it, whatever the number
+        of items. The queued cursor has always pushed them in one AddRange; the stacked one has pushed
+        them in one range call since edf8dbe, and before it added them one by one, so that the collection
+        announced each."""
+
+        for name, start, call, expected in _CURSOR_PUSHES:
+            with self.subTest(push = name):
+                records, answer, content = _listenFrom(start, call)
+
+                self.assertNotIsInstance(answer, Exception, f"PushItems through the {name} raised: {answer}")
+                self.assertEqual(records, (("OnItemAdded", CollectionChangedAction.Add),), f"PushItems of three items through the {name} announced {records}")
+                self.assertEqual(content, expected, f"PushItems through the {name} left another content")
+
+class TestTheObservableViewsProvideCursors(unittest.TestCase):
+    """D-106. The read-only and the fixed-size views owe read-only cursors, and they asked the read-only
+    side of their container for them, which is the read-only view itself: each request recursed, the
+    shape of D-87. The fixed-size view gets read-only cursors too, as IArray promises no other. No bench
+    asked a view for a cursor."""
+
+    def test_a_view_provides_read_only_cursors(self) -> None:
+        items: ObservableCollection[int] = _create()
+
+        for view, provide in _OBSERVABLE_VIEWS:
+            for kind, ask in _VIEW_CURSORS:
+                with self.subTest(view = view, cursor = kind):
+                    subject: ITuple[int] = provide(items)
+                    cursor: IReadOnlyCountableEnumerableList[int]|RecursionError = _askCursor(lambda: ask(subject))
+
+                    if isinstance(cursor, RecursionError): self.fail(f"the {kind} cursor of {view} recursed")
+
+                    self.assertIs(ask(subject), cursor, f"the {kind} cursor of {view} is built again on each request")
+                    self.assertFalse(hasattr(cursor, "TryPop") or hasattr(cursor, "Push"), f"the {kind} cursor of {view} writes")
+                    self.assertEqual(_cursorHead(cursor), _CONTENT[0], f"the {kind} cursor of {view} has another head")
+                    self.assertEqual(cursor.GetCount(), len(_CONTENT), f"the {kind} cursor of {view} counts otherwise")
+                    self.assertEqual(tuple(cursor.AsIterable()), _CONTENT, f"the {kind} cursor of {view} reads another order")
+
+    def test_a_view_cursor_follows_the_collection(self) -> None:
+        """A cursor reads its view when it is read, not when it is asked for."""
+
+        items: ObservableCollection[int] = _create()
+        taken: ReadOnlyArray[tuple[str, str, IReadOnlyCountableEnumerableList[int]]] = tuple(
+            (view, kind, ask(provide(items))) for view, provide in _OBSERVABLE_VIEWS for kind, ask in _VIEW_CURSORS)
+
+        items.Insert(0, 9)
+
+        for view, kind, cursor in taken:
+            with self.subTest(view = view, cursor = kind):
+                self.assertEqual(_cursorHead(cursor), 9, f"the {kind} cursor of {view} did not follow the collection")
+                self.assertEqual(tuple(cursor.AsIterable()), (9,) + _CONTENT, f"the {kind} cursor of {view} did not follow the collection")
+
+def _contentAfter(call: _Call) -> ReadOnlyArray[int]:
+    """What a fresh collection holds after one call, with nothing listening."""
+
+    items: ObservableCollection[int] = _create()
+
+    call(items)
+
+    return tuple(items.AsIterable())
+
+def _writeFromHandler(channel: str, trigger: _Call, write: Converter[ObservableCollection[int], Any]) -> tuple[bool, Any, ReadOnlyArray[int]]:
+    """Subscribes to one channel of a fresh collection a handler that attempts one write, fires the
+    channel by trigger, and returns whether the handler ran, what its write answered and what the
+    collection holds afterwards.
+
+    The handler writes on its first call only. On a rebuilt defect the write goes through and may fire
+    the same channel again, and a handler that wrote each time would chain to the empty collection or to
+    RecursionError rather than answer. It catches what its write raises, so the trigger ends normally:
+    what reaches an outer call when a handler does not catch is R, which is not a defect and is not
+    asserted here."""
+
+    items: ObservableCollection[int] = _create()
+    called: bool = False
+    answer: Any = None
+
+    def handle(sender: IObservableCollection[int], args: CollectionChangedEventArgs) -> None:
+        nonlocal called, answer
+
+        if called: return
+
+        called = True
+        answer = _attempt(items, write)
+
+    getattr(items.GetEventManager(), channel)(handle)
+
+    _attempt(items, trigger)
+
+    return called, answer, tuple(items.AsIterable())
+
+# The fourteen write paths of D-107, each attempted from a handler: the six single-item writes, the four
+# that reach several items, the two cursors and the two projections that write.
+_REENTRANT_WRITES: ReadOnlyArray[tuple[str, Converter[ObservableCollection[int], Any]]] = (
+    ("TryRemoveAt",         lambda o: o.TryRemoveAt(0)),
+    ("Add",                 lambda o: o.Add(9)),
+    ("Insert",              lambda o: o.Insert(0, 9)),
+    ("SetAt",               lambda o: o.SetAt(0, 9)),
+    ("Move",                lambda o: o.Move(0, 1)),
+    ("Swap",                lambda o: o.Swap(0, 1)),
+    ("reverse()",           lambda o: o.AsMutableSequence().reverse()),
+    ("Clear",               lambda o: o.Clear()),
+    ("AddRange",            lambda o: o.AddRange((8, 9))),
+    ("RemoveRange",         lambda o: o.RemoveRange(0, 1)),
+    ("queued TryPop",       lambda o: o.AsQueuedCursor().TryPop()),
+    ("stacked Push",        lambda o: o.AsStackedCursor().Push(9)),
+    ("AsReversed().Add",    lambda o: o.AsReversed().Add(9)),
+    ("AsFixedSize().SetAt", lambda o: o.AsFixedSize().SetAt(0, 9)))
+
+# What a handler may still do with the collection it listens to.
+_HANDLER_READS: ReadOnlyArray[tuple[str, Converter[ObservableCollection[int], Any]]] = (
+    ("GetCount",                lambda o: o.GetCount()),
+    ("ToString",                lambda o: o.ToString()),
+    ("Contains",                lambda o: o.Contains(2)),
+    ("GetAt",                   lambda o: o.GetAt(0)),
+    ("a read-only cursor head", lambda o: _cursorHead(o.AsReadOnly().AsQueuedCursor())))
+
+class TestAHandlerCannotChangeTheCollectionItListensTo(unittest.TestCase):
+    """D-107. The collection refuses to be changed while it invokes its handlers: each write hook asserts
+    reentrancy first. The assertion asked a monitor that was busy only while a handler was being added,
+    never while handlers ran, so a handler's write went through: a removal from an OnItemRemoved handler
+    chained until the collection was empty, an addition from an OnItemAdded one until RecursionError.
+    The handlers now run inside the monitor (b1adfcb, 870a5d1), and a subscription asserts the monitor
+    free before entering it (dc3d94e), since entering it from a handler and leaving it freed it while the
+    invocation still ran. No bench wrote from a handler.
+
+    Neither R nor R' is contradicted: each handler catches what it is refused, so that nothing is
+    asserted of what reaches an outer call when a handler does not (R); and each is alone on its channel
+    and refused all the same (R')."""
+
+    def test_a_write_from_a_handler_is_refused_on_every_path(self) -> None:
+        trigger: _Call = lambda o: o.TryRemoveAt(0)
+        expected: ReadOnlyArray[int] = _contentAfter(trigger)
+
+        for name, write in _REENTRANT_WRITES:
+            with self.subTest(write = name):
+                called, answer, content = _writeFromHandler("OnItemRemoved", trigger, write)
+
+                self.assertTrue(called, "the removal did not reach the handler; the bench measures nothing")
+                self.assertIsInstance(answer, InvalidOperationError, f"{name} from a handler went through, answering {answer!r}, rather than being refused")
+                self.assertEqual(content, expected, f"{name} from a handler changed the collection; only the removal that fired it may stand")
+
+    def test_a_write_from_a_handler_is_refused_on_every_channel(self) -> None:
+        """Add, from a handler of each channel the surface declares, the channel fired by the first
+        elementary operation that reaches it."""
+
+        triggers: dict[str, tuple[str, _Call]] = {}
+
+        for name, call, channel in _ELEMENTARY: triggers.setdefault(channel, (name, call))
+
+        for channel, _ in _CHANNELS:
+            with self.subTest(channel = channel):
+                self.assertIn(channel, triggers, f"no elementary operation reaches {channel}")
+
+                name, trigger = triggers[channel]
+                called, answer, content = _writeFromHandler(channel, trigger, lambda o: o.Add(9))
+
+                self.assertTrue(called, f"{name} did not reach {channel}; the bench measures nothing")
+                self.assertIsInstance(answer, InvalidOperationError, f"Add from a handler of {channel} went through, answering {answer!r}, rather than being refused")
+                self.assertEqual(content, _contentAfter(trigger), f"Add from a handler of {channel} changed the collection")
+
+    def test_a_handler_still_reads(self) -> None:
+        """The counter-example: the guard refuses writes, not access. A handler reads what any caller
+        reads once the removal is made."""
+
+        items: ObservableCollection[int] = _create()
+        answers: dict[str, Any] = {}
+
+        def handle(sender: IObservableCollection[int], args: CollectionChangedEventArgs) -> None:
+            for name, read in _HANDLER_READS: answers[name] = _attempt(items, read)
+
+        items.GetEventManager().OnItemRemoved(handle)
+        items.TryRemoveAt(0)
+
+        reference: ObservableCollection[int] = _create()
+
+        reference.TryRemoveAt(0)
+
+        for name, read in _HANDLER_READS:
+            with self.subTest(read = name): self.assertEqual(answers.get(name), read(reference), f"{name} from a handler answered otherwise than outside one")
+
+    def test_a_handler_that_raises_leaves_the_collection_usable(self) -> None:
+        """An error leaves the invocation, and the monitor with it: the next subscription and the next
+        write pass, and the new handler hears the write."""
+
+        items: ObservableCollection[int] = _create()
+        raised: list[bool] = []
+        added: list[CollectionChangedAction] = []
+
+        def handle(sender: IObservableCollection[int], args: CollectionChangedEventArgs) -> None:
+            raised.append(True)
+
+            raise ValueError("raised by the handler")
+
+        items.GetEventManager().OnItemRemoved(handle)
+
+        _attempt(items, lambda o: o.TryRemoveAt(0))
+
+        self.assertEqual(raised, [True], "the removal did not reach the handler; the bench measures nothing")
+
+        items.GetEventManager().OnItemAdded(lambda sender, args: added.append(args.GetAction()))
+        items.Add(9)
+
+        self.assertEqual(tuple(items.AsIterable()), _CONTENT[1:] + (9,), "the write after a handler that raised did not go through")
+        self.assertEqual(added, [CollectionChangedAction.Add], "the subscription after a handler that raised was not heard")
+
+    def test_subscribing_from_a_handler_is_refused(self) -> None:
+        """Subscribing from a handler entered the busy monitor and, leaving it, freed it while the
+        invocation still ran, so the handler's next write went through. It is refused now, as a write
+        is, and the write that follows it is refused too."""
+
+        items: ObservableCollection[int] = _create()
+        answers: dict[str, Any] = {}
+
+        def subscribe(o: ObservableCollection[int]) -> Any: return o.GetEventManager().OnItemAdded(lambda sender, args: None)
+
+        def handle(sender: IObservableCollection[int], args: CollectionChangedEventArgs) -> None:
+            answers["subscription"] = _attempt(items, subscribe)
+            answers["write"] = _attempt(items, lambda o: o.Add(9))
+
+        items.GetEventManager().OnItemRemoved(handle)
+
+        _attempt(items, lambda o: o.TryRemoveAt(0))
+
+        self.assertIsInstance(answers.get("subscription"), InvalidOperationError, f"a subscription from a handler went through, answering {answers.get('subscription')!r}, rather than being refused")
+        self.assertIsInstance(answers.get("write"), InvalidOperationError, f"the write after it answered {answers.get('write')!r}: the subscription freed the monitor")
+        self.assertEqual(tuple(items.AsIterable()), _CONTENT[1:], "the handler changed the collection")
+
+    def test_a_handler_changes_another_collection(self) -> None:
+        """The counter-example: each collection has its own monitor. A handler of one subscribes to
+        another and writes to it, and the new handler hears the write."""
+
+        items: ObservableCollection[int] = _create()
+        other: ObservableCollection[int] = _create()
+        added: list[CollectionChangedAction] = []
+        answers: dict[str, Any] = {}
+
+        def subscribe(o: ObservableCollection[int]) -> Any: return o.GetEventManager().OnItemAdded(lambda sender, args: added.append(args.GetAction()))
+
+        def handle(sender: IObservableCollection[int], args: CollectionChangedEventArgs) -> None:
+            answers["subscription"] = _attempt(other, subscribe)
+            answers["write"] = _attempt(other, lambda o: o.Add(9))
+
+        items.GetEventManager().OnItemRemoved(handle)
+        items.TryRemoveAt(0)
+
+        for step in ("subscription", "write"):
+            with self.subTest(step = step): self.assertNotIsInstance(answers.get(step), Exception, f"the {step} on another collection was refused: {answers.get(step)}")
+
+        self.assertEqual(tuple(other.AsIterable()), _CONTENT + (9,), "the write to another collection did not go through")
+        self.assertEqual(added, [CollectionChangedAction.Add], "the handler subscribed to another collection did not hear its write")
+
+def _runBench(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
+    result: unittest.TestResult = unittest.TestResult()
+
+    bench(name).run(result)
+
+    return result
+
+class TestTheObservableCollectionBenchesCanFail(unittest.TestCase):
+    """The benches of D-101, D-105, D-106 and D-107, and of the one announcement of PushItems, run
+    against the code as it stood before each was closed: green on the intact tree, red on the rebuilt
+    one, and red on their assertions rather than on an error. The views are reached through the objects;
+    EventMonitor and BufferedStackBase by their public names."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertTrue(_runBench(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runBench(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+        self.assertEqual(broken.errors, [], f"{name} fell on an error rather than on its assertions")
+
+    def test_the_mutability_bench_falls_when_the_fixed_size_view_answers_read_only(self) -> None:
+        """As before ba61adc: GetMutability sat under @final on the base both views share, and answered
+        ReadOnly. Each view carries its own since; the fixed-size one is given that answer back."""
+
+        def readOnly(self: Any) -> Mutability: return Mutability.ReadOnly
+
+        self.__assertFalls(TestEachObservableFaceDeclaresItsMutability, "test_each_face_declares_its_mutability_and_renders_by_it",
+                           type(_create().AsFixedSize()), {"GetMutability": readOnly})
+
+    def test_the_cursor_bench_falls_when_the_collection_has_no_cursors(self) -> None:
+        """As before bd908d4: the collection derived from no cursor provider, and its cursors resolved to
+        the abstract members of ILinkedCursorProvider, which answer None. ICursorProvider carries them
+        today and List derives from it too, so the absence is not rebuilt by removing them there: the
+        abstract members are put back on ObservableCollection, ahead of ICursorProvider, which gives the
+        collection exactly the resolution it had and leaves every other provider alone."""
+
+        abstract: dict[str, Any] = {name: vars(ILinkedCursorProvider)[name] for name in ("AsQueuedCursor", "AsStackedCursor")}
+
+        self.__assertFalls(TestTheObservableCollectionProvidesCursors, "test_the_collection_provides_mutable_cursors", ObservableCollection, abstract)
+
+    def test_the_view_cursor_bench_falls_when_a_view_asks_itself(self) -> None:
+        """As before bd908d4: the base both views share asked the read-only side of their container for
+        its cursors, and that side is the read-only view. The two members are put back on that base,
+        reached as the first class the two views' MROs share; IReadOnlyCursorProvider, after it in both,
+        carries the cursors today."""
+
+        def queued(self: Any) -> Any: return self._GetInnerContainer().AsReadOnly().AsQueuedCursor()
+        def stacked(self: Any) -> Any: return self._GetInnerContainer().AsReadOnly().AsStackedCursor()
+
+        items: ObservableCollection[int] = _create()
+        shared: type = next(cls for cls in type(items.AsReadOnly()).__mro__ if cls in type(items.AsFixedSize()).__mro__)
+
+        self.__assertFalls(TestTheObservableViewsProvideCursors, "test_a_view_provides_read_only_cursors", shared, {"AsQueuedCursor": queued, "AsStackedCursor": stacked})
+
+    def test_the_push_items_bench_falls_when_the_stack_pushes_item_by_item(self) -> None:
+        """As before edf8dbe: the stacked cursor added its items one at a time, by Add on an empty stack
+        and by TryInsert at 0, 1, 2 otherwise. BufferedStackBase carries PushItems; the closures of that
+        version are rebuilt as the loop they amounted to."""
+
+        def itemByItem(self: Any, items: Any) -> None:
+            container: Any = self._GetSpecializedContainer()
+
+            if self.IsEmpty():
+                for item in items: container.Add(item)
+
+            else:
+                for index, item in enumerate(items): container.TryInsert(index, item)
+
+        self.__assertFalls(TestTheObservableCollectionProvidesCursors, "test_pushing_several_items_announces_once", BufferedStackBase, {"PushItems": itemByItem})
+
+    def test_the_write_benches_fall_when_handlers_run_outside_the_monitor(self) -> None:
+        """As at 8d136f3: the collection invoked its handlers directly, and the monitor was busy only
+        while a handler was being added. EventMonitor carries _Invoke, through which the collection
+        invokes them now; it is rebuilt as that direct call."""
+
+        def direct(self: Any, eventManager: Any, sender: Any, args: Any) -> None: eventManager.Invoke(sender, args)
+
+        for test in ("test_a_write_from_a_handler_is_refused_on_every_path", "test_a_write_from_a_handler_is_refused_on_every_channel"):
+            with self.subTest(bench = test): self.__assertFalls(TestAHandlerCannotChangeTheCollectionItListensTo, test, EventMonitor, {"_Invoke": direct})
+
+    def test_the_subscription_bench_falls_when_subscribing_enters_the_busy_monitor(self) -> None:
+        """As at 870a5d1: _AddHandler entered the monitor without asserting it free, and leaving it freed
+        it. EventMonitor carries _AddHandler; its monitor is read under the name Python gives
+        EventMonitor.__monitor, the attribute that version used."""
+
+        def entering(self: Any, eventManager: Any, handler: Any) -> Any:
+            with self._EventMonitor__monitor: return eventManager.Add(handler)
+
+        self.__assertFalls(TestAHandlerCannotChangeTheCollectionItListensTo, "test_subscribing_from_a_handler_is_refused", EventMonitor, {"_AddHandler": entering})
 
 if __name__ == "__main__": unittest.main()
