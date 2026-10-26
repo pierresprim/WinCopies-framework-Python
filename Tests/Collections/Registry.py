@@ -29,22 +29,27 @@ import unittest
 import weakref
 
 from abc import abstractmethod
-from collections.abc import Sequence, Generator
+from collections.abc import Iterable, Sequence, Generator
 from typing import final, Any, Callable, cast
 from unittest import mock
 
 
 
+import WinCopies.Collections.Abstract.Mapping as AbstractMapping
+import WinCopies.Collections.Extensions as CollectionExtensions
+
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
 from WinCopies.Collections.Abstraction.Collection import (Tuple, EquatableTuple, HashableTuple,
-                                                          Array, ArrayList, SizedArray,
+                                                          Array, ArrayList, ArrayCollection, SizedArray,
                                                           List, SortedList,
                                                           TryCreateSizedList)
+from WinCopies.Collections.Abstraction.Mapping import CreateSet, CreateDictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
-from WinCopies.Collections.Abstraction.Selection.Collection import (EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple,
-                                                                    List as SelectionList)
+from WinCopies.Collections.Abstraction.Selection.Collection import (Tuple as SelectionTuple, EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple,
+                                                                    List as SelectionList, Set as SelectionSet, Dictionary as SelectionDictionary)
+from WinCopies.Collections.Circular import CircularList, CircularTuple
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
@@ -53,7 +58,9 @@ from WinCopies.Collections.Extensions import (IDefaultMutableSequence, ITupleBas
                                               IList as _IList, ISizedList, IOrderedSet)
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList
+from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
+from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter, Selector, IFunction
 from WinCopies.Typing.Discard import DiscardReason, InvalidatedError, DiscardedError
@@ -930,6 +937,278 @@ class TestRepresentationDegrades(unittest.TestCase):
                     with self.subTest(content = content): self.assertNotIn(content, text)
 
         _subTests(self, subTest)
+
+# The representatives of each family of sequences, with what each one renders: its items as it reads
+# them, by repr, separated by ", ", between the delimiters of its mutability -- (...) when it is
+# read-only, [...] otherwise. 4.7 §2 measured that rule on seventy sequences; one or two per family
+# keep every site of the mechanism under a bench, and the Tuple and ArrayList rows are the sources
+# that rendered something else.
+def _renderedSequences() -> ReadOnlyArray[tuple[str, str, Function[Any], str]]:
+    converters: Converters[int, str] = Converters[int, str](str, int)
+
+    return (
+        ("direct",      "List",                              _source,                                                              "[1, 2, 3]"),
+        ("direct",      "ArrayList",                         _arrayList,                                                           "[1, 2, 3]"),
+        ("direct",      "Tuple over a list",                 lambda: Tuple[int]([1, 2, 3]),                                        "(1, 2, 3)"),
+        ("direct",      "EquatableTuple",                    _equatableSource,                                                     "(1, 2, 3)"),
+        ("direct",      "ObservableCollection",              lambda: ObservableCollection[int](_source()),                         "[1, 2, 3]"),
+        ("direct",      "an empty Tuple",                    lambda: Tuple[int]([]),                                               "()"),
+        ("reversed",    "List.AsReversed()",                 lambda: _source().AsReversed(),                                       "[3, 2, 1]"),
+        ("reversed",    "Tuple.AsReversed()",                lambda: Tuple[int]([1, 2, 3]).AsReversed(),                           "(3, 2, 1)"),
+        ("reversed",    "ArrayList.AsReversed()",            lambda: _arrayList().AsReversed(),                                    "[3, 2, 1]"),
+        ("read-only",   "List.AsReadOnly()",                 lambda: _source().AsReadOnly(),                                       "(1, 2, 3)"),
+        ("read-only",   "ObservableCollection.AsReadOnly()", lambda: ObservableCollection[int](_source()).AsReadOnly(),            "(1, 2, 3)"),
+        ("fixed size",  "List.AsFixedSize()",                lambda: _source().AsFixedSize(),                                      "[1, 2, 3]"),
+        ("fixed size",  "ObservableCollection.AsFixedSize()", lambda: ObservableCollection[int](_source()).AsFixedSize(),          "[1, 2, 3]"),
+        ("immutable",   "List.AsImmutable()",                lambda: _source().AsImmutable(),                                      "(1, 2, 3)"),
+        ("immutable",   "List.AsImmutable().AsReversed()",   lambda: _source().AsImmutable().AsReversed(),                         "(3, 2, 1)"),
+        ("conversion",  "SelectionTuple",                    lambda: SelectionTuple[int, str](Tuple[int]([1, 2, 3]), str),         "('1', '2', '3')"),
+        ("conversion",  "SelectionList",                     lambda: SelectionList[int, str](_source(), converters),               "['1', '2', '3']"),
+        ("conversion",  "SelectionList.AsReversed()",        lambda: SelectionList[int, str](_source(), converters).AsReversed(),  "['3', '2', '1']"),
+        ("ordered set", "AsTuple()",                         lambda: CreateOrderedSet(_createTuple()).AsTuple(),                   "(1, 2, 3)"),
+        ("ordered set", "AsTuple().AsReversed()",            lambda: CreateOrderedSet(_createTuple()).AsTuple().AsReversed(),      "(3, 2, 1)"),
+        ("ordered set", "AsList()",                          lambda: CreateOrderedSet(_createTuple()).AsList(),                    "[1, 2, 3]"),
+        ("circular",    "CircularList",                      lambda: CircularList[int](List[int]([2, 0, 1]), 1),                   "[0, 1, 2]"),
+        ("circular",    "CircularList.AsReversed()",         lambda: CircularList[int](List[int]([2, 0, 1]), 1).AsReversed(),      "[2, 1, 0]"),
+        ("circular",    "CircularTuple",                     lambda: CircularTuple[int](Tuple[int]([2, 0, 1]), 1),                 "(0, 1, 2)"),
+        ("circular",    "CircularList of 'a' and None",      lambda: CircularList[object](List[object](["a", None]), 0),           "['a', None]"))
+
+# Sets and dictionaries render as Python does: set() for the empty set, since {} is the empty
+# dictionary (4.8 §2). The sources keep str() of their Python container; the converting forms render
+# what they read. The converting dictionary holds two pairs, so that a lost separator shows in it.
+def _renderedMappings() -> ReadOnlyArray[tuple[str, str, Function[Any], str]]:
+    converters: Converters[int, str] = Converters[int, str](str, int)
+
+    return (
+        ("set",        "an empty Set",                lambda: CreateSet(set[int]()),                                                       "set()"),
+        ("set",        "Set",                         lambda: CreateSet({1, 2}),                                                           "{1, 2}"),
+        ("set",        "an empty SelectionSet",       lambda: SelectionSet[int, str](CreateSet(set[int]()), converters),                   "set()"),
+        ("set",        "SelectionSet",                lambda: SelectionSet[int, str](CreateSet({1, 2}), converters),                       "{'1', '2'}"),
+        ("dictionary", "Dictionary",                  lambda: CreateDictionary({"a": 1}),                                                  "{'a': 1}"),
+        ("dictionary", "an empty SelectionDictionary", lambda: SelectionDictionary[str, int, str](CreateDictionary(dict[str, int]()), converters), "{}"),
+        ("dictionary", "SelectionDictionary",         lambda: SelectionDictionary[str, int, str](CreateDictionary({"a": 1, "b": 2}), converters), "{'a': '1', 'b': '2'}"))
+
+class TestACollectionRendersWhatItReads(unittest.TestCase):
+    """D-96, D-99, D-100 and D-112: a collection renders the items it reads, in the order it reads
+    them, separated by ", ".
+
+    Since 6468e9f one mechanism renders every sequence, the one CircularAbstract had in line. Before
+    it, a reversed view rendered the collection it reverses, so in the direct order (D-96); a
+    converting collection rendered its source, so the values before conversion (D-99); ArrayList
+    rendered its array of handles (D-100); and the read-only views and a Tuple over a list rendered
+    between brackets, as their mutable source or their Python list did -- 46 of the 70 sequences of
+    4.7 §2 rendered otherwise than the mechanism. e69a028 then lost the separators of every rendering
+    at once, (123) for (1, 2, 3) (D-112), and ba9f2e6 brought them back.
+
+    No bench saw any of them: the benches of the rendering were left to be written in a block (4.8
+    §1), and the benches that read a representation, TestRepresentationDegrades and the control of
+    TestHarnessNonVacuity, read a revoked view, which renders a fixed message.
+    """
+
+    def test_a_sequence_renders_its_items_between_the_delimiters_of_its_mutability(self) -> None:
+        """The delimiters are also held to the mutability the subject declares, and not only to the
+        table: run on 4b03536, that clause catches D-101 as well, ObservableCollection.AsFixedSize()
+        rendering [1, 2, 3] while it declared itself read-only."""
+
+        for family, form, create, expected in _renderedSequences():
+            with self.subTest(family = family, form = form):
+                subject: Any = create()
+                text: str = subject.ToString()
+
+                self.assertEqual(text, expected, f"{form} renders {text} instead of {expected}")
+                self.assertEqual(text[0], "(" if subject.GetMutability() == Mutability.ReadOnly else "[",
+                                 f"{form} renders between the delimiters of another mutability than {subject.GetMutability()}")
+
+    def test_a_set_or_a_dictionary_renders_its_items_between_braces(self) -> None:
+        for family, form, create, expected in _renderedMappings():
+            with self.subTest(family = family, form = form):
+                text: str = create().ToString()
+
+                self.assertEqual(text, expected, f"{form} renders {text} instead of {expected}")
+
+# A view that reads through a revocable one: the collection, the source the view stands on, the view,
+# and what the view renders while its source is alive. The reverse of the revocable is a revocable
+# itself and degrades by its own message, which is the same one; the last view stands on a view that
+# stands on the revocable, so the fallback is asserted at two levels.
+def _overARevokedView() -> ReadOnlyArray[tuple[str, Function[Any], Converter[Any, Any], Converter[Any, Any], str]]:
+    return (
+        ("SelectionTuple over List.AsImmutable()",
+         _source,                                  lambda items: items.AsImmutable(),                                 lambda source: SelectionTuple[int, str](source, str),          "('1', '2', '3')"),
+        ("SelectionEquatableTuple over OrderedSet.AsTuple().AsImmutable()",
+         lambda: CreateOrderedSet(_createTuple()), lambda items: items.AsTuple().AsImmutable(),                       lambda source: SelectionEquatableTuple[int, str](source, str), "('1', '2', '3')"),
+        ("CircularTuple over List.AsImmutable()",
+         lambda: List[int]([2, 0, 1]),             lambda items: items.AsImmutable(),                                 lambda source: CircularTuple[int](source, 1),                  "(0, 1, 2)"),
+        ("List.AsImmutable().AsReversed()",
+         _source,                                  lambda items: items.AsImmutable(),                                 lambda source: source.AsReversed(),                            "(3, 2, 1)"),
+        ("SelectionTuple over List.AsImmutable(), reversed",
+         _source,                                  lambda items: SelectionTuple[int, str](items.AsImmutable(), str), lambda source: source.AsReversed(),                            "('3', '2', '1')"))
+
+class TestAViewOverARevokedViewRendersAsItsSource(unittest.TestCase):
+    """D2 across a derivation, as 6468e9f settled it (4.7 §1, arbitration 3): a view standing on a
+    revoked view cannot read what it would render, so it renders as its source does, which degrades
+    without raising and without the content. Its other reads still raise; TestDerivedTransitivity
+    asserts them, and this bench checks one only to know that the view is dead.
+
+    The 4.6 prototype rendered such a view by the mechanism alone, and its ToString raised
+    InvalidatedError where it had degraded until then. The circular tuple did raise before 6468e9f,
+    since the mechanism it had in line had no fallback. No bench saw either: TestRepresentationDegrades
+    reads the revoked view itself, never a view standing on it.
+    """
+
+    def test_a_view_over_a_revoked_view_renders_as_its_source(self) -> None:
+        for name, create, revocable, derive, alive in _overARevokedView():
+            with self.subTest(view = name):
+                items: Any = create()
+                source: Any = revocable(items)
+                view: Any = derive(source)
+
+                self.assertEqual(view.ToString(), alive, f"{name} renders otherwise while its source is alive")
+
+                items.Add(9)
+
+                self.assertTrue(_revoked(view), f"{name} still reads once its source is revoked")
+
+                try: text: str = view.ToString()
+                except DiscardedError as error: self.fail(f"{name} raises {type(error).__name__} to render over a revoked view")
+
+                self.assertEqual(text, source.ToString(), f"{name} renders otherwise than its revoked source")
+                self.assertNotIn(alive[1:-1], text, f"{name} renders the content its revoked source withholds")
+
+def _toStringCarrier(subject: object) -> type:
+    """The class that carries the ToString a subject answers with, found in its MRO rather than
+    named: e69a028 moved the ToString of the sources into a mixin, and a control aimed at the class
+    that carried it before would have reached nothing (D-90, D-114)."""
+
+    return next(cls for cls in type(subject).__mro__ if "ToString" in vars(cls))
+
+class TestTheRenderingBenchesCanFail(unittest.TestCase):
+    """The benches of the rendering, run against the code as it stood before each defect was closed:
+    green on the intact tree, red on the rebuilt one. A method is replaced on the class that carries
+    it, reached as the carrier of ToString in the MRO of a subject rather than imported by its private
+    name; a module function is replaced in the module where its caller looks it up."""
+
+    __SEQUENCES: str = "test_a_sequence_renders_its_items_between_the_delimiters_of_its_mutability"
+    __MAPPINGS: str = "test_a_set_or_a_dictionary_renders_its_items_between_braces"
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertEqual(_fallen(_runBenches(((bench, name),))), 0, f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runBenches(((bench, name),))
+
+        self.assertGreater(_fallen(broken), 0, f"{name} did not fall on the rebuilt defect")
+
+    def test_the_benches_fall_when_the_separators_are_lost(self) -> None:
+        """D-112, as at e69a028: GetCollectionString handed DoForEachItem the function its name action
+        held at the call, the one that writes the first item and then rebinds action to the one that
+        writes a separator first. DoForEachItem kept the object it was given and never saw the
+        rebinding, so no separator was written. The function is replaced where each caller looks it
+        up: in Extensions for GetTupleString, hence every sequence, and in Abstract.Mapping for the
+        converting set and dictionary."""
+
+        def rebuilt(items: Iterable[Any], opening: str, closing: str, converter: Converter[Any, str] = repr) -> str:
+            action: Callable[[Any], None]|None = None
+
+            def write(item: Any) -> None:
+                nonlocal action
+
+                def _write(item: Any) -> None: stream.Write(converter(item))
+                def write(item: Any) -> None:
+                    stream.Write(", ")
+
+                    _write(item)
+
+                action = write
+
+                _write(item)
+
+            stream: IMemoryTextStream = MemoryTextStream()
+            action = write
+            result: str = ''
+
+            with stream:
+                stream.Open()
+
+                stream.Write(opening)
+
+                DoForEachItem(items, action)
+
+                stream.Write(closing)
+
+                result = stream.ToString()
+
+            return result
+
+        for module, name in ((CollectionExtensions, self.__SEQUENCES), (AbstractMapping, self.__MAPPINGS)):
+            with self.subTest(module = module.__name__): self.__assertFalls(TestACollectionRendersWhatItReads, name, module, {"GetCollectionString": rebuilt})
+
+    def test_the_sequence_bench_falls_when_a_reversed_view_renders_what_it_reverses(self) -> None:
+        """D-96, as before 6468e9f: the generic reversed views, whose ToString _ReversedAbstract
+        carries, and the tuples of the ordered set, whose ToString _ReadOnlyOrderedSetTupleBase
+        carries, rendered the collection they stand on, hence a reversed view in the direct order."""
+
+        def rendering(self: Any) -> Any: return self._GetInnerContainer().ToString()
+
+        for form, subject in (("List.AsReversed()", _source().AsReversed()), ("OrderedSet.AsTuple().AsReversed()", CreateOrderedSet(_createTuple()).AsTuple().AsReversed())):
+            with self.subTest(form = form):
+                self.__assertFalls(TestACollectionRendersWhatItReads, self.__SEQUENCES, _toStringCarrier(subject), {"ToString": rendering})
+
+    def test_the_benches_fall_when_a_converting_collection_renders_its_source(self) -> None:
+        """D-99, as before 6468e9f: the converting sequences, whose ToString TupleCollectionAbstractBase
+        carries now, inherited that of StringableConverter, which rendered the container; the converting
+        set and dictionary, whose ToString Set and Dictionary of Abstract.Mapping carry now, inherited
+        that of ISelector, which rendered the items. Either way, the values before conversion."""
+
+        def ofContainer(self: Any) -> Any: return self._GetContainer().ToString()
+        def ofItems(self: Any) -> Any: return self._GetItems().ToString()
+
+        converters: Converters[int, str] = Converters[int, str](str, int)
+
+        for form, subject, name, rendering in (("SelectionTuple",      SelectionTuple[int, str](Tuple[int]([1]), str),                              self.__SEQUENCES, ofContainer),
+                                               ("SelectionSet",        SelectionSet[int, str](CreateSet({1}), converters),                         self.__MAPPINGS,  ofItems),
+                                               ("SelectionDictionary", SelectionDictionary[str, int, str](CreateDictionary({"a": 1}), converters), self.__MAPPINGS,  ofItems)):
+            with self.subTest(form = form): self.__assertFalls(TestACollectionRendersWhatItReads, name, _toStringCarrier(subject), {"ToString": rendering})
+
+    def test_the_sequence_bench_falls_when_a_source_renders_what_it_holds(self) -> None:
+        """As before 6468e9f: the sources of Abstraction.Collection rendered str() of their Python
+        container, so a Tuple over a list between brackets, and ArrayCollection rendered its array of
+        handles (D-100). e69a028 gathered their ToString into one mixin, _IStringableTuple, which
+        carries it now: the rebuilt method is set there and answers for each class as that class
+        answered, one half at a time, so that each is shown to be caught."""
+
+        carrier: type = _toStringCarrier(_arrayList())
+        original: Any = vars(carrier)["ToString"]
+
+        # A predicate rather than isinstance in line: the narrowing would type self, and the checker
+        # would then refuse the protected member it reaches.
+        def holdsHandles(subject: object) -> bool: return isinstance(subject, ArrayCollection)
+
+        def containers(self: Any) -> Any: return original(self) if holdsHandles(self) else str(self._GetContainer())
+        def handles(self: Any) -> Any: return self._GetItems().ToString() if holdsHandles(self) else original(self)
+
+        for half, rendering in (("the Python container", containers), ("the handles", handles)):
+            with self.subTest(rendering = half):
+                self.__assertFalls(TestACollectionRendersWhatItReads, self.__SEQUENCES, carrier, {"ToString": rendering})
+
+    def test_the_sequence_bench_falls_when_a_read_only_view_renders_its_source(self) -> None:
+        """As before 6468e9f: the read-only views, whose ToString ReadOnlyCollectionBase carries, and
+        those of ObservableCollection, whose ToString _ReadOnlyObservableCollectionBase carries,
+        rendered their mutable source, between brackets."""
+
+        def rendering(self: Any) -> Any: return self._GetInnerContainer().ToString()
+
+        for form, subject in (("List.AsReadOnly()", _source().AsReadOnly()), ("ObservableCollection.AsReadOnly()", ObservableCollection[int](_source()).AsReadOnly())):
+            with self.subTest(form = form):
+                self.__assertFalls(TestACollectionRendersWhatItReads, self.__SEQUENCES, _toStringCarrier(subject), {"ToString": rendering})
+
+    def test_the_revocation_bench_falls_when_a_circular_view_renders_without_a_fallback(self) -> None:
+        """As before 6468e9f: CircularAbstract of Collections.Circular, which carries the ToString of
+        the circular tuple, rendered by the mechanism in line, with no fallback, and raised
+        InvalidatedError over a revoked view."""
+
+        def rendering(self: Any) -> str: return CollectionExtensions.GetTupleString(self.AsIterable(), self.GetMutability())
+
+        self.__assertFalls(TestAViewOverARevokedViewRendersAsItsSource, "test_a_view_over_a_revoked_view_renders_as_its_source",
+                           _toStringCarrier(CircularTuple[int](Tuple[int]([2, 0, 1]), 1)), {"ToString": rendering})
 
 class TestSourceRelease(unittest.TestCase):
     """D5: holding on to a revoked view does not hold on to the collection."""
