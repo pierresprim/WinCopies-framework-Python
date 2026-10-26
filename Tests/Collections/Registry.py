@@ -31,6 +31,7 @@ import weakref
 from abc import abstractmethod
 from collections.abc import Sequence, Generator
 from typing import final, Any, Callable, cast
+from unittest import mock
 
 
 
@@ -49,8 +50,9 @@ from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Extensions import (IDefaultMutableSequence, ITupleBase,
                                               ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple,
-                                              IList as _IList, ISizedList)
+                                              IList as _IList, ISizedList, IOrderedSet)
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
+from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList
 from WinCopies.Collections.ObjectModel.Collection import IObservableCollection, ObservableCollection
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter, Selector, IFunction
@@ -1011,6 +1013,267 @@ class TestDerivedTransitivity(unittest.TestCase):
             self.assertEqual(_snapshot(taken), expected)
 
         _subTests(self, subTest)
+
+# The two families of revocable view, one subject each: List.AsImmutable() is a _RevocableView, and
+# OrderedSet.AsTuple().AsImmutable() an _EquatableRevocableView, the only equatable view in reach whose
+# source can change (_revocableEquatableView says why). Each factory hands back the source, which the
+# bench revokes the view through, and the tuple the view is asked of, so that the bench decides when the
+# view is built.
+type _RevocableViewSubject = tuple[List[int]|IOrderedSet[int], _ITuple[int]]
+
+def _revocableViewSubjects() -> ReadOnlyArray[tuple[str, Function[_RevocableViewSubject]]]:
+    def listSubject() -> _RevocableViewSubject:
+        items: List[int] = _source()
+
+        return (items, items)
+    def orderedSetSubject() -> _RevocableViewSubject:
+        items: IOrderedSet[int] = CreateOrderedSet(_createTuple())
+
+        return (items, items.AsTuple())
+
+    return (("List.AsImmutable()", listSubject), ("OrderedSet.AsTuple().AsImmutable()", orderedSetSubject))
+
+# What a revocable view builds on its source and keeps, by accessor: its two cursors, and its reverse.
+_VIEW_CURSORS: dict[str, Converter[_ITuple[int], object]] = {
+    "AsQueuedCursor":  lambda view: view.AsQueuedCursor(),
+    "AsStackedCursor": lambda view: view.AsStackedCursor()}
+_VIEW_REVERSAL: dict[str, Converter[_ITuple[int], object]] = {"AsReversed": lambda view: view.AsReversed()}
+
+def _cursorsOf(view: _ITuple[int]) -> ReadOnlyArray[tuple[str, IReadOnlyCountableEnumerableList[int]]]:
+    return (("queued", view.AsQueuedCursor()), ("stacked", view.AsStackedCursor()))
+
+def _cursorHead(cursor: IReadOnlyCountableEnumerableList[int]) -> int|None:
+    head = cursor.TryPeek()
+
+    return head.GetValue() if head.HasValue() else None
+
+def _revocableViewCarrier(name: str) -> type[Any]:
+    """The class that carries an attribute of the revocable views, found through the views themselves:
+    the first class of a view's MRO that holds it, which is the one a call reaches. Both families have to
+    agree on it, or a substitution aimed at it would reach one of them only."""
+
+    carriers: set[type[Any]|None] = set()
+
+    for _, create in _revocableViewSubjects():
+        carriers.add(next((carrier for carrier in type(create()[1].AsImmutable()).__mro__ if name in vars(carrier)), None))
+
+    carrier: type[Any]|None = carriers.pop()
+
+    if carrier is None or carriers: raise LookupError(f"{name} is not carried by one class for both families of revocable view")
+
+    return carrier
+
+def _sourceReadsWhileBuilding(items: _ITuple[int]) -> int:
+    """How many times items.AsImmutable() reads its source while it builds the view.
+
+    Every read of a view goes through _GetSource (`4.11` §3), so its calls are counted, on the class that
+    carries it, for the length of the construction. Nothing public reports a read that leaves no trace,
+    so this reaches past the public API, as _counting() does, and restores the method on the way out."""
+
+    reads: int = 0
+    carrier: type[Any] = _revocableViewCarrier("_GetSource")
+    original: Any = vars(carrier)["_GetSource"]
+
+    def counted(self: Any) -> Any:
+        nonlocal reads
+
+        reads += 1
+
+        return original(self)
+
+    with mock.patch.object(carrier, "_GetSource", counted): items.AsImmutable()
+
+    return reads
+
+def _cursorProviderParts() -> tuple[Any, Any]:
+    """_CursorSource and _CursorProviderUpdater, for the body that rebuilds the cursor provider of a
+    revocable view as it stood before 439bca3. They have no public name and are resolved by name, as
+    _cookieType() resolves the cookie, by the control and not inside the bench it runs: a rename turns
+    the control red on an AttributeError instead of making the bench fall for a reason that is not the
+    defect. They are not targets: what is substituted is reached through the views."""
+
+    import WinCopies.Collections.Extensions.Revocable as revocable
+
+    return (getattr(revocable, "_CursorSource"), getattr(revocable, "_CursorProviderUpdater"))
+
+class TestTheCursorsOfARevokedViewDieWithIt(unittest.TestCase):
+    """D-88 and D-89. The cursors of a revocable view reached its source through a _Cookie that the view
+    filled as it was built: it held the source for good and went round the revocation guard. A revoked
+    view therefore kept its source alive, against D5 (D-88), and its cursors' TryPeek still read it,
+    against D1 (D-89). Since 439bca3 a cursor reads the source through the view's revocable cookie when it
+    reads, as every other read of the view does.
+
+    D-88 was seen: TestSourceRelease fell on six list types, and keeps that case. It takes no cursor and
+    has no equatable subject, which is what the bench below adds. D-89 was seen by nothing: _readPaths
+    lists no cursor, and TestCursorContract is about the enumerators of TryGetEnumerator(), not about
+    AsQueuedCursor() and AsStackedCursor().
+    """
+
+    def test_a_cursor_reads_the_live_view(self) -> None:
+        """The half that makes the next bench mean anything: a TryPeek that never answers would raise
+        after the revocation as well."""
+
+        expected: ReadOnlyArray[int] = _createTuple()
+
+        for subject, create in _revocableViewSubjects():
+            for kind, cursor in _cursorsOf(create()[1].AsImmutable()):
+                with self.subTest(subject = subject, cursor = kind):
+                    self.assertEqual(_cursorHead(cursor), expected[0], f"the {kind} cursor of {subject} has another head")
+                    self.assertEqual(cursor.GetCount(), len(expected), f"the {kind} cursor of {subject} counts otherwise")
+                    self.assertEqual(tuple(cursor.AsIterable()), expected, f"the {kind} cursor of {subject} reads another content")
+
+    def test_a_cursor_taken_before_the_revocation_raises_after(self) -> None:
+        """D-89. GetCount raised already, since it reads through the view; TryPeek read the source
+        through the _Cookie and answered. Both are asked, since they went by different roads."""
+
+        reads: dict[str, Converter[IReadOnlyCountableEnumerableList[int], object]] = {
+            "TryPeek":  lambda cursor: cursor.TryPeek(),
+            "GetCount": lambda cursor: cursor.GetCount()}
+
+        for subject, create in _revocableViewSubjects():
+            source, items = create()
+            cursors: ReadOnlyArray[tuple[str, IReadOnlyCountableEnumerableList[int]]] = _cursorsOf(items.AsImmutable())
+
+            source.Add(9)
+
+            for kind, cursor in cursors:
+                for name, read in reads.items():
+                    with self.subTest(subject = subject, cursor = kind, read = name):
+                        with self.assertRaises(InvalidatedError, msg = f"the {kind} cursor of the revoked {subject} answered {name}"): read(cursor)
+
+    def test_a_revoked_view_and_its_cursors_do_not_pin_the_source(self) -> None:
+        """D-88, with the cursors taken and held as well as the view: the chain `4.1` §4 measured ran
+        from the view through its cursor provider to the source, and each cursor holds the same link of
+        that chain as the provider."""
+
+        for subject, create in _revocableViewSubjects():
+            with self.subTest(subject = subject):
+                source, items = create()
+                view: _ITuple[int] = items.AsImmutable()
+                cursors: ReadOnlyArray[tuple[str, IReadOnlyCountableEnumerableList[int]]] = _cursorsOf(view)
+
+                source.Add(9)
+
+                reference = weakref.ref(source)
+
+                del source, items
+                gc.collect()   # the view sits in a cycle: refcounting alone never frees it
+
+                self.assertTrue(_revoked(view))
+                self.assertIsNone(reference(), f"the revoked {subject} or its cursors still hold the source")
+
+                for kind, cursor in cursors: self.assertTrue(_revoked(cursor), f"the {kind} cursor of the revoked {subject} still counts")
+
+    def test_building_the_view_does_not_read_its_source(self) -> None:
+        """The cause the two had in common: the view read its source as it was built, to fill the _Cookie
+        it handed to its cursors."""
+
+        for subject, create in _revocableViewSubjects():
+            reads: int = _sourceReadsWhileBuilding(create()[1])
+
+            with self.subTest(subject = subject): self.assertEqual(reads, 0, f"building {subject} read its source {reads} time(s)")
+
+class TestARevokedViewHandsOutNothingItBuilds(unittest.TestCase):
+    """The alignment of 85c0e89, which carries no defect number (`4.13`). A revoked view refuses what it
+    builds on its source, its reverse as well as its cursors, whether or not it built it before; a live
+    one hands out again what it built. At 439bca3 the cursors were refused either way, but AsReversed()
+    only when first asked after the revocation: asked before, it answered again from its cache, so the
+    same call on the same revoked view raised or answered depending on what had been called before. No
+    bench saw it: TestDerivedTransitivity reads the reverse it took before the revocation, which raises,
+    and never asks the view for it again.
+
+    Both orders are asked of every accessor. For AsReversed() the first raised all along, its
+    construction reading the source; for the cursors, both answered until 439bca3, which refused them
+    on Pierre's decision (`4.12` §1).
+    """
+
+    def test_a_live_view_hands_out_the_same_object_twice(self) -> None:
+        """The cache Pierre keeps (`4.12` §6): the guard goes before the answer, not in place of the cache.
+        It is also the half that makes the refusals below mean anything: the accessors answer while the
+        view lives."""
+
+        for subject, create in _revocableViewSubjects():
+            view: _ITuple[int] = create()[1].AsImmutable()
+
+            for name, build in (_VIEW_REVERSAL | _VIEW_CURSORS).items():
+                with self.subTest(subject = subject, accessor = name): self.assertIs(build(view), build(view), f"{subject}.{name}() built anew when asked again")
+
+    def test_a_revoked_view_hands_out_no_cursor(self) -> None:
+        self.__assertRefused(_VIEW_CURSORS)
+
+    def test_a_revoked_view_hands_out_no_reversed_view(self) -> None:
+        self.__assertRefused(_VIEW_REVERSAL)
+
+    def __assertRefused(self, accessors: dict[str, Converter[_ITuple[int], object]]) -> None:
+        for subject, create in _revocableViewSubjects():
+            for name, build in accessors.items():
+                for order, before in (("first asked after the revocation", False), ("asked before it, then again after", True)):
+                    with self.subTest(subject = subject, accessor = name, order = order):
+                        source, items = create()
+                        view: _ITuple[int] = items.AsImmutable()
+
+                        if before: build(view)
+
+                        source.Add(9)
+
+                        with self.assertRaises(InvalidatedError, msg = f"{subject}.{name}() answered on the revoked view, {order}"): build(view)
+
+class TestTheCursorAndAlignmentBenchesCanFail(unittest.TestCase):
+    """The benches of D-88, D-89 and the alignment, run against the code as it stood before each was
+    closed: green on the intact tree, red on the rebuilt one. Red on their assertions, too, and not on an
+    error, which is what a substitution that no longer fits the code around it would raise. Each
+    substitution is aimed at the class that carries the attribute for both families of view, found
+    through the views (_revocableViewCarrier) rather than by a private name, so that a refactoring which
+    moves the attribute moves the target with it. The substitutions are class attributes, patched for the
+    length of a block and restored on the way out; the control is sound only on a single-threaded run,
+    which is how the suite runs."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertEqual(_fallen(_runBenches(((bench, name),))), 0, f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runBenches(((bench, name),))
+
+        self.assertTrue(_fellIn(broken, name), f"{name} did not fall on the rebuilt defect")
+        self.assertEqual(len(broken.errors), 0, f"{name} fell on an error rather than on its assertions: {''.join(error for _, error in broken.errors)}")
+
+    def test_the_cursor_benches_fall_when_the_cursors_hold_the_source(self) -> None:
+        """As before 439bca3: _IRevocableView._CreateCursorProviderUpdater read the source as the view was
+        built, and handed it to the cursors in a _Cookie that kept it and never asked the view's cookie
+        again. _Cookie is gone; a function returning the source read then plays its part."""
+
+        cursorSource, providerUpdater = _cursorProviderParts()
+
+        def rebuilt(self: Any, updater: Any) -> Any:
+            source: Any = self._AsContainer(self._GetSource())
+
+            return providerUpdater(cursorSource(self, lambda: source), updater)
+
+        target: type[Any] = _revocableViewCarrier("_CreateCursorProviderUpdater")
+
+        for name in ("test_a_cursor_taken_before_the_revocation_raises_after", "test_a_revoked_view_and_its_cursors_do_not_pin_the_source", "test_building_the_view_does_not_read_its_source"):
+            with self.subTest(bench = name): self.__assertFalls(TestTheCursorsOfARevokedViewDieWithIt, name, target, {"_CreateCursorProviderUpdater": rebuilt})
+
+    def test_the_cursor_refusal_falls_when_a_revoked_view_hands_out_its_cursors(self) -> None:
+        """As before 439bca3: the view handed out its cursor provider without asking whether it was
+        revoked. The guard 439bca3 gave it goes through _ThrowIfRevoked since 85c0e89, carried by
+        _IRevocableViewBase; it is rebuilt as doing nothing, which takes AsReversed() back to before
+        85c0e89 as well — a bench this control does not run."""
+
+        def rebuilt(self: Any) -> None: return None
+
+        self.__assertFalls(TestARevokedViewHandsOutNothingItBuilds, "test_a_revoked_view_hands_out_no_cursor", _revocableViewCarrier("_ThrowIfRevoked"), {"_ThrowIfRevoked": rebuilt})
+
+    def test_the_reversal_refusal_falls_when_a_revoked_view_answers_from_its_cache(self) -> None:
+        """As before 85c0e89: RevocableViewAbstract._AsReversed handed out the reverse it had cached, without
+        _ThrowIfRevoked. The cache is a private attribute of that class, resolved by suffix as
+        _breakingRevocation resolves the cookie's."""
+
+        def rebuilt(self: Any) -> Any:
+            name: str = next(key for key in cast(dict[str, Any], vars(self)) if key.endswith("__reversedCollectionMonitor"))
+
+            return getattr(self, name).GetValue().GetView()
+
+        self.__assertFalls(TestARevokedViewHandsOutNothingItBuilds, "test_a_revoked_view_hands_out_no_reversed_view", _revocableViewCarrier("_AsReversed"), {"_AsReversed": rebuilt})
 
 class TestSliceIndependence(unittest.TestCase):
     """A slice is an independent collection: neither side sees the other's writes.
