@@ -20,7 +20,7 @@ from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IRe
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
-from WinCopies.Collections.Loop import DoForEachItem, AreEquals
+from WinCopies.Collections.Loop import DoForEachAndFirst, AreEquals
 from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
 from WinCopies.Collections.Util import CreateSequence, CreateTuple, GetSequenceIndex
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
@@ -248,23 +248,13 @@ class ILinkedCursorProvider[T](IReadOnlyLinkedCursorProvider[T]):
         ...
 
 def GetCollectionString[T](items: Iterable[T], opening: str, closing: str, converter: Converter[T, str] = repr) -> str:
-    action: Method[T]|None = None
-
+    def _write(item: T) -> None: stream.Write(converter(item))
     def write(item: T) -> None:
-        nonlocal action
-
-        def _write(item: T) -> None: stream.Write(converter(item))
-        def write(item: T) -> None:
-            stream.Write(", ")
-
-            _write(item)
-
-        action = write
+        stream.Write(", ")
 
         _write(item)
 
     stream: IMemoryTextStream = MemoryTextStream()
-    action = write
     result: str = ''
 
     with stream:
@@ -272,7 +262,7 @@ def GetCollectionString[T](items: Iterable[T], opening: str, closing: str, conve
 
         stream.Write(opening)
 
-        DoForEachItem(items, action)
+        DoForEachAndFirst(items, _write, write)
 
         stream.Write(closing)
 

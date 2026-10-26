@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Collection
 from typing import Callable
 
 from WinCopies import IsTrue, Not
@@ -9,7 +9,7 @@ from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, 
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
-from WinCopies.Typing import INullable, GetNullValue, GetNullable
+from WinCopies.Typing import INullable, INullableItem, GetNullValue, GetNullable, GetNullableItem
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, NullablePredicate, IndexedValueAction, IndexedValueComparison
 from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
@@ -752,11 +752,11 @@ def TryZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]
     return _Zip(__TryZip(x, y, info), predicate, ForEachItem)
 
 def AreEquals[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
-    def loop(x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
-        return ZipWhile(x, y, lambda item: item.GetKey() == item.GetValue())
+    def loop[TX, TY](x: IEnumerable[TX]|Iterable[TX], y: IEnumerable[TY]|Iterable[TY], info: Method[IZipInfo]|None = None) -> bool:
+        return ZipWhile(x, y, lambda item: item.GetKey() == item.GetValue(), info)
     
-    def equals(x: ICountableEnumerable[T1], y: Iterable[T2], yCount: int) -> bool: return x.GetCount() == yCount and loop(x, y)
-    def sequenceEquals(x: ICountableEnumerable[T1], y: Sequence[T2]) -> bool: return equals(x, y, len(y))
+    def equals[TX, TY](x: Iterable[TX], y: Iterable[TY], xCount: int, yCount: int) -> bool: return xCount == yCount and loop(x, y)
+    def sequenceEquals[TX, TY](x: ICountableEnumerable[TX], y: Collection[TY]) -> bool: return equals(x.AsIterable(), y, x.GetCount(), len(y))
     
     def iterableEquals(x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
         def tryGetEnumerator[T](items: IEnumerable[T]|Iterable[T]) -> IEnumerator[T]|None: return AsEnumerable(items).TryGetEnumerator()
@@ -766,10 +766,18 @@ def AreEquals[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterab
 
         if _x is None: return _y is None
         if _y is None: return False
-        
-        return loop(_x.AsIterator(), _y.AsIterator()) and not (_x.MoveNext() or _y.MoveNext())
 
-    return (x is y
-            or (isinstance(x, ICountableEnumerable) and ((isinstance(y, ICountableEnumerable) and equals(x, y.AsIterable(), y.GetCount()))
-                                                         or (isinstance(y, Sequence) and sequenceEquals(x, y))))
-            or iterableEquals(x, y))
+        info: INullableItem[IZipInfo] = GetNullableItem(None)
+        
+        return loop(_x.AsIterator(), _y.AsIterator(), info.SetValue) and info.GetValue().GetValue() is None
+
+    if x is y: return True
+
+    match x:
+        case ICountableEnumerable() if isinstance(y, ICountableEnumerable): return equals(x.AsIterable(), y.AsIterable(), x.GetCount(), y.GetCount())
+        case ICountableEnumerable() if isinstance(y, Collection): return sequenceEquals(x, y)
+
+        case Collection() if isinstance(y, ICountableEnumerable): return sequenceEquals(y, x)
+        case Collection() if isinstance(y, Collection): return equals(x, y, len(x), len(y))
+
+        case _: return iterableEquals(x, y)
