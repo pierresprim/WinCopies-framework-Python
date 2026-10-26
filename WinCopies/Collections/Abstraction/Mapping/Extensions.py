@@ -11,17 +11,16 @@ from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
+from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
                                               ICollectionMonitors, IEquatableCollectionViewMonitor,
                                               IReadOnlyOrderedSet, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet,
                                               ITuple, IEquatableTuple, IArray, IList,
                                               EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequence,
                                               GetViewString)
-from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract, IReadOnlyCursorProvider
+from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract, IReadOnlyCursorProvider, ICursorProvider
 from WinCopies.Collections.Iteration import Select
-from WinCopies.Collections.Linked.Singly import (ICountableEnumerableQueue, ICountableEnumerableStack,
-                                                 CreateCountableEnumerableQueue)
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Loop import AreEquals
 from WinCopies.Collections.Range import RemoveItems
 from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrderedValue
@@ -32,10 +31,11 @@ from WinCopies.Typing.Delegate import Method, Converter, NullablePredicate, Equa
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
-class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionAbstract[T], IDefaultWriteOnlyIndexable[T]):
+class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionAbstract[T], IDefaultWriteOnlyIndexable[T], ICursorProvider[T]):
     def __init__(self, items: IOrderedSet[T], l: IList[T], s: ISet[T], innerSet: set[T]) -> None:
         def updateReversed(func: IFunction[IList[T]]) -> None: self.__reversed = func
         def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
+        def updateCursorProvider(func: IFunction[ILinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
         
         super().__init__()
 
@@ -44,8 +44,12 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionA
         self.__set: ISet[T] = s
         self.__innerSet: set[T] = innerSet
 
-        self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
         self.__reversed: IFunction[IList[T]] = self._GetReversedUpdater(updateReversed) # type: ignore[no-redef]
+        self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
+        self.__cursorProvider: IFunction[ILinkedCursorProvider[T]] = self._CreateCursorProvider(updateCursorProvider) # type: ignore[no-redef]
+
+    @final
+    def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[T]]: return self.__cursorProvider
 
     def _GetValueError(self, key: int, value: T) -> LookupError: return GetDuplicateItemError(value)
     
@@ -139,13 +143,10 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionA
     
     def ToString(self) -> str: return self.__items.ToString()
 
-    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self.__list.AsQueuedCursor()
-    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self.__list.AsStackedCursor()
-
     def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
+    def AsImmutable(self) -> ITuple[T]: return self.__list.AsImmutable()
     def AsReadOnly(self) -> IEquatableTuple[T]: return self.__items.AsReadOnly().AsTuple()
     def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
-    def AsImmutable(self) -> ITuple[T]: return self.__list.AsImmutable()
     
     def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
     
