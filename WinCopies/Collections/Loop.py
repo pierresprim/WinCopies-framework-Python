@@ -1,11 +1,11 @@
 from collections.abc import Iterable, Iterator, Sequence
 from typing import Callable
 
-from WinCopies import Not
+from WinCopies import IsTrue, Not
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
-from WinCopies.Collections.Iteration.Enumeration import Zip as __Zip, TryZip as __TryZip
+from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, TryZip as __TryZip
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
                                  GetIndexedValueComparison,
                                  GetIndexedValueIndexComparison, GetIndexedValueValueComparison)
@@ -741,15 +741,15 @@ def CancellableScan[T](items: IEnumerable[T]|Iterable[T], predicate: NullablePre
 def _Zip[T1, T2](items: Generator[IKeyValuePair[T1, T2]]|None, predicate: Predicate[IKeyValuePair[T1, T2]], zipper: Callable[[Iterable[IKeyValuePair[T1, T2]], Predicate[IKeyValuePair[T1, T2]]], bool|None]) -> bool|None:
     return None if items is None else zipper(items, predicate)
 
-def ZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool:
-    return _Zip(__Zip(x, y), predicate, ForEachItemUntil) is True
-def TryZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool|None:
-    return _Zip(__TryZip(x, y), predicate, ForEachItemUntil)
+def ZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]], info: Method[IZipInfo]|None = None) -> bool:
+    return IsTrue(_Zip(__Zip(x, y, info), predicate, ForEachItemUntil))
+def TryZipUntil[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]], info: Method[IZipInfo]|None = None) -> bool|None:
+    return _Zip(__TryZip(x, y, info), predicate, ForEachItemUntil)
 
-def ZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool:
-    return _Zip(__Zip(x, y), predicate, ForEachItem) is True
-def TryZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]]) -> bool|None:
-    return _Zip(__TryZip(x, y), predicate, ForEachItem)
+def ZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2], predicate: Predicate[IKeyValuePair[T1, T2]], info: Method[IZipInfo]|None = None) -> bool:
+    return IsTrue(_Zip(__Zip(x, y, info), predicate, ForEachItem))
+def TryZipWhile[T1, T2](x: IEnumerable[T1]|Iterable[T1]|None, y: IEnumerable[T2]|Iterable[T2]|None, predicate: Predicate[IKeyValuePair[T1, T2]], info: Method[IZipInfo]|None = None) -> bool|None:
+    return _Zip(__TryZip(x, y, info), predicate, ForEachItem)
 
 def AreEquals[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
     def loop(x: IEnumerable[T1]|Iterable[T1], y: IEnumerable[T2]|Iterable[T2]) -> bool:
