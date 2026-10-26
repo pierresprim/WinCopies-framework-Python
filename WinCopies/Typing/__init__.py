@@ -235,11 +235,15 @@ def GetNullableValue[T](value: T|None) -> INullable[T]:
 def TryGetNullable[T](value: INullable[T]|None) -> INullable[T]:
     return GetNullValue() if value is None else value
 
+def CreateNullableValue[T](value: T) -> INullableValue[T]:
+    return NullableValue[T](value)
 def GetNullableItem[T](value: T|None) -> INullableItem[T]:
-    return CreateNullableItem(None if value is None else NullableValue[T](value))
+    return CreateNullableItem(None if value is None else CreateNullableValue(value))
 
 def CreateNullableItem[T](value: INullableValue[T]|None = None) -> INullableItem[T]:
     return NullableItem[T](value)
+def CreateNullableValueItem[T](value: T) -> INullableItem[T]:
+    return CreateNullableItem(CreateNullableValue(value))
 
 def TryGetValue[T](value: INullable[T]|None) -> T|None:
     return None if value is None else value.TryGetValue()
