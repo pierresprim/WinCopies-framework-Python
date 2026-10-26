@@ -916,24 +916,27 @@ class TestTheseBenchesCanFail(unittest.TestCase):
 
     def test_the_cause_bench_falls_when_a_converting_layer_hands_the_refusal_on(self) -> None:
         """The writes of a converting layer as they stood until M3, which let the container's refusal
-        through as it was, naming the container's value rather than the caller's."""
+        through as it was, naming the container's value rather than the caller's. The write was a module
+        function then: e69a028 made it a method of ArrayAbstract that takes the index and converts the
+        value itself, and the substitution follows it there (D-114)."""
 
-        def rebuilt(write: Function[object], value: object) -> None: write()
+        def rebuilt(self: Any, write: Any, index: int, value: Any) -> None: write(index, self._ConvertBack(value))
 
-        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection, "_Write", rebuilt),))
+        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection.ArrayAbstract, "_Write", rebuilt),))
 
     def test_the_cause_bench_falls_when_a_converting_layer_drops_the_container_refusal(self) -> None:
         """A converting layer that tells the refusal again with the caller's value, but from None, so
-        that the container's own refusal is lost."""
+        that the container's own refusal is lost. The substitution aims at ArrayAbstract._Write, where
+        e69a028 moved the module function (D-114)."""
 
-        def rebuilt(write: Function[object], value: object) -> None:
-            try: write()
+        def rebuilt(self: Any, write: Any, index: int, value: Any) -> None:
+            try: write(index, self._ConvertBack(value))
             except DuplicateKeyError as error:
                 if not error.GetDuplicate().HasValue(): raise
 
                 raise GetDuplicateItemError(value) from None
 
-        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection, "_Write", rebuilt),))
+        self.__assertEachFalls(TestADuplicateSaysItsCause, ("test_a_list", "test_an_array"), ((AbstractCollection.ArrayAbstract, "_Write", rebuilt),))
 
     def test_the_slice_benches_fall_when_the_view_refuses_a_span_without_its_cause(self) -> None:
         """The view's CanSetRange as it stood until D-47's point 4, which answered a refusal and never
