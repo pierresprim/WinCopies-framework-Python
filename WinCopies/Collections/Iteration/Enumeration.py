@@ -13,7 +13,7 @@ from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, Exclu
 from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import Self
-from WinCopies.Typing import INullable, InvalidOperationError, GetNullValue, GetNullableValue
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Method, Function, Predicate, Converter, Selector
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
@@ -162,7 +162,7 @@ class _ZipInfo(Abstract, IInterface):
         self.__readOnly: _ReadOnlyZipInfo = _ReadOnlyZipInfo(lambda: self.__value)
 
     def SetValue(self, info: bool|None) -> None:
-        self.__value = GetNullableValue(info)
+        self.__value = GetNullable(info)
 
     def AsReadOnly(self) -> IZipInfo:
         return self.__readOnly
@@ -180,7 +180,7 @@ def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1]|None, y: Iterable[T2]|IEnumer
                     else:
                         setValue(True)
 
-                        break
+                        return
 
                 setValue(False if y.MoveNext() else None)
 
