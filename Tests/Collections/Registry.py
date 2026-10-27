@@ -337,22 +337,18 @@ def _writableSlices() -> ReadOnlyArray[_MutableCaseBase]:
 
 # The equatable and hashable subjects, enumerated by family. AsImmutable() promises a
 # narrowed return type per family, and the unit of that promise is the family and not one
-# representative: of the five equatable paths below, three miss it and two keep it, and no
-# single representative would have shown both.
+# representative: of the five equatable paths it was written for, three missed it and two kept
+# it, and no single representative would have shown both.
 def _equatableSubjects() -> ReadOnlyArray[_CaseBase]:
-    """Every constructible IEquatableTuple.
-
-    The reversed form of the ordered-set tuple is absent, and cannot be added: its
-    AsReversed() recurses without terminating — a defect older than this bench, reported on
-    its own. Listing it here would hang the suite rather than fail it.
-    """
+    """Every constructible IEquatableTuple."""
 
     return (
         _Case("EquatableTuple",                     _equatableSource),
         _Case("EquatableTuple.AsReversed",          lambda: _equatableSource().AsReversed()),
         _Case("SelectionEquatableTuple",            lambda: SelectionEquatableTuple[int, str](_equatableSource(), str)),
         _Case("SelectionEquatableTuple.AsReversed", lambda: SelectionEquatableTuple[int, str](_equatableSource(), str).AsReversed()),
-        _Case("OrderedSetTuple",                    lambda: CreateOrderedSet(_createTuple()).AsTuple()))
+        _Case("OrderedSetTuple",                    lambda: CreateOrderedSet(_createTuple()).AsTuple()),
+        _Case("OrderedSetTuple.AsReversed",         lambda: CreateOrderedSet(_createTuple()).AsTuple().AsReversed()))
 
 def _hashableSubjects() -> ReadOnlyArray[_CaseBase]:
     """Every constructible IHashableTuple, reversed and converting forms included."""
@@ -1013,11 +1009,11 @@ class TestImmutableViewTyping(unittest.TestCase):
         both. An allocation that produced the subject itself, or a self-answer that allocated
         on the way, would each be a leak this catches.
 
-        Allocating is *not* the same as the subject being mutable: two of the five subjects
+        Allocating is *not* the same as the subject being mutable: two of the six subjects
         are already immutable and allocate anyway. That is the optional optimisation of the
-        design rule, applied to the reversed and hashable forms and not to the direct
-        equatable ones — reported rather than asserted here, since asserting it would freeze
-        the current state instead of the contract.
+        design rule, applied to the reversed forms of the immutable tuples and to the hashable
+        forms, and not to the direct equatable ones — reported rather than asserted here, since
+        asserting it would freeze the current state instead of the contract.
         """
 
         for case in _equatableSubjects():
