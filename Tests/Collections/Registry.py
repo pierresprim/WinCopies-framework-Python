@@ -17,8 +17,11 @@ measurements are wrong:
 
 This module is discovered by the line that runs the rest of the suite, and no
 longer has to be named. The default unittest pattern, test*.py, matches no file
-here and finds only the two packages; the suite is run with the pattern that
-takes every module once:
+here and finds only the two packages. The pattern *.py takes every module, but
+takes Tests/__init__.py and Tests/Typing/__init__.py twice: once as the packages
+they are, and once as modules of their own, so that their tests run twice under
+names that differ, which neither unittest nor a count by name reports as
+duplicates. The suite is run with the pattern that takes every module once:
 
     python3 -m unittest discover -s Tests -t . -p '[!_]*.py'
 """
