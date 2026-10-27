@@ -39,7 +39,8 @@ import WinCopies.Collections.Abstract.Mapping as AbstractMapping
 import WinCopies.Collections.Extensions as CollectionExtensions
 
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Collections.Abstract.Collection import Tuple as ConvertingTuple, List as ConvertingList
+from WinCopies.Collections.Abstract.Collection import (Tuple as ConvertingTuple, EquatableTuple as ConvertingEquatableTuple, HashableTuple as ConvertingHashableTuple,
+                                                      List as ConvertingList)
 from WinCopies.Collections.Abstraction.Collection import (Tuple, EquatableTuple, HashableTuple,
                                                           Array, ArrayList, ArrayCollection, SizedArray,
                                                           List, SortedList,
@@ -49,7 +50,7 @@ from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSe
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import (Tuple as SelectionTuple, EquatableTuple as SelectionEquatableTuple, HashableTuple as SelectionHashableTuple,
                                                                     List as SelectionList, Set as SelectionSet, Dictionary as SelectionDictionary)
-from WinCopies.Collections.Circular import CircularList, CircularTuple
+from WinCopies.Collections.Circular import CircularList, CircularTuple, CircularEquatableTuple, CircularHashableTuple
 from WinCopies.Collections.Core import Mutability, ICountable, ICollection, IWriteOnlyIndexable, ITuple, IArray, IList, ISortedList
 from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
@@ -292,8 +293,8 @@ def _counting() -> Generator[Function[int]]:
     C4 forbids an allocation, which is a flow. A census of live cookies is a stock and
     cannot establish it: anything allocated and collected inside the window leaves the
     census unchanged. Nothing public reports a construction count, so the constructor is
-    wrapped for the duration of the block and restored on the way out — the one place in
-    this module that reaches past the public API, and it is confined here.
+    wrapped for the duration of the block and restored on the way out. It reaches past the
+    public API, as the controls of this module do, and it is confined here.
     """
 
     count: int = 0
@@ -795,6 +796,165 @@ class TestEqualityContract(unittest.TestCase):
 
         self.assertRaises(TypeError, lambda: hash(subject))
         self.assertRaises(TypeError, lambda: hash(subject.AsImmutable()))
+
+# The views whose reading differs from what lies beneath them: in reverse, from another start, or
+# converted. Each comes with what it reads and with the content of the tuple at the bottom. The
+# circular tuples read _ROTATED from its index 1, that is (1, 2, 3).
+type _ReadingView = tuple[str, Factory[IEquatableTuple[Any]], ReadOnlyArray[Any], ReadOnlyArray[Any]]
+
+_ROTATED: ReadOnlyArray[int] = (3, 1, 2)
+
+def _readingViews() -> ReadOnlyArray[_ReadingView]:
+    """The circular tuples of Abstraction/Circular.py, which 2cc5507 corrected as well, are absent:
+    pyright and mypy hold both abstract, since neither implements ITuple.TryGetSourceMutability,
+    and report their instantiation. That is reported on its own, as a potential defect."""
+
+    return (
+        ("EquatableTuple.AsReversed",  lambda: _equatableSource().AsReversed(),                               (3, 2, 1),       _createTuple()),
+        ("HashableTuple.AsReversed",   lambda: _hashableSource().AsReversed(),                                (3, 2, 1),       _createTuple()),
+        ("OrderedSetTuple.AsReversed", lambda: CreateOrderedSet(_createTuple()).AsTuple().AsReversed(),       (3, 2, 1),       _createTuple()),
+        ("CircularEquatableTuple",     lambda: CircularEquatableTuple[int](EquatableTuple[int](_ROTATED), 1), _createTuple(),  _ROTATED),
+        ("CircularHashableTuple",      lambda: CircularHashableTuple[int](HashableTuple[int](_ROTATED), 1),   _createTuple(),  _ROTATED),
+        ("SelectionEquatableTuple",    lambda: SelectionEquatableTuple[int, str](_equatableSource(), str),    ("1", "2", "3"), _createTuple()),
+        ("SelectionHashableTuple",     lambda: SelectionHashableTuple[int, str](_hashableSource(), str),      ("1", "2", "3"), _createTuple()))
+
+class TestATupleComparesWhatItReads(unittest.TestCase):
+    """D-95, D-97, D-98, D-102 and D-103, closed together by 2cc5507 under the rule the sources keep
+    (4.5 §1): an equatable or hashable tuple compares by content, in the order it reads, and a
+    hashable one hashes as it compares. The views did not keep it. The reversed tuples handed both
+    to their source, so that a reversed view was unequal to itself, equal to its source, and hashed
+    as its source (D-97, D-98). The circular tuples compared by identity and hashed their source's
+    order (D-102). The converting tuples compared and hashed their source's values (D-103). And the
+    ordered set's reversed tuple handed the comparison to the other side, which recursed between two
+    of them (D-95). The equality was asymmetric besides: a source compared with a view reads the
+    view, and answered True where the view, answering for its source, said False.
+
+    Nothing measured it. TestEqualityContract compares sources and the immutable views of direct
+    subjects, which read as their source does, so a delegation answers it rightly. These benches
+    compare each view with itself, with a twin, and with plain tuples of what it reads and of what
+    lies beneath it."""
+
+    def test_a_view_is_equal_to_itself_to_its_twin_and_to_what_it_reads(self) -> None:
+        for name, create, reads, _ in _readingViews():
+            with self.subTest(view = name):
+                view: IEquatableTuple[Any] = create()
+                plain: IEquatableTuple[Any] = EquatableTuple[Any](reads)
+
+                self.assertTrue(view.Equals(view), f"{name} is not equal to itself")
+                self.assertTrue(view.Equals(create()), f"{name} is not equal to its twin")
+                self.assertTrue(view.Equals(plain), f"{name} is not equal to a tuple of what it reads, {reads}")
+                self.assertTrue(plain.Equals(view), f"a tuple of what {name} reads is not equal to it")
+                self.assertTrue(view == plain, f"{name} == a tuple of what it reads answers otherwise than Equals")
+
+    def test_a_view_is_not_equal_to_what_lies_beneath_it(self) -> None:
+        """What a view reads differs from what lies beneath it, in order or in value, so a view that
+        answers for its source is equal to the one and not to the other."""
+
+        for name, create, _, beneath in _readingViews():
+            with self.subTest(view = name):
+                view: IEquatableTuple[Any] = create()
+                plain: IEquatableTuple[Any] = EquatableTuple[Any](beneath)
+
+                self.assertFalse(view.Equals(plain), f"{name} is equal to a tuple of what lies beneath it, {beneath}")
+                self.assertFalse(plain.Equals(view), f"a tuple of what lies beneath {name} is equal to it")
+
+    def test_a_hashable_view_hashes_what_it_reads(self) -> None:
+        """The hash follows the equality: a hashable view hashes as a HashableTuple of what it reads.
+        The hashable views are the IHashableTuple ones of the table, measured rather than listed."""
+
+        hashable: int = 0
+
+        for name, create, reads, _ in _readingViews():
+            view: IEquatableTuple[Any] = create()
+
+            if isinstance(view, IHashableTuple):
+                hashable += 1
+
+                with self.subTest(view = name): self.assertEqual(hash(view), hash(HashableTuple[Any](reads)), f"{name} does not hash as a tuple of what it reads, {reads}")
+
+        self.assertGreater(hashable, 0, "no view of the table is hashable, and this bench measured nothing")
+
+    def test_the_reversed_tuple_of_an_ordered_set_compares_its_own_order(self) -> None:
+        """D-95 in its own terms. The ordered set's tuples compare with Python sequences too, which an
+        EquatableTuple does not (4.10 §5), and that is where the reversed one answered with its
+        source's order: it was equal to [1, 2, 3] and not to [3, 2, 1]. Against another tuple it
+        handed the comparison to the other side, and two reversed tuples handed it to each other
+        until the stack ran out."""
+
+        direct: IEquatableTuple[int] = CreateOrderedSet(_createTuple()).AsTuple()
+        view: IEquatableTuple[int] = direct.AsReversed()
+        twin: IEquatableTuple[int] = CreateOrderedSet(_createTuple()).AsTuple().AsReversed()
+
+        for other, value, expected in (("[3, 2, 1]",              [3, 2, 1], True),
+                                       ("[1, 2, 3]",              [1, 2, 3], False),
+                                       ("the direct tuple",       direct,    False),
+                                       ("another reversed tuple", twin,      True)):
+            with self.subTest(other = other): self.assertIs(view.Equals(value), expected, f"the reversed tuple against {other}")
+
+        self.assertFalse(direct.Equals(view), "the direct tuple is equal to its reverse")
+
+class TestTheTupleEqualityBenchesCanFail(unittest.TestCase):
+    """The benches of 2cc5507, run against each view's equality as it stood before: green on the
+    intact tree, red on the rebuilt one. Each defect is rebuilt alone, on the class that carries the
+    methods: the reversed classes are private and reached through the objects, as Mapping.py reaches
+    them, the circular and converting ones by their public names. For each class it rebuilds, a
+    control reruns the one bench that names its defect; each bench is rerun by one control at least."""
+
+    __ITSELF: str = "test_a_view_is_equal_to_itself_to_its_twin_and_to_what_it_reads"
+    __BENEATH: str = "test_a_view_is_not_equal_to_what_lies_beneath_it"
+    __HASH: str = "test_a_hashable_view_hashes_what_it_reads"
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertEqual(_fallen(_runBenches(((bench, name),))), 0, f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runBenches(((bench, name),))
+
+        self.assertGreater(_fallen(broken), 0, f"{name} did not fall on the rebuilt defect")
+
+    def __assertEachFalls(self, rows: ReadOnlyArray[tuple[Any, dict[str, Any], str]]) -> None:
+        for target, rebuilt, name in rows:
+            with self.subTest(target = target.__qualname__): self.__assertFalls(TestATupleComparesWhatItReads, name, target, rebuilt)
+
+    def test_the_ordered_set_bench_falls_when_the_reversed_tuple_hands_the_comparison_over(self) -> None:
+        """As before 2cc5507, D-95: the ordered set's reversed tuple, which carries Equals, handed a
+        tuple to the other side's equality and compared anything else with its direct tuple."""
+
+        def handing(self: Any, item: object) -> Any: return item is self or item == self if isinstance(item, IEquatableTuple) else self._Equals(self._GetContainer(), item)
+
+        self.__assertFalls(TestATupleComparesWhatItReads, "test_the_reversed_tuple_of_an_ordered_set_compares_its_own_order",
+                           type(CreateOrderedSet(_createTuple()).AsTuple().AsReversed()), {"Equals": handing})
+
+    def test_the_benches_fall_when_a_reversed_tuple_answers_for_its_source(self) -> None:
+        """As before 2cc5507, D-98 and D-97: the reversed equatable tuple handed Equals to its source,
+        and was not equal to itself; the reversed hashable tuple handed Equals and Hash, and hashed as
+        its source. Each class carries what it handed."""
+
+        def handed(self: Any, item: object) -> Any: return self._GetContainer().Equals(item)
+        def handedHash(self: Any) -> Any: return self._GetContainer().Hash()
+
+        self.__assertEachFalls(((type(_equatableSource().AsReversed()), {"Equals": handed},                     self.__ITSELF),
+                                (type(_hashableSource().AsReversed()),  {"Equals": handed, "Hash": handedHash}, self.__HASH)))
+
+    def test_the_benches_fall_when_a_circular_tuple_compares_by_identity(self) -> None:
+        """As before 2cc5507, D-102: the circular tuples, which carry their equality, compared by
+        identity, and the hashable one hashed its source."""
+
+        def identical(self: Any, item: object) -> Any: return self is item
+        def handedHash(self: Any) -> Any: return self._GetContainer().Hash()
+
+        self.__assertEachFalls(((CircularEquatableTuple, {"Equals": identical},                     self.__ITSELF),
+                                (CircularHashableTuple,  {"Equals": identical, "Hash": handedHash}, self.__HASH)))
+
+    def test_the_benches_fall_when_a_converting_tuple_answers_with_its_source_values(self) -> None:
+        """As before 2cc5507, D-103: the converting tuples handed Equals, and the hashable one Hash, to
+        the tuple they convert. The Abstract stratum's EquatableTuple and HashableTuple carry them,
+        and the Selection ones derive from these."""
+
+        def handed(self: Any, item: object) -> Any: return self is item or self._GetContainer().Equals(item)
+        def handedHash(self: Any) -> Any: return self._GetContainer().Hash()
+
+        self.__assertEachFalls(((ConvertingEquatableTuple, {"Equals": handed},                     self.__BENEATH),
+                                (ConvertingHashableTuple,  {"Equals": handed, "Hash": handedHash}, self.__HASH)))
 
 class TestImmutableViewTyping(unittest.TestCase):
     """AsImmutable() promises a narrowed return type per family, and the promise is now kept.
@@ -2261,8 +2421,8 @@ def _breakingRevocation() -> Generator[None]:
     `super()` call and keeps everything else the override does, so what is rebuilt is
     D-28 and not a blanket no-op.
 
-    This is the second and last place in this module that reaches past the public API;
-    like `_counting()` it is confined here and restored on the way out. The substitution
+    Like `_counting()` and the controls of this module, it reaches past the public API; it
+    is confined here and restored on the way out. The substitution
     is a class attribute, hence global while it is installed: the control is sound only
     on a single-threaded run, which is how the suite runs.
     """
