@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterator
 from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
                   EnumMeta as _EnumMeta, FlagBoundary,
                   Enum, Flag,
                   IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import final, Any, Generic, Self, Type, TypeVar, cast
+from typing import final, Any, Generic, Self, Type, TypeVar, TYPE_CHECKING, cast
 
 from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray
@@ -35,9 +35,17 @@ class IEquatableEnum[TEnum: EquatableProtocol, TValue: SupportsEqualityCompariso
 class IComparableEnum[TEnum: ComparableProtocol, TValue: SupportsEqualityAndRichComparison](IEquatableEnum[TEnum, TValue], IHashableComparableOperand[TValue]):
     def __init__(self) -> None: super().__init__()
 
-class _EnumTypeBase(type, Iterable["Any"]):
+# Type checkers see a class of this metaclass as iterable: the functions of WinCopies.Enum and WinCopies.Typing.Reflection.Enum take an enumeration as
+# Type[TypedEnum[T]] and iterate it. At runtime, an enumeration iterates through EnumMeta, from which _EnumType derives as well, and a class that only this
+# metaclass makes, such as TypedEnum or EquatableEnum, has no member and is not iterable. Deriving from Iterable said the first thing at runtime too: it handed
+# those classes the __iter__ of Iterable, which yields nothing, and put a metaclass among the subclasses of that ABC, whose isinstance then raised TypeError for
+# every object that is not iterable, in the whole process, once this module was imported.
+class _EnumTypeBase(type):
     def __init__(self, name: str, bases: ReadOnlyArray[type], dict: dict[str, Any], /, **kwds: Any) -> None: super().__init__(name, bases, dict, **kwds)
     def __new__(cls: type[_EnumTypeBase], name: str, bases: ReadOnlyArray[type], namespace: dict[str, Any], /, **kwds: Any) -> Any: return super().__new__(cls, name, bases, namespace, **kwds)
+
+    if TYPE_CHECKING:
+        def __iter__(cls) -> Iterator[Any]: ...
 class _EnumType(_EnumTypeBase, _EnumMeta):
     def __init__(self, name: str, bases: ReadOnlyArray[type], dict: dict[str, Any], /, **kwds: Any) -> None: # pyright: ignore[reportInconsistentConstructor]
         super().__init__(name, bases, dict, **kwds)
