@@ -25,7 +25,7 @@ from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSi
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Enumeration.Core import IEnumerator, AsEnumerator
 from WinCopies.Collections.Extensions import IList, IOrderedSet, IEquatableTuple
-from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList
+from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, IReadOnlyCountableEnumerableList
 from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Typing.Delegate import Action, Function, Converter
 from WinCopies.Typing.Discard import InvalidatedError
@@ -1048,3 +1048,80 @@ class TestTheCursorAndOrderBenchesCanFail(unittest.TestCase):
 
         self.__assertFalls(TestTheReversedTupleReadsInReverse, "test_a_mutation_invalidates_the_enumerators_of_the_reversed_tuple",
                            type(CreateOrderedSet(_CONTENT).AsTuple().AsReversed()), {"TryGetEnumerator": copied})
+
+_SET_CURSORS: ReadOnlyArray[tuple[str, Converter[IList[int], ICountableEnumerableList[int]]]] = (
+    ("queued", lambda view: view.AsQueuedCursor()), ("stacked", lambda view: view.AsStackedCursor()))
+"""The two cursors of the ordered set's list view, the writable ones."""
+
+class TestTheOrderedSetCursorsWriteThroughTheSet(unittest.TestCase):
+    """D-93. The list view of the ordered set handed both its cursor requests on to the list inside
+    it, so that a cursor wrote to the order without the set: TryPop left the set holding the item it
+    took, which TryAdd then refused; Push left a new item out of the set and took one it held a
+    second time; Clear emptied the order alone. The view now provides cursors over itself, whose
+    writes go through its own routes. The benches above write through every route of the view but
+    these: no bench asked the view for a cursor."""
+
+    def test_every_write_keeps_the_order_and_the_set_together(self) -> None:
+        writes: ReadOnlyArray[tuple[str, Converter[ICountableEnumerableList[int], Any], dict[str, ReadOnlyArray[int]]]] = (
+            ("TryPop()",          lambda cursor: cursor.TryPop(),          {"queued": (1, 2),          "stacked": (1, 2)}),
+            ("Push(7)",           lambda cursor: cursor.Push(7),           {"queued": (0, 1, 2, 7),    "stacked": (7, 0, 1, 2)}),
+            ("PushItems([8, 7])", lambda cursor: cursor.PushItems([8, 7]), {"queued": (0, 1, 2, 8, 7), "stacked": (7, 8, 0, 1, 2)}),
+            ("PushRange([8, 7])", lambda cursor: cursor.PushRange([8, 7]), {"queued": (0, 1, 2, 8, 7), "stacked": (8, 7, 0, 1, 2)}),
+            ("Clear()",           lambda cursor: cursor.Clear(),           {"queued": (),              "stacked": ()}))
+
+        for kind, cursorOf in _SET_CURSORS:
+            for label, write, orders in writes:
+                with self.subTest(cursor = kind, write = label):
+                    items, view = _create()
+
+                    write(cursorOf(view))
+
+                    self.assertEqual(_snapshot(items), orders[kind], f"{label} on the {kind} cursor left another order")
+
+                    _assertInvariant(self, items, view, f"{label} on the {kind} cursor")
+
+    def test_a_duplicate_is_refused_and_changes_nothing(self) -> None:
+        writes: ReadOnlyArray[tuple[str, Converter[ICountableEnumerableList[int], Any]]] = (
+            ("Push(1)",           lambda cursor: cursor.Push(1)),
+            ("PushItems([7, 1])", lambda cursor: cursor.PushItems([7, 1])),
+            ("PushRange([7, 1])", lambda cursor: cursor.PushRange([7, 1])))
+
+        for kind, cursorOf in _SET_CURSORS:
+            for label, write in writes:
+                with self.subTest(cursor = kind, write = label):
+                    items, view = _create()
+                    cursor: ICountableEnumerableList[int] = cursorOf(view)
+
+                    with self.assertRaises(DuplicateKeyError, msg = f"{label} on the {kind} cursor admitted a duplicate"): write(cursor)
+
+                    self.assertEqual(_snapshot(items), _CONTENT, f"{label} on the {kind} cursor changed the order while refusing")
+
+                    _assertInvariant(self, items, view, f"{label} on the {kind} cursor")
+
+class TestTheOrderedSetCursorBenchesCanFail(unittest.TestCase):
+    """The benches of D-93, run against the code as it stood before e9ecac4: green on the intact tree,
+    red on the rebuilt one. The view's class is reached through the object."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertTrue(_run(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _run(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+
+    def test_the_cursor_benches_fall_when_the_view_hands_its_cursors_on_to_its_list(self) -> None:
+        """As before e9ecac4: _OrderedSetList carried AsQueuedCursor and AsStackedCursor, which asked
+        the list inside the view for its own. Both have been inherited from ICursorProvider since
+        e9ecac4; the substitution gives them back to the view's class. That list is reachable only
+        by the attribute the class mangles, _OrderedSetList__list, which is asserted first, so that
+        a rename fails here rather than in the bench."""
+
+        view: IList[int] = CreateOrderedSet(_CONTENT).AsList()
+
+        self.assertIn("_OrderedSetList__list", vars(view), "the view no longer holds its list under the name the rebuilt cursors read")
+
+        def queued(self: Any) -> Any: return self._OrderedSetList__list.AsQueuedCursor()
+        def stacked(self: Any) -> Any: return self._OrderedSetList__list.AsStackedCursor()
+
+        for name in ("test_every_write_keeps_the_order_and_the_set_together", "test_a_duplicate_is_refused_and_changes_nothing"):
+            with self.subTest(bench = name): self.__assertFalls(TestTheOrderedSetCursorsWriteThroughTheSet, name, type(view), {"AsQueuedCursor": queued, "AsStackedCursor": stacked})
