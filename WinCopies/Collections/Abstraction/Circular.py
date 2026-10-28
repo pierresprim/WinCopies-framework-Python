@@ -1,11 +1,17 @@
-from collections.abc import Iterable, Sequence as SequenceBase
+from collections.abc import Iterable, Sequence as SequenceBase, MutableSequence as MutableSequenceBase
 from typing import overload, final, SupportsIndex
 
 from WinCopies import IsTrue
 from WinCopies.Collections.Circular import ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList
 from WinCopies.Collections.Core import Mutability
-from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IHashableTuple, IArray, IList, Sequence, MutableSequence, SequenceAbstract, MutableSequenceAbstract, GetViewString, AreTuplesEqual, GetTupleHash
-from WinCopies.Collections.Extensions.Collection import TupleBase, ArrayBase, ReversedArrayBase, Tuple, EquatableTuple, HashableTuple, ReversedListAbstract
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
+from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
+                                              ITuple, IEquatableTuple, IHashableTuple, IArray, IList,
+                                              Sequence, SequenceAbstract, MutableSequenceAbstract,
+                                              GetViewString, AreTuplesEqual, GetTupleHash)
+from WinCopies.Collections.Extensions.Collection import (IReadOnlyCursorProvider, ICursorProvider,
+                                                         TupleBase, ArrayBase, MutableList, ReversedListAbstract, ReversedArrayBase,
+                                                         Tuple, EquatableTuple, HashableTuple)
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -24,6 +30,9 @@ class CircularAbstract[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircula
     @final
     def _GetAt(self, key: int) -> TItem:
         return self._GetInnerContainer().GetAt(key)
+    
+    @final
+    def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def Contains(self, value: TItem|object) -> bool: return self._GetInnerContainer().Contains(value)
@@ -46,7 +55,7 @@ class CircularBase[TItem, TList](CircularAbstract[TItem, TList]):
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> TItem|SequenceBase[TItem]: return GetItems(self, index)
 
-class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], IGenericConstraintImplementation[ICircularTuple[T]]):
+class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], IReadOnlyCursorProvider[T], IGenericConstraintImplementation[ICircularTuple[T]]):
     def __init__(self, items: ICircularTuple[T]) -> None: super().__init__(items)
 
     @final
@@ -54,7 +63,7 @@ class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], IGenericCon
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
-class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IGenericConstraintImplementation[ICircularEquatableTuple[T]]):
+class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEquatableTuple[T]], EquatableTuple[T], ICircularEquatableTuple[T], IReadOnlyCursorProvider[T], IGenericConstraintImplementation[ICircularEquatableTuple[T]]):
     def __init__(self, items: ICircularEquatableTuple[T]) -> None: super().__init__(items)
 
     @final
@@ -64,7 +73,7 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEqua
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
-class CircularHashableTuple[T: HashableProtocol](CircularBase[T, ICircularHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IGenericConstraintImplementation[ICircularHashableTuple[T]]):
+class CircularHashableTuple[T: HashableProtocol](CircularBase[T, ICircularHashableTuple[T]], HashableTuple[T], ICircularHashableTuple[T], IReadOnlyCursorProvider[T], IGenericConstraintImplementation[ICircularHashableTuple[T]]):
     def __init__(self, items: ICircularHashableTuple[T]) -> None: super().__init__(items)
     
     @final
@@ -124,14 +133,27 @@ class _ListUpdater[T](ValueFunctionUpdater[ICircularList[T]]):
 
 class CircularArrayAbstract[TItem, TList](CircularAbstract[TItem, TList], ArrayBase[TItem, TList], ICircularArray[TItem], GenericSpecializedConstraint[TList, ICircularTuple[TItem], ICircularArray[TItem]]):
     def __init__(self, items: TList) -> None: super().__init__(items)
-class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], CircularArrayAbstract[TItem, TList]):
-    def __init__(self, items: TList) -> None: super().__init__(items)
+    
+    @final
+    def _Move(self, x: int, y: int) -> None: self._GetSpecializedContainer().Move(x, y)
+    @final
+    def _Swap(self, x: int, y: int) -> None: self._GetSpecializedContainer().Swap(x, y)
     
     @final
     def _SetAt(self, key: int, value: TItem, throwOnError: bool) -> bool:
         items: ICircularArray[TItem] = self._GetSpecializedContainer()
 
         return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(key, value))
+class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], CircularArrayAbstract[TItem, TList], IReadOnlyCursorProvider[TItem]):
+    def __init__(self, items: TList) -> None:
+        def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
+        
+        super().__init__(items)
+        
+        self.__cursorProvider: IFunction[IReadOnlyLinkedCursorProvider[TItem]] = self._CreateCursorProvider(update) # type: ignore[no-redef]
+    
+    @final
+    def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TItem]]: return self.__cursorProvider
 class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularArray[T]]):
     def __init__(self, items: ICircularArray[T]) -> None: super().__init__(items)
     
@@ -146,8 +168,18 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], IGenericSpeciali
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(key)
-class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequence[T], ICircularList[T], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularList[T]]):
-    def __init__(self, items: ICircularList[T]) -> None: super().__init__(items)
+class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableList[T], ICircularList[T], ICursorProvider[T], IGenericSpecializedConstraintImplementation[ICircularTuple[T], ICircularList[T]]):
+    def __init__(self, items: ICircularList[T]) -> None:
+        def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
+        def updateCursorProvider(func: IFunction[ILinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
+        
+        super().__init__(items)
+        
+        self.__fixedSize: IFunction[IArray[T]] = self._GetFixedSizeUpdater(updateFixedSize) # type: ignore[no-redef]
+        self.__cursorProvider: IFunction[ILinkedCursorProvider[T]] = self._CreateCursorProvider(updateCursorProvider) # type: ignore[no-redef]
+    
+    @final
+    def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[T]]: return self.__cursorProvider
     
     @final
     def _GetReversedUpdater(self, func: Method[IFunction[ICircularList[T]]]) -> IFunction[ICircularList[T]]: return _ListUpdater[T](self, func)
@@ -156,15 +188,18 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     def GetMutability(self) -> Mutability: return Mutability.Mutable
     
     @final
-    def AsReversed(self) -> IList[T]: return self._AsReversed()
+    def CanSetRange(self, indices: ICountableEnumerable[int], items: ICountableEnumerable[T], throwOnError: bool = False) -> bool: return self._GetContainer().CanSetRange(indices, items, throwOnError)
+    
+    @final
+    def _Reverse(self) -> None: raise NotImplementedError() # Should be supported.
     
     @final
     def SliceAt(self, key: slice) -> IList[T]: return self._GetContainer().SliceAt(key)
     
     @final
-    def _TryInsert(self, index: int, value: T) -> bool: return self._GetContainer().TryInsert(index, value)
-    @final
     def _Insert(self, index: int, value: T) -> None: self._GetContainer().Insert(index, value)
+    @final
+    def _InsertRange(self, index: int, items: Iterable[T]) -> None: self._GetContainer().InsertRange(index, items)
     
     @final
     def TryRemoveAt(self, index: int) -> bool|None: return self._GetContainer().TryRemoveAt(index)
@@ -173,7 +208,21 @@ class CircularList[T](CircularArrayAbstract[T, ICircularList[T]], MutableSequenc
     def Clear(self) -> None: self._GetContainer().Clear()
     
     @final
+    def AsFixedSize(self) -> IArray[T]: return self.__fixedSize.GetValue()
+    
+    @final
+    def AsReversed(self) -> IList[T]: return self._AsReversed()
+    
+    @final
     def insert(self, index: int, value: T) -> None: self.Insert(GetSequenceInsertionIndex(index, self.GetCount()), value)
+    
+    @overload
+    def __getitem__(self, index: SupportsIndex) -> T: ...
+    @overload
+    def __getitem__(self, index: slice) -> MutableSequenceBase[T]: ...
+    
+    @final
+    def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return GetItems(self, index)
     
     @overload
     def __setitem__(self, index: SupportsIndex, value: T) -> None: ...
