@@ -141,7 +141,7 @@ class _ReversedArrayBase[TItem, TList](ReversedArrayBase[TItem, TList, IArray[TI
     @final
     def _SliceAt(self, key: slice) -> IArray[TItem]: return self._GetSpecializedContainer().SliceAt(key)
     @final
-    def SliceAt(self, key: slice) -> IArray[TItem]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> IArray[TItem]: return self._ToSlicedAt(key)
 
 class _CircularArrayAbstract[TItem, TList](ICircularArray[TItem], IContainer[TList]):
     def __init__(self) -> None: super().__init__()
@@ -203,7 +203,7 @@ class _ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, IList[T
     @final
     def _SliceAt(self, key: slice) -> IList[TItem]: return self._GetContainerAsList().SliceAt(key)
     @final
-    def SliceAt(self, key: slice) -> IList[TItem]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> IList[TItem]: return self._ToSlicedAt(key)
 
 @final
 class _ReversedList[T](_ReversedListBase[T, ICircularList[T]], IGenericSpecializedConstraintImplementation[ITuple[T], ICircularList[T]]):

@@ -165,7 +165,7 @@ class _ReversedAbstract[TItem, TCollectionIn, TCollectionOut](SequenceBase[TItem
         ...
 
     @final
-    def ToSlicedAt(self, key: slice) -> TCollectionOut:
+    def _ToSlicedAt(self, key: slice) -> TCollectionOut:
         return self._SliceAt(self.ReverseKey(key))
     
     @final
@@ -388,7 +388,7 @@ class _ReversedTuple[T](_ReversedTupleBase[T, ITuple[T]], SequenceAbstract[T], I
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     def _SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
-    def SliceAt(self, key: slice) -> ITuple[T]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> ITuple[T]: return self._ToSlicedAt(key)
 
     def AsReversed(self) -> ITuple[T]: return self._GetContainer()
     def AsImmutable(self) -> ITuple[T]: return self.__func()
@@ -414,7 +414,7 @@ class _ReversedSortedTuple[T: SupportsEqualityAndRichComparison](_ReversedTupleB
     def TryBisectWithKey[_T: SupportsEqualityAndRichComparison](self, item: _T, converter: Converter[T, _T], right: bool = False) -> DualValueBool[int]: return self._GetContainer().TryBisectWithKey(item, converter, right)
     
     def _SliceAt(self, key: slice) -> ISortedTuple[T]: return self._GetContainer().SliceAt(key)
-    def SliceAt(self, key: slice) -> ISortedTuple[T]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> ISortedTuple[T]: return self._ToSlicedAt(key)
 
     def AsReversed(self) -> ISortedTuple[T]: return self._GetContainer()
     def AsImmutable(self) -> ITuple[T]: return self.__monitor.GetImmutableView()
@@ -610,7 +610,7 @@ class _ReversedEquatableTuple[T: EquatableProtocol](_ReversedTupleAbstract[T, IE
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     
     def _SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
-    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._ToSlicedAt(key)
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
 
@@ -623,7 +623,7 @@ class _ReversedHashableTuple[T: HashableProtocol](_ReversedTupleAbstract[T, IHas
     def __init__(self, items: IHashableTuple[T]) -> None: super().__init__(items)
     
     def _SliceAt(self, key: slice) -> IHashableTuple[T]: return self._GetContainer().SliceAt(key)
-    def SliceAt(self, key: slice) -> IHashableTuple[T]: return self.ToSlicedAt(key)
+    def SliceAt(self, key: slice) -> IHashableTuple[T]: return self._ToSlicedAt(key)
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
     def Hash(self) -> int: return GetTupleHash(self)
@@ -1136,7 +1136,7 @@ class _ReversedArray[T](ReversedArray[T, IArray[T]], SequenceAbstract[T], IGener
     @final
     def _SliceAt(self, key: slice) -> IArray[T]: return self._GetSpecializedContainer().SliceAt(key)
     @final
-    def SliceAt(self, key: slice) -> IArray[T]: return self._AsSpecialized(self.ToSlicedAt(key))
+    def SliceAt(self, key: slice) -> IArray[T]: return self._AsSpecialized(self._ToSlicedAt(key))
 @final
 class _ReversedArrayUpdater[T](ValueFunctionUpdater[IArray[T]]):
     def __init__(self, array: IArray[T], updater: Method[IFunction[IArray[T]]]) -> None:
@@ -1340,7 +1340,7 @@ class ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, TList]):
     def __init__(self, items: TList) -> None: super().__init__(items)
     
     @final
-    def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainerAsList(self.ToSlicedAt(key))
+    def SliceAt(self, key: slice) -> IList[TItem]: return self._GetInnerContainerAsList(self._ToSlicedAt(key))
 
 class ReversedSortedListAbstract[TItem: SupportsEqualityAndRichComparison, TList](ReversedCollectionAbstract[TItem, TList], Sequence[TItem], ISortedList[TItem]):
     def __init__(self, items: TList) -> None:
@@ -1371,7 +1371,7 @@ class ReversedSortedListAbstract[TItem: SupportsEqualityAndRichComparison, TList
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)
     
     @final
-    def SliceAt(self, key: slice) -> ISortedList[TItem]: return self._GetSpecializedContainerAsList(self.ToSlicedAt(key))
+    def SliceAt(self, key: slice) -> ISortedList[TItem]: return self._GetSpecializedContainerAsList(self._ToSlicedAt(key))
 
     @final
     def AsReversed(self) -> ISortedList[TItem]: return self._GetContainerAsList()
