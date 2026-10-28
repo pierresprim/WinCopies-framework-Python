@@ -525,10 +525,7 @@ class CollectionViewMonitorAbstract[TItem, TCollection](Abstract, ICollectionVie
     def _GetContainer(self) -> TCollection: return self.__items
 
     @final
-    def _GetImmutableView(self) -> TCollection:
-        func: Function[TCollection] = self.__view # For mypy compatibility
-
-        return func()
+    def _GetImmutableView(self) -> TCollection: return self.__view()
 
     @final
     def _GetMonitor(self) -> IRevocableViewMonitor:
