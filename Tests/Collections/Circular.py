@@ -52,7 +52,7 @@ from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, 
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
 from WinCopies.Collections.Abstraction.Selection.Collection import List as SelectionList
-from WinCopies.Collections.Circular import CircularAbstract, CircularList, CircularTuple
+from WinCopies.Collections.Circular import CircularAbstract, CircularList, RotatableAbstract, RotatableList, RotatableTuple
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Range import RemoveItems, SetItems
@@ -274,6 +274,9 @@ class TestTheModelBenchCanFail(unittest.TestCase):
     D-71, D-72 and D-73 at once: green on the intact tree, red on the rebuilt one."""
 
     def test_it_falls_when_the_start_never_moves(self) -> None:
+        """The list writes its start back through _SetStart. Since D-116, SetStart only exposes it, and
+        on the rotatable list alone."""
+
         def frozen(self: Any, start: int = 0) -> None: pass
 
         bench: unittest.TestCase = TestTheCircularListMatchesItsModel("test_every_change_matches_the_model")
@@ -282,7 +285,7 @@ class TestTheModelBenchCanFail(unittest.TestCase):
 
         target: Any = CircularList
 
-        with mock.patch.object(target, "SetStart", frozen): broken: unittest.TestResult = _run(bench, failfast = True)
+        with mock.patch.object(target, "_SetStart", frozen): broken: unittest.TestResult = _run(bench, failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the model bench did not fall with the start frozen")
 
@@ -547,7 +550,6 @@ class TestTheFourthGridCanFail(unittest.TestCase):
         self.__assertFalls("test_a_circular_list_over_a_full_sized_list", SizedList, mute, "the refusal answered")
 
 _REVOKING: ReadOnlyArray[tuple[str, Operator[Any]]] = (
-    ("c.SetStart(1)",           lambda c, s: c.SetStart(1)),
     ("c.Add(9)",                lambda c, s: c.Add(9)),
     ("c.RemoveAt(0)",           lambda c, s: c.RemoveAt(0)),
     ("c[0] = 7",                lambda c, s: c.__setitem__(0, 7)),
@@ -555,13 +557,25 @@ _REVOKING: ReadOnlyArray[tuple[str, Operator[Any]]] = (
     ("src.RemoveAt(0)",         lambda c, s: s.RemoveAt(0)),
     ("src.SetAt(0, 7)",         lambda c, s: s.SetAt(0, 7)),
     ("src.AsReversed().Add(9)", lambda c, s: s.AsReversed().Add(9)))
-"""Every path by which what a circular list reads can change: its own start, its own changes, and
-its source changed directly or through another of its views."""
+"""Every path by which what a circular list reads can change: its own changes, and its source changed
+directly or through another of its views. A rotatable list adds its start, _ROTATING."""
 
-def _overSource() -> tuple[Any, Any]:
-    source: Any = CreateList([0, 1, 2, 3])
+_ROTATING: ReadOnlyArray[tuple[str, Operator[Any]]] = (("c.SetStart(1)", lambda c, s: c.SetStart(1)),)
 
-    return (source, CircularList[int](source, 2))
+def _overSources() -> ReadOnlyArray[tuple[str, Function[tuple[Any, Any]], ReadOnlyArray[tuple[str, Operator[Any]]]]]:
+    """Both circular lists over a source of their own, each with the changes it can undergo: since
+    D-116, only the rotatable one exposes its start."""
+
+    def over(create: Converter[Any, Any]) -> Function[tuple[Any, Any]]:
+        def build() -> tuple[Any, Any]:
+            source: Any = CreateList([0, 1, 2, 3])
+
+            return (source, create(source))
+
+        return build
+
+    return (("CircularList",  over(lambda source: CircularList[int](source, 2)),  _REVOKING),
+            ("RotatableList", over(lambda source: RotatableList[int](source, 2)), _ROTATING + _REVOKING))
 
 def _revoked(view: Any) -> bool:
     try: list(view.AsIterable())
@@ -576,39 +590,42 @@ class TestTheImmutableViewOfACircularTypeIsRevoked(unittest.TestCase):
     invalidation, on s'attend à ce qu'elle ait lieu en toutes circonstances")."""
 
     def test_every_change_revokes_it(self) -> None:
-        for label, change in _REVOKING:
-            with self.subTest(change = label):
-                source, circular = _overSource()
-                view: Any = circular.AsImmutable()
+        for name, create, changes in _overSources():
+            for label, change in changes:
+                with self.subTest(list = name, change = label):
+                    source, circular = create()
+                    view: Any = circular.AsImmutable()
 
-                change(circular, source)
+                    change(circular, source)
 
-                self.assertTrue(_revoked(view), f"{label} left the immutable view live")
+                    self.assertTrue(_revoked(view), f"{label} left the immutable view of the {name} live")
 
     def test_the_read_only_view_stays_live(self) -> None:
-        for label, change in _REVOKING:
-            with self.subTest(change = label):
-                source, circular = _overSource()
-                view: Any = circular.AsReadOnly()
+        for name, create, changes in _overSources():
+            for label, change in changes:
+                with self.subTest(list = name, change = label):
+                    source, circular = create()
+                    view: Any = circular.AsReadOnly()
 
-                change(circular, source)
+                    change(circular, source)
 
-                self.assertEqual(list(view.AsIterable()), list(circular.AsIterable()), label)
+                    self.assertEqual(list(view.AsIterable()), list(circular.AsIterable()), f"{label} on the {name}")
 
     def test_a_new_immutable_view_reads_the_change(self) -> None:
-        for label, change in _REVOKING:
-            with self.subTest(change = label):
-                source, circular = _overSource()
+        for name, create, changes in _overSources():
+            for label, change in changes:
+                with self.subTest(list = name, change = label):
+                    source, circular = create()
 
-                circular.AsImmutable()
-                change(circular, source)
+                    circular.AsImmutable()
+                    change(circular, source)
 
-                self.assertEqual(list(circular.AsImmutable().AsIterable()), list(circular.AsIterable()), label)
+                    self.assertEqual(list(circular.AsImmutable().AsIterable()), list(circular.AsIterable()), f"{label} on the {name}")
 
     def test_its_start_revokes_nothing_else(self) -> None:
         source: Any = CreateList([0, 1, 2, 3])
         sourceView: Any = source.AsImmutable()
-        circular: Any = CircularList[int](source, 1)
+        circular: Any = RotatableList[int](source, 1)
         sibling: Any = CircularList[int](source, 2)
         siblingView: Any = sibling.AsImmutable()
 
@@ -618,7 +635,7 @@ class TestTheImmutableViewOfACircularTypeIsRevoked(unittest.TestCase):
         self.assertFalse(_revoked(siblingView), "SetStart revoked the immutable view of another circular list over the same source")
 
     def test_a_circular_list_over_it_follows_its_start(self) -> None:
-        inner: Any = CircularList[int](CreateList([0, 1, 2, 3]), 1)
+        inner: Any = RotatableList[int](CreateList([0, 1, 2, 3]), 1)
         view: Any = CircularList[int](inner, 1).AsImmutable()
 
         inner.SetStart(3)
@@ -626,7 +643,7 @@ class TestTheImmutableViewOfACircularTypeIsRevoked(unittest.TestCase):
         self.assertTrue(_revoked(view))
 
     def test_a_circular_tuple_revokes_it_on_its_start(self) -> None:
-        circular: Any = CircularTuple[int](CreateList([0, 1, 2, 3]).AsImmutable(), 1)
+        circular: Any = RotatableTuple[int](CreateList([0, 1, 2, 3]).AsImmutable(), 1)
         view: Any = circular.AsImmutable()
 
         circular.SetStart(2)
@@ -661,7 +678,9 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
     the intact tree, red on the rebuilt one."""
 
     def test_the_revocation_bench_falls_without_the_subscription(self) -> None:
-        """Unsubscribing at once and invalidating nothing in SetStart rebuilds D-75."""
+        """Unsubscribing at once and invalidating nothing when the start moves rebuilds D-75. Since D-116
+        the two families of circular types reach _InvalidateViews through two abstract classes, and
+        both are given the rebuilt one."""
 
         def unsubscribed(obj: object, unsubscribe: Action) -> None: unsubscribe()
         def nothing(self: Any) -> None: pass
@@ -671,9 +690,8 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
 
         self.assertEqual(_fell(_run(bench())), 0, "the revocation bench is expected to pass on the intact tree")
 
-        target: Any = CircularAbstract
-
-        with mock.patch("WinCopies.Collections.Circular.Finalizer", unsubscribed), mock.patch.object(target, "_InvalidateViews", nothing):
+        with (mock.patch("WinCopies.Collections.Circular.Finalizer", unsubscribed),
+              mock.patch.object(CircularAbstract, "_InvalidateViews", nothing), mock.patch.object(RotatableAbstract, "_InvalidateViews", nothing)):
             broken: unittest.TestResult = _run(bench(), failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the revocation bench did not fall without the subscription")
