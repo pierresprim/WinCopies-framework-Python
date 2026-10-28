@@ -4,7 +4,7 @@ from typing import overload, final, SupportsIndex
 
 from WinCopies import IsTrue
 from WinCopies.Collections.Circular import (ICircularTuple, ICircularEquatableTuple, ICircularHashableTuple, ICircularArray, ICircularList,
-                                            IRotatableCircularTuple, IRotatableCircularEquatableTuple, IRotatableCircularArray, IRotatableCircularList)
+                                            IRotatableTuple, IRotatableEquatableTuple, IRotatableArray, IRotatableList)
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
@@ -47,11 +47,11 @@ class CircularAbstract[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircula
     def GetStart(self) -> int: return self._GetInnerContainer().GetStart()
     
     def ToString(self) -> str: return GetViewString(self, self._GetInnerContainer())
-class RotatableCircularAbstract[TItem, TList](CircularAbstract[TItem, TList], IRotatableCircularTuple[TItem]):
+class RotatableAbstract[TItem, TList](CircularAbstract[TItem, TList], IRotatableTuple[TItem]):
     def __init__(self, items: TList) -> None: super().__init__(items)
 
     @abstractmethod
-    def _GetContainerAsRotatable(self, items: TList) -> IRotatableCircularTuple[TItem]:
+    def _GetContainerAsRotatable(self, items: TList) -> IRotatableTuple[TItem]:
         ...
 
     def SetStart(self, start: int = 0) -> None: self._GetContainerAsRotatable(self._GetContainer()).SetStart(start)
@@ -69,7 +69,7 @@ class _CircularBase[T](Sequence[T], ITuple[T]):
 
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList], _CircularBase[TItem]):
     def __init__(self, items: TList) -> None: super().__init__(items)
-class RotatableCircularBase[TItem, TList](RotatableCircularAbstract[TItem, TList], _CircularBase[TItem]):
+class RotatableBase[TItem, TList](RotatableAbstract[TItem, TList], _CircularBase[TItem]):
     def __init__(self, items: TList) -> None: super().__init__(items)
 
 class _CircularTuple[T](IReadOnlyCursorProvider[T]):
@@ -83,11 +83,11 @@ class CircularTuple[T](CircularBase[T, ICircularTuple[T]], Tuple[T], _CircularTu
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
-class RotatableCircularTuple[T](RotatableCircularBase[T, IRotatableCircularTuple[T]], MutableTuple[T], _CircularTuple[T], IGenericConstraintImplementation[IRotatableCircularTuple[T]]):
-    def __init__(self, items: IRotatableCircularTuple[T]) -> None: super().__init__(items)
+class RotatableTuple[T](RotatableBase[T, IRotatableTuple[T]], MutableTuple[T], _CircularTuple[T], IGenericConstraintImplementation[IRotatableTuple[T]]):
+    def __init__(self, items: IRotatableTuple[T]) -> None: super().__init__(items)
 
     @final
-    def _GetContainerAsRotatable(self, items: IRotatableCircularTuple[T]) -> IRotatableCircularTuple[T]: return items
+    def _GetContainerAsRotatable(self, items: IRotatableTuple[T]) -> IRotatableTuple[T]: return items
 
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
@@ -99,11 +99,11 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, ICircularEqua
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
-class RotatableCircularEquatableTuple[T: EquatableProtocol](RotatableCircularBase[T, IRotatableCircularEquatableTuple[T]], MutableEquatableTuple[T], _CircularTuple[T], IReadOnlyCursorProvider[T], IGenericConstraintImplementation[IRotatableCircularEquatableTuple[T]]):
-    def __init__(self, items: IRotatableCircularEquatableTuple[T]) -> None: super().__init__(items)
+class RotatableEquatableTuple[T: EquatableProtocol](RotatableBase[T, IRotatableEquatableTuple[T]], MutableEquatableTuple[T], _CircularTuple[T], IReadOnlyCursorProvider[T], IGenericConstraintImplementation[IRotatableEquatableTuple[T]]):
+    def __init__(self, items: IRotatableEquatableTuple[T]) -> None: super().__init__(items)
 
     @final
-    def _GetContainerAsRotatable(self, items: IRotatableCircularTuple[T]) -> IRotatableCircularTuple[T]: return items
+    def _GetContainerAsRotatable(self, items: IRotatableTuple[T]) -> IRotatableTuple[T]: return items
 
     @final
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
@@ -149,11 +149,11 @@ class _CircularArrayAbstract[TItem, TList](ICircularArray[TItem], IContainer[TLi
     @abstractmethod
     def _GetContainerAsArray(self, container: TList) -> ICircularArray[TItem]:
         ...
-class _RotatableCircularArray[TItem, TList](_CircularArrayAbstract[TItem, TList], IRotatableCircularArray[TItem]):
+class _RotatableArray[TItem, TList](_CircularArrayAbstract[TItem, TList], IRotatableArray[TItem]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def _GetContainerAsArray(self, container: TList) -> IRotatableCircularArray[TItem]:
+    def _GetContainerAsArray(self, container: TList) -> IRotatableArray[TItem]:
         ...
 
     @final
@@ -165,11 +165,11 @@ class _ReversedArray[T](_ReversedArrayBase[T, ICircularArray[T]], IGenericSpecia
 
     def _GetContainerAsCircular(self, container: ICircularArray[T]) -> ICircularArray[T]: return container
 @final
-class _ReversedRotatableArray[T](_ReversedArrayBase[T, IRotatableCircularArray[T]], _RotatableCircularArray[T, IRotatableCircularArray[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IRotatableCircularArray[T]]):
-    def __init__(self, items: IRotatableCircularArray[T]) -> None: super().__init__(items)
+class _ReversedRotatableArray[T](_ReversedArrayBase[T, IRotatableArray[T]], _RotatableArray[T, IRotatableArray[T]], IGenericSpecializedConstraintImplementation[ITuple[T], IRotatableArray[T]]):
+    def __init__(self, items: IRotatableArray[T]) -> None: super().__init__(items)
 
-    def _GetContainerAsArray(self, container: IRotatableCircularArray[T]) -> IRotatableCircularArray[T]: return container
-    def _GetContainerAsCircular(self, container: IRotatableCircularArray[T]) -> IRotatableCircularArray[T]: return container
+    def _GetContainerAsArray(self, container: IRotatableArray[T]) -> IRotatableArray[T]: return container
+    def _GetContainerAsCircular(self, container: IRotatableArray[T]) -> IRotatableArray[T]: return container
 
 @final
 class _ArrayUpdater[T](ValueFunctionUpdater[ICircularArray[T]]):
@@ -180,13 +180,13 @@ class _ArrayUpdater[T](ValueFunctionUpdater[ICircularArray[T]]):
     
     def _GetValue(self) -> ICircularArray[T]: return _ReversedArray[T](self.__array)
 @final
-class _RotatableArrayUpdater[T](ValueFunctionUpdater[IRotatableCircularArray[T]]):
-    def __init__(self, array: IRotatableCircularArray[T], updater: Method[IFunction[IRotatableCircularArray[T]]]) -> None:
+class _RotatableArrayUpdater[T](ValueFunctionUpdater[IRotatableArray[T]]):
+    def __init__(self, array: IRotatableArray[T], updater: Method[IFunction[IRotatableArray[T]]]) -> None:
         super().__init__(updater)
 
-        self.__array: IRotatableCircularArray[T] = array
+        self.__array: IRotatableArray[T] = array
     
-    def _GetValue(self) -> IRotatableCircularArray[T]: return _ReversedRotatableArray[T](self.__array)
+    def _GetValue(self) -> IRotatableArray[T]: return _ReversedRotatableArray[T](self.__array)
 
 class _ReversedListBase[TItem, TList](ReversedListAbstract[TItem, TList, IList[TItem]], _CircularArrayAbstract[TItem, TList], MutableSequenceAbstract[TItem], ICircularList[TItem]):
     def __init__(self, items: TList) -> None: super().__init__(items)
@@ -212,10 +212,10 @@ class _ReversedList[T](_ReversedListBase[T, ICircularList[T]], IGenericSpecializ
     def _GetContainerAsArray(self, container: ICircularArray[T]) -> ICircularArray[T]: return container
     def _GetInnerContainerAsList(self, container: ICircularList[T]) -> ICircularList[T]: return container
 @final
-class _ReversedRotatableList[T](_ReversedListBase[T, IRotatableCircularList[T]], _RotatableCircularArray[T, IRotatableCircularList[T]], IRotatableCircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IRotatableCircularList[T]]):
-    def __init__(self, items: IRotatableCircularList[T]) -> None: super().__init__(items)
+class _ReversedRotatableList[T](_ReversedListBase[T, IRotatableList[T]], _RotatableArray[T, IRotatableList[T]], IRotatableList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IRotatableList[T]]):
+    def __init__(self, items: IRotatableList[T]) -> None: super().__init__(items)
 
-    def _GetContainerAsArray(self, container: IRotatableCircularArray[T]) -> IRotatableCircularArray[T]: return container
+    def _GetContainerAsArray(self, container: IRotatableArray[T]) -> IRotatableArray[T]: return container
     def _GetInnerContainerAsList(self, container: ICircularList[T]) -> ICircularList[T]: return container
 
 @final
@@ -227,13 +227,13 @@ class _ListUpdater[T](ValueFunctionUpdater[ICircularList[T]]):
     
     def _GetValue(self) -> ICircularList[T]: return _ReversedList[T](self.__array)
 @final
-class _RotatableListUpdater[T](ValueFunctionUpdater[IRotatableCircularList[T]]):
-    def __init__(self, array: IRotatableCircularList[T], updater: Method[IFunction[IRotatableCircularList[T]]]) -> None:
+class _RotatableListUpdater[T](ValueFunctionUpdater[IRotatableList[T]]):
+    def __init__(self, array: IRotatableList[T], updater: Method[IFunction[IRotatableList[T]]]) -> None:
         super().__init__(updater)
 
-        self.__array: IRotatableCircularList[T] = array
+        self.__array: IRotatableList[T] = array
     
-    def _GetValue(self) -> IRotatableCircularList[T]: return _ReversedRotatableList[T](self.__array)
+    def _GetValue(self) -> IRotatableList[T]: return _ReversedRotatableList[T](self.__array)
 
 class CircularArrayAbstract[TItem, TList](ArrayBase[TItem, TList], ICircularArray[TItem], GenericSpecializedConstraint[TList, ICircularTuple[TItem], ICircularArray[TItem]]):
     def __init__(self) -> None: super().__init__()
@@ -248,7 +248,7 @@ class CircularArrayAbstract[TItem, TList](ArrayBase[TItem, TList], ICircularArra
         items: ICircularArray[TItem] = self._GetSpecializedContainer()
 
         return IsTrue((items.SetAt if throwOnError else items.TrySetAt)(key, value))
-class RotatableCircularArrayAbstract[TItem, TList](CircularArrayAbstract[TItem, TList], IRotatableCircularArray[TItem]):
+class RotatableArrayAbstract[TItem, TList](CircularArrayAbstract[TItem, TList], IRotatableArray[TItem]):
     def __init__(self) -> None: super().__init__()
 
 class _CircularArrayBase[TItem, TList](CircularArrayAbstract[TItem, TList], IReadOnlyCursorProvider[TItem]):
@@ -264,7 +264,7 @@ class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], _CircularArray
     
     @final
     def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TItem]]: return self.__cursorProvider
-class RotatableCircularArrayBase[TItem, TList](RotatableCircularBase[TItem, TList], RotatableCircularArrayAbstract[TItem, TList], _CircularArrayBase[TItem, TList]):
+class RotatableArrayBase[TItem, TList](RotatableBase[TItem, TList], RotatableArrayAbstract[TItem, TList], _CircularArrayBase[TItem, TList]):
     def __init__(self, items: TList) -> None:
         def update(func: IFunction[IReadOnlyLinkedCursorProvider[TItem]]) -> None: self.__cursorProvider = func
         
@@ -292,11 +292,11 @@ class CircularArray[T](CircularArrayBase[T, ICircularArray[T]], _CircularArray[T
     
     @final
     def _GetReversedUpdater(self, func: Method[IFunction[ICircularArray[T]]]) -> IFunction[ICircularArray[T]]: return _ArrayUpdater[T](self, func)
-class RotatableCircularArray[T](RotatableCircularArrayBase[T, IRotatableCircularArray[T]], _CircularArray[T, IRotatableCircularArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], IRotatableCircularArray[T]]):
-    def __init__(self, items: IRotatableCircularArray[T]) -> None: super().__init__(items)
+class RotatableArray[T](RotatableArrayBase[T, IRotatableArray[T]], _CircularArray[T, IRotatableArray[T]], IGenericSpecializedConstraintImplementation[ICircularTuple[T], IRotatableArray[T]]):
+    def __init__(self, items: IRotatableArray[T]) -> None: super().__init__(items)
     
     @final
-    def _GetReversedUpdater(self, func: Method[IFunction[IRotatableCircularArray[T]]]) -> IFunction[IRotatableCircularArray[T]]: return _RotatableArrayUpdater[T](self, func)
+    def _GetReversedUpdater(self, func: Method[IFunction[IRotatableArray[T]]]) -> IFunction[IRotatableArray[T]]: return _RotatableArrayUpdater[T](self, func)
 
 class _CircularList[TItem, TList](CircularArrayAbstract[TItem, TList], MutableList[TItem], ICircularList[TItem], ICursorProvider[TItem]):
     def __init__(self) -> None: super().__init__()
@@ -384,8 +384,8 @@ class CircularList[T](CircularAbstract[T, ICircularList[T]], _CircularList[T, IC
 
     @final
     def _GetContainerAsList(self, container: ICircularList[T]) -> ICircularList[T]: return container
-class RotatableCircularList[T](RotatableCircularAbstract[T, IRotatableCircularList[T]], _CircularList[T, IRotatableCircularList[T]], RotatableCircularArrayAbstract[T, IRotatableCircularList[T]], IRotatableCircularList[T], IGenericSpecializedConstraintImplementation[ICircularTuple[T], IRotatableCircularList[T]]):
-    def __init__(self, items: IRotatableCircularList[T]) -> None:
+class RotatableList[T](RotatableAbstract[T, IRotatableList[T]], _CircularList[T, IRotatableList[T]], RotatableArrayAbstract[T, IRotatableList[T]], IRotatableList[T], IGenericSpecializedConstraintImplementation[ICircularTuple[T], IRotatableList[T]]):
+    def __init__(self, items: IRotatableList[T]) -> None:
         def updateFixedSize(func: IFunction[IArray[T]]) -> None: self.__fixedSize = func
         def updateCursorProvider(func: IFunction[ILinkedCursorProvider[T]]) -> None: self.__cursorProvider = func
         
@@ -398,7 +398,7 @@ class RotatableCircularList[T](RotatableCircularAbstract[T, IRotatableCircularLi
     def _GetCursorProvider(self) -> IFunction[ILinkedCursorProvider[T]]: return self.__cursorProvider
     
     @final
-    def _GetReversedUpdater(self, func: Method[IFunction[IRotatableCircularList[T]]]) -> IFunction[IRotatableCircularList[T]]: return _RotatableListUpdater[T](self, func)
+    def _GetReversedUpdater(self, func: Method[IFunction[IRotatableList[T]]]) -> IFunction[IRotatableList[T]]: return _RotatableListUpdater[T](self, func)
 
     @final
     def _AsFixedSize(self) -> IFunction[IArray[T]]: return self.__fixedSize
@@ -407,4 +407,4 @@ class RotatableCircularList[T](RotatableCircularAbstract[T, IRotatableCircularLi
     def _GetContainerAsList(self, container: ICircularList[T]) -> ICircularList[T]: return container
 
     @final
-    def _GetContainerAsRotatable(self, items: IRotatableCircularTuple[T]) -> IRotatableCircularTuple[T]: return items
+    def _GetContainerAsRotatable(self, items: IRotatableTuple[T]) -> IRotatableTuple[T]: return items

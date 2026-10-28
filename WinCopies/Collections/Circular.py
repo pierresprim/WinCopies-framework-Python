@@ -36,29 +36,28 @@ class ICircularTuple[T](ITuple[T]):
         if result is None: ThrowIndexError(index)
 
         return result
-class IRotatableCircularTuple[T](ICircularTuple[T]):
+class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatableTuple[T]):
+    def __init__(self) -> None: super().__init__()
+class ICircularHashableTuple[T: HashableProtocol](ICircularEquatableTuple[T], IHashableTuple[T]):
+    def __init__(self) -> None: super().__init__()
+
+class ICircularArray[T](IArray[T], ICircularTuple[T]):
+    def __init__(self) -> None: super().__init__()
+class ICircularList[T](IList[T], ICircularArray[T]):
+    def __init__(self) -> None: super().__init__()
+
+class IRotatableTuple[T](ICircularTuple[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def SetStart(self, start: int = 0) -> None:
         ...
-
-class ICircularEquatableTuple[T: EquatableProtocol](ICircularTuple[T], IEquatableTuple[T]):
-    def __init__(self) -> None: super().__init__()
-class IRotatableCircularEquatableTuple[T: EquatableProtocol](ICircularEquatableTuple[T], IRotatableCircularTuple[T]):
+class IRotatableEquatableTuple[T: EquatableProtocol](ICircularEquatableTuple[T], IRotatableTuple[T]):
     def __init__(self) -> None: super().__init__()
 
-class ICircularHashableTuple[T: HashableProtocol](ICircularTuple[T], IHashableTuple[T]):
+class IRotatableArray[T](ICircularArray[T], IRotatableTuple[T]):
     def __init__(self) -> None: super().__init__()
-
-class ICircularArray[T](IArray[T], ICircularTuple[T]):
-    def __init__(self) -> None: super().__init__()
-class IRotatableCircularArray[T](ICircularArray[T], IRotatableCircularTuple[T]):
-    def __init__(self) -> None: super().__init__()
-
-class ICircularList[T](IList[T], ICircularArray[T]):
-    def __init__(self) -> None: super().__init__()
-class IRotatableCircularList[T](ICircularList[T], IRotatableCircularArray[T]):
+class IRotatableList[T](ICircularList[T], IRotatableArray[T]):
     def __init__(self) -> None: super().__init__()
 
 class _ICircular(IInterface):
@@ -70,6 +69,7 @@ class _ICircular(IInterface):
     @abstractmethod
     def _SetStart(self, start: int = 0) -> None:
         ...
+
 class _CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IManagedCollection[TItem], IStringable, _ICircular, GenericConstraint[TList, ITuple[TItem]]):
     """
     Reads a container from a start and wraps around: over (2, 0, 1) with start 1, it reads
@@ -147,7 +147,7 @@ class CircularAbstract[TItem, TList](_CircularAbstract[TItem, TList]):
     
     @final
     def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
-class RotatableCircularAbstract[TItem, TList](_CircularAbstract[TItem, TList], IRotatableCircularTuple[TItem]):
+class RotatableAbstract[TItem, TList](_CircularAbstract[TItem, TList], IRotatableTuple[TItem]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
     
     @final
@@ -174,7 +174,7 @@ class _ReadOnlyCircularBase[TItem, TList](_CircularAbstract[TItem, TList], _Circ
 
 class CircularBase[TItem, TList](CircularAbstract[TItem, TList], _CircularBase[TItem, TList]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
-class RotatableCircularBase[TItem, TList](RotatableCircularAbstract[TItem, TList], _CircularBase[TItem, TList]):
+class RotatableBase[TItem, TList](RotatableAbstract[TItem, TList], _CircularBase[TItem, TList]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
 
 class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintImplementation[ITuple[T]]):
@@ -185,7 +185,7 @@ class CircularTuple[T](CircularBase[T, ITuple[T]], Tuple[T], IGenericConstraintI
     
     @final
     def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(self._GetKey(key))
-class RotatableCircularTuple[T](RotatableCircularBase[T, ITuple[T]], MutableTuple[T], IGenericConstraintImplementation[ITuple[T]]):
+class RotatableTuple[T](RotatableBase[T, ITuple[T]], MutableTuple[T], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T], start: int) -> None:
         def update(func: IFunction[ITuple[T]]) -> None: self.__readOnly = func
         
@@ -212,7 +212,7 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, IEquatableTup
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
-class RotatableCircularEquatableTuple[T: EquatableProtocol](RotatableCircularBase[T, IEquatableTuple[T]], EquatableTuple[T], IRotatableCircularEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
+class RotatableEquatableTuple[T: EquatableProtocol](RotatableBase[T, IEquatableTuple[T]], EquatableTuple[T], IRotatableEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: IEquatableTuple[T], start: int) -> None: super().__init__(items, start)
     
     @final
@@ -243,7 +243,7 @@ class _CircularArrayBase[TItem, TList](ArrayBase[TItem, TList], ICircularArray[T
 
 class CircularArrayBase[TItem, TList](CircularBase[TItem, TList], _CircularArrayBase[TItem, TList]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
-class RotatableCircularArrayBase[TItem, TList](RotatableCircularBase[TItem, TList], _CircularArrayBase[TItem, TList], IRotatableCircularArray[TItem]):
+class RotatableArrayBase[TItem, TList](RotatableBase[TItem, TList], _CircularArrayBase[TItem, TList], IRotatableArray[TItem]):
     def __init__(self, items: TList, start: int) -> None: super().__init__(items, start)
 
 class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
@@ -254,7 +254,7 @@ class CircularArray[T](CircularArrayBase[T, IArray[T]], Array[T], IGenericSpecia
     
     @final
     def SliceAt(self, key: slice) -> IArray[T]: return self._GetContainer().SliceAt(self._GetKey(key))
-class RotatableCircularArray[T](RotatableCircularArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
+class RotatableArray[T](RotatableArrayBase[T, IArray[T]], Array[T], IGenericSpecializedConstraintImplementation[ITuple[T], IArray[T]]):
     def __init__(self, items: IArray[T], start: int) -> None: super().__init__(items, start)
     
     @final
@@ -398,7 +398,7 @@ class CircularList[T](CircularAbstract[T, IList[T]], _CircularList[T], IGenericS
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.Mutable
-class RotatableCircularList[T](RotatableCircularAbstract[T, IList[T]], _CircularList[T], IRotatableCircularList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
+class RotatableList[T](RotatableAbstract[T, IList[T]], _CircularList[T], IRotatableList[T], IGenericSpecializedConstraintImplementation[ITuple[T], IList[T]]):
     def __init__(self, items: IList[T], start: int) -> None: super().__init__(items, start)
     
     @final
