@@ -8,19 +8,24 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder, GetInvalidEnumerationOrderError
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IClearable, Countable
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, ResumableEnumerable, GetResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Generation.Iteration import IIterator, GeneratorAbstract, ConverterBase
-from WinCopies.Collections.Linked.Doubly import IReadOnlyList
+from WinCopies.Collections.Linked.Doubly import IReadOnlyList as _IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList, IListBase, ListNodeBase, ListBase as ListAbstract
 from WinCopies.Collections.Linked.Doubly.Node import INodeCookie, INode, IDoublyLinkedNode as IDoublyLinkedNodeAbstract, IDoublyLinkedNodeBase, IListCookie, NodeBase, DoublyLinkedNodeAbstract, DoublyLinkedNodeBase, DoublyLinkedNode
 from WinCopies.Collections.Linked.Enumeration import TwoWayNodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Collections.Linked.Singly import (ICountableListBase, ICountableCollection, IReadOnlyList as _IReadOnlySinglyLinkedList, IReadOnlyCountableList as _IReadOnlyCountableList, IList as _IList,
+                                                 IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue,
+                                                 IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack,
+                                                 IEnumerableQueue, ICountableEnumerableQueue,
+                                                 IEnumerableStack, ICountableEnumerableStack)
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, NullableSelector, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Generic import IGenericConstraintImplementation, GenericConstraint
+from WinCopies.Typing.Generic import IContainer, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, GenericConstraint, GenericSpecializedConstraint
 
 class IDoublyLinkedNode[T](IDoublyLinkedNodeAbstract[T]):
     def __init__(self) -> None: super().__init__()
@@ -29,16 +34,33 @@ class IDoublyLinkedNode[T](IDoublyLinkedNodeAbstract[T]):
     def GetList(self) -> IList[T]|None:
         ...
 
-class IReadOnlyEnumerableListBase[T](IReadOnlyList[T], IEnumerable[T]):
+class IReadOnlyList[T](_IReadOnlyList[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> IReadOnlyQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IReadOnlyStack[T]:
+        ...
+
+class IReadOnlyEnumerableListBase[T](_IReadOnlyList[T], IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def IsResumable(self) -> bool|None: return True
-class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReversableEnumerable[T]):
+class IReadOnlyEnumerableList[T](IReadOnlyEnumerableListBase[T], IReadOnlyList[T], IReversableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IReadOnlyEnumerableList[T]:
+        ...
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> IReadOnlyEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IReadOnlyEnumerableStack[T]:
         ...
 
 class IReadWriteEnumerableListBase[T](IReadWriteList[T], IReadOnlyEnumerableListBase[T]):
@@ -102,6 +124,13 @@ class IList[T](IEnumerableList[T, IDoublyLinkedNode[T]]):
     def AsReversed(self) -> IList[T]:
         ...
 
+    @abstractmethod
+    def AsQueuedCursor(self) -> IEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IEnumerableStack[T]:
+        ...
+
 class ICountableLinkedListNode[T](INode[T]):
     def __init__(self) -> None: super().__init__()
     
@@ -109,14 +138,28 @@ class ICountableLinkedListNode[T](INode[T]):
     def GetList(self) -> ICountableList[T]|None:
         ...
 
-class IReadOnlyCountableList[T](IReadOnlyList[T], IReversableCountableEnumerable[T]):
+class IReadOnlyCountableList[T](IReadOnlyList[T]):
     def __init__(self) -> None: super().__init__()
 
-class IReadOnlyCountableEnumerableList[T](IReadOnlyCountableList[T], IReadOnlyEnumerableList[T], ICountableEnumerable[T]):
+    @abstractmethod
+    def AsQueuedCursor(self) -> IReadOnlyCountableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IReadOnlyCountableStack[T]:
+        ...
+
+class IReadOnlyCountableEnumerableList[T](IReadOnlyCountableList[T], IReadOnlyEnumerableList[T], IReversableCountableEnumerable[T]):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]:
+        ...
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]:
         ...
 class IReadWriteCountableEnumerableList[T](IReadOnlyCountableEnumerableList[T], IReadWriteEnumerableList[T]):
     def __init__(self) -> None: super().__init__()
@@ -138,6 +181,13 @@ class ICountableList[T](IReadWriteCountableEnumerableList[T], IEnumerableList[T,
     
     @abstractmethod
     def AsReversed(self) -> ICountableList[T]:
+        ...
+
+    @abstractmethod
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]:
+        ...
+    @abstractmethod
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]:
         ...
 
 class _ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyEnumerableListBase[TItem], GenericConstraint[TList, IReadOnlyEnumerableListBase[TItem]]):
@@ -222,9 +272,14 @@ class _ReadOnlyEnumerableList[TItem, TNode: IRemovable](_ReadOnlyEnumerableListA
         
         super().__init__(items)
 
+        self.__cursorProvider: _ReadOnlyCursorProvider[TItem] = _ReadOnlyCursorProvider[TItem](self)
+        
         self.__reversed: IFunction[IReadOnlyEnumerableList[TItem]] = _ReversedReadOnlyListUpdater[TItem, TNode](items, update) # type: ignore[no-redef]
     
     def AsReversed(self) -> IReadOnlyEnumerableList[TItem]: return self.__reversed.GetValue()
+
+    def AsQueuedCursor(self) -> IReadOnlyEnumerableQueue[TItem]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyEnumerableStack[TItem]: return self.__cursorProvider.AsStackedCursor()
 
 @final
 class _EnumerableUpdater[TItem, TNode: IRemovable](ValueFunctionUpdater[IResumableEnumerable[TNode]]):
@@ -669,16 +724,25 @@ class _ReversedReadOnlyListBase[TItem, TNode: IRemovable, TList](_ReversedReadOn
 
 @final
 class _ReversedReadOnlyList[TItem, TNode: IRemovable](_ReversedReadOnlyListBase[TItem, TNode, IEnumerableList[TItem, TNode]]):
-    def __init__(self, items: IEnumerableList[TItem, TNode]) -> None: super().__init__(items)
+    def __init__(self, items: IEnumerableList[TItem, TNode]) -> None:
+        super().__init__(items)
+
+        self.__cursorProvider: _ReadOnlyCursorProvider[TItem] = _ReadOnlyCursorProvider[TItem](self)
     
     def _AsList(self, items: IEnumerableList[TItem, TNode]) -> IEnumerableList[TItem, TNode]:
         return items
     
     def AsReversed(self) -> IReadOnlyEnumerableList[TItem]: return self._GetInnerList()
 
+    def AsQueuedCursor(self) -> IReadOnlyEnumerableQueue[TItem]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyEnumerableStack[TItem]: return self.__cursorProvider.AsStackedCursor()
+
 @final
-class _ReversedReadOnlyCountableListBase[T](_ReversedReadOnlyListBase[T, ICountableLinkedListNode[T], ICountableList[T]]):
-    def __init__(self, items: ICountableList[T]) -> None: super().__init__(items)
+class _ReversedReadOnlyCountableListBase[T](_ReversedReadOnlyListBase[T, ICountableLinkedListNode[T], ICountableList[T]], IReadOnlyCountableEnumerableList[T]):
+    def __init__(self, items: ICountableList[T]) -> None:
+        super().__init__(items)
+
+        self.__cursorProvider: _ReadOnlyCountableCursorProvider[T] = _ReadOnlyCountableCursorProvider[T](self)
     
     def GetCount(self) -> int: return self._GetInnerList().GetCount()
     
@@ -688,6 +752,9 @@ class _ReversedReadOnlyCountableListBase[T](_ReversedReadOnlyListBase[T, ICounta
         return node
     
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self._GetInnerList()
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
     
     def AsSized(self) -> Sized: return self._GetInnerList().AsSized()
 @final
@@ -709,6 +776,9 @@ class _ReversedReadOnlyCountableList[T](Countable, IReadOnlyCountableEnumerableL
     def AsIterable(self) -> Iterable[T]: return self.__items.AsIterable()
     
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self.__items.AsReversed()
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self.__items.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self.__items.AsStackedCursor()
 
 class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_ReversedReadOnlyListAbstract[TItem, TNode, TList], _EnumerableListAbstract[TItem, TNode], IEnumerableList[TItem, TNode]):
     def __init__(self, items: TList) -> None:
@@ -792,7 +862,10 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_Re
 
 @final
 class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IReadOnlyEnumerableList[T], IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]], IList[T], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
-    def __init__(self, items: IList[T]) -> None: super().__init__(items)
+    def __init__(self, items: IList[T]) -> None:
+        super().__init__(items)
+
+        self.__cursorProvider: _CursorProvider[T] = _CursorProvider[T](self)
     
     def _CreateEnumerationCookie(self, cookie: IValueCookie[T, IDoublyLinkedNode[T]]) -> IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]:
         return _ReadOnlyEnumerableListBase[T, IDoublyLinkedNode[T]](self, cookie)
@@ -816,11 +889,16 @@ class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IRea
     
     def AsReversed(self) -> IList[T]: return self._GetInnerList()
     
-    @final
     def AsNodeEnumerable(self) -> IResumableEnumerable[IDoublyLinkedNode[T]]: return self._GetEnumerationCookie().GetNodeEnumerable()
+
+    def AsQueuedCursor(self) -> IEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 @final
-class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T], ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, items: ICountableList[T]) -> None: super().__init__(items)
+class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNode[T], ICountableList[T], IReadOnlyCountableEnumerableList[T], ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]], ICountableList[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
+    def __init__(self, items: ICountableList[T]) -> None:
+        super().__init__(items)
+
+        self.__cursorProvider: _CountableCursorProvider[T] = _CountableCursorProvider[T](self)
     
     def _CreateEnumerationCookie(self, cookie: IValueCookie[T, ICountableLinkedListNode[T]]) -> ICountableEnumerableListCookieAbstract[T, ICountableLinkedListNode[T], IReadOnlyCountableEnumerableList[T]]:
         return _ReadOnlyCountableEnumerableListBase[T](self._GetInnerList(), cookie)
@@ -848,8 +926,10 @@ class _ReversedCountableListBase[T](_ReversedListBase[T, ICountableLinkedListNod
     
     def AsSized(self) -> Sized: return self._GetInnerList().AsSized()
     
-    @final
     def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self._GetEnumerationCookie().GetNodeEnumerable()
+
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 
 @final
 class _ReversedUpdater[T](ValueFunctionUpdater[IList[T]]):
@@ -887,8 +967,277 @@ class _List[T](ListAbstract[T, _Node[T], IDoublyLinkedNode[T]], IGenericConstrai
     def _UnregisterNode(self, node: _Node[T]) -> None:
         return node._Unregister() # pyright: ignore[reportPrivateUsage]
     
-    def AsReadOnly(self) -> IReadOnlyList[T]:
-        return self.__items.AsReadOnly()
+    def AsReadOnly(self) -> IReadOnlyList[T]: return self.__items.AsReadOnly()
+
+class _ReadOnlyCursorBase[TItem, TList](Abstract, _IReadOnlySinglyLinkedList[TItem], Enumerable[TItem], GenericConstraint[TList, IReadOnlyEnumerableList[TItem]]):
+    def __init__(self, items: TList) -> None:
+        super().__init__()
+
+        self.__items: TList = items
+
+    @final
+    def _GetContainer(self) -> TList: return self.__items
+
+    @final
+    def IsEmpty(self) -> bool: return self._GetInnerContainer().IsEmpty()
+
+    @final
+    def TryPeek(self) -> INullable[TItem]: return self._GetInnerContainer().TryGetFirst()
+
+    @final
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return self._GetInnerContainer().TryGetEnumerator()
+
+class _ReadOnlyCursor[T](_ReadOnlyCursorBase[T, IReadOnlyEnumerableList[T]], IGenericConstraintImplementation[IReadOnlyEnumerableList[T]]):
+    def __init__(self, items: IReadOnlyEnumerableList[T]) -> None: super().__init__(items)
+class _ReadOnlyCountableCursor[T](_ReadOnlyCursorBase[T, IReadOnlyCountableEnumerableList[T]], _IReadOnlyCountableList[T], IGenericConstraintImplementation[IReadOnlyCountableEnumerableList[T]]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T]) -> None: super().__init__(items)
+
+    @final
+    def GetCount(self) -> int: return self._GetContainer().GetCount()
+    @final
+    def AsSized(self) -> Sized: return self._GetContainer().AsSized()
+
+@final
+class _ReadOnlyQueuedCursor[T](_ReadOnlyCursor[T], IReadOnlyEnumerableQueue[T]):
+    def __init__(self, items: IReadOnlyEnumerableList[T]) -> None: super().__init__(items)
+@final
+class _ReadOnlyStackedCursor[T](_ReadOnlyCursor[T], IReadOnlyEnumerableStack[T]):
+    def __init__(self, items: IReadOnlyEnumerableList[T]) -> None: super().__init__(items)
+
+@final
+class _ReadOnlyCountableQueuedCursor[T](_ReadOnlyCountableCursor[T], IReadOnlyCountableEnumerableQueue[T]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T]) -> None: super().__init__(items)
+@final
+class _ReadOnlyCountableStackedCursor[T](_ReadOnlyCountableCursor[T], IReadOnlyCountableEnumerableStack[T]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T]) -> None: super().__init__(items)
+
+class _CursorBase[TItem, TList, TReadOnly](_ReadOnlyCursorBase[TItem, TList], _IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
+    def __init__(self, items: TList) -> None:
+        super().__init__(items)
+
+        self.__readOnly: TReadOnly = self._GetAsReadOnly(items)
+
+    @abstractmethod
+    def _GetAsReadOnly(self, items: TList) -> TReadOnly:
+        ...
+
+    @final
+    def TryPop(self) -> INullable[TItem]: return self._GetSpecializedContainer().TryRemoveFirst()
+
+    @final
+    def Clear(self) -> None: return self._GetSpecializedContainer().Clear()
+
+    @final
+    def _AsReadOnly(self) -> TReadOnly: return self.__readOnly
+
+class _Cursor[TItem, TReadOnly](_CursorBase[TItem, IList[TItem], TReadOnly], IGenericSpecializedConstraintImplementation[IReadOnlyEnumerableList[TItem], IList[TItem]]):
+    def __init__(self, items: IList[TItem]) -> None: super().__init__(items)
+class _CountableCursor[TItem, TReadOnly](_CursorBase[TItem, ICountableList[TItem], TReadOnly], IGenericSpecializedConstraintImplementation[IReadOnlyEnumerableList[TItem], ICountableList[TItem]]):
+    def __init__(self, items: ICountableList[TItem]) -> None: super().__init__(items)
+
+class _IQueuedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddLastNode(value)
+    @final
+    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
+class _IStackedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddFirstNode(value)
+    @final
+    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddFirstItems(items)
+    @final
+    def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddFirstItems(items) # TODO: Should add in range
+
+class _ICountableList[T](ICountableListBase[T], ICountableCollection[T], IContainer[ICountableList[T]], IGenericSpecializedConstraintImplementation[IReadOnlyEnumerableList[T], ICountableList[T]]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCountableGenerator(self) -> IFunction[ICountableEnumerable[T]]:
+        ...
+
+    @final
+    def GetCount(self) -> int: return self._GetContainer().GetCount()
+
+    @final
+    def AsCountableGenerator(self) -> ICountableEnumerable[T]: return self._GetCountableGenerator().GetValue()
+
+    @final
+    def AsSized(self) -> Sized: return self._GetContainer().AsSized()
+
+@final
+class _QueuedCursor[T](_Cursor[T, IReadOnlyEnumerableQueue[T]], _IQueuedCursor[T, IList[T]], IEnumerableQueue[T]):
+    def __init__(self, items: IList[T]) -> None: super().__init__(items)
+
+    def _GetAsReadOnly(self, items: IList[T]) -> IReadOnlyEnumerableQueue[T]: return _ReadOnlyQueuedCursor[T](items)
+
+    def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]: return self._AsReadOnly()
+@final
+class _StackedCursor[T](_Cursor[T, IReadOnlyEnumerableStack[T]], _IStackedCursor[T, IList[T]], IEnumerableStack[T]):
+    def __init__(self, items: IList[T]) -> None: super().__init__(items)
+
+    def _GetAsReadOnly(self, items: IList[T]) -> IReadOnlyEnumerableStack[T]: return _ReadOnlyStackedCursor[T](items)
+
+    def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]: return self._AsReadOnly()
+
+@final
+class _CountableQueuedCursor[T](_CountableCursor[T, IReadOnlyCountableEnumerableQueue[T]], _IQueuedCursor[T, ICountableList[T]], _ICountableList[T], ICountableEnumerableQueue[T]):
+    def __init__(self, items: ICountableList[T]) -> None:
+        def update(func: IFunction[ICountableEnumerable[T]]) -> None: self.__generator = func
+
+        super().__init__(items)
+
+        self.__generator: IFunction[ICountableEnumerable[T]] = self._AsCountableGenerator(update) # type: ignore[no-redef]
+
+    def _GetCountableGenerator(self) -> IFunction[ICountableEnumerable[T]]: return self.__generator
+
+    def _GetAsReadOnly(self, items: ICountableList[T]) -> IReadOnlyCountableEnumerableQueue[T]: return _ReadOnlyCountableQueuedCursor[T](items)
+
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[T]: return self._AsReadOnly()
+@final
+class _CountableStackedCursor[T](_CountableCursor[T, IReadOnlyCountableEnumerableStack[T]], _IStackedCursor[T, ICountableList[T]], _ICountableList[T], ICountableEnumerableStack[T]):
+    def __init__(self, items: ICountableList[T]) -> None:
+        def update(func: IFunction[ICountableEnumerable[T]]) -> None: self.__generator = func
+
+        super().__init__(items)
+
+        self.__generator: IFunction[ICountableEnumerable[T]] = self._AsCountableGenerator(update) # type: ignore[no-redef]
+
+    def _GetCountableGenerator(self) -> IFunction[ICountableEnumerable[T]]: return self.__generator
+
+    def _GetAsReadOnly(self, items: ICountableList[T]) -> IReadOnlyCountableEnumerableStack[T]: return _ReadOnlyCountableStackedCursor[T](items)
+
+    def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[T]: return self._AsReadOnly()
+
+class _ReadOnlyCursorUpdaterBase[TIn, TOut](ValueFunctionUpdater[TOut]):
+    def __init__(self, items: TIn, updater: Method[IFunction[TOut]]) -> None:
+        super().__init__(updater)
+
+        self.__items: TIn = items
+
+    @abstractmethod
+    def _CreateCursor(self, items: TIn) -> TOut:
+        ...
+
+    @final
+    def _GetValue(self) -> TOut: return self._CreateCursor(self.__items)
+
+class _ReadOnlyCursorUpdater[TItem, TList](_ReadOnlyCursorUpdaterBase[IReadOnlyEnumerableList[TItem], TList]):
+    def __init__(self, items: IReadOnlyEnumerableList[TItem], updater: Method[IFunction[TList]]) -> None: super().__init__(items, updater)
+class _CursorUpdater[TItem, TList](_ReadOnlyCursorUpdaterBase[IList[TItem], TList]):
+    def __init__(self, items: IList[TItem], updater: Method[IFunction[TList]]) -> None: super().__init__(items, updater)
+
+class _ReadOnlyCountableCursorUpdater[TItem, TList](_ReadOnlyCursorUpdaterBase[IReadOnlyCountableEnumerableList[TItem], TList]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[TItem], updater: Method[IFunction[TList]]) -> None: super().__init__(items, updater)
+class _CountableCursorUpdater[TItem, TList](_ReadOnlyCursorUpdaterBase[ICountableList[TItem], TList]):
+    def __init__(self, items: ICountableList[TItem], updater: Method[IFunction[TList]]) -> None: super().__init__(items, updater)
+
+@final
+class _ReadOnlyQueuedCursorUpdater[T](_ReadOnlyCursorUpdater[T, IReadOnlyEnumerableQueue[T]]):
+    def __init__(self, items: IReadOnlyEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IReadOnlyEnumerableList[T]) -> IReadOnlyEnumerableQueue[T]: return _ReadOnlyQueuedCursor[T](items)
+@final
+class _ReadOnlyStackedCursorUpdater[T](_ReadOnlyCursorUpdater[T, IReadOnlyEnumerableStack[T]]):
+    def __init__(self, items: IReadOnlyEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableStack[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IReadOnlyEnumerableList[T]) -> IReadOnlyEnumerableStack[T]: return _ReadOnlyStackedCursor[T](items)
+
+@final
+class _QueuedCursorUpdater[T](_CursorUpdater[T, IEnumerableQueue[T]]):
+    def __init__(self, items: IList[T], updater: Method[IFunction[IEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IList[T]) -> IEnumerableQueue[T]: return _QueuedCursor[T](items)
+@final
+class _StackedCursorUpdater[T](_CursorUpdater[T, IEnumerableStack[T]]):
+    def __init__(self, items: IList[T], updater: Method[IFunction[IEnumerableStack[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IList[T]) -> IEnumerableStack[T]: return _StackedCursor[T](items)
+
+@final
+class _ReadOnlyCountableQueuedCursorUpdater[T](_ReadOnlyCountableCursorUpdater[T, IReadOnlyCountableEnumerableQueue[T]]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IReadOnlyCountableEnumerableList[T]) -> IReadOnlyCountableEnumerableQueue[T]: return _ReadOnlyCountableQueuedCursor[T](items)
+@final
+class _ReadOnlyCountableStackedCursorUpdater[T](_ReadOnlyCountableCursorUpdater[T, IReadOnlyCountableEnumerableStack[T]]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: IReadOnlyCountableEnumerableList[T]) -> IReadOnlyCountableEnumerableStack[T]: return _ReadOnlyCountableStackedCursor[T](items)
+
+@final
+class _CountableQueuedCursorUpdater[T](_CountableCursorUpdater[T, ICountableEnumerableQueue[T]]):
+    def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: ICountableList[T]) -> ICountableEnumerableQueue[T]: return _CountableQueuedCursor[T](items)
+@final
+class _CountableStackedCursorUpdater[T](_CountableCursorUpdater[T, ICountableEnumerableStack[T]]):
+    def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerableStack[T]]]) -> None: super().__init__(items, updater)
+
+    def _CreateCursor(self, items: ICountableList[T]) -> ICountableEnumerableStack[T]: return _CountableStackedCursor[T](items)
+
+class _ReadOnlyCursorProviderBase[TList, TQueue, TStack](Abstract):
+    def __init__(self, items: TList) -> None:
+        def updateQueued(func: IFunction[TQueue]) -> None: self.__queued = func
+        def updateStacked(func: IFunction[TStack]) -> None: self.__stacked = func
+
+        super().__init__()
+
+        self.__queued: IFunction[TQueue] = self._CreateQueuedCursorUpdater(items, updateQueued) # type: ignore[no-redef]
+        self.__stacked: IFunction[TStack] = self._CreateStackedCursorUpdater(items, updateStacked) # type: ignore[no-redef]
+
+    @abstractmethod
+    def _CreateQueuedCursorUpdater(self, items: TList, updater: Method[IFunction[TQueue]]) -> IFunction[TQueue]:
+        ...
+    @abstractmethod
+    def _CreateStackedCursorUpdater(self, items: TList, updater: Method[IFunction[TStack]]) -> IFunction[TStack]:
+        ...
+
+    @final
+    def AsQueuedCursor(self) -> TQueue:
+        return self.__queued.GetValue()
+    @final
+    def AsStackedCursor(self) -> TStack:
+        return self.__stacked.GetValue()
+
+@final
+class _ReadOnlyCursorProvider[T](_ReadOnlyCursorProviderBase[IReadOnlyEnumerableList[T], IReadOnlyEnumerableQueue[T], IReadOnlyEnumerableStack[T]]):
+    def __init__(self, items: IReadOnlyEnumerableList[T]) -> None: super().__init__(items)
+
+    def _CreateQueuedCursorUpdater(self, items: IReadOnlyEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableQueue[T]]]) -> IFunction[IReadOnlyEnumerableQueue[T]]:
+        return _ReadOnlyQueuedCursorUpdater[T](items, updater)
+    def _CreateStackedCursorUpdater(self, items: IReadOnlyEnumerableList[T], updater: Method[IFunction[IReadOnlyEnumerableStack[T]]]) -> IFunction[IReadOnlyEnumerableStack[T]]:
+        return _ReadOnlyStackedCursorUpdater[T](items, updater)
+@final
+class _ReadOnlyCountableCursorProvider[T](_ReadOnlyCursorProviderBase[IReadOnlyCountableEnumerableList[T], IReadOnlyCountableEnumerableQueue[T], IReadOnlyCountableEnumerableStack[T]]):
+    def __init__(self, items: IReadOnlyCountableEnumerableList[T]) -> None: super().__init__(items)
+
+    def _CreateQueuedCursorUpdater(self, items: IReadOnlyCountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]) -> IFunction[IReadOnlyCountableEnumerableQueue[T]]:
+        return _ReadOnlyCountableQueuedCursorUpdater[T](items, updater)
+    def _CreateStackedCursorUpdater(self, items: IReadOnlyCountableEnumerableList[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]) -> IFunction[IReadOnlyCountableEnumerableStack[T]]:
+        return _ReadOnlyCountableStackedCursorUpdater[T](items, updater)
+
+@final
+class _CursorProvider[T](_ReadOnlyCursorProviderBase[IList[T], IEnumerableQueue[T], IEnumerableStack[T]]):
+    def __init__(self, items: IList[T]) -> None: super().__init__(items)
+
+    def _CreateQueuedCursorUpdater(self, items: IList[T], updater: Method[IFunction[IEnumerableQueue[T]]]) -> IFunction[IEnumerableQueue[T]]:
+        return _QueuedCursorUpdater[T](items, updater)
+    def _CreateStackedCursorUpdater(self, items: IList[T], updater: Method[IFunction[IEnumerableStack[T]]]) -> IFunction[IEnumerableStack[T]]:
+        return _StackedCursorUpdater[T](items, updater)
+@final
+class _CountableCursorProvider[T](_ReadOnlyCursorProviderBase[ICountableList[T], ICountableEnumerableQueue[T], ICountableEnumerableStack[T]]):
+    def __init__(self, items: ICountableList[T]) -> None: super().__init__(items)
+
+    def _CreateQueuedCursorUpdater(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerableQueue[T]]]) -> IFunction[ICountableEnumerableQueue[T]]:
+        return _CountableQueuedCursorUpdater[T](items, updater)
+    def _CreateStackedCursorUpdater(self, items: ICountableList[T], updater: Method[IFunction[ICountableEnumerableStack[T]]]) -> IFunction[ICountableEnumerableStack[T]]:
+        return _CountableStackedCursorUpdater[T](items, updater)
 
 class List[T](ListBase[T, _Node[T]]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
@@ -897,17 +1246,21 @@ class List[T](ListBase[T, _Node[T]]):
         super().__init__(items)
 
         self.__reversed: IFunction[IList[T]] = _ReversedUpdater[T](self, update) # type: ignore[no-redef]
+        self.__cursorProvider: _CursorProvider[T] = _CursorProvider[T](self)
     
     @final
-    def _CreateList(self) -> ListAbstract[T, _Node[T], IDoublyLinkedNode[T]]:
-        return _List[T](self)
+    def _CreateList(self) -> ListAbstract[T, _Node[T], IDoublyLinkedNode[T]]: return _List[T](self)
     
     @final
-    def _GetNodeAsInterface(self, node: IDoublyLinkedNode[T]) -> ILinkedNode[T]:
-        return node
+    def _GetNodeAsInterface(self, node: IDoublyLinkedNode[T]) -> ILinkedNode[T]: return node
     
     @final
     def AsReversed(self) -> IList[T]: return self.__reversed.GetValue()
+
+    @final
+    def AsQueuedCursor(self) -> IEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    @final
+    def AsStackedCursor(self) -> IEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 
 class CountableListProvider[T](Abstract, IClearable):
     def __init__(self) -> None: super().__init__()
@@ -940,6 +1293,7 @@ class _ReadOnlyCountableEnumerableList[T](_ReadOnlyListBase[T, IReadOnlyCountabl
 
         self.__items: CountableEnumerable[T] = CreateCountableEnumerable(items)
         self.__reversed: IFunction[IReadOnlyCountableEnumerableList[T]] = _ReversedReadOnlyCountableListUpdater[T](items, update) # type: ignore[no-redef]
+        self.__cursorProvider: _CountableCursorProvider[T] = _CountableCursorProvider[T](items)
     
     def GetCount(self) -> int: return self._GetContainer().GetCount()
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetContainer().TryGetEnumerator()
@@ -948,6 +1302,9 @@ class _ReadOnlyCountableEnumerableList[T](_ReadOnlyListBase[T, IReadOnlyCountabl
     def AsIterable(self) -> Iterable[T]: return self.__items.AsIterable()
     
     def AsReversed(self) -> IReadOnlyCountableEnumerableList[T]: return self.__reversed.GetValue()
+
+    def AsQueuedCursor(self) -> IReadOnlyCountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> IReadOnlyCountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 
 @final
 class _ReadOnlyCountableUpdater[T](ValueFunctionUpdater[IReadOnlyCountableEnumerableList[T]]):
@@ -1133,6 +1490,9 @@ class _ReversedCountableList[T](CountableEnumerable[T], _EnumerableListAbstract[
 
     def AsNodeGenerator(self, order: EnumerationOrder = EnumerationOrder.FIFO) -> IIterator[ICountableLinkedListNode[T]]: return self.__items.AsNodeGenerator(order)
     def AsGenerator(self, order: EnumerationOrder = EnumerationOrder.FIFO) -> IIterator[T]: return self.__items.AsGenerator(order)
+
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self.__items.AsQueuedCursor()
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self.__items.AsStackedCursor()
 @final
 class _ReversedCountableUpdater[T](ValueFunctionUpdater[ICountableList[T]]):
     def __init__(self, items: ICountableList[T], updater: Method[IFunction[ICountableList[T]]]) -> None:
@@ -1153,6 +1513,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
         super().__init__(values)
 
         self.__reversed: IFunction[ICountableList[T]] = _ReversedCountableUpdater[T](self, update) # type: ignore[no-redef]
+        self.__cursorProvider: _CountableCursorProvider[T] = _CountableCursorProvider[T](self)
     
     def _CreateList(self) -> _CountableInnerListBase[T]:
         return _CountableInnerListBase[T](self.__items, self.__cookie)
@@ -1192,6 +1553,9 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     
     def AsReversed(self) -> ICountableList[T]: return self.__reversed.GetValue()
     def AsSized(self) -> Sized: return self._GetItems().AsSized()
+
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self.__cursorProvider.AsQueuedCursor()
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self.__cursorProvider.AsStackedCursor()
 
 class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     @final
@@ -1265,6 +1629,9 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[ICountableLinkedListNode[T]]|None: return self._GetItems().TryGetResumableNodeEnumerator()
     
     @final
+    def Clear(self) -> None: self._GetItems().Clear()
+    
+    @final
     def AsNodeEnumerable(self) -> IResumableCountableEnumerable[ICountableLinkedListNode[T]]: return self._GetItems().AsNodeEnumerable()
     
     @final
@@ -1274,9 +1641,11 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     
     @final
     def AsReversed(self) -> ICountableList[T]: return self._GetItems().AsReversed()
-    
+
     @final
-    def Clear(self) -> None: self._GetItems().Clear()
+    def AsQueuedCursor(self) -> ICountableEnumerableQueue[T]: return self._GetItems().AsQueuedCursor()
+    @final
+    def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self._GetItems().AsStackedCursor()
 
 class DoublyLinkedNodeEnumerator[T](TwoWayNodeEnumeratorBase[IDoublyLinkedNode[T]]):
     def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)

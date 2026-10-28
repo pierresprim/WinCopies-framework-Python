@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable, Sized
-from typing import final
+from typing import final, overload
 
 from WinCopies import Abstract
 from WinCopies.Collections import EnumerationOrder
@@ -156,10 +156,16 @@ class StackBase[TItems, TList](LinkedListBase[TItems, TList], IStack[TItems]):
     @final
     def PushRange(self, items: Iterable[TItems]) -> None: self._GetInnerContainer().AddFirstItems(items)
 
-def _GetRWList[T](l: IReadWriteList[T]|None) -> IReadWriteList[T]:
-    return List[T]() if l is None else l
+@overload
 def _GetList[T](l: IDoublyLinkedList[T]|None) -> IDoublyLinkedList[T]:
+    ...
+@overload
+def _GetList[T](l: IReadWriteList[T]|None) -> IReadWriteList[T]:
+    ...
+
+def _GetList[T](l: IDoublyLinkedList[T]|IReadWriteList[T]|None) -> IDoublyLinkedList[T]|IReadWriteList[T]:
     return List[T]() if l is None else l
+
 def _GetCountableList[T](l: ICountableDoublyLinkedList[T]|None) -> ICountableDoublyLinkedList[T]:
     return CountableList[T]() if l is None else l
 
@@ -201,7 +207,7 @@ class LinkedList[T](AbstractList[T, IReadWriteList[T]], _ReadOnlyList[T], IGener
     def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__updater = func
 
-        super().__init__(_GetRWList(l))
+        super().__init__(_GetList(l))
 
         self.__updater: IFunction[IReadOnlyList[T]] = _ReadOnlyLinkedListUpdater[T](self, update) # type: ignore[no-redef]
     
@@ -392,7 +398,7 @@ class Queue[T](QueueBase[T, IReadWriteList[T]], IGenericConstraintImplementation
     def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyQueue[T]]) -> None: self.__updater = func
         
-        super().__init__(_GetRWList(l))
+        super().__init__(_GetList(l))
         
         self.__updater: IFunction[IReadOnlyQueue[T]] = _QueueUpdater[T](self, update) # type: ignore[no-redef]
     
@@ -402,7 +408,7 @@ class Stack[T](StackBase[T, IReadWriteList[T]], IGenericConstraintImplementation
     def __init__(self, l: IReadWriteList[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyStack[T]]) -> None: self.__updater = func
         
-        super().__init__(_GetRWList(l))
+        super().__init__(_GetList(l))
         
         self.__updater: IFunction[IReadOnlyStack[T]] = _StackUpdater[T](self, update) # type: ignore[no-redef]
     
