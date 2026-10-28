@@ -7,7 +7,6 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly.Node import INode
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List
-from WinCopies.Collections.Abstraction.Linked import EnumerableQueue
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Monitoring import IWorker, IMonitor, Monitor
 
@@ -148,7 +147,7 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         super().__init__()
 
         self.__cookies: IList[EventHandler[TSender, TArgs]] = List[EventHandler[TSender, TArgs]]()
-        self.__events = EnumerableQueue[EventHandler[TSender, TArgs]](self.__cookies)
+        self.__events: IEnumerableList[EventHandler[TSender, TArgs]] = self.__cookies.AsQueuedCursor()
     
     @final
     def _GetEvents(self) -> IEnumerableList[EventHandler[TSender, TArgs]]:

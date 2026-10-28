@@ -17,7 +17,6 @@ from collections.abc import Callable, Iterable, Iterator
 from typing import Any, cast
 from unittest import mock
 
-import WinCopies.Collections.Abstraction.Linked as AbstractionLinked
 import WinCopies.Collections.Linked.Singly as Singly
 import WinCopies.Collections.Linked.Singly.Buffer as Buffer
 
@@ -106,7 +105,7 @@ _FAMILIES: ReadOnlyArray[tuple[str, _Factory, _Factory]] = (
     ("Linked.Singly.Buffer",               lambda: Buffer.CreateBufferedStack([9]),                     lambda: Buffer.CreateBufferedQueue([9])),
     ("Linked.Singly.Buffer, countable",    lambda: Buffer.CreateCountableEnumerableBufferedStack([9]),  lambda: Buffer.CreateCountableEnumerableBufferedQueue([9])),
     ("Linked.Singly.Priority",             lambda: _prioritised(PriorityStack[int]()),                  lambda: _prioritised(PriorityQueue[int]())),
-    ("Abstraction.Linked",                 lambda: AbstractionLinked.Stack[int](CreateDoublyList([9])), lambda: AbstractionLinked.Queue[int](CreateDoublyList([9]))),
+    ("Abstraction.Linked",                 lambda: CreateDoublyList([9]).AsStackedCursor(), lambda: CreateDoublyList([9]).AsQueuedCursor()),
     ("Abstract.Linked over Linked.Singly", lambda: _ShiftedSinglyLinkedList(Singly.CreateStack([-1])), lambda: _ShiftedSinglyLinkedList(Singly.CreateQueue([-1]))))
 """Every family of stacks and queues at hand, each holding 9 alone: its stack, then its queue. The
 converting families hold -1 and read it as 9."""
