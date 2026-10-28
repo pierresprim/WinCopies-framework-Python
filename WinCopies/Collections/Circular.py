@@ -12,7 +12,7 @@ from WinCopies.Collections.Extensions.Collection import (IManagedCollection,
                                                          TupleAbstract, TupleBase,
                                                          ArrayBase,
                                                          Tuple, EquatableTuple, HashableTuple,
-                                                         MutableTuple,
+                                                         MutableTuple, MutableEquatableTuple,
                                                          Array, List)
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack, ICountableEnumerableQueue, ICountableEnumerableStack
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
@@ -462,11 +462,17 @@ class CircularEquatableTuple[T: EquatableProtocol](CircularBase[T, IEquatableTup
     def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(self._GetKey(key))
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
-class RotatableEquatableTuple[T: EquatableProtocol](RotatableBase[T, IEquatableTuple[T]], EquatableTuple[T], IRotatableEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
+class RotatableEquatableTuple[T: EquatableProtocol](RotatableBase[T, IEquatableTuple[T]], MutableEquatableTuple[T], IRotatableEquatableTuple[T], IGenericConstraintImplementation[IEquatableTuple[T]]):
     def __init__(self, items: ICircularEquatableTuple[T], start: int) -> None:
+        def update(func: IFunction[IEquatableTuple[T]]) -> None: self.__readOnly = func
+        
         super().__init__(items, start)
         
+        self.__readOnly: IFunction[IEquatableTuple[T]] = self._CreateReadOnlyUpdater(update) # type: ignore[no-redef]
         self.__circular: ICircularEquatableTuple[T] = _CircularEquatableTuple[T](self, self._GetContainer())
+    
+    @final
+    def _AsReadOnly(self) -> IFunction[IEquatableTuple[T]]: return self.__readOnly
     
     @final
     def GetMutability(self) -> Mutability: return Mutability.FixedSize
