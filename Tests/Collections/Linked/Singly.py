@@ -105,7 +105,7 @@ _FAMILIES: ReadOnlyArray[tuple[str, _Factory, _Factory]] = (
     ("Linked.Singly.Buffer",               lambda: Buffer.CreateBufferedStack([9]),                     lambda: Buffer.CreateBufferedQueue([9])),
     ("Linked.Singly.Buffer, countable",    lambda: Buffer.CreateCountableEnumerableBufferedStack([9]),  lambda: Buffer.CreateCountableEnumerableBufferedQueue([9])),
     ("Linked.Singly.Priority",             lambda: _prioritised(PriorityStack[int]()),                  lambda: _prioritised(PriorityQueue[int]())),
-    ("Abstraction.Linked",                 lambda: CreateDoublyList([9]).AsStackedCursor(), lambda: CreateDoublyList([9]).AsQueuedCursor()),
+    ("Linked.Doubly cursor",               lambda: CreateDoublyList([9]).AsStackedCursor(),             lambda: CreateDoublyList([9]).AsQueuedCursor()),
     ("Abstract.Linked over Linked.Singly", lambda: _ShiftedSinglyLinkedList(Singly.CreateStack([-1])), lambda: _ShiftedSinglyLinkedList(Singly.CreateQueue([-1]))))
 """Every family of stacks and queues at hand, each holding 9 alone: its stack, then its queue. The
 converting families hold -1 and read it as 9."""
@@ -438,12 +438,16 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         method does nothing when it is called: Abstraction.Linked.StackBase did not define it, and
         its PushItems laid the items as a block, through AddFirstItems; nor did
         Abstract.Linked.SinglyLinkedListBase, which carries the wrappers' pushes. Each is rebuilt
-        alone."""
+        alone. Abstraction.Linked is gone since 2131975: the doubly linked stack is now the stacked
+        cursor of the doubly linked list, and the class that carries its pushes is reached through
+        that cursor."""
 
-        def block(self: Any, items: Iterable[Any]) -> None: self._GetInnerContainer().AddFirstItems(items)
+        def block(self: Any, items: Iterable[Any]) -> None: self._GetSpecializedContainer().AddFirstItems(items)
         def nothing(self: Any, items: Iterable[Any]) -> None: return None
 
-        for base, target, rebuilt in (("Abstraction.Linked.StackBase", AbstractionLinked.StackBase, {"PushItems": block, "PushRange": nothing}),
+        doubly: type = next(cls for cls in type(CreateDoublyList([9]).AsStackedCursor()).__mro__ if "PushRange" in vars(cls))
+
+        for base, target, rebuilt in (("the doubly linked stacked cursor", doubly, {"PushItems": block, "PushRange": nothing}),
                                       ("Abstract.Linked.SinglyLinkedListBase", SinglyLinkedListBase, {"PushRange": nothing})):
             with self.subTest(base = base):
                 self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_items_one_by_one_and_a_range_as_a_block", target, rebuilt)
