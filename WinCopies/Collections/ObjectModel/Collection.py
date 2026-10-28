@@ -98,7 +98,7 @@ class CollectionBase[TItem, TList](CollectionAbstractor[TItem], GenericConstrain
         self._GetInnerContainer().Clear()
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
 
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors: return self._GetInnerContainer().GetCollectionMonitors()
@@ -311,7 +311,7 @@ class _ReadOnlyObservableCollectionBase[TItem, TList](SequenceAbstract[TItem], I
     def _GetCursorProvider(self) -> IFunction[IReadOnlyLinkedCursorProvider[TItem]]: return self.__cursorProvider
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def GetCount(self) -> int: return self._GetInnerContainer().GetCount()

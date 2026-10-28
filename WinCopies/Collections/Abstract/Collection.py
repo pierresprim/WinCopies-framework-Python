@@ -391,7 +391,7 @@ class Tuple[TIn, TOut](TupleCollectionBase[TOut], TupleBase[TIn, TOut, ITuple[TI
     def _GetContainer(self) -> ITuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self.__items.GetSourceMutability()
 
     @final
     def AsReadOnly(self) -> ITuple[TOut]: return self
@@ -420,7 +420,7 @@ class EquatableTuple[TIn: EquatableProtocol, TOut: EquatableProtocol](EquatableT
     def _GetContainer(self) -> IEquatableTuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self.__items.GetSourceMutability()
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
     
@@ -448,7 +448,7 @@ class HashableTuple[TIn: HashableProtocol, TOut: HashableProtocol](HashableTuple
     def _GetContainer(self) -> IHashableTuple[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self.__items.GetSourceMutability()
     
     def Equals(self, item: object) -> bool: return AreTuplesEqual(self, item)
     def Hash(self) -> int: return GetTupleHash(self)
@@ -513,7 +513,7 @@ class Array[TIn, TOut](ArrayBase[TIn, TOut, IArray[TIn]], ArrayList[TOut], _IRea
     def _GetContainer(self) -> IArray[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self.__items.GetSourceMutability()
     
     @final
     def SliceAt(self, key: slice) -> IArray[TOut]: return self._Clone(self._GetContainer().SliceAt(key))
@@ -544,7 +544,7 @@ class List[TIn, TOut](ArrayAbstract[TIn, TOut, IList[TIn]], CollectionBase[TOut]
     def _GetContainer(self) -> IList[TIn]: return self.__items
     
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self.__items.GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self.__items.GetSourceMutability()
     
     @final
     def SliceAt(self, key: slice) -> IList[TOut]: return self._Clone(self._GetContainer().SliceAt(key))

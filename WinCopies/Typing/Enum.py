@@ -7,7 +7,7 @@ from enum import (_EnumDict, # pyright: ignore[reportPrivateUsage]
                   Enum, Flag,
                   IntEnum as _IntEnum, StrEnum as _StrEnum)
 from types import DynamicClassAttribute
-from typing import final, Any, Generic, Self, Type, TypeVar, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, final, Any, Generic, Self, Type, TypeVar, cast
 
 from WinCopies import IInterface
 from WinCopies.Collections import ReadOnlyArray

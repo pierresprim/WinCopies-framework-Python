@@ -83,11 +83,9 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
         adder: Converter[T, IReadWriteTwoWayLinkedNode[T]]|None = None
 
         def add(item: T) -> IReadWriteTwoWayLinkedNode[T]:
-            def add(item: T) -> IReadWriteTwoWayLinkedNode[T]: return node.SetNext(item)
-
             nonlocal adder
 
-            adder = add
+            adder = lambda item: node.SetNext(item)
 
             return first(item)
         

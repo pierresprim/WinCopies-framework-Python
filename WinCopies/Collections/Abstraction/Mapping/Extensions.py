@@ -195,7 +195,7 @@ class _ReadOnlyOrderedSetTupleBase[TItem: HashableProtocol, TCollection](Sequenc
     @final
     def GetMutability(self) -> Mutability: return Mutability.ReadOnly
     @final
-    def TryGetSourceMutability(self) -> Mutability|None: return self._GetInnerContainer().GetSourceMutability()
+    def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
     
     @final
     def GetCount(self) -> int: return self._GetInnerContainer().GetCount()

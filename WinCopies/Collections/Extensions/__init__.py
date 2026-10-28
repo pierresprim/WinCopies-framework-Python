@@ -124,7 +124,7 @@ class _IMutableSequence[T](IMutableSequence[T]):
         ...
 
     @abstractmethod
-    def _Reverse(self) -> None:
+    def _Reverse(self) -> None: # TODO: Should be part of public API and available for arrays and lists
         ...
 
 class Sequence[T](ReadOnlySequence[T], ISequence[T]):
