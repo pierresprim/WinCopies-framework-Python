@@ -1041,7 +1041,7 @@ class _IQueuedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[T
     @final
     def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddLastNode(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items)
+    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
     @final
     def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
 class _IStackedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
@@ -1050,7 +1050,10 @@ class _IStackedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[
     @final
     def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddFirstNode(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddFirstItems(items)
+    def PushItems(self, items: Iterable[TItem]) -> None:
+        container: IReadWriteEnumerableList[TItem] = self._GetSpecializedContainer()
+
+        for item in items: container.AddFirstNode(item) # TODO: Should add in range
     @final
     def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddFirstItems(items) # TODO: Should add in range
 

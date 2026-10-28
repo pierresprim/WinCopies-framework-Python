@@ -101,6 +101,7 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
     @final
     def AddFirstValues(self, *values: T) -> bool:
         return self.AddFirstItems(values)
+    
     @final
     def AddLastItems(self, items: Iterable[T]|None) -> bool:
         return self.__AddItems(items, self.AddLastNode)

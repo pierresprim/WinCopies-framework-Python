@@ -913,7 +913,7 @@ class CountableList[TItem, TList](ICountableList[TItem], GenericConstraint[TList
     @final
     def Push(self, value: TItem) -> None: self._GetInnerContainer().Push(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: return self._GetInnerContainer().PushItems(items)
+    def PushItems(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushItems(items)
     @final
     def PushRange(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushRange(items)
     
