@@ -1,7 +1,7 @@
 from typing import final
 
 from WinCopies.Collections.Core import IAbstractionWriteOnlyIndexable
-from WinCopies.Collections.Extensions import ITuple, ISortedTuple, IArray, SequenceAbstract, GetViewString
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, ISortedTuple, IArray, SequenceAbstract, GetViewString
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import EqualityComparison
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
@@ -37,7 +37,12 @@ class ReadOnlyCollection[T](ReadOnlyCollectionBase[T, ITuple[T]], IGenericConstr
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
     
     @final
-    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetInnerContainer().SliceAt(key)
+    def SliceAt(self, key: slice) -> ITuple[T]: return self._GetContainer().SliceAt(key)
+class ReadOnlyEquatableCollection[T](ReadOnlyCollectionBase[T, IEquatableTuple[T]], IGenericConstraintImplementation[IEquatableTuple[T]]):
+    def __init__(self, items: IEquatableTuple[T]) -> None: super().__init__(items)
+    
+    @final
+    def SliceAt(self, key: slice) -> IEquatableTuple[T]: return self._GetContainer().SliceAt(key)
 
 class SortedCollection[T: SupportsEqualityAndRichComparison](ReadOnlyCollectionBase[T, ISortedTuple[T]], ISortedTuple[T], IGenericConstraintImplementation[ISortedTuple[T]]):
     def __init__(self, items: ISortedTuple[T]) -> None: super().__init__(items)
