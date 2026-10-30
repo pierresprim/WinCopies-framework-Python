@@ -238,7 +238,7 @@ class IItemRegistryBase[T](IRegistryBase[T, T]):
     @abstractmethod
     def TryGetFirstNode(self) -> ILinkedNode[T]|None:
         ...
-class IItemRegistry[T: IObjectMonitor](IItemRegistryBase[T], IRegistryBase[T, T]):
+class IItemRegistry[T: IObjectMonitor](IItemRegistryBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
