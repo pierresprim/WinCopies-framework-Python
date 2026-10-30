@@ -5,7 +5,7 @@ from collections.abc import Iterable, Sized
 from typing import final, Self as SelfType
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections import EnumerationOrder, GetInvalidEnumerationOrderError
+from WinCopies.Collections import EnumerationOrder, ThrowInvalidEnumerationOrderError
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IClearable, Countable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
@@ -17,14 +17,14 @@ from WinCopies.Collections.Linked.Doubly import IReadOnlyList as _IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList, IListBase, ListNodeBase, ListBase as ListAbstract
 from WinCopies.Collections.Linked.Doubly.Node import INodeCookie, INode, IDoublyLinkedNode as IDoublyLinkedNodeAbstract, IDoublyLinkedNodeBase, IListCookie, NodeBase, DoublyLinkedNodeAbstract, DoublyLinkedNodeBase, DoublyLinkedNode
 from WinCopies.Collections.Linked.Enumeration import ITwoWayNodeEnumerator, TwoWayNodeEnumeratorBase, GetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import ILinkedNode, ITwoWayNode
+from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Collections.Linked.Singly import (ICountableListBase, ICountableCollection, IReadOnlyList as _IReadOnlySinglyLinkedList, IReadOnlyCountableList as _IReadOnlyCountableList, IList as _IList,
                                                  IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue,
                                                  IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack,
                                                  IEnumerableQueue, ICountableEnumerableQueue,
                                                  IEnumerableStack, ICountableEnumerableStack)
 from WinCopies.Typing import INullable
-from WinCopies.Typing.Delegate import Method, NullableSelector, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IContainer, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, GenericConstraint, GenericSpecializedConstraint
 
 class IDoublyLinkedNode[T](IDoublyLinkedNodeAbstract[T]):
@@ -646,14 +646,14 @@ class EnumerableList[TItem, TNode, TNodeInterface: IRemovable, TList](Enumerable
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetNodeGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsNodeGenerator()
 
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
     @final
     def AsGenerator(self, order: EnumerationOrder = EnumerationOrder.FIFO) -> IIterator[TItem]:
         match order:
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsGenerator()
 
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
 
 class ListBase[TItem, TNode](EnumerableList[TItem, TNode, IDoublyLinkedNode[TItem], ListAbstract[TItem, TNode, IDoublyLinkedNode[TItem]]], IList[TItem], IGenericConstraintImplementation[IDoublyLinkedNode[TItem]]):
     def __init__(self, items: Iterable[TItem]|None) -> None: super().__init__(items)
@@ -851,14 +851,14 @@ class _ReversedListBase[TItem, TNode: IRemovable, TList, TReadOnly, TCookie](_Re
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetNodeGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsNodeGenerator()
         
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
     @final
     def AsGenerator(self, order: EnumerationOrder = EnumerationOrder.FIFO) -> IIterator[TItem]:
         match order:
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsGenerator()
         
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
 
 @final
 class _ReversedList[T](_ReversedListBase[T, IDoublyLinkedNode[T], IList[T], IReadOnlyEnumerableList[T], IEnumerableListCookieAbstract[T, IDoublyLinkedNode[T], IReadOnlyEnumerableList[T]]], IList[T], IGenericConstraintImplementation[IDoublyLinkedNode[T]]):
@@ -1545,14 +1545,14 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetNodeGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsNodeGenerator()
         
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
     @final
     def AsGenerator(self, order: EnumerationOrder = EnumerationOrder.FIFO) -> IIterator[T]:
         match order:
             case EnumerationOrder.FIFO: return self._GetInnerCookie().GetGenerator()
             case EnumerationOrder.LIFO: return self.AsReversed().AsGenerator()
         
-            case _: raise GetInvalidEnumerationOrderError(order)
+            case _: ThrowInvalidEnumerationOrderError(order)
     
     def AsReversed(self) -> ICountableList[T]: return self.__reversed.GetValue()
     def AsSized(self) -> Sized: return self._GetItems().AsSized()
@@ -1655,32 +1655,14 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     @final
     def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self._GetItems().AsStackedCursor()
 
-class INodeEnumerator[T: ITwoWayNode](ITwoWayNodeEnumerator[T]):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def _GetPrevious(self, node: T) -> T|None:
-        ...
-    @abstractmethod
-    def _GetNext(self, node: T) -> T|None:
-        ...
-
-    @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[T]:
-        match order:
-            case EnumerationOrder.FIFO: return lambda node: self._GetNext(node)
-            case EnumerationOrder.LIFO: return lambda node: self._GetPrevious(node)
-            
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
-
-class IDoublyLinkedNodeEnumerator[T](INodeEnumerator[IDoublyLinkedNode[T]]):
+class IDoublyLinkedNodeEnumerator[T](ITwoWayNodeEnumerator[IDoublyLinkedNode[T]]):
     def __init__(self) -> None: super().__init__()
     
     @final
     def _GetPrevious(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None: return node.GetPrevious()
     @final
     def _GetNext(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None: return node.GetNext()
-class ICountableLinkedListNodeEnumerator[T](INodeEnumerator[ICountableLinkedListNode[T]]):
+class ICountableLinkedListNodeEnumerator[T](ITwoWayNodeEnumerator[ICountableLinkedListNode[T]]):
     def __init__(self) -> None: super().__init__()
     
     @final

@@ -15,8 +15,8 @@ from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, INode, NodeBase, DoublyLinkedNodeBase
 from WinCopies.Collections.Linked.Doubly.Welded import IEnumerableListBase, EnumerableListBase
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase
-from WinCopies.Typing.Delegate import IFunction, Method, NullableSelector, ValueFunctionUpdater
+from WinCopies.Collections.Linked.Enumeration import ITwoWayNodeEnumerator, NodeEnumeratorBase
+from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class ITreeNode[T](INode[T]):
@@ -191,13 +191,10 @@ class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:
         return node.GetNext()
-class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]]):
+class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]], ITwoWayNodeEnumerator[ITreeNode[T]]):
     def __init__(self, node: ITreeNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ITreeNode[T]]:
-        match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
-            
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
+    def _GetPrevious(self, node: ITreeNode[T]) -> ITreeNode[T]|None: return node.GetPrevious()
+    @final
+    def _GetNext(self, node: ITreeNode[T]) -> ITreeNode[T]|None: return node.GetNext()
