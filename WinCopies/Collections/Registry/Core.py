@@ -39,6 +39,7 @@ class WeakReferenceRegistry[T: IInvalidatable](_WeakReferenceRegistry[T], IWeakR
     @final
     def InvalidateObjects(self, action: Action|None = None) -> None:
         if self._GetItems().HasItems(): _DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), action)
+        elif action is not None: action()
 class ItemRegistry[T: IObjectMonitor](_ItemRegistry[T], IItemRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
