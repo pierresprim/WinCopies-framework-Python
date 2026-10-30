@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import overload, final
 
-from WinCopies.Collections import Generator, EnumerationOrder
+from WinCopies.Collections import Generator, EnumerationOrder, ThrowInvalidEnumerationOrderError
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerator, AsEnumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import INode, ITwoWayNode, ILinkedNode, ITwoWayLinkedNode
@@ -20,7 +20,7 @@ class NodeEnumeratorBase[T: INode](Enumerator[T]):
     
     @abstractmethod
     def _GetNextNode(self, node: T) -> T|None:
-        pass
+        ...
     
     @final
     def __MoveNext(self) -> bool:
@@ -67,8 +67,7 @@ class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]]):
     def __init__(self, node: ILinkedNode[T]) -> None: super().__init__(node)
     
     @final
-    def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None:
-        return node.GetNext()
+    def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None: return node.GetNext()
 
 class ITwoWayNodeEnumerator[T: ITwoWayNode](IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -76,6 +75,13 @@ class ITwoWayNodeEnumerator[T: ITwoWayNode](IEnumerator[T]):
     @abstractmethod
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[T]:
         ...
+class ITwoWayLinkedNodeEnumerator[T](ITwoWayNodeEnumerator[ITwoWayLinkedNode[T]]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _GetPrevious(self, node: ITwoWayLinkedNode[T]) -> ITwoWayLinkedNode[T]|None: return node.GetPrevious()
+    @final
+    def _GetNext(self, node: ITwoWayLinkedNode[T]) -> ITwoWayLinkedNode[T]|None: return node.GetNext()
 
 class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorBase[T], ITwoWayNodeEnumerator[T]):
     def __init__(self, node: T, order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
@@ -84,18 +90,17 @@ class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorBase[T], ITwoWayNod
         self.__getNext: NullableSelector[T] = self._GetNodeConverter(order)
     
     @final
-    def _GetNextNode(self, node: T) -> T|None:
-        return self.__getNext(node)
-class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]]):
+    def _GetNextNode(self, node: T) -> T|None: return self.__getNext(node)
+class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]], ITwoWayLinkedNodeEnumerator[T]):
     def __init__(self, node: ITwoWayLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ITwoWayLinkedNode[T]]:
         match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return self._GetNext
+            case EnumerationOrder.LIFO: return self._GetPrevious
             
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
+            case _: ThrowInvalidEnumerationOrderError(order)
 
 def GetValueIterator[T](nodeEnumerator: NodeEnumerator[T]|TwoWayNodeEnumerator[T]) -> Generator[T]:
     return Select(nodeEnumerator, lambda node: node.GetValue())
