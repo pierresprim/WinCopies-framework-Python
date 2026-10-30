@@ -8,7 +8,7 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Iteration import Generate, Iterate
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
-from WinCopies.Collections.Registry.Kernel import IRegistry, IWeakReferenceRegistry as _IWeakReferenceRegistry, IItemRegistry as _IItemRegistry, Registry, WeakReferenceRegistry as _WeakReferenceRegistry, ItemRegistry as _ItemRegistry
+from WinCopies.Collections.Registry.Kernel import IRegistry as _IRegistry, IWeakReferenceRegistry as _IWeakReferenceRegistry, IItemRegistry as _IItemRegistry, Registry as _Registry, WeakReferenceRegistry as _WeakReferenceRegistry, ItemRegistry as _ItemRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Delegates import NoAction, GetActionAsMethod
@@ -19,18 +19,18 @@ from WinCopies.Typing.Object import IWeakReferenceRegister, CreateWeakReferenceR
 def _DoForEachItem[T](items: Generator[T], method: Method[T], action: Action|None) -> None:
     DoForEachItem(items, method, True if action is None else GetActionAsMethod(action))
 
-class IRegistryBase[TIn, TOut](IRegistry[TIn, TOut]):
+class IRegistry[TIn, TOut](_IRegistry[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def InvalidateObjects(self, action: Action|None = None) -> None:
         ...
-class RegistryBase[TIn, TItem, TOut](Registry[TIn, TItem, TOut], IRegistryBase[TIn, TOut]):
+class Registry[TIn, TItem, TOut](_Registry[TIn, TItem, TOut], IRegistry[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
 
-class IWeakReferenceRegistry[T: IInvalidatable](_IWeakReferenceRegistry[T], IRegistryBase[IWeakReferenceRegister[T], T]):
+class IWeakReferenceRegistry[T: IInvalidatable](_IWeakReferenceRegistry[T], IRegistry[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
-class IItemRegistry[T: IObjectMonitor](_IItemRegistry[T], IRegistryBase[T, T]):
+class IItemRegistry[T: IObjectMonitor](_IItemRegistry[T], IRegistry[T, T]):
     def __init__(self) -> None: super().__init__()
 
 class WeakReferenceRegistry[T: IInvalidatable](_WeakReferenceRegistry[T], IWeakReferenceRegistry[T]):
