@@ -257,7 +257,7 @@ class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut])
 class RegistryBase[TIn, TItem, TOut](RegistryAbstract[TIn, TItem, TOut], IRegistryBase[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
 
-class WeakReferenceRegistryBase[T: IInvalidatable](RegistryAbstract[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
+class WeakReferenceRegistry[T: IInvalidatable](RegistryAbstract[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__readOnly = func
         
@@ -276,7 +276,7 @@ class WeakReferenceRegistryBase[T: IInvalidatable](RegistryAbstract[IWeakReferen
 
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
-class ItemRegistryBase[T](RegistryAbstract[T, T, T], IItemRegistryBase[T]):
+class ItemRegistry[T](RegistryAbstract[T, T, T], IItemRegistryBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @final

@@ -8,7 +8,7 @@ from WinCopies.Collections import Generator
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Iteration import Generate, Iterate
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
-from WinCopies.Collections.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, WeakReferenceRegistryBase, ItemRegistryBase
+from WinCopies.Collections.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, WeakReferenceRegistry as _WeakReferenceRegistry, ItemRegistry as _ItemRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Delegates import NoAction, GetActionAsMethod
@@ -19,13 +19,13 @@ from WinCopies.Typing.Object import IWeakReferenceRegister, CreateWeakReferenceR
 def _DoForEachItem[T](items: Generator[T], method: Method[T], action: Action|None) -> None:
     DoForEachItem(items, method, True if action is None else GetActionAsMethod(action))
 
-class WeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistryBase[T], IWeakReferenceRegistry[T]):
+class WeakReferenceRegistry[T: IInvalidatable](_WeakReferenceRegistry[T], IWeakReferenceRegistry[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
     def InvalidateObjects(self, action: Action|None = None) -> None:
         if self._GetItems().HasItems(): _DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), action)
-class ItemRegistry[T: IObjectMonitor](ItemRegistryBase[T], IItemRegistry[T]):
+class ItemRegistry[T: IObjectMonitor](_ItemRegistry[T], IItemRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
