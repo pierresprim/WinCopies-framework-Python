@@ -155,8 +155,9 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     def __Register(self, item: T) -> IRemovable:
         def register(item: T) -> IRemovable: return self.__items.Push(item)
         def finalize() -> None:
-            self.__registerItem = self.__Register
-            self.__invalidateObjects = NoAction
+            if self._GetItems().IsEmpty():
+                self.__registerItem = self.__Register
+                self.__invalidateObjects = NoAction
         
         self.__registerItem = register
         self.__invalidateObjects = lambda: self.__items.InvalidateObjects(finalize)
