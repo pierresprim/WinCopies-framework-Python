@@ -16,8 +16,8 @@ from WinCopies.Collections.Generation.Iteration import IIterator, GeneratorAbstr
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList as _IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList, IListBase, ListNodeBase, ListBase as ListAbstract
 from WinCopies.Collections.Linked.Doubly.Node import INodeCookie, INode, IDoublyLinkedNode as IDoublyLinkedNodeAbstract, IDoublyLinkedNodeBase, IListCookie, NodeBase, DoublyLinkedNodeAbstract, DoublyLinkedNodeBase, DoublyLinkedNode
-from WinCopies.Collections.Linked.Enumeration import TwoWayNodeEnumeratorBase, GetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import ILinkedNode
+from WinCopies.Collections.Linked.Enumeration import ITwoWayNodeEnumerator, TwoWayNodeEnumeratorBase, GetValueEnumeratorFromNode
+from WinCopies.Collections.Linked.Node import ILinkedNode, ITwoWayNode
 from WinCopies.Collections.Linked.Singly import (ICountableListBase, ICountableCollection, IReadOnlyList as _IReadOnlySinglyLinkedList, IReadOnlyCountableList as _IReadOnlyCountableList, IList as _IList,
                                                  IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue,
                                                  IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack,
@@ -1655,47 +1655,48 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     @final
     def AsStackedCursor(self) -> ICountableEnumerableStack[T]: return self._GetItems().AsStackedCursor()
 
-class DoublyLinkedNodeEnumerator[T](TwoWayNodeEnumeratorBase[IDoublyLinkedNode[T]]):
-    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
-    
+class INodeEnumerator[T: ITwoWayNode](ITwoWayNodeEnumerator[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetPrevious(self, node: T) -> T|None:
+        ...
+    @abstractmethod
+    def _GetNext(self, node: T) -> T|None:
+        ...
+
     @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[IDoublyLinkedNode[T]]:
+    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[T]:
         match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
-            
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
-class CountableLinkedListNodeEnumerator[T](TwoWayNodeEnumeratorBase[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
-    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
-    
-    @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ICountableLinkedListNode[T]]:
-        match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
+            case EnumerationOrder.FIFO: return lambda node: self._GetNext(node)
+            case EnumerationOrder.LIFO: return lambda node: self._GetPrevious(node)
             
             case _: raise ValueError(f"Unknown enumeration order: {order}.")
 
-class ResumableDoublyLinkedNodeEnumerator[T](TwoWayResumableNodeEnumerator[IDoublyLinkedNode[T]]):
+class IDoublyLinkedNodeEnumerator[T](INodeEnumerator[IDoublyLinkedNode[T]]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _GetPrevious(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None: return node.GetPrevious()
+    @final
+    def _GetNext(self, node: IDoublyLinkedNode[T]) -> IDoublyLinkedNode[T]|None: return node.GetNext()
+class ICountableLinkedListNodeEnumerator[T](INodeEnumerator[ICountableLinkedListNode[T]]):
+    def __init__(self) -> None: super().__init__()
+    
+    @final
+    def _GetPrevious(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None: return node.GetPrevious()
+    @final
+    def _GetNext(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None: return node.GetNext()
+
+class DoublyLinkedNodeEnumerator[T](TwoWayNodeEnumeratorBase[IDoublyLinkedNode[T]], IDoublyLinkedNodeEnumerator[T]):
     def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
-    
-    @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[IDoublyLinkedNode[T]]:
-        match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
-            
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
-class ResumableCountableLinkedListNodeEnumerator[T](TwoWayResumableNodeEnumerator[ICountableLinkedListNode[T]], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
+class CountableLinkedListNodeEnumerator[T](TwoWayNodeEnumeratorBase[ICountableLinkedListNode[T]], ICountableLinkedListNodeEnumerator[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
     def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
-    
-    @final
-    def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[ICountableLinkedListNode[T]]:
-        match order:
-            case EnumerationOrder.FIFO: return lambda node: node.GetNext()
-            case EnumerationOrder.LIFO: return lambda node: node.GetPrevious()
-            
-            case _: raise ValueError(f"Unknown enumeration order: {order}.")
+
+class ResumableDoublyLinkedNodeEnumerator[T](TwoWayResumableNodeEnumerator[IDoublyLinkedNode[T]], IDoublyLinkedNodeEnumerator[T]):
+    def __init__(self, node: IDoublyLinkedNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
+class ResumableCountableLinkedListNodeEnumerator[T](TwoWayResumableNodeEnumerator[ICountableLinkedListNode[T]], ICountableLinkedListNodeEnumerator[T], IGenericConstraintImplementation[ICountableLinkedListNode[T]]):
+    def __init__(self, node: ICountableLinkedListNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
 
 def CreateList[T](items: Iterable[T]|None = None) -> List[T]:
     return List[T](items)

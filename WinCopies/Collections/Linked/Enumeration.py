@@ -70,15 +70,18 @@ class NodeEnumerator[T](NodeEnumeratorBase[ILinkedNode[T]]):
     def _GetNextNode(self, node: ILinkedNode[T]) -> ILinkedNode[T]|None:
         return node.GetNext()
 
-class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorBase[T]):
-    def __init__(self, node: T, order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
-        super().__init__(node)
-        
-        self.__getNext: NullableSelector[T] = self._GetNodeConverter(order)
+class ITwoWayNodeEnumerator[T: ITwoWayNode](IEnumerator[T]):
+    def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _GetNodeConverter(self, order: EnumerationOrder) -> NullableSelector[T]:
         ...
+
+class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorBase[T], ITwoWayNodeEnumerator[T]):
+    def __init__(self, node: T, order: EnumerationOrder = EnumerationOrder.FIFO) -> None:
+        super().__init__(node)
+        
+        self.__getNext: NullableSelector[T] = self._GetNodeConverter(order)
     
     @final
     def _GetNextNode(self, node: T) -> T|None:
