@@ -504,7 +504,7 @@ class _ReadOnlyEnumerableListBase[TItem, TNode: IRemovable](_EnumerableListBase[
     def GetNodeEnumerable(self) -> IResumableEnumerable[TNode]: return self.__nodeEnumerable.GetValue()
 
 class _Enumerable[TItem, TNode, TNodeInterface: IRemovable, TEnumerable, TList, TCookie](Enumerable[TItem], _EnumerableListAbstract[TItem, TNodeInterface]):
-    def __init__(self, items: Iterable[TItem]|None) -> None:
+    def __init__(self, items: Iterable[TItem]|None = None) -> None:
         super().__init__()
 
         # Build the backing list empty first so __items and __cookie are both in place before any
@@ -1432,7 +1432,7 @@ class _CountableInnerListBase[T](ListAbstract[T, _CountableListNode[T], ICountab
         return self.__items.AsReadOnly()
 
 class CountableListBase[TItem, TNode](_Enumerable[TItem, TNode, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem], _CountableInnerListBase[TItem], ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]], ICountableList[TItem], IGenericConstraintImplementation[ICountableLinkedListNode[TItem]]):
-    def __init__(self, items: Iterable[TItem]|None) -> None: super().__init__(items)
+    def __init__(self) -> None: super().__init__()
     
     @final
     def _CreateEnumerationCookie(self, cookie: IValueCookie[TItem, ICountableLinkedListNode[TItem]]) -> ICountableEnumerableListCookieAbstract[TItem, ICountableLinkedListNode[TItem], IReadOnlyCountableEnumerableList[TItem]]:
@@ -1513,7 +1513,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
         self.__items: CountableList[T] = items
         self.__cookie: CountableListProvider[T] = l
         
-        super().__init__(None)
+        super().__init__()
 
         self.__reversed: IFunction[ICountableList[T]] = _ReversedCountableUpdater[T](self, update) # type: ignore[no-redef]
         self.__cursorProvider: _CountableCursorProvider[T] = _CountableCursorProvider[T](self)
