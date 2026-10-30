@@ -105,7 +105,7 @@ def GetValueIteratorFromNode[T](node: ITwoWayLinkedNode[T], enumerationOrder: En
     ...
 
 def GetValueIteratorFromNode[T](node: ILinkedNode[T]|ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> Generator[T]:
-    return GetValueIterator(TwoWayNodeEnumerator[T](node) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else NodeEnumerator[T](node))
+    return GetValueIterator(TwoWayNodeEnumerator[T](node, enumerationOrder) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else NodeEnumerator[T](node))
 
 def GetValueEnumerator[T](nodeEnumerator: NodeEnumerator[T]) -> IEnumerator[T]:
     return AsEnumerator(GetValueIterator(nodeEnumerator))

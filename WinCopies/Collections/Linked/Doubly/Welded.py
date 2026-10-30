@@ -1507,13 +1507,13 @@ class _ReversedCountableUpdater[T](ValueFunctionUpdater[ICountableList[T]]):
 
 @final
 class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
-    def __init__(self, items: CountableList[T], l: CountableListProvider[T], values: Iterable[T]|None) -> None:
+    def __init__(self, items: CountableList[T], l: CountableListProvider[T]) -> None:
         def update(func: IFunction[ICountableList[T]]) -> None: self.__reversed = func
 
         self.__items: CountableList[T] = items
         self.__cookie: CountableListProvider[T] = l
         
-        super().__init__(values)
+        super().__init__(None)
 
         self.__reversed: IFunction[ICountableList[T]] = _ReversedCountableUpdater[T](self, update) # type: ignore[no-redef]
         self.__cursorProvider: _CountableCursorProvider[T] = _CountableCursorProvider[T](self)
@@ -1582,7 +1582,12 @@ class CountableList[T](CountableEnumerable[T], ICountableList[T], IGenericConstr
     def __init__(self, items: Iterable[T]|None = None) -> None:
         super().__init__()
 
-        self.__items: _CountableInnerList[T] = _CountableInnerList[T](self, CountableList[T]._CountableListProvider(self), items)
+        # Build the backing list empty first so __items is in place before any
+        # population: the welded add path consults the owner list (GetLast -> _GetItems), so
+        # populating during construction would read __items before it is assigned.
+        self.__items: _CountableInnerList[T] = _CountableInnerList[T](self, CountableList[T]._CountableListProvider(self))
+
+        self.AddLastItems(items)
     
     @final
     def _OnAdded(self, node: ICountableLinkedListNode[T]) -> None:
