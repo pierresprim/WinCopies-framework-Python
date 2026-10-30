@@ -9,7 +9,7 @@ from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistrar, IOb
 from WinCopies.Collections.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
+from WinCopies.Typing.Delegate import Action, Converter
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Object import IWeakReferenceRegister, CreateWeakReferenceRegister
 
@@ -36,7 +36,7 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
 
         self.__items: IWeakReferenceRegistry[TOut] = CreateWeakReferenceRegistry()
 
-        self.__push: ConverterDelegate[TOut, INodeBase] = self.__PushFirst
+        self.__push: Converter[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
 
         self.__monitor: IObjectMonitor = _Monitor(self)
@@ -107,23 +107,34 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
 
         self.__items: IItemRegistry[T] = CreateItemRegistry()
 
+        self.__registerItem: Converter[T, IRemovable] = self.__Register
+        self.__invalidateObjects: Action = NoAction
+
         self.__monitor: IObjectMonitor = _Monitor(self)
         self.__registrar: IObjectRegistrar[T] = _Registrar(self)
 
     @final
     def __Register(self, item: T) -> IRemovable:
-        return self.__items.Push(item)
+        def register(item: T) -> IRemovable: return self.__items.Push(item)
+        def finalize() -> None:
+            self.__registerItem = self.__Register
+            self.__invalidateObjects = NoAction
+        
+        self.__registerItem = register
+        self.__invalidateObjects = lambda: self.__items.InvalidateObjects(finalize)
+
+        return register(item)
 
     @final
     def _GetItems(self) -> IReadOnlyList[T]:
         return self.__items.AsReadOnly()
 
     @final
-    def RegisterObject(self, item: T) -> None: self.__Register(item)
+    def RegisterObject(self, item: T) -> None: self.__registerItem(item)
     @final
-    def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
-
-    def InvalidateObjects(self) -> None: self.__items.InvalidateObjects()
+    def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__registerItem(item))
+    
+    def InvalidateObjects(self) -> None: self.__invalidateObjects()
 
     @final
     def AsMonitor(self) -> IObjectMonitor: return self.__monitor
