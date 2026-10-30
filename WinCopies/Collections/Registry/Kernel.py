@@ -10,7 +10,6 @@ from WinCopies.Collections.Linked.Doubly import IReadOnlyList, IReadWriteList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, IDoublyLinkedNode, DoublyLinkedNode
 from WinCopies.Collections.Linked.Node import IReadWriteLinkedNode, ILinkedNode
-from WinCopies.Collections.Registry import IObjectMonitor
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Action, Method, Function, IFunction, ValueFunctionUpdater
@@ -216,12 +215,6 @@ class IRegistryAbstract[TIn, TOut](IInterface):
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyList[TOut]:
         ...
-class IRegistryBase[TIn, TOut](IRegistryAbstract[TIn, TOut]):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def InvalidateObjects(self, action: Action|None = None) -> None:
-        ...
 
 class IWeakReferenceRegistryBase[T: IInvalidatable](IRegistryAbstract[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
@@ -229,17 +222,12 @@ class IWeakReferenceRegistryBase[T: IInvalidatable](IRegistryAbstract[IWeakRefer
     @abstractmethod
     def TryRemoveFirst(self) -> IWeakReference[T]|None:
         ...
-class IWeakReferenceRegistry[T: IInvalidatable](IWeakReferenceRegistryBase[T], IRegistryBase[IWeakReferenceRegister[T], T]):
-    def __init__(self) -> None: super().__init__()
-
 class IItemRegistryBase[T](IRegistryAbstract[T, T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryGetFirstNode(self) -> ILinkedNode[T]|None:
         ...
-class IItemRegistry[T: IObjectMonitor](IItemRegistryBase[T], IRegistryBase[T, T]):
-    def __init__(self) -> None: super().__init__()
 
 class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut]):
     def __init__(self) -> None:
@@ -254,8 +242,6 @@ class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut])
     @final
     def _GetItems(self) -> IReadWriteList[TItem]:
         return self.__items
-class RegistryBase[TIn, TItem, TOut](RegistryAbstract[TIn, TItem, TOut], IRegistryBase[TIn, TOut]):
-    def __init__(self) -> None: super().__init__()
 
 class WeakReferenceRegistry[T: IInvalidatable](RegistryAbstract[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
     def __init__(self) -> None:
