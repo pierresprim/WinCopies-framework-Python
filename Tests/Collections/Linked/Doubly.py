@@ -3,9 +3,13 @@ Unit tests for doubly linked lists (WinCopies.Collections.Linked.Doubly)
 """
 
 import unittest
-from typing import List as PyList
+from collections.abc import Iterable
+from typing import Any, List as PyList, cast
+from unittest import mock
 
-from WinCopies.Collections import Generator
+import WinCopies.Collections.Linked.Enumeration as LinkedEnumeration
+
+from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList
@@ -14,6 +18,7 @@ from WinCopies.Collections.Linked.Doubly.Welded import (
     IDoublyLinkedNode, ICountableLinkedListNode,
     IList, ICountableList,
     List, CountableList)
+from WinCopies.Collections.Linked.Node import ILinkedNode, ITwoWayLinkedNode
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector, IndexedValueFunction, RichOperator
@@ -845,5 +850,106 @@ class TestEdgeCases(unittest.TestCase):
 
         # Backward navigation
         navigate(l.GetLast, lambda node: node.GetPrevious(), [5, 4, 3, 2, 1])
+
+def _countableBuilds() -> tuple[tuple[str, Function[Iterable[int]|None], tuple[int, ...]], ...]:
+    return (("none", lambda: None, ()),
+            ("empty", lambda: (), ()),
+            ("one item", lambda: (0,), (0,)),
+            ("two items", lambda: (0, 1), (0, 1)),
+            ("three items", lambda: (0, 1, 2), (0, 1, 2)),
+            ("a one-shot iterator", lambda: iter((0, 1, 2)), (0, 1, 2)),
+            ("a range", lambda: range(5), (0, 1, 2, 3, 4)))
+
+class TestACountableListIsBuiltWithItsItems(unittest.TestCase):
+    """D-117. A countable list built with two items or more raised AttributeError. Its inner list was
+    populated during its own construction, and from the second item on, the welded add path asked the
+    outer list for its last node before the outer list had assigned the inner one. No bench built a
+    countable list with items: they all built it empty and populated it afterwards."""
+
+    def test_the_items_given_at_construction_are_its_content(self) -> None:
+        for name, items, expected in _countableBuilds():
+            with self.subTest(items = name):
+                l: ICountableList[int] = CountableList[int](items())
+
+                self.assertEqual(tuple(l.AsIterable()), expected, f"built with {name}, the list does not hold them")
+                self.assertEqual(l.GetCount(), len(expected), f"built with {name}, the list miscounts them")
+                self.assertEqual(l.TryGetFirstValueOrNone(), expected[0] if expected else None, f"built with {name}, the first item is another")
+                self.assertEqual(l.TryGetLastValueOrNone(), expected[-1] if expected else None, f"built with {name}, the last item is another")
+
+                node: ICountableLinkedListNode[int]|None = l.GetFirst()
+
+                while node is not None:
+                    self.assertIs(node.GetList(), l, f"built with {name}, a node belongs to another list")
+
+                    node = node.GetNext()
+
+class TestAReversedLinkedListReadsInReverse(unittest.TestCase):
+    """D-118. A reversed doubly linked list read its last item only. GetValueIteratorFromNode built the
+    two-way node enumerator without the order it was given, so the reversed view started from the last
+    node and went on towards the end: [0, 1, 2] read [2]. No bench read a reversed linked list."""
+
+    def __AssertReadsInReverse(self, kind: str, count: int, items: IList[int]|ICountableList[int]) -> None:
+        forward: tuple[int, ...] = tuple(range(count))
+        backward: tuple[int, ...] = tuple(reversed(forward))
+        reversedItems: IList[int]|ICountableList[int] = items.AsReversed()
+        enumerator: IEnumerator[int]|None = reversedItems.TryGetEnumerator()
+
+        self.assertEqual(tuple(reversedItems.AsIterable()), backward, f"the reversed {kind} of {forward} reads another sequence")
+        self.assertEqual(() if enumerator is None else tuple(enumerator.AsIterator()), backward, f"the enumerator of the reversed {kind} of {forward} reads another sequence")
+        self.assertEqual(tuple(reversedItems.AsReversed().AsIterable()), forward, f"the reversed {kind} of {forward}, reversed again, reads another sequence")
+
+    def test_the_reversed_view_reads_the_list_backwards(self) -> None:
+        for count in range(5):
+            with self.subTest(type = "List", count = count): self.__AssertReadsInReverse("List", count, List[int](range(count)))
+            with self.subTest(type = "CountableList", count = count): self.__AssertReadsInReverse("CountableList", count, CountableList[int](range(count)))
+
+def _runLinkedBench(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
+    result: unittest.TestResult = unittest.TestResult()
+
+    bench(name).run(result)
+
+    return result
+
+class TestTheCountableAndReversalBenchesCanFail(unittest.TestCase):
+    """The benches of D-117 and D-118, run against the code as it stood before their fix: green on the
+    intact tree, red on the rebuilt one. A class is reached through its public name or through the
+    object, and is the one that carries the attribute rebuilt; a module function is replaced where it
+    is looked up at the call."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertTrue(_runLinkedBench(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runLinkedBench(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+
+    def test_the_construction_bench_falls_when_the_inner_list_is_populated_before_it_is_assigned(self) -> None:
+        """As before c1a0d2a4 (D-117): CountableList.__init__, which CountableList carries, handed its
+        items to the inner list, which populated itself in its own initializer, before CountableList
+        had assigned it. Rebuilt in that order: the inner list, built empty, is populated before it is
+        assigned. Its type is reached through the object."""
+
+        innerType: type = type(CountableList[int]()._GetItems()) # pyright: ignore[reportPrivateUsage]
+
+        def populatedFirst(self: Any, items: Iterable[Any]|None = None) -> None:
+            super(CountableList, cast(CountableList[Any], self)).__init__()
+
+            inner: Any = innerType(self, CountableList._CountableListProvider(self)) # pyright: ignore[reportPrivateUsage]
+
+            inner.AddLastItems(items)
+
+            self._CountableList__items = inner
+
+        self.__assertFalls(TestACountableListIsBuiltWithItsItems, "test_the_items_given_at_construction_are_its_content", CountableList, {"__init__": populatedFirst})
+
+    def test_the_reversal_bench_falls_when_the_order_is_dropped(self) -> None:
+        """As before c1a0d2a4 (D-118): GetValueIteratorFromNode, looked up in its own module by
+        GetValueEnumeratorFromNode, built the two-way node enumerator without the order it was
+        given."""
+
+        def orderDropped[T](node: ILinkedNode[T]|ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> Generator[T]:
+            return LinkedEnumeration.GetValueIterator(LinkedEnumeration.TwoWayNodeEnumerator[T](node) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else LinkedEnumeration.NodeEnumerator[T](node))
+
+        self.__assertFalls(TestAReversedLinkedListReadsInReverse, "test_the_reversed_view_reads_the_list_backwards", LinkedEnumeration, {"GetValueIteratorFromNode": orderDropped})
 
 if __name__ == '__main__': unittest.main()
