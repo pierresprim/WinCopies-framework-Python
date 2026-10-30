@@ -259,7 +259,7 @@ class RegistryBase[TIn, TItem, TOut](Abstract, IRegistryBase[TIn, TOut]):
     def _GetItems(self) -> IReadWriteList[TItem]:
         return self.__items
 
-class WeakReferenceRegistry[T: IInvalidatable](RegistryBase[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistry[T]):
+class WeakReferenceRegistryBase[T: IInvalidatable](RegistryBase[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__readOnly = func
         
@@ -275,13 +275,15 @@ class WeakReferenceRegistry[T: IInvalidatable](RegistryBase[IWeakReferenceRegist
 
     @final
     def TryRemoveFirst(self) -> IWeakReference[T]|None: return self._GetItems().TryRemoveFirst().TryGetValue()
+
+    @final
+    def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
+class WeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistryBase[T], IWeakReferenceRegistry[T]):
+    def __init__(self) -> None: super().__init__()
     
     @final
     def InvalidateObjects(self, action: Action) -> None:
         if self._GetItems().HasItems(): DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), GetActionAsMethod(action))
-
-    @final
-    def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
 
 class ItemRegistryBase[T](RegistryBase[T, T, T], IItemRegistryBase[T]):
     def __init__(self) -> None: super().__init__()
