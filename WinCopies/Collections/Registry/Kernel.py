@@ -205,7 +205,7 @@ class _CollectionNode[T](_NodeBase[T, "_CollectionNode[T]", _Collection[T]]):
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _CollectionNode[T]:
         return _CollectionNode[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
 
-class IRegistryAbstract[TIn, TOut](IInterface):
+class IRegistry[TIn, TOut](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -216,20 +216,20 @@ class IRegistryAbstract[TIn, TOut](IInterface):
     def AsReadOnly(self) -> IReadOnlyList[TOut]:
         ...
 
-class IWeakReferenceRegistryBase[T: IInvalidatable](IRegistryAbstract[IWeakReferenceRegister[T], T]):
+class IWeakReferenceRegistry[T: IInvalidatable](IRegistry[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryRemoveFirst(self) -> IWeakReference[T]|None:
         ...
-class IItemRegistryBase[T](IRegistryAbstract[T, T]):
+class IItemRegistry[T](IRegistry[T, T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryGetFirstNode(self) -> ILinkedNode[T]|None:
         ...
 
-class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut]):
+class Registry[TIn, TItem, TOut](Abstract, IRegistry[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -243,7 +243,7 @@ class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut])
     def _GetItems(self) -> IReadWriteList[TItem]:
         return self.__items
 
-class WeakReferenceRegistry[T: IInvalidatable](RegistryAbstract[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
+class WeakReferenceRegistry[T: IInvalidatable](Registry[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistry[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__readOnly = func
         
@@ -262,7 +262,7 @@ class WeakReferenceRegistry[T: IInvalidatable](RegistryAbstract[IWeakReferenceRe
 
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
-class ItemRegistry[T](RegistryAbstract[T, T, T], IItemRegistryBase[T]):
+class ItemRegistry[T](Registry[T, T, T], IItemRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
