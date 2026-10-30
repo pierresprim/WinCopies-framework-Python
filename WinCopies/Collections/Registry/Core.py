@@ -33,19 +33,37 @@ class IWeakReferenceRegistry[T: IInvalidatable](_IWeakReferenceRegistry[T], IReg
 class IItemRegistry[T: IObjectMonitor](_IItemRegistry[T], IRegistry[T, T]):
     def __init__(self) -> None: super().__init__()
 
-class WeakReferenceRegistry[T: IInvalidatable](_WeakReferenceRegistry[T], IWeakReferenceRegistry[T]):
+class IDefaultRegistry[TIn, TOut](IRegistry[TIn, TOut]):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _HasItems(self) -> bool:
+        ...
+    @abstractmethod
+    def _InvalidateObjects(self, action: Action|None = None) -> None:
+        ...
     
     @final
     def InvalidateObjects(self, action: Action|None = None) -> None:
-        if self._GetItems().HasItems(): _DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), action)
+        if self._HasItems(): self._InvalidateObjects(action)
         elif action is not None: action()
-class ItemRegistry[T: IObjectMonitor](_ItemRegistry[T], IItemRegistry[T]):
+
+class WeakReferenceRegistry[T: IInvalidatable](_WeakReferenceRegistry[T], IWeakReferenceRegistry[T], IDefaultRegistry[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def InvalidateObjects(self, action: Action|None = None) -> None:
-        if self._GetItems().HasItems(): _DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), action)
+    def _HasItems(self) -> bool: return self._GetItems().HasItems()
+    
+    @final
+    def _InvalidateObjects(self, action: Action|None = None) -> None: _DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), action)
+class ItemRegistry[T: IObjectMonitor](_ItemRegistry[T], IItemRegistry[T], IDefaultRegistry[T, T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _HasItems(self) -> bool: return self._GetItems().HasItems()
+
+    @final
+    def _InvalidateObjects(self, action: Action|None = None) -> None: _DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), action)
 
 def CreateWeakReferenceRegistry[T: IInvalidatable]() -> IWeakReferenceRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return WeakReferenceRegistry[T]()
