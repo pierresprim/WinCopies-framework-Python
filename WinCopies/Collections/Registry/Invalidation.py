@@ -3,7 +3,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Registry.Kernel import IItemRegistry, ItemRegistry
+from WinCopies.Collections.Registry.Kernel import IItemRegistry, CreateItemRegistry
 from WinCopies.Collections.Linked.Node import ILinkedNode
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Method
@@ -57,7 +57,7 @@ class ManagedInvalidationRegistrar(Abstract, IManagedInvalidationRegistrar):
     def __init__(self, cookie: IInvalidatable) -> None:
         super().__init__()
 
-        self.__items: IItemRegistry[IInvalidationRegistrar] = ItemRegistry[IInvalidationRegistrar]()
+        self.__items: IItemRegistry[IInvalidationRegistrar] = CreateItemRegistry()
         self.__cookie: IInvalidatable = cookie
         self.__state: IMonitor = Monitor()
 

@@ -276,3 +276,8 @@ class ItemRegistry[T](Registry[T, T, T], IItemRegistry[T]):
 
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]: return self._GetItems().AsReadOnly()
+
+def CreateWeakReferenceRegistry[T: IInvalidatable]() -> IWeakReferenceRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return WeakReferenceRegistry[T]()
+def CreateItemRegistry[T]() -> IItemRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return ItemRegistry[T]()
