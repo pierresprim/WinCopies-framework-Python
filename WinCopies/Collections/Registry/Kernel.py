@@ -277,7 +277,8 @@ class WeakReferenceRegistry[T: IInvalidatable](RegistryBase[IWeakReferenceRegist
     def TryRemoveFirst(self) -> IWeakReference[T]|None: return self._GetItems().TryRemoveFirst().TryGetValue()
     
     @final
-    def InvalidateObjects(self, action: Action) -> None: DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), GetActionAsMethod(action))
+    def InvalidateObjects(self, action: Action) -> None:
+        if self._GetItems().HasItems(): DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), GetActionAsMethod(action))
 
     @final
     def AsReadOnly(self) -> IReadOnlyList[T]: return self.__readOnly.GetValue()
@@ -300,7 +301,8 @@ class ItemRegistry[T: IObjectMonitor](ItemRegistryBase[T], IItemRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def InvalidateObjects(self) -> None: DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
+    def InvalidateObjects(self) -> None:
+        if self._GetItems().HasItems(): DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
 
 def CreateWeakReferenceRegistry[T: IInvalidatable]() -> IWeakReferenceRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return WeakReferenceRegistry[T]()
