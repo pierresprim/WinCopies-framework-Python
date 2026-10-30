@@ -4,6 +4,7 @@ from abc import abstractmethod
 from typing import final, Self
 
 from WinCopies import IInterface, Abstract
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IClearable
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Iteration import Generate, Iterate
@@ -19,6 +20,9 @@ from WinCopies.Typing.Delegate import Action, Method, Function, IFunction, Value
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import IWeakReference, IWeakReferenceRegister
+
+def _DoForEachItem[T](items: Generator[T], method: Method[T], action: Action|None) -> None:
+    DoForEachItem(items, method, True if action is None else GetActionAsMethod(action))
 
 class CompositeRemovable(Abstract, IRemovable):
     def __init__(self, node: IRemovable, obj: IRemovable) -> None:
@@ -208,7 +212,7 @@ class _CollectionNode[T](_NodeBase[T, "_CollectionNode[T]", _Collection[T]]):
     def _CreateNode(self, value: T, previous: Self|None, next: Self|None) -> _CollectionNode[T]:
         return _CollectionNode[T](value, self._GetInnerList(), self._GetItemCookie(), self._GetCookie(), previous, next)
 
-class IRegistryBase[TIn, TOut](IInterface):
+class IRegistryAbstract[TIn, TOut](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -218,34 +222,32 @@ class IRegistryBase[TIn, TOut](IInterface):
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyList[TOut]:
         ...
+class IRegistryBase[TIn, TOut](IRegistryAbstract[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
 
-class IWeakReferenceRegistryBase[T: IInvalidatable](IRegistryBase[IWeakReferenceRegister[T], T]):
+    @abstractmethod
+    def InvalidateObjects(self, action: Action|None = None) -> None:
+        ...
+
+class IWeakReferenceRegistryBase[T: IInvalidatable](IRegistryAbstract[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryRemoveFirst(self) -> IWeakReference[T]|None:
         ...
-class IWeakReferenceRegistry[T: IInvalidatable](IWeakReferenceRegistryBase[T]):
+class IWeakReferenceRegistry[T: IInvalidatable](IWeakReferenceRegistryBase[T], IRegistryBase[IWeakReferenceRegister[T], T]):
     def __init__(self) -> None: super().__init__()
 
-    @abstractmethod
-    def InvalidateObjects(self, action: Action) -> None:
-        ...
-
-class IItemRegistryBase[T](IRegistryBase[T, T]):
+class IItemRegistryBase[T](IRegistryAbstract[T, T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryGetFirstNode(self) -> ILinkedNode[T]|None:
         ...
-class IItemRegistry[T: IObjectMonitor](IItemRegistryBase[T]):
+class IItemRegistry[T: IObjectMonitor](IItemRegistryBase[T], IRegistryBase[T, T]):
     def __init__(self) -> None: super().__init__()
 
-    @abstractmethod
-    def InvalidateObjects(self) -> None:
-        ...
-
-class RegistryBase[TIn, TItem, TOut](Abstract, IRegistryBase[TIn, TOut]):
+class RegistryAbstract[TIn, TItem, TOut](Abstract, IRegistryAbstract[TIn, TOut]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -258,8 +260,10 @@ class RegistryBase[TIn, TItem, TOut](Abstract, IRegistryBase[TIn, TOut]):
     @final
     def _GetItems(self) -> IReadWriteList[TItem]:
         return self.__items
+class RegistryBase[TIn, TItem, TOut](RegistryAbstract[TIn, TItem, TOut], IRegistryBase[TIn, TOut]):
+    def __init__(self) -> None: super().__init__()
 
-class WeakReferenceRegistryBase[T: IInvalidatable](RegistryBase[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
+class WeakReferenceRegistryBase[T: IInvalidatable](RegistryAbstract[IWeakReferenceRegister[T], IWeakReference[T], T], IWeakReferenceRegistryBase[T]):
     def __init__(self) -> None:
         def update(func: IFunction[IReadOnlyList[T]]) -> None: self.__readOnly = func
         
@@ -282,10 +286,10 @@ class WeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistryBase[T], IWe
     def __init__(self) -> None: super().__init__()
     
     @final
-    def InvalidateObjects(self, action: Action) -> None:
-        if self._GetItems().HasItems(): DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), GetActionAsMethod(action))
+    def InvalidateObjects(self, action: Action|None = None) -> None:
+        if self._GetItems().HasItems(): _DoForEachItem(Generate(self.TryRemoveFirst), lambda cookie: cookie.Invalidate(), action)
 
-class ItemRegistryBase[T](RegistryBase[T, T, T], IItemRegistryBase[T]):
+class ItemRegistryBase[T](RegistryAbstract[T, T, T], IItemRegistryBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -303,8 +307,8 @@ class ItemRegistry[T: IObjectMonitor](ItemRegistryBase[T], IItemRegistry[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def InvalidateObjects(self) -> None:
-        if self._GetItems().HasItems(): DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
+    def InvalidateObjects(self, action: Action|None = None) -> None:
+        if self._GetItems().HasItems(): _DoForEachItem(Iterate(self.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), action)
 
 def CreateWeakReferenceRegistry[T: IInvalidatable]() -> IWeakReferenceRegistry[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return WeakReferenceRegistry[T]()
