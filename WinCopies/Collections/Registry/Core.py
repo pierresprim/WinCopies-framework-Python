@@ -7,9 +7,7 @@ from WinCopies import Abstract
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
 from WinCopies.Collections.Registry.Kernel import IWeakReferenceRegistry, IItemRegistry, CreateWeakReferenceRegistry, CreateItemRegistry
-from WinCopies.Collections.Iteration import Iterate, Generate
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
-from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Delegates import NoAction
 from WinCopies.Typing.Delegate import Action, Converter as ConverterDelegate
 from WinCopies.Typing.Discard import IInvalidatable
@@ -58,8 +56,12 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         return node
     @final
     def __PushFirst(self, obj: TOut) -> INodeBase:
+        def finalize() -> None:
+            self.__push = self.__PushFirst
+            self.__clear = NoAction
+        
         self.__push = self.__Push
-        self.__clear = self.__Clear
+        self.__clear = lambda: self.__items.InvalidateObjects(finalize)
 
         return self.__Push(obj)
     def _Push(self, item: TIn) -> INodeBase:
@@ -71,14 +73,6 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
         ...
-    
-    @final
-    def __Clear(self) -> None:
-        def finalize(_: bool) -> None:
-            self.__push = self.__PushFirst
-            self.__clear = NoAction
-
-        DoForEachItem(Generate(self.__items.TryRemoveFirst), lambda cookie: cookie.Invalidate(), finalize)
     
     @final
     def RegisterObject(self, item: TIn) -> None: self._Push(item)
@@ -129,7 +123,7 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
     @final
     def RegisterMonitor(self, item: T) -> IRemovable: return _CollectionFactoryCookie(self.__Register(item))
 
-    def InvalidateObjects(self) -> None: DoForEachItem(Iterate(self.__items.TryGetFirstNode, lambda node: node.GetNext()), lambda node: node.GetValue().InvalidateObjects(), True)
+    def InvalidateObjects(self) -> None: self.__items.InvalidateObjects()
 
     @final
     def AsMonitor(self) -> IObjectMonitor: return self.__monitor
