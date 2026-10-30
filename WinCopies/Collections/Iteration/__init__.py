@@ -7,7 +7,7 @@ from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotFunc, GetNotPredicate, RetrieveValue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.BoolProvider import BooleanableProtocol
-from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter
+from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter, NullableSelector
 
 def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
     """Returns the given iterable, or an empty generator if None is given.
@@ -558,7 +558,7 @@ def CheckOr[T: BooleanableProtocol](items: Iterable[Function[T]]) -> bool:
 
     return False
 
-def Iterate[T](func: Function[T|None], selector: Converter[T, T|None]) -> Generator[T]:
+def Iterate[T](func: Function[T|None], selector: NullableSelector[T]) -> Generator[T]:
     item: T|None = func()
 
     while item is not None:

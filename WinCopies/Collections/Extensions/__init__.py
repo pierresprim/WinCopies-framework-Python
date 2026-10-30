@@ -340,8 +340,7 @@ class IHashableTuple[T: HashableProtocol](IHashableTupleBase[T], IEquatableTuple
         ...
     
     @final
-    def AsImmutable(self) -> IHashableTuple[T]:
-        return self
+    def AsImmutable(self) -> IHashableTuple[T]: return self
     @abstractmethod
     def AsReadOnly(self) -> IHashableTuple[T]:
         ...

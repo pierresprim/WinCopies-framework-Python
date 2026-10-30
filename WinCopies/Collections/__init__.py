@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator as GeneratorBase
 from enum import Flag
-from typing import Callable, final
+from typing import final, Callable, NoReturn
 
 from WinCopies import Abstract
 from WinCopies.Typing import INullable, Error, GetNullable, GetNullValue
@@ -18,6 +18,7 @@ class EnumerationOrder(Flag):
     Both = 3
 
 def GetInvalidEnumerationOrderError(order: EnumerationOrder) -> Exception: return ValueError("Unknown enumeration order.", order)
+def ThrowInvalidEnumerationOrderError(order: EnumerationOrder) -> NoReturn: raise GetInvalidEnumerationOrderError(order)
 
 class EmptyException(Error):
     def __init__(self, *args: object) -> None: super().__init__("The collection is empty.", *args)

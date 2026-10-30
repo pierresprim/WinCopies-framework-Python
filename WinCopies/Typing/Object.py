@@ -10,7 +10,7 @@ from weakref import finalize, ref, ReferenceType
 from WinCopies import IInterface, IDisposable, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Comparison import Equals as _Equals, CompareTo
-from WinCopies.Delegates import NoAction, FuncNone
+from WinCopies.Delegates import NoAction, DoNothing, FuncNone
 from WinCopies.Enum import AreEnumsEqual as _AreEnumsEqual, TryAreEnumsEqual as _TryAreEnumsEqual, CompareEnums as _CompareEnums, TryCompare as _TryCompare
 from WinCopies.Typing import NumericalValue, INullable, IEnumBase, IEnum
 from WinCopies.Typing.Comparison import IEquatableBase, IHashableBase, IHashableItem, IHashableComparableItem
@@ -830,7 +830,7 @@ class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalid
     def Remove(self) -> None:
         super().Remove()
 
-        self.__dispose = lambda _: None
+        self.__dispose = DoNothing
     
     def _Dispose(self, reason: DiscardReason) -> None:
         if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
@@ -865,7 +865,7 @@ class _WeakReference[T: IInvalidatable](Abstract, IWeakReference[T]):
         
         def GetCookie(self) -> _WeakReference[_T]: return self.__weakReference
         
-        def RegisterNode(self, node: IRemovable) -> None: self.__weakReference._RegisterNode(self.__obj, node)
+        def RegisterNode(self, node: IRemovable) -> None: self.GetCookie()._RegisterNode(self.__obj, node)
     
     def __init__(self) -> None:
         super().__init__()
@@ -888,7 +888,7 @@ class _WeakReference[T: IInvalidatable](Abstract, IWeakReference[T]):
                 case _: pass
     
     def _RegisterNode(self, obj: T, node: IRemovable) -> None:
-        self.__finalizer = DisposableFinalizer[T](obj, lambda: node.Remove())
+        self.__finalizer = DisposableFinalizer[T](obj, node.Remove)
 
     @staticmethod
     def _CreateRegister(obj: T) -> IWeakReferenceRegister[T]:
