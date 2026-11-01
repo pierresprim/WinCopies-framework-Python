@@ -373,6 +373,15 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     
     @final
     def __Terminate(self, reason: EnumerationAbortReason) -> None:
+        def getDelegates() -> tuple[Action, Action|None]:
+            match reason:
+                case EnumerationAbortReason.Stopped: return self.__status.Stop, self._OnStopped
+                case EnumerationAbortReason.Invalidated: return self.__status.Invalidate, None
+                case EnumerationAbortReason.Revoked: return self.__status.Revoke, lambda: self._OnTerminated(self.GetStatus().GetResult().HasCompleted())
+                case EnumerationAbortReason.Errored: return self.__status.Abort, self._OnErrored
+
+                case _: raise GetUnexpectedError()
+        
         def cancel() -> None:
             action: Action|None = delegates[1]
 
@@ -387,15 +396,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
             if reason == EnumerationAbortReason.Revoked: status.Revoke()
 
             return
-
-        def getDelegates() -> tuple[Action, Action|None]:
-            match reason:
-                case EnumerationAbortReason.Stopped: return self.__status.Stop, self._OnStopped
-                case EnumerationAbortReason.Invalidated: return self.__status.Invalidate, None
-                case EnumerationAbortReason.Revoked: return self.__status.Revoke, lambda: self._OnTerminated(self.GetStatus().GetResult().HasCompleted())
-                case EnumerationAbortReason.Errored: return self.__status.Abort, self._OnErrored
-
-                case _: raise GetUnexpectedError()
 
         delegates: tuple[Action, Action|None] = getDelegates()
 

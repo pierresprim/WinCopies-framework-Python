@@ -1,9 +1,9 @@
 from collections.abc import Iterable, Iterator, Collection
-from typing import Callable
+from typing import Callable, Final
 
 from WinCopies import IsTrue, Not
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
 from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, TryZip as __TryZip
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
@@ -14,37 +14,56 @@ from WinCopies.Typing.Delegate import Action, Method, Function, Predicate, Nulla
 from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
 from WinCopies.Typing.Pairing import IKeyValuePair, DualResult, DualValueBool, CreateDualResult, CreateDualValueBool
 
+_NONE: Final = object()
+
+def Loop[T](items: IEnumerable[T]|Iterable[T], action: Method[T]) -> bool:
+    item: object = _NONE
+
+    for item in AsIterable(items): action(item)
+
+    return item is not _NONE
+def TryLoop[T](items: IEnumerable[T]|Iterable[T]|None, action: Method[T]) -> bool|None:
+    return None if items is None else Loop(items, action)
+
 def Enumerate[T](items: IEnumerable[T]|Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
-    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
-    
-    return CreateDualResult(enumerator.AsIterator(), enumerator.GetStatus().HasProcessedItems)
+    item: object = _NONE
+
+    def loop() -> Generator[T]:
+        nonlocal item
+
+        for item in AsIterable(items): yield item
+
+    return CreateDualResult(loop(), lambda: item is not _NONE)
 def TryEnumerate[T](items: IEnumerable[T]|Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
     return None if items is None else Enumerate(items)
 
 def Iterate[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Predicate[T]|None = None) -> bool:
     def enumerate() -> bool:
-        result: DualResult[Iterator[T], Function[bool]] = Enumerate(items)
+        item: object = _NONE
 
-        action(result.GetKey())
+        def loop() -> Generator[T]:
+            nonlocal item
 
-        return result.GetValue()()
+            for item in AsIterable(items): yield item
+
+        action(loop())
+
+        return item is not _NONE
 
     def iterate(firstAction: Predicate[T]) -> bool:
-        def iterate(first: T) -> None:
-            firstAction(first)
-    
-            action(PrependItem(items, first))
+        def iterate(first: T) -> bool:
+            if firstAction(first):
+                action(PrependItem(items, first))
+
+                return True
+
+            return False
 
         nonlocal items
 
         first: INullable[T] = GetFirst(items := iter(items))
         
-        if first.HasValue():
-            iterate(first.GetValue())
-
-            return True
-    
-        return False
+        return first.HasValue() and iterate(first.GetValue())
 
     return enumerate() if firstAction is None else iterate(firstAction)
 def TryIterate[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAction: Predicate[T]|None = None) -> bool|None:
@@ -97,25 +116,15 @@ def __IterateSafe(iterator: Predicate[Action], action: Action, safe: bool|Method
         return __ProcessSafe(lambda onError: iterator(lambda: process(onError)), finalizer)
     
     return (iterate() if safe else iterator(action)) if isinstance(safe, bool) else iterate(safe)
-def __EnumerateSafe[T](items: IEnumerable[T]|Iterable[T], iterator: Callable[[Iterator[T], Method[T]], None], action: Method[T], safe: bool|Method[bool]) -> bool:
-    def enumerate(enumerator: IEnumerator[T], action: Method[T]) -> bool:
-        iterator(enumerator.AsIterator(), action)
+def __EnumerateSafe[T](items: IEnumerable[T]|Iterable[T], action: Method[T], safe: bool|Method[bool]) -> bool:
+    def iterate(finalizer: Method[bool]|None = None) -> bool:
+        def process(item: T, onError: Method[Exception]) -> None:
+            try: action(item)
+            except Exception as e: onError(e)
 
-        return enumerator.GetStatus().HasProcessedItems()
-    
-    def iterate(enumerator: IEnumerator[T]) -> bool:
-        def iterate(finalizer: Method[bool]|None = None) -> bool:
-            def process(item: T, onError: Method[Exception]) -> None:
-                try: action(item)
-                except Exception as e: onError(e)
+        return __ProcessSafe(lambda onError: Loop(items, lambda item: process(item, onError)), finalizer)
 
-            return __ProcessSafe(lambda onError: enumerate(enumerator, lambda item: process(item, onError)), finalizer)
-
-        return (iterate() if safe else enumerate(enumerator, action)) if isinstance(safe, bool) else iterate(safe)
-    
-    enumerator: IEnumerator[T]|None = AsEnumerable(items).TryGetEnumerator()
-
-    return enumerator is not None and iterate(enumerator)
+    return (iterate() if safe else Loop(items, action)) if isinstance(safe, bool) else iterate(safe)
 
 def While(func: Function[bool], action: Action, safe: bool|Method[bool] = False) -> bool:
     """Executes the given action while the given condition is True.
@@ -215,12 +224,12 @@ def ForEachItemUntil[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[
         - True if predicate matched
         - False if completed without match.
     """
-    enumerator: IEnumerator[T] = AsEnumerable(items).GetEnumerator()
+    item: object = _NONE
 
-    for entry in enumerator.AsIterator():
-        if predicate(entry): return True
+    for item in AsIterable(items):
+        if predicate(item): return True
     
-    return False if enumerator.GetStatus().HasProcessedItems() else None
+    return None if item is _NONE else False
 
 def ForEach[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
     """Iterates over items with index, executing the given action while it returns True.
@@ -314,10 +323,7 @@ def DoForEachItem[T](items: IEnumerable[T]|Iterable[T], action: Method[T], safe:
     Returns:
         True if completed all values or False if the source was empty.
     """
-    def iterate(iterator: Iterator[T], action: Method[T]) -> None:
-        for entry in iterator: action(entry)
-
-    return __EnumerateSafe(items, iterate, action, safe)
+    return __EnumerateSafe(items, action, safe)
 def DoForEachArg[T](action: Method[T], *values: T) -> bool:
     """Executes the given action for each variadic value.
 

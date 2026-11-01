@@ -152,9 +152,7 @@ class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistr
         ...
 
     @final
-    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase, strict: bool = False) -> None:
-        if strict: enumerator.Register(self._GetRegistry())
-        else: enumerator.AddRegistrar(_Registrar(self._GetRegistry()))
+    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase, strict: bool = False) -> None: enumerator.Register(self._GetRegistry()) if strict else enumerator.AddRegistrar(_Registrar(self._GetRegistry()))
 
     @final
     def InvalidateObjects(self) -> None: self._GetRegistry().InvalidateObjects()
