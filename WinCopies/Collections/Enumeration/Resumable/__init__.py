@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Core import IReadOnlyCollection
 from WinCopies.Collections.Enumeration import IIterationStatus, GetIterationInactiveError
 from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, GetEmptyEnumerable, GetEmptyEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumeratorBase, IInvalidatableEnumeratorBase, IEnumerator, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator, Enumerable, CountableEnumerable, IteratorBase, EnumeratorBase, EnumeratorProvider, GetEmptyEnumerable, GetEmptyEnumerator
 from WinCopies.Collections.Generation import IResumable, IRemovable, INode
 from WinCopies.Collections.Registry import IObjectRegistry
 from WinCopies.Typing import InvalidOperationError
@@ -120,6 +120,9 @@ class IDefaultResumableEnumerator[TItem, TCursorValue](IResumableEnumerator[TIte
         
         else: raise IDefaultResumableEnumerator._GetException("resume")
 class IDefaultInvalidatableResumableEnumerator[TItem, TCursorValue](IDefaultResumableEnumerator[TItem, TCursorValue], IInvalidatableResumableEnumerator[TItem]):
+    def __init__(self) -> None: super().__init__()
+
+class IDefaultInvalidatableResumableEnumeratorImplementation[TItem, TCursorValue](IDefaultInvalidatableEnumerator[TItem], IDefaultInvalidatableResumableEnumerator[TItem, TCursorValue]):
     def __init__(self) -> None: super().__init__()
 
 class IResumableEnumerable[T](IEnumerable[T]):

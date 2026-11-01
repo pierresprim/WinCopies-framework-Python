@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized, Collection, Sequence, Mapping
-from typing import overload, final, Any, Self
+from typing import overload, final, Any, NoReturn, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
@@ -12,11 +12,28 @@ from WinCopies.Collections.Registry.Invalidation import IInvalidationRegistrar, 
 from WinCopies.Delegates import NoAction, BoolFalse, Self as SameValue
 from WinCopies.Enum import HasFlag
 from WinCopies.Enums import ErrorMessages
-from WinCopies.Typing import INullable, GetNullable, GetNullValue, GetUnexpectedError
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue, GetUnexpectedError
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, INotHashableValue, EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Action, Method, Function, Selector as SelectorDelegate, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
+
+class _IInvalidatableEnumerator(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def RegisterInvalidationRegistrar(self) -> None:
+        ...
+    @abstractmethod
+    def UnregisterInvalidationRegistrar(self) -> None:
+        ...
+
+    @abstractmethod
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar, monitor: IMonitor) -> IRemovable:
+        ...
+    @abstractmethod
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
+        ...
 
 class IEnumeratorBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -240,8 +257,55 @@ def _GetCurrent[T](*_: T) -> T:
 def _GetCurrentValue() -> Any:
     raise GetIterationInactiveError()
 
-class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
+def _ThrowNotInvalidatable() -> NoReturn:
+    raise InvalidOperationError("This enumerator is not invalidatable.")
+
+@final
+class _DefaultEnumerator(Abstract, _IInvalidatableEnumerator):
+    def __init__(self) -> None: super().__init__()
+
+    def RegisterInvalidationRegistrar(self) -> None: pass
+    def UnregisterInvalidationRegistrar(self) -> None: pass
+
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar, monitor: IMonitor) -> IRemovable: _ThrowNotInvalidatable()
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: _ThrowNotInvalidatable()
+@final
+class _InvalidatableEnumerator(Abstract, _IInvalidatableEnumerator):
+    def __init__(self, revocator: Action, invalidator: Action) -> None:
+        super().__init__()
+
+        self.__revocator: IInvalidatable = _EnumeratorRevocator(revocator)
+        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(invalidator))
+
+    def RegisterInvalidationRegistrar(self) -> None: self.__invalidationRegistrar.Register()
+    def UnregisterInvalidationRegistrar(self) -> None: self.__invalidationRegistrar.Unregister()
+
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar, monitor: IMonitor) -> IRemovable: return ProcessData(invalidationRegistrar, monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: registry.RegisterObject(self.__revocator)
+
+__invalidatableEnumerator: _IInvalidatableEnumerator = _DefaultEnumerator()
+
+def _GetInvalidatableEnumerator() -> _IInvalidatableEnumerator:
+    return __invalidatableEnumerator
+
+class _IInvalidatableEnumeratorBase(IEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+
+    def _CanInvalidate(self) -> bool:
+        return False
+
+    @abstractmethod
+    def _AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable:
+        ...
+    @abstractmethod
+    def _Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
+        ...
+
+class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
     def __init__(self) -> None:
+        def getInvalidationAction(revoke: bool) -> Action:
+            return (lambda: self.__Abort(True)) if revoke else (lambda: self.__Abort(False))
+
         super().__init__()
 
         self.__getCurrentFunc: Function[T] = _GetCurrentValue
@@ -253,8 +317,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
-        self.__revocator: IInvalidatable = _EnumeratorRevocator(self.__Revoke)
-        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(self.__Invalidate))
+        self.__registrar: _IInvalidatableEnumerator = _InvalidatableEnumerator(getInvalidationAction(True), getInvalidationAction(False)) if self._CanInvalidate() else _GetInvalidatableEnumerator()
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
@@ -360,7 +423,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         def moveFirst() -> bool:
             if tryAction(self._OnStarting):
                 self.__status.Start()
-                self.__invalidationRegistrar.Register()
+                self.__registrar.RegisterInvalidationRegistrar()
 
                 self.__getCurrentFunc = lambda: self.__TryFunction(self._GetCurrent)
                 self.__getCurrent = SameValue
@@ -421,12 +484,6 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def __Stop(self) -> None:
         self.__Terminate(EnumerationAbortReason.Stopped)
-    @final
-    def __Invalidate(self) -> None:
-        self.__Abort(False)
-    @final
-    def __Revoke(self) -> None:
-        self.__Abort(True)
     
     @final
     def __OnTerminated(self, completed: bool) -> None:
@@ -449,7 +506,7 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
     @final
     def __Clear(self, clear: bool) -> None:
         def _clear() -> None:
-            self.__invalidationRegistrar.Unregister()
+            self.__registrar.UnregisterInvalidationRegistrar()
             
             self._Clear()
 
@@ -471,9 +528,9 @@ class EnumeratorBase[T](IteratorBase[T], IInvalidatableEnumerator[T]):
         pass
 
     @final
-    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return ProcessData(invalidationRegistrar, self.__monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
+    def _AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return self.__registrar.AddRegistrar(invalidationRegistrar, self.__monitor)
     @final
-    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self.__DoWork(lambda: registry.RegisterObject(self.__revocator))
+    def _Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self.__DoWork(lambda: self.__registrar.Register(registry))
     
     @final
     def GetStatus(self) -> IIterationStatus: return self.__status.AsReadOnly()
@@ -629,6 +686,19 @@ class NullableEnumerator[T](_EnumeratorBase[T]):
         self._OnCurrentInvalidated(old)
 
         self.__current = None
+
+class IDefaultInvalidatableEnumeratorBase(_IInvalidatableEnumeratorBase, IInvalidatableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _CanInvalidate(self) -> bool: return True
+
+    @final
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return self._AddRegistrar(invalidationRegistrar)
+    @final
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self._Register(registry)
+class IDefaultInvalidatableEnumerator[T](IInvalidatableEnumerator[T], IDefaultInvalidatableEnumeratorBase):
+    def __init__(self) -> None: super().__init__()
 
 class Iterator[T](Enumerator[T]):
     def __init__(self, iterator: SystemIterator[T]) -> None:

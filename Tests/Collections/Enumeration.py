@@ -39,7 +39,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, EnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator, EnumeratorBase
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
 from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar # pyright: ignore[reportPrivateUsage]
@@ -152,7 +152,7 @@ class _Meddler(InvalidationRegistrar):
     def Register(self, cookie: IInvalidatable) -> None: self.onRegister = _raises(lambda: self.e.AddRegistrar(_Cookies()))
     def Unregister(self) -> None: self.onUnregister = _raises(cast(IRemovable, self.node).Remove)
 
-class _Base(EnumeratorBase[int]):
+class _Base(EnumeratorBase[int], IDefaultInvalidatableEnumerator[int]):
     """Instrumented enumerator: every hook writes to `sink` with the status read
     *at that point*, and raises when its name is in `raiseIn`."""
     def __init__(self, items: ReadOnlyArray[int]|range, raiseIn: set[str]|None=None, start: bool = True, sink: list[str]|None = None) -> None:

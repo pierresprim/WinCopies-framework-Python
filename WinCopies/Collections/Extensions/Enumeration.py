@@ -4,9 +4,9 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IInvalidatableEnumerator
+from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
-from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator
+from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator, IDefaultInvalidatableResumableEnumeratorImplementation
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
 from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
 from WinCopies.Collections.Generation import IRemovable
@@ -17,7 +17,7 @@ from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
-class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
+class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], IDefaultInvalidatableEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
@@ -34,7 +34,7 @@ class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], GenericCon
 class TupleEnumerator[T](TupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
-class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
+class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[TItem], IDefaultInvalidatableResumableEnumeratorImplementation[TItem, int], GenericConstraint[TList, ITuple[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 

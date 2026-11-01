@@ -99,7 +99,7 @@ def TryIterateItems[T](items: Iterable[T]|None, action: Method[Iterable[T]], fir
 def __ProcessSafe(func: Predicate[Method[Exception]], finalizer: Method[bool]|None) -> bool:
     exceptions: IExceptionGroupBuilder = ExceptionGroupBuilder()
     
-    result: bool = func(lambda e: exceptions.Push(e))
+    result: bool = func(exceptions.Push)
 
     if finalizer is not None: finalizer(exceptions.HasItems())
 
