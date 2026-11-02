@@ -20,35 +20,46 @@ Three method constraints are inherited from that review and are load-bearing:
 
 Unlike the standalone harness, this module needs no abort-time reporting: each
 point is a test method, so a point that dies takes only itself down.
+
+The last section, on the opt-in invalidation of 392ead1, is not part of that
+port: it holds who builds the invalidation machinery, and is proved by benches
+of its own that can fail.
 """
 
 from __future__ import annotations
 
 import gc
+import inspect
 import unittest
 import weakref
 
 from enum import StrEnum
 from typing import Any, Type, cast
+from unittest import mock
 
 
+
+import WinCopies.Collections.Enumeration.Core as Core
 
 from WinCopies import Abstract
 
 from WinCopies.Collections import ReadOnlyArray
-from WinCopies.Collections.Abstraction.Collection import List
+from WinCopies.Collections.Abstraction.Collection import List, CreateList
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
-from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator, EnumeratorBase
+from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator, AbstractEnumerator, ConverterEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorBase, Iterator
+from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
-from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, _Registrar # pyright: ignore[reportPrivateUsage]
+from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator, _Registrar # pyright: ignore[reportPrivateUsage]
 from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Registry import IObjectRegistrar
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
 from WinCopies.String import GetValueOrDefault, SurroundWith
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter
 from WinCopies.Typing.Discard import IInvalidatable, BrokenObjectError, DiscardedError, InvalidatedError
+from WinCopies.Typing.Monitoring import ThrowMonitorBusyError
 
 # ---------------------------------------------------------------------------
 # Probes
@@ -1243,5 +1254,223 @@ class TestRealPaths(unittest.TestCase):
 
                 self.assertEqual((status.HasFaulted(True), status.HasFaulted(False), status.HasFaulted(None)),
                                  (strict, nonStrict, either))
+
+
+# ---------------------------------------------------------------------------
+# Opt-in invalidation
+# ---------------------------------------------------------------------------
+# Since 392ead1, `EnumeratorBase` builds the invalidation machinery (the managed
+# registrar and the revocator) only for an enumerator that declares it through
+# `IDefaultInvalidatableEnumeratorBase`; every other one holds a shared null
+# component, which refuses both doors. The three benches below hold who opts in,
+# what a refusal leaves behind, and that the declaration reaches the members of
+# the interface whatever the order of a class's bases.
+
+class _Counter(IncrementalEnumerator[int]):
+    """An index enumerator over 0 to n - 1: the layer below the tuple, which declares nothing."""
+    def __init__(self, n: int) -> None:
+        super().__init__()
+
+        self.__n: int = n
+
+    def _GetMaxValue(self) -> int: return self.__n
+    def _GetCurrent(self) -> int: return self._GetValue()
+
+class _Plain(Iterator[int]):
+    """A non-invalidatable enumerator that reaches the protected doors, as a subclass may."""
+    def __init__(self, items: ReadOnlyArray[int]) -> None: super().__init__(iter(items))
+
+    def AddRegistrarAnyway(self, registrar: InvalidationRegistrar) -> IRemovable: return self._AddRegistrar(registrar)
+    def RegisterAnyway(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self._Register(registry)
+
+class _Objects(Abstract, IObjectRegistrar[IInvalidatable]):
+    """A registry that keeps what it is handed, so that an absence can be asserted."""
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.objects: list[IInvalidatable] = []
+
+    def RegisterObject(self, item: IInvalidatable) -> None: self.objects.append(item)
+
+def _allocations(factory: Function[Any]) -> tuple[int, int]:
+    """The managed registrars and the revocators that `Core` builds while `factory` runs."""
+
+    counts: list[int] = [0, 0]
+
+    def counting(index: int, name: str) -> Any:
+        original: Any = getattr(Core, name)
+
+        def build(*args: Any) -> Any:
+            counts[index] += 1
+
+            return original(*args)
+
+        return build
+
+    with mock.patch.object(Core, "ManagedInvalidationRegistrar", counting(0, "ManagedInvalidationRegistrar")), mock.patch.object(Core, "_EnumeratorRevocator", counting(1, "_EnumeratorRevocator")): factory()
+
+    return (counts[0], counts[1])
+
+def _subclasses(cls: type) -> list[type]:
+    found: list[type] = []
+
+    for subclass in cls.__subclasses__():
+        found.append(subclass)
+        found.extend(_subclasses(subclass))
+
+    return found
+
+class TestWhoOptsIn(unittest.TestCase):
+    def test_only_a_declared_enumerator_builds_the_invalidation_machinery(self) -> None:
+        """The promise of `Enumeration/5.0`, held on the structure rather than on a timing: no registrar, no
+        revocator, no allocation for an enumerator that does not declare the invalidation. The tuple
+        enumerators declare it, and with them the enumerators a mutable list delivers; the iterator,
+        the index enumerator below the tuple and the wrappers do not. The enumerators of the linked
+        lists are left out: the porting of the invalidation decides them."""
+
+        items = CreateList([1, 2])
+        rows: ReadOnlyArray[tuple[str, Function[Any], bool]] = (
+            ("TupleEnumerator", lambda: TupleEnumerator(items), True),
+            ("ResumableTupleEnumerator", lambda: ResumableTupleEnumerator(items), True),
+            ("List.TryGetEnumerator()", items.TryGetEnumerator, True),
+            ("Iterator", lambda: Iterator(iter((1, 2))), False),
+            ("an index enumerator", lambda: _Counter(2), False),
+            ("AbstractEnumerator", lambda: AbstractEnumerator(Iterator(iter((1, 2)))), False),
+            ("ConverterEnumerator", lambda: ConverterEnumerator(Iterator(iter((1, 2))), str), False))
+
+        for label, factory, declared in rows:
+            with self.subTest(enumerator = label):
+                built: list[Any] = []
+
+                self.assertEqual(_allocations(lambda: built.append(factory())), (1, 1) if declared else (0, 0))
+                self.assertIs(isinstance(built[0], IInvalidatableEnumeratorBase), declared)
+
+_DOORS: ReadOnlyArray[str] = ("_AddRegistrar", "_Register")
+
+def _knock(door: str, e: _Plain, registrar: list[str], registry: _Objects) -> None:
+    if door == "_AddRegistrar": e.AddRegistrarAnyway(_Spy(registrar))
+
+    else: e.RegisterAnyway(registry)
+
+class TestARefusalLeavesNoTrace(unittest.TestCase):
+    def test_a_non_invalidatable_enumerator_refuses_both_doors(self) -> None:
+        """Before the start and between two steps alike: the refusal is raised at the call, where the
+        mistake is, rather than accepted and lost. Nothing reaches the registrar or the registry."""
+
+        for moment, steps in (("before the start", 0), ("between two steps", 1)):
+            for door in _DOORS:
+                with self.subTest(moment = moment, door = door):
+                    registrar: list[str] = []
+                    registry = _Objects()
+                    e = _Plain((1, 2, 3))
+
+                    for _ in range(steps): e.MoveNext()
+
+                    with self.assertRaises(InvalidOperationError): _knock(door, e, registrar, registry)
+
+                    self.assertEqual((registrar, registry.objects), ([], []))
+
+    def test_the_enumeration_runs_on_as_if_nothing_had_been_asked(self) -> None:
+        """`_Register` is refused inside the work of the monitor: the monitor must come out of it free.
+        A second refusal says what the first said, where a busy monitor would answer with the
+        reentrancy error; and the enumeration reads the rest of its items, then completes."""
+
+        for door in _DOORS:
+            with self.subTest(door = door):
+                e = _Plain((1, 2, 3))
+
+                e.MoveNext()
+
+                first, second = (_raises(lambda: _knock(door, e, [], _Objects())) for _ in range(2))
+
+                self.assertIsInstance(first, InvalidOperationError)
+                self.assertEqual((type(second), str(second)), (type(first), str(first)))
+
+                rest: list[int] = []
+
+                while e.MoveNext(): rest.append(e.GetCurrent())
+
+                self.assertEqual((rest, _st(e)), ([2, 3], "Ended/Completed"))
+
+class TestTheDeclarationReachesItsInterface(unittest.TestCase):
+    def test_every_declared_enumerator_resolves_the_members_of_its_interface(self) -> None:
+        """A class lists its base class before its interfaces, and C3 puts that base first: a member
+        it defines shadows the one an interface placed after it was meant to provide. That is how the
+        first draft of 392ead1 left every tuple enumerator undeclared, `EnumeratorBase._CanInvalidate`
+        answering False ahead of the interface's True. Every loaded class that declares the
+        interface must resolve each of its members to the interface's own definition. Under the whole
+        suite, the loaded classes are those of every module a bench reaches."""
+
+        members: list[str] = [name for name, value in vars(IDefaultInvalidatableEnumeratorBase).items() if inspect.isfunction(value) and name != "__init__"]
+        declared: list[type] = [cls for cls in _subclasses(EnumeratorBase) if issubclass(cls, IDefaultInvalidatableEnumeratorBase)]
+
+        self.assertIn("_CanInvalidate", members)
+        self.assertTrue({TupleEnumerator, ResumableTupleEnumerator} <= set(declared))
+
+        for cls in declared:
+            for name in members:
+                with self.subTest(cls = cls.__qualname__, member = name):
+                    self.assertIs(getattr(cls, name), getattr(IDefaultInvalidatableEnumeratorBase, name))
+
+def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
+    result: unittest.TestResult = unittest.TestResult()
+
+    bench(name).run(result)
+
+    return result
+
+def _shadowed(self: Any) -> bool: return False
+def _everyone(self: Any) -> bool: return True
+
+class TestTheOptInBenchesCanFail(unittest.TestCase):
+    """The three benches of the opt-in invalidation, run against the defects they are meant to catch:
+    green on the intact tree, red on the rebuilt one. Each substitution is a class attribute, patched
+    for the length of a block and restored on the way out."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+        self.assertTrue(_run(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _run(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+
+    def test_the_table_falls_when_every_enumerator_builds_the_machinery(self) -> None:
+        """As at 87fe2942: the machinery built for every enumerator, declared or not."""
+
+        self.__assertFalls(TestWhoOptsIn, "test_only_a_declared_enumerator_builds_the_invalidation_machinery", getattr(Core, "_IInvalidatableEnumeratorBase"), {"_CanInvalidate": _everyone})
+
+    def test_the_table_falls_when_no_enumerator_opts_in(self) -> None:
+        """The first draft of 392ead1: `_CanInvalidate` defined on `EnumeratorBase`, ahead of the interface."""
+
+        self.__assertFalls(TestWhoOptsIn, "test_only_a_declared_enumerator_builds_the_invalidation_machinery", EnumeratorBase, {"_CanInvalidate": _shadowed})
+
+    def test_the_refusal_bench_falls_when_the_null_component_accepts_in_silence(self) -> None:
+        """The first draft of 392ead1: a registrar accepted and never registered, a registry ignored.
+        Each door is rebuilt alone, so that each is shown to be caught."""
+
+        def accept(self: Any, invalidationRegistrar: Any, monitor: Any) -> Any: return None
+        def ignore(self: Any, registry: Any) -> None: pass
+
+        for door, rebuilt in (("AddRegistrar", accept), ("Register", ignore)):
+            with self.subTest(door = door):
+                self.__assertFalls(TestARefusalLeavesNoTrace, "test_a_non_invalidatable_enumerator_refuses_both_doors", getattr(Core, "_NullEnumeratorInvalidation"), {door: rebuilt})
+
+    def test_the_trace_bench_falls_when_a_refusal_leaves_the_monitor_busy(self) -> None:
+        """A `DoWork` that gives the monitor back only when its work succeeds. `EnumeratorBase` looks
+        it up in `Core`, and the substitution is made there."""
+
+        def doWork(monitor: Any, worker: Any, errorMessage: Any = None) -> None:
+            if monitor.IsBusy(): ThrowMonitorBusyError(errorMessage)
+
+            monitor.Initialize()
+            worker()
+            monitor.Dispose()
+
+        self.__assertFalls(TestARefusalLeavesNoTrace, "test_the_enumeration_runs_on_as_if_nothing_had_been_asked", Core, {"DoWork": doWork})
+
+    def test_the_resolution_bench_falls_when_a_base_shadows_the_interface(self) -> None:
+        """The first draft of 392ead1 again, on the bench that names its cause."""
+
+        self.__assertFalls(TestTheDeclarationReachesItsInterface, "test_every_declared_enumerator_resolves_the_members_of_its_interface", EnumeratorBase, {"_CanInvalidate": _shadowed})
 
 if __name__ == "__main__": unittest.main()
