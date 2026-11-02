@@ -811,9 +811,11 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         self.__assertFalls((TestASetterAnswersByCause, "test_a_delegating_setter_answers_true_on_a_write_that_raises_when_refused"), IAbstractionSetterBase, "_TrySetItemAt", rebuilt)
 
     def test_the_dictionary_bench_falls_when_a_key_moved_onto_itself_is_refused(self) -> None:
-        """_ChangePosition as it stood at 5500478, validating before comparing the two keys: D-83."""
+        """_ChangePosition as it stood at 5500478, validating before comparing the two keys: D-83. It was
+        a module function of Core then: 81f6035 made it a method of ISwappableBase, and the substitution
+        follows it there."""
 
-        def rebuilt(x: Any, y: Any, collection: Any, validator: Any, updater: Any) -> bool|None:
+        def rebuilt(self: Any, x: Any, y: Any, validator: Any, updater: Any) -> bool|None:
             if validator(x, y):
                 if x == y: return False
 
@@ -823,7 +825,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
 
             return None
 
-        self.__assertFalls((TestADictionaryChangesPositionByKey, "test_every_answer_follows_the_convention"), Core, "_ChangePosition", rebuilt)
+        self.__assertFalls((TestADictionaryChangesPositionByKey, "test_every_answer_follows_the_convention"), Core.ISwappableBase, "_ChangePosition", rebuilt)
 
     def test_the_dictionary_bench_falls_when_a_move_takes_a_target_already_held(self) -> None:
         """A move validated on its source alone, as before 6c717bf, reaches the removal of its source
@@ -861,7 +863,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
 
         holders: ReadOnlyArray[tuple[Any, ReadOnlyArray[str]]] = (
             (Util, ("GetDuplicateKeyError", "GetDuplicateItemError", "GetRepeatedItemError", "GetDuplicateRangeError")),
-            (Core, ("GetDuplicateKeyError",)), (MappingExtensions, ("GetDuplicateItemError",)), (AbstractCollection, ("GetDuplicateItemError",)))
+            (Mapping, ("GetDuplicateKeyError",)), (MappingExtensions, ("GetDuplicateItemError",)), (AbstractCollection, ("GetDuplicateItemError",)))
 
         return tuple((module, name, rebuilt(name)) for module, held in holders for name in held if name in names)
 
