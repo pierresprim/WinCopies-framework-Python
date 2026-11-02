@@ -24,19 +24,21 @@ from unittest import mock
 import WinCopies.Collections.Abstract.Collection as AbstractCollection
 import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
 import WinCopies.Collections.Core as Core
+import WinCopies.Collections.Mapping as Mapping
 import WinCopies.Collections.Range.Extensions as RangeExtensions
 import WinCopies.Collections.Util as Util
 
 from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import SizedList, CreateList, CreateSortedList, TryCreateSizedList
-from WinCopies.Collections.Abstraction.Mapping import CreateDictionary, CreateSet, Dictionary
+from WinCopies.Collections.Abstraction.Mapping import Dictionary, CreateDictionary, CreateSet
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Abstraction.Selection import Converters
-from WinCopies.Collections.Abstraction.Selection.Collection import CreateDictionary as CreateSelectionDictionary, Array as SelectionArray, List as SelectionList
+from WinCopies.Collections.Abstraction.Selection.Collection import Array as SelectionArray, List as SelectionList, CreateDictionary as CreateSelectionDictionary
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Circular import CircularList
-from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection, IDictionary
+from WinCopies.Collections.Core import IAbstractionSetterBase, ICollection
 from WinCopies.Collections.Extensions.Collection import ReversedArrayList
+from WinCopies.Collections.Mapping import IDictionary
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
 from WinCopies.Collections.Util import GetDuplicateKeyError, GetDuplicateItemError, GetRepeatedItemError, GetDuplicateRangeError, GetCapacityError
 from WinCopies.Typing import INullable, GetNullable
@@ -973,7 +975,7 @@ class TestTheseBenchesCanFail(unittest.TestCase):
         def rebuilt(self: Any, items: Any) -> None:
             if self.TryAddRange(items) is None: raise KeyError()
 
-        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_a_set"),), ((Core.ISet, "AddRange", rebuilt),))
+        self.__assertFallsWith(((TestADuplicateRaisesADuplicateKeyError, "test_a_set"),), ((Mapping.ISet, "AddRange", rebuilt),))
 
     def test_the_duplicate_bench_falls_when_the_python_path_raises_a_plain_value_error(self) -> None:
         """The Python path of the ordered set's view as it stood at 8e4000a."""

@@ -13,7 +13,8 @@ from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, EnumeratorProvider, IteratorProvider, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable
 from WinCopies.Collections.Enumeration.Recursive.Scannable import Events, IGeneratorProvider, RecursivelyIteratorProvider, ObjectGeneratorProvider
-from WinCopies.Collections.Extensions import ITuple, IReadOnlyDictionary, IDictionary
+from WinCopies.Collections.Extensions import ITuple
+from WinCopies.Collections.Extensions.Mapping import IReadOnlyDictionary, IDictionary
 from WinCopies.Collections.Linked.Singly import IQueue, Queue
 from WinCopies.Delegates import BoolFalse
 from WinCopies.IO.Stream import IStreamReader, IBinaryStreamReader

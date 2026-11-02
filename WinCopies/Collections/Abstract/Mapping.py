@@ -10,8 +10,8 @@ from WinCopies.Collections.Abstract.Selection import ISelector, IAbstractionSett
 from WinCopies.Collections.Abstraction.Mapping import GetSet, GetDictionary
 from WinCopies.Collections.Core import ISetter
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, CountableEnumerable, TryAsEnumerator
-from WinCopies.Collections.Extensions import ISet, IDictionary, GetCollectionString
-from WinCopies.Collections.Extensions.Mapping import Set as SetBase, DictionaryBase
+from WinCopies.Collections.Extensions import GetCollectionString
+from WinCopies.Collections.Extensions.Mapping import ISet, IDictionary, Set as SetBase, DictionaryBase
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol

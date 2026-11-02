@@ -10,8 +10,8 @@ from WinCopies.Collections.Abstraction.Selection import IConverters, ConverterBa
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Extensions import (IDefaultMutableSequence,
                                               ITuple, IEquatableTuple, IHashableTuple,
-                                              IArray, IList,
-                                              ISet, IDictionary)
+                                              IArray, IList)
+from WinCopies.Collections.Extensions.Mapping import ISet, IDictionary
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Converter as _Converter
 

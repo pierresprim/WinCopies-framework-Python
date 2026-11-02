@@ -59,7 +59,8 @@ from WinCopies.Collections.Enumeration import IterationResult
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Extensions import (IDefaultMutableSequence, ITupleBase,
                                               ITuple as _ITuple, ISortedTuple, IEquatableTuple, IHashableTuple,
-                                              IList as _IList, ISizedList, IOrderedSet)
+                                              IList as _IList, ISizedList)
+from WinCopies.Collections.Extensions.Mapping import IOrderedSet
 from WinCopies.Collections.Extensions.Revocable import RevocableViewRegistry
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList
 from WinCopies.Collections.Loop import DoForEachItem

@@ -26,5 +26,3 @@ def GetField(fieldFactory: IFieldFactory, name: str, attribute: FieldAttributes,
             checkSimpleField()
 
             return fieldFactory.CreateNull(name, attribute)
-    
-    raise ValueError(f"Wrong {FieldType}.")

@@ -1,7 +1,7 @@
 from weakref import WeakKeyDictionary as WeakKeyDictionaryBase, WeakValueDictionary as WeakValueDictionaryBase
 
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Typing.Comparison import HashableProtocol
 
 class WeakKeyDictionary[TKey: HashableProtocol, TValue](Dictionary[TKey, TValue]):

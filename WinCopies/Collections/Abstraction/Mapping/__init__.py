@@ -6,7 +6,7 @@ from typing import overload, final, Callable
 
 from WinCopies import Abstract
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, Iterator, TryAsEnumerator
-from WinCopies.Collections.Extensions import Mapping, ISet, IDictionary
+from WinCopies.Collections.Extensions.Mapping import ISet, IDictionary, Set as _Set, Dictionary as _Dictionary
 from WinCopies.Collections.Iteration import GetFirstItemExclusive
 from WinCopies.Collections.Iteration.Enumeration import Any
 from WinCopies.Collections.Linked.Singly import IEnumerableQueue, CreateEnumerableQueue
@@ -25,7 +25,7 @@ def HasDuplicate[T: HashableProtocol](items: Iterable[T]) -> bool:
 def HasDuplicateItem[T: HashableProtocol](items: Iterable[T]) -> INullable[T]:
     return __HasDuplicate(items, GetFirstItemExclusive, Self)
 
-class Set[T: HashableProtocol](Mapping.Set[T]):
+class Set[T: HashableProtocol](_Set[T]):
     def __init__(self, items: set[T]|None = None) -> None:
         super().__init__()
 
@@ -171,7 +171,7 @@ def _GetNoneInstance() -> _None:
     return __none
 
 # TODO: Should inherit from MutableMapping
-class Dictionary[TKey: HashableProtocol, TValue](Mapping.Dictionary[TKey, TValue]):
+class Dictionary[TKey: HashableProtocol, TValue](_Dictionary[TKey, TValue]):
     class _Enumerable[_TKey: HashableProtocol, _TValue, _TItem](DictionaryEnumerable[_TKey, _TValue, _TItem]):
         def __init__(self, dic: Dictionary[_TKey, _TValue]) -> None:
             super().__init__()

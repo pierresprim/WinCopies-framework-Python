@@ -24,7 +24,8 @@ from WinCopies.Collections import ReadOnlyArray, DuplicateKeyError
 from WinCopies.Collections.Abstraction.Collection import CreateList, TryCreateSizedList
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
 from WinCopies.Collections.Enumeration.Core import IEnumerator, AsEnumerator
-from WinCopies.Collections.Extensions import IList, IOrderedSet, IEquatableTuple
+from WinCopies.Collections.Extensions import IList, IEquatableTuple
+from WinCopies.Collections.Extensions.Mapping import IOrderedSet
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, IReadOnlyCountableEnumerableList
 from WinCopies.Collections.Range.Extensions import SetOrderedValues
 from WinCopies.Typing.Delegate import Action, Function, Converter

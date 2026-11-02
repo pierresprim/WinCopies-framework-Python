@@ -15,7 +15,8 @@ from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumera
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, IsResumable, TryGetEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, DefaultRecursiveStackedEnumerator
-from WinCopies.Collections.Extensions import ICollection, IDictionary
+from WinCopies.Collections.Extensions import ICollection
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import IList, ICountableEnumerableList, Queue, CountableQueue, CountableEnumerableQueue
 

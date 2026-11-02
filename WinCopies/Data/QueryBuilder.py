@@ -12,7 +12,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableList, CountableEnumerableQueue
 from WinCopies.Collections.Loop import DoForEachAndPrependAction

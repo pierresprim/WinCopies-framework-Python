@@ -6,7 +6,7 @@ from enum import Enum, Flag, auto
 from typing import final
 
 from WinCopies import IInterface, IDisposable, Abstract
-from WinCopies.Collections.Extensions import IReadOnlySet
+from WinCopies.Collections.Extensions.Mapping import IReadOnlySet
 from WinCopies.Enum import EnsureOneAndOnlyOneFlag
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing import ErrorBase, InvalidOperationError

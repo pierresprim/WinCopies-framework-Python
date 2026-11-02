@@ -13,12 +13,12 @@ from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumer
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
                                               ICollectionMonitors, IEquatableCollectionViewMonitor,
-                                              IReadOnlyOrderedSet, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet,
                                               ITuple, IEquatableTuple, IArray, IList,
                                               EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequence,
                                               GetViewString)
 from WinCopies.Collections.Extensions.Collection import MutableList, CollectionAbstract, IReadOnlyCursorProvider, ICursorProvider
+from WinCopies.Collections.Extensions.Mapping import IReadOnlyOrderedSet, IReadOnlyKeyedSet, ISet, IOrderedSet, IKeyedSet
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Singly import ICountableEnumerableQueue, CreateCountableEnumerableQueue
 from WinCopies.Collections.Loop import AreEquals

@@ -9,7 +9,7 @@ import sqlite3
 
 from WinCopies import String, Abstract
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, Enumerable, Iterator, TryAsIterable
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Util import CreateList
 from WinCopies.Typing.Delegate import Action, Method, IFunction, ValueFunctionUpdater, GetDefaultFunction
 

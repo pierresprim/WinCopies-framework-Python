@@ -2,10 +2,11 @@ from collections.abc import Container, Iterable
 from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
-from WinCopies.Collections.Core import IList as IListBase, ISet
+from WinCopies.Collections.Core import IList as IListBase
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
 from WinCopies.Collections.Extensions import IList
 from WinCopies.Collections.Iteration.Extensions import Count
+from WinCopies.Collections.Mapping import ISet
 from WinCopies.Collections.Range import ResolveKey
 from WinCopies.Collections.Util import ReverseIndex, MakeSequence, GetSequenceIndex, ThrowIndexError, ThrowSliceLengthError, ThrowSpanRefusedError, ThrowDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing.Comparison import HashableProtocol

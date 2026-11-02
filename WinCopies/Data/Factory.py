@@ -8,7 +8,8 @@ from WinCopies.Collections.Abstraction.Collection import CreateTuple
 from WinCopies.Collections.Abstraction.Mapping import CreateSet
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Expression import ICompositeExpressionNode, CompositeExpressionNode, CompositeExpressionValueNode
-from WinCopies.Collections.Extensions import ITuple, IHashableTuple, IDictionary, IReadOnlyKeyedSet
+from WinCopies.Collections.Extensions import ITuple, IHashableTuple
+from WinCopies.Collections.Extensions.Mapping import IReadOnlyKeyedSet, IDictionary
 from WinCopies.Collections.Iteration import TryGenerate, GetFirst, Select, ExpandItems
 from WinCopies.Collections.Iteration.Batch import IHandler, Batch
 from WinCopies.Collections.Util import MakeGenerator

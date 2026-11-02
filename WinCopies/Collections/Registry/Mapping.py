@@ -6,7 +6,7 @@ from weakref import ReferenceType, ref
 
 from WinCopies import Abstract
 from WinCopies.Collections.Abstraction.Mapping import CreateDictionary
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Generation import IRemovable, INode
 from WinCopies.Collections.Registry.Core import ObjectRegistryBase
 from WinCopies.Collections.Registry.Kernel import CompositeRemovable

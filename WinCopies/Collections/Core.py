@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from collections.abc import Sized, Iterable, Container, Collection
-from typing import overload, final, Any, Callable, NoReturn
+from typing import overload, final, Any, NoReturn
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EmptyException
-from WinCopies.Collections.Util import GetDuplicateKeyError, ThrowDuplicateKeyError, ThrowDuplicateItemError, ThrowDuplicateRangeError, GetKeyNotFoundError, ThrowKeyNotFoundError, GetIndexError, ThrowIndexError, ThrowValueNotFoundError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
+from WinCopies.Collections.Util import GetKeyNotFoundError, GetIndexError, ThrowIndexError, ThrowValueNotFoundError, ReverseIndex, ReverseIndexFromLast, GetOffset, GetIndex, ValidateIndex, ReverseRangeStartIndex, TryGetRangeLength
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import IEquatableValue, IHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, IndexedValueComparison
+from WinCopies.Typing.Delegate import Converter, Comparison, EqualityComparison, ItemComparison, IndexedValueComparison
 from WinCopies.Typing.Enum import IntEnum
-from WinCopies.Typing.Pairing import KeyValuePair, DualValueBool, CreateDualValueBool
+from WinCopies.Typing.Pairing import DualValueBool, CreateDualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class Mutability(IntEnum):
@@ -476,18 +476,19 @@ class IHashableTuple[T: HashableProtocol](IEquatableTuple[T], IHashableValue):
     def SliceAt(self, key: slice) -> IHashableTuple[T]:
         ...
 
-def _ChangePosition[T](x: T, y: T, collection: IKeyableBase[T], validator: EqualityComparison[T], updater: Callable[[T, T], None]) -> bool|None:
-    if x == y: return False if collection.ContainsKey(x) else None
-
-    if validator(x, y):
-        updater(x, y)
-
-        return True
-
-    return None
-
-class _ISwappable[TKey, TValue](IReadWriteCollection[TKey, TValue]):
+class ISwappableBase[TKey, TValue](IReadWriteCollection[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def _ChangePosition(self, x: TKey, y: TKey, validator: EqualityComparison[TKey], updater: ItemComparison[TKey, None]) -> bool|None:
+        if x == y: return False if self.ContainsKey(x) else None
+
+        if validator(x, y):
+            updater(x, y)
+
+            return True
+
+        return None
 
     @final
     def _SwapDefault(self, x: TKey, y: TKey) -> None:
@@ -499,17 +500,17 @@ class _ISwappable[TKey, TValue](IReadWriteCollection[TKey, TValue]):
     @abstractmethod
     def _Swap(self, x: TKey, y: TKey) -> None:
         ...
-class ISwappable[TKey, TValue](_ISwappable[TKey, TValue]):
+class ISwappable[TKey, TValue](ISwappableBase[TKey, TValue]):
     def __init__(self) -> None: super().__init__()
     
     @final
     def _Swap(self, x: TKey, y: TKey) -> None: self._SwapDefault(x, y)
 
-class IArray[T](ITuple[T], ICountableIndexable[T], _ISwappable[int, T]):
+class IArray[T](ITuple[T], ICountableIndexable[T], ISwappableBase[int, T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def __ChangePosition(self, x: int, y: int, updater: Callable[[int, int], None]) -> bool|None: return _ChangePosition(x, y, self, self.ValidateIndices, updater)
+    def __ChangePosition(self, x: int, y: int, updater: ItemComparison[int, None]) -> bool|None: return self._ChangePosition(x, y, self.ValidateIndices, updater)
 
     def ValidateIndices(self, x: int, y: int) -> bool:
         return self.ValidateIndex(x) and self.ValidateIndex(y)
@@ -690,139 +691,6 @@ class ISortedList[T: SupportsEqualityAndRichComparison](IListBase[T], ISortedTup
     
     @abstractmethod
     def SliceAt(self, key: slice) -> ISortedList[T]:
-        ...
-
-class IReadOnlySet[T: HashableProtocol](IReadOnlyList[T], ICountable):
-    def __init__(self) -> None: super().__init__()
-    
-    @final
-    def IsEmpty(self) -> bool: return self.GetCount() < 1
-class ISet[T: HashableProtocol](IReadOnlySet[T], IClearable):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlySet[T]:
-        ...
-    
-    @abstractmethod
-    def TryAdd(self, item: T) -> bool:
-        ...
-    @final
-    def Add(self, item: T) -> None:
-        if not self.TryAdd(item): ThrowDuplicateItemError(item)
-
-    @abstractmethod
-    def TryAddRange(self, items: Iterable[T]) -> bool|None:
-        ...
-    @final
-    def AddRange(self, items: Iterable[T]) -> None:
-        result: bool|None = self.TryAddRange(items)
-
-        if result is None: ThrowDuplicateRangeError()
-
-    @final
-    def TryAddValues(self, *values: T) -> bool:
-        return True if self.TryAddRange(values) is True else False
-    @final
-    def AddValues(self, *values: T) -> None:
-        self.AddRange(values)
-    
-    @abstractmethod
-    def TryRemove(self, item: T) -> bool:
-        ...
-    @final
-    def Remove(self, item: T) -> None:
-        if not self.TryRemove(item): ThrowKeyNotFoundError(item)
-
-class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IGetter[TKey, TValue], IReadOnlyCollection, ICountable):
-    def __init__(self) -> None: super().__init__()
-class IDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionary[TKey, TValue], _ISwappable[TKey, TValue], IClearable):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def __ChangePosition(self, x: TKey, y: TKey, move: bool, updater: Callable[[TKey, TKey], None]) -> bool|None: return _ChangePosition(x, y, self, lambda x, y: self.ValidateKeys(x, y, move), updater)
-
-    def _GetKeysError(self, x: TKey, y: TKey) -> LookupError:
-        return (GetDuplicateKeyError(y) if self.ContainsKey(y) else self._GetKeyNotFoundError(y)) if self.ContainsKey(x) else self._GetKeyNotFoundError(x)
-
-    @final
-    def ValidateKeys(self, x: TKey, y: TKey, move: bool = False) -> bool:
-        return self.ContainsKey(x) and self.ContainsKey(y) != move
-
-    @abstractmethod
-    def _Move(self, x: TKey, y: TKey) -> None:
-        ...
-    @final
-    def TryMove(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, True, self._Move)
-
-    @final
-    def TrySwap(self, x: TKey, y: TKey) -> bool|None: return self.__ChangePosition(x, y, False, self._Swap)
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
-        ...
-    
-    @abstractmethod
-    def TryAdd(self, key: TKey, value: TValue) -> bool:
-        ...
-    @final
-    def Add(self, key: TKey, value: TValue) -> None:
-        if not self.TryAdd(key, value): ThrowDuplicateKeyError(key)
-
-    @final
-    def TryAddItem(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        return self.TryAdd(item.GetKey(), item.GetValue())
-    @final
-    def AddItem(self, item: KeyValuePair[TKey, TValue]) -> None:
-        self.Add(item.GetKey(), item.GetValue())
-
-    @abstractmethod
-    def AddOrUpdate(self, key: TKey, value: TValue) -> bool:
-        ...
-    @final
-    def AddItemOrUpdate(self, item: KeyValuePair[TKey, TValue]) -> bool:
-        return self.AddOrUpdate(item.GetKey(), item.GetValue())
-
-    @abstractmethod
-    def TryRemoveItem(self, key: TKey) -> INullable[TValue]:
-        ...
-    
-    @overload
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault) -> DualValueBool[TValue|TDefault]: ...
-    @overload
-    def TryRemove(self, key: TKey, defaultValue: None = None) -> DualValueBool[TValue|None]: ...
-
-    @final
-    def TryRemove[TDefault](self, key: TKey, defaultValue: TDefault|None = None) -> DualValueBool[TValue|TDefault|None]:
-        result: INullable[TValue] = self.TryRemoveItem(key)
-
-        return DualValueBool[TValue](result.GetValue(), True) if result.HasValue() else DualValueBool[TDefault|None](defaultValue, False)
-
-    @final
-    def Remove(self, key: TKey) -> TValue:
-        result: INullable[TValue] = self.TryRemoveItem(key)
-
-        if result.HasValue(): return result.GetValue()
-
-        ThrowKeyNotFoundError(key)
-
-class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def AsTuple(self) -> IEquatableTuple[T]:
-        ...
-class IOrderedSet[T: HashableProtocol](ISet[T], IReadOnlyOrderedSet[T]):
-    def __init__(self) -> None:
-        super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
-        ...
-
-    @abstractmethod
-    def AsList(self) -> IList[T]:
         ...
 
 class Tuple[T](Abstract, ITuple[T]):

@@ -14,7 +14,7 @@ from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Ite
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
 from WinCopies.Collections.Expression import ICompositeExpression, ICompositeExpressionNode, IConnector, CompositeExpressionRoot, CompositeExpressionValueRoot, CreateCompositeExpressionRoot
-from WinCopies.Collections.Extensions import IDictionary
+from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Collections.Util import MakeSequence

@@ -6,16 +6,13 @@ from typing import Any, overload, final, Literal, SupportsIndex
 from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, IStringable, Abstract
-from WinCopies.Collections.Core import (Mutability, ICountable, IContainer, IClearable,
-                                        IReadOnlyCollection as IReadOnlyCollectionBase, ICountableCollection, IReadOnlyCountableList,
+from WinCopies.Collections.Core import (Mutability, ICountable, IContainer,
+                                        ICountableCollection, IReadOnlyCountableList,
                                         ITuple as ITupleAbstract, IEquatableTuple as IEquatableTupleBase, IHashableTuple as IHashableTupleBase,
                                         IArray as IArrayAbstract,
                                         IListBase as IListAbstractBase, IList as IListAbstract,
                                         ISortedTuple as ISortedTupleBase, ISortedList as ISortedListBase,
-                                        ICountableList as ICountableListBase,
-                                        IReadOnlySet as IReadOnlySetBase, ISet as ISetBase,
-                                        IReadOnlyDictionary as IReadOnlyDictionaryBase, IDictionary as IDictionaryBase,
-                                        IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
+                                        ICountableList as ICountableListBase)
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
@@ -29,7 +26,6 @@ from WinCopies.Typing.Delegate import Method, Function, Converter
 from WinCopies.Typing.Discard import DiscardReason, DiscardedError
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 from WinCopies.Typing.Object import IItem
-from WinCopies.Typing.Pairing import IKeyValuePair
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
 
 class IReadOnlyCollection[T](IReadOnlyCountableList[T], ICountableEnumerable[T]):
@@ -448,39 +444,6 @@ class ISizedList[T](IList[T]):
     def ValidateLength(self, count: int) -> bool:
         ...
 
-# TODO: Should implement a Mapping abstractor provider.
-class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionaryBase[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def IsResumable(self) -> bool|None: return True
-    
-    @abstractmethod
-    def GetKeys(self) -> ICountableEnumerable[TKey]:
-        ...
-    @abstractmethod
-    def GetValues(self) -> ICountableEnumerable[TValue]:
-        ...
-# TODO: Should implement a MutableMapping abstractor provider.
-class IDictionary[TKey: HashableProtocol, TValue](IDictionaryBase[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
-        ...
-
-class IReadOnlySet[T: HashableProtocol](IReadOnlySetBase[T], ICountableEnumerable[T], IStringable):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def IsResumable(self) -> bool|None: return True
-class ISet[T: HashableProtocol](ISetBase[T], IReadOnlySet[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlySet[T]:
-        ...
-
 class GenericCollectionViewMonitor[TContainer, TInterface](GenericConstraint[TContainer, TInterface]):
     def __init__(self) -> None: super().__init__()
 
@@ -579,43 +542,6 @@ class MutableSequenceAbstract[T](MutableSequence[T], IList[T]):
     
     @final
     def __getitem__(self, index: SupportsIndex|slice) -> T|MutableSequenceBase[T]: return self.GetAt(GetSequenceIndex(index, self.GetCount())) if isinstance(index, SupportsIndex) else self.SliceAt(index).AsMutableSequence()
-
-class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T], IReadOnlyOrderedSetBase[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsTuple(self) -> IEquatableTuple[T]:
-        ...
-class IOrderedSet[T: HashableProtocol](IOrderedSetBase[T], ISet[T], IReadOnlyOrderedSet[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
-        ...
-
-    @abstractmethod
-    def AsList(self) -> IList[T]:
-        ...
-
-class IReadOnlyKeyedSet[TKey: HashableProtocol, TValue](ICountableEnumerable[ITuple[TValue]], IReadOnlyCollectionBase):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def IsResumable(self) -> bool|None: return True
-    
-    @abstractmethod
-    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
-        ...
-class IKeyedSet[TKey: HashableProtocol, TValue](IReadOnlyKeyedSet[TKey, TValue], IClearable):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def TryAdd(self, values: ITuple[TValue]) -> bool:
-        ...
-
-    @abstractmethod
-    def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
-        ...
 
 def GetCount(items: ICountable|Sized) -> int:
     match items:

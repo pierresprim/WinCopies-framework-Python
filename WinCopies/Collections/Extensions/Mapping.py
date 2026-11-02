@@ -1,21 +1,95 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Container as ContainerBase
 from typing import final
 
 
 
-from WinCopies import Abstract
+from WinCopies import IStringable, Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
-from WinCopies.Collections.Core import ISwappable
+from WinCopies.Collections.Core import ISwappable, IClearable, IReadOnlyCollection as IReadOnlyCollectionBase
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
-from WinCopies.Collections.Extensions import IReadOnlySet, ISet, IReadOnlyDictionary, IDictionary, Container
+from WinCopies.Collections.Extensions import ITuple, IEquatableTuple, IList, Container
+from WinCopies.Collections.Mapping import (IReadOnlySet as IReadOnlySetBase, ISet as ISetBase,
+                                           IReadOnlyDictionary as IReadOnlyDictionaryBase, IDictionary as IDictionaryBase,
+                                           IReadOnlyOrderedSet as IReadOnlyOrderedSetBase, IOrderedSet as IOrderedSetBase)
 
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import HashableProtocol
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Pairing import IKeyValuePair
+
+# TODO: Should implement a Mapping abstractor provider.
+class IReadOnlyDictionary[TKey: HashableProtocol, TValue](IReadOnlyDictionaryBase[TKey, TValue], ICountableEnumerable[IKeyValuePair[TKey, TValue]], IStringable):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
+    
+    @abstractmethod
+    def GetKeys(self) -> ICountableEnumerable[TKey]:
+        ...
+    @abstractmethod
+    def GetValues(self) -> ICountableEnumerable[TValue]:
+        ...
+# TODO: Should implement a MutableMapping abstractor provider.
+class IDictionary[TKey: HashableProtocol, TValue](IDictionaryBase[TKey, TValue], IReadOnlyDictionary[TKey, TValue]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyDictionary[TKey, TValue]:
+        ...
+
+class IReadOnlySet[T: HashableProtocol](IReadOnlySetBase[T], ICountableEnumerable[T], IStringable):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
+class ISet[T: HashableProtocol](ISetBase[T], IReadOnlySet[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlySet[T]:
+        ...
+
+class IReadOnlyOrderedSet[T: HashableProtocol](IReadOnlySet[T], IReadOnlyOrderedSetBase[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def AsTuple(self) -> IEquatableTuple[T]:
+        ...
+class IOrderedSet[T: HashableProtocol](IOrderedSetBase[T], ISet[T], IReadOnlyOrderedSet[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyOrderedSet[T]:
+        ...
+
+    @abstractmethod
+    def AsList(self) -> IList[T]:
+        ...
+
+class IReadOnlyKeyedSet[TKey: HashableProtocol, TValue](ICountableEnumerable[ITuple[TValue]], IReadOnlyCollectionBase):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def IsResumable(self) -> bool|None: return True
+    
+    @abstractmethod
+    def GetKeys(self) -> IReadOnlyOrderedSet[TKey]:
+        ...
+class IKeyedSet[TKey: HashableProtocol, TValue](IReadOnlyKeyedSet[TKey, TValue], IClearable):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def TryAdd(self, values: ITuple[TValue]) -> bool:
+        ...
+
+    @abstractmethod
+    def AsReadOnly(self) -> IReadOnlyKeyedSet[TKey, TValue]:
+        ...
 
 @final
 class _SetContainer[T: HashableProtocol](Container[T]):
