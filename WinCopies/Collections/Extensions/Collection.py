@@ -239,7 +239,7 @@ class _RevocableEquatableTupleProvider[T](Abstract, IFunction[IEquatableTuple[T]
 
     def GetValue(self) -> IEquatableTuple[T]: return self.__items.GetValue()
 
-class _CursorProviderUpdaterBase[TItem, TCollection, TCursor](ValueFunctionUpdater[TCursor]):
+class _CursorProviderUpdaterBase[TCollection, TCursor](ValueFunctionUpdater[TCursor]):
     def __init__(self, items: TCollection, updater: Method[IFunction[TCursor]]) -> None:
         super().__init__(updater)
 
@@ -253,23 +253,23 @@ class _CursorProviderUpdaterBase[TItem, TCollection, TCursor](ValueFunctionUpdat
     def _GetValue(self) -> TCursor: return self._CreateCursor(self.__items)
 
 @final
-class _ReadOnlyQueuedCursorUpdater[T](_CursorProviderUpdaterBase[T, ITuple[T], IReadOnlyCountableEnumerableQueue[T]]):
+class _ReadOnlyQueuedCursorUpdater[T](_CursorProviderUpdaterBase[ITuple[T], IReadOnlyCountableEnumerableQueue[T]]):
     def __init__(self, items: ITuple[T], updater: Method[IFunction[IReadOnlyCountableEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
 
     def _CreateCursor(self, items: ITuple[T]) -> IReadOnlyCountableEnumerableQueue[T]: return _ReadOnlyBufferedQueue[T](items)
 @final
-class _ReadOnlyStackedCursorUpdater[T](_CursorProviderUpdaterBase[T, ITuple[T], IReadOnlyCountableEnumerableStack[T]]):
+class _ReadOnlyStackedCursorUpdater[T](_CursorProviderUpdaterBase[ITuple[T], IReadOnlyCountableEnumerableStack[T]]):
     def __init__(self, items: ITuple[T], updater: Method[IFunction[IReadOnlyCountableEnumerableStack[T]]]) -> None: super().__init__(items, updater)
 
     def _CreateCursor(self, items: ITuple[T]) -> IReadOnlyCountableEnumerableStack[T]: return _ReadOnlyBufferedStack[T](items)
 
 @final
-class _QueuedCursorUpdater[T](_CursorProviderUpdaterBase[T, IList[T], ICountableEnumerableQueue[T]]):
+class _QueuedCursorUpdater[T](_CursorProviderUpdaterBase[IList[T], ICountableEnumerableQueue[T]]):
     def __init__(self, items: IList[T], updater: Method[IFunction[ICountableEnumerableQueue[T]]]) -> None: super().__init__(items, updater)
 
     def _CreateCursor(self, items: IList[T]) -> ICountableEnumerableQueue[T]: return _BufferedQueue[T](items)
 @final
-class _StackedCursorUpdater[T](_CursorProviderUpdaterBase[T, IList[T], ICountableEnumerableStack[T]]):
+class _StackedCursorUpdater[T](_CursorProviderUpdaterBase[IList[T], ICountableEnumerableStack[T]]):
     def __init__(self, items: IList[T], updater: Method[IFunction[ICountableEnumerableStack[T]]]) -> None: super().__init__(items, updater)
 
     def _CreateCursor(self, items: IList[T]) -> ICountableEnumerableStack[T]: return _BufferedStack[T](items)
