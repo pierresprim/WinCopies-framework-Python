@@ -1313,6 +1313,7 @@ def _allocations(factory: Function[Any]) -> tuple[int, int]:
 
 def _subclasses(cls: type) -> list[type]:
     found: list[type] = []
+    subclass: type
 
     for subclass in cls.__subclasses__():
         found.append(subclass)

@@ -142,6 +142,7 @@ def _metaclassesAmong(base: type) -> list[str]:
     found: list[str] = []
     seen: set[type] = set()
     pending: list[type] = [base]
+    subclass: type
 
     while pending:
         for subclass in type.__subclasses__(pending.pop()):
