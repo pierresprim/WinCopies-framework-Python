@@ -7,8 +7,10 @@ from collections.abc import Iterable
 from typing import Any, List as PyList, cast
 from unittest import mock
 
+import WinCopies.Collections.Linked.Doubly.Welded as Welded
 import WinCopies.Collections.Linked.Enumeration as LinkedEnumeration
 
+from WinCopies import Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
@@ -18,7 +20,7 @@ from WinCopies.Collections.Linked.Doubly.Welded import (
     IDoublyLinkedNode, ICountableLinkedListNode,
     IList, ICountableList,
     List, CountableList)
-from WinCopies.Collections.Linked.Node import ILinkedNode, ITwoWayLinkedNode
+from WinCopies.Collections.Linked.Node import ITwoWayLinkedListCookie, IEnumerableLinkedListCookie, ITwoWayEnumerableLinkedListCookie
 from WinCopies.Delegates import Self
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, Function, Converter, NullableSelector, IndexedValueFunction, RichOperator
@@ -448,9 +450,12 @@ class TestList(unittest.TestCase):
     # Tests des énumérateurs
 
     def test_enumerate_empty_list(self) -> None:
-        """Enumerate from an empty list"""
+        """Enumerate from an empty list: since 30cf3815, an enumerator that reads nothing rather than None"""
         
-        self.assertIsNone(self.__list.TryGetEnumerator())
+        enumerator: IEnumerator[int]|None = self.__list.TryGetEnumerator()
+
+        self.assertIsNotNone(enumerator)
+        self.assertFalse(cast(IEnumerator[int], enumerator).TryMoveNext())
 
     def test_enumerate_list_with_items(self) -> None:
         """Enumerate from a list with items"""
@@ -903,6 +908,63 @@ class TestAReversedLinkedListReadsInReverse(unittest.TestCase):
             with self.subTest(type = "List", count = count): self.__AssertReadsInReverse("List", count, List[int](range(count)))
             with self.subTest(type = "CountableList", count = count): self.__AssertReadsInReverse("CountableList", count, CountableList[int](range(count)))
 
+def _read(enumerator: IEnumerator[int]|None) -> tuple[int, ...]:
+    found: PyList[int] = []
+
+    if enumerator is not None:
+        while enumerator.TryMoveNext(): found.append(enumerator.GetCurrent())
+
+    return tuple(found)
+
+_LINKED_LISTS: tuple[tuple[str, Converter[Iterable[int], IList[int]|ICountableList[int]]], ...] = (("List", List[int]), ("CountableList", CountableList[int]))
+_LINKED_SIDES: tuple[tuple[str, Converter[IList[int]|ICountableList[int], IList[int]|ICountableList[int]], bool], ...] = (
+    ("the list", lambda items: items, False),
+    ("its reversed view", lambda items: items.AsReversed(), True))
+
+class TestALinkedEnumeratorReadsItsListWhenItStarts(unittest.TestCase):
+    """Since 30cf3815, a node enumerator holds a cookie of its list and reads the first or the last node
+    when it starts, not when it is built: E1 and E2 of Enumeration.6, which no bench read. The mutations
+    are made before the start, so that no invalidation is ever involved. On both doubly linked lists, and
+    on their reversed views, which start from the last node."""
+
+    def test_an_enumerator_built_on_an_empty_list_reads_what_was_added_before_it_started(self) -> None:
+        for kind, create in _LINKED_LISTS:
+            for side, view, backwards in _LINKED_SIDES:
+                with self.subTest(type = kind, side = side):
+                    items: IList[int]|ICountableList[int] = create(())
+                    enumerator: IEnumerator[int]|None = view(items).TryGetEnumerator()
+
+                    items.AddLast(1)
+                    items.AddLast(2)
+
+                    self.assertEqual(_read(enumerator), (2, 1) if backwards else (1, 2))
+
+    def test_a_reset_reads_from_the_node_that_ends_the_list_when_it_starts_again(self) -> None:
+        for kind, create in _LINKED_LISTS:
+            for side, view, backwards in _LINKED_SIDES:
+                with self.subTest(type = kind, side = side):
+                    items: IList[int]|ICountableList[int] = create((1, 2))
+                    enumerator: IEnumerator[int] = cast(IEnumerator[int], view(items).TryGetEnumerator())
+
+                    _read(enumerator)
+
+                    items.AddFirst(0)
+                    items.AddLast(3)
+
+                    self.assertTrue(enumerator.TryReset())
+                    self.assertEqual(_read(enumerator), (3, 2, 1, 0) if backwards else (0, 1, 2, 3))
+
+class _FixedAtConstruction(Abstract, ITwoWayLinkedListCookie[Any]):
+    """The cookie of a list, read once: the nodes a node enumerator held before 30cf3815."""
+    def __init__(self, cookie: ITwoWayLinkedListCookie[Any]) -> None:
+        super().__init__()
+
+        self.__first: Any = cookie.GetFirst()
+        self.__last: Any = cookie.GetLast()
+
+    def GetFirst(self) -> Any: return self.__first
+    def GetLast(self) -> Any: return self.__last
+
 def _runLinkedBench(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
 
@@ -943,13 +1005,25 @@ class TestTheCountableAndReversalBenchesCanFail(unittest.TestCase):
         self.__assertFalls(TestACountableListIsBuiltWithItsItems, "test_the_items_given_at_construction_are_its_content", CountableList, {"__init__": populatedFirst})
 
     def test_the_reversal_bench_falls_when_the_order_is_dropped(self) -> None:
-        """As before c1a0d2a4 (D-118): GetValueIteratorFromNode, looked up in its own module by
-        GetValueEnumeratorFromNode, built the two-way node enumerator without the order it was
-        given."""
+        """As before c1a0d2a4 (D-118): the value enumerator of a reversed view built without the order it
+        was given. Since 30cf3815, the reversed view builds it through GetValueEnumeratorFromNode, which
+        Welded imports, and the substitution follows it there."""
 
-        def orderDropped[T](node: ILinkedNode[T]|ITwoWayLinkedNode[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> Generator[T]:
-            return LinkedEnumeration.GetValueIterator(LinkedEnumeration.TwoWayNodeEnumerator[T](node) if isinstance(node, ITwoWayLinkedNode) and enumerationOrder != EnumerationOrder.FIFO else LinkedEnumeration.NodeEnumerator[T](node))
+        def orderDropped[T](cookie: IEnumerableLinkedListCookie[T]|ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[T]:
+            return LinkedEnumeration.GetValueEnumerator(LinkedEnumeration.NodeEnumerator[T](cookie))
 
-        self.__assertFalls(TestAReversedLinkedListReadsInReverse, "test_the_reversed_view_reads_the_list_backwards", LinkedEnumeration, {"GetValueIteratorFromNode": orderDropped})
+        self.__assertFalls(TestAReversedLinkedListReadsInReverse, "test_the_reversed_view_reads_the_list_backwards", Welded, {"GetValueEnumeratorFromNode": orderDropped})
+
+    def test_the_start_benches_fall_when_the_enumerator_fixes_its_nodes_at_construction(self) -> None:
+        """As before 30cf3815: the node enumerator held the node it was given when it was built. Rebuilt on
+        TwoWayNodeEnumeratorBase, which every node enumerator of the doubly linked lists derives from: the
+        cookie it is given is read once, at construction."""
+
+        original: Any = getattr(LinkedEnumeration.TwoWayNodeEnumeratorBase, "__init__")
+
+        def fixedAtConstruction(self: Any, cookie: ITwoWayLinkedListCookie[Any], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: original(self, _FixedAtConstruction(cookie), order)
+
+        for name in ("test_an_enumerator_built_on_an_empty_list_reads_what_was_added_before_it_started", "test_a_reset_reads_from_the_node_that_ends_the_list_when_it_starts_again"):
+            with self.subTest(bench = name): self.__assertFalls(TestALinkedEnumeratorReadsItsListWhenItStarts, name, LinkedEnumeration.TwoWayNodeEnumeratorBase, {"__init__": fixedAtConstruction})
 
 if __name__ == '__main__': unittest.main()
