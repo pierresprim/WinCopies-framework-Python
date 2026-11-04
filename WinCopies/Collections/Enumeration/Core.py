@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized, Collection, Sequence, Mapping
-from typing import overload, final, Any, NoReturn, Self
+from typing import final, Any, NoReturn, Self
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
@@ -807,12 +807,7 @@ class EnumeratorProvider[T](IteratorProviderBase[T]):
 __emptyEnumerable = _EmptyEnumerable[Any]()
 __emptyEnumerator = _EmptyEnumerator[Any]()
 
-@overload
-def IsResumable[TKey, TValue](iterable: Mapping[TKey, TValue]) -> bool: ...
-@overload
-def IsResumable[T](iterable: IEnumerable[T]|SystemIterable[T]|None) -> bool: ...
-
-def IsResumable[TKey, TValue](iterable: Mapping[TKey, TValue]|IEnumerable[TKey]|SystemIterable[TKey]|None) -> bool|None:
+def IsResumable[TKey, TValue](iterable: Sequence[TKey]|Mapping[TKey, TValue]|IEnumerable[TKey]|SystemIterable[TKey]|None) -> bool|None:
     match iterable:
         case Sequence()|Mapping(): return True
         case IEnumerable(): return iterable.IsResumable()
