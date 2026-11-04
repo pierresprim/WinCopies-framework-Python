@@ -11,12 +11,12 @@ from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TryGetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import LinkedNodeBase
+from WinCopies.Collections.Linked.Node import ILinkedNode, ILinkedListCookie, IEnumerableLinkedListCookie, LinkedNodeBase
 
 from WinCopies.Delegates import NoAction
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Action, Method, Converter, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Delegate import Action, Method, Function, Converter, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IReadOnlyListBase[T](IReadOnlyCollection):
@@ -423,22 +423,21 @@ class _IQueueAdderBase[T](IInterface):
     def _SetLastCookie(self, node: INodeCookie[T]) -> None:
         ...
 
+def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
+    return None if cookie is None else cookie.GetNode()
+
 class AbstractList[T](Abstract, IReadOnlyList[T], _IAdderAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def _TryGetNode(self, cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
-        return None if cookie is None else cookie.GetNode()
-    
-    @final
     def _GetFirst(self) -> SinglyLinkedNode[T]|None:
-        return self._TryGetNode(self._GetFirstCookie())
+        return _TryGetNode(self._GetFirstCookie())
 class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], _IQueueAdderBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
     def _GetLast(self) -> SinglyLinkedNode[T]|None:
-        return self._TryGetNode(self._GetLastCookie())
+        return _TryGetNode(self._GetLastCookie())
 
 class _IAdderBase[T](IListBase[T], _IAdderAbstract[T]):
     def __init__(self) -> None: super().__init__()
@@ -564,9 +563,13 @@ class List[T](ListBase[T]):
 
 class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
+        ...
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryGetValueEnumeratorFromNode(self._GetFirst())
+    def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryGetValueEnumeratorFromNode(self._GetLinkedListCookie())
 
 class _IAdder[T](_IAdderBase[T]):
     def __init__(self) -> None: super().__init__()
@@ -723,7 +726,7 @@ class Stack[T](List[T], StackBase[T]):
     def AsReadOnly(self) -> IReadOnlyStack[T]: return self.__readOnly.GetValue()
 
 class SinglyLinkedNodeEnumerator[T](NodeEnumeratorBase[SinglyLinkedNode[T]]):
-    def __init__(self, node: SinglyLinkedNode[T]) -> None: super().__init__(node)
+    def __init__(self, cookie: ILinkedListCookie[SinglyLinkedNode[T]]) -> None: super().__init__(cookie)
 
 class ReadOnlyEnumerableQueue[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableQueue[T]):
     def __init__(self, items: IEnumerableQueue[T]) -> None: super().__init__(items)
@@ -787,13 +790,26 @@ class _EnumerableStackUpdater[T](SelectionUpdater[IEnumerableStack[T], IReadOnly
     
     def _AsContainer(self, container: IEnumerableStack[T]) -> IReadOnlyEnumerableStack[T]: return ReadOnlyEnumerableStack[T](container)
 
+@final
+class _EnumerationCookie[T](Abstract, IEnumerableLinkedListCookie[T]):
+    def __init__(self, func: Function[ILinkedNode[T]|None]) -> None:
+        super().__init__()
+
+        self.__func: Function[ILinkedNode[T]|None] = func
+
+    def GetFirst(self) -> ILinkedNode[T]|None: return self.__func()
+
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None: self.__readOnly = func
         
         super().__init__(items)
 
+        self.__cookie: IEnumerableLinkedListCookie[T] = _EnumerationCookie[T](self._GetFirst)
         self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = _EnumerableQueueUpdater[T](self, update) # type: ignore[no-redef]
+
+    @final
+    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]: return self.__readOnly.GetValue()
@@ -803,7 +819,11 @@ class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
         
         super().__init__(items)
 
+        self.__cookie: IEnumerableLinkedListCookie[T] = _EnumerationCookie[T](self._GetFirst)
         self.__readOnly: IFunction[IReadOnlyEnumerableStack[T]] = _EnumerableStackUpdater[T](self, update) # type: ignore[no-redef]
+
+    @final
+    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]: return self.__readOnly.GetValue()

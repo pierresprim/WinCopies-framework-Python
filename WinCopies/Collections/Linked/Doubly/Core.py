@@ -6,9 +6,9 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Linked.Doubly import IReadWriteList as IReadWriteListBase
 from WinCopies.Collections.Linked.Doubly.Node import INodeBase, INode, IDoublyLinkedNodeBase, INodeCookie, IListCookie
+from WinCopies.Collections.Linked.Node import INode as _INode, IRemovableNode, ITwoWayLinkedListCookie
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function
 from WinCopies.Typing.Generic import IGenericConstraint
@@ -61,20 +61,13 @@ class IReadWriteList[T](IReadWriteListBase[T]):
     def AsStackedGenerator(self) -> Generator[T]:
         return self.__AsGenerator(self.TryRemoveLast)
 
-class IListBase[TItem, TNode](IReadWriteList[TItem], IGenericConstraint[TNode, INode[TItem]]):
+class IListBase[TItem, TNode: _INode](IReadWriteList[TItem], ITwoWayLinkedListCookie[TNode], IGenericConstraint[TNode, INode[TItem]]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def __TryGet(self, node: TNode|None) -> INode[TItem]|None:
         return None if node is None else self._AsContainer(node)
     
-    @abstractmethod
-    def GetFirst(self) -> TNode|None:
-        ...
-    @abstractmethod
-    def GetLast(self) -> TNode|None:
-        ...
-
     @final
     def GetFirstNode(self) -> INode[TItem]|None:
         return self.__TryGet(self.GetFirst())
@@ -106,7 +99,7 @@ class ListNodeBase[T](INodeBase[T]):
     def _SetLast(self, cookie: INodeCookie[T], items: IListCookie[T], node: T|None) -> None:
         cookie.SetLast(node, items)
 
-class ListBase[TItem, TNode, TNodeInterface: IRemovable](Abstract, IListBase[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface], IListCookie[TNode]):
+class ListBase[TItem, TNode, TNodeInterface: IRemovableNode](Abstract, IListBase[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface], IListCookie[TNode]):
     def __init__(self, items: Iterable[TItem]|None = None) -> None:
         super().__init__()
         

@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import IInterface, Abstract
-from WinCopies.Collections.Generation import INode as INodeBase
+from WinCopies.Collections.Generation import INode as INodeBase, IRemovable
 
 class INode(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -22,7 +22,10 @@ class ITwoWayNode(INode):
     def GetNext(self) -> ITwoWayNode|None:
         ...
 
-class IReadWriteNode(ITwoWayNode, INodeBase):
+class IRemovableNode(INode, IRemovable):
+    def __init__(self) -> None: super().__init__()
+
+class IReadWriteNode(ITwoWayNode, INodeBase, IRemovableNode):
     def __init__(self) -> None: super().__init__()
 
 class ILinkedNode[T](INode):
@@ -103,3 +106,21 @@ class LinkedNode[TItem, TNode](LinkedNodeBase[TItem, TNode]):
         ...
     def _TryAsLinkedNode(self, node: TNode|None) -> LinkedNode[TItem, TNode]|None:
         return None if node is None else self._AsLinkedNode(node)
+
+class ILinkedListCookie[T: INode](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetFirst(self) -> T|None:
+        ...
+class ITwoWayLinkedListCookie[T: INode](ILinkedListCookie[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetLast(self) -> T|None:
+        ...
+
+class IEnumerableLinkedListCookie[T](ILinkedListCookie[ILinkedNode[T]]):
+    def __init__(self) -> None: super().__init__()
+class ITwoWayEnumerableLinkedListCookie[T](ITwoWayLinkedListCookie[ITwoWayLinkedNode[T]]):
+    def __init__(self) -> None: super().__init__()

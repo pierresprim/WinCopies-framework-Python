@@ -14,8 +14,9 @@ from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNo
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import ListBase, ListNodeBase
 from WinCopies.Collections.Linked.Doubly.Node import IListCookie, INodeCookie, INode, NodeBase, DoublyLinkedNodeBase
-from WinCopies.Collections.Linked.Doubly.Welded import IEnumerableListBase, EnumerableListBase
+from WinCopies.Collections.Linked.Doubly.Welded import ICookieProvider, IEnumerableListBase, EnumerableListBase, EnumerableNodeCookie, CookieProvider
 from WinCopies.Collections.Linked.Enumeration import ITwoWayNodeEnumerator, NodeEnumeratorBase
+from WinCopies.Collections.Linked.Node import ILinkedNode, INode as _INode, ITwoWayLinkedNode, ITwoWayLinkedListCookie, ITwoWayEnumerableLinkedListCookie
 from WinCopies.Typing.Delegate import IFunction, Method, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
@@ -81,13 +82,28 @@ class TreeValueEnumerator[T](TreeValueEnumeratorBase[T, ITreeNode[T]]):
     def _AsNode(self, node: ITreeNode[T]) -> ITreeNode[T]:
         return node
 
-class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], "_Tree[TItem]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
+@final
+class _EnumerableNodeCookie[T](EnumerableNodeCookie[T, ITreeNode[T]]):
+    def __init__(self, items: ITwoWayLinkedListCookie[ITreeNode[T]]) -> None: super().__init__(items)
+
+    def _AsNode(self, node: ITreeNode[T]) -> ITwoWayLinkedNode[T]: return node
+@final
+class _CookieProvider[T](CookieProvider[T, ITreeNode[T]]):
+    def __init__(self, items: ITwoWayLinkedListCookie[ITreeNode[T]]) -> None:
+        super().__init__(items)
+
+        self.__enumerableNodeCookie: ITwoWayEnumerableLinkedListCookie[T] = _EnumerableNodeCookie[T](items)
+    
+    def GetEnumerableLinkedListCookie(self) -> ITwoWayEnumerableLinkedListCookie[T]: return self.__enumerableNodeCookie
+
+class TreeBase[TItem, TNode: _INode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], "_Tree[TItem]"], ITree[TItem], IGenericConstraintImplementation[ITreeNode[TItem]]):
     def __init__(self, items: Iterable[TItem]|None = None) -> None:
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None: self.__recursive = func
         def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None: self.__nodeRecursive = func
         
         super().__init__(items)
-    
+
+        self.__cookie: ICookieProvider[TItem, ITreeNode[TItem]] = _CookieProvider[TItem](self)
         self.__recursive: IFunction[IEnumerable[TItem]] = _RecursiveUpdater[TItem](self, updateRecursive) # type: ignore[no-redef]
         self.__nodeRecursive: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]] = _NodeRecursiveUpdater[TItem](self, updateNodeRecursive) # type: ignore[no-redef]
     
@@ -98,8 +114,16 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], 
     def _GetNextNode(self, node: ITreeNode[TItem]) -> ITreeNode[TItem]|None: return node.GetNext()
     
     @final
-    def _GetNodeEnumerator(self, node: ITreeNode[TItem]) -> IEnumerator[ITreeNode[TItem]]:
-        return TreeNodeEnumerator[TItem](node)
+    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> IEnumerator[ITreeNode[TItem]]:
+        return TreeNodeEnumerator[TItem](cookie)
+
+    @final
+    def _GetEnumerationCookieAsInterface(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> ITwoWayLinkedListCookie[ILinkedNode[TItem]]: return cookie
+    @final
+    def _GetEnumeratorAsInterface(self, enumerator: IEnumerator[ITreeNode[TItem]]) -> IEnumerator[ILinkedNode[TItem]]: return enumerator
+
+    @final
+    def _GetNodeCookie(self) -> ICookieProvider[TItem, ITreeNode[TItem]]: return self.__cookie
     
     @final
     def AsRecursivelyEnumerable(self) -> IEnumerable[TItem]: return self.__recursive.GetValue()
@@ -112,8 +136,8 @@ class TreeBase[TItem, TNode](EnumerableListBase[TItem, TNode, ITreeNode[TItem], 
     def TryGetRecursiveStackedEnumerator(self, enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO, handler: IRecursiveStackedEnumerationHandler[TItem]|None = None) -> IEnumerator[TItem]|None: return self.__TryGetRecursiveEnumerator(self.AsNodeRecursivelyEnumerable().TryGetRecursiveStackedEnumerator(enumerationOrder, None if handler is None else RecursiveStackedEnumerationHandlerConverter[ITreeNode[TItem], TItem](handler, lambda node: node.GetValue())))
     
     @final
-    def _GetResumableNodeEnumerator(self, node: ITreeNode[TItem]) -> IResumableEnumerator[ITreeNode[TItem]]:
-        return ResumableTreeNodeEnumerator[TItem](node)
+    def _GetResumableNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> IResumableEnumerator[ITreeNode[TItem]]:
+        return ResumableTreeNodeEnumerator[TItem](cookie)
 
 @final
 class _TreeNode[T](DoublyLinkedNodeBase[T, "_TreeNode[T]", TreeBase[T, "_TreeNode[T]"], TreeBase[T, "_TreeNode[T]"]], NodeBase[T, "_TreeNode[T]"], ITreeNode[T], ListNodeBase["_TreeNode[T]"], IGenericConstraintImplementation[IEnumerableListBase[T, ITreeNode[T]]]):
@@ -187,12 +211,12 @@ class Tree[T](TreeBase[T, _TreeNode[T]]):
         return node
 
 class TreeNodeEnumerator[T](NodeEnumeratorBase[ITreeNode[T]]):
-    def __init__(self, node: ITreeNode[T]) -> None: super().__init__(node)
+    def __init__(self, cookie: ITwoWayLinkedListCookie[ITreeNode[T]]) -> None: super().__init__(cookie)
 
     def _GetNextNode(self, node: ITreeNode[T]) -> ITreeNode[T]|None:
         return node.GetNext()
 class ResumableTreeNodeEnumerator[T](TwoWayResumableNodeEnumerator[ITreeNode[T]], ITwoWayNodeEnumerator[ITreeNode[T]]):
-    def __init__(self, node: ITreeNode[T], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
+    def __init__(self, node: ITwoWayLinkedListCookie[ITreeNode[T]], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(node, order)
     
     @final
     def _GetPrevious(self, node: ITreeNode[T]) -> ITreeNode[T]|None: return node.GetPrevious()

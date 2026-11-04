@@ -9,7 +9,7 @@ from WinCopies.Collections.Enumeration.Resumable import ICookie as ICookieBase, 
 from WinCopies.Collections.Generation import INode
 from WinCopies.Collections.Registry.Keyable import IKeyableObjectRegistry
 from WinCopies.Collections.Registry.Mapping import KeyedDisposableObjectRegistry
-from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode
+from WinCopies.Collections.Linked.Node import INode as ILinkedNode, ITwoWayNode as ITwoWayLinkedNode, ILinkedListCookie, ITwoWayLinkedListCookie
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, TwoWayNodeEnumeratorBase
 from WinCopies.Typing.Comparison import IHashableValue
 from WinCopies.Typing.Discard import GetDiscardedError
@@ -134,8 +134,8 @@ class IDefaultResumableNodeEnumerator[T: ILinkedNode](IDefaultResumableEnumerato
         return add(node) if cursor is None else cursor
 
 class ResumableNodeEnumerator[T: ILinkedNode](NodeEnumeratorBase[T], IDefaultResumableNodeEnumerator[T]):
-    def __init__(self, firstNode: T) -> None:
-        super().__init__(firstNode)
+    def __init__(self, cookie: ILinkedListCookie[T]) -> None:
+        super().__init__(cookie)
         
         self.__cursors: IResumableNodeEnumerationCursorRegistry[_ResumableNodeEnumerationCursor] = self._CreateCursorRegistry()
     
@@ -155,8 +155,8 @@ class ResumableNodeEnumerator[T: ILinkedNode](NodeEnumeratorBase[T], IDefaultRes
 
         self._GetCursors().InvalidateObjects()
 class TwoWayResumableNodeEnumerator[T: ITwoWayLinkedNode](TwoWayNodeEnumeratorBase[T], IDefaultResumableNodeEnumerator[T]):
-    def __init__(self, firstNode: T, order: EnumerationOrder) -> None:
-        super().__init__(firstNode, order)
+    def __init__(self, cookie: ITwoWayLinkedListCookie[T], order: EnumerationOrder) -> None:
+        super().__init__(cookie, order)
         
         self.__cursors: IResumableNodeEnumerationCursorRegistry[_ResumableNodeEnumerationCursor] = self._CreateCursorRegistry()
     
