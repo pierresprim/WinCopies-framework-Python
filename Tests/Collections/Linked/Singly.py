@@ -311,6 +311,66 @@ class TestAConvertingListStacksOnTop(unittest.TestCase):
                 self.assertEqual(popped.GetValue() if popped.HasValue() else None, pushed[0], f"the {kind} cursor pops another item")
                 self.assertEqual(tuple(items.AsIterable()), pushed[1:], f"TryPop on the {kind} cursor removed another item")
 
+_BUFFERED_QUEUES: ReadOnlyArray[tuple[str, Converter[Iterable[int], Buffer.IBufferedQueue[int]]]] = (
+    ("BufferedQueue", Buffer.BufferedQueue[int]),
+    ("EnumerableBufferedQueue", Buffer.EnumerableBufferedQueue[int]),
+    ("CountableBufferedQueue", Buffer.CountableBufferedQueue[int]),
+    ("CountableEnumerableBufferedQueue", Buffer.CountableEnumerableBufferedQueue[int]))
+
+class TestABufferedQueueTurnsOnMove(unittest.TestCase):
+    """D-119. Move() on a buffered queue advanced its head without linking it after the last node:
+    [1, 2, 3] read [2, 3] after it, and an item pushed after it was laid after the old head, out of
+    reach. A move turns the queue, as SetStart turns a circular list: the head goes to the back. The
+    read-only view moves its buffer too, since moving is what a buffer is for. The stacks are left
+    out, their move pending a decision of its own; the counts are not read (D-110)."""
+
+    def __assertReads(self, items: Buffer.IBufferedQueue[int], expected: ReadOnlyArray[int]) -> None:
+        enumerated: ReadOnlyArray[int]|None = _enumerate(items)
+
+        if enumerated is not None: self.assertEqual(enumerated, expected, "its enumeration reads another sequence")
+
+        self.assertEqual(_drain(items), expected, "it pops another sequence")
+
+    def test_a_move_sends_the_head_to_the_back(self) -> None:
+        for kind, create in _BUFFERED_QUEUES:
+            for held, moves, expected in (((1, 2), 1, (2, 1)), ((1, 2, 3), 1, (2, 3, 1)), ((1, 2, 3), 2, (3, 1, 2)), ((1, 2, 3), 3, (1, 2, 3))):
+                with self.subTest(type = kind, held = held, moves = moves):
+                    items: Buffer.IBufferedQueue[int] = create(held)
+
+                    for _ in range(moves): self.assertIs(items.Move(), True)
+
+                    self.assertEqual(_head(items), expected[0])
+                    self.__assertReads(items, expected)
+
+    def test_a_push_after_a_move_goes_behind_the_moved_head(self) -> None:
+        for kind, create in _BUFFERED_QUEUES:
+            with self.subTest(type = kind):
+                items: Buffer.IBufferedQueue[int] = create((1, 2, 3))
+
+                items.Move()
+                items.Push(4)
+
+                self.__assertReads(items, (2, 3, 1, 4))
+
+    def test_the_read_only_view_moves_its_buffer(self) -> None:
+        for kind, create in _BUFFERED_QUEUES:
+            with self.subTest(type = kind):
+                items: Buffer.IBufferedQueue[int] = create((1, 2, 3))
+
+                self.assertIs(items.AsReadOnly().Move(), True)
+                self.__assertReads(items, (2, 3, 1))
+
+    def test_a_move_answers_none_when_empty_and_false_on_a_single_item(self) -> None:
+        """Neither moves anything: an empty queue has no head, and a single item is its own back."""
+
+        for kind, create in _BUFFERED_QUEUES:
+            for held, answer in (((), None), ((1,), False)):
+                with self.subTest(type = kind, held = held):
+                    items: Buffer.IBufferedQueue[int] = create(held)
+
+                    self.assertIs(items.Move(), answer)
+                    self.__assertReads(items, held)
+
 def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
 
@@ -503,3 +563,27 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         def queued(self: Any, source: Any) -> Any: return source.AsQueuedCursor()
 
         self.__assertFalls(TestAConvertingListStacksOnTop, "test_each_cursor_pushes_at_its_own_end", type(_selection([0]).AsStackedCursor()), {"_AsCursor": queued})
+
+    def test_the_move_bench_falls_when_the_head_only_advances(self) -> None:
+        """As before b20109e5 (D-119): AbstractBufferedQueue._OnSetFirst, which the move of every
+        buffered queue reaches, set the new head and the new last node without linking them."""
+
+        def advanced(self: Any, first: Any, last: Any) -> None:
+            self._SetFirst(first)
+            self._SetLastCookie(last)
+
+        for name in ("test_a_move_sends_the_head_to_the_back", "test_a_push_after_a_move_goes_behind_the_moved_head", "test_the_read_only_view_moves_its_buffer"):
+            with self.subTest(bench = name): self.__assertFalls(TestABufferedQueueTurnsOnMove, name, Buffer.AbstractBufferedQueue, {"_OnSetFirst": advanced})
+
+    def test_the_answer_bench_falls_when_an_empty_buffer_answers_false(self) -> None:
+        """A move that answers False on an empty buffer, as on a single item: the two cases a caller
+        tells apart by the answer would read alike."""
+
+        original: Any = getattr(Buffer.BufferBase, "Move")
+
+        def conflated(self: Any) -> bool|None:
+            answer: bool|None = original(self)
+
+            return False if answer is None else answer
+
+        self.__assertFalls(TestABufferedQueueTurnsOnMove, "test_a_move_answers_none_when_empty_and_false_on_a_single_item", Buffer.BufferBase, {"Move": conflated})
