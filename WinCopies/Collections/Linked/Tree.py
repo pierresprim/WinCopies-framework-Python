@@ -6,7 +6,7 @@ from typing import final, Self
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration.Abstraction import ConverterEnumeratorBase
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, EnumeratorProvider
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, IInvalidatableEnumerator, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandlerConverter, RecursiveStackedEnumerationHandlerConverter
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -114,13 +114,13 @@ class TreeBase[TItem, TNode: _INode](EnumerableListBase[TItem, TNode, ITreeNode[
     def _GetNextNode(self, node: ITreeNode[TItem]) -> ITreeNode[TItem]|None: return node.GetNext()
     
     @final
-    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> IEnumerator[ITreeNode[TItem]]:
+    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> IInvalidatableEnumerator[ITreeNode[TItem]]:
         return TreeNodeEnumerator[TItem](cookie)
 
     @final
     def _GetEnumerationCookieAsInterface(self, cookie: ITwoWayLinkedListCookie[ITreeNode[TItem]]) -> ITwoWayLinkedListCookie[ILinkedNode[TItem]]: return cookie
     @final
-    def _GetEnumeratorAsInterface(self, enumerator: IEnumerator[ITreeNode[TItem]]) -> IEnumerator[ILinkedNode[TItem]]: return enumerator
+    def _GetEnumeratorAsInterface(self, enumerator: IInvalidatableEnumerator[ITreeNode[TItem]]) -> IInvalidatableEnumerator[ILinkedNode[TItem]]: return enumerator
 
     @final
     def _GetNodeCookie(self) -> ICookieProvider[TItem, ITreeNode[TItem]]: return self.__cookie

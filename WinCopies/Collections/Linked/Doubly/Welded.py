@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder, ThrowInvalidEnumerationOrderError
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IClearable, Countable
-from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, GetEnumerator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerable, IReversableEnumerable, IReversableCountableEnumerable, IEnumerator, IInvalidatableEnumerator, Enumerable, CountableEnumerable, GetEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerable, IResumableCountableEnumerable, IResumableEnumerator, ResumableEnumerable, GetResumableEnumerator
 from WinCopies.Collections.Enumeration.Resumable.Linked import TwoWayResumableNodeEnumerator
 from WinCopies.Collections.Generation.Iteration import IIterator, GeneratorAbstract, ConverterBase
@@ -612,7 +612,7 @@ class _Enumerable[TItem, TNode: _INode, TNodeInterface: IRemovableNode, TEnumera
     def Clear(self) -> None: self._GetInnerList().Clear()
     
     @abstractmethod
-    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[TNodeInterface]) -> IEnumerator[TNodeInterface]:
+    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[TNodeInterface]) -> IInvalidatableEnumerator[TNodeInterface]:
         ...
     @abstractmethod
     def _GetResumableNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[TNodeInterface]) -> IResumableEnumerator[TNodeInterface]:
@@ -622,14 +622,14 @@ class _Enumerable[TItem, TNode: _INode, TNodeInterface: IRemovableNode, TEnumera
     def _GetEnumerationCookieAsInterface(self, cookie: ITwoWayLinkedListCookie[TNodeInterface]) -> ITwoWayLinkedListCookie[ILinkedNode[TItem]]:
         ...
     @abstractmethod
-    def _GetEnumeratorAsInterface(self, enumerator: IEnumerator[TNodeInterface]) -> IEnumerator[ILinkedNode[TItem]]:
+    def _GetEnumeratorAsInterface(self, enumerator: IInvalidatableEnumerator[TNodeInterface]) -> IInvalidatableEnumerator[ILinkedNode[TItem]]:
         ...
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return GetValueEnumerator(self._GetEnumeratorAsInterface(self.TryGetNodeEnumerator()))
     
     @final
-    def TryGetNodeEnumerator(self) -> IEnumerator[TNodeInterface]: return self._GetNodeEnumerator(self._GetNodeCookie().GetLinkedListCookie())
+    def TryGetNodeEnumerator(self) -> IInvalidatableEnumerator[TNodeInterface]: return self._GetNodeEnumerator(self._GetNodeCookie().GetLinkedListCookie())
     @final
     def TryGetResumableNodeEnumerator(self) -> IResumableEnumerator[TNodeInterface]: return self._GetResumableNodeEnumerator(self._GetNodeCookie().GetLinkedListCookie())
 class EnumerableListAbstract[TItem, TNode: _INode, TNodeInterface: IRemovableNode, TEnumerable, TList](_Enumerable[TItem, TNode, TNodeInterface, TEnumerable, TList, IEnumerableListCookieAbstract[TItem, TNodeInterface, TEnumerable]]):
@@ -692,7 +692,7 @@ class ListBase[TItem, TNode: _INode](EnumerableList[TItem, TNode, IDoublyLinkedN
     def _GetNextNode(self, node: IDoublyLinkedNode[TItem]) -> IDoublyLinkedNode[TItem]|None: return node.GetNext()
     
     @final
-    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[IDoublyLinkedNode[TItem]]) -> IEnumerator[IDoublyLinkedNode[TItem]]:
+    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[IDoublyLinkedNode[TItem]]) -> IInvalidatableEnumerator[IDoublyLinkedNode[TItem]]:
         return DoublyLinkedNodeEnumerator[TItem](cookie)
     @final
     def _GetResumableNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[IDoublyLinkedNode[TItem]]) -> IResumableEnumerator[IDoublyLinkedNode[TItem]]:
@@ -1351,7 +1351,7 @@ class List[T](ListBase[T, _Node[T]]):
     def _GetNodeAsInterface(self, node: IDoublyLinkedNode[T]) -> ILinkedNode[T]: return node
 
     @final
-    def _GetEnumeratorAsInterface(self, enumerator: IEnumerator[IDoublyLinkedNode[T]]) -> IEnumerator[ILinkedNode[T]]: return enumerator
+    def _GetEnumeratorAsInterface(self, enumerator: IInvalidatableEnumerator[IDoublyLinkedNode[T]]) -> IInvalidatableEnumerator[ILinkedNode[T]]: return enumerator
     @final
     def _GetEnumerationCookieAsInterface(self, cookie: ITwoWayLinkedListCookie[IDoublyLinkedNode[T]]) -> ITwoWayLinkedListCookie[ILinkedNode[T]]: return cookie
 
@@ -1545,7 +1545,7 @@ class CountableListBase[TItem, TNode: _INode](_Enumerable[TItem, TNode, ICountab
         return items
     
     @final
-    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ICountableLinkedListNode[TItem]]) -> IEnumerator[ICountableLinkedListNode[TItem]]:
+    def _GetNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ICountableLinkedListNode[TItem]]) -> IInvalidatableEnumerator[ICountableLinkedListNode[TItem]]:
         return CountableLinkedListNodeEnumerator[TItem](cookie)
     @final
     def _GetResumableNodeEnumerator(self, cookie: ITwoWayLinkedListCookie[ICountableLinkedListNode[TItem]]) -> IResumableEnumerator[ICountableLinkedListNode[TItem]]:
@@ -1633,7 +1633,7 @@ class _CountableInnerList[T](CountableListBase[T, _CountableListNode[T]]):
     
     def _GetNextNode(self, node: ICountableLinkedListNode[T]) -> ICountableLinkedListNode[T]|None: return node.GetNext()
 
-    def _GetEnumeratorAsInterface(self, enumerator: IEnumerator[ICountableLinkedListNode[T]]) -> IEnumerator[ILinkedNode[T]]: return enumerator
+    def _GetEnumeratorAsInterface(self, enumerator: IInvalidatableEnumerator[ICountableLinkedListNode[T]]) -> IInvalidatableEnumerator[ILinkedNode[T]]: return enumerator
     def _GetEnumerationCookieAsInterface(self, cookie: ITwoWayLinkedListCookie[ICountableLinkedListNode[T]]) -> ITwoWayLinkedListCookie[ILinkedNode[T]]: return cookie
 
     def _GetNodeCookie(self) -> ICookieProvider[T, ICountableLinkedListNode[T]]: return self.__cookieProvider

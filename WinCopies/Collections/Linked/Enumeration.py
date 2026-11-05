@@ -2,14 +2,19 @@ from abc import abstractmethod
 from typing import overload, final
 
 from WinCopies.Collections import Generator, EnumerationOrder, ThrowInvalidEnumerationOrderError
-from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerator
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator, Enumerator
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import INode, ITwoWayNode, ILinkedNode, ITwoWayLinkedNode, ILinkedListCookie, ITwoWayLinkedListCookie, IEnumerableLinkedListCookie, ITwoWayEnumerableLinkedListCookie
 
+from WinCopies.Collections.Registry import IObjectRegistrar
+from WinCopies.Collections.Registry.Invalidation import IInvalidationRegistrar
 from WinCopies.Delegates import BoolFalse
 
 from WinCopies.Typing.Delegate import Function
+from WinCopies.Typing.Discard import IInvalidatable
+from WinCopies.Typing.Generic import IGenericConstraintImplementation
 
 class _IEnumerator[T: INode](IEnumerator[T]):
     def __init__(self) -> None: super().__init__()
@@ -21,7 +26,7 @@ class _IEnumerator[T: INode](IEnumerator[T]):
     def _GetNextNode(self, node: T) -> T|None:
         ...
 
-class NodeEnumeratorAbstract[T: INode](Enumerator[T], _IEnumerator[T]):
+class NodeEnumeratorAbstract[T: INode](Enumerator[T], IDefaultInvalidatableEnumerator[T], _IEnumerator[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -149,8 +154,8 @@ class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorAbstract[T], ITwoWa
 class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]], ITwoWayLinkedNodeEnumerator[T]):
     def __init__(self, cookie: ITwoWayLinkedListCookie[ITwoWayLinkedNode[T]], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(cookie, order)
 
-class ValueEnumeratorBase[TItem, TNode: INode](AbstractEnumerator[TNode, TItem]):
-    def __init__(self, enumerator: IEnumerator[TNode]) -> None: super().__init__(enumerator)
+class ValueEnumeratorBase[TItem, TNode: INode](AbstractEnumeratorBase[TNode, TItem, IInvalidatableEnumerator[TNode]], IGenericConstraintImplementation[IInvalidatableEnumerator[TNode]]):
+    def __init__(self, enumerator: IInvalidatableEnumerator[TNode]) -> None: super().__init__(enumerator)
 
     @abstractmethod
     def _Convert(self, node: TNode) -> TItem:
@@ -158,37 +163,42 @@ class ValueEnumeratorBase[TItem, TNode: INode](AbstractEnumerator[TNode, TItem])
 
     @final
     def _GetCurrent(self) -> TItem: return self._Convert(self._GetContainer().GetCurrent())
-class ValueEnumerator[T](ValueEnumeratorBase[T, ILinkedNode[T]]):
-    def __init__(self, enumerator: IEnumerator[ILinkedNode[T]]) -> None: super().__init__(enumerator)
+class ValueEnumerator[T](ValueEnumeratorBase[T, ILinkedNode[T]], IInvalidatableEnumerator[T]):
+    def __init__(self, enumerator: IInvalidatableEnumerator[ILinkedNode[T]]) -> None: super().__init__(enumerator)
 
     @final
     def _Convert(self, node: ILinkedNode[T]) -> T: return node.GetValue()
 
+    @final
+    def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: self._GetContainer().Register(registry)
+    @final
+    def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar) -> IRemovable: return self._GetContainer().AddRegistrar(invalidationRegistrar)
+
 @overload
-def GetNodeEnumerator[T](cookie: IEnumerableLinkedListCookie[T]) -> IEnumerator[ILinkedNode[T]]:
+def GetNodeEnumerator[T](cookie: IEnumerableLinkedListCookie[T]) -> IInvalidatableEnumerator[ILinkedNode[T]]:
     ...
 @overload
-def GetNodeEnumerator[T](cookie: ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[ITwoWayLinkedNode[T]]:
+def GetNodeEnumerator[T](cookie: ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IInvalidatableEnumerator[ITwoWayLinkedNode[T]]:
     ...
 
-def GetNodeEnumerator[T](cookie: IEnumerableLinkedListCookie[T]|ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[ILinkedNode[T]]|IEnumerator[ITwoWayLinkedNode[T]]:
+def GetNodeEnumerator[T](cookie: IEnumerableLinkedListCookie[T]|ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IInvalidatableEnumerator[ILinkedNode[T]]|IInvalidatableEnumerator[ITwoWayLinkedNode[T]]:
     return TwoWayNodeEnumerator[T](cookie, enumerationOrder) if isinstance(cookie, ITwoWayEnumerableLinkedListCookie) and enumerationOrder != EnumerationOrder.FIFO else NodeEnumerator[T](cookie)
 
-def GetValueEnumerator[T](nodeEnumerator: IEnumerator[ILinkedNode[T]]) -> IEnumerator[T]:
+def GetValueEnumerator[T](nodeEnumerator: IInvalidatableEnumerator[ILinkedNode[T]]) -> IInvalidatableEnumerator[T]:
     return ValueEnumerator[T](nodeEnumerator)
 def GetValueIterator[T](nodeEnumerator: IEnumerator[ILinkedNode[T]]|IEnumerator[ITwoWayLinkedNode[T]]) -> Generator[T]:
     return Select(nodeEnumerator.AsIterator(), lambda node: node.GetValue())
 
 @overload
-def GetValueEnumeratorFromNode[T](cookie: IEnumerableLinkedListCookie[T]) -> IEnumerator[T]:
+def GetValueEnumeratorFromNode[T](cookie: IEnumerableLinkedListCookie[T]) -> IInvalidatableEnumerator[T]:
     ...
 @overload
-def GetValueEnumeratorFromNode[T](cookie: ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[T]:
+def GetValueEnumeratorFromNode[T](cookie: ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IInvalidatableEnumerator[T]:
     ...
 
-def GetValueEnumeratorFromNode[T](cookie: IEnumerableLinkedListCookie[T]|ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IEnumerator[T]:
+def GetValueEnumeratorFromNode[T](cookie: IEnumerableLinkedListCookie[T]|ITwoWayEnumerableLinkedListCookie[T], enumerationOrder: EnumerationOrder = EnumerationOrder.FIFO) -> IInvalidatableEnumerator[T]:
     return GetValueEnumerator(GetNodeEnumerator(cookie, enumerationOrder)) if isinstance(cookie, ITwoWayEnumerableLinkedListCookie) and enumerationOrder != EnumerationOrder.FIFO else GetValueEnumerator(GetNodeEnumerator(cookie))
-def TryGetValueEnumeratorFromNode[T](node: IEnumerableLinkedListCookie[T]|None) -> IEnumerator[T]|None:
+def TryGetValueEnumeratorFromNode[T](node: IEnumerableLinkedListCookie[T]|None) -> IInvalidatableEnumerator[T]|None:
     return None if node is None else GetValueEnumeratorFromNode(node)
 
 @overload
