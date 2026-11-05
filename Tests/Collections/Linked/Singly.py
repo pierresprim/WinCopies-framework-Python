@@ -266,6 +266,35 @@ class TestAQueueKeepsWhatItHeldWhenABlockFollows(unittest.TestCase):
 
                     self.assertEqual(_drain(items), (9, 1, 2), f"{operation} on {family} created with [8, 9] and popped once pops another order")
 
+def _popOnce(items: IListBase[int]) -> None: items.TryPop()
+def _clear(items: IListBase[int]) -> None: items.Clear()
+
+class TestAnEmptiedCollectionTakesABlockAsAnEmptyOneDoes(unittest.TestCase):
+    """D-120. e6e3bf32 had TryPop call _OnRemoved alone, where it had gone through _OnCleared when it
+    took the last node. A queue emptied by TryPop kept that node for its last one, and the weld of a
+    block, which reads the last node, hung the block under it, out of reach of the empty head: [9],
+    popped, then given [1, 2, 3] by PushItems or PushRange, popped nothing. Push, which starts from
+    the empty head, was spared. d4a353b8 calls _OnCleared when TryPop takes the last node. A
+    collection emptied by TryPop or by Clear takes a block as one created empty does, the stacks
+    included, which keep no last node. No bench pushed a block onto a collection it had emptied."""
+
+    def test_an_emptied_collection_pops_a_block_as_an_empty_one_does(self) -> None:
+        emptyings: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Callable[[IListBase[int]], Any]]] = (
+            ("one TryPop", (9,), _popOnce), ("TryPop until empty", (8, 9), _drain), ("Clear", (8, 9), _clear))
+
+        for family, _, create, _ in _SINGLY_LINKED:
+            for emptying, held, empty in emptyings:
+                for operation, push in _OPERATIONS:
+                    with self.subTest(family = family, emptying = emptying, operation = operation):
+                        fresh: IListBase[int] = create(())
+                        items: IListBase[int] = create(held)
+
+                        empty(items)
+                        push(fresh, _PUSHED)
+                        push(items, _PUSHED)
+
+                        self.assertEqual(_drain(items), _drain(fresh), f"{operation} on {family} emptied by {emptying} pops another sequence than on an empty one")
+
 class TestThePriorityListsPopTheHighestLevelFirst(unittest.TestCase):
     """Found while measuring D-109 (4.33 §3) and closed by 66cde57. A priority list keeps one list
     per level, at the index of the level less the lowest one; _Convert turned that difference back
@@ -587,3 +616,17 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
             return False if answer is None else answer
 
         self.__assertFalls(TestABufferedQueueTurnsOnMove, "test_a_move_answers_none_when_empty_and_false_on_a_single_item", Buffer.BufferBase, {"Move": conflated})
+
+
+    def test_the_emptied_collection_bench_falls_when_the_last_pop_skips_the_clean_up(self) -> None:
+        """As at e6e3bf32 (D-120): ListBase.TryPop called _OnRemoved alone, also when it took the last
+        node."""
+
+        def removedOnly(self: Any) -> Any:
+            result: Any = getattr(self, "_ListBase__TryPop")()
+
+            if result.HasValue(): self._OnRemoved()
+
+            return result
+
+        self.__assertFalls(TestAnEmptiedCollectionTakesABlockAsAnEmptyOneDoes, "test_an_emptied_collection_pops_a_block_as_an_empty_one_does", Singly.ListBase, {"TryPop": removedOnly})
