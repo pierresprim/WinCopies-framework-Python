@@ -23,9 +23,9 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     def _OnAborted(self) -> None: self._GetContainer().Stop()
     
     def _ResetOverride(self) -> bool: return self._GetContainer().TryReset() is True
-class Selector[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
+class AbstractEnumerator[TIn, TOut](AbstractEnumeratorBase[TIn, TOut, IEnumerator[TIn]], IGenericConstraintImplementation[IEnumerator[TIn]]):
     def __init__(self, enumerator: IEnumerator[TIn]) -> None: super().__init__(enumerator)
-class AbstractEnumerator[T](Selector[T, T]):
+class Selector[T](AbstractEnumerator[T, T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
     def _GetCurrent(self) -> T: return self._GetContainer().GetCurrent()

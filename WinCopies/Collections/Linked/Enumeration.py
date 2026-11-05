@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import overload, final
 
 from WinCopies.Collections import Generator, EnumerationOrder, ThrowInvalidEnumerationOrderError
-from WinCopies.Collections.Enumeration.Abstraction import Selector
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerator
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Linked.Node import INode, ITwoWayNode, ILinkedNode, ITwoWayLinkedNode, ILinkedListCookie, ITwoWayLinkedListCookie, IEnumerableLinkedListCookie, ITwoWayEnumerableLinkedListCookie
@@ -149,7 +149,7 @@ class TwoWayNodeEnumeratorBase[T: ITwoWayNode](NodeEnumeratorAbstract[T], ITwoWa
 class TwoWayNodeEnumerator[T](TwoWayNodeEnumeratorBase[ITwoWayLinkedNode[T]], ITwoWayLinkedNodeEnumerator[T]):
     def __init__(self, cookie: ITwoWayLinkedListCookie[ITwoWayLinkedNode[T]], order: EnumerationOrder = EnumerationOrder.FIFO) -> None: super().__init__(cookie, order)
 
-class ValueEnumeratorBase[TItem, TNode: INode](Selector[TNode, TItem]):
+class ValueEnumeratorBase[TItem, TNode: INode](AbstractEnumerator[TNode, TItem]):
     def __init__(self, enumerator: IEnumerator[TNode]) -> None: super().__init__(enumerator)
 
     @abstractmethod

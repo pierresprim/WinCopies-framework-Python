@@ -10,7 +10,7 @@ from WinCopies.Bool import NullableBoolean, ToNullableBoolean
 
 from WinCopies.Collections import EnumerationOrder
 from WinCopies.Collections.Enumeration import GetIterationInactiveError
-from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, EnumeratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandlerBase, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler
 from WinCopies.Collections.Linked.Singly import Stack
@@ -467,7 +467,7 @@ class _NullRecursiveEnumerationHandler[TItem, TCookie](Abstract, IRecursiveEnume
     
     def OnStoppedEnumeration(self) -> None: pass
 
-class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](AbstractEnumerator[TItem], _IRecursiveEnumeratorBase[TItem, TCookie, TStackItems]):
+class RecursiveEnumeratorBase[TItem, TCookie, TStackItems](Selector[TItem], _IRecursiveEnumeratorBase[TItem, TCookie, TStackItems]):
     @final
     class __Cookie[_TItem, _TCookie, _TStackItems](Abstract, IRecursiveEnumerationCookie[_TItem, _TCookie, _TStackItems]):
         def __init__(self, enumerator: RecursiveEnumeratorBase[_TItem, _TCookie, _TStackItems], delegate: _IDelegate[_TItem]) -> None:

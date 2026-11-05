@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import IInterface, IDisposable, Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Enumeration import GetIterationInactiveError
-from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable, EnumeratorProvider, IteratorProvider, TryAsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyScannable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, TryAsStackHandler
 from WinCopies.Collections.Iteration import Select, WhereSelect
@@ -132,7 +132,7 @@ class EnumerationHandler[T](EnumerationDelegate[T]):
             
             case _: return LoopResult.Continue
 
-class Enumerator[T](AbstractEnumerator[IKeyValuePair[T, Events]]):
+class Enumerator[T](Selector[IKeyValuePair[T, Events]]):
     def __init__(self, enumerator: IEnumerator[IKeyValuePair[T, Events]], handler: IRecursiveStackedEnumerationHandler[T]|None) -> None:
         super().__init__(enumerator)
 

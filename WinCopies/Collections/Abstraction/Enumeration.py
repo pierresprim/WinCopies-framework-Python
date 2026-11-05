@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -74,7 +74,7 @@ class _CountableEnumerable[T](CountableEnumerable[T], _IEnumerable[T]):
     @final
     def GetCount(self) -> int: return self._GetEnumerable().GetCount()
 
-class _Enumerator[T](AbstractEnumerator[T]):
+class _Enumerator[T](Selector[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
 class _ResumableEnumerator[T](AbstractEnumeratorBase[T, T, IResumableEnumerator[T]], IResumableEnumerator[T]):
     def __init__(self, enumerator: IResumableEnumerator[T]) -> None: super().__init__(enumerator)

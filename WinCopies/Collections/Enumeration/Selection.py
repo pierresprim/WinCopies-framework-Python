@@ -2,13 +2,13 @@ from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Delegates import GetAndAlsoFunc
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Function, Predicate
 
-class ConditionalEnumerator[T](AbstractEnumerator[T]):
+class ConditionalEnumerator[T](Selector[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
 

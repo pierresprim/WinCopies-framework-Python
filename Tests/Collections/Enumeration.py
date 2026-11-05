@@ -46,7 +46,7 @@ from WinCopies import Abstract
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List, CreateList
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
-from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator, AbstractEnumerator, ConverterEnumerator
+from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator, Selector, ConverterEnumerator
 from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorBase, Iterator
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
@@ -1336,7 +1336,7 @@ class TestWhoOptsIn(unittest.TestCase):
             ("List.TryGetEnumerator()", items.TryGetEnumerator, True),
             ("Iterator", lambda: Iterator(iter((1, 2))), False),
             ("an index enumerator", lambda: _Counter(2), False),
-            ("AbstractEnumerator", lambda: AbstractEnumerator(Iterator(iter((1, 2)))), False),
+            ("Selector", lambda: Selector(Iterator(iter((1, 2)))), False),
             ("ConverterEnumerator", lambda: ConverterEnumerator(Iterator(iter((1, 2))), str), False))
 
         for label, factory, declared in rows:
