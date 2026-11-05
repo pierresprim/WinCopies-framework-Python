@@ -799,13 +799,16 @@ class _EnumerationCookie[T](Abstract, IEnumerableLinkedListCookie[T]):
 
     def GetFirst(self) -> ILinkedNode[T]|None: return self.__func()
 
+def CreateEnumerationCookie[T](func: Function[ILinkedNode[T]|None]) -> IEnumerableLinkedListCookie[T]:
+    return _EnumerationCookie[T](func)
+
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None: self.__readOnly = func
         
         super().__init__(items)
 
-        self.__cookie: IEnumerableLinkedListCookie[T] = _EnumerationCookie[T](self._GetFirst)
+        self.__cookie: IEnumerableLinkedListCookie[T] = CreateEnumerationCookie(self._GetFirst)
         self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = _EnumerableQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final

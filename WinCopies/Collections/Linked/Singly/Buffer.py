@@ -9,9 +9,9 @@ from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryC
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import TryGetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import ILinkedNode, IEnumerableLinkedListCookie
-from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase
-from WinCopies.Typing.Delegate import Method, Function, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Collections.Linked.Node import IEnumerableLinkedListCookie
+from WinCopies.Collections.Linked.Singly import IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList, IList, ICountableList, IEnumerableList, ICountableEnumerableList, IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue, IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack, IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue, IStack, ICountableStack, IEnumerableStack, ICountableEnumerableStack, INodeCookie, ReadOnlyListBase, AbstractList, CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList, AbstractQueue, QueueBase, EnumerableQueueBase, EnumerableStackBase, StackBase, CreateEnumerationCookie
+from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IBufferBase(IInterface):
@@ -536,15 +536,6 @@ class _ReadOnlyEnumerableBufferedStackUpdater[T](SelectionUpdater[IEnumerableBuf
     def _AsContainer(self, container: IEnumerableBufferedStack[T]) -> IReadOnlyEnumerableBufferedStack[T]: return _ReadOnlyEnumerableBufferedStack[T](container)
 
 class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T]):
-    @final
-    class _Cookie[_T](Abstract, IEnumerableLinkedListCookie[_T]):
-        def __init__(self, func: Function[ILinkedNode[_T]|None]) -> None:
-            super().__init__()
-
-            self.__func: Function[ILinkedNode[_T]|None] = func
-
-        def GetFirst(self) -> ILinkedNode[_T]|None: return self.__func()
-    
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -552,7 +543,7 @@ class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnume
         ...
     @final
     def _CreateLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
-        return EnumerableBufferAbstract[T]._Cookie(self._GetFirst)
+        return CreateEnumerationCookie(self._GetFirst)
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryGetValueEnumeratorFromNode(self._GetLinkedListCookie())
