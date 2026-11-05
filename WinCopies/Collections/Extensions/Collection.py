@@ -15,7 +15,7 @@ from WinCopies.Collections.Core import Mutability, IIndexableCollectionBase, IAb
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatableCollectionViewMonitor, IHashableCollectionViewMonitor,
-                                              ICollectionMonitors, IResumableEnumeratorMonitor, IRevocableViewMonitor, ICollection,
+                                              ICollectionMonitors, IRevocableViewMonitor, ICollection,
                                               IReadOnlyLinkedCursorProvider, ILinkedCursorProvider,
                                               GetViewString, AreTuplesEqual, GetTupleHash,
                                               ITupleBase as ITupleAbstract, ITuple, IEquatableTuple, IHashableTuple, ISortedTuple,
@@ -23,11 +23,9 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               IListBase, IList, ISortedList,
                                               CollectionViewMonitor, EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence)
-from WinCopies.Collections.Extensions.Enumeration import IResumableEnumeratorRegistry, ResumableEnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
+from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
-from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistry
-from WinCopies.Collections.Registry.Core import CollectionRegistry
+from WinCopies.Collections.Registry.Collection import ICollectionRegistries as _ICollectionRegistries, MonitorsBase, CollectionRegistriesBase
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.Linked.Singly import ICountableCollection, IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack, ICountableEnumerableList, ICountableEnumerableQueue, ICountableEnumerableStack
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, ReadOnlyEquatableCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
@@ -585,12 +583,9 @@ class _TupleBase[T](TupleAbstractBase[T], IManagedCollection[T]):
     def __init__(self) -> None: super().__init__()
 
     def __RegisterEnumerator[U: IInvalidatableEnumeratorBase](self, enumerator: U) -> U:
-        self._GetEnumeratorRegistry().RegisterEnumerator(enumerator)
+        self._GetCollectionRegistries().GetEnumeratorRegistry().RegisterEnumerator(enumerator)
 
         return enumerator
-
-    def _GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
-        return self._GetCollectionRegistries().GetEnumeratorRegistry()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]: return self.__RegisterEnumerator(TupleEnumerator[T](self))
@@ -648,15 +643,11 @@ class _ReversedHashableTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IH
     
     def _GetValue(self) -> IHashableTuple[T]: return _ReversedHashableTuple[T](self.__array)
 
-class ICollectionRegistries(ICollectionRegistry[IObjectMonitor]):
+class ICollectionRegistries(_ICollectionRegistries):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def AsMonitors(self) -> ICollectionMonitors:
-        ...
-
-    @abstractmethod
-    def GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry:
         ...
     
     @abstractmethod
@@ -664,37 +655,18 @@ class ICollectionRegistries(ICollectionRegistry[IObjectMonitor]):
         ...
 
 @final
-class _Monitors(Abstract, ICollectionMonitors):
-    def __init__(self, registries: ICollectionRegistries) -> None:
-        super().__init__()
-
-        self.__registries: ICollectionRegistries = registries
-
-    def RegisterMonitor(self, item: IObjectMonitor) -> IRemovable: return self.__registries.RegisterMonitor(item)
-    def RegisterObject(self, item: IObjectMonitor) -> None: self.RegisterMonitor(item)
-
-    def GetEnumeratorMonitor(self) -> IResumableEnumeratorMonitor: return self.__registries.GetEnumeratorRegistry().AsMonitor()
+class _Monitors(MonitorsBase[ICollectionRegistries], ICollectionMonitors):
+    def __init__(self, registries: ICollectionRegistries) -> None: super().__init__(registries)
     
-    def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self.__registries.GetRevocableViewRegistry().AsMonitor()
-class CollectionRegistries(CollectionRegistry[IObjectMonitor], ICollectionRegistries):
+    def GetRevocableViewMonitor(self) -> IRevocableViewMonitor: return self._GetRegistries().GetRevocableViewRegistry().AsMonitor()
+class CollectionRegistries(CollectionRegistriesBase[ICollectionMonitors], ICollectionRegistries):
     def __init__(self) -> None:
-        def createRegistry[U: IObjectMonitor](registry: U) -> U:
-            self.RegisterObject(registry)
-
-            return registry
-        
         super().__init__()
 
-        self.__monitors: ICollectionMonitors = _Monitors(self)
-
-        self.__registry: IResumableEnumeratorRegistry = createRegistry(ResumableEnumeratorRegistry())
-        self.__view: IRevocableViewRegistry = createRegistry(RevocableViewRegistry())
+        self.__view: IRevocableViewRegistry = self._CreateRegistry(RevocableViewRegistry())
 
     @final
-    def AsMonitors(self) -> ICollectionMonitors: return self.__monitors
-
-    @final
-    def GetEnumeratorRegistry(self) -> IResumableEnumeratorRegistry: return self.__registry
+    def _CreateMonitor(self) -> _Monitors: return _Monitors(self)
     
     @final
     def GetRevocableViewRegistry(self) -> IRevocableViewRegistry: return self.__view
