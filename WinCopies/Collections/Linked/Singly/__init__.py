@@ -478,8 +478,7 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     
     @final
     def _UpdateFirst(self, node: INodeCookie[T]|None) -> None:
-        if node is None: self._UnsetFirst()
-        else: self._SetFirst(node)
+        self._UnsetFirst() if node is None else self._SetFirst(node)
     
     @abstractmethod
     def _OnCleared(self) -> None:
@@ -487,11 +486,6 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     def _OnRemoved(self) -> None:
         pass
 
-    @final
-    def __OnRemoved(self) -> None:
-        if self.IsEmpty(): self._OnCleared()
-        else: self._OnRemoved()
-    
     @abstractmethod
     def _Push(self, value: T, first: INodeCookie[T]) -> None:
         ...
@@ -499,8 +493,7 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     def Push(self, value: T) -> None:
         first: INodeCookie[T]|None = self._GetFirstCookie()
         
-        if first is None: self._SetInitialCookie(value)
-        else: self._Push(value, first)
+        self._SetInitialCookie(value) if first is None else self._Push(value, first)
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -509,32 +502,35 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
         return GetNullValue() if first is None else GetNullable(first.GetValue())
     
     @final
+    def __TryPop(self) -> INullable[T]:
+        first: INodeCookie[T]|None = self._GetFirstCookie()
+        
+        if first is None: return GetNullValue()
+        
+        self._UpdateFirst(first.GetNext())
+
+        result: INullable[T] = GetNullable(first.GetNode().GetValue())
+        
+        first.SetNext(None) # Needed in case of a running enumeration.
+
+        return result
+    @final
     def TryPop(self) -> INullable[T]:
-        result: INullable[T] = self.TryPeek()
-        
-        if result.HasValue():
-            first: INodeCookie[T]|None = self._GetFirstCookie()
-            
-            if first is None: return result # Should never be None here.
-            
-            next: INodeCookie[T]|None = first.GetNext()
-            
-            self._UpdateFirst(next)
-            
-            first.SetNext(None) # Needed in case of a running enumeration.
-            
-            self.__OnRemoved()
-        
+        result: INullable[T] = self.__TryPop()
+
+        if result.HasValue(): self._OnRemoved()
+
         return result
     
     @final
     def Clear(self) -> None:
-        result: INullable[T] = self.TryPop()
+        result: INullable[T] = self.__TryPop()
 
-        # TODO: Should be improved.
-        while result.HasValue(): result = self.TryPop() # Needed in case of a running enumeration.
+        if result.HasValue():
+            # TODO: Should be improved.
+            while (result := self.TryPop()).HasValue(): pass # Needed in case of a running enumeration.
 
-        self.__OnRemoved()
+            self._OnCleared()
 
 class ReadOnlyList[T](ReadOnlyListBase[T, IList[T]], IGenericConstraintImplementation[IList[T]]):
     def __init__(self, items: IList[T]) -> None: super().__init__(items)
@@ -822,7 +818,7 @@ class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
         
         super().__init__(items)
 
-        self.__cookie: IEnumerableLinkedListCookie[T] = _EnumerationCookie[T](self._GetFirst)
+        self.__cookie: IEnumerableLinkedListCookie[T] = CreateEnumerationCookie(self._GetFirst)
         self.__readOnly: IFunction[IReadOnlyEnumerableStack[T]] = _EnumerableStackUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
