@@ -529,7 +529,7 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
 
         if result.HasValue():
             # TODO: Should be improved.
-            while (result := self.TryPop()).HasValue(): pass # Needed in case of a running enumeration.
+            while (result := self.__TryPop()).HasValue(): pass # Needed in case of a running enumeration.
 
             self._OnCleared()
 
