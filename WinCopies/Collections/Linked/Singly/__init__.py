@@ -518,7 +518,8 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
     def TryPop(self) -> INullable[T]:
         result: INullable[T] = self.__TryPop()
 
-        if result.HasValue(): self._OnRemoved()
+        # _OnCleared() is dedicated to clean the list when all nodes have been removed; it must be called when and only when the last node was removed.
+        if result.HasValue(): self._OnCleared() if self.IsEmpty() else self._OnRemoved()
 
         return result
     
