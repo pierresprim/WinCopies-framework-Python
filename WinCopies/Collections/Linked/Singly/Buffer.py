@@ -203,6 +203,12 @@ class AbstractBufferedQueue[T](AbstractBuffer[T], AbstractQueue[T]):
     def __init__(self) -> None: super().__init__()
     
     def _OnSetFirst(self, first: INodeCookie[T], last: INodeCookie[T]) -> None:
+        previous: INodeCookie[T]|None = self._GetLastCookie()
+
+        if previous is not None: previous.SetNext(last.GetNode())
+
+        last.SetNext(None)
+
         self._SetFirst(first)
         self._SetLastCookie(last)
 class AbstractBufferedStack[T](AbstractBuffer[T]):
