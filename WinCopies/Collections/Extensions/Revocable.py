@@ -12,15 +12,14 @@ from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
 from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
-                                              IResumableEnumeratorMonitor, IRevocableViewMonitor,
-                                              ICollectionViewMonitor, IEquatableCollectionViewMonitor,
-                                              ICollectionMonitors,
+                                              IRevocableViewMonitor, ICollectionViewMonitor, IEquatableCollectionViewMonitor, ICollectionMonitors,
                                               ITuple, IEquatableTuple,
                                               CollectionViewMonitor, EquatableCollectionViewMonitor,
                                               SequenceAbstract,
                                               GetTupleString)
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
 from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistry
+from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumeratorMonitor
 from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
 
 from WinCopies.Delegates import ConcatenateMethods

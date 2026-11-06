@@ -51,9 +51,10 @@ from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEn
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
-from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator, _Registrar # pyright: ignore[reportPrivateUsage]
+from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
+from WinCopies.Collections.Registry.Collection import _Registrar # pyright: ignore[reportPrivateUsage]
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
 from WinCopies.String import GetValueOrDefault, SurroundWith
 from WinCopies.Typing import InvalidOperationError

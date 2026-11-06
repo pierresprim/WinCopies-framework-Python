@@ -12,7 +12,7 @@ from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countabl
 from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, ILinkedListCookie, IEnumerableLinkedListCookie, LinkedNodeBase
-from WinCopies.Collections.Registry.Collection import ICollectionMonitors, ICollectionRegistries, CollectionRegistries
+from WinCopies.Collections.Registry.Collection import ICollectionRegistries, CollectionRegistries
 
 from WinCopies.Delegates import NoAction
 
@@ -571,9 +571,6 @@ class IEnumerable[T](_IListBase[T], _IEnumerable[T]):
     @abstractmethod
     def _GetCollectionRegistries(self) -> ICollectionRegistries:
         ...
-    @final
-    def GetCollectionMonitors(self) -> ICollectionMonitors:
-        return self._GetCollectionRegistries().AsMonitors()
 
     @final
     def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()

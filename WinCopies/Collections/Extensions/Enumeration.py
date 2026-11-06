@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from typing import final
 
 from WinCopies import Abstract
-from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumerator
+from WinCopies.Collections.Core import ITuple
+from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IDefaultInvalidatableEnumerator
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator, IDefaultInvalidatableResumableEnumeratorImplementation
 from WinCopies.Collections.Enumeration.Resumable.Indexable import ResumableIncrementalEnumerator
-from WinCopies.Collections.Extensions import ITuple, IEnumeratorMonitor, IResumableEnumeratorMonitor
-from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Registry import IObjectMonitor
-from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
-from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
-from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
-from WinCopies.Typing.Discard import IInvalidatable
+from WinCopies.Collections.Registry.Collection import EnumeratorRegistry as _EnumeratorRegistry, EnumeratorMonitorUpdater
+from WinCopies.Collections.Registry.Collection.Indexable import IEnumeratorMonitor, IResumableEnumeratorMonitor, IEnumeratorRegistry, IResumableEnumeratorRegistry
+from WinCopies.Typing.Delegate import Method, IFunction
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class TupleEnumeratorBase[TItem, TList](IncrementalEnumerator[TItem], IDefaultInvalidatableEnumerator[TItem], GenericConstraint[TList, ITuple[TItem]]):
@@ -51,23 +47,6 @@ class ResumableTupleEnumeratorBase[TItem, TList](ResumableIncrementalEnumerator[
 class ResumableTupleEnumerator[T](ResumableTupleEnumeratorBase[T, ITuple[T]], IGenericConstraintImplementation[ITuple[T]]):
     def __init__(self, items: ITuple[T]) -> None: super().__init__(items)
 
-class IEnumeratorRegistry(IEnumeratorMonitor, IObjectMonitor):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase, strict: bool = False) -> None:
-        ...
-    
-    @abstractmethod
-    def AsMonitor(self) -> IEnumeratorMonitor:
-        ...
-class IResumableEnumeratorRegistry(IEnumeratorRegistry, IResumableEnumeratorMonitor):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def AsMonitor(self) -> IResumableEnumeratorMonitor:
-        ...
-
 class EnumeratorMonitor[T](Abstract, IEnumeratorMonitor, GenericConstraint[T, IEnumeratorRegistry]):
     def __init__(self, registry: T) -> None:
         super().__init__()
@@ -79,15 +58,6 @@ class EnumeratorMonitor[T](Abstract, IEnumeratorMonitor, GenericConstraint[T, IE
     
     @final
     def CreateEnumerator[U](self, items: ITuple[U], strict: bool = False) -> IInvalidatableEnumerator[U]: return self._GetInnerContainer().CreateEnumerator(items, strict)
-class EnumeratorMonitorUpdater[TMonitor, TRegistry](ValueFunctionUpdater[TMonitor]):
-    def __init__(self, registry: TRegistry, updater: Method[IFunction[TMonitor]]) -> None:
-        super().__init__(updater)
-
-        self.__registry: TRegistry = registry
-    
-    @final
-    def _GetRegistry(self) -> TRegistry:
-        return self.__registry
 
 @final
 class _EnumeratorMonitor(EnumeratorMonitor[IEnumeratorRegistry]):
@@ -113,50 +83,9 @@ class _ResumableEnumeratorMonitorUpdater(EnumeratorMonitorUpdater[IResumableEnum
     
     def _GetValue(self) -> IResumableEnumeratorMonitor: return _ResumableEnumeratorMonitor(self._GetRegistry())
 
-@final
-class _Registry(InvalidatableObjectRegistry[IInvalidatable]):
+class EnumeratorRegistryBase[T: IEnumeratorMonitor](_EnumeratorRegistry[T, IEnumeratorRegistry], IEnumeratorRegistry):
     def __init__(self) -> None: super().__init__()
 
-    def RegisterEnumerator(self, item: IInvalidatable) -> IRemovable:
-        return self._Push(item)
-@final
-class _Registrar(InvalidationRegistrar):
-    def __init__(self, registry: _Registry) -> None:
-        super().__init__()
-
-        self.__registry: _Registry = registry
-        self.__node: IRemovable|None = None
-
-    def Register(self, cookie: IInvalidatable) -> None:
-        self.__node = self.__registry.RegisterEnumerator(cookie)
-    def Unregister(self) -> None:
-        node: IRemovable|None = self.__node
-
-        if node is not None: node.Remove()
-
-class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistry):
-    def __init__(self) -> None:
-        def update(func: IFunction[T]) -> None: self.__monitor = func
-        
-        super().__init__()
-
-        self.__registry: _Registry = _Registry()
-        self.__monitor: IFunction[T] = self._CreateUpdater(update) # type: ignore[no-redef]
-
-    @final
-    def _GetRegistry(self) -> _Registry:
-        return self.__registry
-    
-    @abstractmethod
-    def _CreateUpdater(self, updater: Method[IFunction[T]]) -> EnumeratorMonitorUpdater[T, IEnumeratorRegistry]:
-        ...
-
-    @final
-    def RegisterEnumerator(self, enumerator: IInvalidatableEnumeratorBase, strict: bool = False) -> None: enumerator.Register(self._GetRegistry()) if strict else enumerator.AddRegistrar(_Registrar(self._GetRegistry()))
-
-    @final
-    def InvalidateObjects(self) -> None: self._GetRegistry().InvalidateObjects()
-    
     @final
     def CreateEnumerator[U](self, items: ITuple[U], strict: bool = False) -> IInvalidatableEnumerator[U]:
         enumerator: IInvalidatableEnumerator[U] = TupleEnumerator[U](items)
@@ -164,10 +93,6 @@ class EnumeratorRegistryBase[T: IEnumeratorMonitor](Abstract, IEnumeratorRegistr
         self.RegisterEnumerator(enumerator, strict)
 
         return enumerator
-    
-    @final
-    def _AsMonitor(self) -> T:
-        return self.__monitor.GetValue()
 
 class EnumeratorRegistry(EnumeratorRegistryBase[IEnumeratorMonitor]):
     def __init__(self) -> None: super().__init__()

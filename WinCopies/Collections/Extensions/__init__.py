@@ -13,12 +13,12 @@ from WinCopies.Collections.Core import (Mutability, ICountable, IContainer,
                                         IListBase as IListAbstractBase, IList as IListAbstract,
                                         ISortedTuple as ISortedTupleBase, ISortedList as ISortedListBase,
                                         ICountableList as ICountableListBase)
-from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator, IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
-from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable, IInvalidatableResumableEnumerator
+from WinCopies.Collections.Enumeration.Core import IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)
 from WinCopies.Collections.Loop import DoForEachAndFirst, AreEquals
-from WinCopies.Collections.Registry.Collection import ICollectionMonitors as _ICollectionMonitors
+from WinCopies.Collections.Registry.Collection.Indexable import ICollectionMonitors as _ICollectionMonitors
 from WinCopies.Collections.Util import CreateSequence, CreateTuple, GetSequenceIndex
 from WinCopies.IO.Stream import IMemoryTextStream, MemoryTextStream
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
@@ -167,19 +167,6 @@ class IDefaultMutableSequence[T](_IMutableSequence[T]):
 
     @final
     def _Reverse(self) -> None: self._ReverseDefault()
-
-class IEnumeratorMonitor(IInterface):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def CreateEnumerator[T](self, items: ITuple[T], strict: bool = False) -> IInvalidatableEnumerator[T]:
-        ...
-class IResumableEnumeratorMonitor(IEnumeratorMonitor):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def CreateResumableEnumerator[T](self, items: ITuple[T], strict: bool = False) -> IInvalidatableResumableEnumerator[T]:
-        ...
 
 class IRevocableViewMonitor(IInterface):
     def __init__(self) -> None: super().__init__()

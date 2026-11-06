@@ -9,8 +9,7 @@ from WinCopies import IInterface, IStringable, Abstract
 from WinCopies.Collections.Core import Mutability
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
-from WinCopies.Collections.Extensions import (IResumableEnumeratorMonitor,
-                                              IReadOnlyLinkedCursorProvider,
+from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               IDefaultMutableSequence,
                                               ICollection,
                                               ITuple, IEquatableTuple, IHashableTuple,
@@ -26,6 +25,7 @@ from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManaged
                                                          Array as _Array, ArrayCollection as _ArrayCollection,
                                                          List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Registry import IObjectMonitor
+from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumeratorMonitor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems

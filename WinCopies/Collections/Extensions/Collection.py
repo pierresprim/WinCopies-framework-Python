@@ -23,9 +23,9 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               IListBase, IList, ISortedList,
                                               CollectionViewMonitor, EquatableCollectionViewMonitor,
                                               SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence)
-from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator
+from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator, ResumableEnumeratorRegistry
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
-from WinCopies.Collections.Registry.Collection import ICollectionRegistries as _ICollectionRegistries, MonitorsBase, CollectionRegistriesBase
+from WinCopies.Collections.Registry.Collection.Indexable import ICollectionRegistries as _ICollectionRegistries, MonitorsBase, CollectionRegistriesBase, IResumableEnumeratorRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.Linked.Singly import ICountableCollection, IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack, ICountableEnumerableList, ICountableEnumerableQueue, ICountableEnumerableStack
 from WinCopies.Collections.ObjectModel import ReadOnlyCollection, ReadOnlyEquatableCollection, SortedCollection as SortedCollectionBase, FixedSizeCollection
@@ -666,7 +666,10 @@ class CollectionRegistries(CollectionRegistriesBase[ICollectionMonitors], IColle
         self.__view: IRevocableViewRegistry = self._CreateRegistry(RevocableViewRegistry())
 
     @final
-    def _CreateMonitor(self) -> _Monitors: return _Monitors(self)
+    def _CreateEnumeratorRegistry(self) -> IResumableEnumeratorRegistry: return ResumableEnumeratorRegistry()
+
+    @final
+    def _CreateMonitors(self) -> _Monitors: return _Monitors(self)
     
     @final
     def GetRevocableViewRegistry(self) -> IRevocableViewRegistry: return self.__view
