@@ -499,11 +499,11 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
         ...
     @final
     def Push(self, value: T) -> None:
+        self._InvalidateViews()
+
         first: INodeCookie[T]|None = self._GetFirstCookie()
         
         self._SetInitialCookie(value) if first is None else self._Push(value, first)
-
-        self._InvalidateViews()
     
     @final
     def TryPeek(self) -> INullable[T]:
@@ -857,7 +857,7 @@ class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
         self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
         
         super().__init__(items)
-        
+
         self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = _EnumerableQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
