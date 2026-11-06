@@ -576,10 +576,11 @@ class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnume
 class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T], IEnumerable[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None: self.__readOnly = func
+
+        self.__cookie: IEnumerableCookie[T] = EnumerableCookie[T](self._CreateLinkedListCookie())
         
         super().__init__(values)
 
-        self.__cookie: IEnumerableCookie[T] = EnumerableCookie[T](self._CreateLinkedListCookie())
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedQueue[T]] = _ReadOnlyEnumerableBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
@@ -593,10 +594,11 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstrac
 class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T], IEnumerable[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None: self.__readOnly = func
-        
-        super().__init__(values)
 
         self.__cookie: IEnumerableCookie[T] = EnumerableCookie[T](self._CreateLinkedListCookie())
+        
+        super().__init__(values)
+        
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedStack[T]] = _ReadOnlyEnumerableBufferedStackUpdater[T](self, update) # type: ignore[no-redef]
     
     @final

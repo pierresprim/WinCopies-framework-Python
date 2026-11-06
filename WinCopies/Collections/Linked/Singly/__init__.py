@@ -853,10 +853,11 @@ class _EnumerableCookie[T](EnumerableCookie[T]):
 class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None: self.__readOnly = func
-        
-        super().__init__(items)
 
         self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
+        
+        super().__init__(items)
+        
         self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = _EnumerableQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
@@ -870,10 +871,11 @@ class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
 class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableStack[T]]) -> None: self.__readOnly = func
+
+        self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
         
         super().__init__(items)
 
-        self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
         self.__readOnly: IFunction[IReadOnlyEnumerableStack[T]] = _EnumerableStackUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
