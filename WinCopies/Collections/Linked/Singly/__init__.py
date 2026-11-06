@@ -565,12 +565,14 @@ class List[T](ListBase[T]):
     def _UnsetFirst(self) -> None:
         self.__first = None
 
-class IEnumerable[T](_IListBase[T], _IEnumerable[T]):
+class IEnumerableBase(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetCollectionRegistries(self) -> ICollectionRegistries:
         ...
+class IEnumerable[T](_IListBase[T], _IEnumerable[T], IEnumerableBase):
+    def __init__(self) -> None: super().__init__()
 
     @final
     def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()

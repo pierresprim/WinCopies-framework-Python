@@ -32,8 +32,7 @@ class CircularAbstract[TItem, TList](TupleBase[TItem], Sequence[TItem], ICircula
     def _GetContainer(self) -> TList: return self.__list
     
     @final
-    def _GetAt(self, key: int) -> TItem:
-        return self._GetInnerContainer().GetAt(key)
+    def _GetAt(self, key: int) -> TItem: return self._GetInnerContainer().GetAt(key)
     
     @final
     def TryGetSourceMutability(self) -> Mutability: return self._GetInnerContainer().GetSourceMutability()
