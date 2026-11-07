@@ -18,13 +18,14 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               Sequence, MutableSequence,
                                               Count,
                                               GetTupleString, AreTuplesEqual)
-from WinCopies.Collections.Extensions.Collection import (IViewProvider, IManagedCollection,
+from WinCopies.Collections.Extensions.Collection import (IManagedCollection,
                                                          TupleAbstractBase as _TupleAbstractBase, TupleAbstract as _TupleAbstract, TupleBase as _TupleBase,
                                                          Tuple as _Tuple, EquatableTuple as _EquatableTuple, HashableTuple as _HashableTuple,
                                                          ArrayAbstractBase as _ArrayAbstractBase, ArrayAbstract as _ArrayAbstract, ArrayBase as _ArrayBase,
                                                          Array as _Array, ArrayCollection as _ArrayCollection,
                                                          List as _List, SortedList as _SortedList)
 from WinCopies.Collections.Registry import IObjectMonitor
+from WinCopies.Collections.Registry.Collection import IViewProvider
 from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumeratorMonitor
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains

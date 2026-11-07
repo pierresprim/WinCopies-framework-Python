@@ -12,7 +12,7 @@ from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countabl
 from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, ILinkedListCookie, IEnumerableLinkedListCookie, LinkedNodeBase
-from WinCopies.Collections.Registry.Collection import ICollectionRegistries, CollectionRegistries
+from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollection, CollectionRegistries
 
 from WinCopies.Delegates import NoAction
 
@@ -440,12 +440,8 @@ class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], _IQueueAdderBase[T]):
     def _GetLast(self) -> SinglyLinkedNode[T]|None:
         return _TryGetNode(self._GetLastCookie())
 
-class _IListBase[T](IListBase[T]):
+class _IListBase[T](IListBase[T], IViewProvider):
     def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def _InvalidateViews(self) -> None:
-        ...
 
 class _IAdderBase[T](_IListBase[T], _IAdderAbstract[T]):
     def __init__(self) -> None: super().__init__()
@@ -565,13 +561,7 @@ class List[T](ListBase[T]):
     def _UnsetFirst(self) -> None:
         self.__first = None
 
-class IEnumerableAbstract(IInterface):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def _GetCollectionRegistries(self) -> ICollectionRegistries:
-        ...
-class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
+class IManagedCollectionBase[T](_IManagedCollection, _IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -585,13 +575,10 @@ class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
         self._GetCollectionRegistries().GetEnumeratorRegistry().RegisterEnumerator(enumerator)
 
         return enumerator
-class IEnumerable[T](_IListBase[T], IEnumerableBase[T]):
+class IManagedCollection[T](_IListBase[T], IManagedCollectionBase[T]):
     def __init__(self) -> None: super().__init__()
 
-    @final
-    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
-
-class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T], IEnumerable[T]):
+class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T], IManagedCollection[T]):
     def __init__(self) -> None: super().__init__()
 
 class _IAdder[T](_IAdderBase[T]):
@@ -854,7 +841,22 @@ class EnumerableCookie[T](Abstract, IEnumerableCookie[T]):
 class _EnumerableCookie[T](EnumerableCookie[T]):
     def __init__(self, func: Function[ILinkedNode[T]|None]) -> None: super().__init__(CreateEnumerationCookie(func))
 
-class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
+class IManagedListBase[T](IManagedCollectionBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCookie(self) -> IEnumerableCookie[T]:
+        ...
+
+    @final
+    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self._GetCookie().GetRegistries()
+
+    @final
+    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self._GetCookie().GetCookie()
+class IManagedList[T](IManagedListBase[T], IManagedCollection[T]):
+    def __init__(self) -> None: super().__init__()
+
+class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T], IManagedList[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None: self.__readOnly = func
 
@@ -865,14 +867,11 @@ class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T]):
         self.__readOnly: IFunction[IReadOnlyEnumerableQueue[T]] = _EnumerableQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__cookie.GetRegistries()
+    def _GetCookie(self) -> IEnumerableCookie[T]: return self.__cookie
 
     @final
-    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie.GetCookie()
-    
-    @final
     def AsReadOnly(self) -> IReadOnlyEnumerableQueue[T]: return self.__readOnly.GetValue()
-class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
+class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T], IManagedList[T]):
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableStack[T]]) -> None: self.__readOnly = func
 
@@ -883,10 +882,7 @@ class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T]):
         self.__readOnly: IFunction[IReadOnlyEnumerableStack[T]] = _EnumerableStackUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__cookie.GetRegistries()
-
-    @final
-    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie.GetCookie()
+    def _GetCookie(self) -> IEnumerableCookie[T]: return self.__cookie
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableStack[T]: return self.__readOnly.GetValue()

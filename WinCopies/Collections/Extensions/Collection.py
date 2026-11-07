@@ -6,7 +6,7 @@ from typing import overload, final, Callable, SupportsIndex
 
 
 
-from WinCopies import IInterface, Abstract
+from WinCopies import Abstract
 
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator, TryCreateResumableEnumerator
 from WinCopies.Collections.Abstraction.Selection.Enumeration import CreateCountableEnumerable
@@ -25,6 +25,7 @@ from WinCopies.Collections.Extensions import (ICollectionViewMonitor, IEquatable
                                               SequenceAbstract, MutableSequenceAbstract, Sequence, MutableSequence)
 from WinCopies.Collections.Extensions.Enumeration import TupleEnumerator, ResumableTupleEnumerator, ResumableEnumeratorRegistry
 from WinCopies.Collections.Extensions.Revocable import IRevocableViewRegistry, RevocableViewRegistry
+from WinCopies.Collections.Registry.Collection import IManagedCollection as _IManagedCollection
 from WinCopies.Collections.Registry.Collection.Indexable import ICollectionRegistries as _ICollectionRegistries, MonitorsBase, CollectionRegistriesBase, IResumableEnumeratorRegistry
 from WinCopies.Collections.Iteration.Extensions import Reverse
 from WinCopies.Collections.Linked.Singly import ICountableCollection, IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack, ICountableEnumerableList, ICountableEnumerableQueue, ICountableEnumerableStack
@@ -554,30 +555,29 @@ class TupleAbstract[T](TupleAbstractBase[T]):
     @final
     def FindLastIndex(self, item: T, predicate: EqualityComparison[T]|None = None) -> int: return FindIndex(self.AsReversed().AsSequence(), item, predicate)
 
-class IViewProvider(IInterface):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def _InvalidateViews(self) -> None:
-        ...
 class ITupleBase[T](ITupleAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetCollectionViewMonitor(self) -> ICollectionViewMonitor[T]:
         ...
-class IManagedCollection[T](ITupleBase[T], IViewProvider):
+
+class ICollectionRegistries(_ICollectionRegistries):
     def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsMonitors(self) -> ICollectionMonitors:
+        ...
     
     @abstractmethod
-    def _GetCollectionRegistries(self) -> ICollectionRegistries:
+    def GetRevocableViewRegistry(self) -> IRevocableViewRegistry:
         ...
+class IManagedCollection[T](ITupleBase[T], _IManagedCollection[ICollectionRegistries]):
+    def __init__(self) -> None: super().__init__()
+    
     @final
     def GetCollectionMonitors(self) -> ICollectionMonitors:
         return self._GetCollectionRegistries().AsMonitors()
-
-    @final
-    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
 
 class _TupleBase[T](TupleAbstractBase[T], IManagedCollection[T]):
     def __init__(self) -> None: super().__init__()
@@ -642,17 +642,6 @@ class _ReversedHashableTupleUpdater[T: HashableProtocol](ValueFunctionUpdater[IH
         self.__array: IHashableTuple[T] = array
     
     def _GetValue(self) -> IHashableTuple[T]: return _ReversedHashableTuple[T](self.__array)
-
-class ICollectionRegistries(_ICollectionRegistries):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def AsMonitors(self) -> ICollectionMonitors:
-        ...
-    
-    @abstractmethod
-    def GetRevocableViewRegistry(self) -> IRevocableViewRegistry:
-        ...
 
 @final
 class _Monitors(MonitorsBase[ICollectionRegistries], ICollectionMonitors):

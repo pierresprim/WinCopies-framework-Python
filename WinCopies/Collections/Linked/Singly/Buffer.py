@@ -9,7 +9,7 @@ from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryC
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Node import IEnumerableLinkedListCookie
-from WinCopies.Collections.Linked.Singly import (IEnumerableBase, IEnumerable,
+from WinCopies.Collections.Linked.Singly import (IManagedListBase,
                                                  INodeCookie, IEnumerableCookie,
                                                  IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList,
                                                  IList, ICountableList, IEnumerableList, ICountableEnumerableList,
@@ -22,7 +22,6 @@ from WinCopies.Collections.Linked.Singly import (IEnumerableBase, IEnumerable,
                                                  ReadOnlyListBase, AbstractList, AbstractQueue,
                                                  QueueBase, StackBase, EnumerableQueueBase, EnumerableStackBase,
                                                  CreateEnumerationCookie)
-from WinCopies.Collections.Registry.Collection import ICollectionRegistries
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
@@ -559,17 +558,14 @@ class _ReadOnlyEnumerableBufferedStackUpdater[T](SelectionUpdater[IEnumerableBuf
     
     def _AsContainer(self, container: IEnumerableBufferedStack[T]) -> IReadOnlyEnumerableBufferedStack[T]: return _ReadOnlyEnumerableBufferedStack[T](container)
 
-class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T], IEnumerableBase[T]):
+class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T]):
     def __init__(self) -> None: super().__init__()
 
-    @abstractmethod
-    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
-        ...
     @final
     def _CreateLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
         return CreateEnumerationCookie(self._GetFirst)
 
-class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T], IEnumerable[T]):
+class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T], IManagedListBase[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None: self.__readOnly = func
 
@@ -580,14 +576,11 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstrac
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedQueue[T]] = _ReadOnlyEnumerableBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
 
     @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__cookie.GetRegistries()
-
-    @final
-    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie.GetCookie()
+    def _GetCookie(self) -> IEnumerableCookie[T]: return self.__cookie
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableBufferedQueue[T]: return self.__readOnly.GetValue()
-class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T], IEnumerable[T]):
+class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T], IManagedListBase[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None: self.__readOnly = func
 
@@ -596,12 +589,9 @@ class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstrac
         super().__init__(values)
         
         self.__readOnly: IFunction[IReadOnlyEnumerableBufferedStack[T]] = _ReadOnlyEnumerableBufferedStackUpdater[T](self, update) # type: ignore[no-redef]
-    
-    @final
-    def _GetCollectionRegistries(self) -> ICollectionRegistries: return self.__cookie.GetRegistries()
 
     @final
-    def _GetLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie.GetCookie()
+    def _GetCookie(self) -> IEnumerableCookie[T]: return self.__cookie
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableBufferedStack[T]: return self.__readOnly.GetValue()

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies import Abstract
+from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase
 from WinCopies.Collections.Generation import IRemovable
@@ -56,6 +56,34 @@ class ICollectionRegistries(ICollectionRegistry[IObjectMonitor]):
     @abstractmethod
     def GetEnumeratorRegistry(self) -> IEnumeratorRegistryBase:
         ...
+
+class IViewProvider(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _InvalidateViews(self) -> None:
+        ...
+
+class IManagedEnumerableBase(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCollectionRegistries(self) -> ICollectionRegistries:
+        ...
+class IManagedEnumerable[T: ICollectionRegistries](IManagedEnumerableBase):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetCollectionRegistries(self) -> T:
+        ...
+
+class IManagedCollectionBase(IManagedEnumerableBase, IViewProvider):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
+class IManagedCollection[T: ICollectionRegistries](IManagedCollectionBase, IManagedEnumerable[T]):
+    def __init__(self) -> None: super().__init__()
 
 class MonitorsBase[T: ICollectionRegistries](Abstract, ICollectionRegistrar[IObjectMonitor]):
     def __init__(self, registries: T) -> None:
