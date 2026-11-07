@@ -565,19 +565,13 @@ class List[T](ListBase[T]):
     def _UnsetFirst(self) -> None:
         self.__first = None
 
-class IEnumerableBase(IInterface):
+class IEnumerableAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def _GetCollectionRegistries(self) -> ICollectionRegistries:
         ...
-class IEnumerable[T](_IListBase[T], _IEnumerable[T], IEnumerableBase):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
-
-class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T], IEnumerable[T]):
+class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -591,6 +585,14 @@ class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T]
         self._GetCollectionRegistries().GetEnumeratorRegistry().RegisterEnumerator(enumerator)
 
         return enumerator
+class IEnumerable[T](_IListBase[T], IEnumerableBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _InvalidateViews(self) -> None: self._GetCollectionRegistries().InvalidateObjects()
+
+class Enumerable[T](ListBase[T], EnumerableCollectionBase[T], IEnumerableList[T], IEnumerable[T]):
+    def __init__(self) -> None: super().__init__()
 
 class _IAdder[T](_IAdderBase[T]):
     def __init__(self) -> None: super().__init__()

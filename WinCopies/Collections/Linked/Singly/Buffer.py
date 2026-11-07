@@ -7,8 +7,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import Countable as CountableCollection
-from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
-from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
+from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Node import IEnumerableLinkedListCookie
 from WinCopies.Collections.Linked.Singly import (IEnumerableBase, IEnumerable,
                                                  INodeCookie, IEnumerableCookie,
@@ -560,7 +559,7 @@ class _ReadOnlyEnumerableBufferedStackUpdater[T](SelectionUpdater[IEnumerableBuf
     
     def _AsContainer(self, container: IEnumerableBufferedStack[T]) -> IReadOnlyEnumerableBufferedStack[T]: return _ReadOnlyEnumerableBufferedStack[T](container)
 
-class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T], IEnumerableBase):
+class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T], IEnumerableBase[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -569,14 +568,6 @@ class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnume
     @final
     def _CreateLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
         return CreateEnumerationCookie(self._GetFirst)
-
-    @final
-    def TryGetEnumerator(self) -> IEnumerator[T]:
-        enumerator: IInvalidatableEnumerator[T] = GetValueEnumeratorFromNode(self._GetLinkedListCookie())
-
-        self._GetCollectionRegistries().GetEnumeratorRegistry().RegisterEnumerator(enumerator)
-
-        return enumerator
 
 class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T], IEnumerable[T]):
     def __init__(self, values: Iterable[T]) -> None:
