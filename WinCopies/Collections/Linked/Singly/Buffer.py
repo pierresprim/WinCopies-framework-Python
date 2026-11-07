@@ -8,7 +8,6 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
-from WinCopies.Collections.Linked.Node import IEnumerableLinkedListCookie
 from WinCopies.Collections.Linked.Singly import (IManagedListBase,
                                                  INodeCookie, IEnumerableCookie,
                                                  IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList,
@@ -17,11 +16,10 @@ from WinCopies.Collections.Linked.Singly import (IManagedListBase,
                                                  IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack,
                                                  IQueue, ICountableQueue, IEnumerableQueue, ICountableEnumerableQueue,
                                                  IStack, IEnumerableStack, ICountableStack, ICountableEnumerableStack,
-                                                 EnumerableCookie,
                                                  CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList,
                                                  ReadOnlyListBase, AbstractList, AbstractQueue,
                                                  QueueBase, StackBase, EnumerableQueueBase, EnumerableStackBase,
-                                                 CreateEnumerationCookie)
+                                                 CreateEnumerableCookie)
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
@@ -561,15 +559,11 @@ class _ReadOnlyEnumerableBufferedStackUpdater[T](SelectionUpdater[IEnumerableBuf
 class EnumerableBufferAbstract[T](EnumerableBuffer[T], AbstractBuffer[T], IEnumerableBuffer[T]):
     def __init__(self) -> None: super().__init__()
 
-    @final
-    def _CreateLinkedListCookie(self) -> IEnumerableLinkedListCookie[T]:
-        return CreateEnumerationCookie(self._GetFirst)
-
 class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstract[T], AbstractBufferedQueue[T], IEnumerableBufferedQueue[T], IManagedListBase[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedQueue[T]]) -> None: self.__readOnly = func
 
-        self.__cookie: IEnumerableCookie[T] = EnumerableCookie[T](self._CreateLinkedListCookie())
+        self.__cookie: IEnumerableCookie[T] = CreateEnumerableCookie(self._GetFirst)
         
         super().__init__(values)
 
@@ -584,7 +578,7 @@ class EnumerableBufferedStack[T](EnumerableStackBase[T], EnumerableBufferAbstrac
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None: self.__readOnly = func
 
-        self.__cookie: IEnumerableCookie[T] = EnumerableCookie[T](self._CreateLinkedListCookie())
+        self.__cookie: IEnumerableCookie[T] = CreateEnumerableCookie(self._GetFirst)
         
         super().__init__(values)
         

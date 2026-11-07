@@ -837,9 +837,8 @@ class EnumerableCookie[T](Abstract, IEnumerableCookie[T]):
     @final
     def GetCookie(self) -> IEnumerableLinkedListCookie[T]: return self.__cookie
 
-@final
-class _EnumerableCookie[T](EnumerableCookie[T]):
-    def __init__(self, func: Function[ILinkedNode[T]|None]) -> None: super().__init__(CreateEnumerationCookie(func))
+def CreateEnumerableCookie[T](func: Function[ILinkedNode[T]|None]) -> IEnumerableCookie[T]:
+    return EnumerableCookie[T](CreateEnumerationCookie(func))
 
 class IManagedListBase[T](IManagedCollectionBase[T]):
     def __init__(self) -> None: super().__init__()
@@ -860,7 +859,7 @@ class EnumerableQueue[T](EnumerableQueueBase[T], Enumerable[T], IManagedList[T])
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableQueue[T]]) -> None: self.__readOnly = func
 
-        self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
+        self.__cookie: IEnumerableCookie[T] = CreateEnumerableCookie(self._GetFirst)
         
         super().__init__(items)
 
@@ -875,7 +874,7 @@ class EnumerableStack[T](EnumerableStackBase[T], Enumerable[T], IManagedList[T])
     def __init__(self, items: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyEnumerableStack[T]]) -> None: self.__readOnly = func
 
-        self.__cookie: IEnumerableCookie[T] = _EnumerableCookie[T](self._GetFirst)
+        self.__cookie: IEnumerableCookie[T] = CreateEnumerableCookie(self._GetFirst)
         
         super().__init__(items)
 
