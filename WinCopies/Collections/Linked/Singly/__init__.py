@@ -840,11 +840,6 @@ class EnumerableQueueBase[T](NodeManager[T], QueueBase[T], INodeManager[T], IEnu
 
         self.TryPushItems(items)
 
-class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
-    def __init__(self, items: Iterable[T]|None) -> None:
-        super().__init__()
-
-        self.TryPushItems(items)
 class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
@@ -863,6 +858,11 @@ class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     @final
     def _UnsetFirst(self) -> None:
         self.__first = None
+class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
+    def __init__(self, items: Iterable[T]|None) -> None:
+        super().__init__()
+
+        self.TryPushItems(items)
 
 @final
 class _EnumerableQueueUpdater[T](SelectionUpdater[IEnumerableQueue[T], IReadOnlyEnumerableQueue[T]]):
