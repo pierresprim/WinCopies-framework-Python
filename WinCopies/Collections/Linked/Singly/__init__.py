@@ -501,7 +501,7 @@ class Nodes[T](Abstract, INodes[T]):
     def SetLast(self, node: INodeCookie[T]|None = None) -> None:
         self.__last = node
 
-class INodeProvider[T](IFirstNodeProvider[T], ILastNodeProvider[T], INodeUnsetter):
+class INodeManager[T](IFirstNodeProvider[T], ILastNodeProvider[T], INodeUnsetter):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -838,7 +838,7 @@ class ReadOnlyEnumerableQueue[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableQ
 class ReadOnlyEnumerableStack[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableStack[T]):
     def __init__(self, items: IEnumerableStack[T]) -> None: super().__init__(items)
 
-class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeProvider[T], IEnumerableQueue[T]):
+class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeManager[T], IEnumerableQueue[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
@@ -849,7 +849,7 @@ class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeProvider[T], IEnumerab
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
 
-class EnumerableStackAbstractBase[T](Abstract, StackAbstract[T], INodeProvider[T], IEnumerableStack[T]):
+class EnumerableStackAbstractBase[T](Abstract, StackAbstract[T], INodeManager[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
@@ -859,7 +859,7 @@ class EnumerableStackAbstractBase[T](Abstract, StackAbstract[T], INodeProvider[T
 
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
-class EnumerableStackAbstract[T](Abstract, StackBase[T], INodeProvider[T], IEnumerableStack[T]):
+class EnumerableStackAbstract[T](Abstract, StackBase[T], INodeManager[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
