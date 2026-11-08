@@ -862,16 +862,6 @@ class EnumerableBottomTrackingStack[T](Abstract, BottomTrackingStack[T], INodeMa
 
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
-class EnumerableStackAbstract[T](Abstract, StackBase[T], INodeManager[T], IEnumerableStack[T]):
-    def __init__(self, items: Iterable[T]|None) -> None:
-        super().__init__()
-
-        self.__nodes: INodes[T] = Nodes[T]()
-
-        self.TryPushItems(items)
-
-    @final
-    def _GetNodes(self) -> INodes[T]: return self.__nodes
 class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
