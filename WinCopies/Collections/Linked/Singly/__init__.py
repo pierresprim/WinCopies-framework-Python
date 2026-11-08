@@ -422,6 +422,9 @@ class ILastNodeProvider[T](IInterface):
     def _SetLastCookie(self, node: INodeCookie[T]) -> None:
         ...
 
+class INodeProvider[T](IFirstNodeProvider[T], ILastNodeProvider[T]):
+    def __init__(self) -> None: super().__init__()
+
 class IFirstNodeUnsetter(IInterface):
     def __init__(self) -> None: super().__init__()
     
@@ -437,6 +440,29 @@ class ILastNodeUnsetter(IInterface):
 
 class INodeUnsetter(IFirstNodeUnsetter, ILastNodeUnsetter):
     def __init__(self) -> None: super().__init__()
+
+class INodeManager[T](INodeProvider[T], INodeUnsetter):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetNodes(self) -> INodes[T]:
+        ...
+    
+    @final
+    def _GetFirstCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetFirst()
+    
+    @final
+    def _SetFirst(self, node: INodeCookie[T]) -> None: self._GetNodes().SetFirst(node)
+    @final
+    def _UnsetFirst(self) -> None: self._GetNodes().SetFirst()
+    
+    @final
+    def _GetLastCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetLast()
+
+    @final
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self._GetNodes().SetLast(node)
+    @final
+    def _UnsetLast(self) -> None: self._GetNodes().SetLast()
 
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
@@ -500,31 +526,6 @@ class Nodes[T](Abstract, INodes[T]):
     @final
     def SetLast(self, node: INodeCookie[T]|None = None) -> None:
         self.__last = node
-
-class INodeProvider[T](IFirstNodeProvider[T], ILastNodeProvider[T]):
-    def __init__(self) -> None: super().__init__()
-class INodeManager[T](INodeProvider[T], INodeUnsetter):
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def _GetNodes(self) -> INodes[T]:
-        ...
-    
-    @final
-    def _GetFirstCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetFirst()
-    
-    @final
-    def _SetFirst(self, node: INodeCookie[T]) -> None: self._GetNodes().SetFirst(node)
-    @final
-    def _UnsetFirst(self) -> None: self._GetNodes().SetFirst()
-    
-    @final
-    def _GetLastCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetLast()
-
-    @final
-    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self._GetNodes().SetLast(node)
-    @final
-    def _UnsetLast(self) -> None: self._GetNodes().SetLast()
 
 class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T], IFirstNodeUnsetter):
     def __init__(self) -> None: super().__init__()
