@@ -177,14 +177,16 @@ _SINGLY_LINKED: ReadOnlyArray[tuple[str, str, _Creator, bool]] = (
     ("Linked.Singly.CreateEnumerableStack",                         "stack", Singly.CreateEnumerableStack,                  False),
     ("Linked.Singly.CreateCountableEnumerableStack",                "stack", Singly.CreateCountableEnumerableStack,         True),
     ("Linked.Singly.Buffer.CreateBufferedQueue",                    "queue", Buffer.CreateBufferedQueue,                    False),
-    ("Linked.Singly.Buffer.CreateCountableEnumerableBufferedQueue", "queue", Buffer.CreateCountableEnumerableBufferedQueue, False),
+    ("Linked.Singly.Buffer.CreateCountableBufferedQueue",           "queue", Buffer.CreateCountableBufferedQueue,           True),
+    ("Linked.Singly.Buffer.CreateCountableEnumerableBufferedQueue", "queue", Buffer.CreateCountableEnumerableBufferedQueue, True),
     ("Linked.Singly.Buffer.CreateBufferedStack",                    "stack", Buffer.CreateBufferedStack,                    False),
-    ("Linked.Singly.Buffer.CreateCountableEnumerableBufferedStack", "stack", Buffer.CreateCountableEnumerableBufferedStack, False),
+    ("Linked.Singly.Buffer.CreateCountableBufferedStack",           "stack", Buffer.CreateCountableBufferedStack,           True),
+    ("Linked.Singly.Buffer.CreateCountableEnumerableBufferedStack", "stack", Buffer.CreateCountableEnumerableBufferedStack, True),
     ("Linked.Singly.Priority.PriorityQueue",                        "queue", lambda items: _prioritised(PriorityQueue[int](), items), False),
     ("Linked.Singly.Priority.PriorityStack",                        "stack", lambda items: _prioritised(PriorityStack[int](), items), False))
-"""The stacks and queues of Linked/Singly, each with whether its count is asserted. A countable
-buffer does not count the items it is created with (D-110, out of these benches), so its count is
-not."""
+"""The stacks and queues of Linked/Singly, each with whether its count is asserted: that of every
+countable one. The countable buffers count the items they are created with since D-110 closed, and
+their count is asserted since."""
 
 def _enumerate(items: IListBase[int]) -> ReadOnlyArray[int]|None:
     """The items of a collection that enumerates them, read without popping any."""
@@ -388,10 +390,12 @@ class TestABufferTurnsOnMove(unittest.TestCase):
     no bottom node, dropped its old top: [3, 2, 1] read [2, 1], until c4a38fd5 had the buffered
     stacks keep their bottom. A move turns the buffer, as SetStart turns a circular list: the head
     goes to the back, after the last item of a queue and under the bottom of a stack. The read-only
-    view moves its buffer too, since moving is what a buffer is for. The counts are not read
-    (D-110)."""
+    view moves its buffer too, since moving is what a buffer is for. A move changes no count: the
+    count of a countable buffer is read since D-110 closed."""
 
     def __assertReads(self, items: _Buffered, expected: ReadOnlyArray[int]) -> None:
+        if isinstance(items, ICountable): self.assertEqual(items.GetCount(), len(expected), "it counts another number of items")
+
         enumerated: ReadOnlyArray[int]|None = _enumerate(items)
 
         if enumerated is not None: self.assertEqual(enumerated, expected, "its enumeration reads another sequence")
@@ -505,6 +509,37 @@ class TestABufferedStackKeepsItsBottom(unittest.TestCase):
                     items.Move()
 
                     self.assertEqual(_drain(items), (2, 1, 3, 4), f"{name} filled by {filling} pops another sequence after two moves around a push")
+
+_COUNTABLE_BUFFERS: ReadOnlyArray[tuple[str, Converter[Iterable[int], Buffer.ICountableBuffer[int]]]] = (
+    ("CountableBufferedQueue",           Buffer.CountableBufferedQueue[int]),
+    ("CountableBufferedStack",           Buffer.CountableBufferedStack[int]),
+    ("CountableEnumerableBufferedQueue", Buffer.CountableEnumerableBufferedQueue[int]),
+    ("CountableEnumerableBufferedStack", Buffer.CountableEnumerableBufferedStack[int]))
+
+class TestACountableBufferCountsWhatItIsBuiltWith(unittest.TestCase):
+    """D-110. A countable buffer handed the items it was built with to its inner buffer, past the
+    counter of its wrapper: built with [9], it counted 0, then 1 after a Push and 4 after three more
+    items (Collections 4.29 §6). 91d578bb builds the inner buffer empty and pushes the items through
+    the wrapper, as the other countable lists do. No bench read the count of a buffer built with
+    items."""
+
+    def test_the_count_includes_the_items_built_with(self) -> None:
+        for name, create in _COUNTABLE_BUFFERS:
+            for held in ((), (9,), (1, 2, 3)):
+                with self.subTest(type = name, held = held):
+                    items: Buffer.ICountableBuffer[int] = create(held)
+
+                    self.assertEqual(items.GetCount(), len(held), f"{name} built with {list(held)} counts another number of items")
+
+                    items.Push(5)
+
+                    self.assertEqual(items.GetCount(), len(held) + 1, f"{name} built with {list(held)} counts another number of items after a Push")
+
+                    items.PushItems((1, 2, 3))
+
+                    self.assertEqual(items.GetCount(), len(held) + 4, f"{name} built with {list(held)} counts another number of items after PushItems")
+                    self.assertEqual(len(_drain(items)), len(held) + 4, f"{name} built with {list(held)} pops another number of items than it was given")
+                    self.assertEqual(items.GetCount(), 0, f"{name} built with {list(held)} counts items once emptied")
 
 def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
@@ -776,6 +811,38 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         for name in ("test_a_move_turns_the_stack_however_it_was_filled", "test_a_push_between_two_moves_leaves_the_bottom_where_it_is"):
             for state, target, rebuilt in (("the draft's weld", welder, {"_Weld": topAsBottom}), ("a bottom never recorded", Singly.BottomTrackingStack, {"_OnSetLast": unrecorded})):
                 with self.subTest(bench = name, state = state): self.__assertFalls(TestABufferedStackKeepsItsBottom, name, target, rebuilt)
+
+    def test_the_count_bench_falls_when_the_items_bypass_the_counter(self) -> None:
+        """As before 91d578bb (D-110): the countable buffers handed the items they were built with to
+        their inner buffer. _CountableBufferBase, reached by name, carries the constructor of
+        CountableBufferedQueue and CountableBufferedStack, whose inner buffers take no items since
+        91d578bb: the rebuilt constructor pushes the items into the inner buffer before handing it on,
+        which has the same effect. CountableEnumerableBufferedQueueAbstract and
+        CountableEnumerableBufferedStackAbstract carry their own. Each is rebuilt alone, and hands
+        its inner buffer to the class that follows it in the order of resolution, as super() did:
+        CountableCollectionAbstract, then CountableEnumerableBufferBase."""
+
+        countableBufferBase: type = getattr(Buffer, "_CountableBufferBase")
+
+        def throughTheInnerBuffer(self: Any, values: Iterable[Any]) -> None:
+            inner: Any = self._CreateBuffer()
+
+            inner.PushItems(values)
+
+            Singly.CountableCollectionAbstract.__init__(self, inner) # pyright: ignore[reportUnknownMemberType]
+
+        def builtWithTheItems(buffer: type) -> Callable[[Any, Iterable[Any]], None]:
+            def rebuilt(self: Any, values: Iterable[Any]) -> None: Buffer.CountableEnumerableBufferBase.__init__(self, buffer(values)) # pyright: ignore[reportUnknownMemberType]
+
+            return rebuilt
+
+        rebuilt: ReadOnlyArray[tuple[str, type, Callable[[Any, Iterable[Any]], None]]] = (
+            ("_CountableBufferBase", countableBufferBase, throughTheInnerBuffer),
+            ("CountableEnumerableBufferedQueueAbstract", Buffer.CountableEnumerableBufferedQueueAbstract, builtWithTheItems(Buffer.EnumerableBufferedQueue)),
+            ("CountableEnumerableBufferedStackAbstract", Buffer.CountableEnumerableBufferedStackAbstract, builtWithTheItems(Buffer.EnumerableBufferedStack)))
+
+        for base, target, constructor in rebuilt:
+            with self.subTest(base = base): self.__assertFalls(TestACountableBufferCountsWhatItIsBuiltWith, "test_the_count_includes_the_items_built_with", target, {"__init__": constructor})
 
     def test_the_answer_bench_falls_when_an_empty_buffer_answers_false(self) -> None:
         """A move that answers False on an empty buffer, as on a single item: the two cases a caller
