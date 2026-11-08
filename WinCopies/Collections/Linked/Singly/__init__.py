@@ -614,25 +614,25 @@ class ReadOnlyEnumerableList[T](ReadOnlyListBase[T, IEnumerableList[T]], Enumera
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
-class List[T](Abstract, ListBase[T]):
+class FirstNodeManager[T](Abstract, IFirstNodeProvider[T], IFirstNodeUnsetter):
     def __init__(self) -> None:
         super().__init__()
 
         self.__first: INodeCookie[T]|None = None
 
     @final
+    def _GetFirstCookie(self) -> INodeCookie[T]|None: return self.__first
+    
+    @final
+    def _SetFirst(self, node: INodeCookie[T]) -> None: self.__first = node
+    @final
+    def _UnsetFirst(self) -> None: self.__first = None
+
+class List[T](FirstNodeManager[T], ListBase[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
     def _InvalidateViews(self) -> None: pass
-    
-    @final
-    def _GetFirstCookie(self) -> INodeCookie[T]|None:
-        return self.__first
-    @final
-    def _SetFirst(self, node: INodeCookie[T]) -> None:
-        self.__first = node
-    
-    @final
-    def _UnsetFirst(self) -> None:
-        self.__first = None
 
 class IManagedCollectionBase[T](_IManagedCollectionBase, _IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -841,24 +841,11 @@ class EnumerableQueueBase[T](NodeManager[T], QueueBase[T], IEnumerableQueue[T]):
 
         self.TryPushItems(items)
 
-class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
+class EnumerableStackBase[T](FirstNodeManager[T], StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__first: INodeCookie[T]|None = None
-
         self.TryPushItems(items)
-    
-    @final
-    def _GetFirstCookie(self) -> INodeCookie[T]|None:
-        return self.__first
-    
-    @final
-    def _SetFirst(self, node: INodeCookie[T]) -> None:
-        self.__first = node
-    @final
-    def _UnsetFirst(self) -> None:
-        self.__first = None
 class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
