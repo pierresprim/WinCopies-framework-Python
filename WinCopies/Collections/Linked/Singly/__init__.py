@@ -501,7 +501,9 @@ class Nodes[T](Abstract, INodes[T]):
     def SetLast(self, node: INodeCookie[T]|None = None) -> None:
         self.__last = node
 
-class INodeManager[T](IFirstNodeProvider[T], ILastNodeProvider[T], INodeUnsetter):
+class INodeProvider[T](IFirstNodeProvider[T], ILastNodeProvider[T]):
+    def __init__(self) -> None: super().__init__()
+class INodeManager[T](INodeProvider[T], INodeUnsetter):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
