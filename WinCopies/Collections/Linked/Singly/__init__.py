@@ -403,7 +403,7 @@ class ReadOnlyListBase[TItem, TList](Abstract, IReadOnlyList[TItem], GenericCons
     @final
     def TryPeek(self) -> INullable[TItem]: return self._GetInnerContainer().TryPeek()
 
-class _IFirstNodeProvider[T](IInterface):
+class IFirstNodeProvider[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -441,7 +441,7 @@ class INodeUnsetter(IFirstNodeUnsetter, ILastNodeUnsetter):
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
 
-class AbstractList[T](IReadOnlyList[T], _IFirstNodeProvider[T]):
+class AbstractList[T](IReadOnlyList[T], IFirstNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -457,7 +457,7 @@ class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], ILastNodeProvider[T])
 class _IListBase[T](IListBase[T], IViewProvider):
     def __init__(self) -> None: super().__init__()
 
-class _IAdderBase[T](_IListBase[T], _IFirstNodeProvider[T]):
+class _IAdderBase[T](_IListBase[T], IFirstNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -501,7 +501,7 @@ class Nodes[T](Abstract, INodes[T]):
     def SetLast(self, node: INodeCookie[T]|None = None) -> None:
         self.__last = node
 
-class INodeProvider[T](_IFirstNodeProvider[T], ILastNodeProvider[T], INodeUnsetter):
+class INodeProvider[T](IFirstNodeProvider[T], ILastNodeProvider[T], INodeUnsetter):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
