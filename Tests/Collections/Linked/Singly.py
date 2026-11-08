@@ -649,14 +649,15 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     _STACK_BASES: ReadOnlyArray[tuple[str, type]] = (("StackBase", Singly.StackBase), ("BottomTrackingStack", Singly.BottomTrackingStack))
     """The two classes the singly linked stacks derive from since c4a38fd5: StackBase for the
-    stacks, BottomTrackingStack for the buffered ones, which keep their bottom. A substitution that once
-    went to StackBase alone goes to each of them alone, so that the bench is seen to reach both."""
+    stacks, BottomTrackingStack, StackAbstract until ec06f0ee, for the buffered ones, which keep
+    their bottom. A substitution that once went to StackBase alone goes to each of them alone, so
+    that the bench is seen to reach both."""
 
     def test_the_creation_bench_falls_when_a_stack_lays_its_items_as_a_block(self) -> None:
         """As at 4f86c23, until 70e4d1e: Linked.Singly's StackBase carried a PushItems that laid the
-        items as a block. That PushItems is _IStackAdder's since e81d816, and _IBottomTrackingStackAdder's
-        for the buffered stacks since c4a38fd5; the substitution gives it back to StackBase, then to
-        BottomTrackingStack."""
+        items as a block. That PushItems is _IStackAdder's since e81d816 and, for the buffered
+        stacks, _IBottomTrackingStackAdder's since c4a38fd5, under the name _IStackAdderBase until
+        ec06f0ee; the substitution gives it back to StackBase, then to BottomTrackingStack."""
 
         for base, target in self._STACK_BASES:
             with self.subTest(base = base): self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_a_stack_created_from_items_pops_them_in_reverse", target, {"PushItems": _detachedBlock})
@@ -672,9 +673,10 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
                 with self.subTest(bench = name, base = base): self.__assertFalls(TestASinglyLinkedPushIsAtomic, name, target, {"PushRange": _detachedBlock})
 
     def test_the_single_push_bench_falls_when_a_buffered_stack_also_appends_at_the_bottom(self) -> None:
-        """As in the draft of c4a38fd5 (Enumeration 6.7 §3): BottomTrackingStack._Push took the body of
-        QueueBase._Push and added the stack's push to it, so that each item went on top and again
-        after the bottom node, which became it."""
+        """As in the draft of c4a38fd5 (Enumeration 6.7 §3): the _Push of StackAbstract,
+        BottomTrackingStack since ec06f0ee, took the body of QueueBase._Push and added the stack's
+        push to it, so that each item went on top and again after the bottom node, which became
+        it."""
 
         def onTopAndAtTheBottom(self: Any, value: Any, first: Any) -> None:
             bottom: Any = self._GetLastCookie()
@@ -698,7 +700,8 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     def test_the_queue_bench_falls_when_a_buffered_queue_records_no_last_node(self) -> None:
         """As before d4c9197: BufferedQueue defined _SetLast, so that its _SetLastCookie was the
-        abstract method of _IQueueAdderBase, ILastNodeProvider since c4a38fd5, which does nothing."""
+        abstract method of _IQueueAdderBase, which does nothing. That interface is IAdder from
+        c4a38fd5, and ILastNodeProvider since cff11bd3."""
 
         def unrecorded(self: Any, node: Any) -> None: return None
 
@@ -745,10 +748,11 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     def test_the_bottom_benches_fall_when_a_way_of_filling_forgets_the_bottom(self) -> None:
         """Two ways a buffered stack can lose its bottom. As in the draft of c4a38fd5 (Enumeration
-        6.7 §3): the weld of _IBottomTrackingStackAdder, reached through the object, took the top of the block
-        for the bottom, also when the stack held something. As StackBase has it, which keeps no
-        bottom: BottomTrackingStack._SetInitialCookie recorded the first item laid on an empty stack as
-        its head alone."""
+        6.7 §3): the weld of _IStackAdderBase, _IBottomTrackingStackAdder since ec06f0ee, reached
+        through the object, took the top of the block for the bottom, also when the stack held
+        something. As StackBase has it, which keeps no bottom: the _SetInitialCookie of
+        StackAbstract, BottomTrackingStack since ec06f0ee, recorded the first item laid on an empty
+        stack as its head alone."""
 
         def topAsBottom(self: Any, first: Any, last: Any, range: bool) -> None:
             head: Any = self._GetFirstCookie()
