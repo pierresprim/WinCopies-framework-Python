@@ -144,6 +144,20 @@ class TestEveryStackAndQueuePushesInOneOrder(unittest.TestCase):
         for family, create in stacks:
             with self.subTest(family = family): self.assertEqual(_drain(create(_PUSHED)), (3, 2, 1), f"{family}({list(_PUSHED)}) pops another order")
 
+    def test_every_family_pushes_a_single_item_on_top_or_at_the_back(self) -> None:
+        """Push lays one item: on top of a stack, behind the last item of a queue. No bench pushed a
+        single item onto a stack that held anything, and the draft of c4a38fd5 laid it on top and
+        again at the bottom (Enumeration 6.7 §3)."""
+
+        for family, stack, queue in _FAMILIES:
+            for kind, create in (("stack", stack), ("queue", queue)):
+                with self.subTest(family = family, kind = kind):
+                    items: IListBase[int] = create()
+
+                    for value in _PUSHED: items.Push(value)
+
+                    self.assertEqual(_drain(items), _ORDERS[kind, "PushItems"], f"Push on the {kind} of {family} pops another order")
+
 class _SourceError(Exception):
     """What a failing source raises, so that a bench tells it from any error of the collection."""
 
@@ -276,7 +290,8 @@ class TestAnEmptiedCollectionTakesABlockAsAnEmptyOneDoes(unittest.TestCase):
     popped, then given [1, 2, 3] by PushItems or PushRange, popped nothing. Push, which starts from
     the empty head, was spared. d4a353b8 calls _OnCleared when TryPop takes the last node. A
     collection emptied by TryPop or by Clear takes a block as one created empty does, the stacks
-    included, which keep no last node. No bench pushed a block onto a collection it had emptied."""
+    included, whose weld reads the head and not the last node. No bench pushed a block onto a
+    collection it had emptied."""
 
     def test_an_emptied_collection_pops_a_block_as_an_empty_one_does(self) -> None:
         emptyings: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Callable[[IListBase[int]], Any]]] = (
@@ -340,20 +355,43 @@ class TestAConvertingListStacksOnTop(unittest.TestCase):
                 self.assertEqual(popped.GetValue() if popped.HasValue() else None, pushed[0], f"the {kind} cursor pops another item")
                 self.assertEqual(tuple(items.AsIterable()), pushed[1:], f"TryPop on the {kind} cursor removed another item")
 
-_BUFFERED_QUEUES: ReadOnlyArray[tuple[str, Converter[Iterable[int], Buffer.IBufferedQueue[int]]]] = (
-    ("BufferedQueue", Buffer.BufferedQueue[int]),
-    ("EnumerableBufferedQueue", Buffer.EnumerableBufferedQueue[int]),
-    ("CountableBufferedQueue", Buffer.CountableBufferedQueue[int]),
-    ("CountableEnumerableBufferedQueue", Buffer.CountableEnumerableBufferedQueue[int]))
+type _Buffered = Buffer.IBufferedQueue[int]|Buffer.IBufferedStack[int]
 
-class TestABufferedQueueTurnsOnMove(unittest.TestCase):
-    """D-119. Move() on a buffered queue advanced its head without linking it after the last node:
-    [1, 2, 3] read [2, 3] after it, and an item pushed after it was laid after the old head, out of
-    reach. A move turns the queue, as SetStart turns a circular list: the head goes to the back. The
-    read-only view moves its buffer too, since moving is what a buffer is for. The stacks are left
-    out, their move pending a decision of its own; the counts are not read (D-110)."""
+_BUFFERS: ReadOnlyArray[tuple[str, str, Converter[Iterable[int], _Buffered]]] = (
+    ("BufferedQueue",                    "queue", Buffer.BufferedQueue[int]),
+    ("EnumerableBufferedQueue",          "queue", Buffer.EnumerableBufferedQueue[int]),
+    ("CountableBufferedQueue",           "queue", Buffer.CountableBufferedQueue[int]),
+    ("CountableEnumerableBufferedQueue", "queue", Buffer.CountableEnumerableBufferedQueue[int]),
+    ("BufferedStack",                    "stack", Buffer.BufferedStack[int]),
+    ("EnumerableBufferedStack",          "stack", Buffer.EnumerableBufferedStack[int]),
+    ("CountableBufferedStack",           "stack", Buffer.CountableBufferedStack[int]),
+    ("CountableEnumerableBufferedStack", "stack", Buffer.CountableEnumerableBufferedStack[int]))
+"""Every buffer, with the kind of list it is."""
 
-    def __assertReads(self, items: Buffer.IBufferedQueue[int], expected: ReadOnlyArray[int]) -> None:
+def _read(kind: str, held: ReadOnlyArray[int]) -> ReadOnlyArray[int]:
+    """What a buffer created with held reads from its head: a queue in the order given, a stack in
+    reverse."""
+
+    return held if kind == "queue" else tuple(reversed(held))
+
+def _turned(read: ReadOnlyArray[int], moves: int) -> ReadOnlyArray[int]:
+    """What a buffer that read so reads after that many moves, each sending its head to the back."""
+
+    moves %= len(read)
+
+    return read[moves:] + read[:moves]
+
+class TestABufferTurnsOnMove(unittest.TestCase):
+    """D-119. Move() on a buffer advanced its head and linked the old one nowhere. A queue kept it
+    linked to the rest but not after its last node: [1, 2, 3] read [2, 3] after it, and an item
+    pushed after it was laid after the old head, out of reach, until b20109e5. A stack, which kept
+    no bottom node, dropped its old top: [3, 2, 1] read [2, 1], until c4a38fd5 had the buffered
+    stacks keep their bottom. A move turns the buffer, as SetStart turns a circular list: the head
+    goes to the back, after the last item of a queue and under the bottom of a stack. The read-only
+    view moves its buffer too, since moving is what a buffer is for. The counts are not read
+    (D-110)."""
+
+    def __assertReads(self, items: _Buffered, expected: ReadOnlyArray[int]) -> None:
         enumerated: ReadOnlyArray[int]|None = _enumerate(items)
 
         if enumerated is not None: self.assertEqual(enumerated, expected, "its enumeration reads another sequence")
@@ -361,44 +399,112 @@ class TestABufferedQueueTurnsOnMove(unittest.TestCase):
         self.assertEqual(_drain(items), expected, "it pops another sequence")
 
     def test_a_move_sends_the_head_to_the_back(self) -> None:
-        for kind, create in _BUFFERED_QUEUES:
-            for held, moves, expected in (((1, 2), 1, (2, 1)), ((1, 2, 3), 1, (2, 3, 1)), ((1, 2, 3), 2, (3, 1, 2)), ((1, 2, 3), 3, (1, 2, 3))):
-                with self.subTest(type = kind, held = held, moves = moves):
-                    items: Buffer.IBufferedQueue[int] = create(held)
+        for name, kind, create in _BUFFERS:
+            for held, moves in (((1, 2), 1), ((1, 2, 3), 1), ((1, 2, 3), 2), ((1, 2, 3), 3)):
+                with self.subTest(type = name, held = held, moves = moves):
+                    items: _Buffered = create(held)
+                    expected: ReadOnlyArray[int] = _turned(_read(kind, held), moves)
 
                     for _ in range(moves): self.assertIs(items.Move(), True)
 
                     self.assertEqual(_head(items), expected[0])
                     self.__assertReads(items, expected)
 
-    def test_a_push_after_a_move_goes_behind_the_moved_head(self) -> None:
-        for kind, create in _BUFFERED_QUEUES:
-            with self.subTest(type = kind):
-                items: Buffer.IBufferedQueue[int] = create((1, 2, 3))
+    def test_a_push_after_a_move_lands_where_its_list_puts_it(self) -> None:
+        """Behind the moved head on a queue, on top of a stack."""
+
+        for name, kind, create in _BUFFERS:
+            with self.subTest(type = name):
+                items: _Buffered = create((1, 2, 3))
+                turned: ReadOnlyArray[int] = _turned(_read(kind, (1, 2, 3)), 1)
 
                 items.Move()
                 items.Push(4)
 
-                self.__assertReads(items, (2, 3, 1, 4))
+                self.__assertReads(items, turned + (4,) if kind == "queue" else (4,) + turned)
 
     def test_the_read_only_view_moves_its_buffer(self) -> None:
-        for kind, create in _BUFFERED_QUEUES:
-            with self.subTest(type = kind):
-                items: Buffer.IBufferedQueue[int] = create((1, 2, 3))
+        for name, kind, create in _BUFFERS:
+            with self.subTest(type = name):
+                items: _Buffered = create((1, 2, 3))
 
                 self.assertIs(items.AsReadOnly().Move(), True)
-                self.__assertReads(items, (2, 3, 1))
+                self.__assertReads(items, _turned(_read(kind, (1, 2, 3)), 1))
 
     def test_a_move_answers_none_when_empty_and_false_on_a_single_item(self) -> None:
-        """Neither moves anything: an empty queue has no head, and a single item is its own back."""
+        """Neither moves anything: an empty buffer has no head, and a single item is its own back."""
 
-        for kind, create in _BUFFERED_QUEUES:
+        for name, _, create in _BUFFERS:
             for held, answer in (((), None), ((1,), False)):
-                with self.subTest(type = kind, held = held):
-                    items: Buffer.IBufferedQueue[int] = create(held)
+                with self.subTest(type = name, held = held):
+                    items: _Buffered = create(held)
 
                     self.assertIs(items.Move(), answer)
                     self.__assertReads(items, held)
+
+_BUFFERED_STACKS: ReadOnlyArray[tuple[str, Converter[Iterable[int], _Buffered]]] = tuple((name, create) for name, kind, create in _BUFFERS if kind == "stack")
+
+def _pushEach(items: IListBase[int], values: Iterable[int]) -> None:
+    for value in values: items.Push(value)
+
+def _pushThenItems(items: IListBase[int]) -> None:
+    items.Push(1)
+    items.PushItems((2, 3))
+def _pushThenRange(items: IListBase[int]) -> None:
+    items.Push(1)
+    items.PushRange((3, 2))
+def _poppedThenItems(items: IListBase[int]) -> None:
+    items.TryPop()
+    items.PushItems((1, 2, 3))
+def _clearedThenPushed(items: IListBase[int]) -> None:
+    items.Clear()
+    _pushEach(items, (1, 2, 3))
+
+_FILLINGS: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Callable[[IListBase[int]], Any]]] = (
+    ("created with the items",            (1, 2, 3), lambda items: None),
+    ("Push, item by item",                (),        lambda items: _pushEach(items, (1, 2, 3))),
+    ("PushItems",                         (),        lambda items: items.PushItems((1, 2, 3))),
+    ("PushRange",                         (),        lambda items: items.PushRange((3, 2, 1))),
+    ("Push, then PushItems",              (),        _pushThenItems),
+    ("Push, then PushRange",              (),        _pushThenRange),
+    ("emptied by TryPop, then PushItems", (9,),      _poppedThenItems),
+    ("emptied by Clear, then Push",       (8, 9),    _clearedThenPushed))
+"""The ways of filling a stack, each from what it is created with, that leave it reading [3, 2, 1],
+1 at the bottom."""
+
+class TestABufferedStackKeepsItsBottom(unittest.TestCase):
+    """D-119, its stacks. A buffered stack turns by hanging its old top under its bottom node, which
+    it keeps since c4a38fd5: the first item laid on an empty stack, or the bottom of the first block
+    welded onto it, and left alone by whatever is laid on top. A way of filling that forgets the
+    bottom shows only on the next move, which loses the old top; the draft of c4a38fd5 took the top
+    of a block for the bottom (Enumeration 6.7 §3). No bench moved a stack."""
+
+    def test_a_move_turns_the_stack_however_it_was_filled(self) -> None:
+        for name, create in _BUFFERED_STACKS:
+            for filling, held, fill in _FILLINGS:
+                with self.subTest(type = name, filling = filling):
+                    items: _Buffered = create(held)
+
+                    fill(items)
+
+                    self.assertIs(items.Move(), True)
+                    self.assertEqual(_drain(items), (2, 1, 3), f"{name} filled by {filling} pops another sequence after a move")
+
+    def test_a_push_between_two_moves_leaves_the_bottom_where_it_is(self) -> None:
+        """[2, 1, 3] after the first move, [4, 2, 1, 3] after the push, [2, 1, 3, 4] after the
+        second move."""
+
+        for name, create in _BUFFERED_STACKS:
+            for filling, held, fill in _FILLINGS:
+                with self.subTest(type = name, filling = filling):
+                    items: _Buffered = create(held)
+
+                    fill(items)
+                    items.Move()
+                    items.Push(4)
+                    items.Move()
+
+                    self.assertEqual(_drain(items), (2, 1, 3, 4), f"{name} filled by {filling} pops another sequence after two moves around a push")
 
 def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
@@ -541,20 +647,42 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
             with self.subTest(base = base):
                 self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_items_one_by_one_and_a_range_as_a_block", target, rebuilt)
 
+    _STACK_BASES: ReadOnlyArray[tuple[str, type]] = (("StackBase", Singly.StackBase), ("StackAbstract", Singly.StackAbstract))
+    """The two classes the singly linked stacks derive from since c4a38fd5: StackBase for the
+    stacks, StackAbstract for the buffered ones, which keep their bottom. A substitution that once
+    went to StackBase alone goes to each of them alone, so that the bench is seen to reach both."""
+
     def test_the_creation_bench_falls_when_a_stack_lays_its_items_as_a_block(self) -> None:
         """As at 4f86c23, until 70e4d1e: Linked.Singly's StackBase carried a PushItems that laid the
-        items as a block. That PushItems is _IStackAdder's since e81d816; the substitution gives it
-        back to StackBase, which every singly linked stack derives from."""
+        items as a block. That PushItems is _IStackAdder's since e81d816, and _IStackAdderBase's
+        for the buffered stacks since c4a38fd5; the substitution gives it back to StackBase, then to
+        StackAbstract."""
 
-        self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_a_stack_created_from_items_pops_them_in_reverse", Singly.StackBase, {"PushItems": _detachedBlock})
+        for base, target in self._STACK_BASES:
+            with self.subTest(base = base): self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_a_stack_created_from_items_pops_them_in_reverse", target, {"PushItems": _detachedBlock})
 
     def test_the_atomicity_benches_fall_when_a_stack_detaches_its_content(self) -> None:
         """As before e81d816: Linked.Singly's StackBase carried a PushRange, the PushItems of 4f86c23
         renamed, that detached the former content until the source was spent. That PushRange is
-        _IAdder's since e81d816; the substitution gives it back to StackBase."""
+        _IAdder's since e81d816; the substitution gives it back to StackBase, then to
+        StackAbstract."""
 
         for name in ("test_a_source_that_fails_leaves_the_collection_as_it_was", "test_a_source_that_reads_the_collection_sees_it_as_it_was"):
-            with self.subTest(bench = name): self.__assertFalls(TestASinglyLinkedPushIsAtomic, name, Singly.StackBase, {"PushRange": _detachedBlock})
+            for base, target in self._STACK_BASES:
+                with self.subTest(bench = name, base = base): self.__assertFalls(TestASinglyLinkedPushIsAtomic, name, target, {"PushRange": _detachedBlock})
+
+    def test_the_single_push_bench_falls_when_a_buffered_stack_also_appends_at_the_bottom(self) -> None:
+        """As in the draft of c4a38fd5 (Enumeration 6.7 §3): StackAbstract._Push took the body of
+        QueueBase._Push and added the stack's push to it, so that each item went on top and again
+        after the bottom node, which became it."""
+
+        def onTopAndAtTheBottom(self: Any, value: Any, first: Any) -> None:
+            bottom: Any = self._GetLastCookie()
+
+            self._SetFirstCookie(value, first.GetNode())
+            self._SetLastCookie(self._SetNext(value, first if bottom is None else bottom))
+
+        self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_a_single_item_on_top_or_at_the_back", Singly.StackAbstract, {"_Push": onTopAndAtTheBottom})
 
     def test_the_queue_bench_falls_when_a_single_push_records_no_last_node(self) -> None:
         """As before 5f36430: ListBase.Push, on an empty collection, recorded the first node alone,
@@ -570,7 +698,7 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     def test_the_queue_bench_falls_when_a_buffered_queue_records_no_last_node(self) -> None:
         """As before d4c9197: BufferedQueue defined _SetLast, so that its _SetLastCookie was the
-        abstract method of _IQueueAdderBase, which does nothing."""
+        abstract method of _IQueueAdderBase, IAdder since c4a38fd5, which does nothing."""
 
         def unrecorded(self: Any, node: Any) -> None: return None
 
@@ -594,15 +722,52 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         self.__assertFalls(TestAConvertingListStacksOnTop, "test_each_cursor_pushes_at_its_own_end", type(_selection([0]).AsStackedCursor()), {"_AsCursor": queued})
 
     def test_the_move_bench_falls_when_the_head_only_advances(self) -> None:
-        """As before b20109e5 (D-119): AbstractBufferedQueue._OnSetFirst, which the move of every
-        buffered queue reaches, set the new head and the new last node without linking them."""
+        """D-119. As before b20109e5: AbstractBufferedQueue._OnSetFirst, which the move of every
+        buffered queue reached, set the new head and the new last node without linking them. As
+        before c4a38fd5: AbstractBufferedStack._OnSetFirst set the new head alone. Both are
+        AbstractBuffer's one _OnSetFirst since c4a38fd5; each is rebuilt alone, on the class that
+        carried it."""
 
         def advanced(self: Any, first: Any, last: Any) -> None:
             self._SetFirst(first)
             self._SetLastCookie(last)
 
-        for name in ("test_a_move_sends_the_head_to_the_back", "test_a_push_after_a_move_goes_behind_the_moved_head", "test_the_read_only_view_moves_its_buffer"):
-            with self.subTest(bench = name): self.__assertFalls(TestABufferedQueueTurnsOnMove, name, Buffer.AbstractBufferedQueue, {"_OnSetFirst": advanced})
+        def headOnly(self: Any, first: Any, last: Any) -> None: self._SetFirst(first)
+
+        rebuilt: ReadOnlyArray[tuple[str, type, Any]] = (("queue", Buffer.AbstractBufferedQueue, advanced), ("stack", Buffer.AbstractBufferedStack, headOnly))
+
+        for name in ("test_a_move_sends_the_head_to_the_back", "test_a_push_after_a_move_lands_where_its_list_puts_it", "test_the_read_only_view_moves_its_buffer"):
+            for kind, target, move in rebuilt:
+                with self.subTest(bench = name, kind = kind): self.__assertFalls(TestABufferTurnsOnMove, name, target, {"_OnSetFirst": move})
+
+        for name in ("test_a_move_turns_the_stack_however_it_was_filled", "test_a_push_between_two_moves_leaves_the_bottom_where_it_is"):
+            with self.subTest(bench = name, kind = "stack"): self.__assertFalls(TestABufferedStackKeepsItsBottom, name, Buffer.AbstractBufferedStack, {"_OnSetFirst": headOnly})
+
+    def test_the_bottom_benches_fall_when_a_way_of_filling_forgets_the_bottom(self) -> None:
+        """Two ways a buffered stack can lose its bottom. As in the draft of c4a38fd5 (Enumeration
+        6.7 §3): the weld of _IStackAdderBase, reached through the object, took the top of the block
+        for the bottom, also when the stack held something. As StackBase has it, which keeps no
+        bottom: StackAbstract._SetInitialCookie recorded the first item laid on an empty stack as
+        its head alone."""
+
+        def topAsBottom(self: Any, first: Any, last: Any, range: bool) -> None:
+            head: Any = self._GetFirstCookie()
+
+            if range: first, last = last, first
+
+            self._SetFirst(last)
+
+            if head is not None: first.SetNext(head.GetNode())
+
+            self._SetLastCookie(last)
+
+        def headOnly(self: Any, value: Any) -> None: self._SetFirstCookie(value)
+
+        welder: type = next(cls for cls in type(Buffer.BufferedStack[int]()).__mro__ if "_Weld" in vars(cls))
+
+        for name in ("test_a_move_turns_the_stack_however_it_was_filled", "test_a_push_between_two_moves_leaves_the_bottom_where_it_is"):
+            for state, target, rebuilt in (("the draft's weld", welder, {"_Weld": topAsBottom}), ("a head-only first push", Singly.StackAbstract, {"_SetInitialCookie": headOnly})):
+                with self.subTest(bench = name, state = state): self.__assertFalls(TestABufferedStackKeepsItsBottom, name, target, rebuilt)
 
     def test_the_answer_bench_falls_when_an_empty_buffer_answers_false(self) -> None:
         """A move that answers False on an empty buffer, as on a single item: the two cases a caller
@@ -615,7 +780,7 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
             return False if answer is None else answer
 
-        self.__assertFalls(TestABufferedQueueTurnsOnMove, "test_a_move_answers_none_when_empty_and_false_on_a_single_item", Buffer.BufferBase, {"Move": conflated})
+        self.__assertFalls(TestABufferTurnsOnMove, "test_a_move_answers_none_when_empty_and_false_on_a_single_item", Buffer.BufferBase, {"Move": conflated})
 
 
     def test_the_emptied_collection_bench_falls_when_the_last_pop_skips_the_clean_up(self) -> None:
