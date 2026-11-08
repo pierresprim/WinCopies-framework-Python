@@ -10,8 +10,8 @@ from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
 from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
-from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
-from WinCopies.Collections.Linked.Node import ILinkedNode, ILinkedListCookie, IEnumerableLinkedListCookie, LinkedNodeBase
+from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
+from WinCopies.Collections.Linked.Node import ILinkedNode, IEnumerableLinkedListCookie, LinkedNodeBase
 from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollectionBase, CollectionRegistries
 
 from WinCopies.Delegates import NoAction
@@ -817,9 +817,6 @@ class Stack[T](List[T], StackBase[T]):
     
     @final
     def AsReadOnly(self) -> IReadOnlyStack[T]: return self.__readOnly.GetValue()
-
-class SinglyLinkedNodeEnumerator[T](NodeEnumeratorBase[SinglyLinkedNode[T]]):
-    def __init__(self, cookie: ILinkedListCookie[SinglyLinkedNode[T]]) -> None: super().__init__(cookie)
 
 class ReadOnlyEnumerableQueue[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableQueue[T]):
     def __init__(self, items: IEnumerableQueue[T]) -> None: super().__init__(items)
