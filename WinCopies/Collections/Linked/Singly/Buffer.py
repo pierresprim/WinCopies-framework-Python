@@ -333,10 +333,13 @@ class ReadOnlyCountableEnumerableBuffer[T](ReadOnlyCountableBufferBase[T, ICount
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
 class _CountableBufferBase[TItem, TList](CountableCollectionAbstract[TItem, TList], BufferBase[TItem], ICountableBuffer[TItem], GenericSpecializedConstraint[TList, IList[TItem], IBufferedList[TItem]]):
-    def __init__(self, values: Iterable[TItem]) -> None: super().__init__(self._CreateBuffer(values))
+    def __init__(self, values: Iterable[TItem]) -> None:
+        super().__init__(self._CreateBuffer())
+
+        self.TryPushItems(values)
     
     @abstractmethod
-    def _CreateBuffer(self, values: Iterable[TItem]) -> TList:
+    def _CreateBuffer(self) -> TList:
         ...
 
     @final
@@ -362,10 +365,10 @@ class _ReadOnlyCountableBufferedQueue[T](ReadOnlyCountableBuffer[T], IReadOnlyCo
     def __init__(self, items: ICountableBuffer[T]) -> None: super().__init__(items)
 @final
 class _CountableBufferedQueueBuffer[T](BufferedQueue[T], _BufferedList[T], _IBufferedQueue[T]):
-    def __init__(self, values: Iterable[T]) -> None:
+    def __init__(self) -> None:
         def update(func: IFunction[IBufferCookie[T]]) -> None: self.__cookie = func
         
-        super().__init__(values)
+        super().__init__()
         
         self.__cookie: IFunction[IBufferCookie[T]] = self._CreateCookieUpdater(update) # type: ignore[no-redef]
 
@@ -382,10 +385,10 @@ class _ReadOnlyCountableBufferedStack[T](ReadOnlyCountableBuffer[T], IReadOnlyCo
     def __init__(self, items: ICountableBuffer[T]) -> None: super().__init__(items)
 @final
 class _CountableBufferedStackBuffer[T](BufferedStack[T], _BufferedList[T], _IBufferedStack[T]):
-    def __init__(self, values: Iterable[T]) -> None:
+    def __init__(self) -> None:
         def update(func: IFunction[IBufferCookie[T]]) -> None: self.__cookie = func
         
-        super().__init__(values)
+        super().__init__()
         
         self.__cookie: IFunction[IBufferCookie[T]] = self._CreateCookieUpdater(update) # type: ignore[no-redef]
 
@@ -405,8 +408,8 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedList[T]], Abstr
 
         self.__readOnly: IFunction[IReadOnlyCountableBufferedQueue[T]] = _ReadOnlyCountableBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
     
-    def _CreateBuffer(self, values: Iterable[T]) -> _IBufferedQueue[T]:
-        return _CountableBufferedQueueBuffer[T](values)
+    def _CreateBuffer(self) -> _IBufferedQueue[T]:
+        return _CountableBufferedQueueBuffer[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableBufferedQueue[T]: return self.__readOnly.GetValue()
@@ -418,8 +421,8 @@ class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedList[T]], Abstr
 
         self.__readOnly: IFunction[IReadOnlyCountableBufferedStack[T]] = _ReadOnlyCountableBufferedStackUpdater[T](self, update) # type: ignore[no-redef]
     
-    def _CreateBuffer(self, values: Iterable[T]) -> _IBufferedStack[T]:
-        return _CountableBufferedStackBuffer[T](values)
+    def _CreateBuffer(self) -> _IBufferedStack[T]:
+        return _CountableBufferedStackBuffer[T]()
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableBufferedStack[T]: return self.__readOnly.GetValue()
@@ -532,13 +535,19 @@ class CountableEnumerableBufferBase[T](CountableEnumerableBufferAbstract[T, IEnu
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return self._GetContainer().TryGetEnumerator()
 
 class CountableEnumerableBufferedQueueAbstract[T](CountableEnumerableBufferBase[T], IBufferedQueue[T]):
-    def __init__(self, values: Iterable[T]) -> None: super().__init__(EnumerableBufferedQueue[T](values))
+    def __init__(self, values: Iterable[T]) -> None:
+        super().__init__(EnumerableBufferedQueue[T](()))
+
+        self.TryPushItems(values)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableBufferedQueue[T]:
         ...
 class CountableEnumerableBufferedStackAbstract[T](CountableEnumerableBufferBase[T], IBufferedStack[T]):
-    def __init__(self, values: Iterable[T]) -> None: super().__init__(EnumerableBufferedStack[T](values))
+    def __init__(self, values: Iterable[T]) -> None:
+        super().__init__(EnumerableBufferedStack[T](()))
+
+        self.TryPushItems(values)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableBufferedStack[T]:
