@@ -647,16 +647,16 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
             with self.subTest(base = base):
                 self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_items_one_by_one_and_a_range_as_a_block", target, rebuilt)
 
-    _STACK_BASES: ReadOnlyArray[tuple[str, type]] = (("StackBase", Singly.StackBase), ("StackAbstract", Singly.StackAbstract))
+    _STACK_BASES: ReadOnlyArray[tuple[str, type]] = (("StackBase", Singly.StackBase), ("BottomTrackingStack", Singly.BottomTrackingStack))
     """The two classes the singly linked stacks derive from since c4a38fd5: StackBase for the
-    stacks, StackAbstract for the buffered ones, which keep their bottom. A substitution that once
+    stacks, BottomTrackingStack for the buffered ones, which keep their bottom. A substitution that once
     went to StackBase alone goes to each of them alone, so that the bench is seen to reach both."""
 
     def test_the_creation_bench_falls_when_a_stack_lays_its_items_as_a_block(self) -> None:
         """As at 4f86c23, until 70e4d1e: Linked.Singly's StackBase carried a PushItems that laid the
-        items as a block. That PushItems is _IStackAdder's since e81d816, and _IStackAdderBase's
+        items as a block. That PushItems is _IStackAdder's since e81d816, and _IBottomTrackingStackAdder's
         for the buffered stacks since c4a38fd5; the substitution gives it back to StackBase, then to
-        StackAbstract."""
+        BottomTrackingStack."""
 
         for base, target in self._STACK_BASES:
             with self.subTest(base = base): self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_a_stack_created_from_items_pops_them_in_reverse", target, {"PushItems": _detachedBlock})
@@ -665,14 +665,14 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         """As before e81d816: Linked.Singly's StackBase carried a PushRange, the PushItems of 4f86c23
         renamed, that detached the former content until the source was spent. That PushRange is
         _IAdder's since e81d816; the substitution gives it back to StackBase, then to
-        StackAbstract."""
+        BottomTrackingStack."""
 
         for name in ("test_a_source_that_fails_leaves_the_collection_as_it_was", "test_a_source_that_reads_the_collection_sees_it_as_it_was"):
             for base, target in self._STACK_BASES:
                 with self.subTest(bench = name, base = base): self.__assertFalls(TestASinglyLinkedPushIsAtomic, name, target, {"PushRange": _detachedBlock})
 
     def test_the_single_push_bench_falls_when_a_buffered_stack_also_appends_at_the_bottom(self) -> None:
-        """As in the draft of c4a38fd5 (Enumeration 6.7 §3): StackAbstract._Push took the body of
+        """As in the draft of c4a38fd5 (Enumeration 6.7 §3): BottomTrackingStack._Push took the body of
         QueueBase._Push and added the stack's push to it, so that each item went on top and again
         after the bottom node, which became it."""
 
@@ -682,7 +682,7 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
             self._SetFirstCookie(value, first.GetNode())
             self._SetLastCookie(self._SetNext(value, first if bottom is None else bottom))
 
-        self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_a_single_item_on_top_or_at_the_back", Singly.StackAbstract, {"_Push": onTopAndAtTheBottom})
+        self.__assertFalls(TestEveryStackAndQueuePushesInOneOrder, "test_every_family_pushes_a_single_item_on_top_or_at_the_back", Singly.BottomTrackingStack, {"_Push": onTopAndAtTheBottom})
 
     def test_the_queue_bench_falls_when_a_single_push_records_no_last_node(self) -> None:
         """As before 5f36430: ListBase.Push, on an empty collection, recorded the first node alone,
@@ -745,9 +745,9 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     def test_the_bottom_benches_fall_when_a_way_of_filling_forgets_the_bottom(self) -> None:
         """Two ways a buffered stack can lose its bottom. As in the draft of c4a38fd5 (Enumeration
-        6.7 §3): the weld of _IStackAdderBase, reached through the object, took the top of the block
+        6.7 §3): the weld of _IBottomTrackingStackAdder, reached through the object, took the top of the block
         for the bottom, also when the stack held something. As StackBase has it, which keeps no
-        bottom: StackAbstract._SetInitialCookie recorded the first item laid on an empty stack as
+        bottom: BottomTrackingStack._SetInitialCookie recorded the first item laid on an empty stack as
         its head alone."""
 
         def topAsBottom(self: Any, first: Any, last: Any, range: bool) -> None:
@@ -766,7 +766,7 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
         welder: type = next(cls for cls in type(Buffer.BufferedStack[int]()).__mro__ if "_Weld" in vars(cls))
 
         for name in ("test_a_move_turns_the_stack_however_it_was_filled", "test_a_push_between_two_moves_leaves_the_bottom_where_it_is"):
-            for state, target, rebuilt in (("the draft's weld", welder, {"_Weld": topAsBottom}), ("a head-only first push", Singly.StackAbstract, {"_SetInitialCookie": headOnly})):
+            for state, target, rebuilt in (("the draft's weld", welder, {"_Weld": topAsBottom}), ("a head-only first push", Singly.BottomTrackingStack, {"_SetInitialCookie": headOnly})):
                 with self.subTest(bench = name, state = state): self.__assertFalls(TestABufferedStackKeepsItsBottom, name, target, rebuilt)
 
     def test_the_answer_bench_falls_when_an_empty_buffer_answers_false(self) -> None:

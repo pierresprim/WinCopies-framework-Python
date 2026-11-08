@@ -712,7 +712,7 @@ class _IQueueAdder[T](_IAdder[T], ILastNodeProvider[T]):
     @final
     def PushItems(self, items: Iterable[T]) -> None: self.PushRange(items)
 
-class _IStackAdderBase[T](_IAdder[T], ILastNodeProvider[T]):
+class _IBottomTrackingStackAdder[T](_IAdder[T], ILastNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -760,7 +760,7 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T], IN
     
     def _OnCleared(self) -> None: self._UnsetLast()
 
-class StackAbstract[T](ListBase[T], _IStackAdderBase[T], IStack[T], INodeUnsetter):
+class BottomTrackingStack[T](ListBase[T], _IBottomTrackingStackAdder[T], IStack[T], INodeUnsetter):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -852,7 +852,7 @@ class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeManager[T], IEnumerabl
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
 
-class EnumerableStackAbstractBase[T](Abstract, StackAbstract[T], INodeManager[T], IEnumerableStack[T]):
+class EnumerableBottomTrackingStack[T](Abstract, BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 

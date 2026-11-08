@@ -18,7 +18,7 @@ from WinCopies.Collections.Linked.Singly import (ILastNodeProvider, IManagedList
                                                  IStack, IEnumerableStack, ICountableStack, ICountableEnumerableStack,
                                                  CountableCollectionAbstract, CountableEnumerableBase, CountableEnumerableList,
                                                  ReadOnlyListBase, AbstractList, AbstractQueue,
-                                                 QueueBase, StackAbstract, EnumerableQueueBase, EnumerableStackAbstractBase,
+                                                 QueueBase, BottomTrackingStack, EnumerableQueueBase, EnumerableBottomTrackingStack,
                                                  CreateEnumerableCookie)
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import IContainer, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
@@ -243,7 +243,7 @@ class BufferedQueue[T](Abstract, QueueBase[T], Buffer[T], AbstractBufferedQueue[
     def _InvalidateViews(self) -> None: pass
     
     def AsReadOnly(self) -> IReadOnlyBufferedQueue[T]: return self.__readOnly.GetValue()
-class BufferedStack[T](Abstract, StackAbstract[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T], INodeManager[T]):
+class BufferedStack[T](Abstract, BottomTrackingStack[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T], INodeManager[T]):
     def __init__(self, values: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyBufferedStack[T]]) -> None: self.__readOnly = func
         
@@ -578,7 +578,7 @@ class EnumerableBufferedQueue[T](EnumerableQueueBase[T], EnumerableBufferAbstrac
     
     @final
     def AsReadOnly(self) -> IReadOnlyEnumerableBufferedQueue[T]: return self.__readOnly.GetValue()
-class EnumerableBufferedStack[T](EnumerableStackAbstractBase[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T], IManagedListBase[T]):
+class EnumerableBufferedStack[T](EnumerableBottomTrackingStack[T], EnumerableBufferAbstract[T], AbstractBufferedStack[T], IEnumerableBufferedStack[T], IManagedListBase[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyEnumerableBufferedStack[T]]) -> None: self.__readOnly = func
 
