@@ -712,24 +712,12 @@ class _IQueueAdder[T](_IAdder[T], ILastNodeProvider[T]):
     @final
     def PushItems(self, items: Iterable[T]) -> None: self.PushRange(items)
 
-class _IBottomTrackingStackAdder[T](_IAdder[T], ILastNodeProvider[T]):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
-        _first: INodeCookie[T]|None = self._GetFirstCookie()
-
-        if range: first, last = last, first
-        
-        self._SetFirst(last)
-
-        self._SetLastCookie(first) if _first is None else first.SetNext(_first.GetNode())
-    
-    @final
-    def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
 class _IStackAdder[T](_IAdder[T]):
     def __init__(self) -> None: super().__init__()
 
+    @abstractmethod
+    def _OnSetLast(self, last: INodeCookie[T]) -> None: pass
+
     @final
     def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
         _first: INodeCookie[T]|None = self._GetFirstCookie()
@@ -738,7 +726,7 @@ class _IStackAdder[T](_IAdder[T]):
         
         self._SetFirst(last)
         
-        if _first is not None: first.SetNext(_first.GetNode())
+        self._OnSetLast(first) if _first is None else first.SetNext(_first.GetNode())
     
     @final
     def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
@@ -760,26 +748,22 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T], IN
     
     def _OnCleared(self) -> None: self._UnsetLast()
 
-class BottomTrackingStack[T](ListBase[T], _IBottomTrackingStackAdder[T], IStack[T], INodeUnsetter):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def _SetInitialCookie(self, value: T) -> None: self._SetLastCookie(self._SetFirstCookie(value))
-    
-    @final
-    def _Push(self, value: T, first: INodeCookie[T]) -> None: self._SetFirstCookie(value, first.GetNode())
-    
-    def _OnCleared(self) -> None: self._UnsetLast()
 class StackBase[T](ListBase[T], _IStackAdder[T], IStack[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
-    def _SetInitialCookie(self, value: T) -> None: super()._SetInitialCookie(value)
+    def _SetInitialCookie(self, value: T) -> None: self._OnSetLast(self._SetFirstCookie(value))
     
     @final
     def _Push(self, value: T, first: INodeCookie[T]) -> None: self._SetFirstCookie(value, first.GetNode())
     
+    def _OnSetLast(self, last: INodeCookie[T]) -> None: pass
     def _OnCleared(self) -> None: pass
+class BottomTrackingStack[T](StackBase[T], ILastNodeProvider[T], INodeUnsetter):
+    def __init__(self) -> None: super().__init__()
+    
+    def _OnSetLast(self, last: INodeCookie[T]) -> None: self._SetLastCookie(last)
+    def _OnCleared(self) -> None: self._UnsetLast()
 
 @final
 class _ReadOnlyQueue[T](ReadOnlyList[T], IReadOnlyQueue[T]):
