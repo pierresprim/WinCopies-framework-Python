@@ -12,7 +12,7 @@ from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countabl
 from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorBase, GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, ILinkedListCookie, IEnumerableLinkedListCookie, LinkedNodeBase
-from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollection, CollectionRegistries
+from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollectionBase, CollectionRegistries
 
 from WinCopies.Delegates import NoAction
 
@@ -634,7 +634,7 @@ class List[T](Abstract, ListBase[T]):
     def _UnsetFirst(self) -> None:
         self.__first = None
 
-class IManagedCollectionBase[T](_IManagedCollection, _IEnumerable[T]):
+class IManagedCollectionBase[T](_IManagedCollectionBase, _IEnumerable[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
