@@ -167,7 +167,7 @@ class ICountableCollection[T](ICountableListAbstract[T]):
         return _EnumerableUpdater[T](self, updater)
 
 @final
-class _EnumerableUpdaterEnumerable[T](IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
+class _EnumerableUpdaterEnumerable[T](Abstract, IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
     def __init__(self, items: ICountableListAbstract[T]) -> None:
         super().__init__()
 
@@ -409,12 +409,11 @@ class _IAdderAbstract[T](IInterface):
     @abstractmethod
     def _GetFirstCookie(self) -> INodeCookie[T]|None:
         ...
-    
     @abstractmethod
     def _SetFirst(self, node: INodeCookie[T]) -> None:
         ...
 
-class _IQueueAdderBase[T](IInterface):
+class IAdder[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -427,13 +426,13 @@ class _IQueueAdderBase[T](IInterface):
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
 
-class AbstractList[T](Abstract, IReadOnlyList[T], _IAdderAbstract[T]):
+class AbstractList[T](IReadOnlyList[T], _IAdderAbstract[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _GetFirst(self) -> SinglyLinkedNode[T]|None:
         return _TryGetNode(self._GetFirstCookie())
-class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], _IQueueAdderBase[T]):
+class AbstractQueue[T](AbstractList[T], IReadOnlyQueue[T], IAdder[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -450,7 +449,80 @@ class _IAdderBase[T](_IListBase[T], _IAdderAbstract[T]):
     def _CreateCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
         return SinglyLinkedNode[T].CreateCookie(value, nextNode)
 
-class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
+class IListAbstract(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _UnsetFirst(self) -> None:
+        ...
+class IQueueBase(IListAbstract):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _UnsetLast(self) -> None:
+        ...
+
+class INodes[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryGetFirst(self) -> INodeCookie[T]|None:
+        ...
+    @abstractmethod
+    def SetFirst(self, node: INodeCookie[T]|None = None) -> None:
+        ...
+
+    @abstractmethod
+    def TryGetLast(self) -> INodeCookie[T]|None:
+        ...
+    @abstractmethod
+    def SetLast(self, node: INodeCookie[T]|None = None) -> None:
+        ...
+class Nodes[T](Abstract, INodes[T]):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__first: INodeCookie[T]|None = None
+        self.__last: INodeCookie[T]|None = None
+
+    @final
+    def TryGetFirst(self) -> INodeCookie[T]|None:
+        return self.__first
+    @final
+    def SetFirst(self, node: INodeCookie[T]|None = None) -> None:
+        self.__first = node
+
+    @final
+    def TryGetLast(self) -> INodeCookie[T]|None:
+        return self.__last
+    @final
+    def SetLast(self, node: INodeCookie[T]|None = None) -> None:
+        self.__last = node
+
+class INodeProvider[T](_IAdderAbstract[T], IAdder[T], IQueueBase):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def _GetNodes(self) -> INodes[T]:
+        ...
+    
+    @final
+    def _GetFirstCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetFirst()
+    
+    @final
+    def _SetFirst(self, node: INodeCookie[T]) -> None: self._GetNodes().SetFirst(node)
+    @final
+    def _UnsetFirst(self) -> None: self._GetNodes().SetFirst()
+    
+    @final
+    def _GetLastCookie(self) -> INodeCookie[T]|None: return self._GetNodes().TryGetLast()
+
+    @final
+    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self._GetNodes().SetLast(node)
+    @final
+    def _UnsetLast(self) -> None: self._GetNodes().SetLast()
+
+class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T], IListAbstract):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -475,10 +547,6 @@ class ListBase[T](AbstractList[T], IList[T], _IAdderBase[T]):
         previous.SetNext(newNode.GetNode())
 
         return newNode
-    
-    @abstractmethod
-    def _UnsetFirst(self) -> None:
-        ...
     
     @final
     def _UpdateFirst(self, node: INodeCookie[T]|None) -> None:
@@ -541,7 +609,7 @@ class ReadOnlyEnumerableList[T](ReadOnlyListBase[T, IEnumerableList[T]], Enumera
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryCreateEnumerator(self._GetContainer().TryGetEnumerator())
 
-class List[T](ListBase[T]):
+class List[T](Abstract, ListBase[T]):
     def __init__(self) -> None:
         super().__init__()
 
@@ -625,7 +693,7 @@ class _IAdder[T](_IAdderBase[T]):
     @final
     def PushRange(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: cookie.SetNext(node.GetNode()), True)
 
-class _IQueueAdder[T](_IAdder[T], _IQueueAdderBase[T]):
+class _IQueueAdder[T](_IAdder[T], IAdder[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -638,6 +706,22 @@ class _IQueueAdder[T](_IAdder[T], _IQueueAdderBase[T]):
     
     @final
     def PushItems(self, items: Iterable[T]) -> None: self.PushRange(items)
+
+class _IStackAdderBase[T](_IAdder[T], IAdder[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
+        _first: INodeCookie[T]|None = self._GetFirstCookie()
+
+        if range: first, last = last, first
+        
+        self._SetFirst(last)
+
+        self._SetLastCookie(first) if _first is None else first.SetNext(_first.GetNode())
+    
+    @final
+    def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
 class _IStackAdder[T](_IAdder[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -654,15 +738,11 @@ class _IStackAdder[T](_IAdder[T]):
     @final
     def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
 
-class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T]):
+class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T], IQueueBase):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _SetInitialCookie(self, value: T) -> None: self._SetLastCookie(self._SetFirstCookie(value))
-    
-    @abstractmethod
-    def _UnsetLast(self) -> None:
-        ...
     
     @final
     def _Push(self, value: T, first: INodeCookie[T]) -> None:
@@ -672,6 +752,17 @@ class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T]):
             return first if cookie is None else cookie
 
         self._SetLastCookie(self._SetNext(value, getLast()))
+    
+    def _OnCleared(self) -> None: self._UnsetLast()
+
+class StackAbstract[T](ListBase[T], _IStackAdderBase[T], IStack[T], IQueueBase):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _SetInitialCookie(self, value: T) -> None: self._SetLastCookie(self._SetFirstCookie(value))
+    
+    @final
+    def _Push(self, value: T, first: INodeCookie[T]) -> None: self._SetFirstCookie(value, first.GetNode())
     
     def _OnCleared(self) -> None: self._UnsetLast()
 class StackBase[T](ListBase[T], _IStackAdder[T], IStack[T]):
@@ -745,34 +836,38 @@ class ReadOnlyEnumerableQueue[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableQ
 class ReadOnlyEnumerableStack[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableStack[T]):
     def __init__(self, items: IEnumerableStack[T]) -> None: super().__init__(items)
 
-class EnumerableQueueBase[T](QueueBase[T], IEnumerableQueue[T]):
+class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeProvider[T], IEnumerableQueue[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__first: INodeCookie[T]|None = None
-        self.__last: INodeCookie[T]|None = None
+        self.__nodes: INodes[T] = Nodes[T]()
 
         self.TryPushItems(items)
-    
+
     @final
-    def _GetFirstCookie(self) -> INodeCookie[T]|None:
-        return self.__first
+    def _GetNodes(self) -> INodes[T]: return self.__nodes
+
+class EnumerableStackAbstractBase[T](Abstract, StackAbstract[T], INodeProvider[T], IEnumerableStack[T]):
+    def __init__(self, items: Iterable[T]|None) -> None:
+        super().__init__()
+
+        self.__nodes: INodes[T] = Nodes[T]()
+
+        self.TryPushItems(items)
+
     @final
-    def _SetFirst(self, node: INodeCookie[T]) -> None:
-        self.__first = node
-    
+    def _GetNodes(self) -> INodes[T]: return self.__nodes
+class EnumerableStackAbstract[T](Abstract, StackBase[T], INodeProvider[T], IEnumerableStack[T]):
+    def __init__(self, items: Iterable[T]|None) -> None:
+        super().__init__()
+
+        self.__nodes: INodes[T] = Nodes[T]()
+
+        self.TryPushItems(items)
+
     @final
-    def _UnsetFirst(self) -> None:
-        self.__first = None
-    
-    @final
-    def _GetLastCookie(self) -> INodeCookie[T]|None: return self.__last
-    @final
-    def _SetLastCookie(self, node: INodeCookie[T]) -> None: self.__last = node
-    
-    @final
-    def _UnsetLast(self) -> None: self.__last = None
-class EnumerableStackBase[T](StackBase[T], IEnumerableStack[T]):
+    def _GetNodes(self) -> INodes[T]: return self.__nodes
+class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
@@ -970,7 +1065,7 @@ class _CountableStack[T](CountableStackAbstract[T]):
     @final
     def AsReadOnly(self) -> IReadOnlyCountableStack[T]: return self.__readOnly.GetValue()
 
-class CountableList[TItem, TList](ICountableList[TItem], GenericConstraint[TList, ICountableListBase[TItem]]):
+class CountableList[TItem, TList](Abstract, ICountableList[TItem], GenericConstraint[TList, ICountableListBase[TItem]]):
     def __init__(self, items: TList) -> None:
         super().__init__()
 
