@@ -4,12 +4,12 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import final
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
 from WinCopies.Collections.Linked.Singly import (ILastNodeProvider, IManagedListBase,
-                                                 INodeCookie, IEnumerableCookie, INodes, INodeManager, Nodes,
+                                                 INodeCookie, IEnumerableCookie, INodeManager, NodeManager,
                                                  IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList,
                                                  IList, ICountableList, IEnumerableList, ICountableEnumerableList,
                                                  IReadOnlyQueue, IReadOnlyCountableQueue, IReadOnlyEnumerableQueue, IReadOnlyCountableEnumerableQueue,
@@ -232,37 +232,29 @@ class _ReadOnlyBufferedStackUpdater[T](SelectionUpdater[IBufferedStack[T], IRead
     
     def _AsContainer(self, container: IBufferedStack[T]) -> IReadOnlyBufferedStack[T]: return _ReadOnlyBufferedStack[T](container)
 
-class BufferedQueue[T](Abstract, QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBufferedQueue[T], INodeManager[T]):
+class BufferedQueue[T](NodeManager[T], QueueBase[T], Buffer[T], AbstractBufferedQueue[T], IBufferedQueue[T], INodeManager[T]):
     def __init__(self, values: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyBufferedQueue[T]]) -> None: self.__readOnly = func
         
         super().__init__()
 
-        self.__nodes: INodes[T] = Nodes[T]()
         self.__readOnly: IFunction[IReadOnlyBufferedQueue[T]] = _ReadOnlyBufferedQueueUpdater[T](self, update) # type: ignore[no-redef]
 
         self.TryPushItems(values)
 
     @final
-    def _GetNodes(self) -> INodes[T]: return self.__nodes
-
-    @final
     def _InvalidateViews(self) -> None: pass
     
     def AsReadOnly(self) -> IReadOnlyBufferedQueue[T]: return self.__readOnly.GetValue()
-class BufferedStack[T](Abstract, BottomTrackingStack[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T], INodeManager[T]):
+class BufferedStack[T](NodeManager[T], BottomTrackingStack[T], Buffer[T], AbstractBufferedStack[T], IBufferedStack[T], INodeManager[T]):
     def __init__(self, values: Iterable[T]|None = None) -> None:
         def update(func: IFunction[IReadOnlyBufferedStack[T]]) -> None: self.__readOnly = func
         
         super().__init__()
 
-        self.__nodes: INodes[T] = Nodes[T]()
         self.__readOnly: IFunction[IReadOnlyBufferedStack[T]] = _ReadOnlyBufferedStackUpdater[T](self, update) # type: ignore[no-redef]
 
         self.TryPushItems(values)
-
-    @final
-    def _GetNodes(self) -> INodes[T]: return self.__nodes
     
     @final
     def _InvalidateViews(self) -> None: pass

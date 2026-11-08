@@ -825,27 +825,26 @@ class ReadOnlyEnumerableQueue[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableQ
 class ReadOnlyEnumerableStack[T](ReadOnlyEnumerableList[T], IReadOnlyEnumerableStack[T]):
     def __init__(self, items: IEnumerableStack[T]) -> None: super().__init__(items)
 
-class EnumerableQueueBase[T](Abstract, QueueBase[T], INodeManager[T], IEnumerableQueue[T]):
-    def __init__(self, items: Iterable[T]|None) -> None:
+class NodeManager[T](Abstract, INodeManager[T]):
+    def __init__(self) -> None:
         super().__init__()
 
         self.__nodes: INodes[T] = Nodes[T]()
 
-        self.TryPushItems(items)
-
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
 
-class EnumerableBottomTrackingStack[T](Abstract, BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
+class EnumerableQueueBase[T](NodeManager[T], QueueBase[T], INodeManager[T], IEnumerableQueue[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
-        self.__nodes: INodes[T] = Nodes[T]()
-
         self.TryPushItems(items)
 
-    @final
-    def _GetNodes(self) -> INodes[T]: return self.__nodes
+class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
+    def __init__(self, items: Iterable[T]|None) -> None:
+        super().__init__()
+
+        self.TryPushItems(items)
 class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
