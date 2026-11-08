@@ -428,12 +428,15 @@ class IFirstNodeUnsetter(IInterface):
     @abstractmethod
     def _UnsetFirst(self) -> None:
         ...
-class INodeUnsetter(IFirstNodeUnsetter):
+class ILastNodeUnsetter(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def _UnsetLast(self) -> None:
         ...
+
+class INodeUnsetter(IFirstNodeUnsetter, ILastNodeUnsetter):
+    def __init__(self) -> None: super().__init__()
 
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
