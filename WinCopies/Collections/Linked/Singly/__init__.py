@@ -422,6 +422,19 @@ class ILastNodeProvider[T](IInterface):
     def _SetLastCookie(self, node: INodeCookie[T]) -> None:
         ...
 
+class IFirstNodeUnsetter(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _UnsetFirst(self) -> None:
+        ...
+class INodeUnsetter(IFirstNodeUnsetter):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _UnsetLast(self) -> None:
+        ...
+
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
 
@@ -447,19 +460,6 @@ class _IAdderBase[T](_IListBase[T], _IFirstNodeProvider[T]):
     @final
     def _CreateCookie(self, value: T, nextNode: SinglyLinkedNode[T]|None = None) -> INodeCookie[T]:
         return SinglyLinkedNode[T].CreateCookie(value, nextNode)
-
-class IFirstNodeUnsetter(IInterface):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def _UnsetFirst(self) -> None:
-        ...
-class INodeUnsetter(IFirstNodeUnsetter):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def _UnsetLast(self) -> None:
-        ...
 
 class INodes[T](IInterface):
     def __init__(self) -> None: super().__init__()
