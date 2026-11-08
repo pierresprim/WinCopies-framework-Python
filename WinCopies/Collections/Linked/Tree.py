@@ -101,9 +101,10 @@ class TreeBase[TItem, TNode: _INode](EnumerableListBase[TItem, TNode, ITreeNode[
         def updateRecursive(func: IFunction[IEnumerable[TItem]]) -> None: self.__recursive = func
         def updateNodeRecursive(func: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]]) -> None: self.__nodeRecursive = func
         
+        self.__cookie: ICookieProvider[TItem, ITreeNode[TItem]] = _CookieProvider[TItem](self)
+
         super().__init__(items)
 
-        self.__cookie: ICookieProvider[TItem, ITreeNode[TItem]] = _CookieProvider[TItem](self)
         self.__recursive: IFunction[IEnumerable[TItem]] = _RecursiveUpdater[TItem](self, updateRecursive) # type: ignore[no-redef]
         self.__nodeRecursive: IFunction[IRecursivelyEnumerable[ITreeNode[TItem]]] = _NodeRecursiveUpdater[TItem](self, updateNodeRecursive) # type: ignore[no-redef]
     
