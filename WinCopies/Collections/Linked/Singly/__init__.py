@@ -716,7 +716,8 @@ class _IStackAdder[T](_IAdder[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def _OnSetLast(self, last: INodeCookie[T]) -> None: pass
+    def _OnSetLast(self, last: INodeCookie[T]) -> None:
+        ...
 
     @final
     def _Weld(self, first: INodeCookie[T], last: INodeCookie[T], range: bool) -> None:
@@ -834,7 +835,7 @@ class NodeManager[T](Abstract, INodeManager[T]):
     @final
     def _GetNodes(self) -> INodes[T]: return self.__nodes
 
-class EnumerableQueueBase[T](NodeManager[T], QueueBase[T], INodeManager[T], IEnumerableQueue[T]):
+class EnumerableQueueBase[T](NodeManager[T], QueueBase[T], IEnumerableQueue[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
@@ -858,7 +859,7 @@ class EnumerableStackBase[T](Abstract, StackBase[T], IEnumerableStack[T]):
     @final
     def _UnsetFirst(self) -> None:
         self.__first = None
-class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], INodeManager[T], IEnumerableStack[T]):
+class EnumerableBottomTrackingStack[T](NodeManager[T], BottomTrackingStack[T], IEnumerableStack[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()
 
