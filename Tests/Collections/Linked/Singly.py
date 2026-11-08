@@ -698,7 +698,7 @@ class TestTheStackAndQueueBenchesCanFail(unittest.TestCase):
 
     def test_the_queue_bench_falls_when_a_buffered_queue_records_no_last_node(self) -> None:
         """As before d4c9197: BufferedQueue defined _SetLast, so that its _SetLastCookie was the
-        abstract method of _IQueueAdderBase, IAdder since c4a38fd5, which does nothing."""
+        abstract method of _IQueueAdderBase, ILastNodeProvider since c4a38fd5, which does nothing."""
 
         def unrecorded(self: Any, node: Any) -> None: return None
 

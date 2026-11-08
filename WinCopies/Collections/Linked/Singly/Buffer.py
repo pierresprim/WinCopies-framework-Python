@@ -8,7 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Enumeration import CreateEnumerable, TryCreateEnumerator
 from WinCopies.Collections.Core import Countable as CountableCollection
 from WinCopies.Collections.Enumeration.Core import IEnumerator, Enumerable as EnumerableCollection, CountableEnumerable as CountableEnumerableCollectionBase
-from WinCopies.Collections.Linked.Singly import (IAdder, IManagedListBase,
+from WinCopies.Collections.Linked.Singly import (ILastNodeProvider, IManagedListBase,
                                                  INodeCookie, IEnumerableCookie, INodes, INodeProvider, Nodes,
                                                  IReadOnlyList, IReadOnlyCountableList, IReadOnlyEnumerableList, IReadOnlyCountableEnumerableList,
                                                  IList, ICountableList, IEnumerableList, ICountableEnumerableList,
@@ -155,7 +155,7 @@ class ICountableEnumerableBufferedStack[T](ICountableEnumerableBuffer[T], ICount
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableBufferedStack[T]:
         ...
 
-class AbstractBuffer[T](AbstractList[T], IAdder[T]):
+class AbstractBuffer[T](AbstractList[T], ILastNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -475,7 +475,7 @@ class _ReadOnlyCountableBufferedStackUpdater[T](SelectionUpdater[ICountableBuffe
     
     def _AsContainer(self, container: ICountableBufferedStack[T]) -> IReadOnlyCountableBufferedStack[T]: return _ReadOnlyCountableBufferedStack[T](container)
 
-class _ICountableList[T](IAdder[T], IContainer[IBufferedQueueList[T]]):
+class _ICountableList[T](ILastNodeProvider[T], IContainer[IBufferedQueueList[T]]):
     def __init__(self) -> None: super().__init__()
     
     @final
