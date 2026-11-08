@@ -21,7 +21,7 @@ from WinCopies.Collections.Linked.Singly import (ILastNodeProvider, IManagedList
                                                  QueueBase, BottomTrackingStack, EnumerableQueueBase, EnumerableBottomTrackingStack,
                                                  CreateEnumerableCookie)
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater, SelectionUpdater
-from WinCopies.Typing.Generic import IContainer, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
+from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IBufferBase(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -47,6 +47,13 @@ class IBufferCookie[T](IInterface):
         ...
     @abstractmethod
     def SetFirst(self, node: INodeCookie[T]) -> None:
+        ...
+    
+    @abstractmethod
+    def GetLast(self) -> INodeCookie[T]|None:
+        ...
+    @abstractmethod
+    def SetLast(self, node: INodeCookie[T]) -> None:
         ...
 
 class IBufferedList[T](IBuffer[T]):
@@ -263,23 +270,6 @@ class BufferedStack[T](Abstract, BottomTrackingStack[T], Buffer[T], AbstractBuff
     @final
     def AsReadOnly(self) -> IReadOnlyBufferedStack[T]: return self.__readOnly.GetValue()
 
-class IBufferedQueueCookie[T](IInterface):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def GetLast(self) -> INodeCookie[T]|None:
-        ...
-    @abstractmethod
-    def SetLast(self, node: INodeCookie[T]) -> None:
-        ...
-
-class IBufferedQueueList[T](IBufferedList[T]):
-    def __init__(self) -> None: super().__init__()
-    
-    @abstractmethod
-    def GetQueueCookie(self) -> IBufferedQueueCookie[T]:
-        ...
-
 class _BufferedList[T](Buffer[T], IBufferedList[T]):
     @final
     class _Cookie[_T](IBufferCookie[_T]):
@@ -290,6 +280,9 @@ class _BufferedList[T](Buffer[T], IBufferedList[T]):
 
         def GetFirst(self) -> INodeCookie[_T]|None: return self.__buffer._GetFirstNode()
         def SetFirst(self, node: INodeCookie[_T]) -> None: self.__buffer._SetFirstNode(node)
+
+        def GetLast(self) -> INodeCookie[_T]|None: return self.__buffer._GetLastNode()
+        def SetLast(self, node: INodeCookie[_T]) -> None: self.__buffer._SetLastNode(node)
     
     @final
     class __Updater[_T](ValueFunctionUpdater[IBufferCookie[_T]]):
@@ -312,64 +305,6 @@ class _BufferedList[T](Buffer[T], IBufferedList[T]):
     @final
     def _SetFirstNode(self, node: INodeCookie[T]) -> None:
         self._SetFirst(node)
-
-class _CookieBufferedQueue[T](BufferedQueue[T], _BufferedList[T], IBufferedQueueList[T]):
-    @final
-    class _QueueCookie[_T](Abstract, IBufferedQueueCookie[_T]):
-        def __init__(self, buffer: _CookieBufferedQueue[_T]) -> None:
-            super().__init__()
-
-            self.__buffer: _CookieBufferedQueue[_T] = buffer
-
-        def GetLast(self) -> INodeCookie[_T]|None: return self.__buffer._GetLastNode()
-        def SetLast(self, node: INodeCookie[_T]) -> None: self.__buffer._SetLastNode(node)
-    
-    @final
-    class __Updater[_T](ValueFunctionUpdater[IBufferedQueueCookie[_T]]):
-        def __init__(self, buffer: _CookieBufferedQueue[_T], updater: Method[IFunction[IBufferedQueueCookie[_T]]]) -> None:
-            super().__init__(updater)
-
-            self.__buffer: _CookieBufferedQueue[_T] = buffer
-        
-        def _GetValue(self) -> IBufferedQueueCookie[_T]: return _CookieBufferedQueue._QueueCookie(self.__buffer)
-    
-    def __init__(self, values: Iterable[T]) -> None: super().__init__(values)
-    
-    @final
-    def _CreateQueueCookieUpdater(self, updater: Method[IFunction[IBufferedQueueCookie[T]]]) -> ValueFunctionUpdater[IBufferedQueueCookie[T]]:
-        return _CookieBufferedQueue[T].__Updater(self, updater)
-    
-    @final
-    def _GetLastNode(self) -> INodeCookie[T]|None:
-        return self._GetLastCookie()
-    @final
-    def _SetLastNode(self, node: INodeCookie[T]) -> None:
-        self._SetLastCookie(node)
-class _CookieBufferedStack[T](BufferedStack[T], _BufferedList[T], IBufferedQueueList[T]):
-    @final
-    class _QueueCookie[_T](Abstract, IBufferedQueueCookie[_T]):
-        def __init__(self, buffer: _CookieBufferedStack[_T]) -> None:
-            super().__init__()
-
-            self.__buffer: _CookieBufferedStack[_T] = buffer
-
-        def GetLast(self) -> INodeCookie[_T]|None: return self.__buffer._GetLastNode()
-        def SetLast(self, node: INodeCookie[_T]) -> None: self.__buffer._SetLastNode(node)
-    
-    @final
-    class __Updater[_T](ValueFunctionUpdater[IBufferedQueueCookie[_T]]):
-        def __init__(self, buffer: _CookieBufferedStack[_T], updater: Method[IFunction[IBufferedQueueCookie[_T]]]) -> None:
-            super().__init__(updater)
-
-            self.__buffer: _CookieBufferedStack[_T] = buffer
-        
-        def _GetValue(self) -> IBufferedQueueCookie[_T]: return _CookieBufferedStack._QueueCookie(self.__buffer)
-    
-    def __init__(self, values: Iterable[T]) -> None: super().__init__(values)
-    
-    @final
-    def _CreateQueueCookieUpdater(self, updater: Method[IFunction[IBufferedQueueCookie[T]]]) -> ValueFunctionUpdater[IBufferedQueueCookie[T]]:
-        return _CookieBufferedStack[T].__Updater(self, updater)
     
     @final
     def _GetLastNode(self) -> INodeCookie[T]|None:
@@ -378,9 +313,9 @@ class _CookieBufferedStack[T](BufferedStack[T], _BufferedList[T], IBufferedQueue
     def _SetLastNode(self, node: INodeCookie[T]) -> None:
         self._SetLastCookie(node)
 
-class _IBufferedQueue[T](IBufferedQueue[T], IBufferedQueueList[T]):
+class _IBufferedQueue[T](IBufferedQueue[T], IBufferedList[T]):
     def __init__(self) -> None: super().__init__()
-class _IBufferedStack[T](IBufferedStack[T], IBufferedQueueList[T]):
+class _IBufferedStack[T](IBufferedStack[T], IBufferedList[T]):
     def __init__(self) -> None: super().__init__()
 
 class ReadOnlyCountableBufferBase[TItem, TList](ReadOnlyListBase[TItem, TList], IReadOnlyCountableBuffer[TItem], GenericSpecializedConstraint[TList, ICountableList[TItem], ICountableBuffer[TItem]]):
@@ -417,11 +352,14 @@ class _CountableBufferBase[TItem, TList](CountableCollectionAbstract[TItem, TLis
         return self._GetSpecializedContainer().GetCookie()
     
     @final
-    def _GetFirstCookie(self) -> INodeCookie[TItem]|None:
-        return self._GetCookie().GetFirst()
+    def _GetFirstCookie(self) -> INodeCookie[TItem]|None: return self._GetCookie().GetFirst()
     @final
-    def _SetFirst(self, node: INodeCookie[TItem]) -> None:
-        self._GetCookie().SetFirst(node)
+    def _SetFirst(self, node: INodeCookie[TItem]) -> None: self._GetCookie().SetFirst(node)
+    
+    @final
+    def _GetLastCookie(self) -> INodeCookie[TItem]|None: return self._GetCookie().GetLast()
+    @final
+    def _SetLastCookie(self, node: INodeCookie[TItem]) -> None: self._GetCookie().SetLast(node)
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableBuffer[TItem]:
@@ -431,20 +369,16 @@ class _CountableBufferBase[TItem, TList](CountableCollectionAbstract[TItem, TLis
 class _ReadOnlyCountableBufferedQueue[T](ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedQueue[T]):
     def __init__(self, items: ICountableBuffer[T]) -> None: super().__init__(items)
 @final
-class _CountableBufferedQueueBuffer[T](_CookieBufferedQueue[T], _IBufferedQueue[T]):
+class _CountableBufferedQueueBuffer[T](BufferedQueue[T], _BufferedList[T], _IBufferedQueue[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IBufferCookie[T]]) -> None: self.__cookie = func
-        def updateQueueCookie(func: IFunction[IBufferedQueueCookie[T]]) -> None: self.__queueCookie = func
         
         super().__init__(values)
         
         self.__cookie: IFunction[IBufferCookie[T]] = self._CreateCookieUpdater(update) # type: ignore[no-redef]
-        self.__queueCookie: IFunction[IBufferedQueueCookie[T]] = self._CreateQueueCookieUpdater(updateQueueCookie) # type: ignore[no-redef]
 
     @final
     def GetCookie(self) -> IBufferCookie[T]: return self.__cookie.GetValue()
-    @final
-    def GetQueueCookie(self) -> IBufferedQueueCookie[T]: return self.__queueCookie.GetValue()
 @final
 class _ReadOnlyCountableBufferedQueueUpdater[T](SelectionUpdater[ICountableBufferedQueue[T], IReadOnlyCountableBufferedQueue[T]]):
     def __init__(self, items: ICountableBufferedQueue[T], updater: Method[IFunction[IReadOnlyCountableBufferedQueue[T]]]) -> None: super().__init__(items, updater)
@@ -455,41 +389,23 @@ class _ReadOnlyCountableBufferedQueueUpdater[T](SelectionUpdater[ICountableBuffe
 class _ReadOnlyCountableBufferedStack[T](ReadOnlyCountableBuffer[T], IReadOnlyCountableBufferedStack[T]):
     def __init__(self, items: ICountableBuffer[T]) -> None: super().__init__(items)
 @final
-class _CountableBufferedStackBuffer[T](_CookieBufferedStack[T], _BufferedList[T], _IBufferedStack[T]):
+class _CountableBufferedStackBuffer[T](BufferedStack[T], _BufferedList[T], _IBufferedStack[T]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IBufferCookie[T]]) -> None: self.__cookie = func
-        def updateQueueCookie(func: IFunction[IBufferedQueueCookie[T]]) -> None: self.__queueCookie = func
         
         super().__init__(values)
         
         self.__cookie: IFunction[IBufferCookie[T]] = self._CreateCookieUpdater(update) # type: ignore[no-redef]
-        self.__queueCookie: IFunction[IBufferedQueueCookie[T]] = self._CreateQueueCookieUpdater(updateQueueCookie) # type: ignore[no-redef]
 
     @final
     def GetCookie(self) -> IBufferCookie[T]: return self.__cookie.GetValue()
-    @final
-    def GetQueueCookie(self) -> IBufferedQueueCookie[T]: return self.__queueCookie.GetValue()
 @final
 class _ReadOnlyCountableBufferedStackUpdater[T](SelectionUpdater[ICountableBufferedStack[T], IReadOnlyCountableBufferedStack[T]]):
     def __init__(self, items: ICountableBufferedStack[T], updater: Method[IFunction[IReadOnlyCountableBufferedStack[T]]]) -> None: super().__init__(items, updater)
     
     def _AsContainer(self, container: ICountableBufferedStack[T]) -> IReadOnlyCountableBufferedStack[T]: return _ReadOnlyCountableBufferedStack[T](container)
 
-class _ICountableList[T](ILastNodeProvider[T], IContainer[IBufferedQueueList[T]]):
-    def __init__(self) -> None: super().__init__()
-    
-    @final
-    def _GetQueueCookie(self) -> IBufferedQueueCookie[T]:
-        return self._GetContainer().GetQueueCookie()
-    
-    @final
-    def _GetLastCookie(self) -> INodeCookie[T]|None:
-        return self._GetQueueCookie().GetLast()
-    @final
-    def _SetLastCookie(self, node: INodeCookie[T]) -> None:
-        self._GetQueueCookie().SetLast(node)
-
-class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], AbstractBufferedQueue[T], ICountableBufferedQueue[T], _ICountableList[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedQueueList[T]]):
+class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedList[T]], AbstractBufferedQueue[T], ICountableBufferedQueue[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedList[T]]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyCountableBufferedQueue[T]]) -> None: self.__readOnly = func
         
@@ -502,7 +418,7 @@ class CountableBufferedQueue[T](_CountableBufferBase[T, IBufferedQueueList[T]], 
     
     @final
     def AsReadOnly(self) -> IReadOnlyCountableBufferedQueue[T]: return self.__readOnly.GetValue()
-class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedQueueList[T]], AbstractBufferedStack[T], ICountableBufferedStack[T], _ICountableList[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedQueueList[T]]):
+class CountableBufferedStack[T](_CountableBufferBase[T, IBufferedList[T]], AbstractBufferedStack[T], ICountableBufferedStack[T], IGenericSpecializedConstraintImplementation[IList[T], IBufferedList[T]]):
     def __init__(self, values: Iterable[T]) -> None:
         def update(func: IFunction[IReadOnlyCountableBufferedStack[T]]) -> None: self.__readOnly = func
         
