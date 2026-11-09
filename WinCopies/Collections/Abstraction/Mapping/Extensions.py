@@ -27,7 +27,7 @@ from WinCopies.Collections.Range.Extensions import SetOrderedItems, TrySetOrdere
 from WinCopies.Collections.Util import MakeSet, CreateSet, GetSequenceIndex, GetSequenceInsertionIndex, GetDuplicateItemError, ThrowDuplicateItemError, ThrowRepeatedItemError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import INotHashableValue, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Converter, NullablePredicate, EqualityComparison, IndexedValueAction, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Converter, NullablePredicate, EqualityComparison, IndexedValueAction, IndexedValueComparison, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 @final
@@ -104,14 +104,14 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionA
 
         return True
 
-    def __TryInsert[U](self, index: int, items: U, add: Converter[ISet[T], NullablePredicate[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> bool:
+    def __TryInsert[U](self, index: int, items: U, add: Converter[ISet[T], NullablePredicate[U]], insert: Converter[IList[T], IndexedValueAction[U]|IndexedValueComparison[U]]) -> bool:
         if add(self.__set)(items) is True:
             insert(self.__list)(index, items)
 
             return True
         
         return False
-    def __Insert[U](self, index: int, items: U, add: Converter[ISet[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
+    def __Insert[U](self, index: int, items: U, add: Converter[ISet[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]|IndexedValueComparison[U]]) -> None:
         add(self.__set)(items)
         insert(self.__list)(index, items)
     

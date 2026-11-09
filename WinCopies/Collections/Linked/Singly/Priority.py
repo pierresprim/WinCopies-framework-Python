@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Iterable, final
+from typing import final, Callable, Iterable
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction.Collection import SortedList, CreateArrayList
@@ -9,7 +9,7 @@ from WinCopies.Collections.Core import IArray
 from WinCopies.Collections.Extensions import ISortedList
 from WinCopies.Collections.Linked.Singly import IList, IQueue, IStack, IReadOnlyQueue, IReadOnlyStack, Queue, Stack, ReadOnlyQueueUpdater, ReadOnlyStackUpdater
 from WinCopies.Typing import INullable, GetNullValue
-from WinCopies.Typing.Delegate import IFunction, Converter
+from WinCopies.Typing.Delegate import Predicate, Converter, IFunction
 from WinCopies.Typing.Enum import IntEnum
 from WinCopies.Typing.Generic import GenericConstraint
 
@@ -263,6 +263,13 @@ class PriorityItemStack[T](PriorityItemList[T]):
 
 class IPriorityList[TItem, TLevel](IList[TItem]):
     def __init__(self) -> None: super().__init__()
+
+    @final
+    def __PushAt(self, items: Iterable[TItem], add: Callable[[TLevel, Iterable[TItem]], bool]) -> bool:
+        return add(self.GetNormalLevel(), items)
+    @final
+    def __TryPushAt(self, level: TLevel, items: Iterable[TItem]|None, add: Callable[[TLevel, Iterable[TItem]], bool]) -> bool|None:
+        return None if items is None else add(level, items)
     
     @abstractmethod
     def GetNormalLevel(self) -> TLevel:
@@ -273,26 +280,18 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
         ...
 
     @abstractmethod
-    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None:
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> bool:
         ...
     @final
-    def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
-        if items is None: return False
-        
-        self.PushItemsAt(level, items)
-
-        return True
+    def TryPushItemsAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool|None:
+        return self.__TryPushAt(level, items, self.PushItemsAt)
     
     @abstractmethod
-    def PushRangeAt(self, level: TLevel, items: Iterable[TItem]) -> None:
+    def PushRangeAt(self, level: TLevel, items: Iterable[TItem]) -> bool:
         ...
     @final
-    def TryPushRangeAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool:
-        if items is None: return False
-        
-        self.PushRangeAt(level, items)
-
-        return True
+    def TryPushRangeAt(self, level: TLevel, items: Iterable[TItem]|None) -> bool|None:
+        return self.__TryPushAt(level, items, self.PushRangeAt)
     
     @final
     def PushValuesAt(self, level: TLevel, *values: TItem) -> None: self.PushItemsAt(level, values)
@@ -300,14 +299,18 @@ class IPriorityList[TItem, TLevel](IList[TItem]):
     @final
     def Push(self, value: TItem) -> None: self.PushAt(self.GetNormalLevel(), value)
     @final
-    def PushRange(self, items: Iterable[TItem]) -> None: self.PushRangeAt(self.GetNormalLevel(), items)
+    def PushRange(self, items: Iterable[TItem]) -> bool: return self.__PushAt(items, self.PushRangeAt)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self.PushItemsAt(self.GetNormalLevel(), items)
+    def PushItems(self, items: Iterable[TItem]) -> bool: return self.__PushAt(items, self.PushItemsAt)
 class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     def __init__(self) -> None:
         super().__init__()
 
         self.__items: IPriorityItemList[TItem, TLevel] = self._CreateDictionary()
+
+    @final
+    def __PushAt(self, level: TLevel, items: Iterable[TItem], add: Converter[IList[TItem], Predicate[Iterable[TItem]]]) -> bool:
+        return add(self._GetAt(level))(items)
 
     @abstractmethod
     def _CreateDictionary(self) -> IPriorityItemList[TItem, TLevel]:
@@ -331,9 +334,9 @@ class PriorityListBase[TItem, TLevel](Abstract, IPriorityList[TItem, TLevel]):
     def PushAt(self, level: TLevel, value: TItem) -> None: self._GetAt(level).Push(value)
     
     @final
-    def PushRangeAt(self, level: TLevel, items: Iterable[TItem]) -> None: self._GetAt(level).PushRange(items)
+    def PushRangeAt(self, level: TLevel, items: Iterable[TItem]) -> bool: return self.__PushAt(level, items, lambda items: items.PushRange)
     @final
-    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> None: self._GetAt(level).PushItems(items)
+    def PushItemsAt(self, level: TLevel, items: Iterable[TItem]) -> bool: return self.__PushAt(level, items, lambda items: items.PushItems)
     
     @final
     def TryPop(self) -> INullable[TItem]: return self._GetItems().TryPop()

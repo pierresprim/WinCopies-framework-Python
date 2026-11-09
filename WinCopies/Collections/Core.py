@@ -88,7 +88,7 @@ class ICollection[T](IReadOnlyList[T]):
         return True
 
     @abstractmethod
-    def AddRange(self, items: Iterable[T]|None) -> None:
+    def AddRange(self, items: Iterable[T]|None) -> bool:
         ...
     
     def _TryAddRange(self, items: Iterable[T]) -> bool:
@@ -603,13 +603,17 @@ class IList[T](IArray[T], IListBase[T]):
     def _InsertRange(self, index: int, items: Iterable[T]) -> None:
         ...
     @final
-    def InsertRange(self, index: int, items: Iterable[T]|None) -> None:
+    def InsertRange(self, index: int, items: Iterable[T]|None) -> bool:
         def insert(index: int, value: Iterable[T]) -> bool:
             self._InsertRange(index, value)
 
             return True
         
-        if self.__InsertRange(index, items, insert) is None: ThrowIndexError(index)
+        result: bool|None = self.__InsertRange(index, items, insert)
+        
+        if result is None: ThrowIndexError(index)
+
+        return result
 
     def _TryInsertRange(self, index: int, items: Iterable[T]) -> bool:
         self._InsertRange(index, items)
@@ -629,7 +633,7 @@ class IList[T](IArray[T], IListBase[T]):
     @final
     def _TryAddRange(self, items: Iterable[T]) -> bool: return self.TryInsertRange(self.GetCount(), items) is True
     @final
-    def AddRange(self, items: Iterable[T]|None) -> None: self.InsertRange(self.GetCount(), items)
+    def AddRange(self, items: Iterable[T]|None) -> bool: return self.InsertRange(self.GetCount(), items)
 
     @final
     def TryInsertValues(self, index: int, *values: T) -> bool|None: return self.TryInsertRange(index, values)

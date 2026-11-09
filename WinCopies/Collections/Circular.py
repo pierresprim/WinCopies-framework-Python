@@ -19,7 +19,7 @@ from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
 from WinCopies.Collections.Util import GetSequenceInsertionIndex, ThrowIndexError
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import EqualityComparison, Method, Converter, IndexedValueAction, IndexedValueFunction, IFunction
+from WinCopies.Typing.Delegate import Method, Predicate, Converter, EqualityComparison, IndexedValueAction, IndexedValueFunction, IndexedValueComparison, IFunction
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Object import Finalizer
 
@@ -569,7 +569,7 @@ class _CircularListBase[T](List[T], MutableSequence[T], ICircularList[T], _ICirc
     def __TryInsert[U](self, index: int, items: U, add: Converter[IList[T], Converter[U, bool|None]], insert: Converter[IList[T], IndexedValueFunction[U, bool|None]]) -> bool:
         return self.__TryInsertAt(index, items, add, insert, False) is True
     @final
-    def __Insert[U](self, index: int, items: U, add: Converter[IList[T], Method[U]], insert: Converter[IList[T], IndexedValueAction[U]]) -> None:
+    def __Insert[U](self, index: int, items: U, add: Converter[IList[T], Method[U]|Predicate[U]], insert: Converter[IList[T], IndexedValueAction[U]|IndexedValueComparison[U]]) -> None:
         if self.__TryInsertAt(index, items, add, insert, True) is None: ThrowIndexError(index)
     
     @final

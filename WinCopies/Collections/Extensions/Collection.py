@@ -36,7 +36,7 @@ from WinCopies.Delegates import Self
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import INotHashableValue, EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Function, Converter, Selector, EqualityComparison, IndexedValueFunction, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Function, Predicate, Converter, Selector, EqualityComparison, IndexedValueFunction, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IGenericConstraint, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 from WinCopies.Typing.Pairing import DualValueBool
 from WinCopies.Typing.Protocols import SupportsEqualityAndRichComparison
@@ -94,9 +94,9 @@ class BufferedQueueBase[TItems, TList](_Cursor[TItems, TList], ICountableEnumera
     @final
     def Push(self, value: TItems) -> None: self._GetSpecializedContainer().Add(value)
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None: return self._GetSpecializedContainer().AddRange(items)
+    def PushItems(self, items: Iterable[TItems]) -> bool: return self._GetSpecializedContainer().AddRange(items)
     @final
-    def PushRange(self, items: Iterable[TItems]) -> None: return self._GetSpecializedContainer().AddRange(items)
+    def PushRange(self, items: Iterable[TItems]) -> bool: return self._GetSpecializedContainer().AddRange(items)
 
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableQueue[TItems]: return self.__readOnly
@@ -110,18 +110,15 @@ class BufferedStackBase[TItems, TList](_Cursor[TItems, TList], ICountableEnumera
         self.__readOnly: IReadOnlyCountableEnumerableStack[TItems] = _ReadOnlyBufferedStack[TItems](self._GetInnerContainer())
 
     @final
-    def __Push[T](self, items: T, containerProvider: Selector[IList[TItems]], add: Callable[[IList[TItems], bool], Method[T]]) -> None:
-        add(containerProvider(self._GetSpecializedContainer()), self.IsEmpty())(items)
+    def __Push[T](self, items: T, containerProvider: Selector[IList[TItems]], add: Callable[[IList[TItems], bool], Predicate[T]]) -> bool:
+        return add(containerProvider(self._GetSpecializedContainer()), self.IsEmpty())(items)
     
     @final
-    def Push(self, value: TItems) -> None:
-        self.__Push(value, Self, lambda items, empty: items.Add if empty else lambda item: items.Insert(0, item))
+    def Push(self, value: TItems) -> None: self._GetSpecializedContainer().Add(value) if self.IsEmpty() else self._GetSpecializedContainer().Insert(0, value)
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None:
-        self.__Push(items, lambda items: items.AsReversed(), lambda items, _: items.AddRange)
+    def PushItems(self, items: Iterable[TItems]) -> bool: return self.__Push(items, lambda items: items.AsReversed(), lambda items, _: items.AddRange)
     @final
-    def PushRange(self, items: Iterable[TItems]) -> None:
-        self.__Push(items, Self, lambda items, empty: items.AddRange if empty else lambda item: items.InsertRange(0, item))
+    def PushRange(self, items: Iterable[TItems]) -> bool: return self.__Push(items, Self, lambda items, empty: items.AddRange if empty else lambda item: items.InsertRange(0, item))
 
     @final
     def AsReadOnly(self) -> IReadOnlyCountableEnumerableStack[TItems]: return self.__readOnly
@@ -1329,7 +1326,7 @@ class ReversedSortedListAbstract[TItem: SupportsEqualityAndRichComparison, TList
     @final
     def Add(self, item: TItem) -> None: self._GetContainerAsList().AddLeft(item)
     @final
-    def AddRange(self, items: Iterable[TItem]|None) -> None: self._GetContainerAsList().AddRange(items)
+    def AddRange(self, items: Iterable[TItem]|None) -> bool: return self._GetContainerAsList().AddRange(items)
     
     @final
     def _RemoveRange(self, index: int, count: int) -> None: self._GetContainerAsList().RemoveRange(self.ReverseRangeStartIndex(index, count), count)

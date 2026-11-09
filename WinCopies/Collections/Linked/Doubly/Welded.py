@@ -22,6 +22,7 @@ from WinCopies.Collections.Linked.Singly import (ICountableListBase, ICountableC
                                                  IReadOnlyStack, IReadOnlyCountableStack, IReadOnlyEnumerableStack, IReadOnlyCountableEnumerableStack,
                                                  IEnumerableQueue, ICountableEnumerableQueue,
                                                  IEnumerableStack, ICountableEnumerableStack)
+from WinCopies.Collections.Loop import Loop
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import IContainer, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation, GenericConstraint, GenericSpecializedConstraint
@@ -1067,21 +1068,23 @@ class _IQueuedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[T
     @final
     def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddLastNode(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
+    def PushItems(self, items: Iterable[TItem]) -> bool: return self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
     @final
-    def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
+    def PushRange(self, items: Iterable[TItem]) -> bool: return self.PushRange(items) # TODO: Should add in range
 class _IStackedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def Push(self, value: TItem) -> None: self._GetSpecializedContainer().AddFirstNode(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None:
+    def PushItems(self, items: Iterable[TItem]) -> bool:
+        def add(item: TItem) -> None: container.AddFirstNode(item)
+
         container: IReadWriteEnumerableList[TItem] = self._GetSpecializedContainer()
 
-        for item in items: container.AddFirstNode(item) # TODO: Should add in range
+        return Loop(items, add) # TODO: Should add in range
     @final
-    def PushRange(self, items: Iterable[TItem]) -> None: self._GetSpecializedContainer().AddFirstItems(items) # TODO: Should add in range
+    def PushRange(self, items: Iterable[TItem]) -> bool: return self._GetSpecializedContainer().AddFirstItems(items) # TODO: Should add in range
 
 class _ICountableList[T](ICountableListBase[T], ICountableCollection[T], IContainer[ICountableList[T]], IGenericSpecializedConstraintImplementation[IReadOnlyEnumerableList[T], ICountableList[T]]):
     def __init__(self) -> None: super().__init__()

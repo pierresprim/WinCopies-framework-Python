@@ -30,7 +30,7 @@ from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumer
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.Iteration.Enumeration import Contains
 from WinCopies.Collections.Range import GetItems, SetItems, RemoveItems
-from WinCopies.Collections.Loop import IterateFromAllItems
+from WinCopies.Collections.Loop import TryIterateFromAllItems, IterateFromAllItems
 from WinCopies.Collections.Util import (ThrowCapacityError, FindIndex, Move, GetSequenceIndex, GetSequenceInsertionIndex,
                                         CreateTuple as CreateImmutableSequence, CreateList as CreateMutableSequence,
                                         TryBisect, TryBisectWithKey, Insort,
@@ -534,10 +534,10 @@ class SortedList[T: SupportsEqualityAndRichComparison](ListAbstract[T], _Sequenc
     @final
     def Add(self, item: T) -> None: self.__Add(item, True)
     @final
-    def AddRange(self, items: Iterable[T]|None) -> None:
+    def AddRange(self, items: Iterable[T]|None) -> bool:
         def _merge(items: Iterable[T]) -> None: self._GetContainer()[:] = merge(self.AsSequence(), sorted(items))
         
-        if items is not None: IterateFromAllItems(items, _merge, self._InvalidateViews)
+        return TryIterateFromAllItems(items, _merge, self._InvalidateViews) is True
     
     @final
     def SliceAt(self, key: slice) -> ISortedList[T]: return SortedList[T](self._GetContainer()[key])

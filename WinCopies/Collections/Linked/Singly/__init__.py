@@ -14,10 +14,10 @@ from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, IEnumerableLinkedListCookie, LinkedNodeBase
 from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollectionBase, CollectionRegistries
 
-from WinCopies.Delegates import NoAction
+from WinCopies.Delegates import BoolFalse
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Action, Method, Function, Converter, ItemComparison, IFunction, ValueFunctionUpdater, SelectionUpdater
+from WinCopies.Typing.Delegate import Method, Function, Predicate, Converter, ItemComparison, IFunction, ValueFunctionUpdater, SelectionUpdater
 from WinCopies.Typing.Generic import GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 class IReadOnlyListBase[T](IReadOnlyCollection):
@@ -37,22 +37,18 @@ class IListBase[T](IReadOnlyListBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def __TryPush(self, items: Iterable[T]|None, adder: Method[Iterable[T]]) -> bool:
-        if items is None: return False
-        
-        adder(items)
-
-        return True
+    def __TryPush(self, items: Iterable[T]|None, adder: Predicate[Iterable[T]]) -> bool|None:
+        return None if items is None else adder(items)
     
     @abstractmethod
     def Push(self, value: T) -> None:
         ...
     
     @abstractmethod
-    def PushRange(self, items: Iterable[T]) -> None:
+    def PushRange(self, items: Iterable[T]) -> bool:
         ...
     @final
-    def TryPushRange(self, items: Iterable[T]|None) -> bool:
+    def TryPushRange(self, items: Iterable[T]|None) -> bool|None:
         return self.__TryPush(items, self.PushRange)
     
     @final
@@ -60,10 +56,10 @@ class IListBase[T](IReadOnlyListBase[T]):
         self.PushRange(values)
     
     @abstractmethod
-    def PushItems(self, items: Iterable[T]) -> None:
+    def PushItems(self, items: Iterable[T]) -> bool:
         ...
     @final
-    def TryPushItems(self, items: Iterable[T]|None) -> bool:
+    def TryPushItems(self, items: Iterable[T]|None) -> bool|None:
         return self.__TryPush(items, self.PushItems)
     
     @final
@@ -208,7 +204,7 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
         self.__count += 1
 
     @final
-    def __Push(self, items: Iterable[TItems], push: Converter[IList[TItems], Method[Iterable[TItems]]]) -> None:
+    def __Push(self, items: Iterable[TItems], push: Converter[IList[TItems], Predicate[Iterable[TItems]]]) -> bool:
         i: int = 0
         
         def loop() -> Generator[TItems]:
@@ -222,6 +218,8 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
         push(self._GetInnerContainer())(loop())
 
         self.__count += i
+
+        return i > 0
     
     @final
     def Push(self, value: TItems) -> None:
@@ -229,9 +227,9 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
 
         self.__Increment()
     @final
-    def PushItems(self, items: Iterable[TItems]) -> None: self.__Push(items, lambda items: items.PushItems)
+    def PushItems(self, items: Iterable[TItems]) -> bool: return self.__Push(items, lambda items: items.PushItems)
     @final
-    def PushRange(self, items: Iterable[TItems]) -> None: self.__Push(items, lambda items: items.PushRange)
+    def PushRange(self, items: Iterable[TItems]) -> bool: return self.__Push(items, lambda items: items.PushRange)
     
     @final
     def TryPeek(self) -> INullable[TItems]: return self._GetInnerContainer().TryPeek()
@@ -662,15 +660,19 @@ class _IAdder[T](_IAdderBase[T]):
         ...
 
     @final
-    def _PushRange(self, items: Iterable[T], weld: ItemComparison[INodeCookie[T], None], range: bool) -> None:
-        def createCookie(item: T) -> INodeCookie[T]: return self._CreateCookie(item)
-        
+    def _PushRange(self, items: Iterable[T], weld: ItemComparison[INodeCookie[T], None], range: bool) -> bool:
         action: Method[T]|None = None
-        _weld: Action = NoAction
+        _weld: Function[bool] = BoolFalse
 
         def addCookie(item: T) -> None:
             nonlocal action
             nonlocal _weld
+
+            def createCookie(item: T) -> INodeCookie[T]: return self._CreateCookie(item)
+            def __weld() -> bool:
+                self._Weld(first, cookie, range)
+
+                return True
 
             tmp: INodeCookie[T]|None = None
             first: INodeCookie[T] = createCookie(item)
@@ -687,16 +689,16 @@ class _IAdder[T](_IAdderBase[T]):
             self._InvalidateViews()
 
             action = addCookie
-            _weld = lambda: self._Weld(first, cookie, range)
+            _weld = __weld
 
         action = addCookie
 
         for item in items: action(item)
 
-        _weld()
+        return _weld()
 
     @final
-    def PushRange(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: cookie.SetNext(node.GetNode()), True)
+    def PushRange(self, items: Iterable[T]) -> bool: return self._PushRange(items, lambda cookie, node: cookie.SetNext(node.GetNode()), True)
 
 class _IQueueAdder[T](_IAdder[T], ILastNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
@@ -710,7 +712,7 @@ class _IQueueAdder[T](_IAdder[T], ILastNodeProvider[T]):
         self._SetLastCookie(last)
     
     @final
-    def PushItems(self, items: Iterable[T]) -> None: self.PushRange(items)
+    def PushItems(self, items: Iterable[T]) -> bool: return self.PushRange(items)
 
 class _IStackAdder[T](_IAdder[T]):
     def __init__(self) -> None: super().__init__()
@@ -730,7 +732,7 @@ class _IStackAdder[T](_IAdder[T]):
         self._OnSetLast(first) if _first is None else first.SetNext(_first.GetNode())
     
     @final
-    def PushItems(self, items: Iterable[T]) -> None: self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
+    def PushItems(self, items: Iterable[T]) -> bool: return self._PushRange(items, lambda cookie, node: node.SetNext(cookie.GetNode()), False)
 
 class QueueBase[T](ListBase[T], AbstractQueue[T], _IQueueAdder[T], IQueue[T], INodeUnsetter):
     def __init__(self) -> None: super().__init__()
@@ -1049,9 +1051,9 @@ class CountableList[TItem, TList](Abstract, ICountableList[TItem], GenericConstr
     @final
     def Push(self, value: TItem) -> None: self._GetInnerContainer().Push(value)
     @final
-    def PushItems(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushItems(items)
+    def PushItems(self, items: Iterable[TItem]) -> bool: return self._GetInnerContainer().PushItems(items)
     @final
-    def PushRange(self, items: Iterable[TItem]) -> None: self._GetInnerContainer().PushRange(items)
+    def PushRange(self, items: Iterable[TItem]) -> bool: return self._GetInnerContainer().PushRange(items)
     
     @final
     def TryPop(self) -> INullable[TItem]: return self._GetInnerContainer().TryPop()

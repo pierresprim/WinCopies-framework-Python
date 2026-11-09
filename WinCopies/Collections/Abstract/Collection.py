@@ -32,7 +32,7 @@ from WinCopies.Collections.Util import GetSequenceIndex, GetDuplicateItemError, 
 
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
-from WinCopies.Typing.Delegate import Method, Converter, IndexedValueAction, IFunction, ValueFunctionUpdater
+from WinCopies.Typing.Delegate import Method, Predicate, Converter, IndexedValueAction, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Generic import GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
 
 @final
@@ -208,14 +208,14 @@ class _Buffer[TIn, TOut](_ReadOnlyBufferBase[TIn, TOut, IList[TIn], IList[TOut],
         return self._AsCursor(self._GetSource())
 
     @final
-    def __Push(self, items: Iterable[TOut], selector: Converter[ICountableEnumerableList[TIn], Method[Iterable[TIn]]]) -> None: selector(self.__AsCursor())(Select(items, self._GetBufferSource().ConvertBack))
+    def __Push(self, items: Iterable[TOut], selector: Converter[ICountableEnumerableList[TIn], Predicate[Iterable[TIn]]]) -> bool: return selector(self.__AsCursor())(Select(items, self._GetBufferSource().ConvertBack))
 
     @final
     def Push(self, value: TOut) -> None: self.__AsCursor().Push(self._GetBufferSource().ConvertBack(value))
     @final
-    def PushItems(self, items: Iterable[TOut]) -> None: self.__Push(items, lambda cursor: cursor.PushItems)
+    def PushItems(self, items: Iterable[TOut]) -> bool: return self.__Push(items, lambda cursor: cursor.PushItems)
     @final
-    def PushRange(self, items: Iterable[TOut]) -> None: self.__Push(items, lambda cursor: cursor.PushRange)
+    def PushRange(self, items: Iterable[TOut]) -> bool: return self.__Push(items, lambda cursor: cursor.PushRange)
     
     @final
     def TryPop(self) -> INullable[TOut]: return self._Convert(self.__AsCursor().TryPop())
