@@ -1070,7 +1070,7 @@ class _IQueuedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[T
     @final
     def PushItems(self, items: Iterable[TItem]) -> bool: return self._GetSpecializedContainer().AddLastItems(items) # TODO: Should add in range
     @final
-    def PushRange(self, items: Iterable[TItem]) -> bool: return self.PushRange(items) # TODO: Should add in range
+    def PushRange(self, items: Iterable[TItem]) -> bool: return self.PushItems(items) # TODO: Should add in range
 class _IStackedCursor[TItem, TList](_IList[TItem], GenericSpecializedConstraint[TList, IReadOnlyEnumerableList[TItem], IReadWriteEnumerableList[TItem]]):
     def __init__(self) -> None: super().__init__()
 
