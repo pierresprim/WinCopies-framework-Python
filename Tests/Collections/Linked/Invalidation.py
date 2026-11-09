@@ -10,6 +10,12 @@ register their enumerators since 280c1d1b, and their Move(), which rotates them,
 0fcb3eef. An enumerator registers when it starts: one not yet started reads what the collection
 holds at its start, and one that has ended is no longer registered (Enumeration 6.4 §2, 6.5 §2.5).
 Neither can be invalidated, so the benches start every enumerator they invalidate.
+
+An invalidated enumerator is told by MoveNext(), which raises InvalidatedError, and by the Python
+protocol; TryMoveNext() answers False (N6, Enumeration 6.1). The benches step with MoveNext(): the
+enumerators read here are wrappers, the value enumerator over its node enumerator and the
+enumerator of the read-only view, and a wrapper still raises from TryMoveNext() when its source is
+invalidated, and ends Faulted rather than Invalidated (Q12, Enumeration 6.1 §1.3).
 """
 
 import unittest
@@ -69,7 +75,7 @@ _SELF_READINGS: ReadOnlyArray[tuple[str, Callable[[_List], object]]] = (
 def _read(enumerator: IEnumerator[int]) -> ReadOnlyArray[int]:
     read: list[int] = []
 
-    while enumerator.TryMoveNext(): read.append(enumerator.GetCurrent())
+    while enumerator.MoveNext(): read.append(enumerator.GetCurrent())
 
     return tuple(read)
 
@@ -79,7 +85,7 @@ class TestAWriteInvalidatesTheRunningEnumerators(unittest.TestCase):
 
         if enumerator is None: self.fail("the collection gave no enumerator")
 
-        for _ in range(steps): self.assertTrue(enumerator.TryMoveNext(), f"the enumerator ended before step {steps}")
+        for _ in range(steps): self.assertTrue(enumerator.MoveNext(), f"the enumerator ended before step {steps}")
 
         return enumerator
 
@@ -94,7 +100,7 @@ class TestAWriteInvalidatesTheRunningEnumerators(unittest.TestCase):
 
                             write(items)
 
-                            with self.assertRaises(InvalidatedError, msg = f"{label} on the {name} left an enumerator from {path} running after {steps} step(s)"): enumerator.TryMoveNext()
+                            with self.assertRaises(InvalidatedError, msg = f"{label} on the {name} left an enumerator from {path} running after {steps} step(s)"): enumerator.MoveNext()
 
     def __assertLeavesRunning[T: _List](self, rows: ReadOnlyArray[tuple[str, Converter[Iterable[int], T]]], writes: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Callable[[T], object]]]) -> None:
         for name, create in rows:
