@@ -465,7 +465,7 @@ class INodeManager[T](INodeProvider[T], INodeUnsetter):
 def _TryGetNode[T](cookie: INodeCookie[T]|None) -> SinglyLinkedNode[T]|None:
     return None if cookie is None else cookie.GetNode()
 
-class AbstractList[T](IReadOnlyList[T], IFirstNodeProvider[T]):
+class AbstractList[T](IReadOnlyList[T], IViewProvider, IFirstNodeProvider[T]):
     def __init__(self) -> None: super().__init__()
 
     @final

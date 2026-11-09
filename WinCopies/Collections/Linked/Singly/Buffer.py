@@ -201,6 +201,8 @@ class BufferBase[T](AbstractBuffer[T], IBufferBase):
 
         if result is None: return None
         if result[1] is None: return False
+
+        self._InvalidateViews()
         
         self._OnSetFirst(result[1], result[0])
         
@@ -355,6 +357,9 @@ class _CountableBufferBase[TItem, TList](CountableCollectionAbstract[TItem, TLis
     def _GetLastCookie(self) -> INodeCookie[TItem]|None: return self._GetCookie().GetLast()
     @final
     def _SetLastCookie(self, node: INodeCookie[TItem]) -> None: self._GetCookie().SetLast(node)
+
+    @final
+    def _InvalidateViews(self) -> None: pass
     
     @abstractmethod
     def AsReadOnly(self) -> IReadOnlyCountableBuffer[TItem]:
