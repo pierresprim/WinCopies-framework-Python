@@ -36,7 +36,7 @@ from WinCopies.Typing.Delegate import Function, Converter
 
 type _Factory = Function[IListBase[int]]
 type _Creator = Converter[Iterable[int], IListBase[int]]
-type _Push = Callable[[IListBase[int], Iterable[int]], None]
+type _Push = Callable[[IListBase[int], Iterable[int]], bool]
 type _Observation = tuple[int|None, int|None, ReadOnlyArray[int]|None]
 
 _PUSHED: ReadOnlyArray[int] = (1, 2, 3)

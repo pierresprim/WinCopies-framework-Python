@@ -40,6 +40,8 @@ from unittest import mock
 
 
 import WinCopies.Collections.Enumeration.Core as Core
+import WinCopies.Collections.Linked.Singly as Singly
+import WinCopies.Collections.Linked.Singly.Buffer as Buffer
 
 from WinCopies import Abstract
 
@@ -53,6 +55,8 @@ from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # the real registry chain, and no public entry point exposes it.
 from WinCopies.Collections.Extensions.Enumeration import EnumeratorRegistry, TupleEnumerator, ResumableTupleEnumerator
 from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Linked.Doubly.Welded import CreateList as CreateDoublyList
+from WinCopies.Collections.Linked.Enumeration import NodeEnumeratorAbstract
 from WinCopies.Collections.Registry import IObjectRegistrar
 from WinCopies.Collections.Registry.Collection import _Registrar # pyright: ignore[reportPrivateUsage]
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
@@ -1327,14 +1331,30 @@ class TestWhoOptsIn(unittest.TestCase):
         """The promise of `Enumeration/5.0`, held on the structure rather than on a timing: no registrar, no
         revocator, no allocation for an enumerator that does not declare the invalidation. The tuple
         enumerators declare it, and with them the enumerators a mutable list delivers; the iterator,
-        the index enumerator below the tuple and the wrappers do not. The enumerators of the linked
-        lists are left out: the porting of the invalidation decides them."""
+        the index enumerator below the tuple and the wrappers do not. Since 27603402, every node
+        enumerator of the linked lists declares it, a value enumerator through the node enumerator
+        it reads (Enumeration 6.5 §2.1): those of the eight enumerable singly linked types, which
+        register them, and those of the doubly linked lists, which do not register them yet
+        (Enumeration 6.5 §4.4)."""
 
         items = CreateList([1, 2])
+        linked: ReadOnlyArray[tuple[str, Singly.IEnumerableList[int]]] = (
+            ("EnumerableQueue", Singly.EnumerableQueue[int]((1, 2))),
+            ("EnumerableStack", Singly.EnumerableStack[int]((1, 2))),
+            ("CountableEnumerableQueue", Singly.CountableEnumerableQueue[int]((1, 2))),
+            ("CountableEnumerableStack", Singly.CountableEnumerableStack[int]((1, 2))),
+            ("EnumerableBufferedQueue", Buffer.EnumerableBufferedQueue[int]((1, 2))),
+            ("EnumerableBufferedStack", Buffer.EnumerableBufferedStack[int]((1, 2))),
+            ("CountableEnumerableBufferedQueue", Buffer.CountableEnumerableBufferedQueue[int]((1, 2))),
+            ("CountableEnumerableBufferedStack", Buffer.CountableEnumerableBufferedStack[int]((1, 2))))
+        doubly = CreateDoublyList((1, 2))
         rows: ReadOnlyArray[tuple[str, Function[Any], bool]] = (
             ("TupleEnumerator", lambda: TupleEnumerator(items), True),
             ("ResumableTupleEnumerator", lambda: ResumableTupleEnumerator(items), True),
             ("List.TryGetEnumerator()", items.TryGetEnumerator, True),
+            *((f"Singly: {name}.TryGetEnumerator()", collection.TryGetEnumerator, True) for name, collection in linked),
+            ("Doubly: Welded.List.TryGetEnumerator()", doubly.TryGetEnumerator, True),
+            ("Doubly: Welded.List.TryGetNodeEnumerator()", doubly.TryGetNodeEnumerator, True),
             ("Iterator", lambda: Iterator(iter((1, 2))), False),
             ("an index enumerator", lambda: _Counter(2), False),
             ("Selector", lambda: Selector(Iterator(iter((1, 2)))), False),
@@ -1445,6 +1465,12 @@ class TestTheOptInBenchesCanFail(unittest.TestCase):
         """The first draft of 392ead1: `_CanInvalidate` defined on `EnumeratorBase`, ahead of the interface."""
 
         self.__assertFalls(TestWhoOptsIn, "test_only_a_declared_enumerator_builds_the_invalidation_machinery", EnumeratorBase, {"_CanInvalidate": _shadowed})
+
+    def test_the_table_falls_when_the_node_enumerators_do_not_opt_in(self) -> None:
+        """As before 27603402: the node enumerators of the linked lists built no machinery, and the
+        value enumerators that read them none either."""
+
+        self.__assertFalls(TestWhoOptsIn, "test_only_a_declared_enumerator_builds_the_invalidation_machinery", NodeEnumeratorAbstract, {"_CanInvalidate": _shadowed})
 
     def test_the_refusal_bench_falls_when_the_null_component_accepts_in_silence(self) -> None:
         """The first draft of 392ead1: a registrar accepted and never registered, a registry ignored.
