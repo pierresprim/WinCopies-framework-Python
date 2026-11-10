@@ -15,6 +15,7 @@ throughout.
 """
 
 import unittest
+from contextlib import ExitStack
 from typing import Any
 from unittest import mock
 
@@ -31,6 +32,7 @@ from WinCopies.Collections.ObjectModel.Collection import (CollectionChangedActio
 from WinCopies.Typing import INullable, InvalidOperationError
 from WinCopies.Typing.Delegate import Function, Converter, NullablePredicate
 from WinCopies.Typing.Delegate.Event import EventMonitor
+from WinCopies.Typing.Monitoring import Monitor
 
 type _Call = NullablePredicate[ObservableCollection[int]]
 type _Record = tuple[str, CollectionChangedAction]
@@ -824,10 +826,13 @@ class TestTheObservableCollectionBenchesCanFail(unittest.TestCase):
     one, and red on their assertions rather than on an error. The views are reached through the objects;
     EventMonitor and BufferedStackBase by their public names."""
 
-    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any]) -> None:
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any], alsoRebuilt: ReadOnlyArray[tuple[Any, dict[str, Any]]] = ()) -> None:
         self.assertTrue(_runBench(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
 
-        with mock.patch.multiple(target, **rebuilt): broken: unittest.TestResult = _runBench(bench, name)
+        with ExitStack() as patches:
+            for other, members in ((target, rebuilt),) + alsoRebuilt: patches.enter_context(mock.patch.multiple(other, **members))
+
+            broken: unittest.TestResult = _runBench(bench, name)
 
         self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
         self.assertEqual(broken.errors, [], f"{name} fell on an error rather than on its assertions")
@@ -895,11 +900,15 @@ class TestTheObservableCollectionBenchesCanFail(unittest.TestCase):
     def test_the_subscription_bench_falls_when_subscribing_enters_the_busy_monitor(self) -> None:
         """As at 870a5d1: _AddHandler entered the monitor without asserting it free, and leaving it freed
         it. EventMonitor carries _AddHandler; its monitor is read under the name Python gives
-        EventMonitor.__monitor, the attribute that version used."""
+        EventMonitor.__monitor, the attribute that version used. Since 654492f1, Monitor.Initialize
+        refuses a busy monitor by itself, which would refuse the rebuilt _AddHandler in its place: it is
+        rebuilt as it stood then, setting the flag without a check."""
 
         def entering(self: Any, eventManager: Any, handler: Any) -> Any:
             with self._EventMonitor__monitor: return eventManager.Add(handler)
 
-        self.__assertFalls(TestAHandlerCannotChangeTheCollectionItListensTo, "test_subscribing_from_a_handler_is_refused", EventMonitor, {"_AddHandler": entering})
+        def unchecked(self: Any) -> None: setattr(self, "_Monitor__isBusy", True)
+
+        self.__assertFalls(TestAHandlerCannotChangeTheCollectionItListensTo, "test_subscribing_from_a_handler_is_refused", EventMonitor, {"_AddHandler": entering}, ((Monitor, {"Initialize": unchecked}),))
 
 if __name__ == "__main__": unittest.main()
