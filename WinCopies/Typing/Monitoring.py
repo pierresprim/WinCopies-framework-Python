@@ -23,7 +23,10 @@ class Monitor(Abstract, IMonitor):
         self.__isBusy: bool = False
     
     @final
-    def Initialize(self) -> None: self.__isBusy = True
+    def Initialize(self) -> None:
+        if self.IsBusy(): ThrowMonitorBusyError()
+
+        self.__isBusy = True
     
     @final
     def IsBusy(self) -> bool: return self.__isBusy

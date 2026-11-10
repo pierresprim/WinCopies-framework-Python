@@ -7,6 +7,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Linked.Singly import IEnumerableList
 from WinCopies.Collections.Linked.Doubly.Node import INode
 from WinCopies.Collections.Linked.Doubly.Welded import IList, List
+from WinCopies.Enums import ErrorMessages
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Monitoring import IWorker, IMonitor, Monitor
 
@@ -234,7 +235,7 @@ class EventMonitor(Abstract, IEventMonitor):
     
     @final
     def AssertReentrancy(self) -> None:
-        if self.__monitor.IsBusy(): raise InvalidOperationError("No reentrancy allowed.")
+        if self.__monitor.IsBusy(): raise InvalidOperationError(ErrorMessages.ReentrancyNotAllowed.value)
     
     def _AddHandler[TSender, TArgs](self, eventManager: IEventManager[TSender, TArgs], handler: EventHandler[TSender, TArgs]) -> IEvent:
         self.AssertReentrancy()
