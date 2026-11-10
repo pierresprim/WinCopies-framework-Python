@@ -5,7 +5,7 @@ from datetime import date, time, datetime, timedelta
 from decimal import Decimal as decimal
 from enum import Enum
 from typing import final, Any, Type as TypeBase
-from weakref import finalize, ref, ReferenceType
+from weakref import finalize, ref
 
 from WinCopies import IInterface, IDisposable, IStringable, Abstract
 from WinCopies.Collections.Generation import IRemovable
@@ -798,13 +798,9 @@ class Finalizer(Abstract, IRemovable):
     def Remove(self) -> None: self.__remove()
 class WeakReferenceFinalizer[T](Finalizer):
     def __init__(self, obj: T, action: Action) -> None:
-        def tryGetValue() -> T|None: return _ref()
-
         super().__init__(obj, action)
 
-        _ref: ReferenceType[T] = ref(obj)
-
-        self.__tryGetValue: NullableFunction[T] = tryGetValue
+        self.__tryGetValue: NullableFunction[T] = ref(obj)
     
     def TryGetValue(self) -> T|None: return self.__tryGetValue()
     
@@ -818,8 +814,7 @@ class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalid
             obj: IInvalidatable|None = self.TryGetValue()
 
             if obj is not None:
-                if invalidate: obj.Invalidate()
-                else: obj.Dispose()
+                obj.Invalidate() if invalidate else obj.Dispose()
 
                 self.Remove()
 
