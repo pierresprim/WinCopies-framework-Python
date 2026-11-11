@@ -8,7 +8,7 @@ from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import EnumerateSafe
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Method
+from WinCopies.Typing.Delegate import Action, Method, Function
 from WinCopies.Typing.Monitoring import IMonitor, Monitor
 from WinCopies.Typing.Object import WeakReferenceFinalizer
 
@@ -114,24 +114,22 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
         def Remove(self) -> None: self.__remove()
 
-    def __CreateRemovable(self, action: INotifyCallback) -> tuple[_Node, IRemovable]:
-        node: _InvalidationNotifier._Removable = object.__new__(_InvalidationNotifier._Removable)
-        _node: _Node = _Node(action, lambda: self._OnNodeRemoved(_node, False))
+    @staticmethod
+    def __CreateNode(action: INotifyCallback, notifier: Function[_InvalidationNotifier]) -> _Node:
+        node: _Node = _Node(action, lambda: notifier()._OnNodeRemoved(node, False))
 
-        _InvalidationNotifier._Removable.__init__(node, self, _node)
-
-        return (_node, node)
+        return node
 
     @staticmethod
     def Create(action: INotifyCallback, updater: Method[IInvalidationNotifier]) -> IRemovable:
-        notifier: _InvalidationNotifier = object.__new__(_InvalidationNotifier)
-        _node, node = notifier.__CreateRemovable(action)
+        notifier: _InvalidationNotifier
+        node: _Node = _InvalidationNotifier.__CreateNode(action, lambda: notifier)
 
-        _InvalidationNotifier.__init__(notifier, _node, updater)
+        notifier = _InvalidationNotifier(node, updater)
 
         updater(notifier)
 
-        return node
+        return _InvalidationNotifier._Removable(notifier, node)
     
     def __init__(self, first: _Node, updater: Method[IInvalidationNotifier]) -> None:
         super().__init__(updater)
@@ -165,12 +163,12 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
     def Add(self, action: INotifyCallback) -> IRemovable:
         with self.__monitor:
-            _node, node = self.__CreateRemovable(action)
+            node: _Node = _InvalidationNotifier.__CreateNode(action, lambda: self)
 
-            self.__last.SetNext(_node)
-            self.__last = _node
+            self.__last.SetNext(node)
+            self.__last = node
 
-            return node
+            return _InvalidationNotifier._Removable(self, node)
 
         raise
 
