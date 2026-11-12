@@ -6,6 +6,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Enumeration import IterationState, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration.Notification import INotifyCallback, IInvalidationNotifier, IInvalidationNotifierProvider, InvalidationNotifier
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
 from WinCopies.Collections.Registry.Invalidation import IInvalidationRegistrar, IManagedInvalidationRegistrar, ManagedInvalidationRegistrar
@@ -18,7 +19,14 @@ from WinCopies.Typing.Delegate import Action, Method, Function, Selector as Sele
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable
 from WinCopies.Typing.Monitoring import IMonitor, Monitor, DoWork, Process, ProcessData
 
-class _IEnumeratorInvalidation(IInterface):
+class _IInvalidationNotifierProvider(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetSourceNotifier(self) -> IInvalidationNotifier|None:
+        ...
+
+class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -33,6 +41,10 @@ class _IEnumeratorInvalidation(IInterface):
         ...
     @abstractmethod
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
+        ...
+
+    @abstractmethod
+    def Notify(self, revoke: bool) -> None:
         ...
 
 class IEnumeratorBase(IInterface):
@@ -269,6 +281,10 @@ class _NullEnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
 
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar, monitor: IMonitor) -> IRemovable: _ThrowNotInvalidatable()
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: _ThrowNotInvalidatable()
+
+    def GetSourceNotifier(self) -> None: return None
+
+    def Notify(self, revoke: bool) -> None: pass
 @final
 class _EnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
     def __init__(self, revocator: Action, invalidator: Action) -> None:
@@ -276,12 +292,17 @@ class _EnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
 
         self.__revocator: IInvalidatable = _EnumeratorRevocator(revocator)
         self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(invalidator))
+        self.__notifier: IInvalidationNotifierProvider = InvalidationNotifier()
 
     def RegisterInvalidationRegistrar(self) -> None: self.__invalidationRegistrar.Register()
     def UnregisterInvalidationRegistrar(self) -> None: self.__invalidationRegistrar.Unregister()
 
     def AddRegistrar(self, invalidationRegistrar: IInvalidationRegistrar, monitor: IMonitor) -> IRemovable: return ProcessData(invalidationRegistrar, monitor, self.__invalidationRegistrar.Push, ErrorMessages.ReentrancyNotAllowed)
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None: registry.RegisterObject(self.__revocator)
+
+    def GetSourceNotifier(self) -> IInvalidationNotifier: return self.__notifier.AsNotifier()
+
+    def Notify(self, revoke: bool) -> None: self.__notifier.Notify(revoke)
 
 __nullEnumeratorInvalidation: _IEnumeratorInvalidation = _NullEnumeratorInvalidation()
 
@@ -301,10 +322,56 @@ class _IInvalidatableEnumeratorBase(IEnumeratorBase):
     def _Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
         ...
 
-class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
+@final
+class _NotifyCallback(Abstract, INotifyCallback):
+    def __init__(self, revocator: Action, invalidator: Action) -> None:
+        super().__init__()
+
+        self.__revocator: Action = revocator
+        self.__invalidator: Action = invalidator
+
+    def Notify(self, revoke: bool) -> None: self.__revocator() if revoke else self.__invalidator()
+
+class ISubscription(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetCallback(self) -> INotifyCallback:
+        ...
+    @abstractmethod
+    def GetNode(self) -> IRemovable:
+        ...
+class Subscription(Abstract, ISubscription):
+    def __init__(self, callback: INotifyCallback, node: IRemovable) -> None:
+        super().__init__()
+
+        self.__callback: INotifyCallback = callback
+        self.__node: IRemovable = node
+
+    @final
+    def GetCallback(self) -> INotifyCallback: return self.__callback
+    @final
+    def GetNode(self) -> IRemovable: return self.__node
+
+class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
     def __init__(self) -> None:
-        def getInvalidationAction(revoke: bool) -> Action:
-            return (lambda: self.__Abort(True)) if revoke else (lambda: self.__Abort(False))
+        def getInvalidation() -> tuple[_IEnumeratorInvalidation, ISubscription|None]:
+            def getInvalidationAction(revoke: bool) -> Action:
+                return (lambda: self.__Abort(True)) if revoke else (lambda: self.__Abort(False))
+            
+            def subscribe(notifier: IInvalidationNotifier) -> ISubscription:
+                callback: INotifyCallback = _NotifyCallback(revocator, invalidator)
+                
+                return Subscription(callback, notifier.Add(callback))
+
+            revocator: Action = getInvalidationAction(True)
+            invalidator: Action = getInvalidationAction(False)
+            
+            invalidation: _IEnumeratorInvalidation = _EnumeratorInvalidation(revocator, invalidator) if self._CanInvalidate() else _GetNullEnumeratorInvalidation()
+
+            notifier: IInvalidationNotifier|None = self._GetNotifier()
+
+            return (invalidation, None) if notifier is None else (invalidation, subscribe(notifier))
 
         super().__init__()
 
@@ -317,7 +384,10 @@ class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
-        self.__invalidation: _IEnumeratorInvalidation = _EnumeratorInvalidation(getInvalidationAction(True), getInvalidationAction(False)) if self._CanInvalidate() else _GetNullEnumeratorInvalidation()
+        invalidation, invalidator = getInvalidation()
+
+        self.__invalidation: _IEnumeratorInvalidation = invalidation
+        self.__invalidator: ISubscription|None = invalidator
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
@@ -479,7 +549,10 @@ class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
             return False
 
         if self.__monitor.IsBusy(): self.__moveNext = invalidate
-        else: self.__DoWork(lambda: self.__Terminate(EnumerationAbortReason.Revoked if revoke else EnumerationAbortReason.Invalidated))
+        else:
+            self.__DoWork(lambda: self.__Terminate(EnumerationAbortReason.Revoked if revoke else EnumerationAbortReason.Invalidated))
+            
+            self.__invalidation.Notify(revoke)
     
     @final
     def __Stop(self) -> None:
@@ -489,6 +562,19 @@ class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
     def __OnTerminated(self, completed: bool) -> None:
         self._OnTerminated(completed)
         self._OnEnded()
+
+    @final
+    def _GetCallback(self) -> ISubscription|None:
+        return self.__invalidator
+
+    @abstractmethod
+    def _GetNotifier(self) -> IInvalidationNotifier|None:
+        ...
+    @final
+    def GetSourceNotifier(self) -> IInvalidationNotifier|None:
+        notifier: IInvalidationNotifier|None = self._GetNotifier()
+
+        return self.__invalidation.GetSourceNotifier() if notifier is None else notifier
 
     @abstractmethod
     def _GetCurrent(self) -> T:
@@ -579,6 +665,11 @@ class EnumeratorBase[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
             return None
 
         return self.__Process(tryReset)
+class EnumeratorBase[T](EnumeratorAbstract[T]):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def _GetNotifier(self) -> IInvalidationNotifier|None: return None
 
 class _EnumeratorBase[T](EnumeratorBase[T]):
     def __init__(self) -> None: super().__init__()
