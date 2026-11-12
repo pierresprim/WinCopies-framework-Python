@@ -386,10 +386,10 @@ class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
         self.__status: IterationStatus = IterationStatus()
         self.__monitor: IMonitor = Monitor()
 
-        invalidation, invalidator = getInvalidation()
+        invalidation, subscription = getInvalidation()
 
         self.__invalidation: _IEnumeratorInvalidation = invalidation
-        self.__invalidator: ISubscription|None = invalidator
+        self.__subscription: ISubscription|None = subscription
     
     @final
     def __Process[U](self, func: Function[U]) -> U:
@@ -566,8 +566,8 @@ class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
         self._OnEnded()
 
     @final
-    def _GetCallback(self) -> ISubscription|None:
-        return self.__invalidator
+    def _GetSubscription(self) -> ISubscription|None:
+        return self.__subscription
 
     @abstractmethod
     def _GetNotifier(self) -> IInvalidationNotifier|None:
