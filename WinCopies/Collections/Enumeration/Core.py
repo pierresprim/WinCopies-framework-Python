@@ -47,7 +47,7 @@ class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
     def Notify(self, revoke: bool) -> None:
         ...
 
-class IEnumeratorBase(IInterface):
+class IEnumeratorBase(_IInvalidationNotifierProvider):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -60,6 +60,8 @@ class IEnumeratorBase(IInterface):
     @abstractmethod
     def GetStatus(self) -> IIterationStatus:
         ...
+
+    def GetSourceNotifier(self) -> IInvalidationNotifier|None: return None
     
     @abstractmethod
     def TryMoveNext(self) -> bool:
