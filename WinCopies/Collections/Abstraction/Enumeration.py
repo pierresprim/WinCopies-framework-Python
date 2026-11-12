@@ -100,31 +100,31 @@ class _ResumableEnumerator[T](AbstractEnumeratorBase[T, T, IResumableEnumerator[
     def Resume(self, cursor: IResumableEnumerationCursor|None = None) -> None: return self._GetContainer().Resume(cursor)
 
 def CreateEnumerable[T](enumerable: IEnumerable[T]) -> Enumerable[T]:
-    return cast(Enumerable[T], enumerable) if type(enumerable) == _Enumerable else _Enumerable[T](enumerable)
+    return cast(Enumerable[T], enumerable) if type(enumerable) is _Enumerable else _Enumerable[T](enumerable)
 def TryCreateEnumerable[T](enumerable: IEnumerable[T]|None) -> Enumerable[T]|None:
     return None if enumerable is None else CreateEnumerable(enumerable)
 
 def CreateEquatableEnumerable[T: EquatableProtocol](enumerable: IEquatableEnumerable[T]) -> EquatableEnumerable[T]:
-    return cast(EquatableEnumerable[T], enumerable) if type(enumerable) == _EquatableEnumerable else _EquatableEnumerable[T](enumerable)
+    return cast(EquatableEnumerable[T], enumerable) if type(enumerable) is _EquatableEnumerable else _EquatableEnumerable[T](enumerable)
 def TryCreateEquatableEnumerable[T: EquatableProtocol](enumerable: IEquatableEnumerable[T]|None) -> EquatableEnumerable[T]|None:
     return None if enumerable is None else CreateEquatableEnumerable(enumerable)
 
 def CreateHashableEnumerable[T: HashableProtocol](enumerable: IHashableEnumerable[T]) -> HashableEnumerable[T]:
-    return cast(HashableEnumerable[T], enumerable) if type(enumerable) == _HashableEnumerable else _HashableEnumerable[T](enumerable)
+    return cast(HashableEnumerable[T], enumerable) if type(enumerable) is _HashableEnumerable else _HashableEnumerable[T](enumerable)
 def TryCreateHashableEnumerable[T: HashableProtocol](enumerable: IHashableEnumerable[T]|None) -> HashableEnumerable[T]|None:
     return None if enumerable is None else CreateHashableEnumerable(enumerable)
 
 def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> CountableEnumerable[T]:
-    return cast(CountableEnumerable[T], enumerable) if type(enumerable) == _CountableEnumerable else _CountableEnumerable[T](enumerable)
+    return cast(CountableEnumerable[T], enumerable) if type(enumerable) is _CountableEnumerable else _CountableEnumerable[T](enumerable)
 def TryCreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]|None) -> CountableEnumerable[T]|None:
     return None if enumerable is None else CreateCountableEnumerable(enumerable)
 
 def CreateEnumerator[T](enumerator: IEnumerator[T]) -> EnumeratorAbstract[T]:
-    return cast(EnumeratorAbstract[T], enumerator) if type(enumerator) == _Enumerator else _Enumerator[T](enumerator)
+    return cast(EnumeratorAbstract[T], enumerator) if type(enumerator) is _Enumerator else _Enumerator[T](enumerator)
 def TryCreateEnumerator[T](enumerator: IEnumerator[T]|None) -> EnumeratorAbstract[T]|None:
     return None if enumerator is None else CreateEnumerator(enumerator)
 
 def CreateResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IResumableEnumerator[T]:
-    return cast(IResumableEnumerator[T], enumerator) if type(enumerator) == _ResumableEnumerator else _ResumableEnumerator[T](enumerator)
+    return cast(IResumableEnumerator[T], enumerator) if type(enumerator) is _ResumableEnumerator else _ResumableEnumerator[T](enumerator)
 def TryCreateResumableEnumerator[T](enumerator: IResumableEnumerator[T]|None) -> IResumableEnumerator[T]|None:
     return None if enumerator is None else CreateResumableEnumerator(enumerator)
