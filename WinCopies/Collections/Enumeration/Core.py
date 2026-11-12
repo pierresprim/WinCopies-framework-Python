@@ -512,7 +512,7 @@ class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
             match reason:
                 case EnumerationAbortReason.Stopped: return self.__status.Stop, self._OnStopped
                 case EnumerationAbortReason.Invalidated: return self.__status.Invalidate, None
-                case EnumerationAbortReason.Revoked: return self.__status.Revoke, lambda: self._OnTerminated(self.GetStatus().GetResult().HasCompleted())
+                case EnumerationAbortReason.Revoked: return self.__status.Revoke, None
                 case EnumerationAbortReason.Errored: return self.__status.Abort, self._OnErrored
 
                 case _: raise GetUnexpectedError()
@@ -532,10 +532,10 @@ class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
 
             return
 
-        delegates: tuple[Action, Action|None] = getDelegates()
-
         try: self.__Clear(self.IsStarted())
         finally:
+            delegates: tuple[Action, Action|None] = getDelegates()
+
             delegates[0]()
 
             self.__SetMoveNext()
