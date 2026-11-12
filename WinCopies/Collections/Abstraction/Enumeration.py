@@ -125,6 +125,6 @@ def TryCreateEnumerator[T](enumerator: IEnumerator[T]|None) -> EnumeratorAbstrac
     return None if enumerator is None else CreateEnumerator(enumerator)
 
 def CreateResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IResumableEnumerator[T]:
-    return enumerator if type(enumerator) == _ResumableEnumerator[T] else _ResumableEnumerator[T](enumerator)
+    return cast(IResumableEnumerator[T], enumerator) if type(enumerator) == _ResumableEnumerator else _ResumableEnumerator[T](enumerator)
 def TryCreateResumableEnumerator[T](enumerator: IResumableEnumerator[T]|None) -> IResumableEnumerator[T]|None:
     return None if enumerator is None else CreateResumableEnumerator(enumerator)
