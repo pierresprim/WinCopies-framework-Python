@@ -83,19 +83,17 @@ class IInvalidationNotifier(IInterface):
     @abstractmethod
     def Add(self, action: INotifyCallback) -> IRemovable:
         ...
+class _IInvalidationNotifier(INotifyCallback, IInvalidationNotifier):
+    def __init__(self) -> None: super().__init__()
 
-    @abstractmethod
-    def Notify(self, revoke: bool) -> None:
-        ...
-
-class _InvalidationNotifierBase(Abstract, IInvalidationNotifier):
-    def __init__(self, updater: Method[IInvalidationNotifier]) -> None:
+class _InvalidationNotifierBase(Abstract, _IInvalidationNotifier):
+    def __init__(self, updater: Method[_IInvalidationNotifier]) -> None:
         super().__init__()
 
-        self.__updater: Method[IInvalidationNotifier] = updater
+        self.__updater: Method[_IInvalidationNotifier] = updater
 
     @final
-    def _GetUpdater(self) -> Method[IInvalidationNotifier]:
+    def _GetUpdater(self) -> Method[_IInvalidationNotifier]:
         return self.__updater
 
 @final
@@ -121,7 +119,7 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
         return node
 
     @staticmethod
-    def Create(action: INotifyCallback, updater: Method[IInvalidationNotifier]) -> IRemovable:
+    def Create(action: INotifyCallback, updater: Method[_IInvalidationNotifier]) -> IRemovable:
         notifier: _InvalidationNotifier
         node: _Node = _InvalidationNotifier.__CreateNode(action, lambda: notifier)
 
@@ -131,7 +129,7 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
         return _InvalidationNotifier._Removable(notifier, node)
     
-    def __init__(self, first: _Node, updater: Method[IInvalidationNotifier]) -> None:
+    def __init__(self, first: _Node, updater: Method[_IInvalidationNotifier]) -> None:
         super().__init__(updater)
 
         self.__first: _Node = first
@@ -146,7 +144,7 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
                     previous: _Node|None = node.GetPrevious()
 
                     if previous is None:
-                        updater: Method[IInvalidationNotifier] = self._GetUpdater()
+                        updater: Method[_IInvalidationNotifier] = self._GetUpdater()
 
                         updater(_DefaultInvalidationNotifier(updater))
 
@@ -176,22 +174,56 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
         with self.__monitor: EnumerateSafe(Iterate(lambda: self.__first, lambda node: node.GetNext()), lambda node: node.Notify(revoke), True)
 @final
 class _DefaultInvalidationNotifier(_InvalidationNotifierBase):
-    def __init__(self, updater: Method[IInvalidationNotifier]) -> None: super().__init__(updater)
+    def __init__(self, updater: Method[_IInvalidationNotifier]) -> None: super().__init__(updater)
 
     def Add(self, action: INotifyCallback) -> IRemovable: return _InvalidationNotifier.Create(action, self._GetUpdater())
 
     def Notify(self, revoke: bool) -> None: pass
 
-class InvalidationNotifier(Abstract, IInvalidationNotifier):
+@final
+class _NotifyCallback(Abstract, INotifyCallback):
+    def __init__(self, callback: INotifyCallback) -> None:
+        super().__init__()
+
+        self.__callback: INotifyCallback = callback
+
+    def Notify(self, revoke: bool) -> None: return self.__callback.Notify(revoke)
+@final
+class _Notifier(Abstract, IInvalidationNotifier):
+    def __init__(self, notifier: IInvalidationNotifier) -> None:
+        super().__init__()
+
+        self.__notifier: IInvalidationNotifier = notifier
+
+    def Add(self, action: INotifyCallback) -> IRemovable: return self.__notifier.Add(action)
+
+class IInvalidationNotifierProvider(INotifyCallback, IInvalidationNotifier):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsCallback(self) -> INotifyCallback:
+        ...
+    @abstractmethod
+    def AsNotifier(self) -> IInvalidationNotifier:
+        ...
+class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
     def __init__(self) -> None:
-        def update(notifier: IInvalidationNotifier) -> None: self.__notifier = notifier
+        def update(notifier: _IInvalidationNotifier) -> None: self.__notifierProvider = notifier
         
         super().__init__()
 
-        self.__notifier: IInvalidationNotifier = _DefaultInvalidationNotifier(update) # type: ignore[no-redef]
+        self.__notifierProvider: _IInvalidationNotifier = _DefaultInvalidationNotifier(update) # type: ignore[no-redef]
+
+        self.__notifier: IInvalidationNotifier = _Notifier(self)
+        self.__callback: INotifyCallback = _NotifyCallback(self)
 
     @final
-    def Add(self, action: INotifyCallback) -> IRemovable: return self.__notifier.Add(action)
+    def Add(self, action: INotifyCallback) -> IRemovable: return self.__notifierProvider.Add(action)
 
     @final
-    def Notify(self, revoke: bool) -> None: self.__notifier.Notify(revoke)
+    def Notify(self, revoke: bool) -> None: self.__notifierProvider.Notify(revoke)
+
+    @final
+    def AsCallback(self) -> INotifyCallback: return self.__callback
+    @final
+    def AsNotifier(self) -> IInvalidationNotifier: return self.__notifier
