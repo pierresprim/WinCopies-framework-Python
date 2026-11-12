@@ -1,24 +1,30 @@
 from abc import abstractmethod
 from typing import final
 
-from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, EnumeratorBase
-from WinCopies.Typing import INullable, GetNullable, GetNullValue
+from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, EnumeratorAbstract
+from WinCopies.Collections.Enumeration.Notification import IInvalidationNotifier
+from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
-class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorBase[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorAbstract[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     def __init__(self, enumerator: TEnumerator) -> None:
-        super().__init__()
-        
+        if enumerator.GetStatus().IsStarted(): raise InvalidOperationError("The given enumerator is already started.")
+
         self.__enumerator: TEnumerator = enumerator
+        
+        super().__init__()
     
     @final
     def _GetContainer(self) -> TEnumerator: return self.__enumerator
+
+    @final
+    def _GetNotifier(self) -> IInvalidationNotifier|None: return self._GetContainer().GetSourceNotifier()
     
     @final
     def IsResetSupported(self) -> bool: return self._GetContainer().IsResetSupported()
     
-    def _MoveNextOverride(self) -> bool: return self._GetContainer().MoveNext()
+    def _MoveNextOverride(self) -> bool: return self._GetContainer().TryMoveNext()
     
     def _OnAborted(self) -> None: self._GetContainer().Stop()
     

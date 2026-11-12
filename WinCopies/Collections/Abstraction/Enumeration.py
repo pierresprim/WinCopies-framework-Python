@@ -4,7 +4,7 @@ from typing import final
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, Selector
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEquatableEnumerable, IHashableEnumerable, ICountableEnumerable, IEnumerator, Enumerable, CountableEnumerable, EquatableEnumerable, HashableEnumerable, EnumeratorAbstract
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator, IResumableEnumerationCursor
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 
@@ -119,9 +119,9 @@ def CreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]) -> Countab
 def TryCreateCountableEnumerable[T](enumerable: ICountableEnumerable[T]|None) -> CountableEnumerable[T]|None:
     return None if enumerable is None else CreateCountableEnumerable(enumerable)
 
-def CreateEnumerator[T](enumerator: IEnumerator[T]) -> EnumeratorBase[T]:
+def CreateEnumerator[T](enumerator: IEnumerator[T]) -> EnumeratorAbstract[T]:
     return enumerator if type(enumerator) == _Enumerator[T] else _Enumerator[T](enumerator)
-def TryCreateEnumerator[T](enumerator: IEnumerator[T]|None) -> EnumeratorBase[T]|None:
+def TryCreateEnumerator[T](enumerator: IEnumerator[T]|None) -> EnumeratorAbstract[T]|None:
     return None if enumerator is None else CreateEnumerator(enumerator)
 
 def CreateResumableEnumerator[T](enumerator: IResumableEnumerator[T]) -> IResumableEnumerator[T]:

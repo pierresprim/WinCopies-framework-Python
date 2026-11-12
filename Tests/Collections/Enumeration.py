@@ -49,7 +49,7 @@ from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List, CreateList
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator, Selector, ConverterEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorBase, Iterator
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorAbstract, EnumeratorBase, Iterator
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
@@ -84,7 +84,7 @@ def _snap(e: IEnumerator[int]) -> tuple[str, str]:
 
     return (status.GetState().name, status.GetResult().name)
 
-def _drain(e: EnumeratorBase[int]) -> None:
+def _drain(e: EnumeratorAbstract[int]) -> None:
     try:
         while e.MoveNext(): pass
     
