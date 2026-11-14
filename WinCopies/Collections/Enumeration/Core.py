@@ -5,7 +5,7 @@ from typing import final, Any, NoReturn, Self
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Enumeration.Notification import INotifyCallback, IInvalidationNotifier, IInvalidationNotifierProvider, InvalidationNotifier
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
@@ -834,7 +834,11 @@ class IterableAbstract[TItem, TIterable](Enumerable[TItem], _IterableBase[TItem]
         ...
     
     @final
-    def TryGetEnumerator(self) -> IEnumerator[TItem]|None: return TryAsEnumerator(self._TryGetIterator())
+    def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
+        """Returns None if there is nothing to enumerate, including when the iterable is an enumerator empty by design."""
+        enumerator: IEnumerator[TItem]|None = TryAsEnumerator(self._TryGetIterator())
+
+        return None if enumerator is None or enumerator.GetStatus().GetResult() == IterationResult.NoData else enumerator
 class IterableBase[T](IterableAbstract[T, SystemIterable[T]]):
     def __init__(self) -> None: super().__init__()
 
