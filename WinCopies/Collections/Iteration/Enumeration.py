@@ -54,17 +54,6 @@ def TryConcatenateEnumerables[T](*collection: IEnumerable[T]|None) -> Generator[
 def ConcatenateEnumerables[T](*collection: IEnumerable[T]) -> Generator[T]:
     return ConcatenateItems(collection)
 
-def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Excludes items while they match a predicate, then includes the rest.
-
-    Args:
-        items: The items to process.
-        predicate: The condition to continue excluding.
-
-    Yields:
-        Items starting from the first one that doesn't match the predicate."""
-    
-    return ExcludeUntil(items, predicate if items is None else GetNotPredicate(predicate))
 def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items until one matches a predicate, then includes the rest.
 
@@ -82,6 +71,17 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
             break
     
     for item in items: yield item
+def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
+    """Excludes items while they match a predicate, then includes the rest.
+
+    Args:
+        items: The items to process.
+        predicate: The condition to continue excluding.
+
+    Yields:
+        Items starting from the first one that doesn't match the predicate."""
+    
+    return ExcludeUntil(items, predicate if items is None else GetNotPredicate(predicate))
 
 def _Any(length: int) -> bool: return length > 0
 
