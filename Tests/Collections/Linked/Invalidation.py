@@ -11,17 +11,18 @@ register their enumerators since 280c1d1b, and their Move(), which rotates them,
 holds at its start, and one that has ended is no longer registered (Enumeration 6.4 §2, 6.5 §2.5).
 Neither can be invalidated, so the benches start every enumerator they invalidate.
 
-An invalidated enumerator is told by MoveNext(), which raises InvalidatedError, and by the Python
-protocol; TryMoveNext() answers False (N6, Enumeration 6.1). The benches step with MoveNext(): the
+An invalidated enumerator answers False to TryMoveNext() and says Invalidated in its status;
+MoveNext() raises InvalidatedError, and so does the Python protocol (N6, Enumeration 6.1). The
 enumerators read here are wrappers, the value enumerator over its node enumerator and the
-enumerator of the read-only view, and a wrapper still raises from TryMoveNext() when its source is
-invalidated, and ends Faulted rather than Invalidated (Q12, Enumeration 6.1 §1.3).
+enumerator of the read-only view over it: they have told so since Q12, their source's invalidation
+reaching them through its notifier, where they used to raise from TryMoveNext() and end Faulted
+(Enumeration 6.10 §1.3, 6.14).
 """
 
 import unittest
 
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import WinCopies.Collections.Linked.Singly as Singly
@@ -29,9 +30,10 @@ import WinCopies.Collections.Linked.Singly.Buffer as Buffer
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Core import ICountable
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase
 from WinCopies.Collections.Enumeration.Core import IEnumerator
 from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
-from WinCopies.Typing.Delegate import Converter
+from WinCopies.Typing.Delegate import Converter, Function
 from WinCopies.Typing.Discard import InvalidatedError
 
 type _List = Singly.IEnumerableList[int]
@@ -79,6 +81,15 @@ def _read(enumerator: IEnumerator[int]) -> ReadOnlyArray[int]:
 
     return tuple(read)
 
+def _outcome(f: Function[object]) -> str:
+    """What a call answers, or the name of what it raises."""
+
+    try: return repr(f())
+    except Exception as ex: return type(ex).__name__
+
+def _status(enumerator: IEnumerator[int]) -> str:
+    return f"{enumerator.GetStatus().GetState().name}/{enumerator.GetStatus().GetResult().name}"
+
 class TestAWriteInvalidatesTheRunningEnumerators(unittest.TestCase):
     def __started(self, path: _Path, items: _List, steps: int) -> IEnumerator[int]:
         enumerator: IEnumerator[int]|None = path(items)
@@ -100,6 +111,10 @@ class TestAWriteInvalidatesTheRunningEnumerators(unittest.TestCase):
 
                             write(items)
 
+                            answered: str = _outcome(enumerator.TryMoveNext)
+
+                            self.assertEqual((answered, _status(enumerator)), ("False", "Ended/Invalidated"), f"after {label} on the {name}, an enumerator from {path} stepped {steps} time(s) did not tell its invalidation (N6)")
+
                             with self.assertRaises(InvalidatedError, msg = f"{label} on the {name} left an enumerator from {path} running after {steps} step(s)"): enumerator.MoveNext()
 
     def __assertLeavesRunning[T: _List](self, rows: ReadOnlyArray[tuple[str, Converter[Iterable[int], T]]], writes: ReadOnlyArray[tuple[str, ReadOnlyArray[int], Callable[[T], object]]]) -> None:
@@ -120,7 +135,9 @@ class TestAWriteInvalidatesTheRunningEnumerators(unittest.TestCase):
                         self.assertEqual(read, expected, f"after {label} on the {name}, an enumerator from {path} reads another sequence")
 
     def test_every_write_raises_at_the_next_step(self) -> None:
-        """At every position of a running enumerator: on the first item, inside, on the last."""
+        """At every position of a running enumerator: on the first item, inside, on the last. The
+        enumerator first answers False to TryMoveNext() and says Invalidated, then raises from
+        MoveNext()."""
 
         self.__assertInvalidates(_ENUMERABLES, _WRITES)
 
@@ -248,5 +265,16 @@ class TestTheInvalidationBenchesCanFail(unittest.TestCase):
 
         for name, target, member, substitute in (("_IAdder", adder, "_PushRange", eagerPushRange), ("BufferBase", Buffer.BufferBase, "Move", eagerMove)):
             with self.subTest(base = name, member = member): self.__assertFalls(TestAWriteInvalidatesTheRunningEnumerators, "test_a_write_that_writes_nothing_leaves_them_running", target, {member: substitute})
+
+    def test_the_benches_fall_on_the_wrapper_before_q12(self) -> None:
+        """Until Q12, a wrapper stepped with its source's MoveNext() and subscribed to nothing, so it
+        raised InvalidatedError from TryMoveNext() rather than answering False (Enumeration 6.10
+        §1.3). Both paths read a wrapper: the value enumerator, and the enumerator of the view."""
+
+        def stepping(self: Any) -> bool: return cast(bool, self._GetContainer().MoveNext())
+        def unsubscribed(self: Any) -> None: return None
+
+        for name in ("test_every_write_raises_at_the_next_step", "test_move_raises_at_the_next_step"):
+            with self.subTest(bench = name): self.__assertFalls(TestAWriteInvalidatesTheRunningEnumerators, name, AbstractEnumeratorBase, {"_MoveNextOverride": stepping, "_GetNotifier": unsubscribed})
 
 if __name__ == '__main__': unittest.main()

@@ -21,9 +21,10 @@ Three method constraints are inherited from that review and are load-bearing:
 Unlike the standalone harness, this module needs no abort-time reporting: each
 point is a test method, so a point that dies takes only itself down.
 
-The last section, on the opt-in invalidation of 392ead1, is not part of that
-port: it holds who builds the invalidation machinery, and is proved by benches
-of its own that can fail.
+The last two sections are not part of that port, and are proved by benches of
+their own that can fail: the opt-in invalidation of 392ead1, which holds who
+builds the invalidation machinery, and a wrapper and its source (Q12), which
+holds what a wrapper reports when its source stops, and which sources it wraps.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ import inspect
 import unittest
 import weakref
 
+from contextlib import ExitStack
 from enum import StrEnum
 from typing import Any, Type, cast
 from unittest import mock
@@ -47,8 +49,8 @@ from WinCopies import Abstract
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List, CreateList
-from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, IIterationStatus, IterationStatus
-from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator, Selector, ConverterEnumerator
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus
+from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, AbstractionEnumerator, Selector, ConverterEnumerator
 from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorAbstract, EnumeratorBase, Iterator
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
@@ -376,11 +378,24 @@ class TestTerminalSequence(unittest.TestCase):
 # Hook attribution — the endogenous/exogenous rule
 # ---------------------------------------------------------------------------
 
+def _revoked(e: _Base, sink: list[str]) -> list[str]:
+    """Revokes `e` after one step, through the revocator it hands to a registry, as a registry does."""
+
+    registry = _Objects()
+
+    e.Register(registry)
+    e.MoveNext()
+    registry.objects[0].Invalidate()
+
+    return sink
+
 class TestHookAttribution(unittest.TestCase):
     def test_specific_hooks_including_the_absence_on_invalidated(self) -> None:
         """The deliberate absence on `Invalidated`: `__Invalidate()` is private
         and only registries borrow it, so the implementer is not the party
-        addressed by that cause. Asserted so a later reader does not 'fix' it."""
+        addressed by that cause. Asserted so a later reader does not 'fix' it.
+        `Revoked` takes the same private path, through the revocator a registry
+        holds, and fires no specific hook either (Enumeration 6.14)."""
         cases: ReadOnlyArray[tuple[str, Converter[_Base, Any], str]] = (
             ("Completed", _drain, "_OnCompleted"),
             ("Failed", lambda x: x.MoveNext(), "_OnCompleted"),
@@ -407,6 +422,12 @@ class TestHookAttribution(unittest.TestCase):
             registrar.Fire()
 
             self.assertEqual(_fired(sink), "none")
+
+        with self.subTest(outcome = "Revoked"):
+            sink = []
+            e = _Base((1, 2, 3), sink = sink)
+
+            self.assertEqual(_fired(_revoked(e, sink)), "none")
 
     def test_on_aborted_fires_on_the_three_interruptions_and_only_them(self) -> None:
         """§4 — the common treatment of every outcome going through
@@ -438,8 +459,11 @@ class TestHookAttribution(unittest.TestCase):
 
         aborted["Invalidated"] = any(line.startswith("_OnAborted") for line in sink)
 
+        sink = []
+        aborted["Revoked"] = any(line.startswith("_OnAborted") for line in _revoked(_Base((1, 2, 3), sink = sink), sink))
+
         self.assertEqual(aborted, {"Completed": False, "Failed": False,
-                                   "Stopped": True, "Faulted": True, "Invalidated": True})
+                                   "Stopped": True, "Faulted": True, "Invalidated": True, "Revoked": True})
 
 # ---------------------------------------------------------------------------
 # Fault attribution
@@ -1500,5 +1524,379 @@ class TestTheOptInBenchesCanFail(unittest.TestCase):
         """The first draft of 392ead1 again, on the bench that names its cause."""
 
         self.__assertFalls(TestTheDeclarationReachesItsInterface, "test_every_declared_enumerator_resolves_the_members_of_its_interface", EnumeratorBase, {"_CanInvalidate": _shadowed})
+
+
+# ---------------------------------------------------------------------------
+# A wrapper and its source (Q12)
+# ---------------------------------------------------------------------------
+# A wrapper (`AbstractEnumeratorBase`) steps with its source's `TryMoveNext()`, and subscribes at
+# construction to the notifier its source hands out (`GetSourceNotifier()`, which a wrapper relays
+# from its own source). The source's invalidation and revocation, which its registries trigger,
+# reach the wrapper through that subscription and abort it; the classic stops of the source, its end
+# and a deliberate Stop(), are the wrapper's own end. A wrapper only wraps a source in its initial
+# state, Idle/Idle, since it shares the source's position (Enumeration 6.10 §4.3, 6.13, 6.14). Q12
+# came in with bab109da to 46a2f0fd, the guard in its present form with 6ebf66ca.
+
+def _enumerator(items: Core.IEnumerable[int]) -> IEnumerator[int]:
+    enumerator: IEnumerator[int]|None = items.TryGetEnumerator()
+
+    assert enumerator is not None
+
+    return enumerator
+
+def _hooks(e: EnumeratorAbstract[Any]) -> list[str]:
+    """Spies on the terminal hooks of one enumerator: each call writes its name to the list returned,
+    then runs the hook it replaces."""
+
+    sink: list[str] = []
+
+    def spy(name: str) -> None:
+        hook: Any = getattr(e, name)
+
+        def spied(*args: Any) -> Any:
+            sink.append(name + (f"({args[0]})" if args else ""))
+
+            return hook(*args)
+
+        setattr(e, name, spied)
+
+    for name in ("_OnCompleted", "_OnStopped", "_OnErrored", "_OnAborted", "_OnTerminated"): spy(name)
+
+    return sink
+
+def _outcome(f: Function[object]) -> str:
+    """What a call answers, or the name of what it raises."""
+
+    try: return repr(f())
+    except Exception as ex: return type(ex).__name__
+
+def _failing(value: int) -> int:
+    if value == 2: raise ValueError("conversion")
+
+    return value
+
+class _Refusing(TupleEnumerator[int]):
+    """A source whose start raises: it ends Faulted without having started."""
+
+    def _OnStarting(self) -> bool: raise ValueError("refused")
+
+type _Scene = tuple[EnumeratorAbstract[int], IEnumerator[int], Function[object]]
+
+def _invalidatedSource() -> _Scene:
+    items = CreateList([1, 2, 3])
+    source: IEnumerator[int] = _enumerator(items)
+    wrapper = Selector(source)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, lambda: items.Add(9)
+
+def _revokedSource() -> _Scene:
+    items = CreateList([1, 2, 3])
+    source: IEnumerator[int]|None = items.AsImmutable().TryGetEnumerator()
+
+    assert source is not None
+
+    wrapper = Selector(source)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, lambda: items.Add(9)
+
+def _stoppedSource() -> _Scene:
+    source = TupleEnumerator(CreateList([1, 2, 3]))
+    wrapper = Selector(source)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, source.Stop
+
+def _endingSource() -> _Scene:
+    source = TupleEnumerator(CreateList([1]))
+    wrapper = Selector(source)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, lambda: None
+
+def _faultingWrapper() -> _Scene:
+    source = TupleEnumerator(CreateList([1, 2, 3]))
+    wrapper = ConverterEnumerator(source, _failing)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, wrapper.TryMoveNext
+
+def _stoppedWrapper() -> _Scene:
+    source = TupleEnumerator(CreateList([1, 2, 3]))
+    wrapper = Selector(source)
+
+    wrapper.MoveNext()
+
+    return wrapper, source, wrapper.Stop
+
+_SCENES: ReadOnlyArray[tuple[str, Function[_Scene], ReadOnlyArray[str|bool]]] = (
+    # (event, TryMoveNext(), the wrapper, MoveNext(), the source, the specific hook, _OnAborted)
+    ("its source is invalidated", _invalidatedSource, ("None", "False", "Ended/Invalidated", "InvalidatedError", "Ended/Invalidated", "none", True)),
+    ("its source is revoked", _revokedSource, ("None", "False", "Ended/Revoked", "InvalidatedError", "Ended/Revoked", "none", True)),
+    ("its source is stopped", _stoppedSource, ("None", "False", "Ended/Completed", "False", "Ended/Stopped", "_OnCompleted", False)),
+    ("its source ends", _endingSource, ("None", "False", "Ended/Completed", "False", "Ended/Completed", "_OnCompleted", False)),
+    ("it faults on its own", _faultingWrapper, ("ValueError", "False", "Ended/Faulted", "BrokenObjectError", "Ended/Stopped", "_OnErrored", True)),
+    ("its consumer stops it", _stoppedWrapper, ("None", "False", "Ended/Stopped", "InvalidOperationError", "Ended/Stopped", "_OnStopped", True)))
+
+class TestAWrapperReportsWhatStoppedItsSource(unittest.TestCase):
+    def test_each_cause_ends_the_wrapper_as_its_own(self) -> None:
+        """Each wrapper has stepped once when the event comes. The source's invalidation and its
+        revocation are told by the wrapper as its own: TryMoveNext() answers False, MoveNext() raises
+        InvalidatedError (N6), the status names the cause, and the wrapper takes the abort path
+        without a specific hook, as the base does on these private causes (C12). A source stopped on
+        purpose or ending is the wrapper's end. A fault of the wrapper and a stop by its consumer are
+        its own outcomes, and stop the source. No event but the wrapper's own fault raises."""
+
+        for label, scene, expected in _SCENES:
+            with self.subTest(wrapper = label):
+                wrapper, source, event = scene()
+                sink: list[str] = _hooks(wrapper)
+                happened: str = _outcome(event)
+                answered: str = _outcome(wrapper.TryMoveNext)
+
+                self.assertEqual((happened, answered, _st(wrapper), _outcome(wrapper.MoveNext), _st(source), _fired(sink), "_OnAborted" in sink), expected)
+
+    def test_the_enumerator_of_a_read_only_view_tells_the_invalidation_of_its_collection(self) -> None:
+        """The use the wrappers are meant for: a collection wrapper, here the read-only view of an
+        indexable list, hands out a wrapper over the enumerator of its collection."""
+
+        items = CreateList([1, 2, 3])
+        enumerator: IEnumerator[int]|None = items.AsReadOnly().TryGetEnumerator()
+
+        assert enumerator is not None
+
+        enumerator.MoveNext()
+
+        happened: str = _outcome(lambda: items.Add(9))
+
+        self.assertEqual((happened, _outcome(enumerator.TryMoveNext), _st(enumerator), _outcome(enumerator.MoveNext)), ("None", "False", "Ended/Invalidated", "InvalidatedError"))
+
+class TestAWrapperOnlyWrapsASourceInItsInitialState(unittest.TestCase):
+    def test_it_wraps_a_source_in_its_initial_state(self) -> None:
+        """A fresh source, and one reset after a step, which is Idle/Idle again."""
+
+        def reset() -> IEnumerator[int]:
+            source: IEnumerator[int] = _enumerator(CreateList([1, 2, 3]))
+
+            source.MoveNext()
+            source.TryReset()
+
+            return source
+
+        rows: ReadOnlyArray[tuple[str, Function[IEnumerator[int]]]] = (("a fresh source", lambda: _enumerator(CreateList([1, 2, 3]))), ("a source reset after a step", reset))
+
+        for label, make in rows:
+            with self.subTest(source = label):
+                wrapper = Selector(make())
+                read: list[int] = []
+
+                while wrapper.MoveNext(): read.append(wrapper.GetCurrent())
+
+                self.assertEqual(read, [1, 2, 3])
+
+    def test_it_refuses_any_other_source_and_leaves_it_as_it_was(self) -> None:
+        """The refusal comes before the wrapper subscribes: the source is never asked for its notifier,
+        and its status is unchanged. The enumerator empty by design is refused as well: whoever
+        wraps an enumerator it received handles that one itself."""
+
+        def running() -> IEnumerator[int]:
+            source: IEnumerator[int] = _enumerator(CreateList([1, 2, 3]))
+
+            source.MoveNext()
+
+            return source
+
+        def completed() -> IEnumerator[int]:
+            source: IEnumerator[int] = _enumerator(CreateList([1]))
+
+            while source.MoveNext(): pass
+
+            return source
+
+        def stopped() -> IEnumerator[int]:
+            source: IEnumerator[int] = _enumerator(CreateList([1, 2, 3]))
+
+            source.Stop()
+
+            return source
+
+        def invalidated() -> IEnumerator[int]:
+            items = CreateList([1, 2, 3])
+            source: IEnumerator[int] = _enumerator(items)
+
+            source.MoveNext()
+            items.Add(9)
+
+            return source
+
+        def revoked(steps: int) -> IEnumerator[int]:
+            items = CreateList([1, 2, 3])
+            source: IEnumerator[int]|None = items.AsImmutable().TryGetEnumerator()
+
+            assert source is not None
+
+            for _ in range(steps): source.MoveNext()
+
+            items.Add(9)
+
+            return source
+
+        def faulted() -> IEnumerator[int]:
+            source = _Refusing(CreateList([1, 2, 3]))
+
+            _raises(source.TryMoveNext)
+
+            return source
+
+        def empty() -> IEnumerator[int]: return Core.GetEmptyEnumerator()
+
+        rows: ReadOnlyArray[tuple[str, Function[IEnumerator[int]], str]] = (
+            ("running", running, "Started/Running"),
+            ("completed", completed, "Ended/Completed"),
+            ("stopped before its start", stopped, "Ended/Stopped"),
+            ("invalidated", invalidated, "Ended/Invalidated"),
+            ("revoked before its start", lambda: revoked(0), "Ended/Revoked"),
+            ("revoked while running", lambda: revoked(1), "Ended/Revoked"),
+            ("faulted at its start", faulted, "Ended/Faulted"),
+            ("empty by design", empty, "Ended/NoData"))
+
+        for label, make, status in rows:
+            with self.subTest(source = label):
+                source: IEnumerator[int] = make()
+
+                self.assertEqual(_st(source), status)
+
+                with mock.patch.object(source, "GetSourceNotifier", wraps = source.GetSourceNotifier) as asked:
+                    with self.assertRaises(InvalidOperationError): Selector(source)
+
+                asked.assert_not_called()
+
+                self.assertEqual(_st(source), status)
+
+class TestANestedWrapperIsAbortedThroughItsSource(unittest.TestCase):
+    def test_the_outer_wrapper_ends_as_its_innermost_source(self) -> None:
+        """A wrapper relays the notifier of its own source, so a wrapper over a wrapper subscribes to
+        the innermost source, and both end as it does. The write that invalidates the source does not
+        raise."""
+
+        def nested(immutable: bool) -> tuple[EnumeratorAbstract[int], EnumeratorAbstract[int], Function[object]]:
+            items = CreateList([1, 2, 3])
+            source: IEnumerator[int]|None = items.AsImmutable().TryGetEnumerator() if immutable else items.TryGetEnumerator()
+
+            assert source is not None
+
+            inner = Selector(source)
+            outer = Selector(inner)
+
+            outer.MoveNext()
+
+            return outer, inner, lambda: items.Add(9)
+
+        for label, immutable, cause in (("invalidated", False, "Ended/Invalidated"), ("revoked", True, "Ended/Revoked")):
+            with self.subTest(source = label):
+                outer, inner, event = nested(immutable)
+                happened: str = _outcome(event)
+
+                self.assertEqual((happened, _outcome(outer.TryMoveNext), _st(outer), _outcome(outer.MoveNext), _st(inner)), ("None", "False", cause, "InvalidatedError", cause))
+
+class TestTheWrapperBenchesCanFail(unittest.TestCase):
+    """The benches of Q12, run against the wrapper before it and against each blocking point that
+    its implementation went through (Enumeration 6.13 §1): green on the intact tree, red on the
+    rebuilt one, and red on their assertions rather than on an error. The private members are
+    reached by their mangled names."""
+
+    def __assertFalls(self, bench: type[unittest.TestCase], name: str, rebuilt: ReadOnlyArray[tuple[Any, dict[str, Any]]]) -> None:
+        self.assertTrue(_run(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with ExitStack() as patches:
+            for target, members in rebuilt: patches.enter_context(mock.patch.multiple(target, **members))
+
+            broken: unittest.TestResult = _run(bench, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the rebuilt defect")
+        self.assertEqual(broken.errors, [], f"{name} fell on an error rather than on its assertions")
+
+    def __assertCauseBenchesFall(self, rebuilt: ReadOnlyArray[tuple[Any, dict[str, Any]]]) -> None:
+        for bench, name in ((TestAWrapperReportsWhatStoppedItsSource, "test_each_cause_ends_the_wrapper_as_its_own"),
+                            (TestAWrapperReportsWhatStoppedItsSource, "test_the_enumerator_of_a_read_only_view_tells_the_invalidation_of_its_collection"),
+                            (TestANestedWrapperIsAbortedThroughItsSource, "test_the_outer_wrapper_ends_as_its_innermost_source")):
+            with self.subTest(bench = name): self.__assertFalls(bench, name, rebuilt)
+
+    def test_the_benches_fall_on_the_wrapper_before_q12(self) -> None:
+        """Until Q12, a wrapper stepped with its source's MoveNext() and subscribed to nothing: it
+        raised InvalidatedError from TryMoveNext() and ended Faulted (Enumeration 6.10 §1.3), and a
+        source stopped on purpose faulted it as well."""
+
+        def stepping(self: Any) -> bool: return cast(bool, self._GetContainer().MoveNext())
+        def unsubscribed(self: Any) -> None: return None
+
+        self.__assertCauseBenchesFall(((AbstractEnumeratorBase, {"_MoveNextOverride": stepping, "_GetNotifier": unsubscribed}),))
+
+    def test_the_benches_fall_when_the_subscription_depends_on_the_opt_in(self) -> None:
+        """The first blocking point: a wrapper subscribed only if it declared the invalidation, which
+        no wrapper does."""
+
+        def optedIn(self: Any) -> Any: return self._GetContainer().GetSourceNotifier() if self._CanInvalidate() else None
+
+        self.__assertCauseBenchesFall(((AbstractEnumeratorBase, {"_GetNotifier": optedIn}),))
+
+    def test_the_benches_fall_when_nobody_keeps_the_callback(self) -> None:
+        """The second: the callback handed to the notifier was kept by nobody, and died at once; the
+        notifier holds its subscribers weakly. The subscription is rebuilt keeping something else."""
+
+        original: Any = Core.Subscription
+
+        def forgetting(callback: Any, node: Any) -> Any: return original(object(), node)
+
+        self.__assertCauseBenchesFall(((Core, {"Subscription": forgetting}),))
+
+    def test_the_benches_fall_when_the_source_notifies_within_its_work(self) -> None:
+        """The third: the source notified while its monitor was busy, so the wrapper's abort stopped
+        it reentrantly, and the error reached the write."""
+
+        original: Any = getattr(EnumeratorAbstract, "_EnumeratorAbstract__Abort")
+
+        def within(self: Any, revoke: bool) -> None:
+            if getattr(self, "_EnumeratorAbstract__monitor").IsBusy():
+                original(self, revoke)
+
+                return
+
+            terminate: Any = getattr(self, "_EnumeratorAbstract__Terminate")
+            invalidation: Any = getattr(self, "_EnumeratorAbstract__invalidation")
+
+            def work() -> None:
+                terminate(EnumerationAbortReason.Revoked if revoke else EnumerationAbortReason.Invalidated)
+                invalidation.Notify(revoke)
+
+            getattr(self, "_EnumeratorAbstract__DoWork")(work)
+
+        self.__assertCauseBenchesFall(((EnumeratorAbstract, {"_EnumeratorAbstract__Abort": within}),))
+
+    def test_the_nested_bench_falls_when_a_wrapper_does_not_relay_its_source(self) -> None:
+        """The fourth: GetSourceNotifier() answered the enumerator's own notifier, which a wrapper does
+        not have, so a wrapper over a wrapper subscribed to nothing."""
+
+        def own(self: Any) -> Any: return getattr(self, "_EnumeratorAbstract__invalidation").GetSourceNotifier()
+
+        self.__assertFalls(TestANestedWrapperIsAbortedThroughItsSource, "test_the_outer_wrapper_ends_as_its_innermost_source", ((EnumeratorAbstract, {"GetSourceNotifier": own}),))
+
+    def test_the_refusal_bench_falls_on_the_earlier_guard(self) -> None:
+        """Until 6ebf66ca, the guard refused only a running source: one that had ended passed."""
+
+        def earlier(self: Any, enumerator: Any) -> None:
+            if enumerator.GetStatus().IsStarted(): raise InvalidOperationError("The given enumerator is already started.")
+
+            setattr(self, "_AbstractEnumeratorBase__enumerator", enumerator)
+
+            getattr(EnumeratorAbstract, "__init__")(self)
+
+        self.__assertFalls(TestAWrapperOnlyWrapsASourceInItsInitialState, "test_it_refuses_any_other_source_and_leaves_it_as_it_was", ((AbstractEnumeratorBase, {"__init__": earlier}),))
 
 if __name__ == "__main__": unittest.main()
