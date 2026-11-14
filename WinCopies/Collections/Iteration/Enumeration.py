@@ -9,12 +9,11 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsIterable, AsEnumerable, AsEnumerator
-from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
-from WinCopies.Delegates import Self
+from WinCopies.Delegates import Self, GetNotPredicate
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullValue, GetNullable
-from WinCopies.Typing.Delegate import Method, Function, Predicate, Converter, Selector
+from WinCopies.Typing.Delegate import Method, Function, Predicate, Converter
 from WinCopies.Typing.Pairing import IKeyValuePair, CreateDualResult
 
 class IterableScanResult(BooleanableEnum):
@@ -55,14 +54,6 @@ def TryConcatenateEnumerables[T](*collection: IEnumerable[T]|None) -> Generator[
 def ConcatenateEnumerables[T](*collection: IEnumerable[T]) -> Generator[T]:
     return ConcatenateItems(collection)
 
-def __Exclude[T](items: Iterable[T]|None, selector: Selector[IEnumerator[T]]) -> Generator[T]:
-    def getIterator(enumerable: IEnumerable[T]) -> Iterator[T]|None:
-        enumerator: IEnumerator[T]|None = enumerable.TryGetEnumerator()
-        
-        return None if enumerator is None else selector(enumerator).AsIterator()
-    
-    for item in TryEnumerate(None if items is None else getIterator(AsEnumerable(items))): yield item
-
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items while they match a predicate, then includes the rest.
 
@@ -73,7 +64,7 @@ def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     Yields:
         Items starting from the first one that doesn't match the predicate."""
     
-    return __Exclude(items, lambda enumerator: ExcluerEnumerator(enumerator, predicate))
+    return ExcludeUntil(items, predicate if items is None else GetNotPredicate(predicate))
 def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """Excludes items until one matches a predicate, then includes the rest.
 
@@ -84,7 +75,13 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     Yields:
         Items starting from the first one that matches the predicate."""
     
-    return __Exclude(items, lambda enumerator: ExcluerUntilEnumerator(enumerator, predicate))
+    for item in (items := iter(TryEnumerate(items))):
+        if predicate(item):
+            yield item
+
+            break
+    
+    for item in items: yield item
 
 def _Any(length: int) -> bool: return length > 0
 
