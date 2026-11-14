@@ -4,9 +4,9 @@ from typing import final
 from WinCopies import Abstract
 from WinCopies.Collections.Enumeration.Abstraction import Selector
 from WinCopies.Collections.Enumeration.Core import IEnumerator
-from WinCopies.Delegates import GetAndAlsoFunc
+from WinCopies.Delegates import BoolFalse, GetAndAlsoFunc
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
-from WinCopies.Typing.Delegate import Function, Predicate
+from WinCopies.Typing.Delegate import Function, Predicate, IFunction
 
 class ConditionalEnumerator[T](Selector[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
@@ -37,17 +37,15 @@ class ConditionalEnumerator[T](Selector[T]):
     
     def _OnEnded(self) -> None: self.__current = GetNullValue()
 
-class _PredicateEnumerator[T](Abstract):
+@final
+class _PredicateEnumerator[T](Abstract, IFunction[bool]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__()
         
         self.__enumerator: IEnumerator[T] = enumerator
         self.__predicate: Predicate[T] = predicate
     
-    def Validate(self) -> bool:
-        current: T|None = self.__enumerator.GetCurrent()
-
-        return False if current is None else self.__predicate(current)
+    def GetValue(self) -> bool: return self.__predicate(self.__enumerator.GetCurrent())
 
 class SelectorEnumerator[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
@@ -55,40 +53,40 @@ class SelectorEnumerator[T](ConditionalEnumerator[T]):
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return self.__predicate.Validate()
+    def _Validate(self) -> bool: return self.__predicate.GetValue()
 
 class InclusionEnumerator[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
     def _MoveNextOverride(self) -> bool: return self._MoveNext() and self._Validate()
-class IncluerUntilEnumerator[T](InclusionEnumerator[T]):
+class IncluerEnumerator[T](InclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return self.__predicate.Validate()
+    def _Validate(self) -> bool: return self.__predicate.GetValue()
 
-class InclusionUntilEnumerator[T](ConditionalEnumerator[T]):
+class InclusionUntilEnumerator[T](InclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
     
     @abstractmethod
     def _ValidateValue(self) -> bool:
         ...
     def _Validate(self) -> bool: return not self._ValidateValue()
-class IncluerEnumerator[T](InclusionUntilEnumerator[T]):
+class IncluerUntilEnumerator[T](InclusionUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _ValidateValue(self) -> bool: return self.__predicate.Validate()
+    def _ValidateValue(self) -> bool: return self.__predicate.GetValue()
 
 class DoWhileEnumerator[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
 
-        self.__moveNext: Function[bool]|None
+        self.__moveNext: Function[bool] = BoolFalse
     
     def _OnStarting(self) -> bool:
         def moveNext() -> bool:
@@ -106,19 +104,19 @@ class DoWhileEnumerator[T](ConditionalEnumerator[T]):
         
         return False
     
-    def _MoveNextOverride(self) -> bool: return self.__moveNext is not None and self.__moveNext()
+    def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
     def _OnEnded(self) -> None:
         super()._OnEnded()
 
-        self.__moveNext = None
+        self.__moveNext = BoolFalse
 class PredicateDoWhileEnumerator[T](DoWhileEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return self.__predicate.Validate()
+    def _Validate(self) -> bool: return self.__predicate.GetValue()
 
 class DoUntilEnumerator[T](DoWhileEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
@@ -126,7 +124,7 @@ class DoUntilEnumerator[T](DoWhileEnumerator[T]):
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return not self.__predicate.Validate()
+    def _Validate(self) -> bool: return not self.__predicate.GetValue()
 class PredicateDoUntilEnumerator[T](DoUntilEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None: super().__init__(enumerator, predicate)
 
@@ -134,7 +132,7 @@ class ExclusionEnumeratorBase[T](ConditionalEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None:
         super().__init__(enumerator)
 
-        self.__moveNext: Function[bool]|None
+        self.__moveNext: Function[bool] = BoolFalse
     
     @abstractmethod
     def _OnMoveNext(self) -> Function[bool]|None:
@@ -144,7 +142,10 @@ class ExclusionEnumeratorBase[T](ConditionalEnumerator[T]):
         def moveNext() -> bool:
             func: Function[bool]|None = self._OnMoveNext()
 
-            if func is None: return False
+            if func is None:
+                self.__moveNext = BoolFalse
+                
+                return False
             
             self.__moveNext = func
 
@@ -157,12 +158,12 @@ class ExclusionEnumeratorBase[T](ConditionalEnumerator[T]):
         
         return False
     
-    def _MoveNextOverride(self) -> bool: return self.__moveNext is not None and self.__moveNext()
+    def _MoveNextOverride(self) -> bool: return self.__moveNext()
     
     def _OnEnded(self) -> None:
         super()._OnEnded()
 
-        self.__moveNext = None
+        self.__moveNext = BoolFalse
 
 class ExclusionUntilEnumerator[T](ExclusionEnumeratorBase[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
@@ -178,14 +179,20 @@ class ExcluerUntilEnumerator[T](ExclusionUntilEnumerator[T]):
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return self.__predicate.Validate()
+    def _Validate(self) -> bool: return self.__predicate.GetValue()
 
-class ExclusionEnumerator[T](ExclusionUntilEnumerator[T]):
+class ExclusionEnumerator[T](ExclusionEnumeratorBase[T]):
     def __init__(self, enumerator: IEnumerator[T]) -> None: super().__init__(enumerator)
+    
+    def _OnMoveNext(self) -> Function[bool]|None:
+        while self._MoveNext():
+            if not self._Validate(): return self._MoveNext
+        
+        return None
 class ExcluerEnumerator[T](ExclusionEnumerator[T]):
     def __init__(self, enumerator: IEnumerator[T], predicate: Predicate[T]) -> None:
         super().__init__(enumerator)
 
         self.__predicate: _PredicateEnumerator[T] = _PredicateEnumerator[T](enumerator, predicate)
     
-    def _Validate(self) -> bool: return self.__predicate.Validate()
+    def _Validate(self) -> bool: return self.__predicate.GetValue()
