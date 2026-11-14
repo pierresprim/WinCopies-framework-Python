@@ -61,7 +61,11 @@ class IEnumeratorBase(_IInvalidationNotifierProvider):
     def GetStatus(self) -> IIterationStatus:
         ...
 
-    def GetSourceNotifier(self) -> IInvalidationNotifier|None: return None
+    def GetSourceNotifier(self) -> IInvalidationNotifier|None:
+        """Returns the notifier of this enumerator's invalidation and revocation, or None if it has none.
+
+        Only the invalidations and revocations to come are notified: a subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status."""
+        return None
     
     @abstractmethod
     def TryMoveNext(self) -> bool:

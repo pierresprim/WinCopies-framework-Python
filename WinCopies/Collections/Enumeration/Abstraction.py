@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import final
 
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IIterationStatus
 from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, EnumeratorAbstract
 from WinCopies.Collections.Enumeration.Notification import IInvalidationNotifier
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullable, GetNullValue
@@ -8,8 +9,16 @@ from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorAbstract[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
+    """Base of the enumerators that wrap another enumerator, their source, and move with it.
+
+    These enumerators are meant for the collection wrappers, such as the conversion views, and for the framework's internal use.
+    A wrapper shares the position of its source: the source must therefore be in its initial state (Idle/Idle) when the wrapper is
+    constructed, and any other state raises InvalidOperationError, the enumerator empty by design included. A wrapper is built on the
+    result of TryGetEnumerator(); a caller that wraps an enumerator it received handles the enumerator empty by design itself."""
     def __init__(self, enumerator: TEnumerator) -> None:
-        if enumerator.GetStatus().IsStarted(): raise InvalidOperationError("The given enumerator is already started.")
+        status: IIterationStatus = enumerator.GetStatus()
+
+        if status.GetState() != IterationState.Idle or status.GetResult() != IterationResult.Idle: raise InvalidOperationError("The given enumerator is not in its initial state.")
 
         self.__enumerator: TEnumerator = enumerator
         
