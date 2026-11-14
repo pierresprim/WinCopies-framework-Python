@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import final, Self
+from typing import cast, final, Self
 
 from WinCopies import Abstract
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -23,7 +23,10 @@ class IKeyValuePair[TKey, TValue](IEquatableValue):
         ...
     
     @final
-    def Equals(self, item: Self|object) -> bool: return isinstance(item, type(self)) and type(item) == type(self) and (item.IsKeyValuePair() == self.IsKeyValuePair()) and (item.GetKey() == self.GetKey()) and (item.GetValue() == self.GetValue())
+    def Equals(self, item: Self|object) -> bool:
+        def equals(item: IKeyValuePair[TKey, TValue]) -> bool: return item.IsKeyValuePair() == self.IsKeyValuePair() and item.GetKey() == self.GetKey() and item.GetValue() == self.GetValue()
+                                                                                                                                                                
+        return type(item) is type(self) and equals(cast(IKeyValuePair[TKey, TValue], item))
 
 class KeyValuePairBase[TKey, TValue](Abstract, IKeyValuePair[TKey, TValue], INotHashableItem[IKeyValuePair[TKey, TValue]]):
     def __init__(self) -> None: super().__init__()
