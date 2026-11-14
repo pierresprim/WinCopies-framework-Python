@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from enum import Enum, Flag
 from typing import overload, Any, Type
 
@@ -56,6 +57,14 @@ def ToTuple[T](e: TypedEnum[T]|Enum) -> tuple[str, T|Any]:
 
 def StringifyIfNone(e: StringEnum|None) -> str:
     return '' if e is None else (e if isinstance(e, str) else e.value)
+
+def IsValue[T: Enum](e: T, value: T) -> bool:
+    return e == value
+
+def IsIn[T: Enum](e: T, values: Iterable[T]) -> bool:
+    return e in values
+def IsValueIn[T: Enum](e: T, *values: T) -> bool:
+    return IsIn(e, values)
 
 def EnumerateFlags[T: Flag](e: T) -> Generator[T]:
     yield from e
