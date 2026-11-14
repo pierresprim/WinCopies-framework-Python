@@ -881,7 +881,7 @@ class IteratorProvider[T](IteratorProviderBase[T]):
         self.__iteratorProvider: Function[SystemIterator[T]|None] = iteratorProvider
     
     @final
-    def _TryGetIterator(self) -> SystemIterator[T]|None: return GetIterator(self.__iteratorProvider())
+    def _TryGetIterator(self) -> SystemIterator[T]|None: return self.__iteratorProvider()
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
