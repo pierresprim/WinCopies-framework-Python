@@ -18,7 +18,7 @@ class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](Enumerator
     def __init__(self, enumerator: TEnumerator) -> None:
         status: IIterationStatus = enumerator.GetStatus()
 
-        if status.GetState() != IterationState.Idle or status.GetResult() != IterationResult.Idle: raise InvalidOperationError("The given enumerator is not in its initial state.")
+        if not (status.GetState() == IterationState.Idle and status.GetResult() == IterationResult.Idle): raise InvalidOperationError("The given enumerator is not in its initial state.")
 
         self.__enumerator: TEnumerator = enumerator
         

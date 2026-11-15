@@ -24,6 +24,9 @@ class _IInvalidationNotifierProvider(IInterface):
 
     @abstractmethod
     def GetSourceNotifier(self) -> IInvalidationNotifier|None:
+        """Returns the notifier of this enumerator's invalidation and revocation, or None if it has none.
+
+        Only the invalidations and revocations to come are notified: a subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status."""
         ...
 
 class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
@@ -61,11 +64,7 @@ class IEnumeratorBase(_IInvalidationNotifierProvider):
     def GetStatus(self) -> IIterationStatus:
         ...
 
-    def GetSourceNotifier(self) -> IInvalidationNotifier|None:
-        """Returns the notifier of this enumerator's invalidation and revocation, or None if it has none.
-
-        Only the invalidations and revocations to come are notified: a subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status."""
-        return None
+    def GetSourceNotifier(self) -> IInvalidationNotifier|None: return None
     
     @abstractmethod
     def TryMoveNext(self) -> bool:
@@ -279,6 +278,19 @@ def _ThrowNotInvalidatable() -> NoReturn:
     raise InvalidOperationError("This enumerator is not invalidatable.")
 
 @final
+class _InvalidationCallback(Abstract):
+    def __init__(self, revocator: Action, invalidator: Action) -> None:
+        super().__init__()
+
+        self.__revocator: Action = revocator
+        self.__invalidator: Action = invalidator
+
+    def GetRevocator(self) -> Action:
+        return self.__revocator
+    def GetInvalidator(self) -> Action:
+        return self.__invalidator
+
+@final
 class _NullEnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
     def __init__(self) -> None: super().__init__()
 
@@ -293,11 +305,11 @@ class _NullEnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
     def Notify(self, revoke: bool) -> None: pass
 @final
 class _EnumeratorInvalidation(Abstract, _IEnumeratorInvalidation):
-    def __init__(self, revocator: Action, invalidator: Action) -> None:
+    def __init__(self, callback: _InvalidationCallback) -> None:
         super().__init__()
 
-        self.__revocator: IInvalidatable = _EnumeratorRevocator(revocator)
-        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(invalidator))
+        self.__revocator: IInvalidatable = _EnumeratorRevocator(callback.GetRevocator())
+        self.__invalidationRegistrar: IManagedInvalidationRegistrar = ManagedInvalidationRegistrar(_EnumeratorInvalidator(callback.GetInvalidator()))
         self.__notifier: IInvalidationNotifierProvider = InvalidationNotifier()
 
     def RegisterInvalidationRegistrar(self) -> None: self.__invalidationRegistrar.Register()
@@ -330,13 +342,12 @@ class _IInvalidatableEnumeratorBase(IEnumeratorBase):
 
 @final
 class _NotifyCallback(Abstract, INotifyCallback):
-    def __init__(self, revocator: Action, invalidator: Action) -> None:
+    def __init__(self, callback: _InvalidationCallback) -> None:
         super().__init__()
 
-        self.__revocator: Action = revocator
-        self.__invalidator: Action = invalidator
+        self.__callback: _InvalidationCallback = callback
 
-    def Notify(self, revoke: bool) -> None: self.__revocator() if revoke else self.__invalidator()
+    def Notify(self, revoke: bool) -> None: (self.__callback.GetRevocator() if revoke else self.__callback.GetInvalidator())()
 
 class ISubscription(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -366,14 +377,13 @@ class EnumeratorAbstract[T](IteratorBase[T], _IInvalidatableEnumeratorBase):
                 return (lambda: self.__Abort(True)) if revoke else (lambda: self.__Abort(False))
             
             def subscribe(notifier: IInvalidationNotifier) -> ISubscription:
-                callback: INotifyCallback = _NotifyCallback(revocator, invalidator)
+                callback: INotifyCallback = _NotifyCallback(invalidationCallback)
                 
                 return Subscription(callback, notifier.Add(callback))
 
-            revocator: Action = getInvalidationAction(True)
-            invalidator: Action = getInvalidationAction(False)
+            invalidationCallback: _InvalidationCallback = _InvalidationCallback(getInvalidationAction(True), getInvalidationAction(False))
             
-            invalidation: _IEnumeratorInvalidation = _EnumeratorInvalidation(revocator, invalidator) if self._CanInvalidate() else _GetNullEnumeratorInvalidation()
+            invalidation: _IEnumeratorInvalidation = _EnumeratorInvalidation(invalidationCallback) if self._CanInvalidate() else _GetNullEnumeratorInvalidation()
 
             notifier: IInvalidationNotifier|None = self._GetNotifier()
 
