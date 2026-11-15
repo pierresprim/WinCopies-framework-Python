@@ -1662,6 +1662,21 @@ class TestAWrapperReportsWhatStoppedItsSource(unittest.TestCase):
 
                 self.assertEqual((happened, answered, _st(wrapper), _outcome(wrapper.MoveNext), _st(source), _fired(sink), "_OnAborted" in sink), expected)
 
+    def test_a_source_revoked_before_the_first_step_ends_the_wrapper_revoked(self) -> None:
+        """The guard takes the source in its initial state, where it can still be revoked. The wrapper,
+        subscribed since its construction, is told of it before its first step, which a subscription
+        deferred to that step would miss: the wrapper would then read nothing and end Completed."""
+
+        items = CreateList([1, 2, 3])
+        source: IEnumerator[int]|None = items.AsImmutable().TryGetEnumerator()
+
+        assert source is not None
+
+        wrapper = Selector(source)
+        happened: str = _outcome(lambda: items.Add(9))
+
+        self.assertEqual((happened, _outcome(wrapper.TryMoveNext), _st(wrapper), _outcome(wrapper.MoveNext), _st(source)), ("None", "False", "Ended/Revoked", "InvalidatedError", "Ended/Revoked"))
+
     def test_the_enumerator_of_a_read_only_view_tells_the_invalidation_of_its_collection(self) -> None:
         """The use the wrappers are meant for: a collection wrapper, here the read-only view of an
         indexable list, hands out a wrapper over the enumerator of its collection."""
@@ -1824,6 +1839,7 @@ class TestTheWrapperBenchesCanFail(unittest.TestCase):
 
     def __assertCauseBenchesFall(self, rebuilt: ReadOnlyArray[tuple[Any, dict[str, Any]]]) -> None:
         for bench, name in ((TestAWrapperReportsWhatStoppedItsSource, "test_each_cause_ends_the_wrapper_as_its_own"),
+                            (TestAWrapperReportsWhatStoppedItsSource, "test_a_source_revoked_before_the_first_step_ends_the_wrapper_revoked"),
                             (TestAWrapperReportsWhatStoppedItsSource, "test_the_enumerator_of_a_read_only_view_tells_the_invalidation_of_its_collection"),
                             (TestANestedWrapperIsAbortedThroughItsSource, "test_the_outer_wrapper_ends_as_its_innermost_source")):
             with self.subTest(bench = name): self.__assertFalls(bench, name, rebuilt)
@@ -1840,7 +1856,8 @@ class TestTheWrapperBenchesCanFail(unittest.TestCase):
 
     def test_the_benches_fall_when_the_subscription_depends_on_the_opt_in(self) -> None:
         """The first blocking point: a wrapper subscribed only if it declared the invalidation, which
-        no wrapper does."""
+        no wrapper does. Before the wrapper's first step, this is also what a subscription deferred to
+        that step leaves: no subscription."""
 
         def optedIn(self: Any) -> Any: return self._GetContainer().GetSourceNotifier() if self._CanInvalidate() else None
 
