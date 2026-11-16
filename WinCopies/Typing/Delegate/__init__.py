@@ -14,6 +14,13 @@ type Function[T] = Callable[[], T]
 type Action = Function[None]
 type Method[T] = Converter[T, None]
 
+type ConverterCall[TIn, TOut] = Callable[[TIn, Converter[TIn, TOut]], TOut]
+type PredicateCall[T] = ConverterCall[T, bool]
+type SelectorCall[T] = ConverterCall[T, T]
+
+type MethodCall[T] = ConverterCall[T, None]
+type FunctionCall[T] = Converter[Function[T], T]
+
 type NullableFunction[T] = Function[T|None]
 type NullableConverter[TIn, TOut] = Converter[TIn, TOut|None]
 type NullablePredicate[T] = Converter[T, bool|None]
