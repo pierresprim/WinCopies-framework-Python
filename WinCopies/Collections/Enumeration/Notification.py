@@ -24,9 +24,9 @@ class INotifyCallback(IInterface):
             revoke: True for a revocation, False for an invalidation.
 
         Returns:
-            - True to leave the notifier: the subscriber is removed once this call has returned, and is notified no more. This is the only way to leave from within a notification, during which the IRemovable returned by Add cannot be used.
+            - True to leave the notifier. The subscriber is removed once this call has returned, and is notified no more. This is the only way to leave from within a notification, during which the IRemovable returned by Add cannot be used.
             - False to stay.
-            - None to stay as well, for a notifier subscribed to another one: at least one of its own subscribers left during this notification by returning True. The notifier it is subscribed to takes it as a False. A subscriber that dies during the notification has not left: it has ceased to exist, which is not reported.
+            - None to stay as well, for a notifier subscribed to another one, when at least one of its own subscribers left during this notification by returning True. The notifier it is subscribed to takes it as a False. A subscriber that dies during the notification has not left, since it has ceased to exist, and is not reported.
         """
         ...
 

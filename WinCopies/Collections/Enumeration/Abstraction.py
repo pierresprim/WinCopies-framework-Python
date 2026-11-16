@@ -11,10 +11,14 @@ from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplem
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorAbstract[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
     """Base of the enumerators that wrap another enumerator, their source, and move with it.
 
-    These enumerators are meant for the collection wrappers, such as the conversion views, and for the framework's internal use.
-    A wrapper shares the position of its source: the source must therefore be in its initial state (Idle/Idle) when the wrapper is
-    constructed, and any other state raises InvalidOperationError, the enumerator empty by design included. A wrapper is built on the
-    result of TryGetEnumerator(); a caller that wraps an enumerator it received handles the enumerator empty by design itself."""
+    These enumerators are meant for the collection wrappers, such as the conversion views, and for the framework's internal use. A wrapper shares the position of its source, which must therefore be in its initial state (Idle/Idle) when the wrapper is constructed. A wrapper is built on the result of TryGetEnumerator(), and a caller that wraps an enumerator it received handles the enumerator empty by design itself.
+
+    Args:
+        enumerator: The source, in its initial state.
+
+    Raises:
+        InvalidOperationError: If the source is not in its initial state, the enumerator empty by design included.
+    """
     def __init__(self, enumerator: TEnumerator) -> None:
         status: IIterationStatus = enumerator.GetStatus()
 

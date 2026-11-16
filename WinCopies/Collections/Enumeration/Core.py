@@ -24,9 +24,13 @@ class _IInvalidationNotifierProvider(IInterface):
 
     @abstractmethod
     def GetSourceNotifier(self) -> IInvalidationNotifier|None:
-        """Returns the notifier of this enumerator's invalidation and revocation, or None if it has none.
+        """Gets the notifier of this enumerator's invalidation and revocation.
 
-        Only the invalidations and revocations to come are notified: a subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status."""
+        Only the invalidations and revocations to come are notified. A subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status.
+
+        Returns:
+            The notifier of this enumerator's invalidation and revocation, or None if it has none.
+        """
         ...
 
 class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
@@ -852,7 +856,11 @@ class IterableAbstract[TItem, TIterable](Enumerable[TItem], _IterableBase[TItem]
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        """Returns None if there is nothing to enumerate, including when the iterable is an enumerator empty by design."""
+        """Tries to get an enumerator over the items of this iterable.
+
+        Returns:
+            An enumerator over the items, or None if there is nothing to enumerate, including when the iterable is an enumerator empty by design.
+        """
         enumerator: IEnumerator[TItem]|None = TryAsEnumerator(self._TryGetIterator())
 
         return None if enumerator is None or enumerator.GetStatus().GetResult() == IterationResult.NoData else enumerator
