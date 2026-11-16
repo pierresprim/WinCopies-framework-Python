@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import cast, final
+from typing import cast, final, Any, Literal
+from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import EnumerateSafe
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Delegates import NoAction
-from WinCopies.Typing.Delegate import Action, Method, Function
+from WinCopies.Delegates import NoAction, DoNothing
+from WinCopies.Typing.Delegate import Action, Method, Function, FunctionCall
 from WinCopies.Typing.Monitoring import IMonitor, Monitor
 from WinCopies.Typing.Object import WeakReferenceFinalizer
 
@@ -16,21 +17,22 @@ class INotifyCallback(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def Notify(self, revoke: bool) -> None:
+    def Notify(self, revoke: bool) -> bool|None:
         ...
+
+def _Remove(action: Function[Any]) -> Any:
+    return None
 
 @final
 class _Node(Abstract):
-    def __init__(self, action: INotifyCallback, finalizerProvider: Action) -> None:
+    def __init__(self, action: INotifyCallback, finalizerProvider: Function[Any]) -> None:
         self.__previous: _Node|None = None
         self.__next: _Node|None = None
 
-        def remove(action: Action) -> None:
-            def remove() -> None:
+        def remove(action: Function[Any]) -> Any:
+            def unlink() -> None:
                 previous: _Node|None = self.__previous
                 next: _Node|None = self.GetNext()
-        
-                self.__action.Remove()
         
                 if next is None:
                     if previous is not None:
@@ -44,24 +46,27 @@ class _Node(Abstract):
                     self.__previous = None
                 
                 next.__previous = previous
-                self.__next = None
+            
+            result: Any = action()
 
-            action()
+            unlink()
 
-            remove()
+            self.__action.Remove()
 
-            self.__remove = lambda _: None
+            self.__remove = _Remove
+
+            return result
         
         super().__init__()
 
         self.__action: WeakReferenceFinalizer[INotifyCallback] = WeakReferenceFinalizer[INotifyCallback](action, finalizerProvider)
 
-        self.__remove: Method[Action] = remove # type: ignore[no-redef]
+        self.__remove: FunctionCall[Any] = remove # type: ignore[no-redef]
 
-    def Notify(self, revoke: bool) -> None:
+    def Notify(self, revoke: bool) -> bool:
         action: INotifyCallback|None = self.__action.TryGetValue()
 
-        if action is not None: action.Notify(revoke)
+        return action is not None and action.Notify(revoke) is True
 
     def GetPrevious(self) -> _Node|None:
         return self.__previous
@@ -72,10 +77,10 @@ class _Node(Abstract):
         self.__next = node
         node.__previous = self
 
-    def Remove(self, action: Action) -> None:
-        remove: Method[Action] = self.__remove
+    def Remove[T](self, action: Function[T]) -> T:
+        remove: FunctionCall[T] = self.__remove
 
-        remove(action)
+        return remove(action)
 
 class IInvalidationNotifier(IInterface):
     def __init__(self) -> None: super().__init__()
@@ -101,14 +106,19 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
     @final
     class _Removable(Abstract, IRemovable):
         def __init__(self, notifier: _InvalidationNotifier, node: _Node) -> None:
-            def remove() -> None:
-                notifier._OnNodeRemoved(node, True)
-                
-                self.__remove = NoAction
+            def getRemovable(node: ReferenceType[_Node]) -> Action:
+                def remove() -> None:
+                    _node: _Node|None = node()
+
+                    if _node is not None: notifier._OnNodeRemoved(_node, True)
+                    
+                    self.__remove = NoAction
+
+                return remove
 
             super().__init__()
 
-            self.__remove: Action = remove # type: ignore[no-redef]
+            self.__remove: Action = getRemovable(ref(node)) # type: ignore[no-redef]
 
         def Remove(self) -> None: self.__remove()
 
@@ -137,27 +147,37 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
         self.__monitor: IMonitor = Monitor()
 
-    def _OnNodeRemoved(self, node: _Node, safe: bool) -> None:
-        def remove() -> None:
-            def remove() -> None:
+    def __Update(self) -> None:
+        updater: Method[_IInvalidationNotifier] = self._GetUpdater()
+        
+        updater(_DefaultInvalidationNotifier(updater))
+
+    def _OnNodeRemoved(self, node: _Node, safe: bool|None) -> bool:
+        def remove(update: bool) -> bool:
+            def remove() -> bool:
                 if node is self.__last:
                     previous: _Node|None = node.GetPrevious()
 
                     if previous is None:
-                        updater: Method[_IInvalidationNotifier] = self._GetUpdater()
+                        if update:
+                            self.__Update()
 
-                        updater(_DefaultInvalidationNotifier(updater))
+                        else: return True
 
                     else: self.__last = previous
 
                 elif node is self.__first: self.__first = cast(_Node, node.GetNext())
 
-            node.Remove(remove)
-        
-        if safe:
-            with self.__monitor: remove()
+                return False
 
-        else: remove()
+            return node.Remove(remove)
+        
+        if safe is True:
+            with self.__monitor: remove(True)
+
+            return False
+
+        return remove(safe is False)
 
     def Add(self, action: INotifyCallback) -> IRemovable:
         with self.__monitor:
@@ -170,15 +190,43 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
         raise
 
-    def Notify(self, revoke: bool) -> None:
-        with self.__monitor: EnumerateSafe(Iterate(lambda: self.__first, lambda node: node.GetNext()), lambda node: node.Notify(revoke), True)
+    def Notify(self, revoke: bool) -> Literal[False]|None:
+        action: Method[_Node] = DoNothing
+        update: Action = NoAction
+
+        def notify(node: _Node) -> None:
+            nonlocal action
+
+            def __notify(node: _Node) -> bool:
+                return node.Notify(revoke)
+
+            def _notify(node: _Node) -> None:
+                nonlocal update
+
+                if self._OnNodeRemoved(node, None): update = self.__Update
+
+            def notify(node: _Node) -> None:
+                if __notify(node): _notify(node)
+
+            if __notify(node):
+                _notify(node)
+
+                action = notify
+
+        with self.__monitor:
+            action = notify
+
+            try: EnumerateSafe(Iterate(lambda: self.__first, lambda node: node.GetNext()), lambda node: action(node), True)
+            finally: update()
+
+        return False if action == notify else None
 @final
 class _DefaultInvalidationNotifier(_InvalidationNotifierBase):
     def __init__(self, updater: Method[_IInvalidationNotifier]) -> None: super().__init__(updater)
 
     def Add(self, action: INotifyCallback) -> IRemovable: return _InvalidationNotifier.Create(action, self._GetUpdater())
 
-    def Notify(self, revoke: bool) -> None: pass
+    def Notify(self, revoke: bool) -> bool: return False
 
 @final
 class _NotifyCallback(Abstract, INotifyCallback):
@@ -187,7 +235,7 @@ class _NotifyCallback(Abstract, INotifyCallback):
 
         self.__callback: INotifyCallback = callback
 
-    def Notify(self, revoke: bool) -> None: return self.__callback.Notify(revoke)
+    def Notify(self, revoke: bool) -> bool|None: return self.__callback.Notify(revoke)
 @final
 class _Notifier(Abstract, IInvalidationNotifier):
     def __init__(self, notifier: IInvalidationNotifier) -> None:
@@ -221,7 +269,7 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
     def Add(self, action: INotifyCallback) -> IRemovable: return self.__notifierProvider.Add(action)
 
     @final
-    def Notify(self, revoke: bool) -> None: self.__notifierProvider.Notify(revoke)
+    def Notify(self, revoke: bool) -> bool|None: return self.__notifierProvider.Notify(revoke)
 
     @final
     def AsCallback(self) -> INotifyCallback: return self.__callback

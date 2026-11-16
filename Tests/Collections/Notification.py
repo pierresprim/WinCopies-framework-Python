@@ -40,10 +40,12 @@ class _Subscriber(Abstract, INotifyCallback):
         self.__log: list[str] = log
         self.__react: Callable[[], object]|None = react
 
-    def Notify(self, revoke: bool) -> None:
+    def Notify(self, revoke: bool) -> bool:
         self.__log.append(self.__name + ("!" if revoke else ""))
 
         if self.__react is not None: self.__react()
+
+        return False
 
 class _Bench:
     """A notifier with named subscribers, which the bench keeps alive until it drops them."""
