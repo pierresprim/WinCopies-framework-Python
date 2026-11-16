@@ -6,7 +6,8 @@ and one that nobody keeps alive is never notified. A subscriber also leaves it t
 that Add returns. Either way of leaving is idempotent, and leaving both ways, in either order,
 removes it once (Enumeration 6.11 §3). A subscriber also leaves from within its own notification, by
 returning True; the IRemovable cannot be used then. Notify() returns None when at least one
-subscriber left so, and False otherwise.
+subscriber left so, and False otherwise: a subscriber that dies during the notification has not
+left, it has ceased to exist.
 
 These benches are deterministic. Every subscriber dies between two operations of the notifier, with
 one exception: in the bench of D-123, a subscriber dies during its own notification by the fall of
@@ -245,6 +246,19 @@ class TestASubscriberLeavesWithinItsNotification(unittest.TestCase):
 class TestANotifierTellsWhetherASubscriberLeft(unittest.TestCase):
     """Notify() returns None when at least one subscriber left during it by returning True, and False
     otherwise. Another notifier takes that None as a False."""
+
+    def test_a_subscriber_that_dies_during_the_notification_has_not_left(self) -> None:
+        """Only a removal asked by the subscriber is reported: one that dies during the notification has
+        ceased to exist, which its consumer need not be told. It releases itself during its own
+        notification, and its finalizer runs by the fall of a reference count."""
+
+        for dying, leaving, expected in (("B", "", False), ("ABC", "", False), ("B", "C", None)):
+            with self.subTest(dying = dying, leaving = leaving):
+                bench: _Bench = _Bench()
+
+                for name in "ABC": bench.Add(name, bench.Dropping(name) if name in dying else None, name in leaving)
+
+                self.assertIs(bench.notifier.Notify(False), expected)
 
     def test_notify_returns_none_when_a_subscriber_left_and_false_otherwise(self) -> None:
         """Without subscribers, with subscribers that stay, and with some or all of them leaving; the
@@ -509,6 +523,18 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         def silent(self: Any, revoke: bool) -> None: notify(self, revoke)
 
         self.__assertFalls(TestANotifierTellsWhetherASubscriberLeft, "test_notify_returns_none_when_a_subscriber_left_and_false_otherwise", notifier, {"Notify": silent})
+
+    def test_the_death_bench_falls_when_a_subscriber_that_died_counts_as_having_left(self) -> None:
+        """A node that reports its subscriber as having left when it finds it dead once the call has
+        returned."""
+
+        node: type = getattr(Notification, "_Node")
+        notify: Callable[[Any, bool], bool] = getattr(node, "Notify")
+
+        def dyingLeaves(self: Any, revoke: bool) -> bool:
+            return notify(self, revoke) or getattr(self, "_Node__action").TryGetValue() is None
+
+        self.__assertFalls(TestANotifierTellsWhetherASubscriberLeft, "test_a_subscriber_that_dies_during_the_notification_has_not_left", node, {"Notify": dyingLeaves})
 
     def test_the_relay_bench_falls_when_a_notifier_asks_to_leave_once_a_subscriber_left(self) -> None:
         """As in a version reviewed before f9f28d99: a notifier returned True as soon as one of its
