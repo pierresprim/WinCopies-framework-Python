@@ -18,11 +18,16 @@ class INotifyCallback(IInterface):
 
     @abstractmethod
     def Notify(self, revoke: bool) -> bool|None:
-        """Notifies this subscriber of a revocation if revoke is True, and of an invalidation otherwise.
+        """Notifies this subscriber of an invalidation or a revocation.
 
-        Returns True to leave the notifier: the subscriber is removed once this call has returned, and is notified no more. This is the only way to leave from within a notification, during which the IRemovable returned by Add cannot be used.
+        Args:
+            revoke: True for a revocation, False for an invalidation.
 
-        Returns False to stay. None also stays, and is meant for a notifier subscribed to another one: it tells its caller that at least one of its own subscribers left during this notification by returning True, and the notifier it is subscribed to takes it as a False. A subscriber that dies during the notification has not left: it has ceased to exist, which is not reported."""
+        Returns:
+            - True to leave the notifier: the subscriber is removed once this call has returned, and is notified no more. This is the only way to leave from within a notification, during which the IRemovable returned by Add cannot be used.
+            - False to stay.
+            - None to stay as well, for a notifier subscribed to another one: at least one of its own subscribers left during this notification by returning True. The notifier it is subscribed to takes it as a False. A subscriber that dies during the notification has not left: it has ceased to exist, which is not reported.
+        """
         ...
 
 def _Remove(action: Function[Any]) -> Any:
