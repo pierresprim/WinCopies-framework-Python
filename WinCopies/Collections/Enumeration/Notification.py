@@ -1,32 +1,30 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import cast, final, Any, Literal
+from collections import deque
+from typing import cast, final, Any
 from weakref import ReferenceType, ref
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import EnumerateSafe
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Delegates import NoAction, DoNothing
+from WinCopies.Delegates import NoAction
 from WinCopies.Typing.Delegate import Action, Method, Function, FunctionCall
-from WinCopies.Typing.Monitoring import IMonitor, Monitor
+from WinCopies.Typing.Monitoring import IMonitor, Monitor, TryDoWork
 from WinCopies.Typing.Object import WeakReferenceFinalizer
 
 class INotifyCallback(IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def Notify(self, revoke: bool) -> bool|None:
+    def Notify(self, revoke: bool) -> None:
         """Notifies this subscriber of an invalidation or a revocation.
+
+        A subscriber leaves the notifier through the IRemovable returned by Add, even during a notification. It is then notified no more, including by the rest of the notification in progress.
 
         Args:
             revoke: True for a revocation, False for an invalidation.
-
-        Returns:
-            - True to leave the notifier. The subscriber is removed once this call has returned, and is notified no more. This is the only way to leave from within a notification, during which the IRemovable returned by Add cannot be used.
-            - False to stay.
-            - None to stay as well, for a notifier subscribed to another one, when at least one of its own subscribers left during this notification by returning True. The notifier it is subscribed to takes it as a False. A subscriber that dies during the notification has not left, since it has ceased to exist, and is not reported.
         """
         ...
 
@@ -61,6 +59,7 @@ class _Node(Abstract):
 
             unlink()
 
+            # At interpreter exit, the remaining finalizers run while their subscribers are still alive, and this call is then what neutralizes the node.
             self.__action.Remove()
 
             self.__remove = _Remove
@@ -73,10 +72,10 @@ class _Node(Abstract):
 
         self.__remove: FunctionCall[Any] = remove # type: ignore[no-redef]
 
-    def Notify(self, revoke: bool) -> bool:
+    def Notify(self, revoke: bool) -> None:
         action: INotifyCallback|None = self.__action.TryGetValue()
 
-        return action is not None and action.Notify(revoke) is True
+        if action is not None: action.Notify(revoke)
 
     def GetPrevious(self) -> _Node|None:
         return self.__previous
@@ -86,6 +85,9 @@ class _Node(Abstract):
     def SetNext(self, node: _Node) -> None:
         self.__next = node
         node.__previous = self
+
+    def Neutralize(self) -> None:
+        self.__action.Remove()
 
     def Remove[T](self, action: Function[T]) -> T:
         remove: FunctionCall[T] = self.__remove
@@ -156,41 +158,55 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
         self.__last: _Node = first
 
         self.__monitor: IMonitor = Monitor()
+        self.__removals: deque[_Node] = deque()
+        self.__isRetired: bool = False
 
     def __Update(self) -> None:
         updater: Method[_IInvalidationNotifier] = self._GetUpdater()
+
+        self.__isRetired = True
         
         updater(_DefaultInvalidationNotifier(updater))
 
-    def _OnNodeRemoved(self, node: _Node, safe: bool|None) -> bool:
-        def remove(update: bool) -> bool:
-            def remove() -> bool:
+    def __Drain(self) -> None:
+        def remove(node: _Node) -> None:
+            def remove() -> None:
                 if node is self.__last:
                     previous: _Node|None = node.GetPrevious()
 
-                    if previous is None:
-                        if update:
-                            self.__Update()
-
-                        else: return True
-
+                    if previous is None: self.__Update()
                     else: self.__last = previous
 
                 elif node is self.__first: self.__first = cast(_Node, node.GetNext())
 
-                return False
+            node.Remove(remove)
 
-            return node.Remove(remove)
-        
-        if safe is True:
-            with self.__monitor: remove(True)
+        while self.__removals: remove(self.__removals.pop())
 
-            return False
+    def __Commit(self) -> None:
+        while len(self.__removals) > 0 and TryDoWork(self.__monitor, self.__Drain): pass
 
-        return remove(safe is False)
+    def __Process[T](self, func: Function[T]) -> T:
+        try:
+            with self.__monitor:
+                try: return func()
+                finally: self.__Drain()
+
+        finally: self.__Commit()
+
+        raise
+
+    def _OnNodeRemoved(self, node: _Node, explicit: bool) -> None:
+        if explicit: node.Neutralize()
+
+        self.__removals.append(node)
+
+        self.__Commit()
 
     def Add(self, action: INotifyCallback) -> IRemovable:
-        with self.__monitor:
+        def add() -> IRemovable:
+            if self.__isRetired: return _InvalidationNotifier.Create(action, self._GetUpdater())
+
             node: _Node = _InvalidationNotifier.__CreateNode(action, lambda: self)
 
             self.__last.SetNext(node)
@@ -198,45 +214,17 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
             return _InvalidationNotifier._Removable(self, node)
 
-        raise
+        return self.__Process(add)
 
-    def Notify(self, revoke: bool) -> Literal[False]|None:
-        action: Method[_Node] = DoNothing
-        update: Action = NoAction
-
-        def notify(node: _Node) -> None:
-            nonlocal action
-
-            def __notify(node: _Node) -> bool:
-                return node.Notify(revoke)
-
-            def _notify(node: _Node) -> None:
-                nonlocal update
-
-                if self._OnNodeRemoved(node, None): update = self.__Update
-
-            def notify(node: _Node) -> None:
-                if __notify(node): _notify(node)
-
-            if __notify(node):
-                _notify(node)
-
-                action = notify
-
-        with self.__monitor:
-            action = notify
-
-            try: EnumerateSafe(Iterate(lambda: self.__first, lambda node: node.GetNext()), lambda node: action(node), True)
-            finally: update()
-
-        return False if action == notify else None
+    def Notify(self, revoke: bool) -> None:
+        self.__Process(lambda: EnumerateSafe(Iterate(lambda: self.__first, lambda node: node.GetNext()), lambda node: node.Notify(revoke), True))
 @final
 class _DefaultInvalidationNotifier(_InvalidationNotifierBase):
     def __init__(self, updater: Method[_IInvalidationNotifier]) -> None: super().__init__(updater)
 
     def Add(self, action: INotifyCallback) -> IRemovable: return _InvalidationNotifier.Create(action, self._GetUpdater())
 
-    def Notify(self, revoke: bool) -> bool: return False
+    def Notify(self, revoke: bool) -> None: pass
 
 @final
 class _NotifyCallback(Abstract, INotifyCallback):
@@ -245,7 +233,7 @@ class _NotifyCallback(Abstract, INotifyCallback):
 
         self.__callback: INotifyCallback = callback
 
-    def Notify(self, revoke: bool) -> bool|None: return self.__callback.Notify(revoke)
+    def Notify(self, revoke: bool) -> None: self.__callback.Notify(revoke)
 @final
 class _Notifier(Abstract, IInvalidationNotifier):
     def __init__(self, notifier: IInvalidationNotifier) -> None:
@@ -279,7 +267,7 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
     def Add(self, action: INotifyCallback) -> IRemovable: return self.__notifierProvider.Add(action)
 
     @final
-    def Notify(self, revoke: bool) -> bool|None: return self.__notifierProvider.Notify(revoke)
+    def Notify(self, revoke: bool) -> None: self.__notifierProvider.Notify(revoke)
 
     @final
     def AsCallback(self) -> INotifyCallback: return self.__callback

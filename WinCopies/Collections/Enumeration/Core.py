@@ -351,10 +351,8 @@ class _NotifyCallback(Abstract, INotifyCallback):
 
         self.__callback: _InvalidationCallback = callback
 
-    def Notify(self, revoke: bool) -> bool:
+    def Notify(self, revoke: bool) -> None:
         (self.__callback.GetRevocator() if revoke else self.__callback.GetInvalidator())()
-
-        return False
 
 class ISubscription(IInterface):
     def __init__(self) -> None: super().__init__()
