@@ -117,12 +117,15 @@ class _InvalidationNotifierBase(Abstract, _IInvalidationNotifier):
 class _InvalidationNotifier(_InvalidationNotifierBase):
     @final
     class _Removable(Abstract, IRemovable):
-        def __init__(self, notifier: _InvalidationNotifier, node: _Node) -> None:
+        def __init__(self, notifier: ReferenceType[_InvalidationNotifier], node: _Node) -> None:
             def getRemovable(node: ReferenceType[_Node]) -> Action:
                 def remove() -> None:
-                    _node: _Node|None = node()
+                    _notifier: _InvalidationNotifier|None = notifier()
 
-                    if _node is not None: notifier._OnNodeRemoved(_node, True)
+                    if _notifier is not None:
+                        _node: _Node|None = node()
+
+                        if _node is not None: _notifier._OnNodeRemoved(_node, True)
                     
                     self.__remove = NoAction
 
@@ -140,16 +143,17 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
 
         return node
 
+    def __CreateRemovable(self, node: _Node) -> IRemovable:
+        return _InvalidationNotifier._Removable(ref(self), node)
+
     @staticmethod
     def Create(action: INotifyCallback, updater: Method[_IInvalidationNotifier]) -> IRemovable:
         notifier: _InvalidationNotifier
         node: _Node = _InvalidationNotifier.__CreateNode(action, lambda: notifier)
 
-        notifier = _InvalidationNotifier(node, updater)
+        updater(notifier := _InvalidationNotifier(node, updater))
 
-        updater(notifier)
-
-        return _InvalidationNotifier._Removable(notifier, node)
+        return notifier.__CreateRemovable(node)
     
     def __init__(self, first: _Node, updater: Method[_IInvalidationNotifier]) -> None:
         super().__init__(updater)
@@ -212,7 +216,7 @@ class _InvalidationNotifier(_InvalidationNotifierBase):
             self.__last.SetNext(node)
             self.__last = node
 
-            return _InvalidationNotifier._Removable(self, node)
+            return self.__CreateRemovable(node)
 
         return self.__Process(add)
 

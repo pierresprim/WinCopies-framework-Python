@@ -29,6 +29,7 @@ from collections.abc import Callable, Iterable
 from contextlib import ExitStack
 from typing import Any
 from unittest import mock
+from weakref import ReferenceType, ref
 
 import WinCopies.Collections.Enumeration.Notification as Notification
 
@@ -358,7 +359,9 @@ class TestASubscriberLeavesWithinItsNotification(unittest.TestCase):
 class TestLeavingTwiceLeavesOnce(unittest.TestCase):
     """Each way of leaving removes the subscriber once, whatever happened before. When the notifier
     empties, it hands over to an empty one; a removal that came late used to act on the notifier it
-    replaced, and to replace the one in use in turn, losing its subscribers."""
+    replaced, and to replace the one in use in turn, losing its subscribers. The IRemovable now holds
+    its notifier weakly: one that has handed over is freed, and a removal that comes late finds
+    nothing to act on."""
 
     def test_removing_again_changes_nothing(self) -> None:
         for removed, again in (("A", "A"), ("AB", "B"), ("ABC", "C")):
@@ -392,6 +395,19 @@ class TestLeavingTwiceLeavesOnce(unittest.TestCase):
                 bench.Remove(dead)
 
                 self.assertEqual(bench.Notified(), _rest(dead) + ("D",))
+
+    def test_a_notifier_that_handed_over_is_freed_though_the_removables_are_kept(self) -> None:
+        """Its subscribers die while the bench keeps their IRemovable, unused. Until the IRemovable held
+        its notifier weakly, it kept alive, until its first call, the notifier that had handed over, with
+        the last node it held (Enumeration 6.23 §4)."""
+
+        bench: _Bench = _Bench("AB")
+        held: ReferenceType[object] = ref(_provider(bench.notifier))
+
+        bench.Drop("AB")
+
+        self.assertIs(type(_provider(bench.notifier)), _EMPTY)
+        self.assertIsNone(held(), "the notifier that handed over is still alive")
 
 class TestANotificationRefusesChanges(unittest.TestCase):
     """While it notifies, the notifier refuses to be added to or notified again by a subscriber: the
@@ -437,6 +453,17 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
     error. The private classes of the module are reached by name."""
 
     @staticmethod
+    def __strongly() -> dict[str, Any]:
+        """An IRemovable that holds its notifier strongly, as until it held it weakly."""
+
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
+        removable: type = getattr(notifier, "_Removable")
+
+        def strongly(self: Any, node: Any) -> Any: return removable(lambda: self, node)
+
+        return {"_InvalidationNotifier__CreateRemovable": strongly}
+
+    @staticmethod
     def __unguarded(notifier: Any, revoke: bool) -> None:
         """A notification that does not hold the monitor, which an addition or another notification
         then enters, and during which a removal is applied at once."""
@@ -478,10 +505,13 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         """Each order of leaving twice is held by its own idempotence, rebuilt away as in the version
         that lacked it. Throughout, the notifier updates its head and its tail on every removal of a
         node, even one already removed, as until the seventh version:
-        - released, then removed: nothing else, as in the fifth and sixth versions;
+        - released, then removed: the IRemovable also holds its notifier strongly, as until it held it
+          weakly, and nothing else, as in the fifth and sixth versions; otherwise, the notifier that
+          handed over once all of them left is freed, and the late removal finds nothing to act on;
         - removed, then released: the finalizer is also left attached by the removal, as in the second
           version, and in the fifth for the last node;
-        - removed twice: the IRemovable also forwards every call, as in the third version."""
+        - removed twice: the IRemovable also forwards every call to the notifier it holds strongly, as
+          in the third version."""
 
         node: type = getattr(Notification, "_Node")
         notifier: type = getattr(Notification, "_InvalidationNotifier")
@@ -501,7 +531,7 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         def keeping(self: Any, owner: Any, node: Any) -> None:
             initialize(self, owner, node)
 
-            setattr(self, "_rebuilt", (owner, node))
+            setattr(self, "_rebuilt", (owner(), node))
 
         def forwarding(self: Any) -> None:
             owner, node = getattr(self, "_rebuilt")
@@ -509,12 +539,19 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
             getattr(owner, "_OnNodeRemoved")(node, True)
 
         cases: ReadOnlyArray[tuple[str, ReadOnlyArray[tuple[Any, dict[str, Any]]]]] = (
-            ("test_a_subscriber_released_then_removed_leaves_once", ()),
+            ("test_a_subscriber_released_then_removed_leaves_once", ((notifier, self.__strongly()),)),
             ("test_a_subscriber_removed_then_released_leaves_once", ((Notification, {"WeakReferenceFinalizer": Attached}),)),
             ("test_removing_again_changes_nothing", ((removable, {"__init__": keeping, "Remove": forwarding}),)))
 
         for name, others in cases:
             with self.subTest(bench = name): self.__assertFalls(TestLeavingTwiceLeavesOnce, name, node, {"Remove": countedAlways}, others)
+
+    def test_the_freeing_bench_falls_when_the_removable_holds_its_notifier_strongly(self) -> None:
+        """As until the IRemovable held its notifier weakly."""
+
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
+
+        self.__assertFalls(TestLeavingTwiceLeavesOnce, "test_a_notifier_that_handed_over_is_freed_though_the_removables_are_kept", notifier, self.__strongly())
 
     def test_the_weak_benches_fall_when_the_subscribers_are_held_strongly(self) -> None:
         """A notifier that keeps its subscribers alive: neither dying nor being dropped would end a
