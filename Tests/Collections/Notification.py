@@ -3,25 +3,31 @@ Unit tests for the invalidation notifier (WinCopies.Collections.Enumeration.Noti
 
 The notifier holds its subscribers weakly: a subscriber that dies leaves it, removed by a finalizer,
 and one that nobody keeps alive is never notified. A subscriber also leaves it through the IRemovable
-that Add returns. Either way of leaving is idempotent, and leaving both ways, in either order,
-removes it once (Enumeration 6.11 §3). A subscriber also leaves from within its own notification, by
-returning True; the IRemovable cannot be used then. Notify() returns None when at least one
-subscriber left so, and False otherwise: a subscriber that dies during the notification has not
-left, it has ceased to exist.
+that Add returns, at any time, even during a notification. Either way of leaving is idempotent, and
+leaving both ways, in either order, removes it once (Enumeration 6.11 §3).
 
-These benches are deterministic. Every subscriber dies between two operations of the notifier, with
-one exception: in the bench of D-123, a subscriber dies during its own notification by the fall of
-a reference count, which runs its finalizer at a known point. A finalizer that a pass of the garbage
-collector runs during an operation is the subject of D-124 and D-125, accepted for now (Registre 1);
-the benches leave it out, so as neither to depend on it nor to freeze it.
+A removal never happens in the middle of an operation of the notifier (Enumeration 6.22): one that
+arrives during an addition or a notification, through the IRemovable or by a finalizer, is applied
+once the operation is over, even when a subscriber raised. A subscriber removed during a
+notification is notified no more, not even by the rest of the notification in progress: only the
+unlinking of its node waits. The notifier hands over to an empty one when the removal of its last
+subscriber is applied, hence never during a notification. Adding to the notifier and notifying it
+again during a notification are still refused.
+
+These benches are deterministic. A subscriber dies either between two operations of the notifier,
+or during a notification by the fall of a reference count, which runs its finalizer at a known
+point: during its own notification in the bench of D-123, or before its turn. In the notifier, D-123
+to D-125 are closed by the transactional removal. The benches still place no pass of the garbage
+collector inside an operation; benches that inject one are left for later, in the register of
+defects.
 """
 
 import gc
 import unittest
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import ExitStack
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import WinCopies.Collections.Enumeration.Notification as Notification
@@ -36,20 +42,17 @@ from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Object import WeakReferenceFinalizer
 
 class _Subscriber(Abstract, INotifyCallback):
-    def __init__(self, name: str, log: list[str], react: Callable[[], object]|None = None, result: bool|None = False) -> None:
+    def __init__(self, name: str, log: list[str], react: Callable[[], object]|None = None) -> None:
         super().__init__()
 
         self.__name: str = name
         self.__log: list[str] = log
         self.__react: Callable[[], object]|None = react
-        self.__result: bool|None = result
 
-    def Notify(self, revoke: bool) -> bool|None:
+    def Notify(self, revoke: bool) -> None:
         self.__log.append(self.__name + ("!" if revoke else ""))
 
         if self.__react is not None: self.__react()
-
-        return self.__result
 
 class _Bench:
     """A notifier with named subscribers, which the bench keeps alive until it drops them."""
@@ -62,8 +65,8 @@ class _Bench:
 
         for name in names: self.Add(name)
 
-    def Add(self, name: str, react: Callable[[], object]|None = None, result: bool|None = False) -> None:
-        subscriber: _Subscriber = _Subscriber(name, self.log, react, result)
+    def Add(self, name: str, react: Callable[[], object]|None = None) -> None:
+        subscriber: _Subscriber = _Subscriber(name, self.log, react)
 
         self.subscribers[name] = subscriber
         self.removables[name] = self.notifier.Add(subscriber)
@@ -75,14 +78,30 @@ class _Bench:
 
         gc.collect()
 
-    def Dropping(self, name: str) -> Callable[[], object]:
-        """A reaction by which a subscriber releases itself during its own notification: the bench
-        drops the only strong reference it keeps to it."""
+    def Dropping(self, names: str) -> Callable[[], object]:
+        """A reaction by which a subscriber releases subscribers during a notification, itself or
+        others: the bench drops the only strong reference it keeps to them. Each of them dies at once,
+        by the fall of its reference count, except the subscriber that reacts, which dies once the call
+        that notifies it has returned."""
 
-        return lambda: self.subscribers.pop(name, None)
+        def drop() -> None:
+            for name in names: self.subscribers.pop(name, None)
 
-    def Remove(self, names: str) -> None:
+        return drop
+
+    def Remove(self, names: Iterable[str]) -> None:
         for name in names: self.removables[name].Remove()
+
+    def Removing(self, names: str, then: Callable[[], object]|None = None) -> Callable[[], object]:
+        """A reaction by which a subscriber removes subscribers through their IRemovable during a
+        notification, itself or others, and then runs then, if given."""
+
+        def remove() -> None:
+            self.Remove(names)
+
+            if then is not None: then()
+
+        return remove
 
     def Notified(self, revoke: bool = False) -> ReadOnlyArray[str]:
         self.log.clear()
@@ -177,10 +196,11 @@ class TestASubscriberLeavesTheNotifier(unittest.TestCase):
 
     def test_a_notification_goes_on_past_a_subscriber_that_dies_during_it(self) -> None:
         """D-123 (Registre 1): the subscriber releases itself during its own notification, and is then
-        held only by the notifier until the call returns. Its finalizer then removes its node, before
-        the notification reads the next one; until f9f28d99, the removal cleared that link, and the
-        notification stopped there. The finalizer runs by the fall of a reference count, not by a pass
-        of the garbage collector."""
+        held only by the notification until the call returns. Its finalizer then runs, before the
+        notification reads the next node: until f9f28d99, the removal it made cleared that link, and
+        the notification stopped there; since the transactional removal, that removal waits for the
+        end of the notification. The finalizer runs by the fall of a reference count, not by a pass of
+        the garbage collector."""
 
         for dying in _REMOVALS:
             with self.subTest(dying = dying):
@@ -196,18 +216,21 @@ class TestASubscriberLeavesTheNotifier(unittest.TestCase):
                 self.assertEqual(bench.Notified(), _rest(dying) + ("D",))
 
 class TestASubscriberLeavesWithinItsNotification(unittest.TestCase):
-    """A subscriber leaves from within its own notification by returning True: it is notified this
-    time, and no more, while the notification goes on with the others. The IRemovable still cannot be
-    used then (TestANotificationRefusesChanges)."""
+    """A subscriber leaves during a notification through its IRemovable, used by itself or by another
+    subscriber, or by dying. The removal is not refused, unlike an addition or a nested notification
+    (TestANotificationRefusesChanges): it waits for the end of the notification, which goes on with
+    the others. The subscriber is notified no more from its removal on, not even by the rest of the
+    notification in progress."""
 
-    def test_a_subscriber_that_returns_true_is_notified_no_more(self) -> None:
-        """One added afterwards is notified, after those that remain."""
+    def test_a_subscriber_that_removes_itself_is_notified_no_more(self) -> None:
+        """Through its IRemovable, during its own notification: it is notified this time, and no more.
+        One added afterwards is notified, after those that remain."""
 
         for leaving in _REMOVALS:
             with self.subTest(leaving = leaving):
                 bench: _Bench = _Bench()
 
-                for name in "ABC": bench.Add(name, result = name in leaving)
+                for name in "ABC": bench.Add(name, bench.Removing(name) if name in leaving else None)
 
                 self.assertEqual(bench.Notified(), ("A", "B", "C"))
                 self.assertEqual(bench.Notified(), _rest(leaving))
@@ -216,83 +239,121 @@ class TestASubscriberLeavesWithinItsNotification(unittest.TestCase):
 
                 self.assertEqual(bench.Notified(), _rest(leaving) + ("D",))
 
-    def test_only_true_removes_a_subscriber(self) -> None:
-        """False and None keep it, and so does any other value, even a true one."""
+    def test_a_subscriber_removed_by_another_is_notified_no_more(self) -> None:
+        """B removes, through their IRemovable, A, whose turn has come, C, whose turn has not, or both.
+        The removal is not refused, and C is not notified even by the notification in progress: its
+        node is neutralized at once, and only its unlinking waits for the end of the notification."""
 
-        bench: _Bench = _Bench()
+        for removed, notified in (("A", ("A", "B", "C")), ("C", ("A", "B")), ("AC", ("A", "B"))):
+            with self.subTest(removed = removed):
+                bench: _Bench = _Bench("A")
 
-        for name, result in (("A", False), ("B", None), ("C", cast(bool, 1))): bench.Add(name, result = result)
+                bench.Add("B", bench.Removing(removed))
+                bench.Add("C")
 
-        self.assertEqual(bench.Notified(), ("A", "B", "C"))
-        self.assertEqual(bench.Notified(), ("A", "B", "C"))
+                try: first: ReadOnlyArray[str] = bench.Notified()
+                except InvalidOperationError: self.fail(f"removing {removed} from a subscriber was refused")
 
-    def test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one(self) -> None:
-        """As when they leave through their IRemovable or die (TestLeavingTwiceLeavesOnce), once the
-        notification is over. Nothing observable tells it apart from a notifier left holding a removed
-        node, which still notifies and adds: the bench reads the private member that holds the
-        notifier in use."""
+                self.assertEqual(first, notified)
+                self.assertEqual(bench.Notified(), _rest(removed))
+
+                bench.Add("D")
+
+                self.assertEqual(bench.Notified(), _rest(removed) + ("D",))
+
+    def test_a_subscriber_that_dies_before_its_turn_is_not_notified(self) -> None:
+        """A, notified first, releases it during the notification, and its finalizer runs at once, by
+        the fall of a reference count. It has left once the notification is over: the notifier empties
+        when the others leave. In the bench of D-123, a subscriber dies during its own notification
+        instead."""
+
+        for dying in ("B", "C", "BC"):
+            with self.subTest(dying = dying):
+                bench: _Bench = _Bench()
+
+                bench.Add("A", bench.Dropping(dying))
+                bench.Add("B")
+                bench.Add("C")
+
+                self.assertEqual(bench.Notified(), _rest(dying))
+
+                bench.Remove(_rest(dying))
+
+                self.assertIs(type(_provider(bench.notifier)), _EMPTY, f"the notifier still holds the node of {dying}")
+
+    def test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one_once_the_notification_is_over(self) -> None:
+        """Its subscribers remove themselves through their IRemovable during the notification, and each
+        of them still finds the notifier in use once removed. Once the notification is over, the
+        notifier has handed over to an empty one if none of them remains, as when they leave outside a
+        notification or die (TestLeavingTwiceLeavesOnce); otherwise, it does so once the others leave,
+        which shows that the nodes removed during the notification were unlinked. Nothing observable
+        tells an empty notifier apart from one left holding removed nodes, which still notifies and
+        adds: the bench reads the private member that holds the notifier in use."""
 
         for names, leaving in (("A", "A"), ("AB", "AB"), ("ABC", "ABC"), ("ABC", "AC"), ("ABC", "B")):
             with self.subTest(names = names, leaving = leaving):
                 bench: _Bench = _Bench()
+                found: list[object] = []
 
-                for name in names: bench.Add(name, result = name in leaving)
+                for name in names: bench.Add(name, bench.Removing(name, lambda: found.append(_provider(bench.notifier))) if name in leaving else None)
+
+                inUse: object = _provider(bench.notifier)
 
                 bench.Notified()
 
-                if leaving == names: self.assertIs(type(_provider(bench.notifier)), _EMPTY)
-                else: self.assertIsNot(type(_provider(bench.notifier)), _EMPTY)
+                self.assertEqual(len(found), len(leaving))
 
-class TestANotifierTellsWhetherASubscriberLeft(unittest.TestCase):
-    """Notify() returns None when at least one subscriber left during it by returning True, and False
-    otherwise. Another notifier takes that None as a False."""
+                for notifier in found: self.assertIs(notifier, inUse, "the notifier handed over during the notification")
 
-    def test_a_subscriber_that_dies_during_the_notification_has_not_left(self) -> None:
-        """Only a removal asked by the subscriber is reported: one that dies during the notification has
-        ceased to exist, which its consumer need not be told. It releases itself during its own
-        notification, and its finalizer runs by the fall of a reference count."""
+                staying: str = "".join(name for name in names if name not in leaving)
 
-        for dying, leaving, expected in (("B", "", False), ("ABC", "", False), ("B", "C", None)):
-            with self.subTest(dying = dying, leaving = leaving):
+                if staying:
+                    self.assertIsNot(type(_provider(bench.notifier)), _EMPTY)
+
+                    bench.Remove(staying)
+
+                self.assertIs(type(_provider(bench.notifier)), _EMPTY)
+
+    def test_a_removal_is_applied_even_when_a_subscriber_raises(self) -> None:
+        """A and B remove themselves through their IRemovable during the notification, and one of them
+        raises: the exception reaches the caller once the removals are applied, and the notifier has
+        handed over to an empty one."""
+
+        def fail() -> None: raise ValueError("fail")
+
+        for raising in "AB":
+            with self.subTest(raising = raising):
                 bench: _Bench = _Bench()
 
-                for name in "ABC": bench.Add(name, bench.Dropping(name) if name in dying else None, name in leaving)
+                for name in "AB": bench.Add(name, bench.Removing(name, fail if name == raising else None))
 
-                self.assertIs(bench.notifier.Notify(False), expected)
+                with self.assertRaises(ValueError): bench.notifier.Notify(False)
 
-    def test_notify_returns_none_when_a_subscriber_left_and_false_otherwise(self) -> None:
-        """Without subscribers, with subscribers that stay, and with some or all of them leaving; the
-        next notification, which nobody leaves, returns False."""
+                self.assertIs(type(_provider(bench.notifier)), _EMPTY, f"{raising} raising kept the removals from being applied")
 
-        cases: ReadOnlyArray[tuple[str, str, bool|None]] = (("", "", False), ("ABC", "", False), ("ABC", "B", None), ("ABC", "AC", None), ("ABC", "ABC", None))
+    def test_a_notifier_subscribed_to_another_stays_when_its_subscribers_leave(self) -> None:
+        """Subscribed through AsCallback(): its subscribers remove themselves through their IRemovable
+        during a notification of the other notifier, which goes on notifying the one that remains, and
+        one added once all of them left."""
 
-        for names, leaving, expected in cases:
-            with self.subTest(names = names, leaving = leaving):
-                bench: _Bench = _Bench()
+        for leaving in ("X", "XY"):
+            with self.subTest(leaving = leaving):
+                relay: _Bench = _Bench()
 
-                for name in names: bench.Add(name, result = name in leaving)
+                for name in "XY": relay.Add(name, relay.Removing(name) if name in leaving else None)
 
-                self.assertIs(bench.notifier.Notify(False), expected)
-                self.assertIs(bench.notifier.Notify(False), False)
+                source: InvalidationNotifier = InvalidationNotifier()
 
-    def test_a_notifier_subscribed_to_another_stays_when_one_of_its_subscribers_leaves(self) -> None:
-        """Subscribed through AsCallback(): its None does not remove it, and the subscriber that
-        remains keeps receiving the notifications of the other notifier."""
+                source.Add(relay.notifier.AsCallback())
+                source.Notify(False)
 
-        relay: _Bench = _Bench()
+                self.assertEqual(tuple(relay.log), ("X", "Y"))
 
-        relay.Add("X", result = True)
-        relay.Add("Y")
+                relay.Add("Z")
+                relay.log.clear()
+                source.Notify(False)
 
-        source: InvalidationNotifier = InvalidationNotifier()
-
-        source.Add(relay.notifier.AsCallback())
-
-        for expected in (("X", "Y"), ("Y",)):
-            relay.log.clear()
-            source.Notify(False)
-
-            self.assertEqual(tuple(relay.log), expected)
+                self.assertEqual(tuple(relay.log), tuple(name for name in "XY" if name not in leaving) + ("Z",))
 
 class TestLeavingTwiceLeavesOnce(unittest.TestCase):
     """Each way of leaving removes the subscriber once, whatever happened before. When the notifier
@@ -333,9 +394,10 @@ class TestLeavingTwiceLeavesOnce(unittest.TestCase):
                 self.assertEqual(bench.Notified(), _rest(dead) + ("D",))
 
 class TestANotificationRefusesChanges(unittest.TestCase):
-    """While it notifies, the notifier refuses to be changed or notified again by a subscriber: the
+    """While it notifies, the notifier refuses to be added to or notified again by a subscriber: the
     refusal is raised in that subscriber, and reaches the caller once everyone is notified. The
-    notifier stays as it was."""
+    notifier stays as it was. A removal is not refused, but waits for the end of the notification
+    (TestASubscriberLeavesWithinItsNotification)."""
 
     def __assertRefused(self, label: str, change: Callable[[_Bench], object], expected: ReadOnlyArray[str]) -> None:
         bench: _Bench = _Bench("A")
@@ -358,7 +420,6 @@ class TestANotificationRefusesChanges(unittest.TestCase):
         self.assertEqual(bench.Notified(), expected, f"{label} from a subscriber changed the notifier")
 
     def test_adding_is_refused(self) -> None: self.__assertRefused("Add", lambda bench: bench.Add("N"), ("A", "B", "C"))
-    def test_removing_through_the_removable_is_refused(self) -> None: self.__assertRefused("Remove", lambda bench: bench.Remove("C"), ("A", "B", "C"))
     def test_notifying_again_is_refused(self) -> None: self.__assertRefused("Notify", lambda bench: bench.notifier.Notify(True), ("A", "B", "C"))
 
 def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
@@ -370,9 +431,22 @@ def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
 
 class TestTheNotifierBenchesCanFail(unittest.TestCase):
     """The benches above, run against the defects of the earlier versions of the notifier (Enumeration
-    6.11 §3.2, and the versions reviewed before f9f28d99): green on the intact module, red on the
-    rebuilt one, and red on their assertions rather than on an error. The private classes of the
-    module are reached by name."""
+    6.11 §3.2, the versions reviewed before f9f28d99, and the notifier before the transactional
+    removal), and against defects that the transactional removal could have had (Enumeration 6.22):
+    green on the intact module, red on the rebuilt one, and red on their assertions rather than on an
+    error. The private classes of the module are reached by name."""
+
+    @staticmethod
+    def __unguarded(notifier: Any, revoke: bool) -> None:
+        """A notification that does not hold the monitor, which an addition or another notification
+        then enters, and during which a removal is applied at once."""
+
+        first: Any = getattr(notifier, "_InvalidationNotifier__first")
+
+        def following(node: Any) -> Any: return node.GetNext()
+        def notify(node: Any) -> None: node.Notify(revoke)
+
+        EnumerateSafe(Iterate(lambda: first, following), notify, True)
 
     def __assertFalls(self, bench: type[unittest.TestCase], name: str, target: Any, rebuilt: dict[str, Any], alsoRebuilt: ReadOnlyArray[tuple[Any, dict[str, Any]]] = ()) -> None:
         self.assertTrue(_run(bench, name).wasSuccessful(), f"{name} is expected to pass on the intact module")
@@ -451,30 +525,30 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
             def TryGetValue(self) -> T|None: return self.__obj
             def Remove(self) -> None: self.__obj = None
 
-        for bench, name in ((TestASubscriberLeavesTheNotifier, "test_a_subscriber_that_dies_is_notified_no_more"), (TestASubscriberLeavesTheNotifier, "test_a_subscriber_nobody_keeps_is_never_notified")):
+        benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]] = (
+            (TestASubscriberLeavesTheNotifier, "test_a_subscriber_that_dies_is_notified_no_more"),
+            (TestASubscriberLeavesTheNotifier, "test_a_subscriber_nobody_keeps_is_never_notified"),
+            (TestASubscriberLeavesWithinItsNotification, "test_a_subscriber_that_dies_before_its_turn_is_not_notified"))
+
+        for bench, name in benches:
             with self.subTest(bench = name): self.__assertFalls(bench, name, Notification, {"WeakReferenceFinalizer": Strong})
 
     def test_the_refusal_benches_fall_without_the_monitor(self) -> None:
-        """A notification that does not hold the monitor, which a change or another notification then
-        enters."""
+        """A notification that does not hold the monitor."""
 
         notifier: type = getattr(Notification, "_InvalidationNotifier")
 
-        def unguarded(self: Any, revoke: bool) -> None:
-            first: Any = getattr(self, "_InvalidationNotifier__first")
+        for name in ("test_adding_is_refused", "test_notifying_again_is_refused"):
+            with self.subTest(bench = name): self.__assertFalls(TestANotificationRefusesChanges, name, notifier, {"Notify": self.__unguarded})
 
-            def following(node: Any) -> Any: return node.GetNext()
-            def notify(node: Any) -> None: node.Notify(revoke)
+    def test_the_going_on_benches_fall_when_a_removal_is_immediate_and_clears_the_next(self) -> None:
+        """Two defects together: a notification that does not hold the monitor, so that a removal
+        during it is applied at once, as a removal by a finalizer was until the transactional removal;
+        and a removal that clears the link of the node to the next one, which the notification reads
+        once the call that removed it has returned, as until f9f28d99. Either of them alone leaves the
+        benches green."""
 
-            EnumerateSafe(Iterate(lambda: first, following), notify, True)
-
-        for name in ("test_adding_is_refused", "test_removing_through_the_removable_is_refused", "test_notifying_again_is_refused"):
-            with self.subTest(bench = name): self.__assertFalls(TestANotificationRefusesChanges, name, notifier, {"Notify": unguarded})
-
-    def test_the_bench_of_d123_falls_when_a_removed_node_loses_its_next(self) -> None:
-        """As until f9f28d99: removing a node cleared its link to the next one, which the notification
-        read once the call that removed it had returned."""
-
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
         node: type = getattr(Notification, "_Node")
         remove: Callable[[Any, Callable[[], Any]], Any] = getattr(node, "Remove")
 
@@ -485,69 +559,90 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
 
             return result
 
-        self.__assertFalls(TestASubscriberLeavesTheNotifier, "test_a_notification_goes_on_past_a_subscriber_that_dies_during_it", node, {"Remove": cleared})
+        benches: ReadOnlyArray[tuple[type[unittest.TestCase], str]] = (
+            (TestASubscriberLeavesTheNotifier, "test_a_notification_goes_on_past_a_subscriber_that_dies_during_it"),
+            (TestASubscriberLeavesWithinItsNotification, "test_a_subscriber_that_removes_itself_is_notified_no_more"))
 
-    def test_the_emptying_bench_falls_when_the_removal_drops_what_the_update_returns(self) -> None:
-        """As in a version reviewed before f9f28d99: the node did not return what the update of the
-        head and the tail returned, so that the notifier never learnt that it had emptied during the
-        notification."""
+        for bench, name in benches:
+            with self.subTest(bench = name): self.__assertFalls(bench, name, node, {"Remove": cleared}, ((notifier, {"Notify": self.__unguarded}),))
 
-        node: type = getattr(Notification, "_Node")
-        remove: Callable[[Any, Callable[[], Any]], Any] = getattr(node, "Remove")
-
-        def dropped(self: Any, action: Callable[[], Any]) -> Any:
-            remove(self, action)
-
-            return None
-
-        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one", node, {"Remove": dropped})
-
-    def test_the_only_true_bench_falls_when_any_true_value_removes(self) -> None:
-        """A node that takes any true value returned by its subscriber for True."""
+    def test_the_removal_by_another_bench_falls_without_the_neutralization(self) -> None:
+        """A removal during a notification that only waits for its end: the subscriber removed before
+        its turn is notified by the rest of the notification."""
 
         node: type = getattr(Notification, "_Node")
 
-        def truthy(self: Any, revoke: bool) -> bool:
-            action: Any = getattr(self, "_Node__action").TryGetValue()
+        def kept(self: Any) -> None: pass
 
-            return action is not None and bool(action.Notify(revoke))
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_subscriber_removed_by_another_is_notified_no_more", node, {"Neutralize": kept})
 
-        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_only_true_removes_a_subscriber", node, {"Notify": truthy})
-
-    def test_the_return_bench_falls_when_notify_returns_nothing(self) -> None:
-        """As until f9f28d99."""
+    def test_the_removal_by_another_bench_falls_when_the_removal_is_refused_during_a_notification(self) -> None:
+        """As before the transactional removal: a removal through the IRemovable took the monitor, which
+        the notification held."""
 
         notifier: type = getattr(Notification, "_InvalidationNotifier")
-        notify: Callable[[Any, bool], Any] = getattr(notifier, "Notify")
+        onNodeRemoved: Callable[[Any, Any, bool], None] = getattr(notifier, "_OnNodeRemoved")
 
-        def silent(self: Any, revoke: bool) -> None: notify(self, revoke)
+        def refused(self: Any, node: Any, explicit: bool) -> None:
+            if explicit and getattr(self, "_InvalidationNotifier__monitor").IsBusy(): raise InvalidOperationError("The given monitor is already busy.")
 
-        self.__assertFalls(TestANotifierTellsWhetherASubscriberLeft, "test_notify_returns_none_when_a_subscriber_left_and_false_otherwise", notifier, {"Notify": silent})
+            onNodeRemoved(self, node, explicit)
 
-    def test_the_death_bench_falls_when_a_subscriber_that_died_counts_as_having_left(self) -> None:
-        """A node that reports its subscriber as having left when it finds it dead once the call has
-        returned."""
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_subscriber_removed_by_another_is_notified_no_more", notifier, {"_OnNodeRemoved": refused})
 
-        node: type = getattr(Notification, "_Node")
-        notify: Callable[[Any, bool], bool] = getattr(node, "Notify")
-
-        def dyingLeaves(self: Any, revoke: bool) -> bool:
-            return notify(self, revoke) or getattr(self, "_Node__action").TryGetValue() is None
-
-        self.__assertFalls(TestANotifierTellsWhetherASubscriberLeft, "test_a_subscriber_that_dies_during_the_notification_has_not_left", node, {"Notify": dyingLeaves})
-
-    def test_the_relay_bench_falls_when_a_notifier_asks_to_leave_once_a_subscriber_left(self) -> None:
-        """As in a version reviewed before f9f28d99: a notifier returned True as soon as one of its
-        subscribers had left, and the notifier it was subscribed to removed it."""
+    def test_the_unlinking_benches_fall_when_a_removal_during_an_operation_is_lost(self) -> None:
+        """A removal that is applied if it finds the notifier free, and is otherwise dropped rather than
+        deferred, after the node is neutralized when the removal is explicit: the node stays linked."""
 
         notifier: type = getattr(Notification, "_InvalidationNotifier")
-        notify: Callable[[Any, bool], Any] = getattr(notifier, "Notify")
+        onNodeRemoved: Callable[[Any, Any, bool], None] = getattr(notifier, "_OnNodeRemoved")
 
-        def leaving(self: Any, revoke: bool) -> bool|None:
-            result: Any = notify(self, revoke)
+        def lost(self: Any, node: Any, explicit: bool) -> None:
+            if not getattr(self, "_InvalidationNotifier__monitor").IsBusy(): onNodeRemoved(self, node, explicit)
+            elif explicit: node.Neutralize()
 
-            return True if result is None else result
+        for name in ("test_a_subscriber_that_dies_before_its_turn_is_not_notified", "test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one_once_the_notification_is_over"):
+            with self.subTest(bench = name): self.__assertFalls(TestASubscriberLeavesWithinItsNotification, name, notifier, {"_OnNodeRemoved": lost})
 
-        self.__assertFalls(TestANotifierTellsWhetherASubscriberLeft, "test_a_notifier_subscribed_to_another_stays_when_one_of_its_subscribers_leaves", notifier, {"Notify": leaving})
+    def test_the_emptying_bench_falls_when_the_drain_does_not_hand_over(self) -> None:
+        """A drain that empties the notifier without handing over to an empty one."""
+
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
+
+        def kept(self: Any) -> None: pass
+
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one_once_the_notification_is_over", notifier, {"_InvalidationNotifier__Update": kept})
+
+    def test_the_emptying_bench_falls_when_the_notifier_hands_over_during_the_notification(self) -> None:
+        """A notification that does not hold the monitor, during which the removal of the last
+        subscriber is applied at once."""
+
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
+
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_notifier_left_by_all_its_subscribers_hands_over_to_an_empty_one_once_the_notification_is_over", notifier, {"Notify": self.__unguarded})
+
+    def test_the_raising_bench_falls_when_an_exception_skips_the_drain(self) -> None:
+        """An operation that applies the removals that arrived during it only when it returns."""
+
+        notifier: type = getattr(Notification, "_InvalidationNotifier")
+
+        def unprotected(self: Any, func: Callable[[], Any]) -> Any:
+            with getattr(self, "_InvalidationNotifier__monitor"):
+                result: Any = func()
+
+                getattr(self, "_InvalidationNotifier__Drain")()
+
+            getattr(self, "_InvalidationNotifier__Commit")()
+
+            return result
+
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_removal_is_applied_even_when_a_subscriber_raises", notifier, {"_InvalidationNotifier__Process": unprotected})
+
+    def test_the_relay_bench_falls_when_the_callback_is_the_notifier_in_use(self) -> None:
+        """A notifier that hands out the notifier it uses, itself a callback, rather than a callback
+        that forwards to it: the hand-over to an empty one, once all its subscribers left, ends its
+        subscription to the other notifier."""
+
+        self.__assertFalls(TestASubscriberLeavesWithinItsNotification, "test_a_notifier_subscribed_to_another_stays_when_its_subscribers_leave", InvalidationNotifier, {"AsCallback": _provider})
 
 if __name__ == '__main__': unittest.main()
