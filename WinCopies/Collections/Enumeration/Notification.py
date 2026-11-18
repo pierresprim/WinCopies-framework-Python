@@ -9,10 +9,10 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import Loop
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Delegates import NoAction
+from WinCopies.Delegates import DoNothing, NoAction
 from WinCopies.Typing.Delegate import Action, Method, Function, FunctionCall
 from WinCopies.Typing.Extensions import IExceptionGroupBuilder, ExceptionGroupBuilder
-from WinCopies.Typing.Monitoring import IMonitor, Monitor, TryDoWork
+from WinCopies.Typing.Monitoring import ISafeMonitor, AtomicMonitor, TryDoWork
 from WinCopies.Typing.Object import WeakReferenceFinalizer
 
 class INotifyCallback(IInterface):
@@ -62,7 +62,7 @@ class _Node(Abstract):
 
             unlink()
 
-            # At interpreter exit, the remaining finalizers run while their subscribers are still alive, and this call is then what neutralizes the node.
+            # The notifier unlinks only a node that is neutralized or whose subscriber is gone. This call makes a removed node notify nobody all the same, whoever removes it.
             self.__action.Remove()
 
             self.__remove = _Remove
@@ -79,6 +79,9 @@ class _Node(Abstract):
         action: INotifyCallback|None = self.__action.TryGetValue()
 
         if action is not None: action.Notify(revoke)
+
+    def HasSubscriber(self) -> bool:
+        return self.__action.TryGetValue() is not None
 
     def GetPrevious(self) -> _Node|None:
         return self.__previous
@@ -147,9 +150,11 @@ class IInvalidationNotifierProvider(INotifyCallback, IInvalidationNotifier):
 class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
     """Notifies its subscribers, which it holds weakly, of an invalidation or a revocation.
 
-    The notifier holds the list of its subscribers, which can be empty, and the transaction that guards it, one monitor and one queue of pending operations. An addition, a removal or a notification that finds the monitor free takes it, and is the outermost operation. One that arrives while the monitor is held, from a subscriber or from a finalizer, waits in the queue, which the outermost operation plays in the order of arrival before it ends. No operation is refused, and none runs in the middle of another.
+    The notifier holds the list of its subscribers, which can be empty, and the transaction that guards it, one monitor, one queue of pending operations, and one request of a purge. An addition, a removal or a notification that finds the monitor free takes it, and is the outermost operation. One that a subscriber requests while the monitor is held waits in the queue, which the outermost operation plays in the order of arrival before it ends. No operation is refused, and none runs in the middle of another.
 
-    The exceptions raised by the subscribers during the outermost operation, including in the notifications it plays from the queue, are raised at its end, once everything is applied, alone if there is only one, grouped otherwise.
+    A subscriber that dies leaves through a purge, which unlinks every node whose subscriber is gone. Its finalizer requests the purge, by a single assignment, and then tries the monitor, which never blocks. If the finalizer takes the monitor, it holds it as the outermost operation does, and makes the purge itself. Otherwise, the holder of the monitor makes it, since the holder reads the request once it has played the queue, and again once it has released the monitor. A finalizer runs at an arbitrary point of the code it interrupts, where no container is guaranteed safe to write, and it queues nothing.
+
+    The exceptions raised by the subscribers during the outermost operation, including in the notifications it plays from the queue, are raised at its end, once everything is applied, alone if there is only one, grouped otherwise. A finalizer that plays the queue raises them at its end, where Python hands them to sys.unraisablehook.
     """
 
     def __init__(self) -> None:
@@ -158,31 +163,26 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         self.__first: _Node|None = None
         self.__last: _Node|None = None
 
-        self.__monitor: IMonitor = Monitor()
+        self.__monitor: ISafeMonitor = AtomicMonitor()
         self.__queue: deque[Method[Method[Exception]]] = deque()
+        self.__mustPurge: bool = False
 
         self.__notifier: IInvalidationNotifier = _Notifier(self)
         self.__callback: INotifyCallback = _NotifyCallback(self)
 
-    def __Process(self, operation: Method[Method[Exception]]) -> None:
-        """Applies an operation to the list, or queues it while another operation holds the monitor.
+    def __Run(self, operation: Method[Method[Exception]]) -> None:
+        """Runs an operation with the monitor, which the caller has taken, and then releases the monitor.
 
-        An operation that finds the monitor free takes it and runs. It then plays the queue, including what the queue receives meanwhile, even when the operation raised. It releases the monitor, and plays the queue again for as long as it filled before the release.
+        Once the operation is done, even when it raised, the queue is played, including what the queue receives meanwhile, and the list is then purged if a finalizer requested it. The monitor is then released. After the release, the queue and the request are read again, and the drain runs again for as long as either of them calls for it and the monitor is free. A finalizer that found the monitor held made its request before it tried the monitor, so that its purge is not lost.
 
         Args:
             operation: The operation, which receives the method that collects the exceptions of the subscribers.
 
         Raises:
-            Exception: The exception raised by a subscriber during the operation or the operations it played, or an ExceptionGroup of all of them.
+            Exception: The exception raised by a subscriber during the operation or the operations played from the queue, or an ExceptionGroup of all of them.
         """
         queue: deque[Method[Method[Exception]]] = self.__queue
-        monitor: IMonitor = self.__monitor
-
-        if monitor.IsBusy():
-            queue.append(operation)
-
-            return
-
+        monitor: ISafeMonitor = self.__monitor
         exceptions: IExceptionGroupBuilder|None = None
 
         def onError(exception: Exception) -> None:
@@ -195,31 +195,69 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         def drain() -> None:
             while len(queue) > 0: queue.popleft()(onError)
 
+            if self.__mustPurge:
+                # The request is withdrawn before the list is read. A finalizer that runs during the purge makes it again, and that request is read once the monitor is released.
+                self.__mustPurge = False
+
+                node: _Node|None = self.__first
+
+                while node is not None:
+                    next: _Node|None = node.GetNext()
+
+                    if not node.HasSubscriber(): self.__Unlink(node)
+
+                    node = next
+
         try:
-            with monitor:
+            try:
                 try: operation(onError)
                 finally: drain()
 
+            finally: monitor.Dispose()
+
         finally:
-            while len(queue) > 0 and TryDoWork(monitor, drain): pass
+            while (len(queue) > 0 or self.__mustPurge) and TryDoWork(monitor, drain): pass
 
         if exceptions is not None: exceptions.TryThrow()
 
-    def __Remove(self, node: _Node, explicit: bool) -> None:
-        def removeNode(_: Method[Exception]) -> None:
-            def update() -> None:
-                if node is self.__last:
-                    previous: _Node|None = node.GetPrevious()
+    def __Process(self, operation: Method[Method[Exception]]) -> None:
+        """Applies an operation to the list, or queues it while another operation holds the monitor.
 
-                    if previous is None: self.__first = None
+        An operation that takes the monitor runs at once, and plays the queue and the purge before it ends, as __Run describes. One that finds the monitor held waits in the queue, which the holder plays.
 
-                    self.__last = previous
+        Args:
+            operation: The operation, which receives the method that collects the exceptions of the subscribers.
 
-                elif node is self.__first: self.__first = node.GetNext()
+        Raises:
+            Exception: The exception raised by a subscriber during the operation or the operations it played, or an ExceptionGroup of all of them.
+        """
+        if self.__monitor.TryInitialize(): self.__Run(operation)
+        else: self.__queue.append(operation)
 
-            node.Remove(update)
+    def __Unlink(self, node: _Node) -> None:
+        """Unlinks a node from the list, and updates the head and the tail of the list.
 
-        if explicit: node.Neutralize()
+        The caller holds the monitor. A node already unlinked is left as it is, since the removal of a node is idempotent.
+
+        Args:
+            node: The node.
+        """
+        def update() -> None:
+            if node is self.__last:
+                previous: _Node|None = node.GetPrevious()
+
+                if previous is None: self.__first = None
+
+                self.__last = previous
+
+            elif node is self.__first: self.__first = node.GetNext()
+
+        node.Remove(update)
+
+    def __Remove(self, node: _Node) -> None:
+        def removeNode(_: Method[Exception]) -> None: self.__Unlink(node)
+
+        node.Neutralize()
 
         self.__Process(removeNode)
 
@@ -245,7 +283,7 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
                 if _notifier is not None:
                     _node: _Node|None = node()
 
-                    if _node is not None: _notifier.__Remove(_node, True)
+                    if _node is not None: _notifier.__Remove(_node)
 
             return remove
 
@@ -257,7 +295,16 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
 
             self.__last = node
 
-        node: _Node = _Node(action, lambda: self.__Remove(node, False))
+        def requestPurge() -> None:
+            # At interpreter exit, the remaining finalizers run while their subscribers are still alive: the node is neutralized first, so that the purge unlinks it all the same. Inside its own finalizer, this touches only the node, since the finalizer has already left its registry.
+            node.Neutralize()
+
+            # The request is made before the monitor is tried. If the monitor is held, its holder reads the request once it has released the monitor, and the purge is not lost.
+            self.__mustPurge = True
+
+            if self.__monitor.TryInitialize(): self.__Run(DoNothing)
+
+        node: _Node = _Node(action, requestPurge)
         removable: IRemovable = _Removable(getRemover(ref(self), ref(node)))
 
         self.__Process(setLast)
@@ -276,7 +323,7 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         Raises:
             Exception: The exception raised by a subscriber, or an ExceptionGroup of all of them, once every subscriber is notified and the queue is played.
         """
-        # With the monitor free and nothing pending, no operation is in progress, and an empty list has nobody to notify. The notification then returns without allocating anything.
+        # With the monitor free and the queue empty, no operation is in progress, and an empty list has nobody to notify, nor to purge. The notification then returns without allocating anything.
         if not self.__monitor.IsBusy() and len(self.__queue) == 0 and self.__first is None: return
 
         def notify(onError: Method[Exception]) -> None:
