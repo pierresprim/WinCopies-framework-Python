@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from threading import Lock
 from typing import final, NoReturn
 
 from WinCopies import IInterface, IDisposable, Abstract
@@ -8,12 +9,28 @@ from WinCopies.String import GetValueOrDefault
 from WinCopies.Typing import INullable, InvalidOperationError, GetUnexpectedError, GetNullValue, GetNullable
 from WinCopies.Typing.Delegate import Action, Function, Converter
 
+def GetMonitorError(busy: bool = True, errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
+    return InvalidOperationError(GetValueOrDefault(errorMessage, f"The given monitor is {"already" if busy else "not"} busy."))
+def ThrowMonitorError(busy: bool = True, errorMessage: str|ErrorMessages|None = None) -> NoReturn:
+    raise GetMonitorError(busy, errorMessage)
+
+def GetMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
+    return GetMonitorError(errorMessage=errorMessage)
+def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> NoReturn:
+    ThrowMonitorError(errorMessage=errorMessage)
+
+def GetMonitorNotBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
+    return GetMonitorError(False, errorMessage)
+def ThrowMonitorNotBusyError(errorMessage: str|ErrorMessages|None = None) -> NoReturn:
+    ThrowMonitorError(False, errorMessage)
+
 class IWorker(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def IsBusy(self) -> bool:
         ...
+
 class IMonitor(IWorker, IDisposable):
     def __init__(self) -> None: super().__init__()
 class Monitor(Abstract, IMonitor):
@@ -34,10 +51,32 @@ class Monitor(Abstract, IMonitor):
     @final
     def Dispose(self) -> None: self.__isBusy = False
 
-def GetMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> InvalidOperationError:
-    return InvalidOperationError(GetValueOrDefault(errorMessage, "The given monitor is already busy."))
-def ThrowMonitorBusyError(errorMessage: str|ErrorMessages|None = None) -> NoReturn:
-    raise GetMonitorBusyError(errorMessage)
+class ISafeMonitor(IMonitor):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def TryInitialize(self) -> bool:
+        ...
+    @final
+    def Initialize(self) -> None:
+        if not self.TryInitialize(): ThrowMonitorBusyError()
+class AtomicMonitor(Abstract, ISafeMonitor):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__lock: Lock = Lock()
+    
+    @final
+    def IsBusy(self) -> bool: return self.__lock.locked()
+
+    @final
+    def TryInitialize(self) -> bool:
+        return self.__lock.acquire(False)
+    
+    @final
+    def Dispose(self) -> None:
+        try: self.__lock.release()
+        except RuntimeError as e: raise GetMonitorNotBusyError() from e
 
 def __CheckMonitor(monitor: IMonitor, errorMessage: str|ErrorMessages|None = None) -> None:
     if monitor.IsBusy(): ThrowMonitorBusyError(errorMessage)
@@ -47,6 +86,17 @@ def DoWork(monitor: IMonitor, worker: Action, errorMessage: str|ErrorMessages|No
 
     with monitor: worker()
 def TryDoWork(monitor: IMonitor, worker: Action) -> bool:
+    if isinstance(monitor, ISafeMonitor):
+        if monitor.TryInitialize():
+            try:
+                worker()
+
+                return True
+            
+            finally: monitor.Dispose()
+
+        return False
+    
     if monitor.IsBusy(): return False
 
     with monitor: worker()
@@ -60,6 +110,13 @@ def Process[T](monitor: IMonitor, worker: Function[T], errorMessage: str|ErrorMe
 
     raise GetUnexpectedError()
 def TryProcess[T](monitor: IMonitor, worker: Function[T]) -> INullable[T]:
+    if isinstance(monitor, ISafeMonitor):
+        if monitor.TryInitialize():
+            try: return GetNullable(worker())
+            finally: monitor.Dispose()
+
+        return GetNullValue()
+    
     if monitor.IsBusy(): return GetNullValue()
     
     with monitor: return GetNullable(worker())
