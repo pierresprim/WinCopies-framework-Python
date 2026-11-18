@@ -152,7 +152,7 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
 
     The notifier holds the list of its subscribers, which can be empty, and the transaction that guards it, one monitor, one queue of pending operations, and one request of a purge. An addition, a removal or a notification that finds the monitor free takes it, and is the outermost operation. One that a subscriber requests while the monitor is held waits in the queue, which the outermost operation plays in the order of arrival before it ends. No operation is refused, and none runs in the middle of another.
 
-    A subscriber that dies leaves through a purge, which unlinks every node whose subscriber is gone. Its finalizer requests the purge, by a single assignment, and then tries the monitor, which never blocks. If the finalizer takes the monitor, it holds it as the outermost operation does, and makes the purge itself. Otherwise, the holder of the monitor makes it, since the holder reads the request once it has played the queue, and again once it has released the monitor. A finalizer runs at an arbitrary point of the code it interrupts, where no container is guaranteed safe to write, and it queues nothing.
+    The finalizer of a subscriber that dies tries the monitor, which never blocks. If it takes it, it holds it as the outermost operation does, and unlinks the node of the subscriber at once. Otherwise, it requests a purge, which unlinks every node whose subscriber is gone, by a single assignment, and tries the monitor once more, making the purge itself if it takes it. If it does not, the holder of the monitor makes the purge, since the holder reads the request once it has played the queue, and again once it has released the monitor. A finalizer runs at an arbitrary point of the code it interrupts, where no container is guaranteed safe to write, and it queues nothing.
 
     The exceptions raised by the subscribers during the outermost operation, including in the notifications it plays from the queue, are raised at its end, once everything is applied, alone if there is only one, grouped otherwise. A finalizer that plays the queue raises them at its end, where Python hands them to sys.unraisablehook.
     """
@@ -299,7 +299,13 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
             # At interpreter exit, the remaining finalizers run while their subscribers are still alive: the node is neutralized first, so that the purge unlinks it all the same. Inside its own finalizer, this touches only the node, since the finalizer has already left its registry.
             node.Neutralize()
 
-            # The request is made before the monitor is tried. If the monitor is held, its holder reads the request once it has released the monitor, and the purge is not lost.
+            # With no operation in progress, the finalizer takes the monitor, and unlinks its own node without reading the list.
+            if self.__monitor.TryInitialize():
+                self.__Run(lambda _: self.__Unlink(node))
+
+                return
+
+            # Otherwise, the request is made before the monitor is tried again. If the monitor is still held, its holder reads the request once it has released the monitor, and the purge is not lost; if it was released meanwhile, the second try takes it.
             self.__mustPurge = True
 
             if self.__monitor.TryInitialize(): self.__Run(DoNothing)

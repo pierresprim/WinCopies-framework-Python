@@ -10,9 +10,9 @@ The notifier is one object for its whole life, which holds a list of subscribers
 and no operation of it happens in the middle of another (Enumeration 6.22 and 6.24). An addition, a
 removal through the IRemovable, or a notification that arrives during an operation is not refused:
 it waits in a queue, which the operation plays in the order of arrival once it is over, even when a
-subscriber raised. A subscriber that dies leaves through a purge that its finalizer requests, by a
-flag, and that the finalizer makes itself if no operation is in progress, or the operation in
-progress once it is over (Registre 5). An addition creates the subscription at once, and
+subscriber raised. A subscriber that dies while no operation is in progress is unlinked by its
+finalizer at once; one that dies during an operation leaves through a purge that its finalizer
+requests by a flag, and that the operation makes once it is over (Registre 5). An addition creates the subscription at once, and
 only the linking of its node waits: a subscriber added during a notification is not notified by it.
 A subscriber removed through its IRemovable is notified no more, not even by the notification in
 progress, nor by one that waits in the queue, an exception to the order of arrival: only the
