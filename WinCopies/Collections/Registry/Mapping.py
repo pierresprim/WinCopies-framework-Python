@@ -65,6 +65,9 @@ class KeyedObjectRegistryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable]
         items: IDictionary[TKey, ReferenceType[TOut]] = self._GetKeyedItems()
         key: TKey = self._GetKey(obj)
         reference: ReferenceType[TOut] = ref(obj)
+
+        # The entry of a dead object stays until it is found or purged, so that the lookup drops it here rather than letting it keep its key from the new object. The entry of a live object is kept, and the addition raises.
+        self.__TryGetValue(key)
         
         try: items.Add(key, reference)
         
