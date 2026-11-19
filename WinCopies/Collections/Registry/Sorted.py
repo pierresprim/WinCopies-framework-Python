@@ -133,6 +133,10 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     @final
     def TryRemoveNode(self, node: ISortedNode[TKey, TValue]) -> bool:
         items: MutableSequence[ISortedNode[TKey, TValue]] = self.__items
+
+        # The bisection costs even on an empty list, and the index is empty while its registry invalidates its objects.
+        if len(items) < 1: return False
+
         key: TKey = node.GetKey()
         index: int = self.TryBisect(key).GetKey()
         item: ISortedNode[TKey, TValue]
@@ -231,6 +235,9 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     def TryBisect(self, key: TKey, right: bool = False) -> DualValueBool[int]: return self._GetSortedItems().TryBisect(key, right)
     
     def InvalidateObjects(self) -> None:
+        # The index is emptied first, so that the objects that the invalidation disposes find no node to remove, and again after, for the objects registered during the invalidation.
+        self._GetSortedItems().Clear()
+
         try: super().InvalidateObjects()
         finally: self._GetSortedItems().Clear()
 class SortedObjectRegistry[TKey: SupportsEqualityAndRichComparison, TValue](SortedObjectRegistryBase[TKey, TValue, IInvalidatable], ISortedObjectRegistry[TKey, TValue]):

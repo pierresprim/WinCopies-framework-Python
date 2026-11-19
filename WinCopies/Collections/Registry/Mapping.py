@@ -101,6 +101,9 @@ class KeyedObjectRegistryBase[TKey: HashableProtocol, TIn, TOut: IInvalidatable]
     def ContainsKey(self, key: TKey) -> bool: return self.__TryGetValue(key) is not None
     
     def InvalidateObjects(self) -> None:
+        # The dictionary is emptied first, so that the objects that the invalidation disposes find no entry to remove, and again after, for the objects registered during the invalidation.
+        self._GetKeyedItems().Clear()
+
         try: super().InvalidateObjects()
         finally: self._GetKeyedItems().Clear()
 
