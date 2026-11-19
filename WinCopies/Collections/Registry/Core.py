@@ -132,7 +132,6 @@ class _PurgeableWeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistry[T
             following: IReadWriteLinkedNode[IWeakReference[T]]|None = cast(IReadWriteLinkedNode[IWeakReference[T]]|None, node.GetNext())
 
             if node.GetValue().TryGetValue() is None: node.Remove()
-
             else: count += 1
 
             node = following
@@ -161,7 +160,7 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         super().__init__()
 
         self.__items: _PurgeableWeakReferenceRegistry[TOut] = _PurgeableWeakReferenceRegistry[TOut]()
-        self.__purger: _Purger = _Purger(self._Purge)
+        self.__purger: _Purger = _Purger(self.__items.Purge)
 
         self.__push: Converter[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
@@ -178,9 +177,9 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         self.__purger.Register()
 
         cookie: IDisposableReferenceRegister[TOut] = CreateDisposableReferenceRegister(obj)
-        node: INodeBase = self._GetRemovable(obj, self.__items.PushReference(cookie))
+        node: INodeBase = self.__items.PushReference(cookie)
 
-        cookie.RegisterNode(node)
+        cookie.RegisterNode(self._GetRemovable(obj, node))
 
         return node
     @final
@@ -198,29 +197,8 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     def _Push(self, item: TIn) -> INodeBase:
         return self.__push(self._Convert(item))
     
-    def _GetRemovable(self, obj: TOut, node: INodeBase) -> INodeBase:
-        """Gets the node that _Push returns for a registered object, so that its removal removes the object from every structure of the registry.
-
-        A registry that keeps an index alongside its list adds the object to it here, and returns a node that removes both entries.
-
-        Args:
-            obj: The registered object.
-            node: The node of the object in the list of the registry.
-
-        Returns:
-            The node to return for the object.
-        """
-
+    def _GetRemovable(self, obj: TOut, node: INodeBase) -> IRemovable:
         return node
-    
-    def _Purge(self) -> int:
-        """Removes the entries of the dead objects. A registry that keeps an index alongside its list removes their entries from it too.
-
-        Returns:
-            The number of entries left in the list of the registry.
-        """
-
-        return self.__items.Purge()
     
     @abstractmethod
     def _Convert(self, item: TIn) -> TOut:
@@ -311,7 +289,6 @@ class _WeakMonitors[T: IObjectMonitor](Abstract):
             following: ILinkedNode[_WeakMonitor[T]]|None = node.GetNext()
 
             if canDetach and entry.TryGetMonitor() is None: entry.Detach()
-
             else: count += 1
 
             node = following
