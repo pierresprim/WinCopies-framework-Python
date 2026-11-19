@@ -18,6 +18,13 @@ a cycle, at the points that the probe regfin_window found (Registre 1 §3.2 and 
 because the bench calls gc.collect() there: what it shows does not depend on when CPython schedules
 its own passes. D-131 came from a cursor whose death removed a node of the sorted index during a
 binary search (Registre 8); its bench places a pass during the search in the same way.
+
+A registry that keeps an index alongside its list, sorted for the cursors of the indexables, keyed
+for those of the linked lists, returns for each object a node that removes it from both, so that a
+disposed cursor leaves the index (D-127, D-132). The entries of an index are removed by identity, so
+that the removal of an object never removes the entry of another one of the same key (D-128, D-133),
+and the index is purged along with the list. A keyed registry drops the entry of a dead object
+before registering another one under its key (D-135). See Registre 2 and Registre 10.
 """
 
 import contextlib
@@ -35,14 +42,19 @@ from WinCopies.Collections.Abstraction.Collection import ArrayCollection, ArrayL
 from WinCopies.Collections.Circular import CircularList
 from WinCopies.Collections.Extensions.Enumeration import ResumableTupleEnumerator
 from WinCopies.Collections.Generation import IRemovable
+from WinCopies.Collections.Linked.Doubly.Welded import MakeList
 from WinCopies.Collections.Registry import IObjectMonitor
-from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry
+from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry, ObjectRegistryBase
+from WinCopies.Collections.Registry.Mapping import KeyedDisposableObjectRegistry
+from WinCopies.Collections.Registry.Sorted import SortedDisposableObjectRegistry
 from WinCopies.Typing.Delegate import IFunction
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable
 from WinCopies.Typing.Object import CreateWeakReferenceRegister
 
 _KERNEL: str = "WinCopies.Collections.Registry.Kernel"
 _CORE: str = "WinCopies.Collections.Registry.Core"
+_SORTED: str = "WinCopies.Collections.Registry.Sorted"
+_MAPPING: str = "WinCopies.Collections.Registry.Mapping"
 
 class _Object(Abstract, IInvalidatable):
     """An object to register, which records its invalidation. A dead one is kept in a cycle with
@@ -148,6 +160,26 @@ def _weakMonitorNodes(registry: object) -> int:
     monitors: object|None = getattr(registry, "_CollectionRegistry__monitors")
 
     return 0 if monitors is None else _count(getattr(monitors, "_WeakMonitors__items")._GetItems())
+
+def _sortedEntries(enumerator: object) -> int:
+    count: int = getattr(getattr(enumerator, "_ResumableIncrementalEnumerator__cursors"), "_GetSortedItems")().GetCount()
+
+    return count
+
+def _keyedEntries(enumerator: object) -> int:
+    count: int = getattr(getattr(enumerator, "_GetCursors")(), "_GetKeyedItems")().GetCount()
+
+    return count
+
+class _SortedRegistry(SortedDisposableObjectRegistry[int, _Object]):
+    """A sorted registry that gives all its objects the same key."""
+
+    def _GetKey(self, item: _Object) -> int: return 0
+
+class _KeyedRegistry(KeyedDisposableObjectRegistry[int, _Object]):
+    """A keyed registry that gives all its objects the same key."""
+
+    def _GetKey(self, item: _Object) -> int: return 0
 
 def _registration(layout: tuple[tuple[str, bool], ...], target: str, added: tuple[str, ...] = ()) -> tuple[list[str], set[str], int]:
     """Registers the objects of the layout, the dead ones left for the collector, then X with a pass of
@@ -415,6 +447,145 @@ class TestTheSortedIndexOfTheCursorsLetsGoOfDeadCursors(unittest.TestCase):
         self.assertEqual(collector.fired, 1, "the bench placed no pass of the collector")
         self.assertIs(enumerator.PlaceCursor(), placed)
 
+class TestADisposedCursorLeavesTheIndexOfItsRegistry(unittest.TestCase):
+    """A disposed cursor leaves the index of its registry along with its list, so that the next
+    cursor placed where it was is a new one, which the placement after reuses (Registre 2, Registre 10)."""
+
+    def test_a_disposed_cursor_of_an_indexable_is_not_placed_again(self) -> None:
+        """D-127: the sorted index kept the disposed cursor, which the lookup found first, so that
+        each placement at its index registered a new cursor."""
+
+        enumerator: ResumableTupleEnumerator[int] = ResumableTupleEnumerator[int](CreateList([10, 20, 30]))
+
+        enumerator.TryMoveNext()
+        enumerator.TryMoveNext()
+
+        disposed: Any = enumerator.PlaceCursor()
+
+        disposed.Dispose()
+
+        placed: Any = enumerator.PlaceCursor()
+
+        self.assertIsNot(placed, disposed)
+        self.assertIs(enumerator.PlaceCursor(), placed)
+        self.assertEqual(_sortedEntries(enumerator), 1)
+
+    def test_a_disposed_cursor_of_a_linked_list_is_not_placed_again(self) -> None:
+        """D-132: the dictionary kept the disposed cursor, which the placement at its node returned."""
+
+        items: Any = MakeList(10, 20, 30)
+        enumerator: Any = items.TryGetResumableNodeEnumerator()
+
+        enumerator.TryMoveNext()
+        enumerator.TryMoveNext()
+
+        disposed: Any = enumerator.PlaceCursor()
+
+        disposed.Dispose()
+
+        placed: Any = enumerator.PlaceCursor()
+
+        self.assertIsNot(placed, disposed)
+
+        enumerator.TryMoveNext()
+        placed.Resume()
+
+        self.assertEqual(enumerator.GetCurrent().GetValue(), 20)
+        self.assertEqual(_keyedEntries(enumerator), 1)
+
+class TestTheIndexesRemoveTheirEntriesByIdentity(unittest.TestCase):
+    """The removal of an object removes its own entry of the index, never the entry of another object
+    of the same key (Registre 2, Registre 10)."""
+
+    def test_the_sorted_index_keeps_the_node_of_another_object_of_the_same_key(self) -> None:
+        """D-128: the removal by key removed the first node of the key, which was not its own."""
+
+        log: list[str] = []
+        registry: _SortedRegistry = _SortedRegistry()
+        first: _Object = _Object("A", log)
+        second: _Object = _Object("B", log)
+
+        registry.RegisterObject(first)
+
+        node: IRemovable = getattr(registry, "_Push")(second)
+
+        node.Remove()
+
+        self.assertIs(registry.TryGetValue(0).TryGetValue(), first)
+        self.assertEqual(getattr(registry, "_GetSortedItems")().GetCount(), 1)
+
+    def test_the_dictionary_keeps_the_entry_that_another_object_took_since(self) -> None:
+        """D-133: the removal by key removed the entry that another object took since under the key."""
+
+        log: list[str] = []
+        registry: _KeyedRegistry = _KeyedRegistry()
+        node: IRemovable = getattr(registry, "_Push")(_Object("A", log))
+
+        gc.collect()
+
+        second: _Object = _Object("B", log)
+
+        registry.RegisterObject(second)
+        node.Remove()
+
+        self.assertIs(registry.TryGetValue(0).TryGetValue(), second)
+
+class TestTheIndexesLetGoOfDeadCursors(unittest.TestCase):
+    """The purge of a registry removes the entries of dead cursors from its index too, so that they do
+    not pile up until the end of the enumeration (Registre 9 §5, Registre 10)."""
+
+    def test_abandoned_cursors_of_an_indexable_do_not_pile_up_in_the_sorted_index(self) -> None:
+        enumerator: ResumableTupleEnumerator[int] = ResumableTupleEnumerator[int](CreateList(list(range(200))))
+
+        for _ in range(100):
+            enumerator.TryMoveNext()
+            enumerator.PlaceCursor()
+
+            gc.collect()
+
+        self.assertLessEqual(_sortedEntries(enumerator), 32)
+
+    def test_abandoned_cursors_of_a_linked_list_do_not_pile_up_in_the_dictionary(self) -> None:
+        items: Any = MakeList(*range(200))
+        enumerator: Any = items.TryGetResumableNodeEnumerator()
+
+        for _ in range(100):
+            enumerator.TryMoveNext()
+            enumerator.PlaceCursor()
+
+            gc.collect()
+
+        self.assertLessEqual(_keyedEntries(enumerator), 32)
+
+class TestAKeyedRegistryLetsANewObjectTakeTheKeyOfADeadOne(unittest.TestCase):
+    """D-135: no finalizer removes the entry of a dead object any more, so that the registration under
+    its key raised KeyError until a lookup or a purge dropped it (Registre 10)."""
+
+    def test_an_object_takes_the_key_of_a_dead_one(self) -> None:
+        log: list[str] = []
+        registry: _KeyedRegistry = _KeyedRegistry()
+
+        registry.RegisterObject(_Object("A", log))
+
+        gc.collect()
+
+        second: _Object = _Object("B", log)
+
+        registry.RegisterObject(second)
+
+        self.assertIs(registry.TryGetValue(0).TryGetValue(), second)
+
+    def test_an_object_does_not_take_the_key_of_a_live_one(self) -> None:
+        log: list[str] = []
+        registry: _KeyedRegistry = _KeyedRegistry()
+        first: _Object = _Object("A", log)
+
+        registry.RegisterObject(first)
+
+        with self.assertRaises(KeyError): registry.RegisterObject(_Object("B", log))
+
+        self.assertIs(registry.TryGetValue(0).TryGetValue(), first)
+
 def _run(bench: type[unittest.TestCase]) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
 
@@ -465,3 +636,52 @@ class TestTheRegistryEntryBenchesCanFail(unittest.TestCase):
             return None if node is None else node.TryGetValue()
 
         self.__AssertFalls(TestTheSortedIndexOfTheCursorsLetsGoOfDeadCursors, mock.patch("WinCopies.Collections.Registry.Sorted.SortedObjectRegistryBase.TryGetItem", keeping))
+
+    def test_the_benches_of_the_disposed_cursors_fall_when_their_node_removes_only_itself(self) -> None:
+        """The node that a cursor removes at its disposal leaves the index as it was, as before (D-127, D-132)."""
+
+        def nodeOnly(self: Any) -> None: getattr(self, "_GetNode")().Remove()
+
+        self.__AssertFalls(TestADisposedCursorLeavesTheIndexOfItsRegistry, mock.patch(f"{_KERNEL}.CompositeNode.Remove", nodeOnly))
+
+    def test_the_benches_of_the_identity_fall_when_the_sorted_index_removes_by_key(self) -> None:
+        def byKey(self: Any, node: Any) -> bool:
+            removed: bool = self.TryRemove(node.GetKey())
+
+            return removed
+
+        self.__AssertFalls(TestTheIndexesRemoveTheirEntriesByIdentity, mock.patch(f"{_SORTED}.SortedList.TryRemoveNode", byKey))
+
+    def test_the_benches_of_the_identity_fall_when_the_dictionary_removes_by_key(self) -> None:
+        def byKey(self: Any) -> None: getattr(self, "_KeyedNode__items").TryRemove(getattr(self, "_KeyedNode__key"))
+
+        self.__AssertFalls(TestTheIndexesRemoveTheirEntriesByIdentity, mock.patch(f"{_MAPPING}._KeyedNode.Remove", byKey))
+
+    def test_the_benches_of_the_dead_cursors_fall_when_the_purge_leaves_the_indexes(self) -> None:
+        """Only the list of the registry is purged, as before."""
+
+        listOnly: Callable[[Any], int] = getattr(ObjectRegistryBase, "_Purge")
+
+        self.__AssertFalls(TestTheIndexesLetGoOfDeadCursors, mock.patch(f"{_SORTED}.SortedObjectRegistryBase._Purge", listOnly), mock.patch(f"{_MAPPING}.KeyedObjectRegistryBase._Purge", listOnly))
+
+    def test_the_benches_of_the_key_of_a_dead_object_fall_when_the_registration_keeps_its_entry(self) -> None:
+        """The registration adds the entry without dropping the one of a dead object first, as before (D-135)."""
+
+        compositeNode: Callable[..., IRemovable] = pkgutil.resolve_name(f"{_KERNEL}.CompositeNode")
+        keyedNode: Callable[..., IRemovable] = pkgutil.resolve_name(f"{_MAPPING}._KeyedNode")
+
+        def adding(self: Any, obj: Any, node: Any) -> IRemovable:
+            items: Any = getattr(self, "_GetKeyedItems")()
+            key: Any = getattr(self, "_GetKey")(obj)
+            reference: weakref.ReferenceType[Any] = weakref.ref(obj)
+
+            try: items.Add(key, reference)
+
+            except KeyError:
+                node.Remove()
+
+                raise
+
+            return compositeNode(node, keyedNode(key, reference, items))
+
+        self.__AssertFalls(TestAKeyedRegistryLetsANewObjectTakeTheKeyOfADeadOne, mock.patch(f"{_MAPPING}.KeyedObjectRegistryBase._GetRemovable", adding))
