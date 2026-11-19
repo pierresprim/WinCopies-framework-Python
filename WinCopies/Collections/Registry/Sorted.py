@@ -4,10 +4,11 @@ from abc import abstractmethod
 from collections.abc import MutableSequence
 from typing import final
 
-from WinCopies.Collections.Core import IReadOnlyCollection, IClearable, Countable
+from WinCopies.Collections.Core import IReadOnlyCollection, IClearable, ICountable, Countable
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
+from WinCopies.Collections.Iteration import Include
 from WinCopies.Collections.Registry.Core import ObjectRegistryBase
-from WinCopies.Collections.Registry.Kernel import CompositeRemovable
+from WinCopies.Collections.Registry.Kernel import CompositeNode
 from WinCopies.Collections.Registry.Keyable import IKeyableObjectRegistryBase, IKeyableObjectRegistry, INode, Node, GetKey, ExtractKey
 from WinCopies.Collections.Util import TryBisectWithKey, Insort, ThrowValueNotFoundError
 from WinCopies.Comparison import CompareTo
@@ -37,11 +38,10 @@ class _SortedNode[TKey: SupportsEqualityAndRichComparison, TValue: IInvalidatabl
         raise NotImplementedError()
     
     def Remove(self) -> None:
-        items: ISortedList[TKey, TValue] = self.__items
+        # Removed by identity, so that the node of another object of the same key is kept.
+        self.__items.TryRemoveNode(self)
 
-        items.TryRemove(self.GetKey())
-
-class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable):
+class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyCollection, IClearable, ICountable):
     def __init__(self) -> None:
         super().__init__()
     
@@ -66,6 +66,23 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
         ...
     @abstractmethod
     def TryRemove(self, key: TKey) -> bool:
+        ...
+    @abstractmethod
+    def TryRemoveNode(self, node: ISortedNode[TKey, TValue]) -> bool:
+        """Removes a node by identity, so that a node of the same key is never removed in its place.
+
+        Args:
+            node: The node to remove.
+
+        Returns:
+            Whether the node was found, and thus removed.
+        """
+        ...
+    
+    @abstractmethod
+    def Purge(self) -> None:
+        """Removes the nodes whose object is dead.
+        """
         ...
 class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:
@@ -113,6 +130,27 @@ class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISo
     @final
     def Remove(self, key: TKey) -> None:
         if not self.TryRemove(key): ThrowValueNotFoundError(key)
+    @final
+    def TryRemoveNode(self, node: ISortedNode[TKey, TValue]) -> bool:
+        items: MutableSequence[ISortedNode[TKey, TValue]] = self.__items
+        key: TKey = node.GetKey()
+        index: int = self.TryBisect(key).GetKey()
+        item: ISortedNode[TKey, TValue]
+
+        # The nodes of the same key follow the first one, so that the node is looked for among them only.
+        while index < len(items) and (item := items[index]).GetKey() == key:
+            if item is node:
+                items.pop(index)
+
+                return True
+            
+            index += 1
+        
+        return False
+    
+    @final
+    def Purge(self) -> None:
+        self.__items[:] = tuple(Include(self.__items, lambda node: node.TryGetValue() is not None))
 
     @final
     def Clear(self) -> None: return self.__items.clear()
@@ -147,13 +185,22 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     def _GetKey(self, item: TOut) -> TKey:
         ...
     
-    def _GetRemovable(self, obj: TOut, node: INodeBase) -> IRemovable:
+    def _GetRemovable(self, obj: TOut, node: INodeBase) -> INodeBase:
         items: ISortedList[TKey, TOut] = self._GetSortedItems()
         sortedNode: _SortedNode[TKey, TOut] = _SortedNode[TKey, TOut](self._GetKey(obj), obj, items)
 
         items.Add(sortedNode)
 
-        return CompositeRemovable(node, sortedNode)
+        return CompositeNode(node, sortedNode)
+    
+    def _Purge(self) -> int:
+        count: int = super()._Purge()
+        items: ISortedList[TKey, TOut] = self._GetSortedItems()
+
+        # Each live object has one entry in the list and one in the index, so that the index holds the entries of dead objects only if it holds more entries than the list kept.
+        if items.GetCount() > count: items.Purge()
+
+        return count
     
     @final
     def IsEmpty(self) -> bool: return self._GetSortedItems().IsEmpty()
@@ -167,13 +214,13 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
         items: ISortedList[TKey, TOut] = self._GetSortedItems()
         node: ISortedNode[TKey, TOut]|None
 
-        # The node of a dead object stays in the index until it is found, so the dead nodes found first for the key are dropped here.
+        # The node of a dead object stays in the index until it is found or purged, so the dead nodes found first for the key are dropped here.
         while (node := items.TryGetNode(key)) is not None:
             value: TOut|None = node.TryGetValue()
 
             if value is not None: return GetNullableValue(value)
 
-            items.TryRemove(key)
+            items.TryRemoveNode(node)
         
         return None
     @final

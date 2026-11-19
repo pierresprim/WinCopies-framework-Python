@@ -17,8 +17,8 @@ from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Generic import IGenericConstraintImplementation
 from WinCopies.Typing.Object import IWeakReference, IWeakReferenceRegister
 
-class CompositeRemovable(Abstract, IRemovable):
-    def __init__(self, node: IRemovable, obj: IRemovable) -> None:
+class CompositeRemovable[T: IRemovable](Abstract, IRemovable):
+    def __init__(self, node: T, obj: IRemovable) -> None:
         def remove() -> None:
             self.__node.Remove()
             self.__obj.Remove()
@@ -27,12 +27,28 @@ class CompositeRemovable(Abstract, IRemovable):
 
         super().__init__()
 
-        self.__node: IRemovable = node
+        self.__node: T = node
         self.__obj: IRemovable = obj
         
         self.__remove: Action = remove # type: ignore[no-redef]
+
+    @final
+    def _GetNode(self) -> T:
+        return self.__node
     
     def Remove(self) -> None: self.__remove()
+class CompositeNode[T: INode](CompositeRemovable[T], INode):
+    """Moves as the node it wraps, and removes another entry along with it, such as the entry of an index that a registry keeps alongside its list.
+
+    Args:
+        node: The node to wrap.
+        obj: The entry to remove along with the node.
+    """
+
+    def __init__(self, node: T, obj: IRemovable) -> None: super().__init__(node, obj)
+    
+    def TryMoveToTop(self) -> bool|None: return self._GetNode().TryMoveToTop()
+    def TryMoveToBottom(self) -> bool|None: return self._GetNode().TryMoveToBottom()
 
 class _ReadOnlyListAbstract[TIn, TOut](Abstract, IReadOnlyList[TOut]):
     def __init__(self, items: IReadWriteList[TIn]) -> None:
