@@ -327,14 +327,13 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         self._SetPrevious(None)
 
         node._SetNext(nextNode)
-
-    @final
-    def _Remove(self, remove: bool) -> TItem:
+    
+    def RemoveNode(self) -> TItem:
         def whenFirst(nextNode: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]|None) -> bool:
             l: TListInterface|None = self._GetInnerList()
             
             if nextNode is None:
-                if remove and l is not None:
+                if l is not None:
                     l.Clear()
 
                     return False
@@ -356,7 +355,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         nextNode: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]|None = self.GetNext()
 
         if previousNode is None:
-            if whenFirst(nextNode) and remove: self._Unregister()
+            if whenFirst(nextNode): self._Unregister()
 
         else:
             if nextNode is None: whenLast(previousNode)
@@ -365,11 +364,9 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
                 self.__RemoveFirst(nextNode, previousNode._AsNode())
                 self.__RemoveLast(previousNode, nextNode._AsNode())
             
-            if remove: self._Unregister()
+            self._Unregister()
 
         return self.GetValue()
-    def RemoveNode(self) -> TItem:
-        return self._Remove(True)
     
     @final
     def RemoveRangeBefore(self, inclusive: bool = False) -> None:
@@ -531,10 +528,9 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Doub
         
         l: IListCookie[TNode] = self._GetItemCookie()
         
-        self._Remove(False)
+        self.Remove()
         
-        cookie: INodeCookie[TNode] = self._GetCookie()
-        node: TNode|None = cookie.GetFirst(l)
+        node: TNode|None = self._GetCookie().GetFirst(l)
 
         if node is None: return False
         
@@ -542,8 +538,6 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Doub
 
         self._AsLinkedNode(node)._SetPrevious(_node)
         self._SetNext(node)
-
-        cookie.SetFirst(_node, l)
 
         return True
     @final
@@ -556,10 +550,9 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Doub
         
         l: IListCookie[TNode] = self._GetItemCookie()
         
-        self._Remove(False)
+        self.Remove()
         
-        cookie: INodeCookie[TNode] = self._GetCookie()
-        node: TNode|None = cookie.GetLast(l)
+        node: TNode|None = self._GetCookie().GetLast(l)
 
         if node is None: return False
         
@@ -567,8 +560,6 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Doub
         
         self._AsLinkedNode(node)._SetNext(_node)
         self._SetPrevious(node)
-
-        cookie.SetLast(_node, l)
 
         return True
 
