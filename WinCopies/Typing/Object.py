@@ -829,6 +829,37 @@ class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalid
     
     def _Dispose(self, reason: DiscardReason) -> None:
         if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
+class DisposableReference[T: IInvalidatable](Abstract, IRemovable, IInvalidatable):
+    """Holds an object weakly, without a callback, and invalidates or disposes it on an explicit request, once, if it is still alive.
+
+    Unlike DisposableFinalizer, it sets no finalizer, so that nothing runs when the object dies. DisposableFinalizer releases implicitly, when its object dies, and suits the resources that must be released then. This type releases explicitly only, and suits the structures that drop the entries of dead objects themselves.
+
+    Args:
+        obj: The object to hold.
+    """
+
+    def __init__(self, obj: T) -> None:
+        def dispose(invalidate: bool) -> None:
+            obj: T|None = self.TryGetValue()
+
+            if obj is not None:
+                obj.Invalidate() if invalidate else obj.Dispose()
+
+                self.Remove()
+        
+        super().__init__()
+
+        self.__tryGetValue: NullableFunction[T] = ref(obj)
+        self.__dispose: Method[bool] = dispose
+    
+    def TryGetValue(self) -> T|None: return self.__tryGetValue()
+    
+    def Remove(self) -> None:
+        self.__tryGetValue = FuncNone
+        self.__dispose = DoNothing
+    
+    def _Dispose(self, reason: DiscardReason) -> None:
+        if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
 
 type WeakReference[T: IInvalidatable] = _WeakReference[T]
 
@@ -891,3 +922,58 @@ class _WeakReference[T: IInvalidatable](Abstract, IWeakReference[T]):
 
 def CreateWeakReferenceRegister[T: IInvalidatable](obj: T) -> IWeakReferenceRegister[T]:
     return _WeakReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]
+
+class IDisposableReferenceRegister[T: IInvalidatable](IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def GetCookie(self) -> IWeakReference[T]:
+        ...
+    
+    @abstractmethod
+    def RegisterNode(self, node: IRemovable) -> None:
+        ...
+@final
+class _DisposableReference[T: IInvalidatable](Abstract, IWeakReference[T]):
+    @final
+    class _Register[_T: IInvalidatable](Abstract, IDisposableReferenceRegister[_T]):
+        def __init__(self, obj: _T, cookie: _DisposableReference[_T]) -> None:
+            super().__init__()
+
+            self.__obj: _T = obj
+            self.__disposableReference: _DisposableReference[_T] = cookie
+        
+        def GetCookie(self) -> _DisposableReference[_T]: return self.__disposableReference
+        
+        def RegisterNode(self, node: IRemovable) -> None: self.GetCookie()._RegisterNode(self.__obj, node)
+    
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__reference: DisposableReference[T]|None = None
+    
+    def TryGetValue(self) -> T|None:
+        reference: DisposableReference[T]|None = self.__reference
+
+        return None if reference is None else reference.TryGetValue()
+    
+    def _Dispose(self, reason: DiscardReason) -> None:
+        reference: DisposableReference[T]|None = self.__reference
+
+        if reference is not None:
+            match reason:
+                case DiscardReason.Invalidated: reference.Invalidate()
+                case DiscardReason.Disposed: reference.Dispose()
+
+                case _: pass
+    
+    def _RegisterNode(self, obj: T, node: IRemovable) -> None:
+        # The node is not removed when the object dies. The registry that holds the cookie drops the node itself, once it finds the object dead.
+        self.__reference = DisposableReference[T](obj)
+
+    @staticmethod
+    def _CreateRegister(obj: T) -> IDisposableReferenceRegister[T]:
+        return _DisposableReference._Register[T](obj, _DisposableReference[T]())
+
+def CreateDisposableReferenceRegister[T: IInvalidatable](obj: T) -> IDisposableReferenceRegister[T]:
+    return _DisposableReference[T]._CreateRegister(obj) # pyright: ignore[reportPrivateUsage]

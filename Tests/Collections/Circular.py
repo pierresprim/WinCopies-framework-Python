@@ -43,7 +43,7 @@ import gc
 import unittest
 import weakref
 
-from collections.abc import Iterator, MutableSequence
+from collections.abc import Callable, Iterator, MutableSequence
 from typing import Any
 from unittest import mock
 
@@ -55,9 +55,11 @@ from WinCopies.Collections.Abstraction.Selection.Collection import List as Selec
 from WinCopies.Collections.Circular import CircularAbstract, CircularList, RotatableAbstract, RotatableList, RotatableTuple
 from WinCopies.Collections.Iteration import Select
 from WinCopies.Collections.ObjectModel.Collection import ObservableCollection
+from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Range import RemoveItems, SetItems
+from WinCopies.Collections.Registry.Core import CollectionRegistry
 from WinCopies.Collections.Util import CreateList as _CreateList, ThrowCapacityError
-from WinCopies.Typing.Delegate import Action, Method, Function, Converter, Selector, IndexedValueFunction, IndexedValueComparison, Operator
+from WinCopies.Typing.Delegate import Method, Function, Converter, Selector, IndexedValueFunction, IndexedValueComparison, Operator
 from WinCopies.Typing.Discard import InvalidatedError
 
 type _Act = Selector[Any]
@@ -651,10 +653,11 @@ class TestTheImmutableViewOfACircularTypeIsRevoked(unittest.TestCase):
         self.assertTrue(_revoked(view))
 
 class TestADroppedCircularListLeavesItsSource(unittest.TestCase):
-    """The subscription goes through the collection registry of the source, which holds what it
-    registers strongly: it was built for collections that own their source (3.6 §5, Pierre). A
-    circular list is one view among many over a source that may outlive them all, so it unsubscribes
-    when it dies; without that, each one dropped left its registries in the source."""
+    """The subscription goes through the collection registry of the source. A circular list is one
+    view among many over a source that may outlive them all, so it must not stay in the source once
+    dropped. It used to unsubscribe from a finalizer, which changed the list of the registry at any
+    point (D-123). The registry now holds the monitors registered by RegisterMonitor weakly, without
+    a callback, and drops those whose owner is gone (Registre 8)."""
 
     def test_its_registries_do_not_outlive_it(self) -> None:
         source: Any = CreateList([0, 1, 2, 3])
@@ -665,9 +668,8 @@ class TestADroppedCircularListLeavesItsSource(unittest.TestCase):
 
         del circular
 
-        # The list sits in a cycle, so the collector frees it, and its finalizer unsubscribes it
-        # during that collection, which has already found the registries reachable from the source.
-        # The next collection frees them.
+        # The list sits in a cycle with its registries, which the source holds weakly only, so the
+        # collector frees them all. The second collection is that of the time of the finalizer.
         gc.collect()
         gc.collect()
 
@@ -682,7 +684,16 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
         the two families of circular types reach _InvalidateViews through two abstract classes, and
         both are given the rebuilt one."""
 
-        def unsubscribed(obj: object, unsubscribe: Action) -> None: unsubscribe()
+        registerMonitor: Callable[[CollectionRegistry[Any], Any], IRemovable] = CollectionRegistry[Any].RegisterMonitor
+
+        # The subscription is the registration of the registries of the list in the registry of its
+        # source, so unsubscribing at once is removing them as soon as they are registered.
+        def unsubscribed(self: Any, item: Any) -> IRemovable:
+            removable: IRemovable = registerMonitor(self, item)
+
+            removable.Remove()
+
+            return removable
         def nothing(self: Any) -> None: pass
 
         # A suite drops its tests once run, so each run loads its own.
@@ -690,19 +701,27 @@ class TestTheRevocationBenchesCanFail(unittest.TestCase):
 
         self.assertEqual(_fell(_run(bench())), 0, "the revocation bench is expected to pass on the intact tree")
 
-        with (mock.patch("WinCopies.Collections.Circular.Finalizer", unsubscribed),
+        with (mock.patch.object(CollectionRegistry, "RegisterMonitor", unsubscribed),
               mock.patch.object(CircularAbstract, "_InvalidateViews", nothing), mock.patch.object(RotatableAbstract, "_InvalidateViews", nothing)):
             broken: unittest.TestResult = _run(bench(), failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the revocation bench did not fall without the subscription")
 
     def test_the_lifetime_bench_falls_when_the_list_never_unsubscribes(self) -> None:
-        def kept(obj: object, unsubscribe: Action) -> None: pass
+        """A list that never unsubscribes is a list whose registries the source holds strongly, as
+        RegisterObject does."""
+
+        registerMonitor: Callable[[CollectionRegistry[Any], Any], IRemovable] = CollectionRegistry[Any].RegisterMonitor
+
+        def kept(self: Any, item: Any) -> IRemovable:
+            self.RegisterObject(item)
+
+            return registerMonitor(self, item)
 
         bench: unittest.TestCase = TestADroppedCircularListLeavesItsSource("test_its_registries_do_not_outlive_it")
 
         self.assertEqual(_fell(_run(bench)), 0, "the lifetime bench is expected to pass on the intact tree")
 
-        with mock.patch("WinCopies.Collections.Circular.Finalizer", kept): broken: unittest.TestResult = _run(bench, failfast = True)
+        with mock.patch.object(CollectionRegistry, "RegisterMonitor", kept): broken: unittest.TestResult = _run(bench, failfast = True)
 
         self.assertGreater(_fell(broken), 0, "the lifetime bench did not fall with the list never unsubscribing")

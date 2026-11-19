@@ -164,9 +164,18 @@ class SortedObjectRegistryBase[TKey: SupportsEqualityAndRichComparison, TIn, TOu
     
     @final
     def TryGetItem(self, key: TKey) -> INullable[TOut]|None:
-        node: ISortedNode[TKey, TOut]|None = self._GetSortedItems().TryGetNode(key)
+        items: ISortedList[TKey, TOut] = self._GetSortedItems()
+        node: ISortedNode[TKey, TOut]|None
+
+        # The node of a dead object stays in the index until it is found, so the dead nodes found first for the key are dropped here.
+        while (node := items.TryGetNode(key)) is not None:
+            value: TOut|None = node.TryGetValue()
+
+            if value is not None: return GetNullableValue(value)
+
+            items.TryRemove(key)
         
-        return None if node is None else GetNullableValue(node.TryGetValue())
+        return None
     @final
     def TryGetValue(self, key: TKey) -> INullable[TOut]:
         return TryGetNullable(self.TryGetItem(key))

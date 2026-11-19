@@ -21,7 +21,6 @@ from WinCopies.Typing import INullable
 from WinCopies.Typing.Comparison import EquatableProtocol, HashableProtocol
 from WinCopies.Typing.Delegate import Method, Predicate, Converter, EqualityComparison, IndexedValueAction, IndexedValueFunction, IndexedValueComparison, IFunction
 from WinCopies.Typing.Generic import IContainer, GenericConstraint, GenericSpecializedConstraint, IGenericConstraintImplementation, IGenericSpecializedConstraintImplementation
-from WinCopies.Typing.Object import Finalizer
 
 class ICircularTuple[T](ITuple[T]):
     def __init__(self) -> None: super().__init__()
@@ -343,7 +342,8 @@ class _CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem
         self.__list: TList = items
         self.__start: int = start % count if count > 0 else 0
 
-        Finalizer(self, container.GetCollectionMonitors().RegisterMonitor(self._GetCollectionRegistries()).Remove)
+        # The registry of the container holds the registries of this object weakly, so that they leave it once this object is dropped.
+        container.GetCollectionMonitors().RegisterMonitor(self._GetCollectionRegistries())
     
     @final
     def _GetContainer(self) -> TList: return self.__list
