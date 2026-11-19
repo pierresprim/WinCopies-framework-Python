@@ -132,7 +132,6 @@ class _PurgeableWeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistry[T
             following: IReadWriteLinkedNode[IWeakReference[T]]|None = cast(IReadWriteLinkedNode[IWeakReference[T]]|None, node.GetNext())
 
             if node.GetValue().TryGetValue() is None: node.Remove()
-
             else: count += 1
 
             node = following
@@ -311,7 +310,6 @@ class _WeakMonitors[T: IObjectMonitor](Abstract):
             following: ILinkedNode[_WeakMonitor[T]]|None = node.GetNext()
 
             if canDetach and entry.TryGetMonitor() is None: entry.Detach()
-
             else: count += 1
 
             node = following
