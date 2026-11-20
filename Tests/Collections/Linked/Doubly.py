@@ -12,10 +12,12 @@ import WinCopies.Collections.Linked.Enumeration as LinkedEnumeration
 
 from WinCopies import Abstract
 from WinCopies.Collections import Generator, EnumerationOrder
+from WinCopies.Collections.Abstraction.Collection import CreateList
 from WinCopies.Collections.Enumeration.Core import IEnumerator
+from WinCopies.Collections.Extensions.Enumeration import ResumableTupleEnumerator
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Doubly.Core import IReadWriteList
-from WinCopies.Collections.Linked.Doubly.Node import INode
+from WinCopies.Collections.Linked.Doubly.Node import INode, DoublyLinkedNodeBase
 from WinCopies.Collections.Linked.Doubly.Welded import (
     IDoublyLinkedNode, ICountableLinkedListNode,
     IList, ICountableList,
@@ -954,6 +956,93 @@ class TestALinkedEnumeratorReadsItsListWhenItStarts(unittest.TestCase):
                     self.assertTrue(enumerator.TryReset())
                     self.assertEqual(_read(enumerator), (3, 2, 1, 0) if backwards else (0, 1, 2, 3))
 
+def _directions(items: Any) -> tuple[PyList[Any], PyList[Any]]:
+    """The values of a list read from its head forwards, then from its tail backwards."""
+
+    forwards: PyList[Any] = []
+    backwards: PyList[Any] = []
+    node: Any = items.GetFirstNode()
+
+    while node is not None and len(forwards) < 8:
+        forwards.append(node.GetValue())
+        node = node.GetNext()
+
+    node = items.GetLastNode()
+
+    while node is not None and len(backwards) < 8:
+        backwards.append(node.GetValue())
+        node = node.GetPrevious()
+
+    return forwards, backwards
+
+class TestAMovedNodeStaysInItsList(unittest.TestCase):
+    """D-134: a move went through Remove, so that the moved node forgot its list and the count of a
+    countable list went down, and it left the head or the tail of the list as it was. The resumable
+    cursors, whose registry moves their node to give the default one, were not moved (Registre 10)."""
+
+    def test_a_node_moved_to_the_bottom_is_the_tail(self) -> None:
+        items: List[int] = Welded.MakeList(1, 2, 3)
+        node: Any = items.GetFirstNode()
+
+        self.assertTrue(node.TryMoveToBottom())
+        self.assertIs(items.GetLastNode(), node)
+        self.assertEqual(_directions(items), ([2, 3, 1], [1, 3, 2]))
+
+    def test_a_node_moved_to_the_top_is_the_head(self) -> None:
+        items: List[int] = Welded.MakeList(1, 2, 3)
+        node: Any = items.GetLastNode()
+
+        self.assertTrue(node.TryMoveToTop())
+        self.assertIs(items.GetFirstNode(), node)
+        self.assertEqual(_directions(items), ([3, 1, 2], [2, 1, 3]))
+
+    def test_a_moved_node_can_be_moved_again_and_removed(self) -> None:
+        items: List[int] = Welded.MakeList(1, 2, 3)
+        node: Any = items.GetFirstNode()
+
+        node.TryMoveToBottom()
+
+        self.assertTrue(node.TryMoveToTop())
+        self.assertEqual(_directions(items), ([1, 2, 3], [3, 2, 1]))
+
+        node.TryMoveToBottom()
+        node.Remove()
+
+        self.assertEqual(_directions(items), ([2, 3], [3, 2]))
+
+    def test_a_move_keeps_the_count_of_a_countable_list(self) -> None:
+        items: CountableList[int] = Welded.MakeCountableList(1, 2, 3)
+        node: Any = items.GetFirstNode()
+
+        node.TryMoveToBottom()
+
+        self.assertEqual(items.GetCount(), 3)
+
+        node.Remove()
+
+        self.assertEqual(items.GetCount(), 2)
+
+    def test_a_cursor_moved_to_the_top_is_the_one_resumed_by_default(self) -> None:
+        tupleEnumerator: Any = ResumableTupleEnumerator[int](CreateList([10, 11, 12]))
+        items: List[int] = Welded.MakeList(10, 11, 12)
+        nodeEnumerator: Any = items.TryGetResumableNodeEnumerator()
+
+        cases: tuple[tuple[str, Any, Function[object]], ...] = (("indexable", tupleEnumerator, lambda: tupleEnumerator.GetCurrent()), ("linked list", nodeEnumerator, lambda: nodeEnumerator.GetCurrent().GetValue()))
+
+        for name, enumerator, current in cases:
+            with self.subTest(enumerator = name):
+                enumerator.TryMoveNext()
+
+                first: Any = enumerator.PlaceCursor()
+
+                enumerator.TryMoveNext()
+                enumerator.PlaceCursor()
+                enumerator.TryMoveNext()
+                enumerator.MoveToTop(first)
+                enumerator.Resume()
+
+                self.assertEqual(current(), 10)
+
 class _FixedAtConstruction(Abstract, ITwoWayLinkedListCookie[Any]):
     """The cookie of a list, read once: the nodes a node enumerator held before 30cf3815."""
     def __init__(self, cookie: ITwoWayLinkedListCookie[Any]) -> None:
@@ -1027,3 +1116,51 @@ class TestTheCountableAndReversalBenchesCanFail(unittest.TestCase):
             with self.subTest(bench = name): self.__assertFalls(TestALinkedEnumeratorReadsItsListWhenItStarts, name, LinkedEnumeration.TwoWayNodeEnumeratorBase, {"__init__": fixedAtConstruction})
 
 if __name__ == '__main__': unittest.main()
+
+class TestTheMoveBenchesCanFail(unittest.TestCase):
+    """The benches of D-134, run against the moves as they stood before 79b798cb: green on the intact
+    tree, red on the rebuilt one. The moves are rebuilt on DoublyLinkedNodeBase, which carries them."""
+
+    def test_the_move_benches_fall_when_a_move_goes_through_remove(self) -> None:
+        def top(self: Any) -> bool|None:
+            if self._GetInnerList() is None: return False
+
+            if self.GetPrevious() is None: return None
+
+            cookie: Any = self._GetItemCookie()
+
+            self.Remove()
+
+            node: Any = self._GetCookie().GetFirst(cookie)
+
+            if node is None: return False
+
+            self._AsLinkedNode(node)._SetPrevious(self._AsNode())
+            self._SetNext(node)
+
+            return True
+        def bottom(self: Any) -> bool|None:
+            if self._GetInnerList() is None: return False
+
+            if self.GetNext() is None: return None
+
+            cookie: Any = self._GetItemCookie()
+
+            self.Remove()
+
+            node: Any = self._GetCookie().GetLast(cookie)
+
+            if node is None: return False
+
+            self._AsLinkedNode(node)._SetNext(self._AsNode())
+            self._SetPrevious(node)
+
+            return True
+
+        for name in unittest.defaultTestLoader.getTestCaseNames(TestAMovedNodeStaysInItsList):
+            with self.subTest(bench = name):
+                self.assertTrue(_runLinkedBench(TestAMovedNodeStaysInItsList, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+                with mock.patch.multiple(DoublyLinkedNodeBase, TryMoveToTop = top, TryMoveToBottom = bottom): broken: unittest.TestResult = _runLinkedBench(TestAMovedNodeStaysInItsList, name)
+
+                self.assertFalse(broken.wasSuccessful(), f"{name} did not fall on the moves as they were")
