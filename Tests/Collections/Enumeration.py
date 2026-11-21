@@ -21,10 +21,12 @@ Three method constraints are inherited from that review and are load-bearing:
 Unlike the standalone harness, this module needs no abort-time reporting: each
 point is a test method, so a point that dies takes only itself down.
 
-The last two sections are not part of that port, and are proved by benches of
+The last three sections are not part of that port, and are proved by benches of
 their own that can fail: the opt-in invalidation of 392ead1, which holds who
-builds the invalidation machinery, and a wrapper and its source (Q12), which
-holds what a wrapper reports when its source stops, and which sources it wraps.
+builds the invalidation machinery, a wrapper and its source (Q12), which holds
+what a wrapper reports when its source stops, and which sources it wraps, and the
+exit of a with statement, which stops an enumerator and nothing else, and stops
+then disposes a cursor.
 """
 
 from __future__ import annotations
@@ -45,13 +47,15 @@ import WinCopies.Collections.Enumeration.Core as Core
 import WinCopies.Collections.Linked.Singly as Singly
 import WinCopies.Collections.Linked.Singly.Buffer as Buffer
 
-from WinCopies import Abstract
+from WinCopies import Abstract, IDisposable
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import List, CreateList
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus
 from WinCopies.Collections.Enumeration.Abstraction import AbstractEnumeratorBase, AbstractionEnumerator, Selector, ConverterEnumerator
-from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorAbstract, EnumeratorBase, Iterator
+from WinCopies.Collections.Enumeration import GetNoDataEnumerationStatus, GetIterationInactiveError
+from WinCopies.Collections.Enumeration.Disposable import ICursor
+from WinCopies.Collections.Enumeration.Core import IEnumerator, IInvalidatableEnumeratorBase, IInvalidatableEnumerator, IDefaultInvalidatableEnumeratorBase, IDefaultInvalidatableEnumerator, EnumeratorAbstract, EnumeratorBase, Iterator, IteratorBase, IEnumeratorBase
 from WinCopies.Collections.Enumeration.Extensions import IncrementalEnumerator
 # `_Registrar` is internal on purpose: the phantom-entry point below has to build
 # the real registry chain, and no public entry point exposes it.
@@ -1917,3 +1921,104 @@ class TestTheWrapperBenchesCanFail(unittest.TestCase):
         self.__assertFalls(TestAWrapperOnlyWrapsASourceInItsInitialState, "test_it_refuses_any_other_source_and_leaves_it_as_it_was", ((AbstractEnumeratorBase, {"__init__": earlier}),))
 
 if __name__ == "__main__": unittest.main()
+
+# ---------------------------------------------------------------------------
+# The exit of a with statement
+# ---------------------------------------------------------------------------
+
+def _registeredEnumerators(items: object) -> int:
+    """The entries of the registry of the enumerators of a collection, counted on its list."""
+
+    registry: Any = getattr(items, "_GetCollectionRegistries")().GetEnumeratorRegistry()._GetRegistry()
+    node: Any = getattr(registry, "_ObjectRegistryBase__items")._GetItems().GetFirstNode()
+    count: int = 0
+
+    while node is not None:
+        count += 1
+        node = node.GetNext()
+
+    return count
+
+class _RecordingCursor(IteratorBase[int], ICursor[int]):
+    """A cursor that records its stop and its disposal, in their order."""
+
+    def __init__(self, log: list[str]) -> None:
+        super().__init__()
+
+        self.__log: list[str] = log
+
+    def GetCurrent(self) -> int: raise GetIterationInactiveError()
+    def TryMoveNext(self) -> bool: return False
+    def Stop(self) -> None: self.__log.append("Stop")
+    def TryReset(self) -> bool|None: return None
+    def IsResetSupported(self) -> bool: return False
+
+    def GetStatus(self) -> IIterationStatus: return GetNoDataEnumerationStatus()
+
+    def Dispose(self) -> None: self.__log.append("Dispose")
+
+class TestAWithStatementStopsAnEnumerator(unittest.TestCase):
+    """The exit of a with statement stops an enumerator and does nothing else: it leaves the registry
+    of its source at once, rather than at a later purge, and an exception raised in the block goes
+    through. A cursor, which holds a resource, is stopped, then disposed. A for loop never exits an
+    enumerator, so that the with statement is the consumer's way to stop it as soon as it is done
+    (Registre 9 §5, Registre 10, and the method report on the guarantees of the language)."""
+
+    def test_an_enumerator_is_stopped_at_the_exit_of_the_block_and_leaves_its_registry(self) -> None:
+        items: Any = CreateList([1, 2, 3])
+        enumerator: IEnumerator[int] = items.GetEnumerator()
+
+        with enumerator as entered:
+            self.assertIs(entered, enumerator)
+            self.assertTrue(enumerator.TryMoveNext())
+            self.assertEqual(_registeredEnumerators(items), 1)
+
+        self.assertEqual(_st(enumerator), "Ended/Stopped")
+        self.assertFalse(enumerator.TryMoveNext())
+        self.assertEqual(_registeredEnumerators(items), 0, "the enumerator stays in the registry of its source")
+
+    def test_an_exception_raised_in_the_block_goes_through_and_the_enumerator_is_stopped(self) -> None:
+        enumerator: IEnumerator[int] = CreateList([1, 2, 3]).GetEnumerator()
+
+        with self.assertRaises(ValueError):
+            with enumerator:
+                enumerator.TryMoveNext()
+
+                raise ValueError()
+
+        self.assertEqual(_st(enumerator), "Ended/Stopped")
+
+    def test_a_cursor_is_stopped_then_disposed(self) -> None:
+        for name, raising in (("the block ends", False), ("the block raises", True)):
+            with self.subTest(exit = name):
+                log: list[str] = []
+
+                try:
+                    with _RecordingCursor(log):
+                        if raising: raise ValueError()
+
+                except ValueError: pass
+
+                self.assertEqual(log, ["Stop", "Dispose"])
+
+class TestTheWithBenchesCanFail(unittest.TestCase):
+    """The benches of the with statement, run against a hook taken out: green on the intact tree, red
+    on the rebuilt one."""
+
+    def __assertFalls(self, name: str, target: Any, members: dict[str, Any]) -> None:
+        self.assertTrue(_run(TestAWithStatementStopsAnEnumerator, name).wasSuccessful(), f"{name} is expected to pass on the intact tree")
+
+        with mock.patch.multiple(target, **members): broken: unittest.TestResult = _run(TestAWithStatementStopsAnEnumerator, name)
+
+        self.assertFalse(broken.wasSuccessful(), f"{name} did not fall without the hook")
+
+    def test_the_benches_fall_when_the_exit_does_not_stop_the_enumerator(self) -> None:
+        def notStopping(self: Any, excType: Any, exc: Any, traceback: Any) -> bool|None: return False
+
+        for name in unittest.defaultTestLoader.getTestCaseNames(TestAWithStatementStopsAnEnumerator):
+            with self.subTest(bench = name): self.__assertFalls(name, IEnumeratorBase, {"_OnExiting": notStopping})
+
+    def test_the_cursor_bench_falls_when_the_exit_does_not_dispose(self) -> None:
+        def notDisposing(self: Any, result: bool) -> bool: return result
+
+        self.__assertFalls("test_a_cursor_is_stopped_then_disposed", IDisposable, {"_OnExited": notDisposing})
