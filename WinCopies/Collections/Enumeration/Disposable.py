@@ -5,7 +5,7 @@ from typing import final, Any
 from WinCopies import IInterface, IDisposableAbstract, IDisposable, Abstract
 from WinCopies.Collections.Enumeration import IIterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Enumeration.Abstraction import ConverterEnumeratorBase
-from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, IteratorBase as _IteratorBase, Iterator as _Iterator
+from WinCopies.Collections.Enumeration.Core import IEnumeratorBase, IEnumerator, IteratorBase, Iterator
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Discard import DiscardReason, IDisposableCookie, DisposableAbstract
 
@@ -15,7 +15,7 @@ class ICursor[T](IEnumerator[T], ICursorBase):
     def __init__(self) -> None: super().__init__()
 
 @final
-class _EmptyCursor[T](_IteratorBase[T], ICursor[T]):
+class _EmptyCursor[T](IteratorBase[T], ICursor[T]):
     def __init__(self) -> None: super().__init__()
     
     def GetCurrent(self) -> T: raise GetIterationInactiveError()
@@ -77,7 +77,7 @@ class Cursor[TRoot, THandle, TItem](ConverterEnumeratorBase[THandle, TItem], Dis
 
         def updateCookie(cookie: IDisposableCookie) -> None: self.__disposableCookie = cookie
         
-        super().__init__(_Iterator[THandle](enumerate()))
+        super().__init__(Iterator[THandle](enumerate()))
 
         self.__disposableCookie: IDisposableCookie = self._CreateDisposableCookie(updateCookie) # type: ignore[no-redef]
 

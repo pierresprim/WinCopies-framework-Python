@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from collections.abc import Iterable as SystemIterable, Iterator as SystemIterator, Sized, Collection, Sequence, Mapping
+from types import TracebackType
 from typing import final, Any, NoReturn, Self
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IContextManager, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
 from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
@@ -54,7 +55,7 @@ class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
     def Notify(self, revoke: bool) -> None:
         ...
 
-class IEnumeratorBase(_IInvalidationNotifierProvider):
+class IEnumeratorBase(_IInvalidationNotifierProvider, IContextManager):
     def __init__(self) -> None: super().__init__()
     
     @final
@@ -89,6 +90,13 @@ class IEnumeratorBase(_IInvalidationNotifierProvider):
     @abstractmethod
     def TryReset(self) -> bool|None:
         ...
+
+    @final
+    def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
+        self.Stop()
+
+        return super()._OnExiting(excType, exc, traceback)
+
 class IInvalidatableEnumeratorBase(IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
