@@ -27,22 +27,29 @@ class IInterface:
 class Abstract(ABC, IInterface):
     def __init__(self) -> None: super().__init__()
 
+class _IInitializable(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    def Initialize(self) -> None:
+        pass
+
 class IDisposableAbstract(IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
     def Dispose(self) -> None:
         ...
-class IDisposableBase(IDisposableAbstract):
+class IDisposableBase(IDisposableAbstract, _IInitializable):
     def __init__(self) -> None: super().__init__()
-    
-    def Initialize(self) -> None:
-        pass
-class IDisposable(IDisposableBase):
+
+class IContextManager(_IInitializable):
     def __init__(self) -> None: super().__init__()
     
     def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
         return False
+
+    def _OnExited(self, result: bool) -> bool:
+        return result
 
     @final
     def __enter__(self) -> Self:
@@ -54,8 +61,11 @@ class IDisposable(IDisposableBase):
     def __exit__(self, exc_type: type[Exception]|None, exc_value: Exception|None, traceback: TracebackType|None) -> bool:
         result: bool|None = self._OnExiting(exc_type, exc_value, traceback)
 
-        if result is None: return False
+        return False if result is None else self._OnExited(result)
+class IDisposable(IContextManager, IDisposableBase):
+    def __init__(self) -> None: super().__init__()
 
+    def _OnExited(self, result: bool) -> bool:
         self.Dispose()
 
         return result
