@@ -93,6 +93,19 @@ class IEnumeratorBase(_IInvalidationNotifierProvider, IContextManager):
 
     @final
     def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
+        """Stops the enumerator at the exit of a with statement, and does nothing else.
+
+        An enumerator is not a disposable object, since a for loop never exits it. A with statement only lets its consumer stop it as soon as the block ends, so that an enumerator that its source registers leaves its registry at once rather than at a later purge. This method cannot be overridden, so that no enumerator releases a resource there, nor suppresses an exception. A cursor, which holds a resource, releases it through IDisposable, once it is stopped.
+
+        Args:
+            excType: The type of the exception raised in the block, or None if the block ended without one.
+            exc: The exception raised in the block, or None.
+            traceback: The traceback of the exception raised in the block, or None.
+
+        Returns:
+            False, so that _OnExited runs and the exception raised in the block, if any, is not suppressed.
+        """
+
         self.Stop()
 
         return super()._OnExiting(excType, exc, traceback)
