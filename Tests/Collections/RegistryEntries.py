@@ -43,7 +43,7 @@ from WinCopies.Collections.Circular import CircularList
 from WinCopies.Collections.Extensions.Enumeration import ResumableTupleEnumerator
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Linked.Doubly.Welded import MakeList
-from WinCopies.Collections.Registry import IObjectMonitor
+from WinCopies.Collections.Registry import IActivationObject, IActivatableMonitor
 from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry, ObjectRegistryBase
 from WinCopies.Collections.Registry.Mapping import KeyedDisposableObjectRegistry
 from WinCopies.Collections.Registry.Sorted import SortedDisposableObjectRegistry
@@ -69,8 +69,9 @@ class _Object(Abstract, IInvalidatable):
 
     def _Dispose(self, reason: DiscardReason) -> None: self.__log.append(self.__name)
 
-class _Monitor(Abstract, IObjectMonitor):
-    """A monitor that records its invalidation, and may act then, once."""
+class _Monitor(Abstract, IActivatableMonitor):
+    """A monitor that records its invalidation, and may act then, once. It is always active, so that
+    each invalidation of its registry reaches it."""
 
     def __init__(self, name: str, log: list[str], action: Callable[[], object]|None = None) -> None:
         super().__init__()
@@ -86,6 +87,10 @@ class _Monitor(Abstract, IObjectMonitor):
         self.__action = None
 
         if action is not None: action()
+
+    def IsActive(self) -> bool: return True
+
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: pass
 
 class _Handle(IFunction[int]):
     """Cell initialiser for ArrayList, which takes a provider rather than a sequence."""
@@ -157,9 +162,20 @@ def _count(items: Any) -> int:
 def _registryNodes(registry: object) -> int: return _count(getattr(registry, "_ObjectRegistryBase__items")._GetItems())
 
 def _weakMonitorNodes(registry: object) -> int:
-    monitors: object|None = getattr(registry, "_CollectionRegistry__monitors")
+    """The entries of the monitors registered by RegisterMonitor, active or not, which the registry
+    holds weakly."""
 
-    return 0 if monitors is None else _count(getattr(monitors, "_WeakMonitors__items")._GetItems())
+    count: int = 0
+
+    for items in (getattr(registry, "_CollectionRegistry__actives"), getattr(registry, "_CollectionRegistry__inactives")):
+        node: Any = items._GetItems().GetFirstNode()
+
+        while node is not None:
+            if isinstance(getattr(node.GetValue(), "_MonitorEntry__tryGetMonitor"), weakref.ref): count += 1
+
+            node = node.GetNext()
+
+    return count
 
 def _sortedEntries(enumerator: object) -> int:
     count: int = getattr(getattr(enumerator, "_ResumableIncrementalEnumerator__cursors"), "_GetSortedItems")().GetCount()
@@ -262,8 +278,8 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
     invalidated stops nothing. A monitor removed during an invalidation is only emptied, and only
     the outermost invalidation detaches entries (Registre 8)."""
 
-    def __Register(self, names: str, actions: dict[str, Callable[[], object]]|None = None) -> tuple[CollectionRegistry[IObjectMonitor], list[str], dict[str, _Monitor], dict[str, IRemovable]]:
-        registry: CollectionRegistry[IObjectMonitor] = CollectionRegistry[IObjectMonitor]()
+    def __Register(self, names: str, actions: dict[str, Callable[[], object]]|None = None) -> tuple[CollectionRegistry[IActivatableMonitor], list[str], dict[str, _Monitor], dict[str, IRemovable]]:
+        registry: CollectionRegistry[IActivatableMonitor] = CollectionRegistry[IActivatableMonitor]()
         log: list[str] = []
         monitors: dict[str, _Monitor] = {}
         handles: dict[str, IRemovable] = {}
@@ -274,7 +290,7 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
 
         return registry, log, monitors, handles
 
-    def __Invalidate(self, registry: CollectionRegistry[IObjectMonitor], log: list[str]) -> list[str]:
+    def __Invalidate(self, registry: CollectionRegistry[IActivatableMonitor], log: list[str]) -> list[str]:
         registry.InvalidateObjects()
 
         result: list[str] = list(log)
@@ -303,7 +319,7 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
 
     def test_a_monitor_registered_during_an_invalidation_is_invalidated_by_it(self) -> None:
         kept: list[_Monitor] = []
-        registry: CollectionRegistry[IObjectMonitor] = CollectionRegistry[IObjectMonitor]()
+        registry: CollectionRegistry[IActivatableMonitor] = CollectionRegistry[IActivatableMonitor]()
         log: list[str] = []
 
         def register() -> None:
@@ -337,7 +353,7 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
         """A monitor writes, so to speak, during its invalidation: the registry is invalidated again
         while a dead monitor follows it."""
 
-        registry: CollectionRegistry[IObjectMonitor] = CollectionRegistry[IObjectMonitor]()
+        registry: CollectionRegistry[IActivatableMonitor] = CollectionRegistry[IActivatableMonitor]()
         log: list[str] = []
         first: _Monitor = _Monitor("A", log, registry.InvalidateObjects)
         dead: _Monitor = _Monitor("B", log)
@@ -617,7 +633,7 @@ class TestTheRegistryEntryBenchesCanFail(unittest.TestCase):
     def test_the_benches_of_the_monitors_fall_when_a_removal_detaches_at_once(self) -> None:
         def detaching(self: Any) -> None: self.Detach()
 
-        self.__AssertFalls(TestTheCollectionRegistryInvalidatesItsLiveMonitors, mock.patch(f"{_CORE}._WeakMonitor.Remove", detaching))
+        self.__AssertFalls(TestTheCollectionRegistryInvalidatesItsLiveMonitors, mock.patch(f"{_CORE}._MonitorEntry.Remove", detaching))
 
     def test_the_benches_of_the_dead_entries_fall_without_the_purge(self) -> None:
         def counting(self: Any) -> None: pass

@@ -9,6 +9,42 @@ class IObjectMonitor(IInterface):
     @abstractmethod
     def InvalidateObjects(self) -> None:
         ...
+class IActivationObject(IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def Activate(self) -> None:
+        """Puts the entry of the monitor that received this object among the active entries of the collection registry that gave it, if it is not there yet.
+
+        A monitor calls it once it has something to invalidate again. Calling it while the entry is active, or while the monitor is being invalidated, does nothing.
+        """
+        ...
+class IActivatableMonitor(IObjectMonitor):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def IsActive(self) -> bool:
+        """Tells whether this monitor has something to invalidate.
+
+        A collection registry reads it at the registration of this monitor, to put it among its active or inactive entries, and after each invalidation of this monitor, to leave it active or not. The writes of the collection invalidate no inactive monitor, until it calls the activation object it received. This method may be called as soon as this monitor is registered, so this monitor must be fully constructed by then.
+
+        Returns:
+            True if this monitor has something to invalidate, False otherwise.
+        """
+        ...
+    @abstractmethod
+    def SetActivationObject(self, activationObject: IActivationObject) -> None:
+        """Receives the object by which this monitor asks the collection registry that holds it to make it active again.
+
+        The collection registry calls it at the registration of this monitor, once its entry is in its lists. A monitor is registered in one collection registry at most.
+
+        Args:
+            activationObject: The activation object.
+
+        Raises:
+            InvalidOperationError: This monitor already received an activation object.
+        """
+        ...
 class IObjectRegistrar[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
@@ -32,14 +68,14 @@ class IObjectRegistry[T](IObjectRegistrar[T], IObjectMonitor):
     def AsRegistrar(self) -> IObjectRegistrar[T]:
         ...
 
-class ICollectionRegistrar[T: IObjectMonitor](IObjectRegistrar[T]):
+class ICollectionRegistrar[T: IActivatableMonitor](IObjectRegistrar[T]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def RegisterMonitor(self, item: T) -> IRemovable:
         """Registers a monitor that another object owns, and holds it weakly.
 
-        The monitor leaves the registrar once its owner drops it, so the owner must keep it alive for as long as it must be invalidated.
+        The monitor leaves the registrar once its owner drops it, so the owner must keep it alive for as long as it must be invalidated. The registrar reads whether the monitor is active, and gives it its activation object.
 
         Args:
             item: The monitor to register.
@@ -48,5 +84,5 @@ class ICollectionRegistrar[T: IObjectMonitor](IObjectRegistrar[T]):
             A handle whose removal stops the invalidation of the monitor.
         """
         ...
-class ICollectionRegistry[T: IObjectMonitor](ICollectionRegistrar[T], IObjectRegistry[T]):
+class ICollectionRegistry[T: IActivatableMonitor](ICollectionRegistrar[T], IObjectRegistry[T], IActivatableMonitor):
     def __init__(self) -> None: super().__init__()

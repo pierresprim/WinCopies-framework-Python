@@ -18,7 +18,7 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
                                               SequenceAbstract,
                                               GetTupleString)
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
-from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistry
+from WinCopies.Collections.Registry import IActivationObject, IActivatableMonitor
 from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumeratorMonitor
 from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
 
@@ -114,7 +114,7 @@ class _CursorProviderUpdater[T](ValueFunctionUpdater[IReadOnlyLinkedCursorProvid
 
     def _GetValue(self) -> IReadOnlyLinkedCursorProvider[T]: return _CursorProvider[T](self.__source)
 
-class IRevocableViewRegistry(IRevocableViewMonitor, IObjectMonitor):
+class IRevocableViewRegistry(IRevocableViewMonitor, IActivatableMonitor):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -454,11 +454,11 @@ class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
         
         super().__init__()
 
-        self.__registry: IObjectRegistry[IInvalidatable] = InvalidatableObjectRegistry[IInvalidatable]()
+        self.__registry: InvalidatableObjectRegistry[IInvalidatable] = InvalidatableObjectRegistry[IInvalidatable]()
         self.__monitor: IFunction[IRevocableViewMonitor] = _RevocableViewMonitorUpdater(self, update) # type: ignore[no-redef]
 
     @final
-    def _GetRegistry(self) -> IObjectRegistry[IInvalidatable]:
+    def _GetRegistry(self) -> InvalidatableObjectRegistry[IInvalidatable]:
         return self.__registry
     
     @overload
@@ -476,6 +476,11 @@ class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
 
     @final
     def InvalidateObjects(self) -> None: return self._GetRegistry().InvalidateObjects()
+
+    @final
+    def IsActive(self) -> bool: return self._GetRegistry().IsActive()
+    @final
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._GetRegistry().SetActivationObject(activationObject)
     
     @final
     def AsMonitor(self) -> IRevocableViewMonitor: return self.__monitor.GetValue()

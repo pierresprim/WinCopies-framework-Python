@@ -5,7 +5,7 @@ from WinCopies import IInterface
 from WinCopies.Collections.Core import ITuple
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumerator
 from WinCopies.Collections.Enumeration.Resumable import IInvalidatableResumableEnumerator
-from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar
+from WinCopies.Collections.Registry import IActivatableMonitor, ICollectionRegistrar
 from WinCopies.Collections.Registry.Collection import IEnumeratorRegistry as _IEnumeratorRegistry, ICollectionRegistries as _ICollectionRegistries, MonitorsBase as _MonitorsBase, CollectionRegistriesBase as _CollectionRegistries
 
 class IEnumeratorMonitor(IInterface):
@@ -30,7 +30,7 @@ class IResumableEnumeratorRegistry(IEnumeratorRegistry, IResumableEnumeratorMoni
     def AsMonitor(self) -> IResumableEnumeratorMonitor:
         ...
 
-class ICollectionMonitors(ICollectionRegistrar[IObjectMonitor]):
+class ICollectionMonitors(ICollectionRegistrar[IActivatableMonitor]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod

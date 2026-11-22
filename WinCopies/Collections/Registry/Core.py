@@ -8,12 +8,13 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Iteration import Generate, Iterate
-from WinCopies.Collections.Registry import IObjectMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
+from WinCopies.Collections.Registry import IObjectMonitor, IActivationObject, IActivatableMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
 from WinCopies.Collections.Registry.Kernel import IRegistry as _IRegistry, IWeakReferenceRegistry as _IWeakReferenceRegistry, IItemRegistry as _IItemRegistry, Registry as _Registry, WeakReferenceRegistry as _WeakReferenceRegistry, ItemRegistry as _ItemRegistry, CreateItemRegistry as _CreateItemRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Node import ILinkedNode, IReadWriteLinkedNode
 from WinCopies.Collections.Loop import DoForEachItem
 from WinCopies.Delegates import NoAction, FuncNone, GetActionAsMethod
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Converter, Function, NullableFunction
 from WinCopies.Typing.Discard import IInvalidatable
 from WinCopies.Typing.Object import IWeakReference, IWeakReferenceRegister, IDisposableReferenceRegister, CreateDisposableReferenceRegister
@@ -155,7 +156,36 @@ class _Registrar[T](Abstract, IObjectRegistrar[T]):
 
     def RegisterObject(self, item: T) -> None: self.__registrar.RegisterObject(item)
 
-class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn]):
+@final
+class _NoActivationObject(Abstract, IActivationObject):
+    """The activation object of a monitor that no collection registry holds, which does nothing.
+    """
+
+    def __init__(self) -> None: super().__init__()
+
+    def Activate(self) -> None: pass
+
+_noActivationObject: IActivationObject = _NoActivationObject()
+
+def _GetActivationObject(current: IActivationObject, activationObject: IActivationObject) -> IActivationObject:
+    """Gets the activation object that a monitor receives, once checked that it received none before.
+
+    Args:
+        current: The activation object that the monitor holds.
+        activationObject: The activation object that the monitor receives.
+
+    Returns:
+        The activation object for the monitor to hold.
+
+    Raises:
+        InvalidOperationError: The monitor already received an activation object.
+    """
+
+    if current is not _noActivationObject: raise InvalidOperationError("This monitor already received an activation object.")
+
+    return activationObject
+
+class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TIn], IActivatableMonitor):
     def __init__(self) -> None:
         super().__init__()
 
@@ -164,6 +194,7 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
 
         self.__push: Converter[TOut, INodeBase] = self.__PushFirst
         self.__clear: Action = NoAction
+        self.__activation: IActivationObject = _noActivationObject
 
         self.__monitor: IObjectMonitor = _Monitor(self)
         self.__registrar: IObjectRegistrar[TIn] = _Registrar(self)
@@ -192,6 +223,8 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         
         self.__push = self.__Push
         self.__clear = lambda: self.__items.InvalidateObjects(finalize)
+
+        self.__activation.Activate()
 
         return self.__Push(obj)
     def _Push(self, item: TIn) -> INodeBase:
@@ -231,6 +264,18 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
     def InvalidateObjects(self) -> None: self.__clear()
 
     @final
+    def IsActive(self) -> bool:
+        """Tells whether an object was registered here since the last invalidation, which empties the registry.
+
+        Returns:
+            True if an object was registered here since the last invalidation, False otherwise.
+        """
+
+        return self.__clear is not NoAction
+    @final
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: self.__activation = _GetActivationObject(self.__activation, activationObject)
+
+    @final
     def AsMonitor(self) -> IObjectMonitor: return self.__monitor
     @final
     def AsRegistrar(self) -> IObjectRegistrar[TIn]: return self.__registrar
@@ -253,89 +298,134 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
     def Remove(self) -> None: self.__node.Remove()
 
 @final
-class _WeakMonitor[T: IObjectMonitor](Abstract, IRemovable):
-    """Holds weakly, without a callback, a monitor registered by RegisterMonitor.
+class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
+    """The entry of a monitor in the lists of a collection registry. It holds the monitor strongly, for RegisterObject, or weakly and without a callback, for RegisterMonitor, and knows the list it is in.
 
-    The monitor is never detached from the registry by a finalizer, nor by its removal. Its removal only empties the reference, and the registry detaches the entry itself, as it does for a dead monitor, so that the list of the registry changes only while no monitor is being invalidated.
+    The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, and the registry detaches the entry itself, as it does for a dead monitor, so that the lists of the registry change only while no monitor is being invalidated.
 
     Args:
-        monitor: The monitor to hold.
+        tryGetMonitor: Returns the monitor, or None once it is dead.
     """
 
-    def __init__(self, monitor: T) -> None:
+    def __init__(self, tryGetMonitor: NullableFunction[T]) -> None:
         super().__init__()
 
-        self.__tryGetMonitor: NullableFunction[T] = ref(monitor)
+        self.__tryGetMonitor: NullableFunction[T] = tryGetMonitor
+        self.__items: _IItemRegistry[_MonitorEntry[T]]|None = None
         self.__node: IRemovable|None = None
     
     def TryGetMonitor(self) -> T|None: return self.__tryGetMonitor()
 
-    def SetNode(self, node: IRemovable) -> None: self.__node = node
+    def IsIn(self, items: _IItemRegistry[_MonitorEntry[T]]) -> bool: return self.__items is items
+
+    def MoveTo(self, items: _IItemRegistry[_MonitorEntry[T]]) -> None:
+        """Detaches this entry from its list, if it is in one, and adds it at the end of another one.
+
+        Args:
+            items: The list to add this entry to.
+        """
+
+        self.Detach()
+
+        self.__node = items.Push(self)
+        self.__items = items
 
     def Detach(self) -> None:
         node: IRemovable|None = self.__node
 
         if node is not None:
             self.__node = None
+            self.__items = None
 
             node.Remove()
     
     def Remove(self) -> None: self.__tryGetMonitor = FuncNone
 
 @final
-class _WeakMonitors[T: IObjectMonitor](Abstract):
-    """The monitors that a collection registry holds weakly, created once the first of them is registered.
-
-    Only the outermost invalidation of the registry detaches the entries of dead or removed monitors, and its purge does not detach while an invalidation is in progress, so that no entry is detached while a monitor is being invalidated, and the next node is still the right one once it is invalidated.
+class _ActivationObject(Abstract, IActivationObject):
+    """The activation object that a collection registry gives to a monitor it registers, which exposes only the activation of its entry.
 
     Args:
-        canDetach: Whether the purge can detach entries, that is whether no invalidation of the registry is in progress.
+        activate: Activates the entry of the monitor.
     """
 
-    def __init__(self, canDetach: Function[bool]) -> None:
+    def __init__(self, activate: Action) -> None:
         super().__init__()
 
-        self.__items: _IItemRegistry[_WeakMonitor[T]] = _CreateItemRegistry()
-        self.__canDetach: Function[bool] = canDetach
+        self.__activate: Action = activate
+    
+    def Activate(self) -> None: self.__activate()
+
+class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T]):
+    """Invalidates the monitors registered here, either active or inactive. Its writes invalidate only the active ones.
+
+    Only the outermost invalidation of the registry detaches the entries of dead or removed monitors, and its purge does not detach while an invalidation is in progress, so that no entry is detached while a monitor is being invalidated, and the next node is still the right one once it is invalidated.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.__actives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
+        self.__inactives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
         self.__purger: _Purger = _Purger(self.__Purge)
+        self.__invalidations: int = 0
+        self.__activation: IActivationObject = _noActivationObject
+
+        self.__monitor: IObjectMonitor = _Monitor(self)
+        self.__registrar: IObjectRegistrar[T] = _Registrar(self)
     
     @final
     def __Purge(self) -> int:
-        count: int = 0
-        canDetach: bool = self.__canDetach()
-        node: ILinkedNode[_WeakMonitor[T]]|None = self.__items.TryGetFirstNode()
+        canDetach: bool = self.__invalidations == 0
 
-        while node is not None:
-            entry: _WeakMonitor[T] = node.GetValue()
-            following: ILinkedNode[_WeakMonitor[T]]|None = node.GetNext()
+        def purge(items: _IItemRegistry[_MonitorEntry[T]]) -> int:
+            count: int = 0
+            node: ILinkedNode[_MonitorEntry[T]]|None = items.TryGetFirstNode()
 
-            if canDetach and entry.TryGetMonitor() is None: entry.Detach()
-            else: count += 1
+            while node is not None:
+                entry: _MonitorEntry[T] = node.GetValue()
+                following: ILinkedNode[_MonitorEntry[T]]|None = node.GetNext()
 
-            node = following
+                if canDetach and entry.TryGetMonitor() is None: entry.Detach()
+                else: count += 1
+
+                node = following
+            
+            return count
         
-        return count
+        return purge(self.__actives) + purge(self.__inactives)
     
-    def IsEmpty(self) -> bool: return self.__items.AsReadOnly().IsEmpty()
+    @final
+    def __Activate(self, entry: _MonitorEntry[T]) -> None:
+        if entry.IsIn(self.__inactives):
+            entry.MoveTo(self.__actives)
 
-    def Register(self, item: T) -> IRemovable:
+            self.__activation.Activate()
+    @final
+    def __Register(self, entry: _MonitorEntry[T], monitor: T) -> None:
         self.__purger.Register()
 
-        entry: _WeakMonitor[T] = _WeakMonitor[T](item)
+        entry.MoveTo(self.__actives)
 
-        entry.SetNode(self.__items.Push(entry))
+        self.__activation.Activate()
 
-        return entry
-    
-    def GetMonitors(self, detach: bool) -> Generator[T]:
-        node: ILinkedNode[_WeakMonitor[T]]|None = self.__items.TryGetFirstNode()
+        try: monitor.SetActivationObject(_ActivationObject(lambda: self.__Activate(entry)))
+        except BaseException:
+            entry.Detach()
+
+            raise
+
+    @final
+    def __GetMonitors(self) -> Generator[T]:
+        detach: bool = self.__invalidations == 1
+        node: ILinkedNode[_MonitorEntry[T]]|None = self.__actives.TryGetFirstNode()
 
         while node is not None:
-            entry: _WeakMonitor[T] = node.GetValue()
+            entry: _MonitorEntry[T] = node.GetValue()
             monitor: T|None = entry.TryGetMonitor()
 
             if monitor is None:
-                following: ILinkedNode[_WeakMonitor[T]]|None = node.GetNext()
+                following: ILinkedNode[_MonitorEntry[T]]|None = node.GetNext()
 
                 if detach: entry.Detach()
 
@@ -345,55 +435,12 @@ class _WeakMonitors[T: IObjectMonitor](Abstract):
                 yield monitor
 
                 node = node.GetNext()
-
-class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.__items: IItemRegistry[T] = CreateItemRegistry()
-        self.__monitors: _WeakMonitors[T]|None = None
-        self.__invalidations: int = 0
-
-        self.__activate: Action = self.__Activate
-        self.__invalidateObjects: Action = NoAction
-
-        self.__monitor: IObjectMonitor = _Monitor(self)
-        self.__registrar: IObjectRegistrar[T] = _Registrar(self)
-
     @final
-    def __Activate(self) -> None:
-        def finalize() -> None:
-            monitors: _WeakMonitors[T]|None = self.__monitors
-
-            if self._GetItems().IsEmpty() and (monitors is None or monitors.IsEmpty()):
-                self.__activate = self.__Activate
-                self.__invalidateObjects = NoAction
-        
-        self.__activate = NoAction
-        self.__invalidateObjects = lambda: self.__InvalidateObjects(finalize)
-    
-    @final
-    def __GetMonitors(self) -> Generator[T]:
-        item: ILinkedNode[T]|None = self.__items.TryGetFirstNode()
-
-        while item is not None:
-            yield item.GetValue()
-
-            item = item.GetNext()
-        
-        monitors: _WeakMonitors[T]|None = self.__monitors
-
-        if monitors is not None: yield from monitors.GetMonitors(self.__invalidations == 1)
-    @final
-    def __InvalidateObjects(self, action: Action) -> None:
+    def __InvalidateObjects(self) -> None:
         self.__invalidations += 1
 
-        try: _DoForEachItem(self.__GetMonitors(), lambda monitor: monitor.InvalidateObjects(), action)
+        try: _DoForEachItem(self.__GetMonitors(), lambda monitor: monitor.InvalidateObjects(), None)
         finally: self.__invalidations -= 1
-
-    @final
-    def _GetItems(self) -> IReadOnlyList[T]:
-        return self.__items.AsReadOnly()
 
     @final
     def RegisterObject(self, item: T) -> None:
@@ -405,20 +452,29 @@ class CollectionRegistry[T: IObjectMonitor](Abstract, ICollectionRegistry[T]):
             item: The monitor to register.
         """
 
-        self.__activate()
-
-        self.__items.Push(item)
+        self.__Register(_MonitorEntry[T](lambda: item), item)
     @final
     def RegisterMonitor(self, item: T) -> IRemovable:
-        monitors: _WeakMonitors[T]|None = self.__monitors
+        entry: _MonitorEntry[T] = _MonitorEntry[T](ref(item))
 
-        if monitors is None: self.__monitors = monitors = _WeakMonitors[T](lambda: self.__invalidations == 0)
+        self.__Register(entry, item)
 
-        self.__activate()
-
-        return _CollectionFactoryCookie(monitors.Register(item))
+        return _CollectionFactoryCookie(entry)
     
-    def InvalidateObjects(self) -> None: self.__invalidateObjects()
+    def InvalidateObjects(self) -> None:
+        if self.IsActive(): self.__InvalidateObjects()
+
+    @final
+    def IsActive(self) -> bool:
+        """Tells whether a monitor registered here is active.
+
+        Returns:
+            True if a monitor registered here is active, False otherwise.
+        """
+
+        return not self.__actives.AsReadOnly().IsEmpty()
+    @final
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: self.__activation = _GetActivationObject(self.__activation, activationObject)
 
     @final
     def AsMonitor(self) -> IObjectMonitor: return self.__monitor

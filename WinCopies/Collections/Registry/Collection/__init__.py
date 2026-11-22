@@ -5,7 +5,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Registry import IObjectMonitor, ICollectionRegistrar, ICollectionRegistry
+from WinCopies.Collections.Registry import IActivatableMonitor, IActivationObject, ICollectionRegistrar, ICollectionRegistry
 from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
 
@@ -33,7 +33,7 @@ class _Registrar(InvalidationRegistrar):
 
         if node is not None: node.Remove()
 
-class IEnumeratorRegistryBase(IObjectMonitor):
+class IEnumeratorRegistryBase(IActivatableMonitor):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -46,11 +46,11 @@ class IEnumeratorRegistry[T](IEnumeratorRegistryBase):
     def AsMonitor(self) -> T:
         ...
 
-class ICollectionRegistries(ICollectionRegistry[IObjectMonitor]):
+class ICollectionRegistries(ICollectionRegistry[IActivatableMonitor]):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def AsMonitors(self) -> ICollectionRegistrar[IObjectMonitor]:
+    def AsMonitors(self) -> ICollectionRegistrar[IActivatableMonitor]:
         ...
 
     @abstractmethod
@@ -85,7 +85,7 @@ class IManagedCollectionBase(IManagedEnumerableBase, IViewProvider):
 class IManagedCollection[T: ICollectionRegistries](IManagedCollectionBase, IManagedEnumerable[T]):
     def __init__(self) -> None: super().__init__()
 
-class MonitorsBase[T: ICollectionRegistries](Abstract, ICollectionRegistrar[IObjectMonitor]):
+class MonitorsBase[T: ICollectionRegistries](Abstract, ICollectionRegistrar[IActivatableMonitor]):
     def __init__(self, registries: T) -> None:
         super().__init__()
 
@@ -96,9 +96,9 @@ class MonitorsBase[T: ICollectionRegistries](Abstract, ICollectionRegistrar[IObj
         return self.__registries
 
     @final
-    def RegisterMonitor(self, item: IObjectMonitor) -> IRemovable: return self._GetRegistries().RegisterMonitor(item)
+    def RegisterMonitor(self, item: IActivatableMonitor) -> IRemovable: return self._GetRegistries().RegisterMonitor(item)
     @final
-    def RegisterObject(self, item: IObjectMonitor) -> None: self.RegisterMonitor(item)
+    def RegisterObject(self, item: IActivatableMonitor) -> None: self.RegisterMonitor(item)
 class Monitors(MonitorsBase[ICollectionRegistries]):
     def __init__(self, registries: ICollectionRegistries) -> None: super().__init__(registries)
 
@@ -128,6 +128,11 @@ class DefaultEnumeratorRegistry(Abstract, IEnumeratorRegistryBase):
     @final
     def InvalidateObjects(self) -> None: self._GetRegistry().InvalidateObjects()
 
+    @final
+    def IsActive(self) -> bool: return self._GetRegistry().IsActive()
+    @final
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._GetRegistry().SetActivationObject(activationObject)
+
 class EnumeratorRegistryBase[T](DefaultEnumeratorRegistry):
     def __init__(self) -> None:
         def update(func: IFunction[T]) -> None: self.__monitor = func
@@ -150,7 +155,7 @@ class EnumeratorRegistry[TMonitor, TRegistry](EnumeratorRegistryBase[TMonitor]):
     def _CreateUpdater(self, updater: Method[IFunction[TMonitor]]) -> EnumeratorMonitorUpdater[TMonitor, TRegistry]:
         ...
 
-class CollectionRegistriesBase[TMonitors, TRegistry: IObjectMonitor](CollectionRegistry[IObjectMonitor], ICollectionRegistries):
+class CollectionRegistriesBase[TMonitors, TRegistry: IActivatableMonitor](CollectionRegistry[IActivatableMonitor], ICollectionRegistries):
     def __init__(self) -> None:
         super().__init__()
 
@@ -158,7 +163,7 @@ class CollectionRegistriesBase[TMonitors, TRegistry: IObjectMonitor](CollectionR
         self.__registry: TRegistry = self._CreateRegistry(self._CreateEnumeratorRegistry())
 
     @final
-    def _CreateRegistry[U: IObjectMonitor](self, registry: U) -> U:
+    def _CreateRegistry[U: IActivatableMonitor](self, registry: U) -> U:
         self.RegisterObject(registry)
 
         return registry
@@ -176,17 +181,17 @@ class CollectionRegistriesBase[TMonitors, TRegistry: IObjectMonitor](CollectionR
     @final
     def _GetRegistry(self) -> TRegistry:
         return self.__registry
-class CollectionRegistries(CollectionRegistriesBase[ICollectionRegistrar[IObjectMonitor], IEnumeratorRegistryBase]):
+class CollectionRegistries(CollectionRegistriesBase[ICollectionRegistrar[IActivatableMonitor], IEnumeratorRegistryBase]):
     def __init__(self) -> None: super().__init__()
 
     @final
     def _CreateEnumeratorRegistry(self) -> IEnumeratorRegistryBase: return DefaultEnumeratorRegistry()
 
     @final
-    def _CreateMonitors(self) -> ICollectionRegistrar[IObjectMonitor]: return Monitors(self)
+    def _CreateMonitors(self) -> ICollectionRegistrar[IActivatableMonitor]: return Monitors(self)
 
     @final
-    def AsMonitors(self) -> ICollectionRegistrar[IObjectMonitor]: return self._AsMonitors()
+    def AsMonitors(self) -> ICollectionRegistrar[IActivatableMonitor]: return self._AsMonitors()
 
     @final
     def GetEnumeratorRegistry(self) -> IEnumeratorRegistryBase: return self._GetRegistry()
