@@ -50,10 +50,10 @@ class IActivatableMonitor(IObjectMonitor, _IActivatableMonitor):
             True if this monitor has something to invalidate, False otherwise.
         """
         ...
-class IActivatableRegistryBase(IInterface):
+class IActivatableRegistry(_IActivatableMonitor):
     def __init__(self) -> None: super().__init__()
 
-    @abstractmethod
+    @final
     def SetActivationObject(self, activationObject: IActivationObject) -> None:
         """
         Gives this registry the activation object that its owner received, so that its first registration after an invalidation makes its owner active again.
@@ -66,12 +66,7 @@ class IActivatableRegistryBase(IInterface):
         Raises:
             InvalidOperationError: This registry already received an activation object.
         """
-        ...
-class IActivatableRegistry(IActivatableRegistryBase, _IActivatableMonitor):
-    def __init__(self) -> None: super().__init__()
-
-    @final
-    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._SetActivationObject(activationObject)
+        self._SetActivationObject(activationObject)
 
 class IObjectRegistrar[T](IInterface):
     def __init__(self) -> None: super().__init__()
