@@ -8,7 +8,7 @@ from WinCopies import Abstract
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Generation import IRemovable, INode as INodeBase
 from WinCopies.Collections.Iteration import Generate, Iterate
-from WinCopies.Collections.Registry import IObjectMonitor, IActivationObject, IActivatableMonitor, IActivatableRegistryBase, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
+from WinCopies.Collections.Registry import IObjectMonitor, IActivationObject, IActivatableMonitor, IObjectRegistrar, IObjectRegistry, ICollectionRegistry
 from WinCopies.Collections.Registry.Kernel import IRegistry as _IRegistry, IWeakReferenceRegistry as _IWeakReferenceRegistry, IItemRegistry as _IItemRegistry, Registry as _Registry, WeakReferenceRegistry as _WeakReferenceRegistry, ItemRegistry as _ItemRegistry, CreateItemRegistry as _CreateItemRegistry
 from WinCopies.Collections.Linked.Doubly import IReadOnlyList
 from WinCopies.Collections.Linked.Node import ILinkedNode, IReadWriteLinkedNode
@@ -285,28 +285,11 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
 class ObjectRegistry[T](ObjectRegistryBase[T, IInvalidatable]):
     def __init__(self) -> None: super().__init__()
 
-class InvalidatableObjectRegistryCookie[T: IInvalidatable](Abstract, IActivatableRegistryBase):
-    def __init__(self, registry: InvalidatableObjectRegistry[T]) -> None:
-        super().__init__()
-
-        self.__registry: InvalidatableObjectRegistry[T] = registry
-
-    def GetRegistry(self) -> InvalidatableObjectRegistry[T]: return self.__registry
-
 class InvalidatableObjectRegistry[T: IInvalidatable](ObjectRegistryBase[T, T]):
-    @final
-    class _Cookie[_T: IInvalidatable](InvalidatableObjectRegistryCookie[_T]):
-        def __init__(self, registry: InvalidatableObjectRegistry[_T]) -> None: super().__init__(registry)
-
-        def SetActivationObject(self, activationObject: IActivationObject) -> None: self.GetRegistry()._SetActivationObject(activationObject) # pyright: ignore[reportPrivateUsage]
-    
     def __init__(self) -> None: super().__init__()
     
     @final
     def _Convert(self, item: T) -> T: return item
-
-    @staticmethod
-    def Create() -> InvalidatableObjectRegistryCookie[T]: return InvalidatableObjectRegistry._Cookie[T](InvalidatableObjectRegistry[T]())
 
 @final
 class _CollectionFactoryCookie(Abstract, IRemovable):
