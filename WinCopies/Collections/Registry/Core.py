@@ -304,7 +304,7 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
 class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
     """The entry of a monitor in the lists of a collection registry. It holds the monitor strongly, for RegisterObject, or weakly and without a callback, for RegisterMonitor, and knows the list it is in.
 
-    The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, and the registry detaches the entry itself, as it does for a dead monitor, so that the lists of the registry change only while no monitor is being invalidated.
+    The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, and the registry detaches the entry itself, as it does for a dead monitor, at an invalidation for an active entry, and at a purge for an inactive one.
 
     Args:
         tryGetMonitor: Returns the monitor, or None once it is dead.
@@ -360,9 +360,9 @@ class _ActivationObject(Abstract, IActivationObject):
     def Activate(self) -> None: self.__activate()
 
 class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T]):
-    """Invalidates the monitors registered here, either active or inactive. Its writes invalidate only the active ones.
+    """Invalidates the active monitors registered here. Each monitor is either active, and invalidated by the writes of the collection, or inactive, and left out of them until it asks to be active again.
 
-    Only the outermost invalidation of the registry detaches the entries of dead or removed monitors, and its purge does not detach while an invalidation is in progress, so that no entry is detached while a monitor is being invalidated, and the next node is still the right one once it is invalidated.
+    An invalidation drains the active entries from the head, until none is left, and holds no node from a step to the next. A monitor that is still active once invalidated is set aside, then put back among the active ones at the end of the invalidation, and the others go among the inactive ones. A monitor that becomes active during an invalidation is put at the end of the active entries, so that the same invalidation reaches it. The registry refuses to be invalidated again before the end of an invalidation.
     """
 
     def __init__(self) -> None:
@@ -370,8 +370,9 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
 
         self.__actives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
         self.__inactives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
+        self.__aside: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
         self.__purger: _Purger = _Purger(self.__Purge)
-        self.__invalidations: int = 0
+        self.__invalidating: bool = False
         self.__activation: IActivationObject = _noActivationObject
 
         self.__monitor: IObjectMonitor = _Monitor(self)
@@ -379,8 +380,6 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
     
     @final
     def __Purge(self) -> int:
-        canDetach: bool = self.__invalidations == 0
-
         def purge(items: _IItemRegistry[_MonitorEntry[T]]) -> int:
             count: int = 0
             node: ILinkedNode[_MonitorEntry[T]]|None = items.TryGetFirstNode()
@@ -389,7 +388,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
                 entry: _MonitorEntry[T] = node.GetValue()
                 following: ILinkedNode[_MonitorEntry[T]]|None = node.GetNext()
 
-                if canDetach and entry.TryGetMonitor() is None: entry.Detach()
+                if entry.TryGetMonitor() is None: entry.Detach()
                 else: count += 1
 
                 node = following
@@ -408,9 +407,12 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
     def __Register(self, entry: _MonitorEntry[T], monitor: T) -> None:
         self.__purger.Register()
 
-        entry.MoveTo(self.__actives)
+        if monitor.IsActive():
+            entry.MoveTo(self.__actives)
 
-        self.__activation.Activate()
+            self.__activation.Activate()
+        
+        else: entry.MoveTo(self.__inactives)
 
         try: monitor.SetActivationObject(_ActivationObject(lambda: self.__Activate(entry)))
         except BaseException:
@@ -419,31 +421,45 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
             raise
 
     @final
-    def __GetMonitors(self) -> Generator[T]:
-        detach: bool = self.__invalidations == 1
+    def __Drain(self) -> Generator[_MonitorEntry[T]]:
         node: ILinkedNode[_MonitorEntry[T]]|None = self.__actives.TryGetFirstNode()
 
         while node is not None:
             entry: _MonitorEntry[T] = node.GetValue()
+            # Held until the monitor is invalidated, so that it cannot die in between.
             monitor: T|None = entry.TryGetMonitor()
 
-            if monitor is None:
-                following: ILinkedNode[_MonitorEntry[T]]|None = node.GetNext()
+            if monitor is None: entry.Detach()
 
-                if detach: entry.Detach()
-
-                node = following
-            
             else:
-                yield monitor
+                entry.MoveTo(self.__aside)
 
-                node = node.GetNext()
+                yield entry
+            
+            node = self.__actives.TryGetFirstNode()
+    @final
+    def __Invalidate(self, entry: _MonitorEntry[T]) -> None:
+        monitor: T|None = entry.TryGetMonitor()
+
+        if monitor is not None:
+            try: monitor.InvalidateObjects()
+            finally:
+                if entry.TryGetMonitor() is None: entry.Detach()
+                elif not monitor.IsActive(): entry.MoveTo(self.__inactives)
     @final
     def __InvalidateObjects(self) -> None:
-        self.__invalidations += 1
+        self.__invalidating = True
 
-        try: _DoForEachItem(self.__GetMonitors(), lambda monitor: monitor.InvalidateObjects(), None)
-        finally: self.__invalidations -= 1
+        try: _DoForEachItem(self.__Drain(), self.__Invalidate, None)
+        finally:
+            node: ILinkedNode[_MonitorEntry[T]]|None = self.__aside.TryGetFirstNode()
+
+            while node is not None:
+                node.GetValue().MoveTo(self.__actives)
+
+                node = self.__aside.TryGetFirstNode()
+            
+            self.__invalidating = False
 
     @final
     def RegisterObject(self, item: T) -> None:
@@ -471,7 +487,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
             InvalidOperationError: The registry is already invalidating its monitors, as when a monitor writes to the collection during its invalidation.
         """
 
-        if self.__invalidations > 0: raise GetInvalidationActiveError()
+        if self.__invalidating: raise GetInvalidationActiveError()
 
         if self.IsActive(): self.__InvalidateObjects()
 

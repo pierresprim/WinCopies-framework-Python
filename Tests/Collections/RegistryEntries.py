@@ -9,7 +9,9 @@ entries of dead objects itself: at an invalidation, at a lookup, or in a purge t
 registrations since the last purge reach the entries it left. The collection registry holds strongly
 the monitors registered by RegisterObject, which its own collection keeps, and weakly those
 registered by RegisterMonitor, which other objects own; removing one only empties its entry, which
-the outermost invalidation detaches (D-130).
+an invalidation detaches if it is active, and a purge if it is not (D-130). An invalidation drains
+the active entries, and a collection registry refuses to be invalidated again before the end of an
+invalidation (Registre 12).
 
 D-123 to D-125 came from finalizers that removed a node in the middle of a traversal, of an addition,
 or of the removal of the head (Registre 1). Their benches place a pass of the garbage collector at
@@ -275,9 +277,9 @@ class TestADeadObjectChangesNoListOfTheRegistry(unittest.TestCase):
         self.assertEqual(log, ["H", "M"])
 
 class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
-    """D-123 and D-130: what happens to the list of the collection registry while its monitors are
-    invalidated stops nothing. A monitor removed during an invalidation is only emptied, and only
-    the outermost invalidation detaches entries (Registre 8)."""
+    """D-123 and D-130: what happens to the lists of the collection registry while its monitors are
+    invalidated stops nothing. A monitor removed during an invalidation is only emptied, and the
+    invalidation, which drains the active entries, detaches it (Registre 8, Registre 12)."""
 
     def __Register(self, names: str, actions: dict[str, Callable[[], object]]|None = None) -> tuple[CollectionRegistry[IActivatableMonitor], list[str], dict[str, _Monitor], dict[str, IRemovable]]:
         registry: CollectionRegistry[IActivatableMonitor] = CollectionRegistry[IActivatableMonitor]()
@@ -407,11 +409,8 @@ class TestARegistryLetsGoOfWhatDies(unittest.TestCase):
 
             gc.collect()
 
+        # The lists were inactive, so that no write reaches their entries: only the purge removes them.
         self.assertLessEqual(_weakMonitorNodes(registries), 32)
-
-        source.Add(9)
-
-        self.assertEqual(_weakMonitorNodes(registries), 0, "a write did not detach the entries of the dropped lists")
 
     def test_a_dropped_array_collection_leaves_the_registry_of_its_array(self) -> None:
         """D-129: the array outlives the collection that wraps it."""
@@ -639,10 +638,14 @@ class TestTheRegistryEntryBenchesCanFail(unittest.TestCase):
 
         self.__AssertFalls(TestADeadObjectChangesNoListOfTheRegistry, mock.patch(f"{_CORE}.CreateDisposableReferenceRegister", CreateWeakReferenceRegister))
 
-    def test_the_benches_of_the_monitors_fall_when_a_removal_detaches_at_once(self) -> None:
-        def detaching(self: Any) -> None: self.Detach()
+    def test_the_benches_of_the_monitors_fall_when_a_removal_leaves_the_monitor(self) -> None:
+        """A removal that detached at once broke the traversal of the registry before the drain
+        (D-130), and breaks nothing since, the drain holding no node from a step to the next
+        (Registre 12): the control is a removal that does nothing."""
 
-        self.__AssertFalls(TestTheCollectionRegistryInvalidatesItsLiveMonitors, mock.patch(f"{_CORE}._MonitorEntry.Remove", detaching))
+        def leaving(self: Any) -> None: pass
+
+        self.__AssertFalls(TestTheCollectionRegistryInvalidatesItsLiveMonitors, mock.patch(f"{_CORE}._MonitorEntry.Remove", leaving))
 
     def test_the_benches_of_the_dead_entries_fall_without_the_purge(self) -> None:
         def counting(self: Any) -> None: pass
