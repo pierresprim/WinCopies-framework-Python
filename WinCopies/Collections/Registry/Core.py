@@ -368,15 +368,31 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
     def __init__(self) -> None:
         super().__init__()
 
-        self.__actives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
+        # Created once needed, so that building a registry builds one list only.
+        self.__actives: _IItemRegistry[_MonitorEntry[T]]|None = None
         self.__inactives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
-        self.__aside: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
+        self.__aside: _IItemRegistry[_MonitorEntry[T]]|None = None
         self.__purger: _Purger = _Purger(self.__Purge)
         self.__invalidating: bool = False
         self.__activation: IActivationObject = _noActivationObject
 
         self.__monitor: IObjectMonitor = _Monitor(self)
         self.__registrar: IObjectRegistrar[T] = _Registrar(self)
+    
+    @final
+    def __GetActives(self) -> _IItemRegistry[_MonitorEntry[T]]:
+        actives: _IItemRegistry[_MonitorEntry[T]]|None = self.__actives
+
+        if actives is None: self.__actives = actives = _CreateItemRegistry()
+
+        return actives
+    @final
+    def __GetAside(self) -> _IItemRegistry[_MonitorEntry[T]]:
+        aside: _IItemRegistry[_MonitorEntry[T]]|None = self.__aside
+
+        if aside is None: self.__aside = aside = _CreateItemRegistry()
+
+        return aside
     
     @final
     def __Purge(self) -> int:
@@ -395,12 +411,14 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
             
             return count
         
-        return purge(self.__actives) + purge(self.__inactives)
+        actives: _IItemRegistry[_MonitorEntry[T]]|None = self.__actives
+
+        return purge(self.__inactives) + (0 if actives is None else purge(actives))
     
     @final
     def __Activate(self, entry: _MonitorEntry[T]) -> None:
         if entry.IsIn(self.__inactives):
-            entry.MoveTo(self.__actives)
+            entry.MoveTo(self.__GetActives())
 
             self.__activation.Activate()
     @final
@@ -408,7 +426,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         self.__purger.Register()
 
         if monitor.IsActive():
-            entry.MoveTo(self.__actives)
+            entry.MoveTo(self.__GetActives())
 
             self.__activation.Activate()
         
@@ -422,7 +440,8 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
 
     @final
     def __Drain(self) -> Generator[_MonitorEntry[T]]:
-        node: ILinkedNode[_MonitorEntry[T]]|None = self.__actives.TryGetFirstNode()
+        actives: _IItemRegistry[_MonitorEntry[T]] = self.__GetActives()
+        node: ILinkedNode[_MonitorEntry[T]]|None = actives.TryGetFirstNode()
 
         while node is not None:
             entry: _MonitorEntry[T] = node.GetValue()
@@ -434,7 +453,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
 
             if monitor is not None: yield entry
             
-            node = self.__actives.TryGetFirstNode()
+            node = actives.TryGetFirstNode()
     @final
     def __Invalidate(self, entry: _MonitorEntry[T]) -> None:
         monitor: T|None = entry.TryGetMonitor()
@@ -442,19 +461,23 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         if monitor is not None:
             try: monitor.InvalidateObjects()
             finally:
-                if entry.TryGetMonitor() is not None: entry.MoveTo(self.__aside if monitor.IsActive() else self.__inactives)
+                if entry.TryGetMonitor() is not None: entry.MoveTo(self.__GetAside() if monitor.IsActive() else self.__inactives)
     @final
     def __InvalidateObjects(self) -> None:
         self.__invalidating = True
 
         try: _DoForEachItem(self.__Drain(), self.__Invalidate, None)
         finally:
-            node: ILinkedNode[_MonitorEntry[T]]|None = self.__aside.TryGetFirstNode()
+            aside: _IItemRegistry[_MonitorEntry[T]]|None = self.__aside
 
-            while node is not None:
-                node.GetValue().MoveTo(self.__actives)
+            if aside is not None:
+                actives: _IItemRegistry[_MonitorEntry[T]] = self.__GetActives()
+                node: ILinkedNode[_MonitorEntry[T]]|None = aside.TryGetFirstNode()
 
-                node = self.__aside.TryGetFirstNode()
+                while node is not None:
+                    node.GetValue().MoveTo(actives)
+
+                    node = aside.TryGetFirstNode()
             
             self.__invalidating = False
 
@@ -496,7 +519,9 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
             True if a monitor registered here is active, False otherwise.
         """
 
-        return not self.__actives.AsReadOnly().IsEmpty()
+        actives: _IItemRegistry[_MonitorEntry[T]]|None = self.__actives
+
+        return actives is not None and not actives.AsReadOnly().IsEmpty()
     @final
     def SetActivationObject(self, activationObject: IActivationObject) -> None: self.__activation = _GetActivationObject(self.__activation, activationObject)
 

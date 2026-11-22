@@ -171,7 +171,8 @@ def _weakMonitorNodes(registry: object) -> int:
     count: int = 0
 
     for items in (getattr(registry, "_CollectionRegistry__actives"), getattr(registry, "_CollectionRegistry__inactives")):
-        node: Any = items._GetItems().GetFirstNode()
+        # The registry creates its list of active entries once one is needed.
+        node: Any = None if items is None else items._GetItems().GetFirstNode()
 
         while node is not None:
             if isinstance(getattr(node.GetValue(), "_MonitorEntry__tryGetMonitor"), weakref.ref): count += 1
