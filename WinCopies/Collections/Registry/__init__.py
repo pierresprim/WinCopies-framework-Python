@@ -56,15 +56,15 @@ class IActivatableRegistryBase(IInterface):
     @abstractmethod
     def SetActivationObject(self, activationObject: IActivationObject) -> None:
         """
-        Receives the object by which this monitor asks the collection registry that holds it to make it active again.
+        Gives this registry the activation object that its owner received, so that its first registration after an invalidation makes its owner active again.
 
-        The collection registry calls it at the registration of this monitor, once its entry is in its lists. A monitor is registered in one collection registry at most.
+        The owner of this registry calls it when it receives its own activation object from the collection registry that holds it. A registry receives one activation object at most.
 
         Args:
-            activationObject: The activation object.
+            activationObject: The activation object that the owner of this registry received.
 
         Raises:
-            InvalidOperationError: This monitor already received an activation object.
+            InvalidOperationError: This registry already received an activation object.
         """
         ...
 class IActivatableRegistry(IActivatableRegistryBase, _IActivatableMonitor):
