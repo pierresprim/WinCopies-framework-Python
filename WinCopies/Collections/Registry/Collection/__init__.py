@@ -5,7 +5,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections.Enumeration.Core import IInvalidatableEnumeratorBase
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Registry import IActivatableMonitor, IActivationObject, ICollectionRegistrar, ICollectionRegistry
+from WinCopies.Collections.Registry import IActivatableMonitor, IActivatableRegistry, IActivationObject, ICollectionRegistrar, ICollectionRegistry
 from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry
 from WinCopies.Collections.Registry.Invalidation import InvalidationRegistrar
 
@@ -13,7 +13,7 @@ from WinCopies.Typing.Delegate import Method, IFunction, ValueFunctionUpdater
 from WinCopies.Typing.Discard import IInvalidatable
 
 @final
-class _Registry(InvalidatableObjectRegistry[IInvalidatable]):
+class _Registry(InvalidatableObjectRegistry[IInvalidatable], IActivatableRegistry):
     def __init__(self) -> None: super().__init__()
 
     def RegisterEnumerator(self, item: IInvalidatable) -> IRemovable:
@@ -131,7 +131,7 @@ class DefaultEnumeratorRegistry(Abstract, IEnumeratorRegistryBase):
     @final
     def IsActive(self) -> bool: return self._GetRegistry().IsActive()
     @final
-    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._GetRegistry().SetActivationObject(activationObject)
+    def _SetActivationObject(self, activationObject: IActivationObject) -> None: self._GetRegistry().SetActivationObject(activationObject)
 
 class EnumeratorRegistryBase[T](DefaultEnumeratorRegistry):
     def __init__(self) -> None:

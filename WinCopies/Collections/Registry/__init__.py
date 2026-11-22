@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import final
 
 from WinCopies import IInterface
 from WinCopies.Collections.Generation import IRemovable
@@ -9,6 +10,7 @@ class IObjectMonitor(IInterface):
     @abstractmethod
     def InvalidateObjects(self) -> None:
         ...
+
 class IActivationObject(IInterface):
     def __init__(self) -> None: super().__init__()
 
@@ -19,7 +21,23 @@ class IActivationObject(IInterface):
         A monitor calls it once it has something to invalidate again. Calling it while the entry is active, or while the monitor is being invalidated, does nothing.
         """
         ...
-class IActivatableMonitor(IObjectMonitor):
+class _IActivatableMonitor(IInterface):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _SetActivationObject(self, activationObject: IActivationObject) -> None:
+        """
+        Receives the object by which this monitor asks the collection registry that holds it to make it active again.
+
+        The collection registry calls it at the registration of this monitor, once its entry is in its lists. A monitor is registered in one collection registry at most.
+
+        Args:
+            activationObject: The activation object.
+
+        Raises:
+            InvalidOperationError: This monitor already received an activation object."""
+        ...
+class IActivatableMonitor(IObjectMonitor, _IActivatableMonitor):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
@@ -32,9 +50,13 @@ class IActivatableMonitor(IObjectMonitor):
             True if this monitor has something to invalidate, False otherwise.
         """
         ...
+class IActivatableRegistryBase(IInterface):
+    def __init__(self) -> None: super().__init__()
+
     @abstractmethod
     def SetActivationObject(self, activationObject: IActivationObject) -> None:
-        """Receives the object by which this monitor asks the collection registry that holds it to make it active again.
+        """
+        Receives the object by which this monitor asks the collection registry that holds it to make it active again.
 
         The collection registry calls it at the registration of this monitor, once its entry is in its lists. A monitor is registered in one collection registry at most.
 
@@ -45,6 +67,12 @@ class IActivatableMonitor(IObjectMonitor):
             InvalidOperationError: This monitor already received an activation object.
         """
         ...
+class IActivatableRegistry(IActivatableRegistryBase, _IActivatableMonitor):
+    def __init__(self) -> None: super().__init__()
+
+    @final
+    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._SetActivationObject(activationObject)
+
 class IObjectRegistrar[T](IInterface):
     def __init__(self) -> None: super().__init__()
     

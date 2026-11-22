@@ -93,7 +93,7 @@ class _Monitor(Abstract, IActivatableMonitor):
 
     def IsActive(self) -> bool: return True
 
-    def SetActivationObject(self, activationObject: IActivationObject) -> None: pass
+    def _SetActivationObject(self, activationObject: IActivationObject) -> None: pass
 
 class _Handle(IFunction[int]):
     """Cell initialiser for ArrayList, which takes a provider rather than a sequence."""

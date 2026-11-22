@@ -20,7 +20,7 @@ from WinCopies.Collections.Extensions import (IReadOnlyLinkedCursorProvider,
 from WinCopies.Collections.Linked.Singly import IReadOnlyCountableEnumerableList, IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack
 from WinCopies.Collections.Registry import IActivationObject, IActivatableMonitor
 from WinCopies.Collections.Registry.Collection.Indexable import IResumableEnumeratorMonitor
-from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry
+from WinCopies.Collections.Registry.Core import InvalidatableObjectRegistry, InvalidatableObjectRegistryCookie
 
 from WinCopies.Delegates import ConcatenateMethods
 
@@ -437,13 +437,7 @@ def _CreateRevocableView[T](items: IEquatableTuple[T]|ITuple[T], onDisposed: Met
         
         return (selector(cookie), cookie)
     
-    def createTuple() -> tuple[ITuple[T], IInvalidatable]: return create(items, _RevocableView)
-    def createEquatableView(items: IEquatableTuple[T]) -> tuple[IEquatableTuple[T], IInvalidatable]: return create(items, _EquatableRevocableView)
-    
-    match items:
-        case IEquatableTuple(): return createEquatableView(items)
-
-        case _: return createTuple()
+    return create(items, _EquatableRevocableView) if isinstance(items, IEquatableTuple) else create(items, _RevocableView)
 
 type RevocableView[T] = _RevocableView[T]
 type EquatableRevocableView[T] = _EquatableRevocableView[T]
@@ -454,12 +448,12 @@ class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
         
         super().__init__()
 
-        self.__registry: InvalidatableObjectRegistry[IInvalidatable] = InvalidatableObjectRegistry[IInvalidatable]()
+        self.__registry: InvalidatableObjectRegistryCookie[IInvalidatable] = InvalidatableObjectRegistry[IInvalidatable].Create()
         self.__monitor: IFunction[IRevocableViewMonitor] = _RevocableViewMonitorUpdater(self, update) # type: ignore[no-redef]
 
     @final
     def _GetRegistry(self) -> InvalidatableObjectRegistry[IInvalidatable]:
-        return self.__registry
+        return self.__registry.GetRegistry()
     
     @overload
     def CreateRevocableView[T](self, items: IEquatableTuple[T], onDisposed: Method[DiscardReason]|None = None) -> IEquatableTuple[T]: ...
@@ -480,7 +474,7 @@ class RevocableViewRegistry(Abstract, IRevocableViewRegistry):
     @final
     def IsActive(self) -> bool: return self._GetRegistry().IsActive()
     @final
-    def SetActivationObject(self, activationObject: IActivationObject) -> None: self._GetRegistry().SetActivationObject(activationObject)
+    def _SetActivationObject(self, activationObject: IActivationObject) -> None: self.__registry.SetActivationObject(activationObject)
     
     @final
     def AsMonitor(self) -> IRevocableViewMonitor: return self.__monitor.GetValue()
