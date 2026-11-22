@@ -429,12 +429,10 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
             # Held until the monitor is invalidated, so that it cannot die in between.
             monitor: T|None = entry.TryGetMonitor()
 
-            if monitor is None: entry.Detach()
+            # The entry of the monitor being invalidated is in no list, until it is put where its activity says.
+            entry.Detach()
 
-            else:
-                entry.MoveTo(self.__aside)
-
-                yield entry
+            if monitor is not None: yield entry
             
             node = self.__actives.TryGetFirstNode()
     @final
@@ -444,8 +442,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         if monitor is not None:
             try: monitor.InvalidateObjects()
             finally:
-                if entry.TryGetMonitor() is None: entry.Detach()
-                elif not monitor.IsActive(): entry.MoveTo(self.__inactives)
+                if entry.TryGetMonitor() is not None: entry.MoveTo(self.__aside if monitor.IsActive() else self.__inactives)
     @final
     def __InvalidateObjects(self) -> None:
         self.__invalidating = True
