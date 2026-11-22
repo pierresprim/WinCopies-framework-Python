@@ -304,7 +304,7 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
 class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
     """The entry of a monitor in the lists of a collection registry. It holds the monitor strongly, for RegisterObject, or weakly and without a callback, for RegisterMonitor, and knows the list it is in.
 
-    The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, and the registry detaches the entry itself, as it does for a dead monitor, at an invalidation for an active entry, and at a purge for an inactive one.
+    The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, so that it changes no list even when a finalizer runs it in the middle of an operation of the registry, and the registry detaches the entry itself, as it does for a dead monitor, at an invalidation for an active entry, and at a purge for an inactive one.
 
     Args:
         tryGetMonitor: Returns the monitor, or None once it is dead.

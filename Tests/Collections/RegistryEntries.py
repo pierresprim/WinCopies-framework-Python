@@ -641,8 +641,10 @@ class TestTheRegistryEntryBenchesCanFail(unittest.TestCase):
 
     def test_the_benches_of_the_monitors_fall_when_a_removal_leaves_the_monitor(self) -> None:
         """A removal that detached at once broke the traversal of the registry before the drain
-        (D-130), and breaks nothing since, the drain holding no node from a step to the next
-        (Registre 12): the control is a removal that does nothing."""
+        (D-130). The drain holds no node from a step to the next, so that it would not break it any
+        more, but a removal still only empties the entry, so that it changes no list even when a
+        finalizer runs it in the middle of an operation of the registry (Registre 12): the control is
+        a removal that does nothing."""
 
         def leaving(self: Any) -> None: pass
 
