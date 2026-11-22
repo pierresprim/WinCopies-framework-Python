@@ -47,6 +47,7 @@ from WinCopies.Collections.Registry import IActivationObject, IActivatableMonito
 from WinCopies.Collections.Registry.Core import CollectionRegistry, InvalidatableObjectRegistry, ObjectRegistryBase
 from WinCopies.Collections.Registry.Mapping import KeyedDisposableObjectRegistry
 from WinCopies.Collections.Registry.Sorted import SortedDisposableObjectRegistry
+from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import IFunction
 from WinCopies.Typing.Discard import DiscardReason, IInvalidatable
 from WinCopies.Typing.Object import CreateWeakReferenceRegister
@@ -349,9 +350,11 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
 
         self.assertEqual(self.__Invalidate(registry, log), ["A", "C"])
 
-    def test_a_nested_invalidation_detaches_nothing_that_the_outer_one_reads(self) -> None:
-        """A monitor writes, so to speak, during its invalidation: the registry is invalidated again
-        while a dead monitor follows it."""
+    def test_a_nested_invalidation_is_refused(self) -> None:
+        """A monitor writes, so to speak, during its invalidation, while a dead monitor follows it:
+        the registry refuses to be invalidated again before the end of its invalidation. The outer
+        invalidation still reaches every monitor, as it does when one of them raises, then raises in
+        turn, and the registry stays whole (Registre 12)."""
 
         registry: CollectionRegistry[IActivatableMonitor] = CollectionRegistry[IActivatableMonitor]()
         log: list[str] = []
@@ -365,7 +368,13 @@ class TestTheCollectionRegistryInvalidatesItsLiveMonitors(unittest.TestCase):
 
         gc.collect()
 
-        self.assertEqual(self.__Invalidate(registry, log), ["A", "A", "C", "C"])
+        with self.assertRaises(InvalidOperationError): registry.InvalidateObjects()
+
+        self.assertEqual(log, ["A", "C"])
+
+        log.clear()
+
+        self.assertEqual(self.__Invalidate(registry, log), ["A", "C"])
 
 class TestARegistryLetsGoOfWhatDies(unittest.TestCase):
     """The entries of dead objects do not pile up, though no finalizer removes them: the purge runs

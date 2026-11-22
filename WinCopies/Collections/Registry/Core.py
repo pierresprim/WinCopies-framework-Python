@@ -167,6 +167,9 @@ class _NoActivationObject(Abstract, IActivationObject):
 
 _noActivationObject: IActivationObject = _NoActivationObject()
 
+def GetInvalidationActiveError() -> InvalidOperationError:
+    return InvalidOperationError("A collection cannot be changed while its registry invalidates its monitors.")
+
 def _GetActivationObject(current: IActivationObject, activationObject: IActivationObject) -> IActivationObject:
     """Gets the activation object that a monitor receives, once checked that it received none before.
 
@@ -462,6 +465,14 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         return _CollectionFactoryCookie(entry)
     
     def InvalidateObjects(self) -> None:
+        """Invalidates the active monitors registered here.
+
+        Raises:
+            InvalidOperationError: The registry is already invalidating its monitors, as when a monitor writes to the collection during its invalidation.
+        """
+
+        if self.__invalidations > 0: raise GetInvalidationActiveError()
+
         if self.IsActive(): self.__InvalidateObjects()
 
     @final
