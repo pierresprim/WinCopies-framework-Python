@@ -6,7 +6,7 @@ from typing import final, Any, NoReturn, Self
 from WinCopies import IInterface, IContextManager, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IEnumerable as _IEnumerable, IIteratorProvider, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IEnumerable as _IEnumerable, IIterationContext, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Enumeration.Notification import INotifyCallback, IInvalidationNotifier, IInvalidationNotifierProvider, InvalidationNotifier
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
@@ -119,7 +119,7 @@ class IInvalidatableEnumeratorBase(IEnumeratorBase):
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
         ...
 
-class IEnumerator[T](IEnumeratorBase, IIteratorProvider[T]):
+class IEnumerator[T](IEnumeratorBase, IIterationContext[T]):
     def __init__(self) -> None: super().__init__()
 
     @final

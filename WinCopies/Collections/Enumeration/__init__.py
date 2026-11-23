@@ -233,7 +233,7 @@ __noData: IIterationStatus = _NoData()
 def GetNoDataEnumerationStatus() -> IIterationStatus:
     return __noData
 
-class IIteratorProvider[T](IContextManager):
+class IIterationContext[T](IContextManager):
     """Provides an iterator over items, within a with statement whose exit ends what the provider started."""
 
     def __init__(self) -> None: super().__init__()
@@ -248,7 +248,7 @@ class IIteratorProvider[T](IContextManager):
         ...
 
 @final
-class _SystemIteratorProvider[T](Abstract, IIteratorProvider[T]):
+class _IterationContext[T](Abstract, IIterationContext[T]):
     """
     Provides an iterator over a Python iterable. The exit of a with statement does nothing to it, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
 
@@ -266,26 +266,26 @@ class IEnumerable[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def GetEnumerator(self) -> IIteratorProvider[T]:
+    def GetEnumerator(self) -> IIterationContext[T]:
         ...
 
 @final
-class _EmptyIteratorProvider[T](Abstract, Iterator[T], IIteratorProvider[T]):
+class _EmptyIterationContext[T](Abstract, Iterator[T], IIterationContext[T]):
     def __init__(self) -> None: super().__init__()
 
     def AsIterator(self) -> Iterator[T]: return self
 
     def __next__(self) -> T: raise StopIteration()
 
-__emptyIteratorProvider: _EmptyIteratorProvider[Any] = _EmptyIteratorProvider[Any]()
+__emptyIterationContext: _EmptyIterationContext[Any] = _EmptyIterationContext[Any]()
 
-def _GetEmptyIteratorProvider[T]() -> _EmptyIteratorProvider[T]: # pyright: ignore[reportInvalidTypeVarUse]
-    return __emptyIteratorProvider
+def _GetEmptyIterationContext[T]() -> _EmptyIterationContext[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyIterationContext
 
-def _GetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]) -> IIteratorProvider[T]:
-    return items.GetEnumerator() if isinstance(items, IEnumerable) else _SystemIteratorProvider[T](items)
+def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T]) -> IIterationContext[T]:
+    return items.GetEnumerator() if isinstance(items, IEnumerable) else _IterationContext[T](items)
 
-def TryGetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteratorProvider[T]|None:
+def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]|None:
     """
     Gets the provider of an iterator over the given items, as GetIteratorProvider does, or None for None.
 
@@ -295,8 +295,8 @@ def TryGetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterat
     Returns:
         The provider of an iterator over the items, or None if items is None.
     """
-    return None if items is None else _GetIteratorProvider(items)
-def GetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteratorProvider[T]:
+    return None if items is None else _GetIterationContext(items)
+def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]:
     """
     Gets the provider of an iterator over the given items, to iterate over them within a with statement.
 
@@ -308,4 +308,4 @@ def GetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteratorP
     Returns:
         The provider of an iterator over the items, or the empty enumerator if items is None.
     """
-    return _GetEmptyIteratorProvider() if items is None else _GetIteratorProvider(items)
+    return _GetEmptyIterationContext() if items is None else _GetIterationContext(items)

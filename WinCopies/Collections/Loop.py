@@ -3,7 +3,7 @@ from typing import Callable
 
 from WinCopies import IsTrue, Not
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import GetIteratorProvider
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable, TryAsIterable
 from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, TryZip as __TryZip
 from WinCopies.Collections.Iteration.Traversal import Loop as _Loop, TryLoop as _TryLoop, Enumerate as _Enumerate, TryEnumerate as _TryEnumerate, Iterate as _Iterate, TryIterate as _TryIterate, ForEachItemUntil as _ForEachItemUntil, EnumerateSafe, IterateSafe
@@ -141,7 +141,7 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     """
     i: int = -1
 
-    with GetIteratorProvider(items) as provider:
+    with GetIterationContext(items) as provider:
         for item in provider.AsIterator():
             i += 1
 
