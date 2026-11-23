@@ -17,6 +17,7 @@ from WinCopies.Delegates import NoAction, FuncNone, GetActionAsMethod
 from WinCopies.Typing import InvalidOperationError
 from WinCopies.Typing.Delegate import Action, Method, Converter, Function, NullableFunction
 from WinCopies.Typing.Discard import IInvalidatable
+from WinCopies.Typing.Monitoring import IMonitor, Monitor
 from WinCopies.Typing.Object import IWeakReference, IWeakReferenceRegister, IDisposableReferenceRegister, CreateDisposableReferenceRegister
 
 def _DoForEachItem[T](items: Generator[T], method: Method[T], action: Action|None) -> None:
@@ -370,7 +371,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         self.__inactives: _IItemRegistry[_MonitorEntry[T]] = _CreateItemRegistry()
         self.__aside: _IItemRegistry[_MonitorEntry[T]]|None = None
         self.__purger: _Purger = _Purger(self.__Purge)
-        self.__invalidating: bool = False
+        self.__invalidation: IMonitor = Monitor()
         self.__activation: IActivationObject = _noActivationObject
 
         self.__monitor: IObjectMonitor = _Monitor(self)
@@ -463,22 +464,19 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
                 if entry.TryGetMonitor() is not None: entry.MoveTo(self.__GetAside() if monitor.IsActive() else self.__inactives)
     @final
     def __InvalidateObjects(self) -> None:
-        self.__invalidating = True
+        with self.__invalidation:
+            try: _DoForEachItem(self.__Drain(), self.__Invalidate, None)
+            finally:
+                aside: _IItemRegistry[_MonitorEntry[T]]|None = self.__aside
 
-        try: _DoForEachItem(self.__Drain(), self.__Invalidate, None)
-        finally:
-            aside: _IItemRegistry[_MonitorEntry[T]]|None = self.__aside
+                if aside is not None:
+                    actives: _IItemRegistry[_MonitorEntry[T]] = self.__GetActives()
+                    node: ILinkedNode[_MonitorEntry[T]]|None = aside.TryGetFirstNode()
 
-            if aside is not None:
-                actives: _IItemRegistry[_MonitorEntry[T]] = self.__GetActives()
-                node: ILinkedNode[_MonitorEntry[T]]|None = aside.TryGetFirstNode()
+                    while node is not None:
+                        node.GetValue().MoveTo(actives)
 
-                while node is not None:
-                    node.GetValue().MoveTo(actives)
-
-                    node = aside.TryGetFirstNode()
-            
-            self.__invalidating = False
+                        node = aside.TryGetFirstNode()
 
     @final
     def RegisterObject(self, item: T) -> None:
@@ -506,7 +504,7 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         Raises:
             InvalidOperationError: The registry is already invalidating its monitors, as when a monitor writes to the collection during its invalidation.
         """
-        if self.__invalidating: raise GetInvalidationActiveError()
+        if self.__invalidation.IsBusy(): raise GetInvalidationActiveError()
 
         if self.IsActive(): self.__InvalidateObjects()
 
