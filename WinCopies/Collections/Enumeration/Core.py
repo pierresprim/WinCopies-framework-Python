@@ -109,7 +109,6 @@ class IEnumeratorBase(_IInvalidationNotifierProvider, IContextManager):
         self.Stop()
 
         return super()._OnExiting(excType, exc, traceback)
-
 class IInvalidatableEnumeratorBase(IEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
@@ -119,7 +118,15 @@ class IInvalidatableEnumeratorBase(IEnumeratorBase):
     @abstractmethod
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
         ...
-class IEnumerator[T](IEnumeratorBase):
+
+class IIteratorProvider[T](IContextManager):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsIterator(self) -> SystemIterator[T]:
+        ...
+
+class IEnumerator[T](IEnumeratorBase, IIteratorProvider[T]):
     def __init__(self) -> None: super().__init__()
 
     @final
@@ -141,10 +148,6 @@ class IEnumerator[T](IEnumeratorBase):
         self.MoveNext(True)
         
         return self.GetCurrent()
-
-    @abstractmethod
-    def AsIterator(self) -> SystemIterator[T]:
-        ...
 class IInvalidatableEnumerator[T](IEnumerator[T], IInvalidatableEnumeratorBase):
     def __init__(self) -> None: super().__init__()
 
@@ -1009,3 +1012,20 @@ def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|N
 
 def CreateCountableIterable[T](items: Collection[T]) -> ICountableEnumerable[T]:
     return CountableIterable[T](items)
+
+@final
+class _EnumerationContext[T](Abstract, IIteratorProvider[T]):
+    def __init__(self, items: SystemIterable[T]) -> None:
+        super().__init__()
+
+        self.__items: SystemIterable[T] = items
+
+    def AsIterator(self) -> SystemIterator[T]: return iter(self.__items)
+
+def _GetEnumeratorOrEmpty[T](items: IEnumerable[T]|SystemIterable[T]) -> IIteratorProvider[T]:
+    return items.GetEnumerator() if isinstance(items, IEnumerable) else _EnumerationContext[T](items)
+
+def TryGetEnumeratorOrEmpty[T](items: IEnumerable[T]|SystemIterable[T]|None) -> IIteratorProvider[T]|None:
+    return None if items is None else _GetEnumeratorOrEmpty(items)
+def GetEnumeratorOrEmpty[T](items: IEnumerable[T]|SystemIterable[T]|None) -> IIteratorProvider[T]:
+    return GetEmptyEnumerator() if items is None else _GetEnumeratorOrEmpty(items)

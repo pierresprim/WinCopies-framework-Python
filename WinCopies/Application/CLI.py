@@ -399,12 +399,13 @@ def _AddCommand(parser: ArgumentParserBase, command: ICommand) -> None:
         
         add(getNameOrFlags((description := param.GetDescription()).GetName(), description.HasKey()), getAction(param.GetAction(), description.GetType()), description.GetDescription())
     
-    for param in command.GetParameters().AsIterable():
-        match param.GetKind():
-            case ParameterKind.Positional: add(False)
-            case ParameterKind.Optional: add(True)
+    with command.GetParameters().GetEnumerator() as parameters:
+        for param in parameters.AsIterator():
+            match param.GetKind():
+                case ParameterKind.Positional: add(False)
+                case ParameterKind.Optional: add(True)
 
-            case _: raise ValueError()
+                case _: raise ValueError()
 
 class ICommandCollection(IInterface):
     def __init__(self) -> None: super().__init__()
