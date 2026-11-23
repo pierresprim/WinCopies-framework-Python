@@ -381,17 +381,19 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
                 
                 column: IKeyValuePair[IColumn, IFormattable]|None = None
                 
-                for query in _Enumerable(subqueries, queryBuilder).AsIterable():
-                    if not self._PrevalidateQuery(query): return True # A subquery failed to validate; cancel query building.
-                    
-                    column = query.GetColumn()
-                    
-                    queryBuilder.Write(f"SELECT {queryBuilder.ProcessConditionValue(column.GetKey(), column.GetValue())} FROM {getTables(query)}")
+                with _Enumerable(subqueries, queryBuilder).GetIterationContext() as queries:
+                    for query in queries.AsIterator():
+                        if not self._PrevalidateQuery(query): return True # A subquery failed to validate; cancel query building.
+                        
+                        column = query.GetColumn()
+                        
+                        queryBuilder.Write(f"SELECT {queryBuilder.ProcessConditionValue(column.GetKey(), column.GetValue())} FROM {getTables(query)}")
                 
                 return False # Process succeeded; continue query building.
             
             def addCases() -> None:
-                for case in self.GetCases().AsIterable(): case.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
+                with self.GetCases().GetIterationContext() as cases:
+                    for case in cases.AsIterator(): case.Render(GetPrefixedSelectionQueryWriter(', ', queryBuilder))
             
             queryBuilder.Write(f"SELECT {getColumns()}")
 

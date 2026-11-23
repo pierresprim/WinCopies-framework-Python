@@ -15,7 +15,7 @@ from WinCopies.Collections.Abstraction.Collection import CreateTuple, MakeTuple,
 from WinCopies.Collections.Abstraction.Mapping import Set, Dictionary, CreateSet, CreateDictionary
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateKeyedSet
 from WinCopies.Collections.Core import ICountable, IContainer, IReadOnlyIndexable
-from WinCopies.Collections.Enumeration import GetIterationInactiveError
+from WinCopies.Collections.Enumeration import GetIterationInactiveError, GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, EnumeratorBase, Enumerable, GetEmptyEnumerable, AsEnumerator, CreateIteratorProvider
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursivelyEnumerable, RecursiveEnumerator, StackedRecursiveEnumerator
@@ -689,7 +689,8 @@ class ForeignKeyParameter[TEntity: Entity, TValue: Entity](Abstract, IForeignKey
         def getNames() -> Iterable[str]:
             columnName: str|None = None
 
-            for column in config.GetNames().AsIterable(): yield column.GetKey().GetValue().GetColumnName() if (columnName := column.GetValue()) is None else columnName
+            with config.GetNames().GetIterationContext() as columns:
+                for column in columns.AsIterator(): yield column.GetKey().GetValue().GetColumnName() if (columnName := column.GetValue()) is None else columnName
 
         def update(converter: IInitializableConverter[str, ITuple[ITableColumn]]) -> None: self.__columns = converter
         
@@ -1613,7 +1614,8 @@ class _Hydrator[T: Entity](Abstract):
         _ProcessColumns(obj, row, data.GetColumns())
         _ProcessColumnsCore(obj, data.GetEntityColumns(), row, lambda args: __getEntity(args[0].GetColumnParameter().GetType(), MakeTuple(args[1])))
 
-        for fk in data.GetForeignKeys(): _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
+        with GetIterationContext(data.GetForeignKeys()) as context:
+            for fk in context.AsIterator(): _SetEntityValue(obj, fk, getEntity(fk.GetColumnParameter().GetType()))
 
         obj._Initialize() # pyright: ignore[reportPrivateUsage]
 
@@ -1639,23 +1641,25 @@ def __InitializeStubs(items: Iterable[Entity], context: DataContextBase) -> Iter
     keyedSetsByType: IDictionary[IType[Entity], IKeyedSet[str, object]] = Dictionary[IType[Entity], IKeyedSet[str, object]]()
     seen: ISet[IReference[Entity]] = Set[IReference[Entity]]()
 
-    for parent in items:
-        cols: _Columns = _GetColumns(parent)
+    with GetIterationContext(items) as parents:
+        for parent in parents.AsIterator():
+            cols: _Columns = _GetColumns(parent)
 
-        for col in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
-            stub: Entity|None = cast(Entity|None, _GetEntityValue(parent, col))
+            for col in ConcatenateEnumerables(cols.GetEntityColumns(), cols.GetForeignKeys()):
+                stub: Entity|None = cast(Entity|None, _GetEntityValue(parent, col))
 
-            if not (stub is None or stub.IsReady()) and seen.TryAdd(DefaultReference[Entity](stub)): populate(stub)
+                if not (stub is None or stub.IsReady()) and seen.TryAdd(DefaultReference[Entity](stub)): populate(stub)
     
     if keyedSetsByType.GetCount() < 1: return None
 
     fresh: ICountableEnumerableList[Entity] = CountableEnumerableQueue[Entity]()
 
-    for item in keyedSetsByType.AsIterable():
-        hydrator: _Hydrator[Entity] = _Hydrator[Entity](item.GetKey().GetValue(), context)
-        results: Generator[ISelectionQueryExecutionResult]|None = _GetTable(context, item.GetKey().GetValue()).SelectByKeys(hydrator.GetSelectionColumnSet(), item.GetValue())
+    with keyedSetsByType.GetIterationContext() as keyedSets:
+        for item in keyedSets.AsIterator():
+            hydrator: _Hydrator[Entity] = _Hydrator[Entity](item.GetKey().GetValue(), context)
+            results: Generator[ISelectionQueryExecutionResult]|None = _GetTable(context, item.GetKey().GetValue()).SelectByKeys(hydrator.GetSelectionColumnSet(), item.GetValue())
 
-        if results is not None: fresh.PushItems(hydrator.Enumerate(results).AsIterable())
+            if results is not None: fresh.PushItems(hydrator.Enumerate(results).AsIterable())
 
     return None if fresh.GetCount() < 1 else fresh.AsIterable()
 
@@ -1939,7 +1943,8 @@ class _WriterBase(Abstract):
         def _add(column: IColumnAbstract, value: object) -> None: __add(column.GetColumnParameter(), value)
 
         def addColumns(columns: Iterable[IDefaultColumn]) -> None:
-            for column in columnSelector.SelectColumns(columns): _add(column, _GetEntityValue(e, column))
+            with GetIterationContext(columnSelector.SelectColumns(columns)) as context:
+                for column in context.AsIterator(): _add(column, _GetEntityValue(e, column))
 
         def addColumn(columns: ITuple[ITableColumn], index: int, value: object) -> None:
             __add(columns.GetAt(index), value)
@@ -1953,22 +1958,24 @@ class _WriterBase(Abstract):
 
         target: Entity|None = None
 
-        for entityColumn in columnSelector.SelectColumns(cols.GetEntityColumns().AsIterable()):
-            target = cast(Entity|None, _GetEntityValue(e, entityColumn))
+        with GetIterationContext(columnSelector.SelectColumns(cols.GetEntityColumns().AsIterable())) as entityColumns:
+            for entityColumn in entityColumns.AsIterator():
+                target = cast(Entity|None, _GetEntityValue(e, entityColumn))
 
-            _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(target).GetAt(0)))
+                _add(entityColumn, None if target is None else _GetEntityValue(target, _GetPrimaryKeys(target).GetAt(0)))
 
-        for foreignKey in columnSelector.SelectColumns(cols.GetForeignKeys().AsIterable()):
-            target = cast(Entity|None, _GetEntityValue(e, foreignKey))
-            columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(GetTypeName(e)) # pyright: ignore[reportPrivateUsage]
+        with GetIterationContext(columnSelector.SelectColumns(cols.GetForeignKeys().AsIterable())) as foreignKeys:
+            for foreignKey in foreignKeys.AsIterator():
+                target = cast(Entity|None, _GetEntityValue(e, foreignKey))
+                columns: ITuple[ITableColumn] = foreignKey.GetColumnParameter()._AsColumns(GetTypeName(e)) # pyright: ignore[reportPrivateUsage]
 
-            if target is None:
-                for i in getRange(columns): addColumn(columns, i, None)
+                if target is None:
+                    for i in getRange(columns): addColumn(columns, i, None)
 
-            else:
-                targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(target)
+                else:
+                    targetPrimaryKeys: ITuple[IDefaultColumn] = _GetPrimaryKeys(target)
 
-                for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
+                    for i in getRange(columns): addColumn(columns, i, _GetEntityValue(target, targetPrimaryKeys.GetAt(i)))
 
         return row
     
@@ -2538,7 +2545,8 @@ class DataContextBase(Abstract):
 
         # Resolution exit: abandon the pending in-memory mutations of every diverging entity by
         # restoring its baseline, then clear the block.
-        for reference in unresolved.AsIterable(): _GetCookie(reference.GetValue())._RevertChanges() # pyright: ignore[reportPrivateUsage]
+        with unresolved.GetIterationContext() as references:
+            for reference in references.AsIterator(): _GetCookie(reference.GetValue())._RevertChanges() # pyright: ignore[reportPrivateUsage]
 
         self.__unresolved = None
     @final
@@ -2558,7 +2566,8 @@ class DataContextBase(Abstract):
         transaction: ITransaction = self.BeginTransaction()
 
         try:
-            for entity in entities: transaction.TryUpdate(entity)
+            with GetIterationContext(entities) as context:
+                for entity in context.AsIterator(): transaction.TryUpdate(entity)
 
             transaction.Dispose()
 

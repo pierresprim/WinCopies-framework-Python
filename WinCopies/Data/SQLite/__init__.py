@@ -221,19 +221,20 @@ class _Table(Table):
             attributes: _Table.FieldAttributes|None = None
             result: DualValueNullableInfo[FieldType, Enum]|None = None
 
-            for row in columns.AsIterable():
-                result = getFieldType(str(row[1]))
+            with columns.GetIterationContext() as rows:
+                for row in rows.AsIterator():
+                    result = getFieldType(str(row[1]))
 
-                attributes = _Table.FieldAttributes.Null
+                    attributes = _Table.FieldAttributes.Null
 
-                if result.GetKey() == FieldType.Integer: attributes |= _Table.FieldAttributes.Integer
-                
-                if checkAttributeValue(row, 2): attributes |= _Table.FieldAttributes.PrimaryKey
-                if checkAttributeValue(row, 3): attributes |= _Table.FieldAttributes.NoDefault
-                if checkAttributeValue(row, 4): attributes |= _Table.FieldAttributes.Nullable
-                if checkAttributeValue(row, 5): attributes |= _Table.FieldAttributes.Unique
+                    if result.GetKey() == FieldType.Integer: attributes |= _Table.FieldAttributes.Integer
+                    
+                    if checkAttributeValue(row, 2): attributes |= _Table.FieldAttributes.PrimaryKey
+                    if checkAttributeValue(row, 3): attributes |= _Table.FieldAttributes.NoDefault
+                    if checkAttributeValue(row, 4): attributes |= _Table.FieldAttributes.Nullable
+                    if checkAttributeValue(row, 5): attributes |= _Table.FieldAttributes.Unique
 
-                yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
+                    yield GetField(fieldFactory, str(row[0]), getAttributes(attributes), result.GetKey(), result.GetValue())
         
         if self.__fields is None: self.__fields = self.__GetArray(getFields)
         
@@ -358,11 +359,12 @@ class _Table(Table):
                 columns: IList[str] = Queue[str]()
                 func = getParser()
 
-                for row in indices.AsIterable():
-                    if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None: oldIndexName = newIndexName
+                with indices.GetIterationContext() as rows:
+                    for row in rows.AsIterator():
+                        if (result := func(factory, oldIndexName, newIndexName := str(row[0]), indexKind := IndexKind(row[6]), str(row[2]), columns)) is None: oldIndexName = newIndexName
 
-                    else:
-                        for index in result: yield index
+                        else:
+                            for index in result: yield index
                 
                 if columns.HasItems(): yield getIndex(factory, newIndexName, indexKind, columns)
             
@@ -394,7 +396,8 @@ class _Table(Table):
                 
                 factory: IIndexFactory = self.__factoryProvider.GetIndexFactory()
 
-                for row in foreignKeys.AsIterable(): yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
+                with foreignKeys.GetIterationContext() as rows:
+                    for row in rows.AsIterator(): yield factory.GetForeignKey(str(row[0]), str(row[2]), CreateDualResult(str(row[3]), str(row[4])))
 
             return Append(getIndices(), getForeignKeys())
 
@@ -436,7 +439,8 @@ class _DataBase(DataBaseAbstract):
 
         if queryExecutionResult is None: return
 
-        for row in queryExecutionResult.AsIterable(): yield str(row[0])
+        with queryExecutionResult.GetIterationContext() as rows:
+            for row in rows.AsIterator(): yield str(row[0])
     
     def _TryCreateTableOverride(self, name: str, fields: Iterable[IField], indices: Iterable[IIndex]|None) -> INullable[ITable]|None:
         _DataBase.__EnsureFields(fields)

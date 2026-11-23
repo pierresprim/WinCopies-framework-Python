@@ -1,26 +1,30 @@
 from collections.abc import Iterable
 
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Typing.Delegate import Action, Method
 
 def __DoForEach[T](items: Iterable[T], action: Action) -> Generator[T]:
-    for item in items:
-        action()
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            action()
 
-        yield item
+            yield item
 def __ForEach[T](items: Iterable[T], action: Action) -> Generator[T]:
-    for item in items:
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        action()
+            action()
 def __DoActionForEach[T](items: Iterable[T], pre: Action, post: Action) -> Generator[T]:
-    for item in items:
-        pre()
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            pre()
 
-        yield item
+            yield item
 
-        post()
+            post()
 
 def DoForEach[T](items: Iterable[T]|None, action: Action) -> Generator[T]:
     return MakeGenerator() if items is None else __DoForEach(items, action)
@@ -46,22 +50,25 @@ def DoActionForEachValue[T](pre: Action, post: Action, *values: T) -> Generator[
 
 
 def __DoForEachItem[T](items: Iterable[T], action: Method[T]) -> Generator[T]:
-    for item in items:
-        action(item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            action(item)
 
-        yield item
+            yield item
 def __ForEachItem[T](items: Iterable[T], action: Method[T]) -> Generator[T]:
-    for item in items:
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        action(item)
+            action(item)
 def __DoActionForEachItem[T](items: Iterable[T], pre: Method[T], post: Method[T]) -> Generator[T]:
-    for item in items:
-        pre(item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            pre(item)
 
-        yield item
+            yield item
 
-        post(item)
+            post(item)
 
 def DoForEachItem[T](items: Iterable[T]|None, action: Method[T]) -> Generator[T]:
     return MakeGenerator() if items is None else __DoForEachItem(items, action)

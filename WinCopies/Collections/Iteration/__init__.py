@@ -3,6 +3,7 @@ from contextlib import AbstractContextManager
 from typing import Callable, Type
 
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import GetNotFunc, GetNotPredicate, RetrieveValue
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
@@ -33,17 +34,23 @@ def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
     Yields:
         Items from all iterables in the collection.
     """
-    for iterable in TryEnumerate(collection):
-        for item in TryEnumerate(iterable): yield item
+    with GetIterationContext(collection) as context:
+        for iterable in context.AsIterator():
+            with GetIterationContext(iterable) as _context:
+                for item in _context.AsIterator(): yield item
 def ConcatenateValues[T](*collection: Iterable[T]|None) -> Generator[T]:
     return Concatenate(collection)
 
 def Expand[T](items: Iterable[Iterable[T]]) -> Generator[T]:
-    for item in items:
-        for _item in item: yield _item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            with GetIterationContext(item) as _context:
+                for _item in _context.AsIterator(): yield _item
 def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Iterable[TOut]]) -> Generator[TOut]:
-    for item in items:
-        for _item in converter(item): yield _item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            with GetIterationContext(converter(item)) as _context:
+                for _item in _context.AsIterator(): yield _item
 
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
     """
@@ -56,9 +63,11 @@ def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]
     Yields:
         All items followed by all values.
     """
-    for item in TryEnumerate(items): yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator(): yield item
 
-    for value in TryEnumerate(values): yield value
+    with GetIterationContext(values) as context:
+        for value in context.AsIterator(): yield value
 def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     """
     Appends a single item to the end of items.
@@ -70,7 +79,8 @@ def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     Yields:
         All items followed by the value.
     """
-    for item in TryEnumerate(items): yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator(): yield item
 
     yield value
 def AppendValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
@@ -111,7 +121,8 @@ def PrependItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     """
     yield value
 
-    for item in TryEnumerate(items): yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator(): yield item
 def PrependValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     """
     Prepends variadic values to the beginning of items.
@@ -136,10 +147,12 @@ def AppendTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[
     Yields:
         Each item followed by all values.
     """
-    for item in TryEnumerate(items):
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        for value in TryEnumerate(values): yield value
+            with GetIterationContext(values) as _context:
+                for value in _context.AsIterator(): yield value
 def AppendValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     """
     Appends variadic values after each item.
@@ -164,10 +177,12 @@ def PrependTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator
     Yields:
         All values followed by each item.
     """
-    for item in TryEnumerate(items):
-        for value in TryEnumerate(values): yield value
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            with GetIterationContext(values) as _context:
+                for value in _context.AsIterator(): yield value
 
-        yield item
+            yield item
 def PrependValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     """
     Prepends variadic values before each item.
@@ -192,10 +207,11 @@ def AppendItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     Yields:
         Each item followed by the value.
     """
-    for item in TryEnumerate(items):
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        yield value
+            yield value
 def PrependItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     """
     Prepends a single item before each item.
@@ -207,10 +223,11 @@ def PrependItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
     Yields:
         The value followed by each item.
     """
-    for item in TryEnumerate(items):
-        yield value
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield value
 
-        yield item
+            yield item
 
 def AppendIterable[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None]|None) -> Generator[T]:
     """
@@ -326,11 +343,15 @@ def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]
     return (converter(item) for item in TryEnumerate(items))
 
 def SelectMany[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Converter[TIn2, TOut]) -> Generator[TOut]:
-    for item in items:
-        for _item in converter(item): yield selector(_item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            with GetIterationContext(converter(item)) as _context:
+                for _item in _context.AsIterator(): yield selector(_item)
 def SelectManyItems[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converter[TIn1, Iterable[TIn2]], selector: Callable[[TIn1, TIn2], TOut]) -> Generator[TOut]:
-    for item in items:
-        for _item in converter(item): yield selector(item, _item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            with GetIterationContext(converter(item)) as _context:
+                for _item in _context.AsIterator(): yield selector(item, _item)
 
 def WhereSelect[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
     """
@@ -418,9 +439,10 @@ def IncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     Yields:
         Items until the first one that doesn't match the predicate.
     """
-    for item in TryEnumerate(items):
-        if predicate(item): yield item
-        else: break
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if predicate(item): yield item
+            else: break
 def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """
     Includes items until one matches a predicate (exclusive).
@@ -432,10 +454,11 @@ def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     Yields:
         Items until the first one that matches the predicate.
     """
-    for item in TryEnumerate(items):
-        if predicate(item): break
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if predicate(item): break
 
-        yield item
+            yield item
 
 def DoIncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """
@@ -448,10 +471,11 @@ def DoIncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
     Yields:
         Items until and including the first one that matches the predicate.
     """
-    for item in TryEnumerate(items):
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        if predicate(item): break
+            if predicate(item): break
 def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """
     Includes items while they match a predicate (inclusive).
@@ -466,20 +490,23 @@ def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
     return DoIncludeUntil(items, GetNotPredicate(predicate))
 
 def IncludeWhileTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
-    for item in TryEnumerate(items):
-        if func(): yield item
-        else: break
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if func(): yield item
+            else: break
 def IncludeUntilTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
-    for item in TryEnumerate(items):
-        if func(): break
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if func(): break
 
-        yield item
+            yield item
 
 def DoIncludeUntilTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
-    for item in TryEnumerate(items):
-        yield item
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            yield item
 
-        if func(): break
+            if func(): break
 def DoIncludeWhileTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Generator[T]:
     return DoIncludeUntilTrue(items, GetNotFunc(func))
 
@@ -493,7 +520,8 @@ def GetFirst[T](items: Iterable[T]) -> INullable[T]:
     Returns:
         INullable with first item if found or null value if empty.
     """
-    for item in items: return GetNullable(item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator(): return GetNullable(item)
 
     return GetNullValue()
 def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:

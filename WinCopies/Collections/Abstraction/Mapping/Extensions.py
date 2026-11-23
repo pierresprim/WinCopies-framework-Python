@@ -8,6 +8,7 @@ from WinCopies.Collections.Abstraction.Collection import List
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import Mutability, IDefaultWriteOnlyIndexable
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Buffering import BuildIterable
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable
 from WinCopies.Collections.Enumeration.Resumable import IResumableEnumerator
@@ -332,8 +333,9 @@ class OrderedSet[T: HashableProtocol](CountableEnumerable[T], IOrderedSet[T]):
         # TryAdd rather than Add: the set starts empty, so a refusal here can only be an item the
         # caller gives twice, which is not an item the set already held.
         if items is not None:
-            for item in items:
-                if not self.TryAdd(item): ThrowRepeatedItemError(item)
+            with GetIterationContext(items) as context:
+                for item in context.AsIterator():
+                    if not self.TryAdd(item): ThrowRepeatedItemError(item)
     
     @final
     def GetCount(self) -> int: return self.__items.GetCount()

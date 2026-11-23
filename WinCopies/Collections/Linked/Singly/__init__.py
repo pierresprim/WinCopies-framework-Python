@@ -9,6 +9,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as _Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase, Generator
 from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, IEnumerableLinkedListCookie, LinkedNodeBase
@@ -210,10 +211,11 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
         def loop() -> _Generator[TItems]:
             nonlocal i
 
-            for item in items:
-                yield item
-                
-                i += 1
+            with GetIterationContext(items) as context:
+                for item in context.AsIterator():
+                    yield item
+                    
+                    i += 1
 
         push(self._GetInnerContainer())(loop())
 
@@ -693,7 +695,8 @@ class _IAdder[T](_IAdderBase[T]):
 
         action = addCookie
 
-        for item in items: action(item)
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator(): action(item)
 
         return _weld()
 

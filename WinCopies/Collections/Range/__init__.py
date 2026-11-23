@@ -2,6 +2,7 @@ from collections.abc import Iterable, Collection, Sequence, MutableSequence
 from typing import overload, SupportsIndex
 
 from WinCopies.Collections.Core import ICountable, ITuple as ITupleBase, IList as IListBase
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
 from WinCopies.Collections.Extensions import ITuple, IList
 from WinCopies.Collections.Iteration.Extensions import Count
@@ -170,10 +171,11 @@ def SetValues[T](lst: IList[T], key: slice, values: Iterable[T]|ICountableEnumer
         validateLength(indices, _length)
         validateSpan(indices, items, _length)
 
-        for item in _items:
-            lst.SetAt(i, item)
-            
-            i += s
+        with GetIterationContext(_items) as context:
+            for item in context.AsIterator():
+                lst.SetAt(i, item)
+                
+                i += s
 def SetItems[T](lst: IListBase[T], index: SupportsIndex|slice, value: T|Iterable[T]) -> None:
     if isinstance(index, SupportsIndex): lst.SetAt(GetSequenceIndex(index, lst.GetCount()), value) # type: ignore
     else: SetValues(lst, index, value) # type: ignore
@@ -208,7 +210,8 @@ def RemoveValues[T](lst: IListBase[T], key: slice) -> None:
     if s == 1: lst.RemoveRange(i, l - i)
 
     else:
-        for index in CreateEnumerableStack(range(i, l, s)).AsIterable(): lst.RemoveAt(index)
+        with CreateEnumerableStack(range(i, l, s)).GetIterationContext() as indices:
+            for index in indices.AsIterator(): lst.RemoveAt(index)
 def RemoveItems[T](lst: IListBase[T], index: SupportsIndex|slice) -> None:
     if isinstance(index, SupportsIndex): lst.RemoveAt(GetSequenceIndex(index, lst.GetCount()))
     else: RemoveValues(lst, index)

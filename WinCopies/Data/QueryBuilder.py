@@ -11,6 +11,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Enumeration import CreateCountableEnumerable
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable
 from WinCopies.Collections.Extensions.Mapping import IDictionary
 from WinCopies.Collections.Iteration import Select
@@ -322,10 +323,11 @@ class SelectionQueryBuilder(ConditionalQueryBuilder, ISelectionQueryBuilder):
     def AddJoins(self, joins: Iterable[IJoinBase[IParameterSetBase[ISelectionQueryWriter]]]|None) -> None:
         if joins is None: return
         
-        for join in joins:
-            self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formating: can be routines.
+        with GetIterationContext(joins) as context:
+            for join in context.AsIterator():
+                self.Write(f" {join.GetType()} JOIN {self.AddTable(join.GetTableName(), join.GetTableParameter())}") # No name formating: can be routines.
 
-            self._RenderConditions(" ON ", join.GetConditions(), GetPrefixedSelectionQueryWriter)
+                self._RenderConditions(" ON ", join.GetConditions(), GetPrefixedSelectionQueryWriter)
     
     @final
     def AddOrdering(self, ordering: IDictionary[IColumn, Ordering]|None) -> None:

@@ -155,7 +155,8 @@ class EventManager[TSender, TArgs](Abstract, IEventManager[TSender, TArgs]):
         return self.__events
     
     def _InvokeEvents(self, sender: TSender, args: TArgs, events: IEnumerableList[EventHandler[TSender, TArgs]]) -> bool:
-        for event in events.AsIterable(): event(sender, args)
+        with events.GetIterationContext() as handlers:
+            for event in handlers.AsIterator(): event(sender, args)
         
         return True
     
@@ -171,10 +172,11 @@ class CancellableEventManager[TSender, TArgs: ICancellableEvent](EventManager[TS
     def __init__(self) -> None: super().__init__()
     
     def _InvokeEvents(self, sender: TSender, args: TArgs, events: IEnumerableList[EventHandler[TSender, TArgs]]) -> bool:
-        for event in events.AsIterable():
-            if args.Processed(): return False
-            
-            event(sender, args)
+        with events.GetIterationContext() as handlers:
+            for event in handlers.AsIterator():
+                if args.Processed(): return False
+                
+                event(sender, args)
         
         return True
 

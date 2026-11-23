@@ -285,7 +285,8 @@ class SetOperand[T: HashableProtocol](_OperandBase[IReadOnlySet[T]], ISetOperand
 
         action = process
 
-        for arg in args.AsIterable(): action(arg)
+        with args.GetIterationContext() as arguments:
+            for arg in arguments.AsIterator(): action(arg)
 
         result.Write(')')
 

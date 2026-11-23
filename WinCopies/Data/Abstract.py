@@ -10,6 +10,7 @@ from WinCopies import IInterface, IDisposable, Abstract
 
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import List
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IteratorProvider
 from WinCopies.Collections.Extensions import IArray, IList
 from WinCopies.Collections.Extensions.Mapping import IDictionary, IReadOnlyKeyedSet
@@ -504,10 +505,11 @@ class DataBase(Abstract, IDataBase, _ITransactionCheckable):
     def EnumerateTables(self) -> Generator[ITable]:
         table: ITable|None = None
         
-        for name in self.GetTableNames():
-            if (table := self.__TryGetTable(name)) is None: table = self.__AddTable(name)
-            
-            yield table
+        with GetIterationContext(self.GetTableNames()) as context:
+            for name in context.AsIterator():
+                if (table := self.__TryGetTable(name)) is None: table = self.__AddTable(name)
+                
+                yield table
     @final
     def GetTables(self) -> IEnumerable[ITable]:
         return IteratorProvider[ITable](self.EnumerateTables)

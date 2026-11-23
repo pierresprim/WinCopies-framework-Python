@@ -10,6 +10,7 @@ from typing import overload, final, Any, Callable, List, Type
 from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import TryEnsureTrue, EnsureTrue
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.String import SplitFromLast
 from WinCopies.Typing import InvalidOperationError, INullable, GetNullable, GetNullValue, TryGetValue
 from WinCopies.Typing.Delegate import Converter, Selector, IFunctionBase, IFunction, IMethodBase, IMethod, IStruct
@@ -495,8 +496,9 @@ def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     Returns:
         True if the class is a subclass of at least one type, False otherwise.
     """
-    for type in types:
-        if issubclass(cls, type): return True
+    with GetIterationContext(types) as context:
+        for type in context.AsIterator():
+            if issubclass(cls, type): return True
 
     return False
 def IsSubclassOf[T](cls: Type[T], *types: Type[T]) -> bool:
@@ -548,8 +550,9 @@ def Implements[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
     Returns:
         True if the class is a subclass of all types, False otherwise.
     """
-    for type in types:
-        if not issubclass(cls, type): return False
+    with GetIterationContext(types) as context:
+        for type in context.AsIterator():
+            if not issubclass(cls, type): return False
 
     return True
 def ImplementsAll[T](cls: Type[T], *types: Type[T]) -> bool:

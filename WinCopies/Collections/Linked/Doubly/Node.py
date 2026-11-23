@@ -8,6 +8,7 @@ from WinCopies import IInterface, Abstract
 from WinCopies.Assertion import EnsureTrue
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Core import IClearable
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Linked.Doubly import IReadWriteList
 from WinCopies.Collections.Linked.Node import IReadWriteTwoWayLinkedNode, LinkedNode
 from WinCopies.Typing.Generic import IGenericConstraint
@@ -300,7 +301,8 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         adder = add
         node: IDoublyLinkedNodeBase[TItem, TNode] = self
         
-        for item in items: node = self._AsLinkedNode(adder(node, item))
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator(): node = self._AsLinkedNode(adder(node, item))
 
         return True
     @final
@@ -311,7 +313,8 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         
         node: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface] = self
         
-        for item in items: node = node.SetNext(item)
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator(): node = node.SetNext(item)
 
         return True
     @final

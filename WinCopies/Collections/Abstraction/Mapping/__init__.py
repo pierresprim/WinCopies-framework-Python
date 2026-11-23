@@ -61,8 +61,9 @@ class Set[T: HashableProtocol](_Set[T]):
 
         if HasDuplicate(_items.AsIterable()): return None
 
-        for item in _items.AsIterable():
-            if self.Contains(item): return None
+        with _items.GetIterationContext() as enumerator:
+            for item in enumerator.AsIterator():
+                if self.Contains(item): return None
         
         self._GetItems().update(_items.AsGenerator())
     

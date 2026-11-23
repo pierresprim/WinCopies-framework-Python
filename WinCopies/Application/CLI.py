@@ -399,7 +399,7 @@ def _AddCommand(parser: ArgumentParserBase, command: ICommand) -> None:
         
         add(getNameOrFlags((description := param.GetDescription()).GetName(), description.HasKey()), getAction(param.GetAction(), description.GetType()), description.GetDescription())
     
-    with command.GetParameters().GetEnumerator() as parameters:
+    with command.GetParameters().GetIterationContext() as parameters:
         for param in parameters.AsIterator():
             match param.GetKind():
                 case ParameterKind.Positional: add(False)

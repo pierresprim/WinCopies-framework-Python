@@ -2,6 +2,7 @@ from collections.abc import Iterable, Iterator
 from typing import Final
 
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Iteration import PrependItem, GetFirst
 from WinCopies.Typing import INullable
 from WinCopies.Typing.Delegate import Action, Method, Function, Predicate
@@ -13,7 +14,8 @@ _NONE: Final = object()
 def Loop[T](items: Iterable[T], action: Method[T]) -> bool:
     item: object = _NONE
 
-    for item in items: action(item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator(): action(item)
 
     return item is not _NONE
 def TryLoop[T](items: Iterable[T]|None, action: Method[T]) -> bool|None:
@@ -25,7 +27,8 @@ def Enumerate[T](items: Iterable[T]) -> DualResult[Iterator[T], Function[bool]]:
     def loop() -> Generator[T]:
         nonlocal item
 
-        for item in items: yield item
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator(): yield item
 
     return CreateDualResult(loop(), lambda: item is not _NONE)
 def TryEnumerate[T](items: Iterable[T]|None) -> DualResult[Iterator[T], Function[bool]]|None:
@@ -38,7 +41,8 @@ def Iterate[T](items: Iterable[T], action: Method[Iterable[T]], firstAction: Pre
         def loop() -> Generator[T]:
             nonlocal item
 
-            for item in items: yield item
+            with GetIterationContext(items) as context:
+                for item in context.AsIterator(): yield item
 
         action(loop())
 
@@ -78,8 +82,9 @@ def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|Non
     """
     item: object = _NONE
 
-    for item in items:
-        if predicate(item): return True
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if predicate(item): return True
     
     return None if item is _NONE else False
 

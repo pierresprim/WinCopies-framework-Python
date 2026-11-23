@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from typing import final
 
 from WinCopies.Collections.Core import IClearable, IReadOnlyCollection
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Linked.Node import IReadWriteTwoWayLinkedNode
 from WinCopies.Typing import INullable, GetNullable, GetNullValue
 from WinCopies.Typing.Delegate import Converter
@@ -91,7 +92,8 @@ class IReadWriteList[T](IReadOnlyList[T], IClearable):
         
         adder = add
 
-        for item in items: node = adder(item)
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator(): node = adder(item)
         
         return True
 

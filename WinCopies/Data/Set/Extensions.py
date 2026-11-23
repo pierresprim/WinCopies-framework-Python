@@ -10,6 +10,7 @@ from WinCopies import IInterface, Abstract
 
 from WinCopies.Collections import Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Mapping import Dictionary
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, IteratorProvider, GetEmptyEnumerable, AsEnumerator
 from WinCopies.Collections.Enumeration.Recursive import IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursiveEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
 from WinCopies.Collections.Enumeration.Recursive.Enumerable import RecursiveEnumerator, StackedRecursiveEnumerator
@@ -468,7 +469,8 @@ class ConditionSet[TKey: HashableProtocol, TValue](ConditionalSet[TKey, IParamet
             
             func = getArgument
 
-            for argument in arguments: yield func(argument)
+            with GetIterationContext(arguments) as context:
+                for argument in context.AsIterator(): yield func(argument)
         
         writer.Write(value.Format(self.GetColumn().ToString(writer.FormatTableName), writer.JoinOperands(getArgument(value.AsIterable()))))
 class IfSet[T: HashableProtocol](ConditionalSet[T, IConditionParameterSet], IIfSet[T]):

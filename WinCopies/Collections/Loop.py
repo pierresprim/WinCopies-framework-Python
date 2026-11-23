@@ -203,10 +203,11 @@ def DoForEach[T](items: Iterable[T], action: IndexedValueAction[T]) -> int:
     """
     i: int = -1
 
-    for item in items:
-        i += 1
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            i += 1
 
-        action(i, item)
+            action(i, item)
     
     return i
 def DoForEachValue[T](action: IndexedValueAction[T], *values: T) -> int:
@@ -442,7 +443,8 @@ def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T])
     
     func = init
 
-    for entry in items: func(entry)
+    with GetIterationContext(items) as context:
+        for entry in context.AsIterator(): func(entry)
     
     return result
 

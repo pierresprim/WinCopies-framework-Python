@@ -4,6 +4,7 @@ from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, AsEnumerable, GetIterable
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Generation import IRemovable
@@ -65,38 +66,42 @@ class IteratorBase[T](Abstract, IIterator[T]):
     
     @final
     def Include(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        for item in self._GetItems():
-            if predicate(item):
-                yield item
+        with GetIterationContext(self._GetItems()) as context:
+            for item in context.AsIterator():
+                if predicate(item):
+                    yield item
 
-                if self._ProcessItem(item): break
+                    if self._ProcessItem(item): break
     @final
     def Exclude(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.Include(GetNotPredicate(predicate))
 
     @final
     def IncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        for item in self._GetItems():
-            if predicate(item):
+        with GetIterationContext(self._GetItems()) as context:
+            for item in context.AsIterator():
+                if predicate(item):
+                    yield item
+
+                    if self._ProcessItem(item): break
+
+                else: break
+    @final
+    def IncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
+        with GetIterationContext(self._GetItems()) as context:
+            for item in context.AsIterator():
+                if predicate(item): break
+
                 yield item
 
                 if self._ProcessItem(item): break
-
-            else: break
-    @final
-    def IncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        for item in self._GetItems():
-            if predicate(item): break
-
-            yield item
-
-            if self._ProcessItem(item): break
     
     @final
     def DoIncludeUntil(self, predicate: Predicate[T]) -> GeneratorCollection[T]:
-        for item in self._GetItems():
-            yield item
+        with GetIterationContext(self._GetItems()) as context:
+            for item in context.AsIterator():
+                yield item
 
-            if self._ProcessItem(item) or predicate(item): break
+                if self._ProcessItem(item) or predicate(item): break
     @final
     def DoIncludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.DoIncludeUntil(GetNotPredicate(predicate))
 
@@ -139,11 +144,12 @@ class NullableIteratorBase[T](IteratorBase[T|None], INullableIterator[T]):
     
     @final
     def WhereNotNone(self) -> GeneratorCollection[T]:
-        for item in self._GetItems():
-            if item is not None:
-                yield item
+        with GetIterationContext(self._GetItems()) as context:
+            for item in context.AsIterator():
+                if item is not None:
+                    yield item
 
-                if self._ProcessItem(item): break
+                    if self._ProcessItem(item): break
 class NullableIterator[T](NullableIteratorBase[T]):
     def __init__(self, items: Iterable[T]|None) -> None:
         super().__init__()

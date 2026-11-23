@@ -3,6 +3,7 @@ from typing import SupportsIndex, overload
 
 from WinCopies.Collections.Abstraction.Mapping import Set
 from WinCopies.Collections.Core import IList as IListBase
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, CreateCountableIterable
 from WinCopies.Collections.Extensions import IList
 from WinCopies.Collections.Iteration.Extensions import Count
@@ -81,9 +82,10 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
 
     # Two causes, so two messages: one refusal that cannot say which of the two it is would
     # be no better than no message at all.
-    for item in items:
-        if not seen.TryAdd(item): ThrowRepeatedItemError(item)
-        if __Conflicts(s, item, oldSet): ThrowDuplicateItemError(item)
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
+            if not seen.TryAdd(item): ThrowRepeatedItemError(item)
+            if __Conflicts(s, item, oldSet): ThrowDuplicateItemError(item)
 
     # The container's own answer, which this phase cannot stand in for: the two loops above
     # validate the set's invariant, and a list that refuses for a reason of its own -- a fixed
@@ -109,10 +111,11 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     else:
         j: int = start
 
-        for item in items:
-            lst.SetAt(j, item)
+        with GetIterationContext(items) as context:
+            for item in context.AsIterator():
+                lst.SetAt(j, item)
 
-            j += step
+                j += step
 
     s.update(items)
 

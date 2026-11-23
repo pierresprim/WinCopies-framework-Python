@@ -6,7 +6,7 @@ from typing import final
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import EnumerationOrder
-from WinCopies.Collections.Enumeration import GetIterationInactiveError
+from WinCopies.Collections.Enumeration import GetIterationInactiveError, GetIterationContext
 from WinCopies.Collections.Enumeration.Abstraction import AbstractionEnumerator
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, EnumeratorProvider, EnumeratorBase, GetEmptyEnumerable
 from WinCopies.Collections.Enumeration.Recursive import IRecursivelyEnumerable, IRecursiveEnumerationHandler, IRecursiveStackedEnumerationHandler, RecursivelyIterableProvider, CreateRecursivelyIterableProvider
@@ -562,7 +562,8 @@ def CreateCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Conver
 
     action = add
 
-    for value in values: action(value)
+    with GetIterationContext(values) as context:
+        for value in context.AsIterator(): action(value)
     
     return set
 def MakeCompositeExpressionRoot[TRoot, TValue, TConnector](constructor: Converter[TValue, TRoot], converter: Converter[TRoot, ICompositeExpressionRoot[TValue, TConnector]], connector: TConnector, *values: TValue) -> TRoot|None:

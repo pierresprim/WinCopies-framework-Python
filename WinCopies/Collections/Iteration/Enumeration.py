@@ -8,6 +8,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
+from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
@@ -118,7 +119,8 @@ def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: 
             case Collection(): return _AnyItem(items)
             
             case Iterable():
-                for _ in items: return True
+                with GetIterationContext(items) as context:
+                    for _ in context.AsIterator(): return True
 
                 return False
     
@@ -174,13 +176,14 @@ def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1]|None, y: Iterable[T2]|IEnumer
                 def setValue(value: bool|None) -> None:
                     if info is not None: info.SetValue(value)
                 
-                for item in TryEnumerate(x):
-                    if y.MoveNext(): yield CreateDualResult(item, y.GetCurrent())
-                    
-                    else:
-                        setValue(True)
+                with GetIterationContext(x) as context:
+                    for item in context.AsIterator():
+                        if y.MoveNext(): yield CreateDualResult(item, y.GetCurrent())
+                        
+                        else:
+                            setValue(True)
 
-                        return
+                            return
 
                 setValue(False if y.MoveNext() else None)
 
