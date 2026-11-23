@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from collections.abc import Iterable, Iterator
 from enum import Flag, auto
-from typing import final
+from typing import final, Any
 
-from WinCopies import IInterface, Abstract
+from WinCopies import IInterface, IContextManager, Abstract
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Typing import InvalidOperationError
@@ -231,3 +232,80 @@ __noData: IIterationStatus = _NoData()
 
 def GetNoDataEnumerationStatus() -> IIterationStatus:
     return __noData
+
+class IIteratorProvider[T](IContextManager):
+    """Provides an iterator over items, within a with statement whose exit ends what the provider started."""
+
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def AsIterator(self) -> Iterator[T]:
+        """
+        Gets an iterator over the items that this object provides.
+
+        Returns:
+            An iterator over the items."""
+        ...
+
+@final
+class _SystemIteratorProvider[T](Abstract, IIteratorProvider[T]):
+    """
+    Provides an iterator over a Python iterable. The exit of a with statement does nothing to it, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
+
+    Args:
+        items: The iterable to iterate over.
+    """
+    def __init__(self, items: Iterable[T]) -> None:
+        super().__init__()
+
+        self.__items: Iterable[T] = items
+
+    def AsIterator(self) -> Iterator[T]: return iter(self.__items)
+
+class IEnumerable[T](IInterface):
+    def __init__(self) -> None: super().__init__()
+
+    @abstractmethod
+    def GetEnumerator(self) -> IIteratorProvider[T]:
+        ...
+
+@final
+class _EmptyIteratorProvider[T](Abstract, Iterator[T], IIteratorProvider[T]):
+    def __init__(self) -> None: super().__init__()
+
+    def AsIterator(self) -> Iterator[T]: return self
+
+    def __next__(self) -> T: raise StopIteration()
+
+__emptyIteratorProvider: _EmptyIteratorProvider[Any] = _EmptyIteratorProvider[Any]()
+
+def _GetEmptyIteratorProvider[T]() -> _EmptyIteratorProvider[T]: # pyright: ignore[reportInvalidTypeVarUse]
+    return __emptyIteratorProvider
+
+def _GetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]) -> IIteratorProvider[T]:
+    return items.GetEnumerator() if isinstance(items, IEnumerable) else _SystemIteratorProvider[T](items)
+
+def TryGetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteratorProvider[T]|None:
+    """
+    Gets the provider of an iterator over the given items, as GetIteratorProvider does, or None for None.
+
+    Args:
+        items: The items to iterate over, or None.
+
+    Returns:
+        The provider of an iterator over the items, or None if items is None.
+    """
+    return None if items is None else _GetIteratorProvider(items)
+def GetIteratorProvider[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteratorProvider[T]:
+    """
+    Gets the provider of an iterator over the given items, to iterate over them within a with statement.
+
+    For a collection of the framework, the provider is an enumerator that this function gets from it, which the exit of the with statement stops, so that it leaves the registry of the collection at once. An empty collection gives the empty enumerator. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
+
+    Args:
+        items: The items to iterate over, or None.
+
+    Returns:
+        The provider of an iterator over the items, or the empty enumerator if items is None.
+    """
+    return _GetEmptyIteratorProvider() if items is None else _GetIteratorProvider(items)

@@ -6,7 +6,7 @@ from typing import final, Any, NoReturn, Self
 from WinCopies import IInterface, IContextManager, Abstract
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IEnumerable as _IEnumerable, IIteratorProvider, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
 from WinCopies.Collections.Enumeration.Notification import INotifyCallback, IInvalidationNotifier, IInvalidationNotifierProvider, InvalidationNotifier
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
@@ -119,20 +119,6 @@ class IInvalidatableEnumeratorBase(IEnumeratorBase):
     def Register(self, registry: IObjectRegistrar[IInvalidatable]) -> None:
         ...
 
-class IIteratorProvider[T](IContextManager):
-    """Provides an iterator over items, within a with statement whose exit ends what the provider started."""
-
-    def __init__(self) -> None: super().__init__()
-
-    @abstractmethod
-    def AsIterator(self) -> SystemIterator[T]:
-        """
-        Gets an iterator over the items that this object provides.
-
-        Returns:
-            An iterator over the items."""
-        ...
-
 class IEnumerator[T](IEnumeratorBase, IIteratorProvider[T]):
     def __init__(self) -> None: super().__init__()
 
@@ -177,7 +163,7 @@ class IEnumerableAbstract(IInterface):
     @abstractmethod
     def IsResumable(self) -> bool|None:
         ...
-class IEnumerableBase[T](IEnumerableAbstract):
+class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -1019,46 +1005,3 @@ def TryCreateEnumeratorProvider[T](enumeratorProvider: Function[IEnumerator[T]|N
 
 def CreateCountableIterable[T](items: Collection[T]) -> ICountableEnumerable[T]:
     return CountableIterable[T](items)
-
-@final
-class _SystemIteratorProvider[T](Abstract, IIteratorProvider[T]):
-    """
-    Provides an iterator over a Python iterable. The exit of a with statement does nothing to it, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
-
-    Args:
-        items: The iterable to iterate over.
-    """
-    def __init__(self, items: SystemIterable[T]) -> None:
-        super().__init__()
-
-        self.__items: SystemIterable[T] = items
-
-    def AsIterator(self) -> SystemIterator[T]: return iter(self.__items)
-
-def _GetIteratorProvider[T](items: IEnumerable[T]|SystemIterable[T]) -> IIteratorProvider[T]:
-    return items.GetEnumerator() if isinstance(items, IEnumerable) else _SystemIteratorProvider[T](items)
-
-def TryGetIteratorProvider[T](items: IEnumerable[T]|SystemIterable[T]|None) -> IIteratorProvider[T]|None:
-    """
-    Gets the provider of an iterator over the given items, as GetIteratorProvider does, or None for None.
-
-    Args:
-        items: The items to iterate over, or None.
-
-    Returns:
-        The provider of an iterator over the items, or None if items is None.
-    """
-    return None if items is None else _GetIteratorProvider(items)
-def GetIteratorProvider[T](items: IEnumerable[T]|SystemIterable[T]|None) -> IIteratorProvider[T]:
-    """
-    Gets the provider of an iterator over the given items, to iterate over them within a with statement.
-
-    For a collection of the framework, the provider is an enumerator that this function gets from it, which the exit of the with statement stops, so that it leaves the registry of the collection at once. An empty collection gives the empty enumerator. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
-
-    Args:
-        items: The items to iterate over, or None.
-
-    Returns:
-        The provider of an iterator over the items, or the empty enumerator if items is None.
-    """
-    return GetEmptyEnumerator() if items is None else _GetIteratorProvider(items)

@@ -3,7 +3,8 @@ from typing import Callable
 
 from WinCopies import IsTrue, Not
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable, TryAsIterable, GetIteratorProvider
+from WinCopies.Collections.Enumeration import GetIteratorProvider
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable, TryAsIterable
 from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, TryZip as __TryZip
 from WinCopies.Collections.Iteration.Traversal import Loop as _Loop, TryLoop as _TryLoop, Enumerate as _Enumerate, TryEnumerate as _TryEnumerate, Iterate as _Iterate, TryIterate as _TryIterate, ForEachItemUntil as _ForEachItemUntil, EnumerateSafe, IterateSafe
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
