@@ -176,7 +176,14 @@ class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
 class IEnumerable[T](IEnumerableBase[T]):
     def __init__(self) -> None: super().__init__()
 
-    def GetIterationContext(self) -> IIterationContext[T]: return self.GetEnumerator()
+    def GetIterationContext(self) -> IIterationContext[T]:
+        """
+        Gets the enumerator of this object as its iteration context. A collection backed by a Python container or generator overrides this method to give a context over it, without building an enumerator.
+
+        Returns:
+            The enumerator of this object, which the exit of the with statement stops.
+        """
+        return self.GetEnumerator()
     
     @abstractmethod
     def AsIterable(self) -> SystemIterable[T]:
@@ -923,6 +930,8 @@ class CountableIterable[T](Abstract, _Iterable[T], CountableEnumerable[T], Itera
     def _AsEnumerableItems(self, items: Collection[T]) -> Collection[T]: return items
 
 class GeneratorBase[T](Abstract, IterableBase[T]):
+    """Provides the items of a generator that _TryGetIterator creates for each iteration, or no items when it returns None. Its iteration context is a context over this generator, so that a with statement builds no enumerator for it."""
+
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
@@ -931,6 +940,8 @@ class GeneratorBase[T](Abstract, IterableBase[T]):
     @final
     def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator())
 class Generator[T](GeneratorBase[T]):
+    """Provides the items of a generator that _TryGetIterator creates for each iteration, as GeneratorBase does, except that _TryGetIterator never returns None."""
+
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod

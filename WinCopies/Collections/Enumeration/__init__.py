@@ -309,7 +309,7 @@ def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteration
     """
     Gets an iteration context over the given items, to iterate over them within a with statement.
 
-    For an IEnumerable, the context is the one that the object gives. For a collection of the framework, it is an enumerator, which the exit of the with statement stops, so that it leaves the registry of the collection at once, and an empty collection gives the empty enumerator. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
+    For an IEnumerable, the context is the one that the object gives. For a collection of the framework, it is by default its enumerator, which the exit of the with statement stops, so that it leaves the registry of the collection at once. A collection backed by a Python container or generator gives a context over it instead, without building an enumerator, and an empty collection gives an empty context. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
 
     Args:
         items: The items to iterate over, or None.
