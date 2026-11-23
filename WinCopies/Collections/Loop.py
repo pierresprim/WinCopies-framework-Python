@@ -3,7 +3,7 @@ from typing import Callable
 
 from WinCopies import IsTrue, Not
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable, TryAsIterable, GetEnumeratorOrEmpty
+from WinCopies.Collections.Enumeration.Core import IEnumerable, ICountableEnumerable, IEnumerator, AsEnumerable, AsIterable, TryAsIterable, GetIteratorProvider
 from WinCopies.Collections.Iteration.Enumeration import IZipInfo, Zip as __Zip, TryZip as __TryZip
 from WinCopies.Collections.Iteration.Traversal import Loop as _Loop, TryLoop as _TryLoop, Enumerate as _Enumerate, TryEnumerate as _TryEnumerate, Iterate as _Iterate, TryIterate as _TryIterate, ForEachItemUntil as _ForEachItemUntil, EnumerateSafe, IterateSafe
 from WinCopies.Delegates import (GetBoolFuncAction, GetNotPredicate,
@@ -140,8 +140,8 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     """
     i: int = -1
 
-    with GetEnumeratorOrEmpty(items) as _items:
-        for item in _items.AsIterator():
+    with GetIteratorProvider(items) as provider:
+        for item in provider.AsIterator():
             i += 1
 
             if action(i, item): return CreateDualValueBool(i, False)
