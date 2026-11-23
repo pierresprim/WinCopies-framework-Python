@@ -26,12 +26,13 @@ from typing import Any
 from unittest import mock
 
 from WinCopies import Abstract
-from WinCopies.Collections.Abstraction.Collection import CreateList
+from WinCopies.Collections.Abstraction.Collection import ArrayCollection, ArrayList, CreateList
 from WinCopies.Collections.Circular import CircularList
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectMonitor, IActivationObject, IActivatableMonitor
 from WinCopies.Collections.Registry.Core import CollectionRegistry
 from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import IFunction
 
 _CORE: str = "WinCopies.Collections.Registry.Core"
 
@@ -86,6 +87,14 @@ def _entries(registry: object) -> tuple[int, int]:
     return count(getattr(registry, "_CollectionRegistry__actives")), count(getattr(registry, "_CollectionRegistry__inactives"))
 
 def _source() -> Any: return CreateList([0, 1, 2, 3])
+
+class _Cells(IFunction[int]):
+    """Cell initialiser for ArrayList, which takes a provider rather than a sequence."""
+
+    def GetValue(self) -> int: return 0
+
+class _Failure(Exception):
+    """The failure of a monitor during its invalidation."""
 
 class TestAWriteReachesOnlyTheActiveMonitors(unittest.TestCase):
     """A write invalidates the active monitors of its collection, and no inactive one: a write that finds
@@ -304,6 +313,98 @@ class TestACollectionRegistryRequiresActivatableMonitors(unittest.TestCase):
 
         self.assertFalse(registry.IsActive())
 
+class TestTheActivationGoesUpEveryLevel(unittest.TestCase):
+    """A CircularList over another one, itself over a list: the start of an enumerator of the outer one
+    activates the three registries, each asking to be active in the next one, and a write of the source
+    invalidates the enumerator and deactivates all three (Registre 13 §2)."""
+
+    def test_an_enumerator_of_the_outer_circular_list_activates_the_three_levels(self) -> None:
+        source: Any = _source()
+        inner: Any = CircularList[int](source, 1)
+        outer: Any = CircularList[int](inner, 1)
+        levels: tuple[Any, Any, Any] = (outer._GetCollectionRegistries(), inner._GetCollectionRegistries(), source._GetCollectionRegistries())
+        enumerator: Any = outer.TryGetEnumerator()
+
+        enumerator.TryMoveNext()
+
+        self.assertEqual([level.IsActive() for level in levels], [True, True, True])
+
+        source.TrySetAt(0, 7)
+
+        self.assertFalse(enumerator.TryMoveNext(), "the write of the source did not invalidate the enumerator of the outer CircularList")
+        self.assertEqual([level.IsActive() for level in levels], [False, False, False])
+
+class TestAnArrayCollectionActivatesItsArray(unittest.TestCase):
+    """An ArrayCollection registers its registries in those of the array it wraps: the start of its
+    enumerator activates both, and a write of the array invalidates the enumerator and deactivates both
+    (Registre 13 §2)."""
+
+    def test_an_enumerator_of_an_array_collection_activates_its_array(self) -> None:
+        array: Any = getattr(ArrayList[int](3, _Cells()), "_GetItems")()
+        collection: Any = ArrayCollection[int](array)
+        levels: tuple[Any, Any] = (collection._GetCollectionRegistries(), array._GetCollectionRegistries())
+        enumerator: Any = collection.TryGetEnumerator()
+
+        enumerator.TryMoveNext()
+
+        self.assertEqual([level.IsActive() for level in levels], [True, True])
+
+        array.TrySetAt(0, 5)
+
+        self.assertFalse(enumerator.TryMoveNext(), "the write of the array did not invalidate the enumerator of the ArrayCollection")
+        self.assertEqual([level.IsActive() for level in levels], [False, False])
+
+class TestAMonitorThatRaisesLeavesEveryEntryInPlace(unittest.TestCase):
+    """A monitor raises during its invalidation. The invalidation still reaches every active monitor,
+    then raises in turn, and every entry is where the activity of its monitor says: the registry loses
+    none, and is invalidated again by the next write (Registre 13 §2)."""
+
+    def test_the_entry_of_a_monitor_that_raised_goes_among_the_inactive_ones(self) -> None:
+        source: Any = _source()
+        registries: Any = source._GetCollectionRegistries()
+        before: tuple[int, int] = _entries(registries)
+        log: list[str] = []
+        failing: _Monitor = _Monitor("A", log, True, _raise)
+        other: _Monitor = _Monitor("B", log, True)
+
+        source.GetCollectionMonitors().RegisterMonitor(failing)
+        source.GetCollectionMonitors().RegisterMonitor(other)
+
+        with self.assertRaises(_Failure): source.TrySetAt(0, 7)
+
+        self.assertEqual(log, ["A", "B"])
+        self.assertEqual(_entries(registries), (before[0], before[1] + 2))
+
+        failing.Activate()
+        source.TrySetAt(1, 8)
+
+        self.assertEqual(log, ["A", "B", "A"])
+
+    def test_the_entry_of_a_monitor_that_raised_and_stays_active_stays_among_the_active_ones(self) -> None:
+        source: Any = _source()
+        registries: Any = source._GetCollectionRegistries()
+        before: tuple[int, int] = _entries(registries)
+        log: list[str] = []
+        monitors: list[_Monitor] = []
+
+        def failing() -> None:
+            monitors[0].Activate()
+
+            raise _Failure()
+
+        monitors.append(_Monitor("A", log, True, failing))
+        source.GetCollectionMonitors().RegisterMonitor(monitors[0])
+
+        with self.assertRaises(_Failure): source.TrySetAt(0, 7)
+
+        self.assertEqual(_entries(registries), (before[0] + 1, before[1]))
+
+        source.TrySetAt(1, 8)
+
+        self.assertEqual(log, ["A", "A"])
+
+def _raise() -> None: raise _Failure()
+
 def _run(bench: type[unittest.TestCase]) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
 
@@ -350,7 +451,7 @@ class TestTheRegistryActivityBenchesCanFail(unittest.TestCase):
     def test_the_benches_of_the_activation_fall_when_an_activation_does_nothing(self) -> None:
         def ignoring(self: Any, entry: Any) -> None: pass
 
-        for bench in (TestTheFirstEnumeratorActivatesItsRegistries, TestAMonitorActivatedDuringAnInvalidationIsReachedByIt, TestACircularListActivatesItsSource):
+        for bench in (TestTheFirstEnumeratorActivatesItsRegistries, TestAMonitorActivatedDuringAnInvalidationIsReachedByIt, TestACircularListActivatesItsSource, TestTheActivationGoesUpEveryLevel, TestAnArrayCollectionActivatesItsArray):
             with self.subTest(bench = bench.__name__): self.__AssertFalls(bench, mock.patch.object(CollectionRegistry, "_CollectionRegistry__Activate", ignoring))
 
     def test_the_bench_of_the_deactivation_falls_when_an_invalidated_monitor_stays_active(self) -> None:
@@ -368,6 +469,17 @@ class TestTheRegistryActivityBenchesCanFail(unittest.TestCase):
             if self.IsActive(): self._CollectionRegistry__InvalidateObjects()
 
         self.__AssertFalls(TestAWriteDuringAnInvalidationIsRefused, mock.patch.object(CollectionRegistry, "InvalidateObjects", reentrant))
+
+    def test_the_bench_of_a_raising_monitor_falls_when_its_entry_is_put_back_only_on_success(self) -> None:
+        def losing(self: Any, entry: Any) -> None:
+            monitor: Any = entry.TryGetMonitor()
+
+            if monitor is not None:
+                monitor.InvalidateObjects()
+
+                if entry.TryGetMonitor() is not None: entry.MoveTo(self._CollectionRegistry__GetAside() if monitor.IsActive() else self._CollectionRegistry__inactives)
+
+        self.__AssertFalls(TestAMonitorThatRaisesLeavesEveryEntryInPlace, mock.patch.object(CollectionRegistry, "_CollectionRegistry__Invalidate", losing))
 
     def test_the_bench_of_the_removal_falls_when_a_removal_does_nothing(self) -> None:
         def leaving(self: Any) -> None: pass
