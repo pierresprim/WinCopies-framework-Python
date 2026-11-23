@@ -265,6 +265,12 @@ class _IterationContext[T](Abstract, IIterationContext[T]):
     def AsIterator(self) -> Iterator[T]: return iter(self.__items)
 @final
 class _GenerationContext[T](Abstract, IIterationContext[T]):
+    """
+    Provides the iterator of a generator that the caller created for this iteration. The exit of a with statement closes the generator, which runs its finally clauses and the exits of its own with statements, so that an enumerator that it holds is stopped at once.
+
+    Args:
+        items: The generator to iterate over.
+    """
     def __init__(self, items: Generator[T]) -> None:
         super().__init__()
 
@@ -319,6 +325,7 @@ def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None, disposeGen
 
     Args:
         items: The items to iterate over, or None.
+        disposeGenerator: Whether the exit of the with statement closes items when it is a generator, as for GetIterationContext.
 
     Returns:
         An iteration context over the items, or None if items is None.
@@ -328,10 +335,11 @@ def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None, disposeGenera
     """
     Gets an iteration context over the given items, to iterate over them within a with statement.
 
-    For an IEnumerable, the context is the one that the object gives. For a collection of the framework, it is by default its enumerator, which the exit of the with statement stops, so that it leaves the registry of the collection at once. A collection backed by a Python container or generator gives a context over it instead, without building an enumerator, and an empty collection gives an empty context. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
+    For an IEnumerable, the context is the one that the object gives. For a collection of the framework, it is by default its enumerator, which the exit of the with statement stops, so that it leaves the registry of the collection at once. A collection backed by a Python container or generator gives a context over it instead, without building an enumerator, and an empty collection gives an empty context. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller. A generator is the exception when disposeGenerator is True. The exit then closes it, so that an enumerator that it holds is stopped as well. A caller asks for it only for a generator that it created for this iteration.
 
     Args:
         items: The items to iterate over, or None.
+        disposeGenerator: Whether the exit of the with statement closes items when it is a generator. It has no effect on an IEnumerable, which gives its own context, nor on an iterable that is not a generator.
 
     Returns:
         An iteration context over the items, or an empty iteration context if items is None.
