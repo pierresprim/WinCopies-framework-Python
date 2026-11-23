@@ -13,7 +13,7 @@ from WinCopies.Collections.Core import (Mutability, ICountable, IContainer,
                                         IListBase as IListAbstractBase, IList as IListAbstract,
                                         ISortedTuple as ISortedTupleBase, ISortedList as ISortedListBase,
                                         ICountableList as ICountableListBase)
-from WinCopies.Collections.Enumeration.Core import IReversableCountableEnumerable, ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, GetIterator, TryAsIterator
+from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEquatableEnumerable, IHashableEnumerable, IReversableCountableEnumerable, GetIterator, TryAsIterator
 from WinCopies.Collections.Enumeration.Resumable import IResumableCountableEnumerable
 from WinCopies.Collections.Linked.Singly import (IReadOnlyCountableEnumerableQueue, IReadOnlyCountableEnumerableStack,
                                                  ICountableEnumerableQueue, ICountableEnumerableStack)

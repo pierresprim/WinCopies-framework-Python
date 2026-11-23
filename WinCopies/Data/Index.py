@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from enum import Enum
 from typing import final
 
 from WinCopies import IStringable, Abstract
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Abstraction.Collection import CreateHashableTuple
 from WinCopies.Collections.Abstraction.Mapping.Extensions import OrderedSet
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IHashableEnumerable, IEnumerator, IterableBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IHashableEnumerable, IEnumerator, GeneratorBase
 from WinCopies.Collections.Extensions import IReadOnlyCollection, IHashableTuple, ReadOnlyCollection
 from WinCopies.Collections.Extensions.Mapping import IOrderedSet
 from WinCopies.Collections.Iteration import AppendIterableValues, PrependItem
@@ -268,7 +269,7 @@ class _MultiColumnIndexCollection(_Collection[IMultiColumnIndex]):
     @final
     def Contains(self, value: IMultiColumnIndex|object) -> bool: return isinstance(value, IMultiColumnIndex) and value in self._GetIndices().AsIterable()
 
-class IndexCollection(IterableBase[IIndex], IIndexCollection):
+class IndexCollection(GeneratorBase[IIndex], IIndexCollection):
     def __init__(self, primaryKey: IMultiColumnKey) -> None:
         super().__init__()
 
@@ -290,4 +291,4 @@ class IndexCollection(IterableBase[IIndex], IIndexCollection):
     def GetUnicityIndices(self) -> IIndexList[IMultiColumnIndex]: return self.__unicityIndices
     
     @final
-    def _TryGetIterator(self) -> Iterator[IIndex]|None: return PrependItem(AppendIterableValues(self.GetUnicityIndices().AsIterable(), self.GetForeignKeys().AsIterable(), self.GetNormalIndices().AsIterable()), self.GetPrimaryKey())
+    def _TryGetIterator(self) -> Generator[IIndex]|None: return PrependItem(AppendIterableValues(self.GetUnicityIndices().AsIterable(), self.GetForeignKeys().AsIterable(), self.GetNormalIndices().AsIterable()), self.GetPrimaryKey())

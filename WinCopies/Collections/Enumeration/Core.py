@@ -4,9 +4,10 @@ from types import TracebackType
 from typing import final, Any, NoReturn, Self
 
 from WinCopies import IInterface, IContextManager, Abstract
+from WinCopies.Collections import Generator as _Generator
 from WinCopies.Collections.Abstraction import CreateCountable
 from WinCopies.Collections.Core import ICountable
-from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IEnumerable as _IEnumerable, IIterationContext, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus
+from WinCopies.Collections.Enumeration import IterationState, IterationResult, IterationData, EnumerationAbortReason, IIterationStatus, IEnumerable as _IEnumerable, IIterationContext, IterationStatus, GetIterationInactiveError, GetNoDataEnumerationStatus, GetIterationContext
 from WinCopies.Collections.Enumeration.Notification import INotifyCallback, IInvalidationNotifier, IInvalidationNotifierProvider, InvalidationNotifier
 from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Registry import IObjectRegistrar
@@ -174,6 +175,8 @@ class IEnumerableBase[T](_IEnumerable[T], IEnumerableAbstract):
         return GetEnumerator(self.TryGetEnumerator())
 class IEnumerable[T](IEnumerableBase[T]):
     def __init__(self) -> None: super().__init__()
+
+    def GetIterationContext(self) -> IIterationContext[T]: return self.GetEnumerator()
     
     @abstractmethod
     def AsIterable(self) -> SystemIterable[T]:
@@ -261,6 +264,8 @@ class _EmptyEnumerable[T](_SystemIterable[T]):
     def IsResumable(self) -> bool|None: return None
     
     def TryGetEnumerator(self) -> None: return None
+
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(None)
     
     def __iter__(self) -> SystemIterator[T]: return GetEmptyEnumerator().AsIterator() # pyright: ignore[reportUnknownVariableType]
 
@@ -862,6 +867,9 @@ class _Iterable[T](_IterableBase[T]):
     @final
     def _TryGetIterator(self) -> SystemIterator[T]|None: return iter(self._GetIterable())
 
+    @final
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._GetIterable())
+
 class IterableAbstract[TItem, TIterable](Enumerable[TItem], _IterableBase[TItem]):
     def __init__(self) -> None: super().__init__()
 
@@ -886,7 +894,7 @@ class IterableBase[T](IterableAbstract[T, SystemIterable[T]]):
     @final
     def _AsEnumerableItems(self, items: SystemIterable[T]) -> SystemIterable[T]: return items
 
-class Iterable[T](_Iterable[T], IterableBase[T]):
+class Iterable[T](Abstract, _Iterable[T], IterableBase[T]):
     def __init__(self, iterable: SystemIterable[T]) -> None:
         super().__init__()
 
@@ -897,7 +905,7 @@ class Iterable[T](_Iterable[T], IterableBase[T]):
 
     @final
     def IsResumable(self) -> bool|None: return IsResumable(self.__iterable)
-class CountableIterable[T](_Iterable[T], CountableEnumerable[T], IterableAbstract[T, Collection[T]]):
+class CountableIterable[T](Abstract, _Iterable[T], CountableEnumerable[T], IterableAbstract[T, Collection[T]]):
     def __init__(self, items: Collection[T]) -> None:
         super().__init__()
 
@@ -913,6 +921,20 @@ class CountableIterable[T](_Iterable[T], CountableEnumerable[T], IterableAbstrac
 
     @final
     def _AsEnumerableItems(self, items: Collection[T]) -> Collection[T]: return items
+
+class GeneratorBase[T](Abstract, IterableBase[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _TryGetIterator(self) -> _Generator[T]|None: ...
+
+    @final
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator())
+class Generator[T](GeneratorBase[T]):
+    def __init__(self) -> None: super().__init__()
+    
+    @abstractmethod
+    def _TryGetIterator(self) -> _Generator[T]: ...
 
 class IteratorProviderBase[T](Enumerable[T]):
     def __init__(self) -> None: super().__init__()
@@ -930,6 +952,9 @@ class IteratorProvider[T](IteratorProviderBase[T]):
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
+
+    @final
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator())
 class EnumeratorProvider[T](IteratorProviderBase[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]) -> None:
         super().__init__()

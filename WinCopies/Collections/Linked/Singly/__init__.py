@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator, Sized
+from collections.abc import Iterable, Sized
 from typing import final, Self
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections import Generator, EnumerationOrder
+from WinCopies.Collections import Generator as _Generator, EnumerationOrder
 from WinCopies.Collections.Abstraction.Enumeration import TryCreateEnumerator
 from WinCopies.Collections.Core import ICountable, IReadOnlyCollection, Countable as CountableCollectionBase
-from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, IterableBase, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase
+from WinCopies.Collections.Enumeration.Core import IEnumerable as _IEnumerable, ICountableEnumerable, IEnumerator, IInvalidatableEnumerator, Enumerable as EnumerableCollectionBase, CountableEnumerable as CountableEnumerableCollectionBase, Generator
 from WinCopies.Collections.Linked.Enumeration import GetValueEnumeratorFromNode
 from WinCopies.Collections.Linked.Node import ILinkedNode, IEnumerableLinkedListCookie, LinkedNodeBase
 from WinCopies.Collections.Registry.Collection import ICollectionRegistries, IViewProvider, IManagedCollectionBase as _IManagedCollectionBase, CollectionRegistries
@@ -75,7 +75,7 @@ class IListBase[T](IReadOnlyListBase[T]):
         ...
     
     @final
-    def AsGenerator(self) -> Generator[T]:
+    def AsGenerator(self) -> _Generator[T]:
         result: INullable[T] = self.TryPop()
 
         while result.HasValue():
@@ -163,13 +163,13 @@ class ICountableCollection[T](ICountableListAbstract[T]):
         return _EnumerableUpdater[T](self, updater)
 
 @final
-class _EnumerableUpdaterEnumerable[T](Abstract, IterableBase[T], CountableCollectionBase, ICountableEnumerable[T]):
+class _EnumerableUpdaterEnumerable[T](Generator[T], CountableCollectionBase, ICountableEnumerable[T]):
     def __init__(self, items: ICountableListAbstract[T]) -> None:
         super().__init__()
 
         self.__items: ICountableListAbstract[T] = items
     
-    def _TryGetIterator(self) -> Iterator[T]|None: return self.__items.AsGenerator()
+    def _TryGetIterator(self) -> _Generator[T]: return self.__items.AsGenerator()
     
     def GetCount(self) -> int: return self.__items.GetCount()
 
@@ -207,7 +207,7 @@ class _CountableCollectionAbstractBase[TItems, TList](CollectionAbstract[TItems,
     def __Push(self, items: Iterable[TItems], push: Converter[IList[TItems], Predicate[Iterable[TItems]]]) -> bool:
         i: int = 0
         
-        def loop() -> Generator[TItems]:
+        def loop() -> _Generator[TItems]:
             nonlocal i
 
             for item in items:

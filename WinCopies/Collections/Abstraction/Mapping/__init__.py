@@ -5,6 +5,7 @@ from collections.abc import Iterable, Iterator as _Iterator, Collection, Mutable
 from typing import overload, final, Callable
 
 from WinCopies import Abstract
+from WinCopies.Collections.Enumeration import IIterationContext, GetIterationContext
 from WinCopies.Collections.Enumeration.Core import ICountableEnumerable, IEnumerator, CountableEnumerable, EnumeratorBase, Iterator, TryAsEnumerator
 from WinCopies.Collections.Extensions.Mapping import ISet, IDictionary, Set as _Set, Dictionary as _Dictionary
 from WinCopies.Collections.Iteration import GetFirstItemExclusive
@@ -183,6 +184,9 @@ class Dictionary[TKey: HashableProtocol, TValue](_Dictionary[TKey, TValue]):
         
         @final
         def _GetInnerDictionary(self) -> MutableMapping[_TKey, _TValue]: return self._GetDictionary()._GetDictionary()
+
+        @final
+        def GetIterationContext(self) -> IIterationContext[_TItem]: return GetIterationContext(self._TryGetIterator())
     
     @final
     class _KeyEnumerable[_TKey: HashableProtocol, _TValue](_Enumerable[_TKey, _TValue, _TKey]):

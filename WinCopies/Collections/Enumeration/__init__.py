@@ -268,7 +268,7 @@ class IEnumerable[T](IInterface):
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
-    def GetEnumerator(self) -> IIterationContext[T]:
+    def GetIterationContext(self) -> IIterationContext[T]:
         """
         Gets an iteration context over the items of this object.
 
@@ -292,7 +292,7 @@ def _GetEmptyIterationContext[T]() -> IIterationContext[T]: # pyright: ignore[re
     return __emptyIterationContext
 
 def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T]) -> IIterationContext[T]:
-    return items.GetEnumerator() if isinstance(items, IEnumerable) else _IterationContext[T](items)
+    return items.GetIterationContext() if isinstance(items, IEnumerable) else _IterationContext[T](items)
 
 def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]|None:
     """

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Generator
+from collections.abc import Iterable
 from typing import final
 
 from WinCopies import IInterface, Abstract
 
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, IterableBase, IsResumable, TryGetEnumerator, TryAsEnumerable
+from WinCopies.Collections import Generator as _Generator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, Enumerable, Generator, IsResumable, TryGetEnumerator, TryAsEnumerable
 from WinCopies.Collections.Iteration import Select
 
 from WinCopies.Data import IColumn, Column, TableColumn, IOperandValue, IOperand, Operand, GetNullOperand, GetNotNullOperand, IColumnOperand, ColumnOperand, Operator, IQueryBuilder
@@ -65,7 +66,7 @@ class Parameter(Enumerable[None], IParameter[None]):
     
     def TryGetEnumerator(self) -> None: return None
 
-class _ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand], _IColumnParameterBase[TKey, TOperand]):
+class _ColumnParameterBase[TKey, TOperand: IOperandValue](Generator[TOperand], _IColumnParameterBase[TKey, TOperand]):
     def __init__(self, operand: TOperand) -> None:
         super().__init__()
 
@@ -81,7 +82,7 @@ class _ColumnParameterBase[TKey, TOperand: IOperandValue](IterableBase[TOperand]
     def Format(self, key: str, values: str|None) -> str: return f"{key} {self._GetInnerContainer().GetValue()} {values}"
     
     @final
-    def _TryGetIterator(self) -> Generator[TOperand]: yield self._GetContainer()
+    def _TryGetIterator(self) -> _Generator[TOperand]: yield self._GetContainer()
 class ColumnParameter(_ColumnParameterBase[IColumn, IColumnOperand], IColumnParameter, IGenericConstraintImplementation[IColumnOperand]):
     def __init__(self, operand: IColumnOperand) -> None: super().__init__(operand)
     
