@@ -6,7 +6,8 @@ from WinCopies.Collections.Loop import ForEachItemUntil
 from WinCopies.Typing.Delegate import Predicate
 
 def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> ScanResult:
-    """Validates that exactly one or no item matches a predicate.
+    """
+    Validates that exactly one or no item matches a predicate.
 
     Args:
         items: The items to check.
@@ -16,8 +17,8 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Scan
         - ScanResult.Null if items is None
         - ScanResult.Empty if no items exist
         - ScanResult.Success if exactly one item matches
-        - ScanResult.Error if more than one item matches"""
-    
+        - ScanResult.Error if more than one item matches
+    """
     if items is None: return ScanResult.Null
 
     validator: Predicate[T]|None = None
@@ -39,7 +40,8 @@ def ValidateOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Scan
         # Validation succeeded or iterable is empty.
         case _: return ScanResult.Empty
 def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -> bool|None:
-    """Validates that exactly one item matches a predicate.
+    """
+    Validates that exactly one item matches a predicate.
 
     Args:
         items: The items to check.
@@ -48,8 +50,8 @@ def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -
     Returns:
         - None if items is None
         - True if exactly one item matches
-        - False if zero or more than one item matches"""
-    
+        - False if zero or more than one item matches
+    """
     match ValidateOnlyOne(items, predicate):
         case ScanResult.Success: return True
         case ScanResult.Null: return None
@@ -57,7 +59,8 @@ def ValidateOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T]) -
         case _: return False
 
 def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
-    """Ensures exactly one item matches a predicate, ignoring null or empty cases.
+    """
+    Ensures exactly one item matches a predicate, ignoring null or empty cases.
 
     Args:
         items: The items to check.
@@ -65,11 +68,12 @@ def EnsureOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMess
         errorMessage: Optional custom error message.
 
     Raises:
-        ValueError: If more than one item matches the predicate."""
-    
+        ValueError: If more than one item matches the predicate.
+    """
     if not ValidateOnlyOne(items, predicate): raise ValueError("More than one value validating the given predicate were found." if errorMessage is None else errorMessage)
 def EnsureOneAndOnlyOne[T](items: Iterable[T]|None, predicate: Predicate[T], errorMessage: str|None = None) -> None:
-    """Ensures exactly one item matches a predicate, with null-safe validation.
+    """
+    Ensures exactly one item matches a predicate, with null-safe validation.
 
     Args:
         items: The items to check.

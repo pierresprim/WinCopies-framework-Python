@@ -316,7 +316,8 @@ class _ICircular(IInterface):
         ...
 
 class _CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem], IManagedCollection[TItem], IStringable, _ICircular, GenericConstraint[TList, ITuple[TItem]]):
-    """Reads a container from a start and wraps around.
+    """
+    Reads a container from a start and wraps around.
 
     Over (2, 0, 1) with start 1, it reads (0, 1, 2).
 
@@ -332,7 +333,6 @@ class _CircularAbstract[TItem, TList](TupleAbstract[TItem], ICircularTuple[TItem
         items: The container to read.
         start: The physical position in the container where reading starts, reduced modulo the count, and 0 for an empty container.
     """
-
     def __init__(self, items: TList, start: int) -> None:
         super().__init__()
 

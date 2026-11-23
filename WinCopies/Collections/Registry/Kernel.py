@@ -38,13 +38,13 @@ class CompositeRemovable[T: IRemovable](Abstract, IRemovable):
     
     def Remove(self) -> None: self.__remove()
 class CompositeNode[T: INode](CompositeRemovable[T], INode):
-    """Moves as the node it wraps, and removes another entry along with it, such as the entry of an index that a registry keeps alongside its list.
+    """
+    Moves as the node it wraps, and removes another entry along with it, such as the entry of an index that a registry keeps alongside its list.
 
     Args:
         node: The node to wrap.
         obj: The entry to remove along with the node.
     """
-
     def __init__(self, node: T, obj: IRemovable) -> None: super().__init__(node, obj)
     
     def TryMoveToTop(self) -> bool|None: return self._GetNode().TryMoveToTop()

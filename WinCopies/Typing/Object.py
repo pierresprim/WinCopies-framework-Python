@@ -830,14 +830,14 @@ class DisposableFinalizer[T: IInvalidatable](WeakReferenceFinalizer[T], IInvalid
     def _Dispose(self, reason: DiscardReason) -> None:
         if reason.IsExplicit(): self.__dispose(reason == DiscardReason.Invalidated)
 class DisposableReference[T: IInvalidatable](Abstract, IRemovable, IInvalidatable):
-    """Holds an object weakly, without a callback, and invalidates or disposes it on an explicit request, once, if it is still alive.
+    """
+    Holds an object weakly, without a callback, and invalidates or disposes it on an explicit request, once, if it is still alive.
 
     Unlike DisposableFinalizer, it sets no finalizer, so that nothing runs when the object dies. DisposableFinalizer releases implicitly, when its object dies, and suits the resources that must be released then. This type releases explicitly only, and suits the structures that drop the entries of dead objects themselves.
 
     Args:
         obj: The object to hold.
     """
-
     def __init__(self, obj: T) -> None:
         def dispose(invalidate: bool) -> None:
             obj: T|None = self.TryGetValue()

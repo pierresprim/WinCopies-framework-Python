@@ -77,14 +77,14 @@ _minimumPurgeThreshold: int = 16
 
 @final
 class _Purger(Abstract):
-    """Triggers the purge of a registry, so that the entries of dead objects do not pile up between two invalidations.
+    """
+    Triggers the purge of a registry, so that the entries of dead objects do not pile up between two invalidations.
 
     The purge runs once the registrations since the last purge reach the number of entries that this purge left, and at least a fixed minimum. A purge that leaves n entries is thus followed by n registrations at least before the next one, which reads 2n entries at most, so that a registration costs at most two steps of purge on average.
 
     Args:
         purge: The purge of the registry, which returns the number of entries it left.
     """
-
     def __init__(self, purge: Function[int]) -> None:
         super().__init__()
 
@@ -93,8 +93,7 @@ class _Purger(Abstract):
         self.__threshold: int = _minimumPurgeThreshold
     
     def Register(self) -> None:
-        """Counts a registration, and purges the registry if the registrations since the last purge reach the threshold.
-        """
+        """Counts a registration, and purges the registry if the registrations since the last purge reach the threshold."""
 
         count: int = self.__count + 1
 
@@ -105,8 +104,7 @@ class _Purger(Abstract):
             self.__threshold = max(self.__purge(), _minimumPurgeThreshold)
     
     def Reset(self) -> None:
-        """Starts the count again, once the registry is emptied.
-        """
+        """Starts the count again, once the registry is emptied."""
 
         self.__count = 0
         self.__threshold = _minimumPurgeThreshold
@@ -119,12 +117,12 @@ class _PurgeableWeakReferenceRegistry[T: IInvalidatable](WeakReferenceRegistry[T
 
     @final
     def Purge(self) -> int:
-        """Removes the nodes whose object is dead.
+        """
+        Removes the nodes whose object is dead.
 
         Returns:
             The number of nodes left.
         """
-
         count: int = 0
         node: IReadWriteLinkedNode[IWeakReference[T]]|None = self._GetItems().GetFirstNode()
 
@@ -158,8 +156,7 @@ class _Registrar[T](Abstract, IObjectRegistrar[T]):
 
 @final
 class _NoActivationObject(Abstract, IActivationObject):
-    """The activation object of a monitor that no collection registry holds, which does nothing.
-    """
+    """The activation object of a monitor that no collection registry holds, which does nothing."""
 
     def __init__(self) -> None: super().__init__()
 
@@ -171,7 +168,8 @@ def GetInvalidationActiveError() -> InvalidOperationError:
     return InvalidOperationError("A collection cannot be changed while its registry invalidates its monitors.")
 
 def _GetActivationObject(current: IActivationObject, activationObject: IActivationObject) -> IActivationObject:
-    """Gets the activation object that a monitor receives, once checked that it received none before.
+    """
+    Gets the activation object that a monitor receives, once checked that it received none before.
 
     Args:
         current: The activation object that the monitor holds.
@@ -183,7 +181,6 @@ def _GetActivationObject(current: IActivationObject, activationObject: IActivati
     Raises:
         InvalidOperationError: The monitor already received an activation object.
     """
-
     if current is not _noActivationObject: raise InvalidOperationError("This monitor already received an activation object.")
 
     return activationObject
@@ -234,7 +231,8 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         return self.__push(self._Convert(item))
     
     def _GetRemovable(self, obj: TOut, node: INodeBase) -> INodeBase:
-        """Gets the node that _Push returns for a registered object, so that its removal removes the object from every structure of the registry.
+        """
+        Gets the node that _Push returns for a registered object, so that its removal removes the object from every structure of the registry.
 
         A registry that keeps an index alongside its list adds the object to it here, and returns a node that removes both entries.
 
@@ -245,16 +243,15 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
         Returns:
             The node to return for the object.
         """
-
         return node
     
     def _Purge(self) -> int:
-        """Removes the entries of the dead objects. A registry that keeps an index alongside its list removes their entries from it too.
+        """
+        Removes the entries of the dead objects. A registry that keeps an index alongside its list removes their entries from it too.
 
         Returns:
             The number of entries left in the list of the registry.
         """
-
         return self.__items.Purge()
     
     @abstractmethod
@@ -268,12 +265,12 @@ class ObjectRegistryBase[TIn, TOut: IInvalidatable](Abstract, IObjectRegistry[TI
 
     @final
     def IsActive(self) -> bool:
-        """Tells whether an object was registered here since the last invalidation, which empties the registry.
+        """
+        Tells whether an object was registered here since the last invalidation, which empties the registry.
 
         Returns:
             True if an object was registered here since the last invalidation, False otherwise.
         """
-
         return self.__clear is not NoAction
     @final
     def _SetActivationObject(self, activationObject: IActivationObject) -> None: self.__activation = _GetActivationObject(self.__activation, activationObject)
@@ -302,14 +299,14 @@ class _CollectionFactoryCookie(Abstract, IRemovable):
 
 @final
 class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
-    """The entry of a monitor in the lists of a collection registry. It holds the monitor strongly, for RegisterObject, or weakly and without a callback, for RegisterMonitor, and knows the list it is in.
+    """
+    The entry of a monitor in the lists of a collection registry. It holds the monitor strongly, for RegisterObject, or weakly and without a callback, for RegisterMonitor, and knows the list it is in.
 
     The entry is never detached from its list by a finalizer, nor by its removal. Its removal only empties the reference, so that it changes no list even when a finalizer runs it in the middle of an operation of the registry, and the registry detaches the entry itself, as it does for a dead monitor, at an invalidation for an active entry, and at a purge for an inactive one.
 
     Args:
         tryGetMonitor: Returns the monitor, or None once it is dead.
     """
-
     def __init__(self, tryGetMonitor: NullableFunction[T]) -> None:
         super().__init__()
 
@@ -322,12 +319,12 @@ class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
     def IsIn(self, items: _IItemRegistry[_MonitorEntry[T]]) -> bool: return self.__items is items
 
     def MoveTo(self, items: _IItemRegistry[_MonitorEntry[T]]) -> None:
-        """Detaches this entry from its list, if it is in one, and adds it at the end of another one.
+        """
+        Detaches this entry from its list, if it is in one, and adds it at the end of another one.
 
         Args:
             items: The list to add this entry to.
         """
-
         self.Detach()
 
         self.__node = items.Push(self)
@@ -346,12 +343,12 @@ class _MonitorEntry[T: IActivatableMonitor](Abstract, IRemovable):
 
 @final
 class _ActivationObject(Abstract, IActivationObject):
-    """The activation object that a collection registry gives to a monitor it registers, which exposes only the activation of its entry.
+    """
+    The activation object that a collection registry gives to a monitor it registers, which exposes only the activation of its entry.
 
     Args:
         activate: Activates the entry of the monitor.
     """
-
     def __init__(self, activate: Action) -> None:
         super().__init__()
 
@@ -360,11 +357,11 @@ class _ActivationObject(Abstract, IActivationObject):
     def Activate(self) -> None: self.__activate()
 
 class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T]):
-    """Invalidates the active monitors registered here. Each monitor is either active, and invalidated by the writes of the collection, or inactive, and left out of them until it asks to be active again.
+    """
+    Invalidates the active monitors registered here. Each monitor is either active, and invalidated by the writes of the collection, or inactive, and left out of them until it asks to be active again.
 
     An invalidation drains the active entries from the head, until none is left, and holds no node from a step to the next. A monitor that is still active once invalidated is set aside, then put back among the active ones at the end of the invalidation, and the others go among the inactive ones. A monitor that becomes active during an invalidation is put at the end of the active entries, so that the same invalidation reaches it. The registry refuses to be invalidated again before the end of an invalidation.
     """
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -485,14 +482,14 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
 
     @final
     def RegisterObject(self, item: T) -> None:
-        """Registers a monitor, and holds it strongly, unlike RegisterMonitor.
+        """
+        Registers a monitor, and holds it strongly, unlike RegisterMonitor.
 
         It suits the monitors that the owner of this registry keeps for as long as the registry lives.
 
         Args:
             item: The monitor to register.
         """
-
         self.__Register(_MonitorEntry[T](lambda: item), item)
     @final
     def RegisterMonitor(self, item: T) -> IRemovable:
@@ -503,24 +500,24 @@ class CollectionRegistry[T: IActivatableMonitor](Abstract, ICollectionRegistry[T
         return _CollectionFactoryCookie(entry)
     
     def InvalidateObjects(self) -> None:
-        """Invalidates the active monitors registered here.
+        """
+        Invalidates the active monitors registered here.
 
         Raises:
             InvalidOperationError: The registry is already invalidating its monitors, as when a monitor writes to the collection during its invalidation.
         """
-
         if self.__invalidating: raise GetInvalidationActiveError()
 
         if self.IsActive(): self.__InvalidateObjects()
 
     @final
     def IsActive(self) -> bool:
-        """Tells whether a monitor registered here is active.
+        """
+        Tells whether a monitor registered here is active.
 
         Returns:
             True if a monitor registered here is active, False otherwise.
         """
-
         actives: _IItemRegistry[_MonitorEntry[T]]|None = self.__actives
 
         return actives is not None and not actives.AsReadOnly().IsEmpty()

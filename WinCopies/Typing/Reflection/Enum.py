@@ -41,7 +41,8 @@ def IsMemberOf[T](e: Type[TypedEnum[T]], n: str) -> bool: ...
 def IsMemberOf(e: Type[Enum], n: str) -> bool: ...
 
 def IsMemberOf[T](e: Type[TypedEnum[T]|Enum], n: str) -> bool:
-    """Checks if a name is a member of an enum.
+    """
+    Checks if a name is a member of an enum.
 
     Args:
         e: The enum type to check against.
@@ -57,7 +58,8 @@ def IsMemberOf[T](e: Type[TypedEnum[T]|Enum], n: str) -> bool:
 
     return n in EnumerateNames(e)
 def EnsureMemberOf[T](e: Type[TypedEnum[T]|Enum], n: str) -> None:
-    """Ensures a name is a member of an enum.
+    """
+    Ensures a name is a member of an enum.
 
     Args:
         e: The enum type to check against.
@@ -75,7 +77,8 @@ def IsValueOf[T](e: Type[TypedEnum[T]], v: T) -> bool: ...
 def IsValueOf(e: Type[Enum], v: Any) -> bool: ...
 
 def IsValueOf[T](e: Type[TypedEnum[T]|Enum], v: Any) -> bool:
-    """Checks if a value exists in an enum.
+    """
+    Checks if a value exists in an enum.
 
     Args:
         e: The enum type to check against.
@@ -91,7 +94,8 @@ def IsValueOf[T](e: Type[TypedEnum[T]|Enum], v: Any) -> bool:
 
     return v in EnumerateValues(e)
 def EnsureValueOf[T](e: Type[TypedEnum[T]|Enum], v: Any) -> None:
-    """Ensures a value exists in an enum.
+    """
+    Ensures a value exists in an enum.
 
     Args:
         e: The enum type to check against.
@@ -109,7 +113,8 @@ def ToTuples[T](e: Type[TypedEnum[T]]) -> Generator[tuple[str, T]]: ...
 def ToTuples(e: Type[Enum]) -> Generator[tuple[str, Any]]: ...
 
 def ToTuples[T](e: Type[TypedEnum[T]|Enum]) -> Generator[tuple[str, T|Any]]:
-    """Converts all members of an enum to tuples.
+    """
+    Converts all members of an enum to tuples.
 
     Args:
         e: The enum type to convert.
@@ -125,7 +130,8 @@ def IsIn[T](e: Type[TypedEnum[T]], t: tuple[str, T]|IKeyValuePair[str, T]) -> bo
 def IsIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> bool: ...
 
 def IsIn[T](e: Type[TypedEnum[T]|Enum], t: tuple[str, T]|IKeyValuePair[str, T]) -> bool:
-    """Checks if a tuple or key-value pair exists in an enum.
+    """
+    Checks if a tuple or key-value pair exists in an enum.
 
     Args:
         e: The enum type to check against.
@@ -152,7 +158,8 @@ def EnsureIn[T](e: Type[TypedEnum[T]], t: tuple[str, T]|IKeyValuePair[str, T]) -
 def EnsureIn(e: Type[Enum], t: tuple[str, Any]|IKeyValuePair[str, Any]) -> None: ...
 
 def EnsureIn[T](e: Type[TypedEnum[T]|Enum], t: tuple[str, T]|IKeyValuePair[str, T]) -> None:
-    """Ensures a tuple or key-value pair exists in an enum.
+    """
+    Ensures a tuple or key-value pair exists in an enum.
 
     Args:
         e: The enum type to check against.
@@ -191,7 +198,8 @@ def TryGetMember[TIn, TOut](e: Type[TypedEnum[TIn]], predicate: Predicate[TypedE
 def TryGetMember[TIn: Enum, TOut](e: Type[TIn], predicate: Predicate[TIn], selector: Converter[TIn, TOut]) -> TOut|None: ...
 
 def TryGetMember[TIn, TEnum: Enum, TOut](e: Type[TypedEnum[TIn]|TEnum], predicate: Predicate[TypedEnum[TIn]]|Predicate[TEnum], selector: Converter[TypedEnum[TIn], TOut]|Converter[TEnum, TOut]) -> TOut|None:
-    """Tries to get a member from an enum using a predicate and selector.
+    """
+    Tries to get a member from an enum using a predicate and selector.
 
     Args:
         e: The enum type to search in.
@@ -217,7 +225,8 @@ def TryGetName[T](e: Type[TypedEnum[T]], v: T) -> str|None: ...
 def TryGetName(e: Type[Enum], v: Any) -> str|None: ...
 
 def TryGetName[T](e: Type[TypedEnum[T]|Enum], v: T|Any) -> str|None:
-    """Tries to get the name of an enum member by its value.
+    """
+    Tries to get the name of an enum member by its value.
 
     Args:
         e: The enum type to search in.
@@ -239,7 +248,8 @@ def TryGetValue[T](e: Type[TypedEnum[T]], n: str) -> T|None: ...
 def TryGetValue(e: Type[Enum], n: str) -> Any|None: ...
 
 def TryGetValue[T](e: Type[TypedEnum[T]|Enum], n: str) -> T|Any|None:
-    """Tries to get the value of an enum member by its name.
+    """
+    Tries to get the value of an enum member by its name.
 
     Args:
         e: The enum type to search in.
@@ -259,7 +269,8 @@ def __TryGetField[T: Enum](e: Type[T], predicate: Predicate[T]) -> T|None:
     return __TryGetMember(e, predicate, Self)
 
 def TryGetField[T: Enum](e: Type[T], predicate: Predicate[T]) -> T|None:
-    """Tries to get an enum field using a predicate.
+    """
+    Tries to get an enum field using a predicate.
 
     Args:
         e: The enum type to search in.
@@ -276,7 +287,8 @@ def TryGetField[T: Enum](e: Type[T], predicate: Predicate[T]) -> T|None:
     return __TryGetField(e, predicate)
 
 def TryGetFieldFromName[T: Enum](e: Type[T], n: str) -> T|None:
-    """Tries to get an enum field by its name.
+    """
+    Tries to get an enum field by its name.
 
     Args:
         e: The enum type to search in.
@@ -298,7 +310,8 @@ def TryGetFieldFromValue[TEnum: Enum, TValue](e: Type[TEnum], v: TValue) -> TEnu
 def TryGetFieldFromValue[T: Enum](e: Type[T], v: Any) -> T|None: ...
 
 def TryGetFieldFromValue[TEnum: Enum, TValue](e: Type[TEnum], v: TValue|Any) -> TEnum|None: # pyright: ignore[reportInvalidTypeVarUse]
-    """Tries to get an enum field by its value.
+    """
+    Tries to get an enum field by its value.
 
     Args:
         e: The enum type to search in.

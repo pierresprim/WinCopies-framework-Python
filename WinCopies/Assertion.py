@@ -2,7 +2,8 @@ from enum import Enum, Flag
 from typing import Callable, NoReturn, Type
 
 def GetAssertionError(errorMessage: str|None = "Invalid operation.") -> AssertionError:
-    """Creates an AssertionError with the specified message.
+    """
+    Creates an AssertionError with the specified message.
 
     Args:
         errorMessage: The error message for the assertion. Defaults to "Invalid operation.".
@@ -13,7 +14,8 @@ def GetAssertionError(errorMessage: str|None = "Invalid operation.") -> Assertio
     return AssertionError(errorMessage)
 
 def Throw(errorMessage: str|None = "Invalid operation.") -> NoReturn:
-    """Raises an AssertionError with the specified message.
+    """
+    Raises an AssertionError with the specified message.
 
     Args:
         errorMessage: The error message for the assertion. Defaults to "Invalid operation.".
@@ -39,7 +41,8 @@ def __Ensure(condition: bool, errorMessage: str|None, action: Callable[[bool, st
     if not __TryEnsure(condition, errorMessage, action): raise ValueError(condition)
 
 def EnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") -> None:
-    """Ensures a condition is False.
+    """
+    Ensures a condition is False.
 
     Args:
         condition: The condition to verify.
@@ -51,7 +54,8 @@ def EnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") 
     """
     __Ensure(condition, errorMessage, __EnsureFalse)
 def EnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation.") -> None:
-    """Ensures a condition is True.
+    """
+    Ensures a condition is True.
 
     Args:
         condition: The condition to verify.
@@ -67,7 +71,8 @@ def __EnsureValue(value: object|None, errorMessage: str|None, action: Callable[[
     action(value is None, errorMessage)
 
 def EnsureNone(value: object|None, errorMessage: str|None = "value must be None.") -> None:
-    """Ensures a value is None.
+    """
+    Ensures a value is None.
 
     Args:
         value: The value to verify.
@@ -78,7 +83,8 @@ def EnsureNone(value: object|None, errorMessage: str|None = "value must be None.
     """
     __EnsureValue(value, errorMessage, EnsureTrue)
 def EnsureValue(value: object|None, errorMessage: str|None = "value must not be None.") -> None:
-    """Ensures a value is not None.
+    """
+    Ensures a value is not None.
 
     Args:
         value: The value to verify.
@@ -90,7 +96,8 @@ def EnsureValue(value: object|None, errorMessage: str|None = "value must not be 
     __EnsureValue(value, errorMessage, EnsureFalse)
 
 def TryEnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.") -> bool:
-    """Tries to ensure a condition is False.
+    """
+    Tries to ensure a condition is False.
 
     Args:
         condition: The condition to verify.
@@ -104,7 +111,8 @@ def TryEnsureFalse(condition: bool, errorMessage: str|None = "Invalid operation.
     """
     return __TryEnsure(condition, errorMessage, __EnsureFalse)
 def TryEnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation.") -> bool:
-    """Tries to ensure a condition is True.
+    """
+    Tries to ensure a condition is True.
 
     Args:
         condition: The condition to verify.
@@ -119,7 +127,8 @@ def TryEnsureTrue(condition: bool, errorMessage: str|None = "Invalid operation."
     return __TryEnsure(condition, errorMessage, __EnsureTrue)
 
 def EnsureSubclass[T](c: type, t: Type[T], errorMessage: str|None = "c must be a subclass of t.") -> None:
-    """Ensures a class is a subclass of another class.
+    """
+    Ensures a class is a subclass of another class.
 
     Args:
         c: The class to verify.
@@ -131,7 +140,8 @@ def EnsureSubclass[T](c: type, t: Type[T], errorMessage: str|None = "c must be a
     """
     EnsureTrue(issubclass(c, t), errorMessage)
 def EnsureEnum(e: type) -> None:
-    """Ensures a type is an enum.
+    """
+    Ensures a type is an enum.
 
     Args:
         e: The type to verify.
@@ -141,7 +151,8 @@ def EnsureEnum(e: type) -> None:
     """
     EnsureSubclass(e, Enum, "e must be an enum.")
 def EnsureFlagEnum(e: type) -> None:
-    """Ensures a type is a Flag enum.
+    """
+    Ensures a type is a Flag enum.
 
     Args:
         e: The type to verify.

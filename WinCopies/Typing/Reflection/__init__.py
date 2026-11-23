@@ -155,14 +155,16 @@ def __IsDirectPackageCall(index: int) -> bool|None:
     return __IsDirectCall(index, path.dirname)
 
 def IsDirectModuleCall() -> bool|None:
-    """Checks if the caller is directly calling from the same module.
+    """
+    Checks if the caller is directly calling from the same module.
 
     Returns:
         True if direct module call, False if not, None if insufficient stack frames.
     """
     return __IsDirectModuleCall(3)
 def EnsureDirectModuleCall() -> None:
-    """Ensures the caller is directly calling from the same module.
+    """
+    Ensures the caller is directly calling from the same module.
 
     Raises:
         AssertionError: If the call is not direct or if insufficient stack frames.
@@ -170,14 +172,16 @@ def EnsureDirectModuleCall() -> None:
     __EnsureDirectCall(4, __IsDirectModuleCall)
 
 def IsDirectPackageCall() -> bool|None:
-    """Checks if the caller is directly calling from the same package.
+    """
+    Checks if the caller is directly calling from the same package.
 
     Returns:
         True if direct package call, False if not, None if insufficient stack frames.
     """
     return __IsDirectPackageCall(3)
 def EnsureDirectPackageCall() -> None:
-    """Ensures the caller is directly calling from the same package.
+    """
+    Ensures the caller is directly calling from the same package.
 
     Raises:
         AssertionError: If the call is not direct or if insufficient stack frames.
@@ -185,7 +189,8 @@ def EnsureDirectPackageCall() -> None:
     __EnsureDirectCall(4, __IsDirectPackageCall)
 
 def GetModuleName(module: ModuleType) -> str:
-    """Gets the name of a module.
+    """
+    Gets the name of a module.
 
     Args:
         module: The module to get the name from.
@@ -196,7 +201,8 @@ def GetModuleName(module: ModuleType) -> str:
     return module.__name__ if hasattr(module, "__name__") else str(module)
 
 def IsSubmoduleFromNames(moduleName: str, packageName: str) -> bool:
-    """Checks if a module name represents a submodule of a package name.
+    """
+    Checks if a module name represents a submodule of a package name.
 
     Args:
         moduleName: The name of the module to check.
@@ -208,7 +214,8 @@ def IsSubmoduleFromNames(moduleName: str, packageName: str) -> bool:
     return moduleName.startswith(packageName + '.')
 
 def IsSubmodule(module: ModuleType, package: ModuleType) -> bool:
-    """Checks if a module is a submodule of a package.
+    """
+    Checks if a module is a submodule of a package.
 
     Args:
         module: The module to check.
@@ -219,7 +226,8 @@ def IsSubmodule(module: ModuleType, package: ModuleType) -> bool:
     """
     return IsSubmoduleFromNames(GetModuleName(module), GetModuleName(package))
 def ContainsModule(module: ModuleType, package: ModuleType) -> bool:
-    """Checks if a package contains a module (either as itself or as a submodule).
+    """
+    Checks if a package contains a module (either as itself or as a submodule).
 
     Args:
         module: The module to check.
@@ -234,7 +242,8 @@ def ContainsModule(module: ModuleType, package: ModuleType) -> bool:
     return moduleName == packageName or IsSubmoduleFromNames(moduleName, packageName)
 
 def IsModuleInPackage(module: ModuleType, package: ModuleType) -> bool:
-    """Checks if a module's file is located under a package's directory.
+    """
+    Checks if a module's file is located under a package's directory.
 
     Args:
         module: The module to check.
@@ -248,7 +257,8 @@ def IsModuleInPackage(module: ModuleType, package: ModuleType) -> bool:
     """
     return path.abspath(getfile(module)).startswith(path.abspath(path.dirname(getfile(package))) + sep)
 def TryIsModuleInPackage(module: ModuleType, package: ModuleType) -> bool|None:
-    """Tries to check if a module's file is located under a package's directory.
+    """
+    Tries to check if a module's file is located under a package's directory.
 
     Args:
         module: The module to check.
@@ -261,7 +271,8 @@ def TryIsModuleInPackage(module: ModuleType, package: ModuleType) -> bool|None:
     except TypeError: return None
 
 def EnsureIsSubmodule(module: ModuleType, package: ModuleType) -> None:
-    """Ensures a module is a submodule of a package.
+    """
+    Ensures a module is a submodule of a package.
 
     Args:
         module: The module to check.
@@ -272,7 +283,8 @@ def EnsureIsSubmodule(module: ModuleType, package: ModuleType) -> None:
     """
     EnsureTrue(IsSubmodule(module, package))
 def EnsureModuleIsInPackage(module: ModuleType, package: ModuleType) -> None:
-    """Ensures a module's file is located under a package's directory.
+    """
+    Ensures a module's file is located under a package's directory.
 
     Args:
         module: The module to check.
@@ -285,7 +297,8 @@ def EnsureModuleIsInPackage(module: ModuleType, package: ModuleType) -> None:
     EnsureTrue(IsModuleInPackage(module, package))
 
 def TryGetModuleNameFromFrame(frame: FrameType) -> INullable[str]|None:
-    """Tries to get the module name from a frame.
+    """
+    Tries to get the module name from a frame.
 
     Args:
         frame: The frame to extract the module name from.
@@ -298,7 +311,8 @@ def TryGetModuleNameFromFrame(frame: FrameType) -> INullable[str]|None:
     return None if moduleName is None else (GetNullable(moduleName) if isinstance(moduleName, str) else GetNullValue())
 
 def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType]|None:
-    """Tries to get the module from a frame.
+    """
+    Tries to get the module from a frame.
 
     Args:
         frame: The frame to extract the module from.
@@ -315,7 +329,8 @@ def TryGetModuleFromFrame(frame: FrameType) -> INullable[ModuleType]|None:
     return GetNullValue() if module is None else GetNullable(module)
 
 def TryFindModuleFromFileName(fileName: str) -> ModuleType|None:
-    """Tries to find a module by its file name in sys.modules.
+    """
+    Tries to find a module by its file name in sys.modules.
 
     Args:
         fileName: The file name to search for.
@@ -329,7 +344,8 @@ def TryFindModuleFromFileName(fileName: str) -> ModuleType|None:
     return None
 
 def TryGetPackageNameFromFrame(frame: FrameType) -> str|None:
-    """Tries to get the package name from a frame.
+    """
+    Tries to get the package name from a frame.
 
     Args:
         frame: The frame to extract the package name from.
@@ -350,7 +366,8 @@ def TryGetPackageNameFromFrame(frame: FrameType) -> str|None:
     return SplitFromLast(module, '.')[0] if isinstance(module, str) else None
 
 def TryIsModuleInPackageFromFrame(frame: FrameType, package: ModuleType|str) -> bool:
-    """Tries to check if the module from a frame is in a package.
+    """
+    Tries to check if the module from a frame is in a package.
 
     Args:
         frame: The frame to extract the module from.
@@ -382,7 +399,8 @@ def __TryOnModuleNameFromFrame[T](frame: FrameType, func: Converter[str, T]) -> 
 
     return GetNullValue() if value is None else GetNullable(func(value))
 def IsMain(moduleName: str) -> bool:
-    """Checks if a module name is '__main__'.
+    """
+    Checks if a module name is '__main__'.
 
     Args:
         moduleName: The module name to check.
@@ -392,7 +410,8 @@ def IsMain(moduleName: str) -> bool:
     """
     return moduleName == '__main__'
 def TryIsMain(frame: FrameType) -> INullable[bool]|None:
-    """Tries to check if the module from a frame is '__main__'.
+    """
+    Tries to check if the module from a frame is '__main__'.
 
     Args:
         frame: The frame to check.
@@ -403,7 +422,8 @@ def TryIsMain(frame: FrameType) -> INullable[bool]|None:
     return __TryOnModuleNameFromFrame(frame, IsMain)
 
 def IsBuiltin(moduleName: str) -> bool:
-    """Checks if a module name is a built-in module.
+    """
+    Checks if a module name is a built-in module.
 
     Args:
         moduleName: The module name to check.
@@ -413,7 +433,8 @@ def IsBuiltin(moduleName: str) -> bool:
     """
     return moduleName in builtin_module_names
 def TryIsBuiltin(frame: FrameType) -> INullable[bool]|None:
-    """Tries to check if the module from a frame is built-in.
+    """
+    Tries to check if the module from a frame is built-in.
 
     Args:
         frame: The frame to check.
@@ -424,7 +445,8 @@ def TryIsBuiltin(frame: FrameType) -> INullable[bool]|None:
     return __TryOnModuleNameFromFrame(frame, IsBuiltin)
 
 def EnumerateFromCallStack() -> Generator[FrameInfo]:
-    """Enumerates all frames from the call stack.
+    """
+    Enumerates all frames from the call stack.
 
     Yields:
         FrameInfo objects from the call stack.
@@ -435,7 +457,8 @@ def __CheckCallerPackage(targetPackage: ModuleType|str, index: int) -> bool:
     return TryIsModuleInPackageFromFrame(stack()[index].frame, targetPackage)
 
 def CheckCallerPackage(targetPackage: ModuleType|str) -> bool:
-    """Checks if the caller is from a specific package.
+    """
+    Checks if the caller is from a specific package.
 
     Args:
         targetPackage: The package to check (as ModuleType or string name).
@@ -445,7 +468,8 @@ def CheckCallerPackage(targetPackage: ModuleType|str) -> bool:
     """
     return __CheckCallerPackage(targetPackage, 1)
 def EnsureCallerPackage(targetPackage: ModuleType|str) -> None:
-    """Ensures the caller is from a specific package.
+    """
+    Ensures the caller is from a specific package.
 
     Args:
         targetPackage: The package to check (as ModuleType or string name).
@@ -461,7 +485,8 @@ def AreFromSameClass[T](x: T, y: T) -> bool:
     return AreSameClass(type(x), type(y))
 
 def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
-    """Checks if a class is a subclass of any type in an iterable.
+    """
+    Checks if a class is a subclass of any type in an iterable.
 
     Args:
         cls: The class to check.
@@ -475,7 +500,8 @@ def IsSubclass[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
 
     return False
 def IsSubclassOf[T](cls: Type[T], *types: Type[T]) -> bool:
-    """Checks if a class is a subclass of any type in variadic arguments.
+    """
+    Checks if a class is a subclass of any type in variadic arguments.
 
     Args:
         cls: The class to check.
@@ -487,7 +513,8 @@ def IsSubclassOf[T](cls: Type[T], *types: Type[T]) -> bool:
     return IsSubclass(cls, types)
 
 def Is[T](obj: T, types: Iterable[Type[T]]) -> bool:
-    """Checks if an object's type is a subclass of any type in an iterable.
+    """
+    Checks if an object's type is a subclass of any type in an iterable.
 
     Args:
         obj: The object to check.
@@ -498,7 +525,8 @@ def Is[T](obj: T, types: Iterable[Type[T]]) -> bool:
     """
     return IsSubclass(type(obj), types)
 def IsOf[T](obj: T, *types: Type[T]) -> bool:
-    """Checks if an object's type is a subclass of any type in variadic arguments.
+    """
+    Checks if an object's type is a subclass of any type in variadic arguments.
 
     Args:
         obj: The object to check.
@@ -510,7 +538,8 @@ def IsOf[T](obj: T, *types: Type[T]) -> bool:
     return Is(obj, types)
 
 def Implements[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
-    """Checks if a class implements all types in an iterable.
+    """
+    Checks if a class implements all types in an iterable.
 
     Args:
         cls: The class to check.
@@ -524,7 +553,8 @@ def Implements[T](cls: Type[T], types: Iterable[Type[T]]) -> bool:
 
     return True
 def ImplementsAll[T](cls: Type[T], *types: Type[T]) -> bool:
-    """Checks if a class implements all types in variadic arguments.
+    """
+    Checks if a class implements all types in variadic arguments.
 
     Args:
         cls: The class to check.
@@ -536,7 +566,8 @@ def ImplementsAll[T](cls: Type[T], *types: Type[T]) -> bool:
     return Implements(cls, types)
 
 def IsFrom[T](obj: T, types: Iterable[Type[T]]) -> bool:
-    """Checks if an object's type implements all types in an iterable.
+    """
+    Checks if an object's type implements all types in an iterable.
 
     Args:
         obj: The object to check.
@@ -547,7 +578,8 @@ def IsFrom[T](obj: T, types: Iterable[Type[T]]) -> bool:
     """
     return Implements(type(obj), types)
 def IsFromAll[T](obj: T, *types: Type[T]) -> bool:
-    """Checks if an object's type implements all types in variadic arguments.
+    """
+    Checks if an object's type implements all types in variadic arguments.
 
     Args:
         obj: The object to check.
@@ -559,7 +591,8 @@ def IsFromAll[T](obj: T, *types: Type[T]) -> bool:
     return IsFrom(obj, types)
 
 def AreInstances(type: type, *values: object) -> bool:
-    """Checks if all values are instances of a type.
+    """
+    Checks if all values are instances of a type.
 
     Args:
         type: The type to check against.

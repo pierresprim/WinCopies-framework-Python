@@ -4,7 +4,6 @@ Created on Thu May 30 07:37:00 2024
 
 @author: Pierre Sprimont
 """
-
 import os
 
 from typing import Callable, Iterable, AnyStr
@@ -18,7 +17,8 @@ from WinCopies.Typing.Delegate import Converter, Method, Predicate
 from WinCopies.Typing.Pairing import DualResult, CreateDualResult
 
 def ProcessDirEntries(path: str, func: Converter[Iterable[os.DirEntry[str]], bool|None]) -> IterableScanResult:
-    """Processes directory entries using a custom converter function.
+    """
+    Processes directory entries using a custom converter function.
 
     Args:
         path: The directory path to scan.
@@ -30,7 +30,8 @@ def ProcessDirEntries(path: str, func: Converter[Iterable[os.DirEntry[str]], boo
     return TryIterateFrom(path, os.path.isdir, os.scandir, func)
 
 def ParseEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableScanResult:
-    """Parses directory entries until the given predicate returns True.
+    """
+    Parses directory entries until the given predicate returns True.
 
     Args:
         path: The directory path to scan.
@@ -49,7 +50,8 @@ def __ParseDir(path: str, func: Callable[[str, Predicate[os.DirEntry[AnyStr]]], 
     return CreateDualResult(predicate.GetResult().TryGetValue(), dirScanResult)
 
 def FindDirEntry(path: str, predicate: Predicate[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
-    """Finds the first directory entry matching the given predicate.
+    """
+    Finds the first directory entry matching the given predicate.
 
     Args:
         path: The directory path to scan.
@@ -61,7 +63,8 @@ def FindDirEntry(path: str, predicate: Predicate[os.DirEntry[str]]) -> DualResul
     return __ParseDir(path, ParseEntries, lambda _predicate: _predicate.GetPredicate(predicate))
 
 def ScanDir(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableScanResult:
-    """Scans directory entries while the given predicate returns True.
+    """
+    Scans directory entries while the given predicate returns True.
 
     Args:
         path: The directory path to scan.
@@ -73,7 +76,8 @@ def ScanDir(path: str, predicate: Predicate[os.DirEntry[str]]) -> IterableScanRe
     return ParseEntries(path, lambda entry: not predicate(entry)).Not()
 
 def ValidateDirEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
-    """Validates directory entries and returns the first non-matching entry.
+    """
+    Validates directory entries and returns the first non-matching entry.
 
     Args:
         path: The directory path to scan.
@@ -85,7 +89,8 @@ def ValidateDirEntries(path: str, predicate: Predicate[os.DirEntry[str]]) -> Dua
     return __ParseDir(path, ScanDir, lambda _predicate: _predicate.GetValidationPredicate(predicate))
 
 def HasItems(path: str) -> IterableScanResult:
-    """Checks if a directory has any entries.
+    """
+    Checks if a directory has any entries.
 
     Args:
         path: The directory path to check.
@@ -101,7 +106,8 @@ def HasItems(path: str) -> IterableScanResult:
     return ProcessDirEntries(path, parse)
 
 def ParseDir(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Parses directory entries while the given predicate is True and executes an action on each.
+    """
+    Parses directory entries while the given predicate is True and executes an action on each.
 
     Args:
         path: The directory path to scan.
@@ -114,7 +120,8 @@ def ParseDir(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[o
     return ScanDir(path, GetPredicateAction(predicate, action))
 
 def ForEachDirEntry(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> DualResult[os.DirEntry[str]|None, IterableScanResult]:
-    """Executes an action on directory entries while the given predicate is True and validates.
+    """
+    Executes an action on directory entries while the given predicate is True and validates.
 
     Args:
         path: The directory path to scan.
@@ -127,7 +134,8 @@ def ForEachDirEntry(path: str, predicate: Predicate[os.DirEntry[str]], action: M
     return ValidateDirEntries(path, GetPredicateAction(predicate, action))
 
 def ScanDirEntries(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on all directory entries.
+    """
+    Executes the given action on all directory entries.
 
     Args:
         path: The directory path to scan.
@@ -139,7 +147,8 @@ def ScanDirEntries(path: str, action: Method[os.DirEntry[str]]) -> IterableScanR
     return ProcessDirEntries(path, lambda paths: DoForEachItem(paths, action))
 
 def ParseDirEntries(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on directory entries while all match the given predicate.
+    """
+    Executes the given action on directory entries while all match the given predicate.
 
     Args:
         path: The directory path to scan.
@@ -155,7 +164,8 @@ def __ParseDirEntries(path: str, predicate: Predicate[os.DirEntry[str]], action:
     return ParseDirEntries(path, GetAndAlsoPredicate(dirEntryPredicate, predicate), action)
 
 def ScanSubdirectories(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on all subdirectories.
+    """
+    Executes the given action on all subdirectories.
 
     Args:
         path: The directory path to scan.
@@ -166,7 +176,8 @@ def ScanSubdirectories(path: str, action: Method[os.DirEntry[str]]) -> IterableS
     """
     return ParseDirEntries(path, GetDirectoryPredicate(), action)
 def ParseSubdirectories(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on subdirectories while all match the given predicate.
+    """
+    Executes the given action on subdirectories while all match the given predicate.
 
     Args:
         path: The directory path to scan.
@@ -179,7 +190,8 @@ def ParseSubdirectories(path: str, predicate: Predicate[os.DirEntry[str]], actio
     return __ParseDirEntries(path, predicate, action, GetDirectoryPredicate())
 
 def ScanFiles(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on all files.
+    """
+    Executes the given action on all files.
 
     Args:
         path: The directory path to scan.
@@ -190,7 +202,8 @@ def ScanFiles(path: str, action: Method[os.DirEntry[str]]) -> IterableScanResult
     """
     return ParseDirEntries(path, GetFilePredicate(), action)
 def ParseFiles(path: str, predicate: Predicate[os.DirEntry[str]], action: Method[os.DirEntry[str]]) -> IterableScanResult:
-    """Executes the given action on files while all match the given predicate.
+    """
+    Executes the given action on files while all match the given predicate.
 
     Args:
         path: The directory path to scan.
@@ -203,7 +216,8 @@ def ParseFiles(path: str, predicate: Predicate[os.DirEntry[str]], action: Method
     return __ParseDirEntries(path, predicate, action, GetFilePredicate())
 
 def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]) -> Predicate[os.DirEntry[str]]:
-    """Creates a predicate to find entries matching specified file kind and extensions.
+    """
+    Creates a predicate to find entries matching specified file kind and extensions.
 
     Args:
         fileKind: The type of file system entry to match.
@@ -228,7 +242,8 @@ def GetFindFromExtensionsPredicate(fileKind: FileKind, extensions: Iterable[str]
 
         case _: raise ValueError("FileKind not supported.", fileKind)
 def GetFindFromExtensionValuesPredicate(fileKind: FileKind, *extensions: str) -> Predicate[os.DirEntry[str]]:
-    """Creates a predicate to find entries matching specified file kind and variadic extensions.
+    """
+    Creates a predicate to find entries matching specified file kind and variadic extensions.
 
     Args:
         fileKind: The type of file system entry to match.
@@ -248,7 +263,8 @@ def __FindFromExtensions(path: str, predicate: Predicate[os.DirEntry[str]]) -> o
     return result.GetKey() if result.GetValue() == IterableScanResult.Success else None
 
 def FindFromExtensions(path: str, fileKind: FileKind, extensions: Iterable[str]) -> os.DirEntry[str]|None:
-    """Finds the first entry matching the specified file kind and extensions.
+    """
+    Finds the first entry matching the specified file kind and extensions.
 
     Args:
         path: The directory path to search.
@@ -263,7 +279,8 @@ def FindFromExtensions(path: str, fileKind: FileKind, extensions: Iterable[str])
     """
     return __FindFromExtensions(path, GetFindFromExtensionsPredicate(fileKind, extensions))
 def FindFromExtensionValues(path: str, fileKind: FileKind, *extensions: str) -> os.DirEntry[str]|None:
-    """Finds the first entry matching the specified file kind and variadic extensions.
+    """
+    Finds the first entry matching the specified file kind and variadic extensions.
 
     Args:
         path: The directory path to search.
@@ -279,7 +296,8 @@ def FindFromExtensionValues(path: str, fileKind: FileKind, *extensions: str) -> 
     return FindFromExtensions(path, fileKind, extensions)
 
 def FindFromExtensionsAndCheck(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
-    """Finds the first entry matching the specified file kind and variadic extensions, then checks with the given predicate.
+    """
+    Finds the first entry matching the specified file kind and variadic extensions, then checks with the given predicate.
 
     Args:
         path: The directory path to search.
@@ -295,7 +313,8 @@ def FindFromExtensionsAndCheck(path: str, fileKind: FileKind, predicate: Predica
     """
     return __FindFromExtensions(path, GetAndAlsoPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
 def FindFromExtensionsAndValidate(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
-    """Finds the first entry matching the specified file kind and variadic extensions, then validates with the given predicate.
+    """
+    Finds the first entry matching the specified file kind and variadic extensions, then validates with the given predicate.
 
     Args:
         path: The directory path to search.
@@ -312,7 +331,8 @@ def FindFromExtensionsAndValidate(path: str, fileKind: FileKind, predicate: Pred
     return __FindFromExtensions(path, GetAndPredicate(GetFindFromExtensionsPredicate(fileKind, extensions), predicate))
 
 def CheckAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
-    """Checks entries with the given predicate first, then finds matching file kind and variadic extensions.
+    """
+    Checks entries with the given predicate first, then finds matching file kind and variadic extensions.
 
     Args:
         path: The directory path to search.
@@ -328,7 +348,8 @@ def CheckAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predica
     """
     return __FindFromExtensions(path, GetAndAlsoPredicate(predicate, GetFindFromExtensionsPredicate(fileKind, extensions)))
 def ValidateAndFindFromExtensions(path: str, fileKind: FileKind, predicate: Predicate[os.DirEntry[str]], *extensions: str) -> os.DirEntry[str]|None:
-    """Validates entries with the given predicate first, then finds matching file kind and variadic extensions.
+    """
+    Validates entries with the given predicate first, then finds matching file kind and variadic extensions.
 
     Args:
         path: The directory path to search.

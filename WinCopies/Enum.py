@@ -13,7 +13,8 @@ def ToKeyValuePair[T](e: TypedEnum[T]) -> IKeyValuePair[str, T]: ...
 def ToKeyValuePair(e: Enum) -> IKeyValuePair[str, Any]: ...
 
 def ToKeyValuePair[T](e: TypedEnum[T]|Enum) -> IKeyValuePair[str, T|Any]:
-    """Converts an enum member to a key-value pair.
+    """
+    Converts an enum member to a key-value pair.
 
     Args:
         e: The enum member to convert.
@@ -29,7 +30,8 @@ def ToKeyValuePairs[T](e: Type[TypedEnum[T]]) -> Generator[IKeyValuePair[str, T]
 def ToKeyValuePairs(e: Type[Enum]) -> Generator[IKeyValuePair[str, Any]]: ...
 
 def ToKeyValuePairs[T](e: Type[TypedEnum[T]|Enum]) -> Generator[IKeyValuePair[str, T|Any]]:
-    """Converts all members of an enum to key-value pairs.
+    """
+    Converts all members of an enum to key-value pairs.
 
     Args:
         e: The enum type to convert.
@@ -45,7 +47,8 @@ def ToTuple[T](e: TypedEnum[T]) -> tuple[str, T]: ...
 def ToTuple(e: Enum) -> tuple[str, Any]: ...
 
 def ToTuple[T](e: TypedEnum[T]|Enum) -> tuple[str, T|Any]:
-    """Converts an enum member to a tuple.
+    """
+    Converts an enum member to a tuple.
 
     Args:
         e: The enum member to convert.
@@ -70,7 +73,8 @@ def EnumerateFlags[T: Flag](e: T) -> Generator[T]:
     yield from e
 
 def HasFlag[T: Flag](e: T, v: T) -> bool:
-    """Checks if a flag is set in a Flag enum.
+    """
+    Checks if a flag is set in a Flag enum.
 
     Args:
         e: The Flag enum to check.
@@ -81,7 +85,8 @@ def HasFlag[T: Flag](e: T, v: T) -> bool:
     """
     return v in EnumerateFlags(e)
 def EnsureHasFlag[T: Flag](e: T, v: T) -> None:
-    """Ensures a flag is set in a Flag enum.
+    """
+    Ensures a flag is set in a Flag enum.
 
     Args:
         e: The Flag enum to check.

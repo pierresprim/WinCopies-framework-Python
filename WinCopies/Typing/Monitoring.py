@@ -52,28 +52,30 @@ class Monitor(Abstract, IMonitor):
     def Dispose(self) -> None: self.__isBusy = False
 
 class ISafeMonitor(IMonitor):
-    """A monitor that can be tried, which tells whether it was taken instead of raising when it is busy.
-    """
+    """A monitor that can be tried, which tells whether it was taken instead of raising when it is busy."""
+
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def TryInitialize(self) -> bool:
-        """Takes this monitor if it is free, without blocking.
+        """
+        Takes this monitor if it is free, without blocking.
 
         Returns:
-            True if this monitor was free and is now taken, False if it was busy.
-        """
+            True if this monitor was free and is now taken, False if it was busy."""
         ...
     @final
     def Initialize(self) -> None:
-        """Takes this monitor.
+        """
+        Takes this monitor.
 
         Raises:
             InvalidOperationError: This monitor is busy.
         """
         if not self.TryInitialize(): ThrowMonitorBusyError()
 class AtomicMonitor(Abstract, ISafeMonitor):
-    """A monitor that is taken in one indivisible step, through a lock acquired without blocking.
+    """
+    A monitor that is taken in one indivisible step, through a lock acquired without blocking.
 
     Unlike Monitor, whose busy flag is tested and then set, this monitor cannot be taken twice by a finalizer or a weak reference callback that interrupts the code taking it, nor by two threads. Trying to take it never blocks, so a finalizer can try it even while the code it interrupted holds it.
     """
@@ -84,7 +86,8 @@ class AtomicMonitor(Abstract, ISafeMonitor):
     
     @final
     def IsBusy(self) -> bool:
-        """Tells whether this monitor is taken.
+        """
+        Tells whether this monitor is taken.
 
         Between threads, the result is a snapshot, which another thread can make obsolete at once. To take this monitor only if it is free, use TryInitialize, which tests and takes it in one step.
 
@@ -99,7 +102,8 @@ class AtomicMonitor(Abstract, ISafeMonitor):
     
     @final
     def Dispose(self) -> None:
-        """Releases this monitor.
+        """
+        Releases this monitor.
 
         Only the code that took this monitor may release it. This method does not check it, since releasing a monitor one does not hold is a programming error.
 

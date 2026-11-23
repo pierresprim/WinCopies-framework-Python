@@ -20,15 +20,15 @@ class INotifyCallback(IInterface):
 
     @abstractmethod
     def Notify(self, revoke: bool) -> None:
-        """Notifies this subscriber of an invalidation or a revocation.
+        """
+        Notifies this subscriber of an invalidation or a revocation.
 
         A subscriber leaves the notifier through the IRemovable returned by Add, even during a notification. It is then notified no more, including by the rest of the notification in progress.
 
         A subscriber can also add a subscriber to the notifier, or notify it again, during a notification. The addition and the new notification wait for the end of the notification in progress, and are then applied in the order in which they were requested. A subscriber added during a notification is therefore not notified by it.
 
         Args:
-            revoke: True for a revocation, False for an invalidation.
-        """
+            revoke: True for a revocation, False for an invalidation."""
         ...
 
 def _Remove(action: Function[Any]) -> Any:
@@ -148,7 +148,8 @@ class IInvalidationNotifierProvider(INotifyCallback, IInvalidationNotifier):
     def AsNotifier(self) -> IInvalidationNotifier:
         ...
 class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
-    """Notifies its subscribers, which it holds weakly, of an invalidation or a revocation.
+    """
+    Notifies its subscribers, which it holds weakly, of an invalidation or a revocation.
 
     The notifier holds the list of its subscribers, which can be empty, and the transaction that guards it, one monitor, one queue of pending operations, and one request of a purge. An addition, a removal or a notification that finds the monitor free takes it, and is the outermost operation. One that a subscriber requests while the monitor is held waits in the queue, which the outermost operation plays in the order of arrival before it ends. No operation is refused, and none runs in the middle of another.
 
@@ -156,7 +157,6 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
 
     The exceptions raised by the subscribers during the outermost operation, including in the notifications it plays from the queue, are raised at its end, once everything is applied, alone if there is only one, grouped otherwise. A finalizer that plays the queue raises them at its end, where Python hands them to sys.unraisablehook.
     """
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -171,7 +171,8 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         self.__callback: INotifyCallback = _NotifyCallback(self)
 
     def __Run(self, operation: Method[Method[Exception]]) -> None:
-        """Runs an operation with the monitor, which the caller has taken, and then releases the monitor.
+        """
+        Runs an operation with the monitor, which the caller has taken, and then releases the monitor.
 
         Once the operation is done, even when it raised, the queue is played, including what the queue receives meanwhile, and the list is then purged if a finalizer requested it. The monitor is then released. After the release, the queue and the request are read again, and the drain runs again for as long as either of them calls for it and the monitor is free. A finalizer that found the monitor held made its request before it tried the monitor, so that its purge is not lost.
 
@@ -221,7 +222,8 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         if exceptions is not None: exceptions.TryThrow()
 
     def __Process(self, operation: Method[Method[Exception]]) -> None:
-        """Applies an operation to the list, or queues it while another operation holds the monitor.
+        """
+        Applies an operation to the list, or queues it while another operation holds the monitor.
 
         An operation that takes the monitor runs at once, and plays the queue and the purge before it ends, as __Run describes. One that finds the monitor held waits in the queue, which the holder plays.
 
@@ -235,7 +237,8 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
         else: self.__queue.append(operation)
 
     def __Unlink(self, node: _Node) -> None:
-        """Unlinks a node from the list, and updates the head and the tail of the list.
+        """
+        Unlinks a node from the list, and updates the head and the tail of the list.
 
         The caller holds the monitor. A node already unlinked is left as it is, since the removal of a node is idempotent.
 
@@ -263,7 +266,8 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
 
     @final
     def Add(self, action: INotifyCallback) -> IRemovable:
-        """Adds a subscriber, held weakly, to this notifier.
+        """
+        Adds a subscriber, held weakly, to this notifier.
 
         The node of the subscriber and its IRemovable are created at once. During an operation of this notifier, the node is linked once that operation is over, so the subscriber is not notified by a notification in progress.
 
@@ -319,7 +323,8 @@ class InvalidationNotifier(Abstract, IInvalidationNotifierProvider):
 
     @final
     def Notify(self, revoke: bool) -> None:
-        """Notifies the subscribers of this notifier, in the order in which they were added.
+        """
+        Notifies the subscribers of this notifier, in the order in which they were added.
 
         During an operation of this notifier, the notification waits for the end of that operation, and then reaches the subscribers as they are at that time.
 

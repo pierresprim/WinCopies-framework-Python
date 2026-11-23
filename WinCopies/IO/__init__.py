@@ -4,7 +4,6 @@ Created on Tue Jun 04 11:47:00 2024
 
 @author: Pierre Sprimont
 """
-
 import os
 
 from abc import abstractmethod

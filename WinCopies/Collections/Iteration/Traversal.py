@@ -64,7 +64,8 @@ def TryIterate[T](items: Iterable[T]|None, action: Method[Iterable[T]], firstAct
     return None if items is None else Iterate(items, action, firstAction)
 
 def ForEachItemUntil[T](items: Iterable[T], predicate: Predicate[T]) -> bool|None:
-    """Iterates over items until the given predicate returns True.
+    """
+    Iterates over items until the given predicate returns True.
 
     Args:
         items: The items to iterate over.

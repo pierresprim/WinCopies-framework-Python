@@ -140,41 +140,49 @@ class IComparable[TItem, TValue](_IComparable[TItem, TValue]):
     @final
     def IsLessThan(self, other: Self|TItem) -> bool:
         """Less than comparison."""
+
         return self.CompareTo(other) is False
     
     @final
     def IsLessThanOrEqual(self, other: Self|TItem) -> bool:
         """Less than or equal comparison."""
+
         return IsFalsy(self.CompareTo(other))
     
     @final
     def IsGreaterThan(self, other: Self|TItem) -> bool:
         """Greater than comparison."""
+
         return IsTruthy(self.CompareTo(other))
     
     @final
     def IsGreaterThanOrEqual(self, other: Self|TItem) -> bool:
         """Greater than or equal comparison."""
+
         return self.CompareTo(other) is not False
     
     @final
     def __lt__(self, other: Self|TItem, /) -> bool:
         """Less than comparison."""
+
         return self.IsLessThan(other)
     
     @final
     def __le__(self, other: Self|TItem, /) -> bool:
         """Less than or equal comparison."""
+
         return self.IsLessThanOrEqual(other)
     
     @final
     def __gt__(self, other: Self|TItem, /) -> bool:
         """Greater than comparison."""
+
         return self.IsGreaterThan(other)
     
     @final
     def __ge__(self, other: Self|TItem, /) -> bool:
         """Greater than or equal comparison."""
+
         return self.IsGreaterThanOrEqual(other)
 
 class _IComparableValue[T](IEquatableValue, IComparable[T, T]):

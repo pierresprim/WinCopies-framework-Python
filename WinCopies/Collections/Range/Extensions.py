@@ -12,14 +12,14 @@ from WinCopies.Collections.Util import ReverseIndex, MakeSequence, GetSequenceIn
 from WinCopies.Typing.Comparison import HashableProtocol
 
 def __Conflicts[T: HashableProtocol](s: set[T], value: T, leaving: Container[T]) -> bool:
-    """Whether value collides with an element the set keeps.
+    """
+    Whether value collides with an element the set keeps.
 
     What `leaving` holds is what this write removes, so it is out of the unicity test: a
     position cannot conflict with the value replacing the one it is about to give up. The
     scalar write hands it the single value at the index, the slice write the values at every
     index the slice covers.
     """
-
     return value in s and value not in leaving
 
 def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, values: Iterable[T]) -> None:
@@ -117,12 +117,12 @@ def SetOrderedValues[T: HashableProtocol](lst: IList[T], s: set[T], key: slice, 
     s.update(items)
 
 def TrySetOrderedValue[T: HashableProtocol](lst: IListBase[T], s: set[T], index: int, value: T) -> bool|None:
-    """Writes value at index, keeping s in step with lst.
+    """
+    Writes value at index, keeping s in step with lst.
 
     None: the index is refused. False: the value collides with one the set keeps, which the
     unicity of the ordered set forbids. True: written.
     """
-
     if not lst.ValidateIndex(index): return None
 
     old: T = lst.GetAt(index)

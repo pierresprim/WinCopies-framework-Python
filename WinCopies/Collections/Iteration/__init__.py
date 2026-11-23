@@ -10,7 +10,8 @@ from WinCopies.Typing.BoolProvider import BooleanableProtocol
 from WinCopies.Typing.Delegate import Function, Predicate, Converter, NullableConverter, NullableSelector
 
 def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
-    """Returns the given iterable, or an empty generator if None is given.
+    """
+    Returns the given iterable, or an empty generator if None is given.
 
     Args:
         iterable: The iterable to check.
@@ -18,13 +19,13 @@ def TryEnumerate[T](items: Iterable[T]|None) -> Iterable[T]:
     Returns:
         The original iterable if not None, otherwise an empty generator.
     """
-
     return MakeGenerator() if items is None else items
 def TryGenerate[T](items: Generator[T]|None) -> Generator[T]:
     return MakeGenerator() if items is None else items
 
 def Concatenate[T](collection: Iterable[Iterable[T]|None]|None) -> Generator[T]:
-    """Concatenates multiple iterables into a single generator.
+    """
+    Concatenates multiple iterables into a single generator.
 
     Args:
         collection: A collection of iterables to concatenate.
@@ -45,7 +46,8 @@ def ExpandItems[TIn, TOut](items: Iterable[TIn], converter: Converter[TIn, Itera
         for _item in converter(item): yield _item
 
 def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
-    """Appends values to the end of items.
+    """
+    Appends values to the end of items.
 
     Args:
         items: The initial items.
@@ -58,7 +60,8 @@ def Append[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]
 
     for value in TryEnumerate(values): yield value
 def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
-    """Appends a single item to the end of items.
+    """
+    Appends a single item to the end of items.
 
     Args:
         items: The initial items.
@@ -71,7 +74,8 @@ def AppendItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
 
     yield value
 def AppendValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
-    """Appends variadic values to the end of items.
+    """
+    Appends variadic values to the end of items.
 
     Args:
         items: The initial items.
@@ -83,7 +87,8 @@ def AppendValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return Append(items, values)
 
 def Prepend[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
-    """Prepends values to the beginning of items.
+    """
+    Prepends values to the beginning of items.
 
     Args:
         items: The initial items.
@@ -94,7 +99,8 @@ def Prepend[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T
     """
     return Append(values, items)
 def PrependItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
-    """Prepends a single item to the beginning of items.
+    """
+    Prepends a single item to the beginning of items.
 
     Args:
         items: The initial items.
@@ -107,7 +113,8 @@ def PrependItem[T](items: Iterable[T]|None, value: T) -> Generator[T]:
 
     for item in TryEnumerate(items): yield item
 def PrependValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
-    """Prepends variadic values to the beginning of items.
+    """
+    Prepends variadic values to the beginning of items.
 
     Args:
         items: The initial items.
@@ -119,7 +126,8 @@ def PrependValues[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return Prepend(items, values)
 
 def AppendTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
-    """Appends values after each item.
+    """
+    Appends values after each item.
 
     Args:
         items: The initial items.
@@ -133,7 +141,8 @@ def AppendTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[
 
         for value in TryEnumerate(values): yield value
 def AppendValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
-    """Appends variadic values after each item.
+    """
+    Appends variadic values after each item.
 
     Args:
         items: The initial items.
@@ -145,7 +154,8 @@ def AppendValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return AppendTo(items, values)
 
 def PrependTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator[T]:
-    """Prepends values before each item.
+    """
+    Prepends values before each item.
 
     Args:
         items: The initial items.
@@ -159,7 +169,8 @@ def PrependTo[T](items: Iterable[T]|None, values: Iterable[T]|None) -> Generator
 
         yield item
 def PrependValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
-    """Prepends variadic values before each item.
+    """
+    Prepends variadic values before each item.
 
     Args:
         items: The initial items.
@@ -171,7 +182,8 @@ def PrependValuesTo[T](items: Iterable[T]|None, *values: T) -> Generator[T]:
     return PrependTo(items, values)
 
 def AppendItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
-    """Appends a single item after each item.
+    """
+    Appends a single item after each item.
 
     Args:
         items: The initial items.
@@ -185,7 +197,8 @@ def AppendItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
 
         yield value
 def PrependItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
-    """Prepends a single item before each item.
+    """
+    Prepends a single item before each item.
 
     Args:
         items: The initial items.
@@ -200,7 +213,8 @@ def PrependItemTo[T](items: Iterable[T]|None, value: T) -> Generator[T]:
         yield item
 
 def AppendIterable[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None]|None) -> Generator[T]:
-    """Appends concatenated iterables to the end of items.
+    """
+    Appends concatenated iterables to the end of items.
 
     Args:
         items: The initial items.
@@ -211,7 +225,8 @@ def AppendIterable[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None
     """
     return Append(items, Concatenate(values))
 def AppendIterableValues[T](items: Iterable[T]|None, *values: Iterable[T]|None) -> Generator[T]:
-    """Appends variadic iterables to the end of items.
+    """
+    Appends variadic iterables to the end of items.
 
     Args:
         items: The initial items.
@@ -223,7 +238,8 @@ def AppendIterableValues[T](items: Iterable[T]|None, *values: Iterable[T]|None) 
     return AppendIterable(items, values)
 
 def PrependIterable[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None]|None) -> Generator[T]:
-    """Prepends concatenated iterables to the beginning of items.
+    """
+    Prepends concatenated iterables to the beginning of items.
 
     Args:
         items: The initial items.
@@ -234,7 +250,8 @@ def PrependIterable[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|Non
     """
     return Append(Concatenate(values), items)
 def PrependIterableValues[T](items: Iterable[T]|None, *values: Iterable[T]|None) -> Generator[T]:
-    """Prepends variadic iterables to the beginning of items.
+    """
+    Prepends variadic iterables to the beginning of items.
 
     Args:
         items: The initial items.
@@ -246,7 +263,8 @@ def PrependIterableValues[T](items: Iterable[T]|None, *values: Iterable[T]|None)
     return PrependIterable(items, values)
 
 def AppendIterableTo[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None]|None) -> Generator[T]:
-    """Appends concatenated iterables after each item.
+    """
+    Appends concatenated iterables after each item.
 
     Args:
         items: The initial items.
@@ -257,7 +275,8 @@ def AppendIterableTo[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|No
     """
     return AppendTo(items, Concatenate(values))
 def AppendIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|None) -> Generator[T]:
-    """Appends variadic iterables after each item.
+    """
+    Appends variadic iterables after each item.
 
     Args:
         items: The initial items.
@@ -269,7 +288,8 @@ def AppendIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|None
     return AppendIterableTo(items, values)
 
 def PrependIterableTo[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|None]|None) -> Generator[T]:
-    """Prepends concatenated iterables before each item.
+    """
+    Prepends concatenated iterables before each item.
 
     Args:
         items: The initial items.
@@ -280,7 +300,8 @@ def PrependIterableTo[T](items: Iterable[T]|None, values: Iterable[Iterable[T]|N
     """
     return PrependTo(items, Concatenate(values))
 def PrependIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|None) -> Generator[T]:
-    """Prepends variadic iterables before each item.
+    """
+    Prepends variadic iterables before each item.
 
     Args:
         items: The initial items.
@@ -292,7 +313,8 @@ def PrependIterableValuesTo[T](items: Iterable[T]|None, *values: Iterable[T]|Non
     return PrependIterableTo(items, values)
 
 def Select[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut]) -> Generator[TOut]:
-    """Transforms items using a converter function.
+    """
+    Transforms items using a converter function.
 
     Args:
         items: The items to transform.
@@ -311,7 +333,8 @@ def SelectManyItems[TIn1, TIn2, TOut](items: Iterable[TIn1], converter: Converte
         for _item in converter(item): yield selector(item, _item)
 
 def WhereSelect[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TIn], converter: Converter[TIn, TOut]) -> Generator[TOut]:
-    """Filters then transforms items.
+    """
+    Filters then transforms items.
 
     Args:
         items: The items to process.
@@ -323,7 +346,8 @@ def WhereSelect[TIn, TOut](items: Iterable[TIn]|None, predicate: Predicate[TIn],
     """
     return (converter(item) for item in TryEnumerate(items) if predicate(item))
 def SelectWhere[TIn, TOut](items: Iterable[TIn]|None, converter: Converter[TIn, TOut], predicate: Predicate[TOut]) -> Generator[TOut]:
-    """Transforms then filters items.
+    """
+    Transforms then filters items.
 
     Args:
         items: The items to process.
@@ -359,7 +383,8 @@ def WhereOfTypeSelect[TIn, TOut](t: Type[TIn], items: Iterable[object], converte
     return (converter(item) for item in items if isinstance(item, t))
 
 def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Includes only items that match a given predicate.
+    """
+    Includes only items that match a given predicate.
 
     Args:
         items: The items to filter.
@@ -370,7 +395,8 @@ def Include[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]
     """
     return (item for item in TryEnumerate(items) if predicate(item))
 def Exclude[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Excludes items that match a given predicate.
+    """
+    Excludes items that match a given predicate.
 
     Args:
         items: The items to filter.
@@ -382,7 +408,8 @@ def Exclude[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]
     return Include(items, GetNotPredicate(predicate))
 
 def IncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Includes items while they match a predicate (exclusive).
+    """
+    Includes items while they match a predicate (exclusive).
 
     Args:
         items: The items to process.
@@ -395,7 +422,8 @@ def IncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         if predicate(item): yield item
         else: break
 def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Includes items until one matches a predicate (exclusive).
+    """
+    Includes items until one matches a predicate (exclusive).
 
     Args:
         items: The items to process.
@@ -410,7 +438,8 @@ def IncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
         yield item
 
 def DoIncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Includes items until one matches a predicate (inclusive).
+    """
+    Includes items until one matches a predicate (inclusive).
 
     Args:
         items: The items to process.
@@ -424,7 +453,8 @@ def DoIncludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Gener
 
         if predicate(item): break
 def DoIncludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Includes items while they match a predicate (inclusive).
+    """
+    Includes items while they match a predicate (inclusive).
 
     Args:
         items: The items to process.
@@ -454,7 +484,8 @@ def DoIncludeWhileTrue[T](items: Iterable[T]|None, func: Function[bool]) -> Gene
     return DoIncludeUntilTrue(items, GetNotFunc(func))
 
 def GetFirst[T](items: Iterable[T]) -> INullable[T]:
-    """Tries to get the first item from an iterable.
+    """
+    Tries to get the first item from an iterable.
 
     Args:
         items: The items to process.
@@ -466,7 +497,8 @@ def GetFirst[T](items: Iterable[T]) -> INullable[T]:
 
     return GetNullValue()
 def TryGetFirst[T](items: Iterable[T]|None) -> INullable[T]|None:
-    """Tries to get the first item from an iterable.
+    """
+    Tries to get the first item from an iterable.
 
     Args:
         items: The items to process.

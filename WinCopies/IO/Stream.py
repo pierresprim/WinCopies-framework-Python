@@ -4,7 +4,6 @@ Created on Thu May 25 10:31:11 2023
 
 @author: Pierre Sprimont
 """
-
 from __future__ import annotations
 
 from abc import abstractmethod

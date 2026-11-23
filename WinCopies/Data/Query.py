@@ -357,7 +357,6 @@ class SelectionQuery(SelectionQueryBase, NullableQuery[ISelectionQueryExecutionR
             Returns:
             The concatenated SQL formatted tables and routine calls with their alias.
             """
-            
             return queryBuilder.Join(queryBuilder.AddTable(table.GetKey(), table.GetValue()) for table in query.GetTables().AsIterable())
         
         def initQuery() -> bool:

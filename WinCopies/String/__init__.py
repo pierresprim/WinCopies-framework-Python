@@ -37,7 +37,8 @@ class __Stringifier(Abstract):
 __STRINGIFIER: __Stringifier = __Stringifier()
 
 def NullifyIfEmpty(value: str) -> str|None:
-    """Converts an empty string to None.
+    """
+    Converts an empty string to None.
 
     Args:
         value: The string to check.
@@ -47,7 +48,8 @@ def NullifyIfEmpty(value: str) -> str|None:
     """
     return None if value == '' else value
 def StringifyIfNone(value: str|SupportsStringization|None, prefix: str|None = None, suffix: str|None = None, surroundingWay: StringizationSurrounding = StringizationSurrounding.NonEmpty) -> str:
-    """Converts None to an empty string.
+    """
+    Converts None to an empty string.
 
     Args:
         value: The value to check.
@@ -55,7 +57,6 @@ def StringifyIfNone(value: str|SupportsStringization|None, prefix: str|None = No
     Returns:
         An empty string if value is None, otherwise the original string.
     """
-
     def stringify(value: str, condition: StringizationSurrounding) -> str: return __STRINGIFIER(value, prefix, suffix, surroundingWay, condition)
 
     if value is None: return stringify('', StringizationSurrounding.Void)
@@ -68,7 +69,8 @@ def __IsEmpty(value: str) -> bool:
     return value == ''
 
 def IsNoneOrEmpty(value: str|None) -> bool:
-    """Checks if a value is None or an empty string.
+    """
+    Checks if a value is None or an empty string.
 
     Args:
         value: The value to check.
@@ -82,7 +84,8 @@ def GetValueOrDefault(value: str|SupportsStringization|None, default: str) -> st
     return default if value is None or (isinstance(value, str) and __IsEmpty(value)) else str(value)
 
 def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
-    """Replaces escape sequences in a string.
+    """
+    Replaces escape sequences in a string.
 
     Args:
         string: The string to process.
@@ -99,7 +102,8 @@ def Replace(string: str, esc: str, newEsc: str, args: Iterable[str]) -> str:
 
     return string
 def ReplaceValues(string: str, esc: str, newEsc: str, *args: str) -> str:
-    """Replaces escape sequences in a string using variadic arguments.
+    """
+    Replaces escape sequences in a string using variadic arguments.
 
     Args:
         string: The string to process.
@@ -113,7 +117,8 @@ def ReplaceValues(string: str, esc: str, newEsc: str, *args: str) -> str:
     return Replace(string, esc, newEsc, args)
 
 def SurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str:
-    """Surrounds a string with a prefix and suffix.
+    """
+    Surrounds a string with a prefix and suffix.
 
     Args:
         prefix: The prefix to add (None becomes empty string).
@@ -127,7 +132,8 @@ def SurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str:
     
     return f"{stringifyIfNone(prefix)}{stringifyIfNone(string)}{stringifyIfNone(suffix)}"
 def TrySurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str|None:
-    """Tries to surround a string with a prefix and suffix.
+    """
+    Tries to surround a string with a prefix and suffix.
 
     Args:
         prefix: The prefix to add.
@@ -140,7 +146,8 @@ def TrySurroundWith(prefix: str|None, string: str|None, suffix: str|None) -> str
     return None if string is None else SurroundWith(prefix, string, suffix)
 
 def Surround(string: str|None, value: str|None) -> str:
-    """Surrounds a string with the same value on both sides.
+    """
+    Surrounds a string with the same value on both sides.
 
     Args:
         string: The string to surround.
@@ -151,7 +158,8 @@ def Surround(string: str|None, value: str|None) -> str:
     """
     return SurroundWith(value, string, value)
 def TrySurround(string: str|None, value: str|None) -> str|None:
-    """Tries to surround a string with the same value on both sides.
+    """
+    Tries to surround a string with the same value on both sides.
 
     Args:
         string: The string to surround.
@@ -163,7 +171,8 @@ def TrySurround(string: str|None, value: str|None) -> str|None:
     return TrySurroundWith(value, string, value)
 
 def SurroundWithSpace(prefix: str|None, suffix: str|None) -> str:
-    """Surrounds a space with a prefix and suffix.
+    """
+    Surrounds a space with a prefix and suffix.
 
     Args:
         prefix: The prefix to add.
@@ -174,7 +183,8 @@ def SurroundWithSpace(prefix: str|None, suffix: str|None) -> str:
     """
     return SurroundWith(prefix, ' ', suffix)
 def TrySurroundWithSpace(prefix: str|None, suffix: str|None) -> str|None:
-    """Tries to surround a space with a prefix and suffix.
+    """
+    Tries to surround a space with a prefix and suffix.
 
     Args:
         prefix: The prefix to add.
@@ -186,7 +196,8 @@ def TrySurroundWithSpace(prefix: str|None, suffix: str|None) -> str|None:
     return TrySurroundWith(prefix, ' ', suffix)
 
 def QuoteSurround(string: str|None) -> str:
-    """Surrounds a string with single quotes.
+    """
+    Surrounds a string with single quotes.
 
     Args:
         string: The string to surround.
@@ -196,7 +207,8 @@ def QuoteSurround(string: str|None) -> str:
     """
     return Surround(string, "'")
 def TryQuoteSurround(string: str|None) -> str|None:
-    """Tries to surround a string with single quotes.
+    """
+    Tries to surround a string with single quotes.
 
     Args:
         string: The string to surround.
@@ -207,7 +219,8 @@ def TryQuoteSurround(string: str|None) -> str|None:
     return TrySurround(string, "'")
 
 def DoubleQuoteSurround(string: str|None) -> str:
-    """Surrounds a string with double quotes.
+    """
+    Surrounds a string with double quotes.
 
     Args:
         string: The string to surround.
@@ -217,7 +230,8 @@ def DoubleQuoteSurround(string: str|None) -> str:
     """
     return Surround(string, '"')
 def TryDoubleQuoteSurround(string: str|None) -> str|None:
-    """Tries to surround a string with double quotes.
+    """
+    Tries to surround a string with double quotes.
 
     Args:
         string: The string to surround.
@@ -228,7 +242,8 @@ def TryDoubleQuoteSurround(string: str|None) -> str|None:
     return TrySurround(string, '"')
 
 def SpaceJoin(values: Iterable[str]) -> str:
-    """Joins strings with spaces.
+    """
+    Joins strings with spaces.
 
     Args:
         values: The strings to join.
@@ -238,7 +253,8 @@ def SpaceJoin(values: Iterable[str]) -> str:
     """
     return ' '.join(values)
 def SpaceJoinValues(*values: str) -> str:
-    """Joins variadic strings with spaces.
+    """
+    Joins variadic strings with spaces.
 
     Args:
         *values: The strings to join.
@@ -249,7 +265,8 @@ def SpaceJoinValues(*values: str) -> str:
     return SpaceJoin(values)
 
 def CommaJoin(values: Iterable[str]) -> str:
-    """Joins strings with commas.
+    """
+    Joins strings with commas.
 
     Args:
         values: The strings to join.
@@ -259,7 +276,8 @@ def CommaJoin(values: Iterable[str]) -> str:
     """
     return ','.join(values)
 def CommaJoinValues(*values: str) -> str:
-    """Joins variadic strings with commas.
+    """
+    Joins variadic strings with commas.
 
     Args:
         *values: The strings to join.
@@ -270,7 +288,8 @@ def CommaJoinValues(*values: str) -> str:
     return CommaJoin(values)
 
 def SemicolonJoin(values: Iterable[str]) -> str:
-    """Joins strings with semicolons.
+    """
+    Joins strings with semicolons.
 
     Args:
         values: The strings to join.
@@ -280,7 +299,8 @@ def SemicolonJoin(values: Iterable[str]) -> str:
     """
     return ';'.join(values)
 def SemicolonJoinValues(*values: str) -> str:
-    """Joins variadic strings with semicolons.
+    """
+    Joins variadic strings with semicolons.
 
     Args:
         *values: The strings to join.
@@ -291,7 +311,8 @@ def SemicolonJoinValues(*values: str) -> str:
     return SemicolonJoin(values)
 
 def ColonJoin(values: Iterable[str]) -> str:
-    """Joins strings with colons.
+    """
+    Joins strings with colons.
 
     Args:
         values: The strings to join.
@@ -301,7 +322,8 @@ def ColonJoin(values: Iterable[str]) -> str:
     """
     return ':'.join(values)
 def ColonJoinValues(*values: str) -> str:
-    """Joins variadic strings with colons.
+    """
+    Joins variadic strings with colons.
 
     Args:
         *values: The strings to join.
@@ -312,7 +334,8 @@ def ColonJoinValues(*values: str) -> str:
     return ColonJoin(values)
 
 def Join(values: Iterable[str]) -> str:
-    """Joins strings without separator.
+    """
+    Joins strings without separator.
 
     Args:
         values: The strings to join.
@@ -322,7 +345,8 @@ def Join(values: Iterable[str]) -> str:
     """
     return ''.join(values)
 def JoinValues(*values: str) -> str:
-    """Joins variadic strings without separator.
+    """
+    Joins variadic strings without separator.
 
     Args:
         *values: The strings to join.
@@ -333,7 +357,8 @@ def JoinValues(*values: str) -> str:
     return Join(values)
 
 def Contains(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
-    """Checks if a string contains a substring.
+    """
+    Checks if a string contains a substring.
 
     Args:
         value: The string to search in.
@@ -346,7 +371,8 @@ def Contains(value: str, subValue: str, start: int|None = None, end: int|None = 
     """
     return value.find(subValue, start, end) >= 0
 def ContainsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
-    """Checks if a string contains a substring searching from the right.
+    """
+    Checks if a string contains a substring searching from the right.
 
     Args:
         value: The string to search in.
@@ -360,7 +386,8 @@ def ContainsR(value: str, subValue: str, start: int|None = None, end: int|None =
     return value.rfind(subValue, start, end) >= 0
 
 def Omits(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
-    """Checks if a string does not contain a substring.
+    """
+    Checks if a string does not contain a substring.
 
     Args:
         value: The string to search in.
@@ -373,7 +400,8 @@ def Omits(value: str, subValue: str, start: int|None = None, end: int|None = Non
     """
     return value.find(subValue, start, end) < 0
 def OmitsR(value: str, subValue: str, start: int|None = None, end: int|None = None) -> bool:
-    """Checks if a string does not contain a substring searching from the right.
+    """
+    Checks if a string does not contain a substring searching from the right.
 
     Args:
         value: The string to search in.
@@ -387,7 +415,8 @@ def OmitsR(value: str, subValue: str, start: int|None = None, end: int|None = No
     return value.rfind(subValue, start, end) < 0
 
 def TrySplitAt(value: str, i: int) -> list[str]|None:
-    """Tries to split a string at a specific index.
+    """
+    Tries to split a string at a specific index.
 
     Args:
         value: The string to split.
@@ -399,7 +428,8 @@ def TrySplitAt(value: str, i: int) -> list[str]|None:
     """
     return None if i < 0 or len(value) <= i else ([value] if i == 0 else [value[:i - 1], value[i:]])
 def SplitAt(value: str, i: int) -> list[str]:
-    """Splits a string at a specific index.
+    """
+    Splits a string at a specific index.
 
     Args:
         value: The string to split.
@@ -423,7 +453,8 @@ def __Split(value: str, find: str, func: Callable[[str, str], list[str]|None]) -
     return [value] if result is None else result
 
 def TrySplit(value: str, find: str) -> list[str]|None:
-    """Tries to split a string at the first occurrence of a substring.
+    """
+    Tries to split a string at the first occurrence of a substring.
 
     Args:
         value: The string to split.
@@ -434,7 +465,8 @@ def TrySplit(value: str, find: str) -> list[str]|None:
     """
     return TrySplitAt(value, value.find(find))
 def TrySplitFromLast(value: str, find: str) -> list[str]|None:
-    """Tries to split a string at the last occurrence of a substring.
+    """
+    Tries to split a string at the last occurrence of a substring.
 
     Args:
         value: The string to split.
@@ -446,7 +478,8 @@ def TrySplitFromLast(value: str, find: str) -> list[str]|None:
     return TrySplitAt(value, value.rfind(find))
 
 def Split(value: str, find: str) -> list[str]:
-    """Splits a string at the first occurrence of a substring.
+    """
+    Splits a string at the first occurrence of a substring.
 
     Args:
         value: The string to split.
@@ -457,7 +490,8 @@ def Split(value: str, find: str) -> list[str]:
     """
     return __Split(value, find, TrySplit)
 def SplitFromLast(value: str, find: str) -> list[str]:
-    """Splits a string at the last occurrence of a substring.
+    """
+    Splits a string at the last occurrence of a substring.
 
     Args:
         value: The string to split.
@@ -478,7 +512,8 @@ def __TryGetValue(value: str, find: str, func: Callable[[str, str], list[str]|No
     return __TryGet(value, find, 1, func)
 
 def TryGetKey(value: str, find: str) -> str|None:
-    """Tries to get the part before the first occurrence of a substring.
+    """
+    Tries to get the part before the first occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -489,7 +524,8 @@ def TryGetKey(value: str, find: str) -> str|None:
     """
     return __TryGetKey(value, find, TrySplit)
 def TryGetKeyFromLast(value: str, find: str) -> str|None:
-    """Tries to get the part before the last occurrence of a substring.
+    """
+    Tries to get the part before the last occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -501,7 +537,8 @@ def TryGetKeyFromLast(value: str, find: str) -> str|None:
     return __TryGetKey(value, find, TrySplitFromLast)
 
 def TryGetValue(value: str, find: str) -> str|None:
-    """Tries to get the part after the first occurrence of a substring.
+    """
+    Tries to get the part after the first occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -512,7 +549,8 @@ def TryGetValue(value: str, find: str) -> str|None:
     """
     return __TryGetValue(value, find, TrySplit)
 def TryGetValueFromLast(value: str, find: str) -> str|None:
-    """Tries to get the part after the last occurrence of a substring.
+    """
+    Tries to get the part after the last occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -529,7 +567,8 @@ def __Get(value: str, find: str, func: Callable[[str, str], str|None]) -> str:
     return value if result is None else result
 
 def GetKey(value: str, find: str) -> str:
-    """Gets the part before the first occurrence of a substring.
+    """
+    Gets the part before the first occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -540,7 +579,8 @@ def GetKey(value: str, find: str) -> str:
     """
     return __Get(value, find, TryGetKey)
 def GetKeyFromLast(value: str, find: str) -> str:
-    """Gets the part before the last occurrence of a substring.
+    """
+    Gets the part before the last occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -552,7 +592,8 @@ def GetKeyFromLast(value: str, find: str) -> str:
     return __Get(value, find, TryGetKeyFromLast)
 
 def GetValue(value: str, find: str) -> str:
-    """Gets the part after the first occurrence of a substring.
+    """
+    Gets the part after the first occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -563,7 +604,8 @@ def GetValue(value: str, find: str) -> str:
     """
     return __Get(value, find, TryGetValue)
 def GetValueFromLast(value: str, find: str) -> str:
-    """Gets the part after the last occurrence of a substring.
+    """
+    Gets the part after the last occurrence of a substring.
 
     Args:
         value: The string to search in.
@@ -575,7 +617,8 @@ def GetValueFromLast(value: str, find: str) -> str:
     return __Get(value, find, TryGetValueFromLast)
 
 def TryRemoveFromStart(value: str, find: str) -> str|None:
-    """Tries to remove a substring from the start of a string.
+    """
+    Tries to remove a substring from the start of a string.
 
     Args:
         value: The string to process.
@@ -591,7 +634,8 @@ def TryRemoveFromStart(value: str, find: str) -> str|None:
 
     return None
 def TryRemoveFromEnd(value: str, find: str) -> str|None:
-    """Tries to remove a substring from the end of a string.
+    """
+    Tries to remove a substring from the end of a string.
 
     Args:
         value: The string to process.
@@ -613,7 +657,8 @@ def __RemoveFrom(value: str, find: str, func: Callable[[str, str], str|None]) ->
     return value if result is None else result
 
 def RemoveFromStart(value: str, find: str) -> str:
-    """Removes a substring from the start of a string.
+    """
+    Removes a substring from the start of a string.
 
     Args:
         value: The string to process.
@@ -625,7 +670,8 @@ def RemoveFromStart(value: str, find: str) -> str:
     return __RemoveFrom(value, find, TryRemoveFromStart)
     
 def RemoveFromEnd(value: str, find: str) -> str:
-    """Removes a substring from the end of a string.
+    """
+    Removes a substring from the end of a string.
 
     Args:
         value: The string to process.
@@ -637,7 +683,8 @@ def RemoveFromEnd(value: str, find: str) -> str:
     return __RemoveFrom(value, find, TryRemoveFromEnd)
 
 def Append(string: str, value: str) -> str:
-    """Appends a value to the end of a string.
+    """
+    Appends a value to the end of a string.
 
     Args:
         string: The original string.
@@ -648,7 +695,8 @@ def Append(string: str, value: str) -> str:
     """
     return string + value
 def Prepend(string: str, value: str) -> str:
-    """Prepends a value to the start of a string.
+    """
+    Prepends a value to the start of a string.
 
     Args:
         string: The original string.

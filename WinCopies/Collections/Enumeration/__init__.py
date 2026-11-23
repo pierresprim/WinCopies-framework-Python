@@ -21,9 +21,10 @@ class IterationState(IntEnum):
     """Iterator is in run state."""
     Ended = 2
     """Iteration has terminated."""
+
 class IterationResult(IntEnum):
     Faulted = -6
-    "Iteration terminated because an error occurred."
+    """Iteration terminated because an error occurred."""
     Revoked = -5
     Invalidated = -4
     """Iteration was invalidated because the source mutated."""

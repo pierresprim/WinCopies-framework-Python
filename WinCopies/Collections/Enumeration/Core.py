@@ -25,13 +25,13 @@ class _IInvalidationNotifierProvider(IInterface):
 
     @abstractmethod
     def GetSourceNotifier(self) -> IInvalidationNotifier|None:
-        """Gets the notifier of this enumerator's invalidation and revocation.
+        """
+        Gets the notifier of this enumerator's invalidation and revocation.
 
         Only the invalidations and revocations to come are notified. A subscriber that needs to know whether the enumerator was already invalidated or revoked reads its status.
 
         Returns:
-            The notifier of this enumerator's invalidation and revocation, or None if it has none.
-        """
+            The notifier of this enumerator's invalidation and revocation, or None if it has none."""
         ...
 
 class _IEnumeratorInvalidation(_IInvalidationNotifierProvider):
@@ -93,7 +93,8 @@ class IEnumeratorBase(_IInvalidationNotifierProvider, IContextManager):
 
     @final
     def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
-        """Stops the enumerator at the exit of a with statement, and does nothing else.
+        """
+        Stops the enumerator at the exit of a with statement, and does nothing else.
 
         An enumerator is not a disposable object, since a for loop never exits it. A with statement only lets its consumer stop it as soon as the block ends, so that an enumerator that its source registers leaves its registry at once rather than at a later purge. This method cannot be overridden, so that no enumerator releases a resource there, nor suppresses an exception. A cursor, which holds a resource, releases it through IDisposable, once it is stopped.
 
@@ -105,7 +106,6 @@ class IEnumeratorBase(_IInvalidationNotifierProvider, IContextManager):
         Returns:
             False, so that _OnExited runs and the exception raised in the block, if any, is not suppressed.
         """
-
         self.Stop()
 
         return super()._OnExiting(excType, exc, traceback)
@@ -875,7 +875,8 @@ class IterableAbstract[TItem, TIterable](Enumerable[TItem], _IterableBase[TItem]
     
     @final
     def TryGetEnumerator(self) -> IEnumerator[TItem]|None:
-        """Tries to get an enumerator over the items of this iterable.
+        """
+        Tries to get an enumerator over the items of this iterable.
 
         Returns:
             An enumerator over the items, or None if there is nothing to enumerate, including when the iterable is an enumerator empty by design.

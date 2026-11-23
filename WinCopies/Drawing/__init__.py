@@ -4,7 +4,6 @@ Created on Mon Jul 01 14:21:00 2024
 
 @author: Pierre Sprimont
 """
-
 from abc import abstractmethod
 from typing import final
 

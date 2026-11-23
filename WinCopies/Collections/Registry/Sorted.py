@@ -69,20 +69,19 @@ class ISortedList[TKey: SupportsEqualityAndRichComparison, TValue](IReadOnlyColl
         ...
     @abstractmethod
     def TryRemoveNode(self, node: ISortedNode[TKey, TValue]) -> bool:
-        """Removes a node by identity, so that a node of the same key is never removed in its place.
+        """
+        Removes a node by identity, so that a node of the same key is never removed in its place.
 
         Args:
             node: The node to remove.
 
         Returns:
-            Whether the node was found, and thus removed.
-        """
+            Whether the node was found, and thus removed."""
         ...
     
     @abstractmethod
     def Purge(self) -> None:
-        """Removes the nodes whose object is dead.
-        """
+        """Removes the nodes whose object is dead."""
         ...
 class SortedList[TKey: SupportsEqualityAndRichComparison, TValue](Countable, ISortedList[TKey, TValue]):
     def __init__(self) -> None:

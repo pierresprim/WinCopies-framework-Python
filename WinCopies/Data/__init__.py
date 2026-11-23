@@ -151,8 +151,7 @@ class IParameterProvider(IInterface):
         - arg: The argument to add to the query argument list.
 
         Returns:
-        A parameter placeholder.
-        """
+        A parameter placeholder."""
         ...
 
 class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
@@ -172,8 +171,7 @@ class IQueryBuilder(ITableNameFormater, IParameterProvider, IDisposable):
         - items: The iterable from which retrieve the arguments.
 
         Returns:
-        The concatenated strings.
-        """
+        The concatenated strings."""
         ...
     @abstractmethod
     def JoinOperands(self, items: Iterable[IOperandValue]) -> str:

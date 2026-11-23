@@ -56,7 +56,8 @@ def TryIterateItems[T](items: Iterable[T]|None, action: Method[Iterable[T]], fir
     return None if items is None else IterateItems(items, action, firstAction)
 
 def While(func: Function[bool], action: Action, safe: bool|Method[bool] = False) -> bool:
-    """Executes the given action while the given condition is True.
+    """
+    Executes the given action while the given condition is True.
 
     Args:
         func: The condition function to evaluate.
@@ -77,7 +78,8 @@ def While(func: Function[bool], action: Action, safe: bool|Method[bool] = False)
     
     return IterateSafe(iterate, action, safe)
 def Until(func: Function[bool], action: Action, safe: bool|Method[bool] = False) -> bool:
-    """Executes the given action until the given condition is True.
+    """
+    Executes the given action until the given condition is True.
 
     Args:
         func: The condition function to evaluate.
@@ -100,7 +102,8 @@ def __Do(action: Action, func: Function[bool], loop: Callable[[Function[bool], A
 
     return loop(func, action)
 def DoWhile(action: Action, func: Function[bool]) -> bool:
-    """Executes the given action at least once, then continues while the given condition is True.
+    """
+    Executes the given action at least once, then continues while the given condition is True.
 
     Args:
         action: The action to execute on each iteration.
@@ -111,7 +114,8 @@ def DoWhile(action: Action, func: Function[bool]) -> bool:
     """
     return __Do(action, func, While)
 def DoUntil(action: Action, func: Function[bool]) -> bool:
-    """Executes the given action at least once, then continues until the given condition is True.
+    """
+    Executes the given action at least once, then continues until the given condition is True.
 
     Args:
         action: The action to execute on each iteration.
@@ -123,7 +127,8 @@ def DoUntil(action: Action, func: Function[bool]) -> bool:
     return __Do(action, func, Until)
 
 def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
-    """Iterates over items with index, executing the given action until it returns True.
+    """
+    Iterates over items with index, executing the given action until it returns True.
 
     Args:
         items: The items to iterate over.
@@ -142,7 +147,8 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     
     return None if i == -1 else CreateDualValueBool(i, True)
 def ForEachItemUntil[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -> bool|None:
-    """Iterates over items until the given predicate returns True.
+    """
+    Iterates over items until the given predicate returns True.
 
     Args:
         items: The items to iterate over.
@@ -156,7 +162,8 @@ def ForEachItemUntil[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[
     return _ForEachItemUntil(AsIterable(items), predicate)
 
 def ForEach[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualValueBool[int]|None:
-    """Iterates over items with index, executing the given action while it returns True.
+    """
+    Iterates over items with index, executing the given action while it returns True.
 
     Args:
         items: The items to iterate over.
@@ -168,7 +175,8 @@ def ForEach[T](items: Iterable[T], action: IndexedValueComparison[T]) -> DualVal
     """
     return ForEachUntilTrue(items, lambda index, item: not action(index, item))
 def ForEachValue[T](action: IndexedValueComparison[T], *values: T) -> DualValueBool[int]|None:
-    """Iterates over variadic values with index, executing the given action while it returns True.
+    """
+    Iterates over variadic values with index, executing the given action while it returns True.
 
     Args:
         action: A function taking index and value, returning False to stop iteration.
@@ -181,7 +189,8 @@ def ForEachValue[T](action: IndexedValueComparison[T], *values: T) -> DualValueB
     return ForEach(values, action)
 
 def DoForEach[T](items: Iterable[T], action: IndexedValueAction[T]) -> int:
-    """Executes the given action for each item with its index.
+    """
+    Executes the given action for each item with its index.
 
     Args:
         items: The items to iterate over.
@@ -199,7 +208,8 @@ def DoForEach[T](items: Iterable[T], action: IndexedValueAction[T]) -> int:
     
     return i
 def DoForEachValue[T](action: IndexedValueAction[T], *values: T) -> int:
-    """Executes the given action for each variadic value with its index.
+    """
+    Executes the given action for each variadic value with its index.
 
     Args:
         action: A function taking index and value.
@@ -211,7 +221,8 @@ def DoForEachValue[T](action: IndexedValueAction[T], *values: T) -> int:
     return DoForEach(values, action)
 
 def ForEachItem[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -> bool|None:
-    """Iterates over items while the given predicate returns True.
+    """
+    Iterates over items while the given predicate returns True.
 
     Args:
         items: The items to iterate over.
@@ -224,7 +235,8 @@ def ForEachItem[T](items: IEnumerable[T]|Iterable[T], predicate: Predicate[T]) -
     """
     return Not(ForEachItemUntil(items, GetNotPredicate(predicate)))
 def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
-    """Iterates over variadic values while the given predicate returns True.
+    """
+    Iterates over variadic values while the given predicate returns True.
 
     Args:
         predicate: A function to test each value.
@@ -238,7 +250,8 @@ def ForEachArg[T](predicate: Predicate[T], *values: T) -> bool|None:
     return ForEachItem(values, predicate)
 
 def DoForEachItem[T](items: IEnumerable[T]|Iterable[T], action: Method[T], safe: bool|Method[bool] = False) -> bool:
-    """Executes the given action for each item in items.
+    """
+    Executes the given action for each item in items.
 
     Args:
         items: The items to iterate over.
@@ -249,7 +262,8 @@ def DoForEachItem[T](items: IEnumerable[T]|Iterable[T], action: Method[T], safe:
     """
     return EnumerateSafe(AsIterable(items), action, safe)
 def DoForEachArg[T](action: Method[T], *values: T) -> bool:
-    """Executes the given action for each variadic value.
+    """
+    Executes the given action for each variadic value.
 
     Args:
         action: A function to execute for each value.
@@ -261,7 +275,8 @@ def DoForEachArg[T](action: Method[T], *values: T) -> bool:
     return DoForEachItem(values, action)
 
 def ForEachWhile[T](items: Iterable[T], predicate: IndexedValueComparison[T], action: IndexedValueAction[T]) -> DualValueBool[int]|None:
-    """Executes the given action for items while the given predicate is False.
+    """
+    Executes the given action for items while the given predicate is False.
 
     Args:
         items: The items to iterate over.
@@ -281,7 +296,8 @@ def ForEachWhile[T](items: Iterable[T], predicate: IndexedValueComparison[T], ac
     return ForEachUntilTrue(items, _action)
 
 def ForEachWhileIndex[T](items: Iterable[T], action: IndexedValueAction[T], index: int) -> DualValueBool[int]|None:
-    """Executes the given action for items until reaching a specific index.
+    """
+    Executes the given action for items until reaching a specific index.
 
     Args:
         items: The items to iterate over.
@@ -293,7 +309,8 @@ def ForEachWhileIndex[T](items: Iterable[T], action: IndexedValueAction[T], inde
     """
     return ForEachWhile(items, GetIndexedValueIndexComparison(index), action)
 def ForEachWhileValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
-    """Executes the given action for items until finding a specific value.
+    """
+    Executes the given action for items until finding a specific value.
 
     Args:
         items: The items to iterate over.
@@ -305,7 +322,8 @@ def ForEachWhileValue[T](items: Iterable[T], action: IndexedValueAction[T], valu
     """
     return ForEachWhile(items, GetIndexedValueValueComparison(value), action)
 def ForEachWhileIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
-    """Executes the given action for items until reaching a specific index and value.
+    """
+    Executes the given action for items until reaching a specific index and value.
 
     Args:
         items: The items to iterate over.
@@ -319,7 +337,8 @@ def ForEachWhileIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[
     return ForEachWhile(items, GetIndexedValueComparison(index, value), action)
 
 def ForEachUntil[T](items: Iterable[T], predicate: IndexedValueComparison[T], action: IndexedValueAction[T]) -> DualValueBool[int]|None:
-    """Executes the given action for items until the given predicate is True.
+    """
+    Executes the given action for items until the given predicate is True.
 
     Args:
         items: The items to iterate over.
@@ -340,7 +359,8 @@ def ForEachUntil[T](items: Iterable[T], predicate: IndexedValueComparison[T], ac
     return ForEachUntilTrue(items, _action)
 
 def ForEachUntilIndex[T](items: Iterable[T], action: IndexedValueAction[T], index: int) -> DualValueBool[int]|None:
-    """Executes the given action for items until reaching a specific index.
+    """
+    Executes the given action for items until reaching a specific index.
 
     Args:
         items: The items to iterate over.
@@ -352,7 +372,8 @@ def ForEachUntilIndex[T](items: Iterable[T], action: IndexedValueAction[T], inde
     """
     return ForEachUntil(items, GetIndexedValueIndexComparison(index), action)
 def ForEachUntilValue[T](items: Iterable[T], action: IndexedValueAction[T], value: T) -> DualValueBool[int]|None:
-    """Executes the given action for items until finding a specific value.
+    """
+    Executes the given action for items until finding a specific value.
 
     Args:
         items: The items to iterate over.
@@ -364,7 +385,8 @@ def ForEachUntilValue[T](items: Iterable[T], action: IndexedValueAction[T], valu
     """
     return ForEachUntil(items, GetIndexedValueValueComparison(value), action)
 def ForEachUntilIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[T], index: int, value: T) -> DualValueBool[int]|None:
-    """Executes the given action for items until reaching a specific index and value.
+    """
+    Executes the given action for items until reaching a specific index and value.
 
     Args:
         items: The items to iterate over.
@@ -378,7 +400,8 @@ def ForEachUntilIndexAndValue[T](items: Iterable[T], action: IndexedValueAction[
     return ForEachUntil(items, GetIndexedValueComparison(index, value), action)
 
 def ScanItems[T](items: Iterable[T], predicate: Predicate[T], action: Method[T]) -> bool|None:
-    """Scans items and executes the given action only while all items match a predicate.
+    """
+    Scans items and executes the given action only while all items match a predicate.
 
     Args:
         items: The items to scan.
@@ -435,7 +458,8 @@ def __ForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]
     
     return func(items, lambda item: _action(item))
 def ForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]) -> bool|None:
-    """Executes the given action for all items except the first, while the action returns True.
+    """
+    Executes the given action for all items except the first, while the action returns True.
 
     Args:
         items: The items to iterate over.
@@ -448,7 +472,8 @@ def ForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]) 
     """
     return __ForEachButFirst(items, action, ForEachItem, True)
 def ForEachUntilButFirst[T](items: IEnumerable[T]|Iterable[T], action: Predicate[T]) -> bool|None:
-    """Executes the given action for all items except the first, until the action returns True.
+    """
+    Executes the given action for all items except the first, until the action returns True.
 
     Args:
         items: The items to iterate over.
@@ -478,7 +503,8 @@ def __ForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predica
 
     return func(items, lambda item: _action(item))
 def ForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
-    """Executes a special action for the first item, then a different one for the rest.
+    """
+    Executes a special action for the first item, then a different one for the rest.
 
     Args:
         items: The items to iterate over.
@@ -492,7 +518,8 @@ def ForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate
     """
     return __ForEachAndFirst(items, firstAction, action, ForEachItem, True)
 def ForEachUntilAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Predicate[T], action: Predicate[T]) -> bool|None:
-    """Executes a special action for the first item, then a different one until it returns True.
+    """
+    Executes a special action for the first item, then a different one until it returns True.
 
     Args:
         items: The items to iterate over.
@@ -507,7 +534,8 @@ def ForEachUntilAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Pred
     return __ForEachAndFirst(items, firstAction, action, ForEachItemUntil, False)
 
 def DoForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Method[T]) -> bool:
-    """Executes the given action for all items except the first.
+    """
+    Executes the given action for all items except the first.
 
     Args:
         items: The items to iterate over.
@@ -527,7 +555,8 @@ def DoForEachButFirst[T](items: IEnumerable[T]|Iterable[T], action: Method[T]) -
     
     return DoForEachItem(items, lambda item: _action(item))
 def DoForEachAndFirst[T](items: IEnumerable[T]|Iterable[T], firstAction: Method[T], action: Method[T]) -> bool:
-    """Executes a special action for the first item, then a different one for the rest.
+    """
+    Executes a special action for the first item, then a different one for the rest.
 
     Args:
         items: The items to iterate over.

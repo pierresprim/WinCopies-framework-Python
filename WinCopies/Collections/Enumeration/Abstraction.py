@@ -9,7 +9,8 @@ from WinCopies.Typing.Delegate import Converter
 from WinCopies.Typing.Generic import GenericConstraint, IGenericConstraintImplementation
 
 class AbstractEnumeratorBase[TIn, TOut, TEnumerator: IEnumeratorBase](EnumeratorAbstract[TOut], GenericConstraint[TEnumerator, IEnumerator[TIn]]):
-    """Base of the enumerators that wrap another enumerator, their source, and move with it.
+    """
+    Base of the enumerators that wrap another enumerator, their source, and move with it.
 
     These enumerators are meant for the collection wrappers, such as the conversion views, and for the framework's internal use. A wrapper shares the position of its source, which must therefore be in its initial state (Idle/Idle) when the wrapper is constructed. A wrapper is built on the result of TryGetEnumerator(), and a caller that wraps an enumerator it received handles the enumerator empty by design itself.
 

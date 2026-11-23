@@ -4,7 +4,6 @@ Created on Tue Jun 04 11:47:00 2024
 
 @author: Pierre Sprimont
 """
-
 from __future__ import annotations
 
 import os

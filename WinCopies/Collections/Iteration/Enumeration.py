@@ -55,15 +55,16 @@ def ConcatenateEnumerables[T](*collection: IEnumerable[T]) -> Generator[T]:
     return ConcatenateItems(collection)
 
 def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Excludes items until one matches a predicate, then includes the rest.
+    """
+    Excludes items until one matches a predicate, then includes the rest.
 
     Args:
         items: The items to process.
         predicate: The condition to stop excluding.
 
     Yields:
-        Items starting from the first one that matches the predicate."""
-    
+        Items starting from the first one that matches the predicate.
+    """
     for item in (items := iter(TryEnumerate(items))):
         if predicate(item):
             yield item
@@ -72,15 +73,16 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     
     for item in items: yield item
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
-    """Excludes items while they match a predicate, then includes the rest.
+    """
+    Excludes items while they match a predicate, then includes the rest.
 
     Args:
         items: The items to process.
         predicate: The condition to continue excluding.
 
     Yields:
-        Items starting from the first one that doesn't match the predicate."""
-    
+        Items starting from the first one that doesn't match the predicate.
+    """
     return ExcludeUntil(items, predicate if items is None else GetNotPredicate(predicate))
 
 def _Any(length: int) -> bool: return length > 0
@@ -101,14 +103,15 @@ def _Parse[TIn, TOut](items: ICountableEnumerable[TIn]|Collection[TIn]|Iterable[
         case Iterable(): return parse(items, predicate)
 
 def Any[T](items: ICountableEnumerable[T]|Collection[T]|Iterable[T], predicate: Predicate[T]|None = None) -> bool:
-    """Checks if an iterable contains any items.
+    """
+    Checks if an iterable contains any items.
 
     Args:
         items: The items to check.
 
     Returns:
-        True if any items exist, False otherwise."""
-    
+        True if any items exist, False otherwise.
+    """
     if predicate is None:
         match items:
             case ICountableEnumerable(): return _AnyValue(items)

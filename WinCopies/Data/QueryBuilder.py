@@ -76,8 +76,7 @@ class ISelectionQueryWriter(IConditionalQueryWriter):
         - parameter: The arguments of the routine call, if applicable.
 
         Returns:
-        The SQL formatted result of the table or routine call parsing.
-        """
+        The SQL formatted result of the table or routine call parsing."""
         ...
 
     @abstractmethod

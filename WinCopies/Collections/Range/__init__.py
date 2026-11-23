@@ -75,11 +75,11 @@ def __AsReversedKey(start: int, stop: int, step: int, count: int) -> slice:
 # The count comes back with the bounds rather than being read again by the caller: both
 # callers need it to mirror a negative step, and two reads would let it move between them.
 def ResolveKey(lst: ICountable, key: slice) -> tuple[int, int, int, int]:
-    """Resolves a slice key against a collection: the step, the start, the stop, the count.
+    """
+    Resolves a slice key against a collection: the step, the start, the stop, the count.
 
     A step of 0 is refused here, as CPython refuses it, so that no caller has to.
     """
-
     step: int|None = key.step
 
     if step is None: step = 1
