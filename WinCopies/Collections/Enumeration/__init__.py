@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Generator as _Generator
 from enum import Flag, auto
+from types import TracebackType
 from typing import final, Any
 
 from WinCopies import IInterface, IContextManager, Abstract
+from WinCopies.Collections import Generator
 from WinCopies.Collections.Util import _Outside # pyright: ignore[reportPrivateUsage]
 from WinCopies.Enum import AddFlag, HasFlag
 from WinCopies.Typing import InvalidOperationError
@@ -261,6 +263,19 @@ class _IterationContext[T](Abstract, IIterationContext[T]):
         self.__items: Iterable[T] = items
 
     def AsIterator(self) -> Iterator[T]: return iter(self.__items)
+@final
+class _GenerationContext[T](Abstract, IIterationContext[T]):
+    def __init__(self, items: Generator[T]) -> None:
+        super().__init__()
+
+        self.__items: Generator[T] = items
+
+    def AsIterator(self) -> Iterator[T]: return iter(self.__items)
+
+    def _OnExiting(self, excType: type[Exception]|None, exc: Exception|None, traceback: TracebackType|None) -> bool|None:
+        self.__items.close()
+
+        return super()._OnExiting(excType, exc, traceback)
 
 class IEnumerable[T](IInterface):
     """Provides an iteration context over its own items, which GetIterationContext gives for this object, so that the object decides what the exit of the with statement ends."""
@@ -291,10 +306,14 @@ __emptyIterationContext: _EmptyIterationContext[Any] = _EmptyIterationContext[An
 def _GetEmptyIterationContext[T]() -> IIterationContext[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyIterationContext
 
-def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T]) -> IIterationContext[T]:
-    return items.GetIterationContext() if isinstance(items, IEnumerable) else _IterationContext[T](items)
+def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T], disposeGenerator: bool = False) -> IIterationContext[T]:
+    match items:
+        case IEnumerable(): return items.GetIterationContext()
+        case _Generator() if disposeGenerator: return _GenerationContext[T](items)
+        
+        case _: return _IterationContext[T](items)
 
-def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]|None:
+def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None, disposeGenerator: bool = False) -> IIterationContext[T]|None:
     """
     Gets an iteration context over the given items, as GetIterationContext does, or None for None.
 
@@ -304,8 +323,8 @@ def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterat
     Returns:
         An iteration context over the items, or None if items is None.
     """
-    return None if items is None else _GetIterationContext(items)
-def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]:
+    return None if items is None else _GetIterationContext(items, disposeGenerator)
+def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None, disposeGenerator: bool = False) -> IIterationContext[T]:
     """
     Gets an iteration context over the given items, to iterate over them within a with statement.
 
@@ -317,4 +336,4 @@ def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIteration
     Returns:
         An iteration context over the items, or an empty iteration context if items is None.
     """
-    return _GetEmptyIterationContext() if items is None else _GetIterationContext(items)
+    return _GetEmptyIterationContext() if items is None else _GetIterationContext(items, disposeGenerator)

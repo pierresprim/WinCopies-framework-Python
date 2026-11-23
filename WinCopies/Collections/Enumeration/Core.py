@@ -938,7 +938,7 @@ class GeneratorBase[T](Abstract, IterableBase[T]):
     def _TryGetIterator(self) -> _Generator[T]|None: ...
 
     @final
-    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator())
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator(), True)
 class Generator[T](GeneratorBase[T]):
     """Provides the items of a generator that _TryGetIterator creates for each iteration, as GeneratorBase does, except that _TryGetIterator never returns None."""
 
@@ -965,7 +965,7 @@ class IteratorProvider[T](IteratorProviderBase[T]):
     def TryGetEnumerator(self) -> IEnumerator[T]|None: return TryAsEnumerator(self._TryGetIterator())
 
     @final
-    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator())
+    def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._TryGetIterator(), True)
 class EnumeratorProvider[T](IteratorProviderBase[T]):
     def __init__(self, enumeratorProvider: Function[IEnumerator[T]|None]) -> None:
         super().__init__()
