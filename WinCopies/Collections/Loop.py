@@ -141,8 +141,8 @@ def ForEachUntilTrue[T](items: Iterable[T], action: IndexedValueComparison[T]) -
     """
     i: int = -1
 
-    with GetIterationContext(items) as provider:
-        for item in provider.AsIterator():
+    with GetIterationContext(items) as context:
+        for item in context.AsIterator():
             i += 1
 
             if action(i, item): return CreateDualValueBool(i, False)

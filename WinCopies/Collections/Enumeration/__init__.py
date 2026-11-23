@@ -234,7 +234,7 @@ def GetNoDataEnumerationStatus() -> IIterationStatus:
     return __noData
 
 class IIterationContext[T](IContextManager):
-    """Provides an iterator over items, within a with statement whose exit ends what the provider started."""
+    """Provides an iterator over items, within a with statement whose exit ends what the context started."""
 
     def __init__(self) -> None: super().__init__()
 
@@ -263,14 +263,23 @@ class _IterationContext[T](Abstract, IIterationContext[T]):
     def AsIterator(self) -> Iterator[T]: return iter(self.__items)
 
 class IEnumerable[T](IInterface):
+    """Provides an iteration context over its own items, which GetIterationContext gives for this object, so that the object decides what the exit of the with statement ends."""
+
     def __init__(self) -> None: super().__init__()
 
     @abstractmethod
     def GetEnumerator(self) -> IIterationContext[T]:
+        """
+        Gets an iteration context over the items of this object.
+
+        Returns:
+            An iteration context over the items."""
         ...
 
 @final
 class _EmptyIterationContext[T](Abstract, Iterator[T], IIterationContext[T]):
+    """Provides an iterator over no items. It is its own iterator and has no state, so that a single instance serves every with statement, nested ones included."""
+
     def __init__(self) -> None: super().__init__()
 
     def AsIterator(self) -> Iterator[T]: return self
@@ -287,25 +296,25 @@ def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T]) -> IIterationCont
 
 def TryGetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]|None:
     """
-    Gets the provider of an iterator over the given items, as GetIteratorProvider does, or None for None.
+    Gets an iteration context over the given items, as GetIterationContext does, or None for None.
 
     Args:
         items: The items to iterate over, or None.
 
     Returns:
-        The provider of an iterator over the items, or None if items is None.
+        An iteration context over the items, or None if items is None.
     """
     return None if items is None else _GetIterationContext(items)
 def GetIterationContext[T](items: IEnumerable[T]|Iterable[T]|None) -> IIterationContext[T]:
     """
-    Gets the provider of an iterator over the given items, to iterate over them within a with statement.
+    Gets an iteration context over the given items, to iterate over them within a with statement.
 
-    For a collection of the framework, the provider is an enumerator that this function gets from it, which the exit of the with statement stops, so that it leaves the registry of the collection at once. An empty collection gives the empty enumerator. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
+    For an IEnumerable, the context is the one that the object gives. For a collection of the framework, it is an enumerator, which the exit of the with statement stops, so that it leaves the registry of the collection at once, and an empty collection gives the empty enumerator. For any other iterable, the exit does nothing, so that an iterator that the caller passed is neither closed nor stopped, and stays to the caller.
 
     Args:
         items: The items to iterate over, or None.
 
     Returns:
-        The provider of an iterator over the items, or the empty enumerator if items is None.
+        An iteration context over the items, or an empty iteration context if items is None.
     """
     return _GetEmptyIterationContext() if items is None else _GetIterationContext(items)
