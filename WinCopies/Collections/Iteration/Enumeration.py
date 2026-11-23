@@ -10,7 +10,7 @@ from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
 from WinCopies.Collections.Enumeration import GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsIterable, AsEnumerable, AsEnumerator
-from WinCopies.Collections.Iteration import Concatenate, TryEnumerate, Select, Include, IterateWith
+from WinCopies.Collections.Iteration import Concatenate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
 from WinCopies.Delegates import Self, GetNotPredicate
 from WinCopies.Typing import INullable, InvalidOperationError, GetNullValue, GetNullable
@@ -66,13 +66,14 @@ def ExcludeUntil[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generat
     Yields:
         Items starting from the first one that matches the predicate.
     """
-    for item in (items := iter(TryEnumerate(items))):
-        if predicate(item):
-            yield item
+    with GetIterationContext(items) as context:
+        for item in (items := context.AsIterator()):
+            if predicate(item):
+                yield item
 
-            break
-    
-    for item in items: yield item
+                break
+        
+        for item in items: yield item
 def ExcludeWhile[T](items: Iterable[T]|None, predicate: Predicate[T]) -> Generator[T]:
     """
     Excludes items while they match a predicate, then includes the rest.

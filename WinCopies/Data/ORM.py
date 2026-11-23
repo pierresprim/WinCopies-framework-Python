@@ -1455,7 +1455,8 @@ class Entity(Abstract, IDisposable):
             return CreateSet(self.__dirty.GetKeys().AsIterable())
 
         def _CommitChanges(self) -> None:
-            for key in self.__dirty.GetKeys().AsIterable(): self.__values.AddOrUpdate(key, self.__dirty.TryGetValue(key).GetValue())
+            with self.__dirty.GetKeys().GetIterationContext() as keys:
+                for key in keys.AsIterator(): self.__values.AddOrUpdate(key, self.__dirty.TryGetValue(key).GetValue())
 
             self.__dirty.Clear()
         def _RevertChanges(self) -> None:
@@ -2028,36 +2029,37 @@ class _Adder(_Writer):
             handler: _Adder._EnumerationHandler = _Adder._EnumerationHandler(onStack)
             entity: Entity = ref.GetValue()
 
-            for e in AppendItem(Select(_EntityEnumerable(entity, data).GetRecursiveStackedEnumerator(EnumerationOrder.LIFO, handler).AsIterator(), lambda e: e.GetValue()), entity):
-                cols: _Columns = _GetColumns(e)
-                autoPrimaryKey: _IAutoPrimaryKey[Entity, object]|None = self.__GetAutoPrimaryKey(cols)
+            with _EntityEnumerable(entity, data).GetRecursiveStackedEnumerator(EnumerationOrder.LIFO, handler) as entities:
+                for e in AppendItem(Select(entities.AsIterator(), lambda e: e.GetValue()), entity):
+                    cols: _Columns = _GetColumns(e)
+                    autoPrimaryKey: _IAutoPrimaryKey[Entity, object]|None = self.__GetAutoPrimaryKey(cols)
 
-                # Capture the placeholder BEFORE write-back.
-                oldValue: object|None = None if autoPrimaryKey is None else _GetEntityValue(e, autoPrimaryKey)
+                    # Capture the placeholder BEFORE write-back.
+                    oldValue: object|None = None if autoPrimaryKey is None else _GetEntityValue(e, autoPrimaryKey)
 
-                row: IDictionary[str, object] = self._AssembleRow(e, cols, _defaultColumnSelector)
+                    row: IDictionary[str, object] = self._AssembleRow(e, cols, _defaultColumnSelector)
 
-                mapper: IEntityMapper[Entity] = context._GetMapper(type(e)) # pyright: ignore[reportPrivateUsage]
-                key: IEntityKey[IItem]|None = None
+                    mapper: IEntityMapper[Entity] = context._GetMapper(type(e)) # pyright: ignore[reportPrivateUsage]
+                    key: IEntityKey[IItem]|None = None
 
-                if autoPrimaryKey is None:
-                    key = mapper.GetKey(self.__GetPrimaryKeyValues(e, cols))
+                    if autoPrimaryKey is None:
+                        key = mapper.GetKey(self.__GetPrimaryKeyValues(e, cols))
 
-                    if mapper.TryGetEntity(key) is not None: raise DuplicateIdentityError(e)
+                        if mapper.TryGetEntity(key) is not None: raise DuplicateIdentityError(e)
 
-                result: IInsertionQueryExecutionResult = _GetTable(context, e).Insert(row)
+                    result: IInsertionQueryExecutionResult = _GetTable(context, e).Insert(row)
 
-                try:
-                    if autoPrimaryKey is not None: autoPrimaryKey._SetGeneratedValue(e, result.GetLastRowId()) # pyright: ignore[reportPrivateUsage]
-                
-                finally: result.Dispose()
+                    try:
+                        if autoPrimaryKey is not None: autoPrimaryKey._SetGeneratedValue(e, result.GetLastRowId()) # pyright: ignore[reportPrivateUsage]
+                    
+                    finally: result.Dispose()
 
-                if key is None: key = mapper.GetKey(self.__GetPrimaryKeyValues(e, cols))
+                    if key is None: key = mapper.GetKey(self.__GetPrimaryKeyValues(e, cols))
 
-                mapper.Register(key, e)
+                    mapper.Register(key, e)
 
-                journal.MarkSeen(e)
-                journal.RecordInserted(mapper, key, e, autoPrimaryKey, oldValue)
+                    journal.MarkSeen(e)
+                    journal.RecordInserted(mapper, key, e, autoPrimaryKey, oldValue)
         
         context: DataContextBase = self._GetContext()
         data: _EntityEnumerationData = _EntityEnumerationData(context, journal, onStack)

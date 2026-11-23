@@ -4,7 +4,8 @@ from WinCopies.IO import IDirEntry
 from WinCopies.IO.DirEntry import DirEntry
 
 def Enumerate(dirEntry: IDirEntry) -> Generator[IDirEntry]:
-    for dirEntry in dirEntry.GetRecursiveEnumerator().AsIterator(): yield dirEntry
+    with dirEntry.GetRecursiveEnumerator() as entries:
+        for dirEntry in entries.AsIterator(): yield dirEntry
 
 def TryGetEnumeratorFromPath(path: str) -> IEnumerator[IDirEntry]|None:
     return DirEntry.FromPath(path).TryGetRecursiveEnumerator()

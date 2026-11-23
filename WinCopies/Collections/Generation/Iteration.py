@@ -1,14 +1,14 @@
 from abc import abstractmethod
-from collections.abc import Iterable, Iterator as IteratorCollection
+from collections.abc import Iterable
 from typing import final, Callable, Type
 
 from WinCopies import IInterface, Abstract
 from WinCopies.Collections import Generator as GeneratorCollection
 from WinCopies.Collections.Enumeration import GetIterationContext
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, AsEnumerable, GetIterable
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, AsEnumerable, GetIterable, GetEnumerator
 from WinCopies.Collections.Enumeration.Selection import ExcluerEnumerator, ExcluerUntilEnumerator
 from WinCopies.Collections.Generation import IRemovable
-from WinCopies.Collections.Iteration import TryEnumerate, Select
+from WinCopies.Collections.Iteration import Select
 from WinCopies.Delegates import GetNotPredicate
 from WinCopies.Typing.Delegate import Function, Predicate, Converter as ConverterDelegate, Selector
 
@@ -107,15 +107,16 @@ class IteratorBase[T](Abstract, IIterator[T]):
 
     @final
     def __Exclude(self, selector: Selector[IEnumerator[T]]) -> GeneratorCollection[T]:
-        def getIterator(enumerable: IEnumerable[T]) -> IteratorCollection[T]|None:
+        def getEnumerator(enumerable: IEnumerable[T]) -> IEnumerator[T]|None:
             enumerator: IEnumerator[T]|None = enumerable.TryGetEnumerator()
             
-            return None if enumerator is None else selector(enumerator).AsIterator()
+            return None if enumerator is None else selector(enumerator)
         
-        for item in TryEnumerate(getIterator(AsEnumerable(self._GetItems()))):
-            yield item
+        with GetEnumerator(getEnumerator(AsEnumerable(self._GetItems()))) as enumerator:
+            for item in enumerator.AsIterator():
+                yield item
 
-            if self._ProcessItem(item): break
+                if self._ProcessItem(item): break
     
     @final
     def ExcludeWhile(self, predicate: Predicate[T]) -> GeneratorCollection[T]: return self.__Exclude(lambda enumerator: ExcluerEnumerator(enumerator, predicate))

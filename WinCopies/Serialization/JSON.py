@@ -672,8 +672,9 @@ def GetGenerator(stream: IStreamReader[bytes], events: Events) -> Generator[IKey
     node: INode|None = None
     event: Events|None = None
 
-    for item in GetNodeEnumerator(stream).AsIterator():
-        if (event := tryGetEvent(item.GetValue())) is not None and (node := item.GetKey()) is not None and event in events: yield CreateDualResult(node, event)
+    with GetNodeEnumerator(stream) as nodes:
+        for item in nodes.AsIterator():
+            if (event := tryGetEvent(item.GetValue())) is not None and (node := item.GetKey()) is not None and event in events: yield CreateDualResult(node, event)
 def GetEnumerator(stream: IStreamReader[bytes], events: Events) -> IEnumerator[IKeyValuePair[INode, Events]]:
     return AsEnumerator(GetGenerator(stream, events))
 def GetEnumerable(stream: IStreamReader[bytes], events: Events) -> IEnumerable[IKeyValuePair[INode, Events]]:

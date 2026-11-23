@@ -96,12 +96,13 @@ class _OrderedSetList[T: HashableProtocol](Abstract, MutableList[T], CollectionA
         leaving: MutableSet[T] = CreateSet(Select(indices.AsIterable(), self.__list.GetAt))
         seen: MutableSet[T] = MakeSet()
 
-        for item in items.AsIterable():
-            if cannotSetRange(item in seen, ThrowRepeatedItemError): return False
+        with items.GetIterationContext() as context:
+            for item in context.AsIterator():
+                if cannotSetRange(item in seen, ThrowRepeatedItemError): return False
 
-            seen.add(item)
+                seen.add(item)
 
-            if cannotSetRange(item in self.__innerSet and item not in leaving, ThrowDuplicateItemError): return False
+                if cannotSetRange(item in self.__innerSet and item not in leaving, ThrowDuplicateItemError): return False
 
         return True
 
