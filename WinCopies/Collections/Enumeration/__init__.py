@@ -279,7 +279,7 @@ class _EmptyIterationContext[T](Abstract, Iterator[T], IIterationContext[T]):
 
 __emptyIterationContext: _EmptyIterationContext[Any] = _EmptyIterationContext[Any]()
 
-def _GetEmptyIterationContext[T]() -> _EmptyIterationContext[T]: # pyright: ignore[reportInvalidTypeVarUse]
+def _GetEmptyIterationContext[T]() -> IIterationContext[T]: # pyright: ignore[reportInvalidTypeVarUse]
     return __emptyIterationContext
 
 def _GetIterationContext[T](items: IEnumerable[T]|Iterable[T]) -> IIterationContext[T]:
