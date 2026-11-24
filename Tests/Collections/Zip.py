@@ -17,18 +17,20 @@ branches on, and read the zip's report on each outcome.
 
 import unittest
 
-from collections.abc import Generator, Iterable, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+from contextlib import nullcontext
 from typing import Any
 from unittest import mock
 
 import WinCopies.Collections.Abstraction.Mapping.Extensions as MappingExtensions
+import WinCopies.Collections.Enumeration as IterationContexts
 import WinCopies.Collections.Iteration.Enumeration as Enumeration
 import WinCopies.Collections.Loop as Loop
 
 from WinCopies.Collections import ReadOnlyArray
 from WinCopies.Collections.Abstraction.Collection import EquatableTuple, List
 from WinCopies.Collections.Abstraction.Mapping.Extensions import CreateOrderedSet
-from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, AsIterable, AsEnumerable, AsEnumerator
+from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, Enumerable, AsIterable, AsEnumerable, AsEnumerator, CreateEnumeratorProvider, CreateIteratorProvider, GetEmptyEnumerable
 from WinCopies.Collections.Extensions import IEquatableTuple
 from WinCopies.Collections.Iteration import IncludeWhileTrue
 from WinCopies.Collections.Iteration.Enumeration import IZipInfo
@@ -153,6 +155,86 @@ class TestTheZipReportsTheLongerSide(unittest.TestCase):
         for side, x, y in (("x", None, (1,)), ("y", (1,), None)):
             with self.subTest(absent = side): self.assertIsNone(Enumeration.TryZip(x, y), f"TryZip answers an absent {side} with a zip")
 
+def _recorded(items: Iterable[int]) -> tuple[Enumerable[int], list[IEnumerator[int]]]:
+    """A collection of the framework, seen through an enumerable that records every enumerator it
+    gives, so that a bench can read whether that enumerator is still started."""
+
+    source: List[int] = List[int](items)
+    enumerators: list[IEnumerator[int]] = []
+
+    def provide() -> IEnumerator[int]:
+        enumerator: IEnumerator[int] = source.GetEnumerator()
+
+        enumerators.append(enumerator)
+
+        return enumerator
+
+    return (CreateEnumeratorProvider(provide), enumerators)
+
+class TestTheZipStopsOnlyTheEnumeratorThatItCreates(unittest.TestCase):
+    """b3586b93. TryZip creates the enumerator of y when y is an enumerable, and that enumerator
+    belongs to the zip: the end of the zip, its abandonment or an exception stops it, so that it leaves
+    the registry of its collection at once. An iterator that the caller passes as y stays to the
+    caller, as an iterator passed to GetIterationContext does: the zip neither stops nor closes it.
+
+    The commit went through two drafts. The first stopped the enumerator that the caller passed, and
+    an enumerable without enumerator, which had given an empty zip and its report, gave neither. The
+    second stopped a second enumerator of y, and not the one that the zip advanced."""
+
+    def test_an_abandoned_zip_stops_the_enumerator_that_it_created(self) -> None:
+        y, enumerators = _recorded((10, 20, 30))
+        pairs: Generator[IKeyValuePair[int, int]] = Enumeration.Zip((1, 2, 3), y)
+
+        next(pairs)
+
+        pairs.close()
+
+        self.assertEqual(len(enumerators), 1, "the zip created more than one enumerator of y")
+        self.assertFalse(enumerators[0].IsStarted(), "the enumerator of y is still started once the zip is abandoned")
+
+    def test_an_enumerator_that_the_caller_passes_stays_started(self) -> None:
+        """The report draws one item of y past the end of x, so the rest of y is its third item."""
+
+        enumerator: IEnumerator[int] = List[int]((10, 20, 30)).GetEnumerator()
+
+        for _ in Enumeration.Zip((1,), enumerator.AsIterator()): pass
+
+        self.assertTrue(enumerator.IsStarted(), "the zip stopped the enumerator that the caller passed")
+        self.assertEqual(tuple(enumerator.AsIterator()), (30,), "the rest of the enumerator is lost")
+
+    def test_a_generator_that_the_caller_passes_is_not_closed(self) -> None:
+        closed: list[bool] = []
+
+        def generate() -> Generator[int]:
+            try: yield from (10, 20, 30)
+            finally: closed.append(True)
+
+        generator: Generator[int] = generate()
+
+        for _ in Enumeration.Zip((1,), generator): pass
+
+        self.assertEqual(closed, [], "the zip closed the generator that the caller passed")
+        self.assertEqual(tuple(generator), (30,), "the rest of the generator is lost")
+
+    def test_an_enumerable_without_items_gives_an_empty_zip_and_its_report(self) -> None:
+        cases: tuple[tuple[str, IEnumerable[int]], ...] = (
+            ("an empty list",                                 List[int](())),
+            ("the empty enumerable",                          GetEmptyEnumerable()),
+            ("an iterator provider that gives no iterator",   CreateIteratorProvider(lambda: None)))
+
+        for name, y in cases:
+            with self.subTest(y = name):
+                reports: list[IZipInfo] = []
+                pairs: Generator[IKeyValuePair[int, int]]|None = Enumeration.TryZip((1, 2), y, reports.append)
+
+                if pairs is None: self.fail("TryZip gives no zip")
+
+                self.assertEqual(tuple(pairs), ())
+
+                (report,) = reports
+
+                self.assertIs(report.GetValue(), True, "the report does not say that x is the longer")
+
 def _orderedSetTuple(*items: int) -> IEquatableTuple[int]: return CreateOrderedSet(items).AsTuple()
 
 class TestTheOrderedSetTupleComparesWholeIterables(unittest.TestCase):
@@ -213,7 +295,8 @@ def _areEqualsAsAtE69a028[T1, T2](x: IEnumerable[T1]|Iterable[T1], y: IEnumerabl
             or iterableEquals(x, y))
 
 def _enumeratorOf(items: Iterable[Any]|IEnumerable[Any]) -> IEnumerator[Any]|None:
-    """How TryZip has always obtained y's enumerator, unchanged by every commit rebuilt below."""
+    """How TryZip obtained y's enumerator up to b3586b93, unchanged by every commit rebuilt below.
+    b3586b93 takes GetEnumerator() for an IEnumerable, in a branch placed before the Iterable one."""
 
     match items:
         case Iterator(): return AsEnumerator(items)
@@ -290,6 +373,38 @@ def _tryZipAsAtD4c9197(x: Iterable[Any]|IEnumerable[Any]|None, y: Iterable[Any]|
 
     return None if enumerator is None else pairs(enumerator)
 
+def _tryZipHolding(contextOf: Callable[[Any, IEnumerator[Any]], Any], enumeratorOf: Callable[[Any], IEnumerator[Any]|None] = _enumeratorOf) -> Any:
+    """TryZip with its report as it is today, holding during the zip the context that contextOf gives
+    for y and for the enumerator that the zip advances. The code before b3586b93 and the drafts of
+    that commit differ only there, and in how they obtain the enumerator of y."""
+
+    def tryZip(x: Iterable[Any]|IEnumerable[Any]|None, y: Iterable[Any]|IEnumerable[Any]|None, info: Method[IZipInfo]|None = None) -> Generator[IKeyValuePair[Any, Any]]|None:
+        if x is None or y is None: return None
+
+        items: Iterable[Any] = AsIterable(x)
+        enumerator: IEnumerator[Any]|None = enumeratorOf(y)
+        report: _RebuiltZipReport = _RebuiltZipReport(True)
+
+        if enumerator is None: return None
+
+        def pairs(_y: IEnumerator[Any]) -> Generator[IKeyValuePair[Any, Any]]:
+            with contextOf(y, _y):
+                for item in items:
+                    if _y.MoveNext(): yield CreateDualResult(item, _y.GetCurrent())
+
+                    else:
+                        report.SetValue(True)
+
+                        return
+
+                report.SetValue(False if _y.MoveNext() else None)
+
+        if info is not None: info(report)
+
+        return pairs(enumerator)
+
+    return tryZip
+
 def _run(bench: type[unittest.TestCase], name: str) -> unittest.TestResult:
     result: unittest.TestResult = unittest.TestResult()
 
@@ -364,3 +479,33 @@ class TestTheZipBenchesCanFail(unittest.TestCase):
         """As at d4c9197: TryZip, which Zip looks up in its module."""
 
         self.__assertFalls(TestTheZipReportsTheLongerSide, "test_the_zip_pairs_every_item_and_an_absent_side_gives_no_zip", Enumeration, {"TryZip": _tryZipAsAtD4c9197})
+
+    def test_the_stop_bench_falls_as_tryzip_stood_before_b3586b93(self) -> None:
+        """As at fbffa79f: the zip held no context for y."""
+
+        self.__assertFalls(TestTheZipStopsOnlyTheEnumeratorThatItCreates, "test_an_abandoned_zip_stops_the_enumerator_that_it_created", Enumeration, {"TryZip": _tryZipHolding(lambda y, enumerator: nullcontext())})
+
+    def test_the_stop_bench_falls_when_the_zip_holds_another_enumerator_of_y(self) -> None:
+        """As in the second draft of b3586b93: the zip held the context that GetIterationContext gives
+        for y, which is a second enumerator of a collection of the framework."""
+
+        self.__assertFalls(TestTheZipStopsOnlyTheEnumeratorThatItCreates, "test_an_abandoned_zip_stops_the_enumerator_that_it_created", Enumeration, {"TryZip": _tryZipHolding(lambda y, enumerator: IterationContexts.GetIterationContext(y))})
+
+    def test_the_bench_of_a_passed_enumerator_falls_when_the_zip_stops_it(self) -> None:
+        """As in the first draft of b3586b93: the zip held the enumerator that it advances, whatever y
+        was, and AsEnumerator gives back the enumerator that the caller passes."""
+
+        self.__assertFalls(TestTheZipStopsOnlyTheEnumeratorThatItCreates, "test_an_enumerator_that_the_caller_passes_stays_started", Enumeration, {"TryZip": _tryZipHolding(lambda y, enumerator: enumerator)})
+
+    def test_the_bench_of_a_passed_generator_falls_when_the_zip_closes_it(self) -> None:
+        """A likely defect: the zip asking for the closing of y."""
+
+        self.__assertFalls(TestTheZipStopsOnlyTheEnumeratorThatItCreates, "test_a_generator_that_the_caller_passes_is_not_closed", Enumeration, {"TryZip": _tryZipHolding(lambda y, enumerator: IterationContexts.GetIterationContext(y, True))})
+
+    def test_the_empty_bench_falls_when_an_enumerable_without_enumerator_gives_no_zip(self) -> None:
+        """As in the first draft of b3586b93: the IEnumerable branch came first, and took
+        TryGetEnumerator(), which answers None for an enumerable without enumerator."""
+
+        def enumeratorOf(items: Any) -> IEnumerator[Any]|None: return items.TryGetEnumerator() if isinstance(items, IEnumerable) else _enumeratorOf(items) # pyright: ignore[reportUnknownVariableType]
+
+        self.__assertFalls(TestTheZipStopsOnlyTheEnumeratorThatItCreates, "test_an_enumerable_without_items_gives_an_empty_zip_and_its_report", Enumeration, {"TryZip": _tryZipHolding(lambda y, enumerator: enumerator, enumeratorOf)})
