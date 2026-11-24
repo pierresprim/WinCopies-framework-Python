@@ -872,7 +872,7 @@ class _Iterable[T](_IterableBase[T]):
         ...
     
     @final
-    def _TryGetIterator(self) -> SystemIterator[T]|None: return iter(self._GetIterable())
+    def _TryGetIterator(self) -> SystemIterator[T]: return iter(self._GetIterable())
 
     @final
     def GetIterationContext(self) -> IIterationContext[T]: return GetIterationContext(self._GetIterable())

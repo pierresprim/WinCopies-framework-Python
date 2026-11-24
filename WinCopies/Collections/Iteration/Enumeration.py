@@ -8,7 +8,7 @@ from typing import final
 from WinCopies import IInterface, Abstract
 from WinCopies.Bool import BooleanableEnum, NullableBoolean
 from WinCopies.Collections import Generator
-from WinCopies.Collections.Enumeration import GetIterationContext
+from WinCopies.Collections.Enumeration import IIterationContext, GetIterationContext
 from WinCopies.Collections.Enumeration.Core import IEnumerable, IEnumerator, ICountableEnumerable, TryAsIterable, AsIterable, AsEnumerable, AsEnumerator
 from WinCopies.Collections.Iteration import Concatenate, Select, Include, IterateWith
 from WinCopies.Collections.Util import MakeGenerator
@@ -172,21 +172,22 @@ class _ZipInfo(Abstract, IInterface):
 
 def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1]|None, y: Iterable[T2]|IEnumerable[T2]|None, info: Method[IZipInfo]|None = None) -> Generator[IKeyValuePair[T1, T2]]|None:
     def tryZip(x: Iterable[T1]|None, y: Iterable[T2]|IEnumerable[T2]) -> Generator[IKeyValuePair[T1, T2]]|None:
-        def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+        def _zip(context: IIterationContext[T2], y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
             def zip(info: _ZipInfo|None) -> Generator[IKeyValuePair[T1, T2]]:
                 def setValue(value: bool|None) -> None:
                     if info is not None: info.SetValue(value)
-                
-                with GetIterationContext(x) as context:
-                    for item in context.AsIterator():
-                        if y.MoveNext(): yield CreateDualResult(item, y.GetCurrent())
-                        
-                        else:
-                            setValue(True)
 
-                            return
+                with context:
+                    with GetIterationContext(x) as _x:
+                        for item in _x.AsIterator():
+                            if y.MoveNext(): yield CreateDualResult(item, y.GetCurrent())
+                            
+                            else:
+                                setValue(True)
 
-                setValue(False if y.MoveNext() else None)
+                                return
+
+                    setValue(False if y.MoveNext() else None)
 
             if info is None: return zip(None)
 
@@ -195,15 +196,13 @@ def TryZip[T1, T2](x: Iterable[T1]|IEnumerable[T1]|None, y: Iterable[T2]|IEnumer
             info(_info.AsReadOnly())
 
             return zip(_info)
+        def zip(y: IEnumerator[T2]) -> Generator[IKeyValuePair[T1, T2]]:
+            return _zip(y, y)
         
         match y:
-            case Iterator(): return zip(AsEnumerator(y))
+            case Iterator(): return _zip(GetIterationContext(y), AsEnumerator(y))
+            case IEnumerable(): return zip(y.GetEnumerator())
             case Iterable(): return zip(AsEnumerable(y).GetEnumerator())
-            
-            case IEnumerable():
-                _y: IEnumerator[T2]|None = y.TryGetEnumerator()
-
-                return None if _y is None else zip(_y)
     
     return None if x is None or y is None else tryZip(AsIterable(x), y)
 def Zip[T1, T2](x: Iterable[T1]|IEnumerable[T1], y: Iterable[T2]|IEnumerable[T2], info: Method[IZipInfo]|None = None) -> Generator[IKeyValuePair[T1, T2]]:
