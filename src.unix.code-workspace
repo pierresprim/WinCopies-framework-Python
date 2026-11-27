@@ -4,7 +4,11 @@
 			"path": "."
 		}
 	],
-	"settings": {},
+	"settings": {
+		"python.testing.unittestEnabled": true,
+		"python.testing.pytestEnabled": false,
+		"python.testing.unittestArgs": ["-v", "-s", "./Tests", "-t", ".", "-p", "[!_]*.py"]
+	},
 	"launch": {
 		"version": "0.2.0",
 		"configurations": [
