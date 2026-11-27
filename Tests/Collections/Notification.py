@@ -48,6 +48,7 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import EnumerateSafe
 from WinCopies.Typing import InvalidOperationError
+from WinCopies.Typing.Delegate import Action
 from WinCopies.Typing.Extensions import ExceptionGroupBuilder
 from WinCopies.Typing.Monitoring import IMonitor, TryDoWork
 
@@ -702,7 +703,7 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         subscription. The weak reference of each node is rebuilt as a strong one."""
 
         class Strong[T]:
-            def __init__(self, obj: T, action: Callable[[], None]) -> None: self.__obj: T|None = obj
+            def __init__(self, obj: T, action: Action) -> None: self.__obj: T|None = obj
             def TryGetValue(self) -> T|None: return self.__obj
             def Remove(self) -> None: self.__obj = None
 

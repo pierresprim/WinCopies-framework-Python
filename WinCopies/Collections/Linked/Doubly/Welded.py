@@ -448,7 +448,7 @@ class IEnumerableListCookie[TItem, TNode: _INode](IEnumerableListCookieAbstract[
 class ICountableEnumerableListCookie[TItem, TNode: _INode](ICountableEnumerableListCookieAbstract[TItem, TNode, IReadOnlyCountableEnumerableList[TItem]]):
     def __init__(self) -> None: super().__init__()
 
-class _EnumerableListBaseAbstract[TItem, TNode: IRemovableNode, TList, TReadOnly](Abstract, IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
+class _EnumerableListBaseAbstract[TItem, TNode: IRemovableNode, TReadOnly](Abstract, IEnumerableListCookieAbstract[TItem, TNode, TReadOnly]):
     def __init__(self, cookie: IValueCookie[TItem, TNode]) -> None:
         def updateNodeGenerator(func: IFunction[IIterator[TNode]]) -> None: self.__nodeGenerator = func
         def updateGenerator(func: IFunction[IIterator[TItem]]) -> None: self.__generator = func
@@ -468,7 +468,7 @@ class _EnumerableListBaseAbstract[TItem, TNode: IRemovableNode, TList, TReadOnly
     @final
     def GetGenerator(self) -> IIterator[TItem]: return self.__generator.GetValue()
 
-class _ListBase[TItem, TNode: IRemovableNode, TList, TReadOnly](_EnumerableListBaseAbstract[TItem, TNode, TList, TReadOnly]):
+class _ListBase[TItem, TNode: IRemovableNode, TList, TReadOnly](_EnumerableListBaseAbstract[TItem, TNode, TReadOnly]):
     def __init__(self, items: TList, cookie: IValueCookie[TItem, TNode], cookieProvider: ICookieProvider[TItem, TNode]) -> None:
         def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None: self.__readOnlyEnumerable = func
         
@@ -482,7 +482,7 @@ class _ListBase[TItem, TNode: IRemovableNode, TList, TReadOnly](_EnumerableListB
     
     @final
     def GetReadOnly(self) -> TReadOnly: return self.__readOnlyEnumerable.GetValue()
-class _EnumerableListBase[TItem, TNode: IRemovableNode, TList, TReadOnly](_EnumerableListBaseAbstract[TItem, TNode, TList, TReadOnly]):
+class _EnumerableListBase[TItem, TNode: IRemovableNode, TList, TReadOnly](_EnumerableListBaseAbstract[TItem, TNode, TReadOnly]):
     def __init__(self, items: TList, cookie: IValueCookie[TItem, TNode]) -> None:
         def updateReadOnlyEnumerable(func: IFunction[TReadOnly]) -> None: self.__readOnlyEnumerable = func
         
