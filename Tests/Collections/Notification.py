@@ -48,17 +48,17 @@ from WinCopies.Collections.Generation import IRemovable
 from WinCopies.Collections.Iteration import Iterate
 from WinCopies.Collections.Iteration.Traversal import EnumerateSafe
 from WinCopies.Typing import InvalidOperationError
-from WinCopies.Typing.Delegate import Action
+from WinCopies.Typing.Delegate import Action, Method, Function, GenericMethod, GenericFunction
 from WinCopies.Typing.Extensions import ExceptionGroupBuilder
 from WinCopies.Typing.Monitoring import IMonitor, TryDoWork
 
 class _Subscriber(Abstract, INotifyCallback):
-    def __init__(self, name: str, log: list[str], react: Callable[[], object]|None = None) -> None:
+    def __init__(self, name: str, log: list[str], react: Function[object]|None = None) -> None:
         super().__init__()
 
         self.__name: str = name
         self.__log: list[str] = log
-        self.__react: Callable[[], object]|None = react
+        self.__react: Function[object]|None = react
 
     def Notify(self, revoke: bool) -> None:
         self.__log.append(self.__name + ("!" if revoke else ""))
@@ -76,7 +76,7 @@ class _Bench:
 
         for name in names: self.Add(name)
 
-    def Add(self, name: str, react: Callable[[], object]|None = None) -> None:
+    def Add(self, name: str, react: Function[object]|None = None) -> None:
         subscriber: _Subscriber = _Subscriber(name, self.log, react)
 
         self.subscribers[name] = subscriber
@@ -89,7 +89,7 @@ class _Bench:
 
         gc.collect()
 
-    def Dropping(self, names: str) -> Callable[[], object]:
+    def Dropping(self, names: str) -> Function[object]:
         """A reaction by which a subscriber releases subscribers during a notification, itself or
         others: the bench drops the only strong reference it keeps to them. Each of them dies at once,
         by the fall of its reference count, except the subscriber that reacts, which dies once the call
@@ -103,7 +103,7 @@ class _Bench:
     def Remove(self, names: Iterable[str]) -> None:
         for name in names: self.removables[name].Remove()
 
-    def Removing(self, names: str, then: Callable[[], object]|None = None) -> Callable[[], object]:
+    def Removing(self, names: str, then: Function[object]|None = None) -> Function[object]:
         """A reaction by which a subscriber removes subscribers through their IRemovable during a
         notification, itself or others, and then runs then, if given."""
 
@@ -125,7 +125,7 @@ _REMOVALS: ReadOnlyArray[str] = ("A", "B", "C", "AB", "BC", "AC", "ABC")
 
 def _rest(removed: str) -> ReadOnlyArray[str]: return tuple(name for name in "ABC" if name not in removed)
 
-def _once(action: Callable[[], object]) -> Callable[[], object]:
+def _once(action: Function[object]) -> Function[object]:
     """A reaction that runs action at its first call only."""
 
     fired: bool = False
@@ -586,7 +586,7 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         notifier with InvalidationNotifier, as until 1c67be61, and its node too with object, as until
         f9f28d99. Add makes the weak references of the IRemovable through the ref of the module."""
 
-        def strongly(obj: object) -> Callable[[], object]: return (lambda: obj) if isinstance(obj, held) else ref(obj)
+        def strongly(obj: object) -> Function[object]: return (lambda: obj) if isinstance(obj, held) else ref(obj)
 
         return {"ref": strongly}
 
@@ -607,7 +607,7 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         """The operation of the notifier named, Add or Notify, refused while the monitor is held, as
         until the single notifier."""
 
-        original: Callable[..., Any] = getattr(InvalidationNotifier, operation)
+        original: GenericFunction[Any] = getattr(InvalidationNotifier, operation)
 
         def refused(self: Any, *args: Any) -> Any:
             if getattr(self, "_InvalidationNotifier__monitor").IsBusy(): raise InvalidOperationError("The given monitor is already busy.")
@@ -639,9 +639,9 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         next node, and the rebuilt defect shows at the tail only."""
 
         node: type = getattr(Notification, "_Node")
-        remove: Callable[[Any, Callable[[], None]], None] = getattr(node, "Remove")
+        remove: Callable[[Any, Action], None] = getattr(node, "Remove")
 
-        def unlinkedFirst(self: Any, action: Callable[[], None]) -> None:
+        def unlinkedFirst(self: Any, action: Action) -> None:
             remove(self, lambda: None)
             action()
 
@@ -669,17 +669,17 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
 
         node: type = getattr(Notification, "_Node")
         removable: type = getattr(Notification, "_Removable")
-        initializeNode: Callable[..., None] = getattr(node, "__init__")
-        initializeRemovable: Callable[[Any, Callable[[], None]], None] = getattr(removable, "__init__")
+        initializeNode: GenericMethod = getattr(node, "__init__")
+        initializeRemovable: Callable[[Any, Action], None] = getattr(removable, "__init__")
 
         def keepingItsRemoval(self: Any, action: Any, finalizerProvider: Any) -> None:
             initializeNode(self, action, finalizerProvider)
 
             setattr(self, "_rebuilt", getattr(self, "_Node__remove"))
 
-        def removedAlways(self: Any, action: Callable[[], Any]) -> Any: return getattr(self, "_rebuilt")(action)
+        def removedAlways(self: Any, action: Function[Any]) -> Any: return getattr(self, "_rebuilt")(action)
 
-        def keeping(self: Any, action: Callable[[], None]) -> None:
+        def keeping(self: Any, action: Action) -> None:
             initializeRemovable(self, action)
 
             setattr(self, "_rebuilt", action)
@@ -761,9 +761,9 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         benches green."""
 
         node: type = getattr(Notification, "_Node")
-        remove: Callable[[Any, Callable[[], Any]], Any] = getattr(node, "Remove")
+        remove: Callable[[Any, Function[Any]], Any] = getattr(node, "Remove")
 
-        def cleared(self: Any, action: Callable[[], Any]) -> Any:
+        def cleared(self: Any, action: Function[Any]) -> Any:
             result: Any = remove(self, action)
 
             setattr(self, "_Node__next", None)
@@ -857,8 +857,8 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         arrived during it are not applied, and the exceptions of the notification are not grouped with
         its own."""
 
-        def early(self: Any, operation: Callable[[Callable[[Exception], None]], None]) -> None:
-            queue: deque[Callable[[Callable[[Exception], None]], None]] = getattr(self, "_InvalidationNotifier__queue")
+        def early(self: Any, operation: Callable[[Method[Exception]], None]) -> None:
+            queue: deque[Callable[[Method[Exception]], None]] = getattr(self, "_InvalidationNotifier__queue")
             monitor: IMonitor = getattr(self, "_InvalidationNotifier__monitor")
             exceptions: ExceptionGroupBuilder = ExceptionGroupBuilder()
 
@@ -890,10 +890,10 @@ class TestTheNotifierBenchesCanFail(unittest.TestCase):
         """An operation that arrives while the monitor is held is queued with a collector that drops the
         exceptions of the subscribers: those of the notification played from the queue are lost."""
 
-        process: Callable[[Any, Callable[[Callable[[Exception], None]], None]], None] = getattr(InvalidationNotifier, "_InvalidationNotifier__Process")
+        process: Callable[[Any, Method[Method[Exception]]], None] = getattr(InvalidationNotifier, "_InvalidationNotifier__Process")
 
-        def losing(self: Any, operation: Callable[[Callable[[Exception], None]], None]) -> None:
-            def dropping(_: Callable[[Exception], None]) -> None: operation(lambda exception: None)
+        def losing(self: Any, operation: Method[Method[Exception]]) -> None:
+            def dropping(_: Method[Exception]) -> None: operation(lambda exception: None)
 
             process(self, dropping if getattr(self, "_InvalidationNotifier__monitor").IsBusy() else operation)
 
