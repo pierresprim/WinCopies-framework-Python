@@ -268,7 +268,7 @@ class TestADeadObjectChangesNoListOfTheRegistry(unittest.TestCase):
             registry.RegisterObject(_Object("N", log, True))
             registry.RegisterObject(last)
 
-            collector: _Collector = _Collector("WinCopies.Collections.Linked.Doubly.Node.DoublyLinkedNodeBase._UpdateFirst")
+            collector: _Collector = _Collector("WinCopies.Collections.Linked.Doubly.Node.DoublyLinkedNodeBase._SetFirstNode")
 
             with collector.Patch(), _drainBounded():
                 collector.Arm()

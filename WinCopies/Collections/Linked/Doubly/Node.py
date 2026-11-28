@@ -161,10 +161,10 @@ class INodeBase[T](IInterface):
     def __init__(self) -> None: super().__init__()
     
     @abstractmethod
-    def _SetFirst(self, cookie: INodeCookie[T], items: IListCookie[T], node: T|None) -> None:
+    def _SetFirst(self, cookie: INodeCookie[T], items: IListCookie[T], node: T) -> None:
         ...
     @abstractmethod
-    def _SetLast(self, cookie: INodeCookie[T], items: IListCookie[T], node: T|None) -> None:
+    def _SetLast(self, cookie: INodeCookie[T], items: IListCookie[T], node: T) -> None:
         ...
 
 class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](NodeBase[TItem, TNode], IGenericConstraint[TList, IReadWriteList[TItem]]):
@@ -205,24 +205,10 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
     def GetNext(self) -> DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]|None: return self._TryAsLinkedNode(self.GetNextNode())
     
     @abstractmethod
-    def _AddFirst(self, node: TNode, l: TListInterface) -> None:
+    def _SetFirstNode(self, node: TNode) -> None:
         ...
     @abstractmethod
-    def _AddLast(self, node: TNode, l: TListInterface) -> None:
-        ...
-    
-    @abstractmethod
-    def _UpdateFirst(self, node: TNode, l: TListInterface) -> None:
-        ...
-    @abstractmethod
-    def _UpdateLast(self, node: TNode, l: TListInterface) -> None:
-        ...
-
-    @abstractmethod
-    def _RemoveFirst(self) -> None:
-        ...
-    @abstractmethod
-    def _RemoveLast(self) -> None:
+    def _SetLastNode(self, node: TNode) -> None:
         ...
     
     @final
@@ -234,7 +220,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
                 if self is self.__GetList(l).GetFirstNode():
                     node: TNode = getNode(None)
                     
-                    self._AddFirst(node, l)
+                    self._SetFirstNode(node)
 
                     return node
                 
@@ -262,7 +248,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
                 if self is self.__GetList(l).GetLastNode():
                     node: TNode = getNode(None)
                     
-                    self._AddLast(node, l)
+                    self._SetLastNode(node)
 
                     return node
                 
@@ -343,7 +329,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
                     return False
             
             else:
-                if l is not None: self._UpdateFirst(nextNode._AsNode(), l)
+                if l is not None: self._SetFirstNode(nextNode._AsNode())
 
                 self.__RemoveFirst(nextNode, None)
             
@@ -351,7 +337,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         def whenLast(previousNode: DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface]) -> None:
             l: TListInterface|None = self._GetInnerList()
 
-            if l is not None: self._UpdateLast(previousNode._AsNode(), l)
+            if l is not None: self._SetLastNode(previousNode._AsNode())
             
             self.__RemoveLast(previousNode, None)
         
@@ -411,7 +397,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
 
                 unregister(previousNode)
 
-                self._UpdateFirst(node._AsNode(), l)
+                self._SetFirstNode(node._AsNode())
 
             self.__RemoveFirst(node, None)
             
@@ -420,7 +406,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         if l is not None:
             unregister(previousNode)
 
-            self._UpdateFirst(self._AsNode(), l)
+            self._SetFirstNode(self._AsNode())
         
         self.__RemoveLast(previousNode, None)
     @final
@@ -460,7 +446,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
 
                 unregister(nextNode)
 
-                self._UpdateLast(node._AsNode(), l)
+                self._SetLastNode(node._AsNode())
 
             self.__RemoveLast(node, None)
             
@@ -469,7 +455,7 @@ class DoublyLinkedNodeAbstract[TItem, TNode, TList, TListInterface: IClearable](
         if l is not None:
             unregister(nextNode)
 
-            self._UpdateLast(self._AsNode(), l)
+            self._SetLastNode(self._AsNode())
         
         self.__RemoveFirst(nextNode, None)
     
@@ -497,32 +483,11 @@ class DoublyLinkedNodeBase[TItem, TNode, TList, TListInterface: IClearable](Doub
         return self.__cookie
     
     @final
-    def _SetFirstNode(self, node: TNode|None) -> None:
+    def _SetFirstNode(self, node: TNode) -> None:
         self._SetFirst(self._GetCookie(), self._GetItemCookie(), node)
     @final
-    def _SetLastNode(self, node: TNode|None) -> None:
+    def _SetLastNode(self, node: TNode) -> None:
         self._SetLast(self._GetCookie(), self._GetItemCookie(), node)
-    
-    @final
-    def _AddFirst(self, node: TNode, l: TListInterface) -> None:
-        self._SetFirstNode(node)
-    @final
-    def _AddLast(self, node: TNode, l: TListInterface) -> None:
-        self._SetLastNode(node)
-    
-    @final
-    def _UpdateFirst(self, node: TNode, l: TListInterface) -> None:
-        self._AddFirst(node, l)
-    @final
-    def _UpdateLast(self, node: TNode, l: TListInterface) -> None:
-        self._AddLast(node, l)
-    
-    @final
-    def _RemoveFirst(self) -> None:
-        self._SetFirstNode(None)
-    @final
-    def _RemoveLast(self) -> None:
-        self._SetLastNode(None)
     
     @final
     def TryMoveToTop(self) -> bool|None:

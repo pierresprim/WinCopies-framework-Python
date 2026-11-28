@@ -93,10 +93,10 @@ class ListNodeBase[T](INodeBase[T]):
     def __init__(self) -> None: super().__init__()
     
     @final
-    def _SetFirst(self, cookie: INodeCookie[T], items: IListCookie[T], node: T|None) -> None:
+    def _SetFirst(self, cookie: INodeCookie[T], items: IListCookie[T], node: T) -> None:
         cookie.SetFirst(node, items)
     @final
-    def _SetLast(self, cookie: INodeCookie[T], items: IListCookie[T], node: T|None) -> None:
+    def _SetLast(self, cookie: INodeCookie[T], items: IListCookie[T], node: T) -> None:
         cookie.SetLast(node, items)
 
 class ListBase[TItem, TNode, TNodeInterface: IRemovableNode](Abstract, IListBase[TItem, TNodeInterface], _IAbstractList[TItem, TNode], IAbstractNode[TNode, TNodeInterface], IListCookie[TNode]):
